@@ -522,7 +522,9 @@ _GEOID_STRUCTURE_ROW_RE = re.compile(
     r"\t</tr>"
 )
 _GEOID_EXAMPLE_ROW_RE = re.compile(
-    r'<tr>\r?\n\t\t<td scope="row"[^>]*>(?P<geoid>.*?)</td>\r?\n' r"\t\t<td[^>]*>(?P<name>.*?)</td>\r?\n" r"\t</tr>"
+    r'<tr>\r?\n\t\t<td scope="row"[^>]*>(?P<geoid>.*?)</td>\r?\n'
+    r"\t\t<td[^>]*>(?P<name>.*?)</td>\r?\n"
+    r"\t</tr>"
 )
 _STRIP_TAGS_RE = re.compile(r"<[^>]+>")
 _STRIP_FOOTNOTE_MARKER_RE = re.compile(r"<sup>.*?</sup>")

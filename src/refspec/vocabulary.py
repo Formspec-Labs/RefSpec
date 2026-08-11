@@ -251,7 +251,7 @@ def _require_decimal(value: object, label: str) -> Decimal:
 def _require_datetime(value: object, label: str) -> str:
     text = _require_text(value, label)
     try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text)
     except ValueError as exc:
         raise ReferenceRuntimeError(f"{label} must be an ISO-8601 date-time") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
@@ -1439,9 +1439,9 @@ class RegistryReconciliationReport:
             for value in values:
                 _require_iri(value, label)
         expected_authorizations = {
-            **{value: "rulespecAuthority" for value in self.rulespec_authority_refs},
-            **{value: "rulespecAttestation" for value in self.attestation_refs},
-            **{value: "localAdoption" for value in self.local_adoption_refs},
+            **dict.fromkeys(self.rulespec_authority_refs, "rulespecAuthority"),
+            **dict.fromkeys(self.attestation_refs, "rulespecAttestation"),
+            **dict.fromkeys(self.local_adoption_refs, "localAdoption"),
         }
         if len(expected_authorizations) != (
             len(self.rulespec_authority_refs) + len(self.attestation_refs) + len(self.local_adoption_refs)
@@ -3499,7 +3499,7 @@ class EnrichmentEvaluationResult:
                 raise ReferenceRuntimeError(f"{measure!r} has more than one threshold")
             threshold_measures.add(measure)
             actual = observed[measure]
-            if operator == "atLeast" and actual < threshold or operator == "atMost" and actual > threshold:
+            if (operator == "atLeast" and actual < threshold) or (operator == "atMost" and actual > threshold):
                 threshold_failures.append(measure)
         declared_measures = set(self.predeclared_measures)
         observed_measures = set(observed)

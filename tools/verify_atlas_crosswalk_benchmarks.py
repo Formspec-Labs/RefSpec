@@ -56,7 +56,7 @@ CROSSWALKS: tuple[str, ...] = ("fr-elsst", "fr-icpsr", "elsst-icpsr")
 PARTITION_SETS: tuple[str, ...] = ("positives", "hard-negatives", "controls", "disputed")
 
 #: Every emitted evaluation set, including the non-partitioning directness view.
-ALL_SETS: tuple[str, ...] = PARTITION_SETS + ("directness",)
+ALL_SETS: tuple[str, ...] = (*PARTITION_SETS, "directness")
 
 #: Generation classes that mark a candidate as a seeded control.
 CONTROL_CLASSES = frozenset({"randomNegativeControl", "siblingDistractor"})

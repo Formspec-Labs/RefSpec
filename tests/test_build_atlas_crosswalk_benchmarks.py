@@ -82,7 +82,7 @@ def _write_archive(root: Path, specs: list[dict[str, Any]]) -> tuple[Path, Path]
         )
         artifacts.append(_context(index))
         candidates.append(_candidate(index, evidence_id))
-        for group, outcome in zip(("google-gemini", "openai"), spec["outcomes"]):
+        for group, outcome in zip(("google-gemini", "openai"), spec["outcomes"], strict=True):
             relation = spec.get("relations", {}).get(group, "same")
             validations.append(_validation(index, group, outcome, relation))
         key_rows.append(

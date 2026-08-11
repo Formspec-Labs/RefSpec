@@ -17,9 +17,7 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeAlias, cast
-
-from typing_extensions import Self
+from typing import Any, Self, TypeAlias, cast
 
 from refspec import binding
 from refspec.immutable import deep_freeze_json

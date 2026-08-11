@@ -2725,7 +2725,7 @@ def test_source_scheme_membership_fails_when_native_payload_omits_it(
 ) -> None:
     lines = atlas_pack_lines(
         scheme_target="urn:ref:atlas-resource-scheme:example",
-        native_scheme_iris={iri: () for iri in CONCEPTS},
+        native_scheme_iris=dict.fromkeys(CONCEPTS, ()),
     )
     lines.append(_quad(SCHEME, f"{RDF}type", f"{SKOS}ConceptScheme"))
     suite.write_pack_lines(lines)

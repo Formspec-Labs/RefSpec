@@ -21,7 +21,7 @@ def _release(key: str) -> Any:
 def test_large_loader_opens_only_requested_sources(monkeypatch: pytest.MonkeyPatch) -> None:
     called: list[tuple[str, Path]] = []
 
-    for key, _loader, filename in large._large_registry_loader_specs():
+    for key, _loader, _filename in large._large_registry_loader_specs():
         function_name = _loader.__name__
 
         def fake(path: Path, *, _key: str = key) -> Any:

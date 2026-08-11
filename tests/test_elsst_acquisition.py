@@ -7,9 +7,9 @@ import importlib
 import io
 import os
 from pathlib import Path
+from typing import Self
 
 import pytest
-from typing_extensions import Self
 
 from refspec.registry.adapters import elsst_acquisition as acquisition
 from refspec.registry.infrastructure import pinned_acquisition

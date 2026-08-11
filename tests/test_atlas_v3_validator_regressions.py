@@ -889,6 +889,7 @@ def _write_packed_distribution(
         )
         manifest_path.write_bytes(atlas_validate.canonical_json_bytes(manifest))
         return root
+    raise AssertionError(f"{VALID_DISTRIBUTION} carries no {atlas_validate.CONSTRUCTION_SUMMARY_FILE} to repack")
 
 def _write_distribution_json(
     distribution: Path,

@@ -16,11 +16,11 @@ import stat
 import tempfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, NotRequired
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 try:  # Python 3.14+
     from compression import zstd
@@ -132,7 +132,7 @@ _COMMON_RECORD_FIELDS = frozenset(
 )
 
 
-class CompactRecordRole(str, Enum):
+class CompactRecordRole(StrEnum):
     """Closed logical roles admitted by canonical Atlas record packs."""
 
     RESOURCE = "Resource"
@@ -865,7 +865,7 @@ def _summarize_normalized_compact_records(
     records: Iterable[Mapping[str, Any]],
 ) -> dict[str, Any]:
     normalized_by_id: dict[str, Mapping[str, Any]] = {}
-    for index, raw_record in enumerate(records):
+    for _index, raw_record in enumerate(records):
         identifier = str(raw_record["id"])
         if identifier in normalized_by_id:
             raise CompactPackError(f"duplicate {record_role.value} record id: {identifier}")

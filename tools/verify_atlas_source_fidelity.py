@@ -1563,10 +1563,7 @@ def _extract_native_control_value(
     }:
         raise ValueError(f"unsupported native-control extraction {extraction!r}")
 
-    if isinstance(raw, str):
-        value = _json_without_duplicate_keys(raw.encode("utf-8"), label)
-    else:
-        value = raw
+    value = _json_without_duplicate_keys(raw.encode("utf-8"), label) if isinstance(raw, str) else raw
     if not isinstance(value, list):
         raise TypeError(f"{label} must contain a JSON array")
 
@@ -3729,10 +3726,7 @@ def _payload_relation(
     """Read one relation object without changing any IRI or direction."""
     if not isinstance(value, Mapping):
         return None
-    if snake_case:
-        keys = ("subject_iri", "predicate_iri", "object_iri")
-    else:
-        keys = ("subjectIri", "predicateIri", "objectIri")
+    keys = ("subject_iri", "predicate_iri", "object_iri") if snake_case else ("subjectIri", "predicateIri", "objectIri")
     row = tuple(value.get(key) for key in keys)
     if not all(isinstance(item, str) and ":" in item for item in row):
         return None
@@ -7345,7 +7339,7 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
     native_controls_by_spec = {
         pair.spec: pair for pair in ctx.native_control_pairs
     }
-    atlas_by_spec = {spec: atlas for spec, atlas in ctx.atlas_views}
+    atlas_by_spec = dict(ctx.atlas_views)
     native_result = next(
         (result for result in results if result.name == "native-control-fidelity"),
         None,

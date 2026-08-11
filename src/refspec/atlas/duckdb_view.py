@@ -12,11 +12,10 @@ import threading
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, cast
+from typing import Any, Self, cast
 
 import duckdb
 import pyarrow as pa
-from typing_extensions import Self
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import normalize_sha256_prefix

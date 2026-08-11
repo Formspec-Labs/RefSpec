@@ -288,7 +288,7 @@ def run_source(
         found_by_arm[view.name] = ranks
 
     union: dict[tuple[str, str], int] = {}
-    for name, found in found_by_arm.items():
+    for found in found_by_arm.values():
         pairs = found.items() if not isinstance(found, set) else ((pair, 1) for pair in found)
         for pair, rank in pairs:
             if rank < union.get(pair, depths[-1] + 1):

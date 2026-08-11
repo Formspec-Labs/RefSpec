@@ -104,7 +104,7 @@ class NppesProviderRecord:
             "entityTypeCode": self.entity_type_code,
             "identifier": self.identifier.as_dict(),
             "publisherLabel": self.publisher_label,
-            "fields": {name: value for name, value in self.fields},
+            "fields": dict(self.fields),
         }
 
 

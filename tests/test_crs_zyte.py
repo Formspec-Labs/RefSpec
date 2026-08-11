@@ -7,9 +7,9 @@ import io
 import json
 import os
 from pathlib import Path
+from typing import Self
 
 import pytest
-from typing_extensions import Self
 
 from refspec.registry.adapters import crs_zyte
 from refspec.registry.infrastructure import zyte_transport

@@ -327,7 +327,7 @@ def _parse_row(element: ET.Element, *, path: tuple[int, ...]) -> EpaTermRow:
                 raise EpaEnterpriseVocabularyError(
                     f"{location} <{_CHILD_TERMS_TAG}> contains an unsupported element <{child.tag}>"
                 )
-            parsed_children.append(_parse_row(child, path=path + (index,)))
+            parsed_children.append(_parse_row(child, path=(*path, index)))
         child_rows = tuple(parsed_children)
 
     return EpaTermRow(
@@ -466,7 +466,7 @@ class EpaFetchedExport:
     body: bytes
 
     def __post_init__(self) -> None:
-        for value, field in ((self.requested_url, "requested_url"), (self.resolved_url, "resolved_url")):
+        for value, _field in ((self.requested_url, "requested_url"), (self.resolved_url, "resolved_url")):
             _validate_source_url(value)
         if self.status_code < 100 or self.status_code > 599:
             raise EpaEnterpriseVocabularyError("status_code must be an HTTP status")

@@ -134,8 +134,7 @@ def schema_annotation(schema: object) -> str:
 
 def inherited_required(schema: Mapping[str, Any]) -> set[str]:
     required = schema.get("required")
-    result = {str(value) for value in required} if isinstance(required, list) else set()
-    return result
+    return {str(value) for value in required} if isinstance(required, list) else set()
 
 
 def schema_properties(schema: Mapping[str, Any]) -> tuple[dict[str, Any], set[str]]:
@@ -165,9 +164,11 @@ def render_python_types(model: Mapping[str, Any], model_digest: str) -> bytes:
         "",
         "from __future__ import annotations",
         "",
-        "from typing import Any, Literal",
+        "from typing import Any, Literal, NotRequired, Required",
         "",
-        "from typing_extensions import NotRequired, Required, TypedDict",
+        # `TypedDict` stays on typing_extensions: only that one keeps
+        # `__required_keys__` correct for `Required`/`NotRequired` before 3.12.
+        "from typing_extensions import TypedDict",
         "",
         f'MODEL_SHA256 = "sha256:{model_digest}"',
         "",

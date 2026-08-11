@@ -351,6 +351,4 @@ def test_declared_observed_and_derived_origins_reopen_with_evidence(
     )
 
     assert {claim.origin for claim in view.claims} == set(origins)
-    assert view.manifest["claimTable"]["originCounts"] == {
-        origin: 1 for origin in sorted(origins)
-    }
+    assert view.manifest["claimTable"]["originCounts"] == dict.fromkeys(sorted(origins), 1)

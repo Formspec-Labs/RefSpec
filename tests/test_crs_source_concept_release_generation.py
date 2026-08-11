@@ -27,7 +27,7 @@ _EXPECTED_RELEASES = {
         "rightsSetDigest": "sha256:6b75d98b460ef532b4abc0412e6d0999da0db0e6b1ef06d503d81c44dcfda4f8",
         "rightsStatuses": ["notStated"],
         "releaseId": (
-            "urn:ref:source-concept-release:subject:" "d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
+            "urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
         ),
         "releaseDigest": ("sha256:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"),
         "logicalDigest": ("sha256:39c876bd1b7b577c09248a47ba63fdba68543ebd18185c5f71e99871217a577b"),
@@ -40,7 +40,7 @@ _EXPECTED_RELEASES = {
         "rightsSetDigest": "sha256:6489216d696f41bb43927e8edd643e86bd9d9c22e5a66f36fc1305f4de8059e6",
         "rightsStatuses": ["notStated"],
         "releaseId": (
-            "urn:ref:source-concept-release:entity:" "79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"
+            "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"
         ),
         "releaseDigest": ("sha256:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"),
         "logicalDigest": ("sha256:8437a64121d1608055bfe18df643f67e2f082170e3870b4f5f7e688ec873be7f"),
@@ -53,7 +53,7 @@ _EXPECTED_RELEASES = {
         "rightsSetDigest": "sha256:e8edc57fb971ad3bbba08fdd48c51f49df66c6ec34840dba6c17bbabb6de2adf",
         "rightsStatuses": ["notStated"],
         "releaseId": (
-            "urn:ref:source-concept-release:subject:" "3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"
+            "urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"
         ),
         "releaseDigest": ("sha256:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"),
         "logicalDigest": ("sha256:11eadd5a0c435f016e2e3230b625fcc4b5bce99090638daa635fb9995c6b9bf4"),

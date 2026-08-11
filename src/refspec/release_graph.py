@@ -862,7 +862,7 @@ def _timestamp(value: Any, *, field: str) -> dt.datetime:
     if not isinstance(value, str):
         raise TypeError(f"{field} must be an RFC 3339 timestamp")
     try:
-        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = dt.datetime.fromisoformat(value)
     except (TypeError, ValueError) as error:
         raise ValueError(f"{field} must be an RFC 3339 timestamp") from error
     if parsed.tzinfo is None:
@@ -1653,7 +1653,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = validate_release_graph_bundle(bundle, validator=validator)
         if report.passed and args.issue_receipt is not None:
             recorded_at = args.recorded_at or (
-                dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+                dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
             )
             try:
                 receipt = issue_release_graph_validation_receipt(

@@ -12,7 +12,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -369,7 +369,7 @@ class RegistryMapping:
                         item.attested_at,
                         field_name="mapping evidence attested_at",
                     )
-                    .astimezone(timezone.utc)
+                    .astimezone(UTC)
                     .isoformat(),
                     "nativePayload": item.native_payload,
                     "reviewWarrant": item.review_warrant,
@@ -468,14 +468,14 @@ class RegistryMappingRelease:
             parsed_issued.year,
             parsed_issued.month,
             parsed_issued.day,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
         for mapping in self.mappings:
             if (
                 _canonical_aware_datetime(
                     mapping.asserted_at,
                     field_name=f"mapping release {self.key} asserted_at",
-                ).astimezone(timezone.utc)
+                ).astimezone(UTC)
                 < issued_at
             ):
                 raise ValueError(
@@ -485,7 +485,7 @@ class RegistryMappingRelease:
                 _canonical_aware_datetime(
                     evidence.attested_at,
                     field_name=f"mapping release {self.key} attested_at",
-                ).astimezone(timezone.utc)
+                ).astimezone(UTC)
                 < issued_at
                 for evidence in mapping.evidence
             ):

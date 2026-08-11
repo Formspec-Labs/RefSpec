@@ -862,10 +862,7 @@ def _type_spellings(type_iri: str) -> set[str]:
 
 def _iri_values(value: object) -> tuple[str, ...]:
     values: Sequence[object]
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-        values = value
-    else:
-        values = (value,)
+    values = value if isinstance(value, Sequence) and not isinstance(value, (str, bytes)) else (value,)
     result: list[str] = []
     for item in values:
         if isinstance(item, str):

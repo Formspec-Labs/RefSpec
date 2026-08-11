@@ -14,7 +14,7 @@ import hashlib
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class SourceIdentityError(ValueError):
@@ -36,7 +36,7 @@ def parse_aware_datetime(value: str, *, label: str) -> datetime:
         raise SourceIdentityError(f"{label} must be an ISO 8601 date-time") from error
     if parsed.tzinfo is None:
         raise SourceIdentityError(f"{label} must include a time zone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def require_aware_datetime_text(value: object, *, label: str) -> str:

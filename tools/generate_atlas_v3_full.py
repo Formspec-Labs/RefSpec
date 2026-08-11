@@ -168,14 +168,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:6b6a62c5a9b62a66c8ea7dac65ad685168a364d12b525eb86d2f2a529272b8cd"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:0cc31b3d395a8d95de074854f302ebec22e79c15b624385d2601f19f7974e62e"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:4c437b7bbeb52e85f6562d69c7e316ca2e968346f3ed67ccfd841d073a59416e"
+            "sha256:9688ae00604de4b069b416326965ca791bb87c81c5f27cfc3280fde405bdcccb"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -758,7 +758,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:4abe946607451fdbeffef80e9aff7d4437eacd80748204346734b6ab750ecafc"
+    "sha256:a226200258080ccb989e8626a5a3696bdd4ede7fdf66486666875173cb93211e"
 )
 
 
@@ -7631,7 +7631,7 @@ def _construction_summary(
         )
         if not compact_paths:
             raise ValueError(f"construction unit {key} owns no compact packs")
-        record_counts = {field: 0 for field in _COMPACT_ROLE_COUNT_FIELDS.values()}
+        record_counts = dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
         logical_inventory: list[dict[str, Any]] = []
         for path in compact_paths:
             inventory = compact_by_path[path]
@@ -9605,13 +9605,7 @@ def verify_inputs(
             verified_pins[pin.logical_path] = identity
     registry = Dataset(default_union=True)
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
-    descriptors = {
-        subject
-        for subject in registry.subjects(
-            RDF.type,
-            ATLAS.ResourceScheme,
-        )
-    }
+    descriptors = set(registry.subjects(RDF.type, ATLAS.ResourceScheme))
     if len(descriptors) != 88:
         raise ValueError(f"expected 88 registry descriptors; found {len(descriptors)}")
 

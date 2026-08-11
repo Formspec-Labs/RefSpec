@@ -8,10 +8,9 @@ import json
 import os
 import urllib.error
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import pytest
-from typing_extensions import Self
 
 from refspec.registry.adapters import icpsr_zyte
 from refspec.registry.infrastructure import zyte_transport

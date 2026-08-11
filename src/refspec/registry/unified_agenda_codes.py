@@ -488,10 +488,7 @@ def _parse_documented_options(text: str, *, quoted: bool, field_name: str) -> tu
             f"reginfo schema {field_name} documentation no longer starts with 'One of the following'"
         )
     body = match.group("body").strip().rstrip(".").strip()
-    if quoted:
-        raw = _QUOTED_OPTION.findall(body)
-    else:
-        raw = [part.strip() for part in body.split(",") if part.strip()]
+    raw = _QUOTED_OPTION.findall(body) if quoted else [part.strip() for part in body.split(",") if part.strip()]
     if not raw:
         raise UnifiedAgendaSourceDriftError(f"reginfo schema {field_name} documentation produced no option values")
     return tuple(raw)

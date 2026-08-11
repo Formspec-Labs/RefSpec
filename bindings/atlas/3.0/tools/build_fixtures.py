@@ -6,9 +6,7 @@ import argparse
 import copy
 import hashlib
 import json
-import re
 import shutil
-import sys
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -603,7 +601,7 @@ def _add_adjudication_proof(
         graph,
         _adjudication_iri("artifact", "response", name, key),
         identifiers=[str(_adjudication_iri("artifact", "response", name, key))],
-        digest="sha256:" + hashlib.sha256(f"{name}:{key}:response".encode("utf-8")).hexdigest(),
+        digest="sha256:" + hashlib.sha256(f"{name}:{key}:response".encode()).hexdigest(),
     )
     graph.add((proof, RDF.type, RKAF.ResolverProofRecord))
     graph.add((proof, RKAF.proofType, RKAF.machineAdjudicationProof))
@@ -1972,7 +1970,7 @@ def _construction_summary(
         compact_paths = sorted(
             path for path, owner in compact_path_owners.items() if owner == unit.key
         )
-        record_counts = {field: 0 for field in COMPACT_ROLE_COUNT_FIELDS.values()}
+        record_counts = dict.fromkeys(COMPACT_ROLE_COUNT_FIELDS.values(), 0)
         logical_inventory = []
         for path in compact_paths:
             descriptor = compact_by_path[path]
@@ -3888,7 +3886,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def adjudication_proof_input_digest(fixture: Fixture) -> None:
         fixture.reseal_adjudication = False
         alpha = proof_node("alpha")
-        stale = sorted(fixture.asserted.objects(alpha, RKAF.proofInputDigest), key=str)[0]
+        stale = min(fixture.asserted.objects(alpha, RKAF.proofInputDigest), key=str)
         fixture.asserted.remove((alpha, RKAF.proofInputDigest, stale))
         fixture.asserted.add((alpha, RKAF.proofInputDigest, Literal("sha256:" + "4" * 64)))
         _refresh_proof_digest(fixture.asserted, alpha)

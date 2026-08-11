@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, Required
 
-from typing_extensions import NotRequired, Required, TypedDict
+from typing_extensions import TypedDict
 
 MODEL_SHA256 = "sha256:9093b5efee7978c4a531cf7c4fed750a75e440d78075e0e31ebb2f875bf4e4c2"
 

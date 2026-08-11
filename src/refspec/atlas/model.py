@@ -14,12 +14,11 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 from rdflib import BNode, Graph, Namespace, URIRef
 from rdflib import Literal as RdfLiteral
 from rdflib.namespace import DCAT, DCTERMS, PROV, RDF, XSD
-from typing_extensions import Self
 
 from refspec.managed_release import (
     ManagedReleaseExpression,

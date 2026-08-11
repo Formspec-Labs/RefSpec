@@ -45,9 +45,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, cast
-
-from typing_extensions import Self
+from typing import Any, Self, cast
 
 from refspec.immutable import deep_freeze_json
 from refspec.managed_release import (

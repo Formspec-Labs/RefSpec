@@ -701,7 +701,7 @@ class DoeOstiFetchedResource:
     body: bytes
 
     def __post_init__(self) -> None:
-        for value, field in ((self.requested_url, "requested_url"), (self.resolved_url, "resolved_url")):
+        for value, _field in ((self.requested_url, "requested_url"), (self.resolved_url, "resolved_url")):
             _validate_source_url(value)
         if self.status_code < 100 or self.status_code > 599:
             raise DoeOstiThesaurusError("status_code must be an HTTP status")

@@ -69,7 +69,7 @@ def find_cycle(edges: dict[str, set[str]]) -> list[str] | None:
         for parent in sorted(edges.get(node, ())):
             state = colour.get(parent, 0)
             if state == 1:
-                return stack[stack.index(parent) :] + [parent]
+                return [*stack[stack.index(parent):], parent]
             if state == 0 and (found := visit(parent)) is not None:
                 return found
         colour[node] = 2

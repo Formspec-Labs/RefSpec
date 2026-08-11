@@ -584,7 +584,7 @@ class ManagedVocabularyBundle:
             else:
                 try:
                     os.link(temporary, corpus_destination)
-                except FileExistsError:
+                except FileExistsError as error:
                     existing_digest = hashlib.sha256(
                         corpus_destination.read_bytes()
                     ).hexdigest()
@@ -592,7 +592,7 @@ class ManagedVocabularyBundle:
                         raise FileExistsError(
                             "refusing to overwrite different artifact "
                             f"{corpus_destination}"
-                        )
+                        ) from error
         finally:
             if descriptor >= 0:
                 os.close(descriptor)

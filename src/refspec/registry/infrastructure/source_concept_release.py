@@ -26,9 +26,7 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any, cast
-
-from typing_extensions import Self
+from typing import Any, Self, cast
 
 from refspec import binding
 from refspec.immutable import deep_freeze_json
@@ -486,18 +484,10 @@ def _lifecycle_rows(
             allow_empty=event_type == "retire",
         )
         valid = (
-            event_type == "rename"
-            and len(prior) == 1
-            and prior == resulting
-            or event_type == "split"
-            and len(prior) == 1
-            and len(resulting) >= 2
-            or event_type == "merge"
-            and len(prior) >= 2
-            and len(resulting) == 1
-            or event_type == "retire"
-            and len(prior) >= 1
-            and not resulting
+            (event_type == "rename" and len(prior) == 1 and prior == resulting)
+            or (event_type == "split" and len(prior) == 1 and len(resulting) >= 2)
+            or (event_type == "merge" and len(prior) >= 2 and len(resulting) == 1)
+            or (event_type == "retire" and len(prior) >= 1 and not resulting)
         )
         if not valid:
             raise SourceConceptReleaseError(

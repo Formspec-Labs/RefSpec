@@ -6,7 +6,7 @@ import argparse
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from refspec.registry.icpsr_subject import (
@@ -112,7 +112,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
     try:
-        observed_at = args.observed_at or datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
+        observed_at = args.observed_at or datetime.now(UTC).isoformat(timespec="seconds").replace(
             "+00:00", "Z"
         )
         fetcher = ZyteIcpsrPageFetcher.from_environment()

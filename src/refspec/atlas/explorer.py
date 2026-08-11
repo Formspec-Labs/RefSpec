@@ -484,13 +484,11 @@ def _coverage(view: AtlasParquetExplorer) -> tuple[dict[str, Any], dict[str, int
     relation_rings: Counter[str] = Counter()
     cross_pairs: Counter[tuple[str, str]] = Counter()
     superseded_ids, rescinded_ids = _lifecycle_status_ids(view)
-    total_relations = 0
     current = 0
     for row in _iter_rows(
         view.tables[CompactRecordRole.STATEMENT],
         columns=["id", "statement_type", "semantic_ring", "source_ring", "target_ring"],
     ):
-        total_relations += 1
         relation_kinds[
             {
                 "MappingAssertion": "mapping",

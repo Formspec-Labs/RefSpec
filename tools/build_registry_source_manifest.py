@@ -1303,7 +1303,7 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
     auto_support = (nested_ids - configured_nested_ids) - set(unregistered_readers)
 
     direct_inputs: dict[str, list[dict[str, Any]]] = {}
-    for module, path in zip(module_ids, paths, strict=True):
+    for module, _path in zip(module_ids, paths, strict=True):
         inputs = [dict(configured) for configured in TEST_INPUTS.get(module, ())]
         inputs.extend(_pinned_fixture_test_inputs(module, repository_root))
         if module == "managed_releases/icpsr_managed_release.py":

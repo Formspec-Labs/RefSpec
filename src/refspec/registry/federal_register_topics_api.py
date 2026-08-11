@@ -22,7 +22,7 @@ import urllib.request
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -355,7 +355,7 @@ def _resolve_capture_event(
                 fetch_id=fetch_event.fetch_id,
                 fetched_at=fetch_event.fetched_at,
             )
-        observed_at = retrieved_at or datetime.now(timezone.utc).isoformat(
+        observed_at = retrieved_at or datetime.now(UTC).isoformat(
             timespec="seconds"
         ).replace("+00:00", "Z")
         return SourceCaptureEvent.generate(fetched_at=observed_at)
@@ -402,11 +402,11 @@ def _publish_capture(
                 os.fsync(output.fileno())
             try:
                 os.link(temporary, destination)
-            except FileExistsError:
+            except FileExistsError as error:
                 if destination.is_symlink() or destination.read_bytes() != payload:
                     raise FederalRegisterTopicsError(
                         "capture target changed during publication"
-                    )
+                    ) from error
         finally:
             temporary.unlink(missing_ok=True)
     return AcquiredFederalRegisterTopics(

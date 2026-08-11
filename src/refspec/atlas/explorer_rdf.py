@@ -924,9 +924,11 @@ class _StreamingIndexBuilder:
                 stratum=(scheme,),
             )
 
-        if _RKAF_LIFECYCLE_EVENT_TYPE_TOKEN in types:
-            if values.get(_RKAF_LIFECYCLE_EVENT_KIND_TOKEN) == _RKAF_RESCISSION_TOKEN:
-                self.rescinded_assertions += 1
+        if (
+            _RKAF_LIFECYCLE_EVENT_TYPE_TOKEN in types
+            and values.get(_RKAF_LIFECYCLE_EVENT_KIND_TOKEN) == _RKAF_RESCISSION_TOKEN
+        ):
+            self.rescinded_assertions += 1
 
         if _RELATION_ASSERTION_TYPE_TOKEN in types:
             kinds = [
@@ -3599,9 +3601,10 @@ def _explorer_lifecycle_status_ids(
             types = _record_types(record)
             if str(ATLAS.RelationAssertion) in types:
                 superseded_ids.update(_record_iri_values(record, str(RKAF.supersedesAssertion)))
-            elif str(RKAF.LifecycleEvent) in types:
-                if str(RKAF.rescission) in _record_iri_values(record, str(RKAF.lifecycleEventKind)):
-                    rescinded_ids.update(_record_iri_values(record, str(RKAF.appliesTo)))
+            elif str(RKAF.LifecycleEvent) in types and str(RKAF.rescission) in _record_iri_values(
+                record, str(RKAF.lifecycleEventKind)
+            ):
+                rescinded_ids.update(_record_iri_values(record, str(RKAF.appliesTo)))
     return frozenset(superseded_ids), frozenset(rescinded_ids)
 
 

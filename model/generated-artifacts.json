@@ -27,6 +27,6 @@
     "src/refspec/generated_conformance_assets.py": "sha256:9cc3c44c01d85b013a1bed883959ce21f9dfb84495424575e02da3f25c196e6f",
     "src/refspec/generated_rulespec_dependency.py": "sha256:0a2d8d639094181fa73c1602c7460e2129d771392cd9595710bdab831876aaab",
     "src/refspec/generated_schemas.py": "sha256:c615c003f2053d2b337807922f05ddeae813ebcc96baff57ce3cca32ed7ef4da",
-    "src/refspec/generated_types.py": "sha256:b98aace71acf6600a1521da148a9ef58fb0a3bb88a3d016969bc82c584dd305a"
+    "src/refspec/generated_types.py": "sha256:a988133dee99076443bd13e16fbbcf0bdc5ad97ac9066cee98696b7992fdfdd3"
   }
 }

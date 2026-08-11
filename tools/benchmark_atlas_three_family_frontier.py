@@ -292,7 +292,7 @@ def build_review_sample(
             strata.append((case, "three-family-overlap", band, 1))
         strata.append((case, "just-outside-bge20", JUST_OUTSIDE_REVIEW_BAND, 2))
     quotas = {(case, category, band[0]): quota for case, category, band, quota in strata}
-    counts = {key: 0 for key in quotas}
+    counts = dict.fromkeys(quotas, 0)
     selected: dict[tuple[str, str, str], list[tuple[str, int, int]]] = {key: [] for key in quotas}
     for case_index, (layout, ranks) in enumerate(zip(bge_compact.layouts, bge_compact.ranks, strict=True)):
         source_indexes, target_indexes = np.nonzero(ranks <= JUST_OUTSIDE_REVIEW_BAND[2])

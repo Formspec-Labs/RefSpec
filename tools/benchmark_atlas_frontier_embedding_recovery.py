@@ -403,7 +403,7 @@ def main() -> int:
                 try:
                     parts = []
                     for row in sorted(rows, key=lambda item: item["start"]):
-                        submission = Submission(**{k: v for k, v in row.items()})
+                        submission = Submission(**row)
                         parts.append(
                             collect_openai(openai_client, submission, expected)
                             if arm.provider == "openai"

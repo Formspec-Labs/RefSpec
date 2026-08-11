@@ -366,7 +366,7 @@ def _summarize_pair_ranks(
     include_misses: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[int, frozenset[int]]]:
     hashers = {top_k: hashlib.sha256() for top_k in top_ks}
-    counts = {top_k: 0 for top_k in top_ks}
+    counts = dict.fromkeys(top_ks, 0)
     for code, rank in sorted(pair_ranks.items()):
         line = _pair_line(codec, code)
         for top_k in top_ks:

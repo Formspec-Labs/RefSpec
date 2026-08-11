@@ -403,7 +403,7 @@ def _wordnet_neighborhood(
     *,
     depth: int = 2,
 ) -> dict[str, int]:
-    distances = {synset: 0 for synset in roots}
+    distances = dict.fromkeys(roots, 0)
     frontier = set(roots)
     for distance in range(1, depth + 1):
         following = {
@@ -922,7 +922,7 @@ def production_floor(
         "implementation": "refspec.atlas.candidate_retrieval.generate_candidate_pairs(production=True)",
         "coverageMode": "allDeterministicallyGeneratedCandidates",
         "generationClasses": {
-            name: summarize_pairs({pair: 1 for pair in frozen[name]}, top_k=1, cases=cases)
+            name: summarize_pairs(dict.fromkeys(frozen[name], 1), top_k=1, cases=cases)
             for name in GENERATION_CLASSES
         },
         "elapsedSeconds": round(time.monotonic() - started, 3),

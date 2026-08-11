@@ -45,7 +45,7 @@ from refspec.registry.infrastructure.controlled_identifier import (
 
 ICPSR_SUBJECT_SCHEME_IRI = "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001"
 ICPSR_ROBOTS_URL = "https://www.icpsr.umich.edu/robots.txt"
-ICPSR_INDEX_LETTERS = tuple("abcdefghijklmnopqrstuvwxyz") + ("#",)
+ICPSR_INDEX_LETTERS = (*"abcdefghijklmnopqrstuvwxyz", "#")
 ICPSR_INDEX_PARSER_VERSION = "refspec-icpsr-index-v1"
 ICPSR_XML_PARSER_VERSION = "refspec-icpsr-xml-v1"
 ICPSR_SUBJECT_XML_REVISION = "6e2651e55fb42b119a167f34000ec728d1206865"
@@ -558,9 +558,9 @@ def _publish_exact_file(path: Path, payload: bytes) -> None:
             os.fsync(output.fileno())
         try:
             os.link(temporary, path)
-        except FileExistsError:
+        except FileExistsError as error:
             if path.is_symlink() or path.read_bytes() != payload:
-                raise IcpsrSubjectError(f"ICPSR capture target changed during publication: {path}")
+                raise IcpsrSubjectError(f"ICPSR capture target changed during publication: {path}") from error
     finally:
         temporary.unlink(missing_ok=True)
 

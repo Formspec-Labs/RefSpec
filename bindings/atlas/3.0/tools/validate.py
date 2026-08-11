@@ -8,6 +8,7 @@ distribution offline.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import gc
 import hashlib
 import hmac
@@ -23,7 +24,7 @@ from collections import Counter, defaultdict, deque
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from functools import lru_cache
 from itertools import chain, combinations
@@ -1673,12 +1674,12 @@ def _date_time(value: Any, *, code: str, label: str) -> datetime:
         _fail(code, f"{label} must be an xsd:dateTime literal")
     lexical = str(value)
     try:
-        parsed = datetime.fromisoformat(lexical.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(lexical)
     except ValueError:
         _fail(code, f"{label} is not a valid dateTime")
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         _fail(code, f"{label} must include an explicit timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _binding_digests(
@@ -6971,7 +6972,7 @@ def _compact_sample_indices(record_count: int) -> frozenset[int]:
 def _compact_record_counts_by_role(
     descriptors: Iterable[Mapping[str, Any]],
 ) -> dict[str, int]:
-    counts = {role: 0 for role in COMPACT_RECORD_FIELDS}
+    counts = dict.fromkeys(COMPACT_RECORD_FIELDS, 0)
     for descriptor in descriptors:
         counts[descriptor["role"]] += descriptor["content"]["recordCount"]
     return counts
@@ -7507,10 +7508,8 @@ def _write_validation_receipt(
             os.fsync(stream.fileno())
         os.replace(temporary, target)
     except OSError:
-        try:
+        with contextlib.suppress(OSError):
             temporary.unlink(missing_ok=True)
-        except OSError:
-            pass
 
 
 def _check_cached_pack_transports(

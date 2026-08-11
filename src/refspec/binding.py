@@ -556,7 +556,7 @@ def digest_cycle_diagnostics(records: list[dict[str, Any]]) -> list[Diagnostic]:
     def visit(node: str, path: list[str]) -> None:
         if node in visiting:
             cycle_start = path.index(node)
-            cycle = path[cycle_start:] + [node]
+            cycle = [*path[cycle_start:], node]
             diagnostics.append(
                 Diagnostic(
                     "REF-BIND-004",
@@ -809,10 +809,7 @@ def run_permission_check(
     claimed = check.get("claimedAuthorized")
     if claimed == authorized:
         return []
-    if use == "acceptedOutput" and matching_rows and not authorized:
-        requirement = "REF-TEST-151"
-    else:
-        requirement = "REF-TEST-150"
+    requirement = "REF-TEST-151" if use == "acceptedOutput" and matching_rows and not authorized else "REF-TEST-150"
     return [
         Diagnostic(
             requirement,

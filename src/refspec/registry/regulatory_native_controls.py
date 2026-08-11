@@ -104,7 +104,7 @@ def _https_uri(value: object, label: str) -> str:
 def _observed_at(value: object, label: str) -> str:
     text = _nonempty_text(value, label)
     try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text)
     except ValueError as error:
         raise RegulatoryNativeControlError(f"{label} must be an ISO date-time") from error
     if parsed.tzinfo is None:

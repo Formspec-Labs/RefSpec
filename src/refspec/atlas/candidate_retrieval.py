@@ -603,7 +603,7 @@ def generate_candidate_pairs(
     active_limits: Mapping[str, int | None]
     if production:
         active_limits = {
-            **{name: None for name in GENERATION_CLASSES},
+            **dict.fromkeys(GENERATION_CLASSES),
             "randomNegativeControl": PRODUCTION_RANDOM_CONTROL_COUNT,
         }
     else:
