@@ -168,7 +168,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:f41957758986b2dfe1ece25438d563643be63ab637aaf69a3a83720b5614b702"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:54983dd712b6ea2eb766748821d620c1fe2acf4d149ebffab859b9e4df8f4419"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -2367,6 +2367,29 @@ def _declared_construction_unit_keys() -> frozenset[str]:
             *REGISTRY_MAPPING_RELEASE_KEYS,
         }
     )
+
+
+def split_construction_unit_keys(
+    include_keys: frozenset[str],
+) -> tuple[frozenset[str], frozenset[str]]:
+    """Split one release allowlist into source keys and mapping keys.
+
+    ``load_releases`` and ``load_mapping_releases`` each refuse a key they do
+    not declare, so a bounded caller has to route every requested key to the
+    loader that owns it. The incremental path already splits the same way from
+    the prior construction summary; this derives the split from code instead,
+    which is what a cold bounded build has.
+    """
+
+    from refspec.atlas.v3_registry_alignments import REGISTRY_MAPPING_RELEASE_KEYS
+
+    if not include_keys:
+        raise ValueError("a bounded Atlas build names at least one release key")
+    unknown = sorted(include_keys - _declared_construction_unit_keys())
+    if unknown:
+        raise ValueError(f"unknown Atlas construction units: {unknown}")
+    mapping_keys = include_keys & REGISTRY_MAPPING_RELEASE_KEYS
+    return frozenset(include_keys - mapping_keys), frozenset(mapping_keys)
 
 
 def load_releases(
@@ -10235,8 +10258,18 @@ def build_distribution(
     *,
     reuse_from: Path | None = None,
     registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
+    include_keys: frozenset[str] | None = None,
 ) -> None:
-    """Build, validate, and atomically promote the Atlas 3 distribution."""
+    """Build, validate, and atomically promote the Atlas 3 distribution.
+
+    ``include_keys`` bounds the build to a named set of construction units.
+    Every later step is already release-scoped -- input verification, compiled
+    producer validation, the source accounting, and the content-derived
+    distribution identity all read the loaded releases -- so bounding the load
+    bounds the distribution. Both reuse paths are refused for a bounded build:
+    they compare a prior distribution against the whole code-declared topology,
+    which a bounded distribution deliberately is not.
+    """
 
     output.parent.mkdir(parents=True, exist_ok=True)
     claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
@@ -10245,12 +10278,22 @@ def build_distribution(
             "injected registry claim builds currently require a new output and "
             "do not reuse a prior distribution"
         )
+    bounded = include_keys is not None
+    if bounded and reuse_from is not None:
+        raise ValueError("a bounded Atlas build does not reuse a prior distribution")
+    source_keys, mapping_keys = (
+        (None, None)
+        if include_keys is None
+        else split_construction_unit_keys(include_keys)
+    )
     _STATUS.phase("plan-reuse")
     prior_root = reuse_from
     if prior_root is None and output.exists():
         prior_root = output
     incremental_plan = (
-        None if claim_inputs else _plan_incremental_construction(prior_root)
+        None
+        if claim_inputs or bounded
+        else _plan_incremental_construction(prior_root)
     )
     if incremental_plan is not None:
         reuse, provisional_seeds = incremental_plan
@@ -10264,7 +10307,7 @@ def build_distribution(
         return
     exact_reuse = (
         None
-        if claim_inputs
+        if claim_inputs or bounded
         else _try_exact_distribution_reuse(
             output,
             reuse_from=reuse_from,
@@ -10275,8 +10318,11 @@ def build_distribution(
         print(json.dumps(exact_reuse, indent=2, sort_keys=True))
         return
     _STATUS.phase("load-source-releases")
-    releases = load_releases(registry_claim_inputs=claim_inputs)
-    mapping_releases = load_mapping_releases()
+    releases = load_releases(
+        include_keys=source_keys,
+        registry_claim_inputs=claim_inputs,
+    )
+    mapping_releases = load_mapping_releases(include_keys=mapping_keys)
     _STATUS.phase("verify-pinned-inputs")
     inventory = verify_inputs(releases, mapping_releases)
     _STATUS.phase("validate-normalized-rows")
@@ -10469,6 +10515,16 @@ def main() -> int:
             "release keys"
         ),
     )
+    parser.add_argument(
+        "--only-release",
+        action="append",
+        metavar="RELEASE_KEY",
+        help=(
+            "bound the build to this construction unit; repeat for additional "
+            "keys. A bounded build is always cold and never reuses a prior "
+            "distribution"
+        ),
+    )
     args = parser.parse_args()
     if args.repin:
         return _repin_compiled_producer()
@@ -10480,15 +10536,25 @@ def main() -> int:
             path=Path(path).resolve(),
             expected_manifest_digest=digest,
         )
+    include_keys: frozenset[str] | None = None
+    if args.only_release is not None:
+        include_keys = frozenset(args.only_release)
+        try:
+            source_keys, mapping_keys = split_construction_unit_keys(include_keys)
+        except ValueError as error:
+            parser.error(str(error))
     _STATUS = _StatusReporter(enabled=not args.quiet)
     operation = "check-inputs" if args.check_inputs else "build-distribution"
     _STATUS.phase(operation)
     try:
         if args.check_inputs:
             releases = load_releases(
+                include_keys=None if include_keys is None else source_keys,
                 registry_claim_inputs=registry_claim_inputs,
             )
-            mapping_releases = load_mapping_releases()
+            mapping_releases = load_mapping_releases(
+                include_keys=None if include_keys is None else mapping_keys
+            )
             _STATUS.phase("verify-pinned-inputs")
             print(
                 json.dumps(
@@ -10503,6 +10569,7 @@ def main() -> int:
             args.output.resolve(),
             reuse_from=(args.reuse_from.resolve() if args.reuse_from else None),
             registry_claim_inputs=registry_claim_inputs,
+            include_keys=include_keys,
         )
     except BaseException as error:
         _STATUS.phase("failed", current=type(error).__name__)

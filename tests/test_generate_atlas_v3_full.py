@@ -615,6 +615,90 @@ def test_exact_distribution_reuse_incompatibility_enters_full_build(
         generator.build_distribution(output)
 
 
+def test_bounded_release_keys_reach_the_loader_that_declares_them() -> None:
+    source_keys, mapping_keys = generator.split_construction_unit_keys(
+        frozenset({"federal-register-thesaurus-2025", "eurovoc-lcsh-alignment-20240711"})
+    )
+
+    assert source_keys == frozenset({"federal-register-thesaurus-2025"})
+    assert mapping_keys == frozenset({"eurovoc-lcsh-alignment-20240711"})
+    with pytest.raises(ValueError, match="unknown Atlas construction units"):
+        generator.split_construction_unit_keys(frozenset({"no-such-release"}))
+    with pytest.raises(ValueError, match="names at least one release key"):
+        generator.split_construction_unit_keys(frozenset())
+
+
+def test_bounded_build_loads_only_the_named_release(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A bounded build reaches the loaders with the requested keys only."""
+
+    requested: dict[str, object] = {}
+
+    def load_sources(
+        *, include_keys: object, registry_claim_inputs: object
+    ) -> tuple[object, ...]:
+        requested["sources"] = include_keys
+        return ()
+
+    def load_mappings(*, include_keys: object) -> None:
+        requested["mappings"] = include_keys
+        raise RuntimeError("bounded load reached")
+
+    monkeypatch.setattr(generator, "load_releases", load_sources)
+    monkeypatch.setattr(generator, "load_mapping_releases", load_mappings)
+    with pytest.raises(RuntimeError, match="bounded load reached"):
+        generator.build_distribution(
+            tmp_path / "distribution",
+            include_keys=frozenset({"federal-register-thesaurus-2025"}),
+        )
+
+    assert requested["sources"] == frozenset({"federal-register-thesaurus-2025"})
+    assert requested["mappings"] == frozenset()
+
+
+def test_bounded_build_refuses_both_prior_distribution_reuse_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reuse compares a prior build with the whole declared topology.
+
+    A bounded distribution is deliberately not that topology, so neither reuse
+    path may be consulted; the bounded build stays cold even when an exactly
+    reusable distribution is sitting at the output path.
+    """
+
+    output, input_paths = _write_exact_reuse_test_distribution(tmp_path)
+    monkeypatch.setattr(
+        generator,
+        "_resolve_semantic_input_path",
+        lambda logical_path: input_paths[logical_path],
+    )
+
+    def forbidden(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("a bounded build consulted a prior distribution")
+
+    monkeypatch.setattr(generator, "_plan_incremental_construction", forbidden)
+    monkeypatch.setattr(generator, "_try_exact_distribution_reuse", forbidden)
+
+    def cold_build_entered(**_kwargs: object) -> None:
+        raise RuntimeError("cold bounded build entered")
+
+    monkeypatch.setattr(generator, "load_releases", cold_build_entered)
+    with pytest.raises(RuntimeError, match="cold bounded build entered"):
+        generator.build_distribution(
+            output,
+            include_keys=frozenset({"federal-register-thesaurus-2025"}),
+        )
+    with pytest.raises(ValueError, match="does not reuse a prior distribution"):
+        generator.build_distribution(
+            tmp_path / "bounded",
+            reuse_from=output,
+            include_keys=frozenset({"federal-register-thesaurus-2025"}),
+        )
+
+
 def test_incremental_planner_receipts_shared_paths_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
