@@ -1571,7 +1571,7 @@ dev = [
     { name = "pyshacl", specifier = "==0.31.0" },
     { name = "pytest", specifier = ">=8,<9" },
     { name = "pytest-xdist", specifier = ">=3.6,<4" },
-    { name = "ruff", specifier = ">=0.12,<1" },
+    { name = "ruff", specifier = "==0.16.0" },
     { name = "sssom", specifier = ">=0.4,<1" },
 ]
 

@@ -1,4 +1,4 @@
-.PHONY: generate check-generated test test-package test-json-binding test-atlas-v3 \
+.PHONY: generate check-generated lint test test-package test-json-binding test-atlas-v3 \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data
 
 ATLAS_V3_AUDIT_ROOT ?= output/atlas-3.0-full-2026-08-07-ring-audit
@@ -35,7 +35,17 @@ check-generated:
 # bare target only exit-codes. Listing both ran the 110-case corpus twice for
 # ~205s each -- a third of the whole suite spent proving the same thing twice.
 # Keep the standalone target for binding work; do not re-add it here.
-test: check-generated audit-registry-inventory test-json-binding test-package
+test: lint check-generated audit-registry-inventory test-json-binding test-package
+
+# First, because it is the cheapest gate in the pipeline (~1s against ~1.7min).
+# The rule set is stated in pyproject.toml and the ruff version is pinned there.
+#
+# `ruff format --check` is deliberately not wired: 144 of 438 files disagree with
+# its style today, so adding it would reformat a third of the tree in exchange
+# for no failure class this gate does not already catch. Adopting it later is a
+# one-shot reformat commit plus one line here, not a decision to defer forever.
+lint:
+	uv run ruff check .
 
 # Fast drift check: does the committed registry manifest still describe the code?
 # This is the failure class that silently accumulates as registry modules are added.
