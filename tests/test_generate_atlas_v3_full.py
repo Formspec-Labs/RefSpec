@@ -5,6 +5,7 @@ import hashlib
 import importlib
 import io
 import json
+import re
 import sys
 from collections.abc import Mapping
 from pathlib import Path
@@ -29,6 +30,10 @@ from refspec.atlas.v3_source_data import (
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 generator = importlib.import_module("generate_atlas_v3_full")
+
+# The instant a build records is a fact of its newest pinned release, never a
+# clock, so a test states the release date and derives the instant the same way.
+_TEST_CREATED_AT = generator._release_instant("2026-08-06")
 
 
 def test_status_reporter_rate_limits_progress_and_keeps_phase_boundaries() -> None:
@@ -74,26 +79,27 @@ def _compiled_test_report(
 
 
 def _compiled_test_accounting() -> dict[str, object]:
-    return {
-        "distributionId": generator.DISTRIBUTION_ID,
-        "inputs": [
-            {
-                "declaredMemberCount": 0,
-                "dispositions": [],
-                "membershipMode": "complete",
-                "sourceRelease": "urn:test:source-release",
-            }
-        ],
-        "totals": {
-            "excluded": 0,
-            "represented": 0,
-            "sourceRecords": 0,
-            "sourceReleases": 1,
-            "unresolved": 0,
-        },
-        "type": "AtlasSourceAccounting",
-        "version": "3.0",
-    }
+    return generator._identified_source_accounting(
+        {
+            "inputs": [
+                {
+                    "declaredMemberCount": 0,
+                    "dispositions": [],
+                    "membershipMode": "complete",
+                    "sourceRelease": "urn:test:source-release",
+                }
+            ],
+            "totals": {
+                "excluded": 0,
+                "represented": 0,
+                "sourceRecords": 0,
+                "sourceReleases": 1,
+                "unresolved": 0,
+            },
+            "type": "AtlasSourceAccounting",
+            "version": "3.0",
+        }
+    )
 
 
 def _test_release_plan() -> generator.ReleasePackPlan:
@@ -276,6 +282,7 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
         releases=(_test_release_plan(),),
         compiled_validation=compiled_validation,
         construction_seeds=(_test_construction_seed(),),
+        created_at=_TEST_CREATED_AT,
     )
 
     assert events == ["compiled"]
@@ -384,6 +391,7 @@ def _write_receipted_test_candidate(tmp_path: Path, monkeypatch) -> dict:
         releases=(_test_release_plan(),),
         compiled_validation=_compiled_test_report(graphs),
         construction_seeds=(_test_construction_seed(),),
+        created_at=_TEST_CREATED_AT,
     )
     return manifest
 
@@ -471,6 +479,7 @@ def _write_exact_reuse_test_distribution(
         releases=(_test_release_plan(),),
         construction_seeds=(construction_seed,),
         generation_report={
+            "createdAt": _TEST_CREATED_AT,
             "inputInventory": inventory,
             "semanticConstruction": semantic_construction,
             "type": "AtlasGenerationReport",
@@ -698,6 +707,7 @@ def test_incremental_pack_materialization_reuses_only_exact_current_content(
         releases=(_test_release_plan(),),
         compiled_validation=_compiled_test_report(graphs),
         construction_seeds=(_test_construction_seed(),),
+        created_at=_TEST_CREATED_AT,
         reuse_from=prior,
     )
 
@@ -883,6 +893,7 @@ def test_release_local_incremental_construction_skips_clean_parser_and_matches_c
             releases=plans,
             construction_seeds=seeds,
             generation_report={
+                "createdAt": _TEST_CREATED_AT,
                 "inputInventory": inventory,
                 "semanticConstruction": semantic,
                 "type": "AtlasGenerationReport",
@@ -1025,6 +1036,7 @@ def test_incremental_generation_report_accounts_for_mapping_releases() -> None:
         kind="mapping",
     )
     report = generator._incremental_generation_report(
+        created_at=_TEST_CREATED_AT,
         counts={
             "crossRingRelationAssertions": 0,
             "identifiers": 0,
@@ -1092,6 +1104,7 @@ def test_incremental_pack_materialization_rebuilds_changed_content(
         releases=(_test_release_plan(),),
         compiled_validation=_compiled_test_report(graphs),
         construction_seeds=(_test_construction_seed(),),
+        created_at=_TEST_CREATED_AT,
         reuse_from=prior,
     )
 
@@ -1123,6 +1136,7 @@ def test_incremental_pack_materialization_rejects_tampered_prior_transport(
             releases=(_test_release_plan(),),
             compiled_validation=_compiled_test_report(graphs),
             construction_seeds=(_test_construction_seed(),),
+            created_at=_TEST_CREATED_AT,
             reuse_from=prior,
         )
 
@@ -1147,6 +1161,7 @@ def test_incremental_pack_materialization_rejects_unsafe_prior_member(
             releases=(_test_release_plan(),),
             compiled_validation=_compiled_test_report(graphs),
             construction_seeds=(_test_construction_seed(),),
+            created_at=_TEST_CREATED_AT,
             reuse_from=prior,
         )
 
@@ -1192,6 +1207,63 @@ def test_trusted_writer_receipts_reject_manifest_inventory_mismatches(
 
     with pytest.raises(ValueError, match=message):
         generator._trusted_writer_receipt_checks(tmp_path, manifest=manifest)
+
+
+def test_distribution_identity_is_the_digest_of_the_content_it_labels() -> None:
+    accounting = _compiled_test_accounting()
+    identity = accounting["distributionId"]
+
+    assert identity == generator.distribution_identity(accounting)
+    assert identity == generator.distribution_identity(_compiled_test_accounting())
+    assert identity.startswith(generator.DISTRIBUTION_ID_PREFIX)
+    assert re.fullmatch(
+        r"[0-9a-f]{64}",
+        identity.removeprefix(generator.DISTRIBUTION_ID_PREFIX),
+    )
+
+    changed = _compiled_test_accounting()
+    changed["inputs"][0]["sourceRelease"] = "urn:test:other-source-release"
+    assert generator.distribution_identity(changed) != identity
+
+    # No timestamp reaches the identity: the fields it digests are the ledger's
+    # own, and adding a recorded instant beside them cannot move it.
+    assert set(accounting) == {
+        "distributionId",
+        "inputs",
+        "totals",
+        "type",
+        "version",
+    }
+    assert "2026" not in json.dumps(
+        {key: value for key, value in accounting.items() if key != "distributionId"},
+        sort_keys=True,
+    )
+    with pytest.raises(ValueError, match="closed source accounting content"):
+        generator.distribution_identity({**accounting, "createdAt": _TEST_CREATED_AT})
+
+
+def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
+    assert generator._release_instant("2025-04-01") == "2025-04-01T00:00:00+00:00"
+    with pytest.raises(ValueError, match="not an ISO 8601 date"):
+        generator._release_instant("2025-4-1")
+    with pytest.raises(ValueError, match="canonical YYYY-MM-DD"):
+        generator._release_instant("20250401")
+
+    older = SimpleNamespace(issued="2025-04-01")
+    newer = SimpleNamespace(issued="2026-08-04")
+
+    assert generator._distribution_instant((older, newer)) == (
+        "2026-08-04T00:00:00+00:00"
+    )
+    assert generator._distribution_instant((newer, older)) == (
+        generator._distribution_instant((older, newer))
+    )
+    # An incremental build reconstructs only the dirty releases, so the prior
+    # distribution's instant is the floor that keeps it equal to a cold build.
+    assert generator._distribution_instant(
+        (older,),
+        floor="2026-08-04T00:00:00+00:00",
+    ) == "2026-08-04T00:00:00+00:00"
 
 
 def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
@@ -2690,6 +2762,7 @@ def test_candidate_rejects_asserted_mutation_after_compiled_validation(
             releases=(_test_release_plan(),),
             compiled_validation=report,
             construction_seeds=(_test_construction_seed(),),
+            created_at=_TEST_CREATED_AT,
         )
 
 
@@ -2799,6 +2872,19 @@ def test_compiled_producer_rejects_projection_and_accounting_mutations(
 
     graphs.projection.remove((None, None, None))
     graphs.accounting["inputs"][0]["dispositions"].pop()
+    with pytest.raises(ValueError, match="source accounting identity differs"):
+        generator._validate_compiled_producer_output(
+            (release,),
+            graphs,
+            producer_receipt,
+        )
+
+    # Reseal the ledger around the mutation. An accounting names the digest of
+    # its own content, so tampering is caught by the identity above; resealing
+    # is what reaches the membership reconciliation underneath it.
+    graphs.accounting["distributionId"] = generator.distribution_identity(
+        graphs.accounting
+    )
     with pytest.raises(ValueError, match="member count differs"):
         generator._validate_compiled_producer_output(
             (release,),

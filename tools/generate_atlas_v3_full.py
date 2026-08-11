@@ -119,8 +119,8 @@ if str(BINDING_ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(BINDING_ROOT / "tools"))
 DEFAULT_OUTPUT = ROOT / "output" / "atlas-3.0-full-2026-08-06" / "distribution"
 SPICY_REGS_ROOT = ROOT.parent
-CREATED_AT = "2026-08-06T08:45:00+00:00"
-DISTRIBUTION_ID = "urn:ref:atlas:distribution:3.0-full-development:2026-08-06"
+DISTRIBUTION_ID_PREFIX = "urn:ref:atlas:distribution:3.0-full-development:"
+_DISTRIBUTION_IDENTITY_PROFILE = "atlas-3-source-accounting-content-identity-v1"
 NATIVE_REVIEWER = URIRef("urn:ref:actor:atlas-3-source-native-import")
 SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD = MappingProxyType(
     {
@@ -168,7 +168,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:0cc31b3d395a8d95de074854f302ebec22e79c15b624385d2601f19f7974e62e"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:f41957758986b2dfe1ece25438d563643be63ab637aaf69a3a83720b5614b702"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -934,6 +934,80 @@ def _assert_portable_editorial_policy_payload(payload: Mapping[str, Any]) -> Non
 
 def _canonical_digest(value: Any) -> str:
     return ATLAS_VALIDATE.canonical_sha256(_plain(value))
+
+
+def distribution_identity(accounting: Mapping[str, Any]) -> str:
+    """Derive one distribution's identity from the ledger content it labels.
+
+    The source accounting is the closed record of exactly which source releases
+    and which source records a distribution represents, so two builds over the
+    same sources derive the same identity and two builds over different sources
+    cannot share one. It is also the first identity-bearing document a build
+    writes, which is why the identity is not the manifest digest: the manifest
+    lists this ledger as a member, so a manifest-derived identity could never
+    appear inside the ledger it covers. No field read here is a timestamp.
+    """
+
+    content = {
+        key: value for key, value in accounting.items() if key != "distributionId"
+    }
+    if set(content) != {"inputs", "totals", "type", "version"}:
+        raise ValueError(
+            "distribution identity requires the closed source accounting content"
+        )
+    digest = _canonical_digest(
+        {"content": content, "profile": _DISTRIBUTION_IDENTITY_PROFILE}
+    )
+    return DISTRIBUTION_ID_PREFIX + digest.removeprefix("sha256:")
+
+
+def _identified_source_accounting(content: Mapping[str, Any]) -> dict[str, Any]:
+    """Close one source accounting document over its own content identity."""
+
+    return {"distributionId": distribution_identity(content), **content}
+
+
+def _distribution_id(accounting: Mapping[str, Any]) -> str:
+    """Read a build's identity back by recomputing it from the labelled content."""
+
+    identity = distribution_identity(accounting)
+    if accounting.get("distributionId") != identity:
+        raise ValueError("source accounting identity is not its own content digest")
+    return identity
+
+
+def _release_instant(issued: str) -> str:
+    """Take one release's assertion instant from its own publication date."""
+
+    try:
+        canonical = date.fromisoformat(issued).isoformat()
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"release issued date is not an ISO 8601 date: {issued!r}") from error
+    if canonical != issued:
+        raise ValueError(f"release issued date is not canonical YYYY-MM-DD: {issued!r}")
+    return f"{issued}T00:00:00+00:00"
+
+
+def _distribution_instant(
+    releases: Iterable[LoadedRelease],
+    *,
+    floor: str | None = None,
+) -> str:
+    """Take a build's recorded instant from the newest release date it carries.
+
+    A build clock would make two builds of identical content unequal, so the
+    recorded instant is a fact of the pinned sources instead. An incremental
+    build reconstructs only the dirty releases, so it takes the prior
+    distribution's instant as a floor to reach the same value a cold build over
+    the same inputs reaches.
+    """
+
+    instants = [_release_instant(release.issued) for release in releases]
+    if floor is not None:
+        instants.append(floor)
+    if not instants:
+        raise ValueError("a distribution instant requires at least one pinned release")
+    return max(instants)
 
 
 def _shared_semantic_recipe_files() -> tuple[Path, ...]:
@@ -4285,7 +4359,7 @@ def _validate_compiled_source_accounting(
     if set(accounting) != {"distributionId", "inputs", "totals", "type", "version"}:
         raise ValueError("compiled producer source accounting fields differ")
     if (
-        accounting.get("distributionId") != DISTRIBUTION_ID
+        accounting.get("distributionId") != distribution_identity(accounting)
         or accounting.get("type") != "AtlasSourceAccounting"
         or accounting.get("version") != "3.0"
     ):
@@ -4676,19 +4750,24 @@ def _dirty_accounting_subset(
         for row in rows
         for disposition in row["dispositions"]
     )
-    return {
-        "distributionId": DISTRIBUTION_ID,
-        "inputs": rows,
-        "totals": {
-            "excluded": excluded,
-            "represented": represented,
-            "sourceRecords": represented + excluded + unresolved,
-            "sourceReleases": len(rows),
-            "unresolved": unresolved,
-        },
-        "type": "AtlasSourceAccounting",
-        "version": "3.0",
-    }
+    # The subset never leaves this process: it exists so the dirty releases can
+    # be reconciled against the same validator a whole build uses. Deriving its
+    # identity from its own rows keeps that validator's rule -- an accounting
+    # names the content it is the digest of -- true for the subset as well.
+    return _identified_source_accounting(
+        {
+            "inputs": rows,
+            "totals": {
+                "excluded": excluded,
+                "represented": represented,
+                "sourceRecords": represented + excluded + unresolved,
+                "sourceReleases": len(rows),
+                "unresolved": unresolved,
+            },
+            "type": "AtlasSourceAccounting",
+            "version": "3.0",
+        }
+    )
 
 
 def _validate_incremental_merged_accounting(
@@ -4701,7 +4780,7 @@ def _validate_incremental_merged_accounting(
     if set(accounting) != {"distributionId", "inputs", "totals", "type", "version"}:
         raise ValueError("incremental source accounting fields differ")
     if (
-        accounting.get("distributionId") != DISTRIBUTION_ID
+        accounting.get("distributionId") != distribution_identity(accounting)
         or accounting.get("type") != "AtlasSourceAccounting"
         or accounting.get("version") != "3.0"
     ):
@@ -4947,6 +5026,7 @@ def _build_graphs(
             current=release.spec.key,
         )
         emit_release = release.spec.key in emitted_keys
+        release_instant = _release_instant(release.issued)
         source_locator = URIRef(
             "urn:ref:source-artifact-set:"
             + release.source_release_digest.removeprefix("sha256:")
@@ -5131,13 +5211,13 @@ def _build_graphs(
                     source_release=source_release,
                     target_release=atlas_release,
                     policy=native_policy,
-                    asserted_at=CREATED_AT,
+                    asserted_at=release_instant,
                     evidence_record=record,
                     reviewer=NATIVE_REVIEWER,
                     review_warrant=_review_method_for_assertion(
                         ATLAS.SourceAssignment
                     ),
-                    decided_at=CREATED_AT,
+                    decided_at=release_instant,
                 )
             dispositions.append(
                 {
@@ -5267,6 +5347,7 @@ def _build_graphs(
     for release in releases:
         if release.spec.key not in emitted_keys:
             continue
+        release_instant = _release_instant(release.issued)
         relation_ring, _, _ = _ring_dispatch(release.spec.ring)
         for relation in release.relations:
             try:
@@ -5317,11 +5398,11 @@ def _build_graphs(
                 source_release=source_atlas_release,
                 target_release=target_atlas_release,
                 policy=native_policy,
-                asserted_at=CREATED_AT,
+                asserted_at=release_instant,
                 evidence_record=evidence_record,
                 reviewer=NATIVE_REVIEWER,
                 review_warrant=review_warrant,
-                decided_at=CREATED_AT,
+                decided_at=release_instant,
             )
             native_count += 1
     expected_native_count = sum(
@@ -5349,6 +5430,7 @@ def _build_graphs(
     for release in releases:
         if release.spec.key not in emitted_keys:
             continue
+        release_instant = _release_instant(release.issued)
         for relation in release.cross_ring_relations:
             try:
                 source_facts = facts_for(relation.subject)
@@ -5386,13 +5468,13 @@ def _build_graphs(
                 source_release=source_atlas_release,
                 target_release=target_atlas_release,
                 policy=native_policy,
-                asserted_at=CREATED_AT,
+                asserted_at=release_instant,
                 evidence_record=evidence_record,
                 reviewer=NATIVE_REVIEWER,
                 review_warrant=_review_method_for_assertion(
                     ATLAS.CrossRingRelationAssertion
                 ),
-                decided_at=CREATED_AT,
+                decided_at=release_instant,
                 source_ring=source_ring,
                 target_ring=target_ring,
             )
@@ -5532,19 +5614,20 @@ def _build_graphs(
         for row in accounting_inputs
         for disposition in row["dispositions"]
     )
-    accounting = {
-        "distributionId": DISTRIBUTION_ID,
-        "inputs": accounting_inputs,
-        "totals": {
-            "excluded": excluded,
-            "represented": represented,
-            "sourceRecords": represented + excluded + unresolved,
-            "sourceReleases": len(accounting_inputs),
-            "unresolved": unresolved,
-        },
-        "type": "AtlasSourceAccounting",
-        "version": "3.0",
-    }
+    accounting = _identified_source_accounting(
+        {
+            "inputs": accounting_inputs,
+            "totals": {
+                "excluded": excluded,
+                "represented": represented,
+                "sourceRecords": represented + excluded + unresolved,
+                "sourceReleases": len(accounting_inputs),
+                "unresolved": unresolved,
+            },
+            "type": "AtlasSourceAccounting",
+            "version": "3.0",
+        }
+    )
     return BuildGraphs(
         asserted=asserted,
         projection=projection,
@@ -7794,7 +7877,7 @@ def _construction_summary(
         "compactPackCount": len(compact_inventory),
         "compactPackInventoryDigest": _canonical_digest(compact_inventory),
         "compactPacks": compact_inventory,
-        "distributionId": DISTRIBUTION_ID,
+        "distributionId": _distribution_id(accounting),
         "profile": _CONSTRUCTION_SUMMARY_PROFILE,
         "recipeDigest": recipe_digest,
         "releaseCount": len(releases),
@@ -8020,6 +8103,7 @@ def _write_candidate_distribution(
     graphs: BuildGraphs,
     releases: Sequence[ReleasePackPlan] = (),
     *,
+    created_at: str,
     compiled_validation: Mapping[str, Any] | None = None,
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
     construction_reuse: IncrementalConstructionReuse | None = None,
@@ -8179,9 +8263,10 @@ def _write_candidate_distribution(
         "sourceAccountingDigest": _sha256_file(accounting_path),
     }
     validator_identity = {"name": "refspec-atlas-conformance", "version": "3.0"}
+    distribution_id = _distribution_id(graphs.accounting)
     acceptance = {
-        "distributionId": DISTRIBUTION_ID,
-        "evaluatedAt": CREATED_AT,
+        "distributionId": distribution_id,
+        "evaluatedAt": created_at,
         "gates": [
             {
                 "evidenceDigest": ATLAS_VALIDATE.acceptance_gate_evidence_digest(
@@ -8205,8 +8290,8 @@ def _write_candidate_distribution(
     manifest = {
         "binding": binding,
         "counts": dict(compiled_counts),
-        "createdAt": CREATED_AT,
-        "distributionId": DISTRIBUTION_ID,
+        "createdAt": created_at,
+        "distributionId": distribution_id,
         "format": "refspec-atlas-packed-nquads-3.0",
         "graphs": graph_descriptors,
         "members": [
@@ -9191,7 +9276,10 @@ def _write_exact_distribution_reuse_report(
     report = {
         **_plain(prior_report),
         "distribution": {
-            "id": DISTRIBUTION_ID,
+            # Exact reuse promotes the prior distribution unchanged, so it keeps
+            # the identity its own ledger derives. `_try_exact_distribution_reuse`
+            # has already refused a prior whose identity is not that digest.
+            "id": reuse_result["priorDistributionId"],
             "manifestDigest": manifest_digest,
             "path": _generation_report_distribution_path(output),
         },
@@ -9338,6 +9426,11 @@ def _try_exact_distribution_reuse(
         )
     if construction_summary["recipeDigest"] != _shared_semantic_recipe_digest():
         return None
+    # A distribution built before the identity was content-derived carries a
+    # fabricated identifier its ledger does not produce. Reuse would republish
+    # that identifier, so such a prior is incompatible and takes the cold path.
+    if accounting["distributionId"] != distribution_identity(accounting):
+        return None
     current_seeds = _current_construction_seeds_from_summary(construction_summary)
     if semantic_construction["recipeDigest"] != _semantic_recipe_digest(
         current_seeds,
@@ -9455,6 +9548,10 @@ def _write_distribution(
     semantic_construction = generation_report.get("semanticConstruction")
     if not isinstance(semantic_construction, Mapping):
         raise TypeError("generation report has no semantic construction receipt")
+    created_at = generation_report.get("createdAt")
+    if not isinstance(created_at, str) or not created_at:
+        raise TypeError("generation report has no recorded instant")
+    distribution_id = _distribution_id(graphs.accounting)
     relation_scope = _production_relation_scope_from_counts(counts)
     report_distribution_path = _generation_report_distribution_path(output)
     with tempfile.TemporaryDirectory(
@@ -9467,6 +9564,7 @@ def _write_distribution(
             candidate,
             graphs,
             releases,
+            created_at=created_at,
             compiled_validation=compiled_validation,
             construction_seeds=construction_seeds,
             construction_reuse=construction_reuse,
@@ -9476,7 +9574,7 @@ def _write_distribution(
         report = {
             **_plain(generation_report),
             "distribution": {
-                "id": DISTRIBUTION_ID,
+                "id": distribution_id,
                 "manifestDigest": _sha256_file(candidate / "atlas-manifest.json"),
                 "path": report_distribution_path,
             },
@@ -9485,7 +9583,7 @@ def _write_distribution(
         }
         candidate_report = temporary_root / "generation-report.json"
         candidate_report.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
-        if manifest["distributionId"] != DISTRIBUTION_ID:
+        if manifest["distributionId"] != distribution_id:
             raise ValueError("candidate manifest distribution identity differs")
         report_path = _generation_report_path(output)
         if report_path.exists() and not (
@@ -9925,6 +10023,7 @@ def _input_inventory_from_construction_seeds(
 
 def _incremental_generation_report(
     *,
+    created_at: str,
     counts: Mapping[str, int],
     english_only_scan: Mapping[str, Any],
     inventory: Mapping[str, Any],
@@ -9938,7 +10037,7 @@ def _incremental_generation_report(
     dirty_mappings = {release.key: release for release in mapping_releases}
     prior_rows = {row["key"]: row for row in reuse.prior_summary["releases"]}
     return {
-        "createdAt": CREATED_AT,
+        "createdAt": created_at,
         "directSourceCounts": {
             "crossRingRelations": counts["crossRingRelationAssertions"],
             "identifiers": counts["identifiers"],
@@ -10105,6 +10204,10 @@ def _build_incremental_distribution(
         mapping_releases=mapping_releases,
     )
     generation_report = _incremental_generation_report(
+        created_at=_distribution_instant(
+            releases,
+            floor=reuse.prior_manifest["createdAt"],
+        ),
         counts=full_counts,
         english_only_scan=english_only_scan,
         inventory=inventory,
@@ -10204,7 +10307,7 @@ def build_distribution(
             f"direct source counts differ: expected={expected_counts}, actual={observed_counts}"
         )
     generation_report = {
-        "createdAt": CREATED_AT,
+        "createdAt": _distribution_instant(releases),
         "directSourceCounts": observed_counts,
         "droppedLabelCount": dropped_label_count,
         "labelRoleConflictCount": label_role_conflict_count,
