@@ -3,7 +3,7 @@
 Compiled 2026-08-10 (late) from five parallel read-only traces, one per surface, each citing the
 HEAD it measured against; load-bearing counts and headline metrics were independently re-verified
 by the compiling session before inclusion. Companion to `data-flow-v2-artifact.html` (the workspace
-map) and `PLAN.md` (the plan). **This file is the delete-gate for P0's cut policy**: before deleting
+map). **This file is the delete-gate for the cut policy in `RefSpec/PLAN.md`**: before deleting
 any research surface, check what it settled here — negative results live mostly in the code and
 receipts being deleted.
 
@@ -52,7 +52,7 @@ the build/publish path consumes its output or it gates that path *today*. PLANNE
 decision record or structural evidence assigns it a production destination it has not reached —
 each entry names its wiring gap, and each gap is a work item. Everything else is
 EXPERIMENT / VALIDATION tooling: its tests travel with it, and **tests do not promote it**. This
-split exists so P0 item 4 packages the right set and the cut policy deletes from the right set.
+split exists so packaging covers the right set and the cut policy deletes from the right set.
 
 ### PRODUCTION — wired today
 
@@ -80,7 +80,7 @@ split exists so P0 item 4 packages the right set and the cut policy deletes from
 
 | Tool | Production role / evidence | The gap |
 |---|---|---|
-| `generate_atlas_v3_full.py` (RefSpec, 10,294 ln) | **THE Atlas 3.0 distribution builder** | no Makefile/CI invocation at all — P0 item 6's first customer |
+| `generate_atlas_v3_full.py` (RefSpec, 10,294 ln) | **THE Atlas 3.0 distribution builder** | no Makefile/CI invocation at all — the release job's first customer |
 | `build_registry_source_manifest.py` (RefSpec) | generates `sources.json`, a *required input* of wired `verify_registry_audit` | generator unwired; the committed manifest can silently drift |
 | `capture_regulatory_native_controls.py` (RefSpec) | generator/verifier of pinned build input #2 | zero references anywhere |
 | `package_federal_register_thesaurus_2025.py` (RefSpec) | built the pinned FR thesaurus vintage | per-vintage rebuild path undocumented |
@@ -88,7 +88,7 @@ split exists so P0 item 4 packages the right set and the cut policy deletes from
 | `build_usc_act_index_artifact.py` + `build_usc_source_credit_artifact.py` (SpicyRegs) | outputs read at runtime by `ontology/act_index.py` | unwired; digests stamped at build, never verified at read |
 | `build_agency_crosswalk_artifact.py` + `build_date_event_artifact.py` (SpicyRegs) | "built locally, digest-pinned, unpublished" pending a blocked publication chain | publication blocked; `build_date_event` is the one file that compiles upstream unmodified (V2) |
 | `generate_source_profile_artifacts.py` (SpicyRegs) | regenerates the two policy JSONs — including `profile-resource-applicability-v0.json`, the pin that drifted in V3 | determinism-gate framing but absent from CI/pre-commit |
-| `project_document_to_rkaf.py` (SpicyRegs) | the RKAF projection CLI; manifest disposition "reimplement → Rulespec Extrapolator" | migration deliberately deferred (P0) |
+| `project_document_to_rkaf.py` (SpicyRegs) | the RKAF projection CLI; manifest disposition "reimplement → Rulespec Extrapolator" | migration deliberately deferred |
 | `export_selection_ledger.py` (DocSpec) | the exit half of the absent SpicySearch→DocSpec edge | never run; no reader exists on the other side |
 | *(feature, not a tool)* passage-chunking enablement (SpicySearch) | recall@10 doubles, production-shaped | no published snapshot enables it |
 
@@ -110,7 +110,7 @@ split exists so P0 item 4 packages the right set and the cut policy deletes from
   when the migration completes.
 - **DocSpec**: the `fr_mirrulations_*` campaign harness — flagged in the map for bypassing
   `docspec run`; if qualification becomes a product feature it moves to planned-production *by
-  decision*, not by default. `predecessor_code_fingerprints.py` is already on P0's cut list.
+  decision*, not by default. `predecessor_code_fingerprints.py` is already on the cut list.
 - **SpicySearch**: `src/spicysearch/experiments/` (21 files, per-campaign scaffolding) and
   `validation/` (9 files — standing infrastructure: the sealed-holdout machinery and benchmark
   harness).
@@ -119,7 +119,7 @@ split exists so P0 item 4 packages the right set and the cut policy deletes from
   are tested; this one isn't — fix or delete), the 6 uncoupled SpicyRegs scripts (verdicts already
   harvested into §1), `regulatory-native-controls-2026-07-30/`.
 
-**Packaging implication (P0 item 4)**: the packages expose the PRODUCTION roster only.
+**Packaging implication**: the packages expose the PRODUCTION roster only.
 Planned-production entries are wiring work items — not package members until their gap closes.
 Experiment tooling stays repo-local and never enters the package surface.
 
@@ -287,9 +287,9 @@ Experimental; `rkaf-analysis.md` §6 (ClosureClaim) is explicitly DISABLED.
    unexplained.
 7. RuleSpec tools split is 8/14/7-ish, not 10/13/8; classification-sensitive.
 
-## 11. What this means for PLAN.md
+## 11. What this means for the owning plans
 
-- **Item 1**: the baseline table and the experiment design already exist (three arms, resolver +2,
+- **The product-thesis measurement**: the baseline table and the experiment design already exist (three arms, resolver +2,
   expansion 0 over synthetic edges; the record itself prescribes the real-thesaurus re-run). The
   pre-registered decision rule should treat *resolver* as the proven lever and expansion as entering
   with a measured zero to beat. Prerequisite confirmed independently: production `concept_candidate`
@@ -297,9 +297,27 @@ Experimental; `rkaf-analysis.md` §6 (ClosureClaim) is explicitly DISABLED.
 - **Cut policy**: the zero-reference delete lists are now explicit (7 RefSpec tools, 6 SpicyRegs
   tools, 1 dead wrapper, `regulatory-native-controls-2026-07-30/`); everything else carries tests or
   feeds a wired verifier. Two `research/evidence/` dirs are build inputs — do not sweep.
-- **Item 4 packages only the PRODUCTION roster (§2)**. Planned-production entries are wiring work
+- **Packaging covers only the PRODUCTION roster (§2)**. Planned-production entries are wiring work
   items, not package members until their gap closes; experiment tooling never enters the package
   surface. Tests do not promote — classification is by consumption path.
 - **Not in the plan, measured and waiting**: enabling passage chunking in a published snapshot
   (recall@10 doubles), and the owed explorer-gate port. Both are product levers, not refactor items —
   they belong to a product-plan conversation, recorded here so they are not lost.
+
+## 12. Storage inventory — measured 2026-08-10
+
+Recorded here on 2026-08-11, when the change list that carried these figures was retired. These are
+measurements; the decision that defers acting on them lives in `RefSpec/PLAN.md`.
+
+- Measured workspace total: **66.6 GB** — RefSpec 32 G, DocSpec 20 G, spicy-regs 14 G,
+  SpicySearch 0.6 G.
+- **12.8 GB** of DocSpec qualification snapshots are deletable — §8's campaign: smoke sealed (53
+  stores), intermediate sealed (66), the full tier unsealed (431), plus five preserved
+  `-pre-*-fix` snapshots.
+- **9.6 GB** `atlas-3.0-full-2026-08-05` is superseded by three 1.1 GB successors.
+- Those two lines are the **~22 GB** of regenerable output deferred by decision: it needs no
+  replacement, no decision and no dependency.
+- The headline "roughly 60 GB nobody can regenerate" is why attestation accumulated — everything
+  unreproducible must be attested instead. A rebuild-and-compare-digest gate is the thing that
+  would let an attestation layer be deleted; the input resolver is the other named prerequisite,
+  and it is scheduled in `RefSpec/PLAN.md`.
