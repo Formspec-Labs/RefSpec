@@ -1,5 +1,6 @@
 .PHONY: generate check-generated lint test test-package test-json-binding test-atlas-v3 \
-	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data
+	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
+	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 
 ATLAS_V3_AUDIT_ROOT ?= output/atlas-3.0-full-2026-08-07-ring-audit
 ATLAS_V3_AUDIT_SOURCE_ROOT ?= output/registry-real-data-sources
@@ -86,3 +87,40 @@ audit-atlas-v3-source-fidelity:
 		--distribution "$$audit_distribution" \
 		--source-root "$(ATLAS_V3_AUDIT_SOURCE_ROOT)" \
 		--output "$(ATLAS_V3_AUDIT_RECEIPT)"
+
+# ---------------------------------------------------------------------------
+# Release job. Not `test`, not `check-generated`, not continuous integration:
+# every target below reads a gitignored capture and writes a distribution.
+# ---------------------------------------------------------------------------
+
+# One bounded Atlas 3.0 distribution carrying one governed scheme. The build is
+# always cold -- neither reuse path may compare a bounded distribution against
+# the whole code-declared topology -- and the identity is derived from the
+# source accounting, so the same source bytes rebuild the same tree byte for
+# byte and the manifest digest below stays an external pin rather than a
+# reading of whatever happens to be on disk.
+ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
+ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.0-federal-register-thesaurus-2025-04-01
+ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= fb76eb08bea4a94c6286810c14a8e1062c2f21655b9fc656f2fe2557278d6060
+# Beside the distribution, never inside it, for the reason stated above the
+# source-fidelity receipt.
+ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
+
+release-atlas-federal-register-thesaurus:
+	uv run --with-requirements bindings/atlas/3.0/requirements.txt \
+		python tools/generate_atlas_v3_full.py \
+		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
+		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
+
+# Reads both ends and compares them: the exact publisher PDF, whose occurrence
+# ledger is the only place the source-side count exists, and the published
+# bytes, counted from authenticated compact packs rather than from the
+# producer's own receipt inside the artifact.
+verify-atlas-federal-register-thesaurus:
+	uv run --with-requirements bindings/atlas/3.0/requirements.txt \
+		python tools/verify_federal_register_thesaurus_distribution.py \
+		--distribution "$(ATLAS_FR_RELEASE_ROOT)/distribution" \
+		--expected-manifest-sha256 "$(ATLAS_FR_RELEASE_MANIFEST_SHA256)" \
+		--source-root "$(ATLAS_FR_RELEASE_SOURCE_ROOT)" \
+		--output "$(ATLAS_FR_RELEASE_RECEIPT)"
