@@ -14,6 +14,10 @@ from refspec.atlas.v3_source_data import RegistryRelease
 from refspec.registry.infrastructure.source_identity import validate_uuid7
 
 ROOT = Path(__file__).resolve().parents[1]
+# Every code release pins bytes under this gitignored capture tree. Absent is
+# not drift: a clean clone has no captures, and a missing-file error there says
+# nothing about the code these tests cover.
+REAL_DATA = ROOT / "output" / "registry-real-data-sources"
 RESOURCE_IRI = re.compile(
     r"^urn:ref:source-concept:v2:(?P<source>[a-z][a-z0-9]*(?:-[a-z0-9]+)*):"
     r"(?P<uuid>[0-9a-f-]{36})$"
@@ -58,6 +62,8 @@ PROFILE_BY_RESOURCE_KIND = {
 
 @pytest.fixture(scope="module")
 def releases() -> tuple[RegistryRelease, ...]:
+    if not REAL_DATA.is_dir():
+        pytest.skip("pinned registry code sources are not present: output/registry-real-data-sources")
     return load_registry_code_releases(ROOT)
 
 

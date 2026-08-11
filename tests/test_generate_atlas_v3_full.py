@@ -1267,7 +1267,12 @@ def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
 
 
 def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
-    inventory = generator.verify_inputs()
+    # Same split as the ICPSR fixture: an absent capture skips, a moved digest
+    # raises `ValueError` and fails, because that is drift rather than absence.
+    try:
+        inventory = generator.verify_inputs()
+    except FileNotFoundError as error:
+        pytest.skip(str(error))
 
     assert set(inventory) == {
         "expectedResources",
@@ -3105,7 +3110,13 @@ def test_all_1075_crs_fallback_ids_are_readable_and_reversible(
 
 @pytest.fixture(scope="module")
 def icpsr_release():
-    return generator._load_icpsr(_source_spec("icpsr-subject-thesaurus"))
+    # The pinned capture lives under the gitignored output tree. Absence is
+    # `FileNotFoundError` and skips; a digest that moved is `ValueError` and
+    # still fails, which is the class this fixture exists to catch.
+    try:
+        return generator._load_icpsr(_source_spec("icpsr-subject-thesaurus"))
+    except FileNotFoundError as error:
+        pytest.skip(str(error))
 
 
 @pytest.fixture(scope="module")
@@ -3122,6 +3133,8 @@ def document_releases():
 def registry_code_releases():
     from refspec.atlas.v3_registry_codes import load_registry_code_releases
 
+    if not (ROOT / "output" / "registry-real-data-sources").is_dir():
+        pytest.skip("pinned registry code sources are not present: output/registry-real-data-sources")
     return tuple(
         generator._adapt_registry_release(release)
         for release in load_registry_code_releases(ROOT)

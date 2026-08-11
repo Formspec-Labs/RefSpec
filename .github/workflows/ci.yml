@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-gates:
+    name: Bounded gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.11.x"
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Every step below runs on a clean clone. The gitignored `output/` tree is
+      # roughly 22 GB of regenerable captures and is never present here, so a
+      # step that reads it would fail with a missing file rather than a finding.
+      # `make test`'s remaining target, `audit-registry-real-data`, is excluded
+      # for exactly that reason; it belongs to the release job of PLAN.md item 6.
+
+      - name: Check source and machine files
+        run: make lint
+
+      - name: Check generated files against their generators
+        run: make check-generated
+
+      - name: Audit the registry manifest against the code
+        run: make audit-registry-inventory
+
+      - name: Validate the JSON 1.0 binding
+        run: make test-json-binding
+
+      # Spelled out rather than `make test-package` for one reason: the report.
+      # The command is otherwise identical, and the report is what the skip
+      # budget below counts, so it is written outside the checkout.
+      - name: Run the packaged suite
+        run: uv run pytest -q -n auto --junitxml="$RUNNER_TEMP/pytest.xml"
+
+      - name: Assert the skip budget
+        run: uv run python tools/check_skip_budget.py "$RUNNER_TEMP/pytest.xml" --budget 101
