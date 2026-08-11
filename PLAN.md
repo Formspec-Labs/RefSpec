@@ -103,12 +103,67 @@ consumer's word.
 
 ## 3. Content-derived distribution identity
 
-Derive distribution identity from content and exclude timestamps.
+Distribution identity is derived from content, and no timestamp reaches it.
 
-`tools/generate_atlas_v3_full.py:122-123` hardcodes
-`CREATED_AT = "2026-08-06T08:45:00+00:00"` and
-`DISTRIBUTION_ID = "urn:ref:atlas:distribution:3.0-full-development:2026-08-06"`.
-Four distinct builds on disk carry byte-identical identity.
+`tools/generate_atlas_v3_full.py` carries neither `CREATED_AT` nor a literal
+`DISTRIBUTION_ID`. `distribution_identity` at `:939` returns
+`DISTRIBUTION_ID_PREFIX` (`:122`) followed by the SHA-256 of a closed payload
+holding the source accounting's `inputs`, `totals`, `type` and `version` under
+the profile `atlas-3-source-accounting-content-identity-v1` (`:123`). It refuses
+any other field set, so a payload carrying a recorded instant beside the ledger
+raises rather than digesting it.
+
+The pre-image is the accounting rather than the manifest because the manifest
+lists the accounting as a member: an identity derived from the manifest digest
+could not appear inside the ledger the manifest covers, and the accounting is
+the first identity-bearing document a build writes. The accounting is also the
+closed record of which source releases and which source records the
+distribution represents, so two builds over the same sources derive one
+identity and two builds over different sources cannot share one.
+
+`_identified_source_accounting` (`:964`) closes each ledger over its own
+identity, in `_build_graphs` and in the transient `_dirty_accounting_subset`.
+`_distribution_id` (`:970`) recomputes the identity and refuses a ledger that
+does not carry its own content digest; the construction summary, the acceptance,
+the manifest and both generation reports read the identity through it, and
+`_validate_compiled_source_accounting` and
+`_validate_incremental_merged_accounting` compare against the recomputed value
+instead of a constant. `_try_exact_distribution_reuse` returns `None` for a
+prior distribution whose identifier is not its ledger's digest, so a
+distribution built before this change is incompatible and takes the cold path
+rather than having its fabricated identifier republished.
+
+The created-at is a fact of the sources. `_release_instant` (`:979`) turns one
+release's canonical `issued` date into the instant its assertions carry, so
+`assertedAt` and `decidedAt` name the release rather than the build clock and a
+release-local incremental build emits the same bytes a cold build emits.
+`_distribution_instant` (`:991`) takes the build's recorded instant from the
+newest release date it carries; an incremental build passes the prior
+manifest's instant as a floor. `manifest.createdAt`, `acceptance.evaluatedAt`
+and both generation reports carry that one value, which the candidate writer
+receives rather than computes.
+
+`tests/test_generate_atlas_v3_full.py:1212` pins that two identity computations
+over the same content are equal, that changed content changes the identity,
+that the identity is the prefix plus 64 hex characters, and that adding an
+instant to the payload raises. `:1245` pins the instant derivation, its
+canonical-date refusals, its independence from argument order, and the
+incremental floor. `:2847` now proves both halves of the ledger check: an
+unresealed mutation fails on identity, and the same mutation resealed reaches
+the membership reconciliation underneath it. The module's 109 tests pass and
+`ruff check .` is clean; the whole suite is 2,571 passed and 39 skipped with
+`output/` present.
+
+The generator's self pin moved with the file, from
+`sha256:0cc31b3d395a8d95de074854f302ebec22e79c15b624385d2601f19f7974e62e` to
+`sha256:f41957758986b2dfe1ece25438d563643be63ab637aaf69a3a83720b5614b702`
+(`:171`), written by `--repin`.
+
+The change governs the next build. The four builds on disk keep the identifier
+they were written with; nothing rewrites them in place, and both reuse paths
+now refuse them — the implementation digest moved and the exact-reuse gate
+rejects a fabricated identifier — so the next build is cold. Rebuilding is
+release-job work under item 6.
 
 ## 4. Production input resolver
 
@@ -148,9 +203,49 @@ capture location under `output/`, so the generated manifest and the tracked
 `sources.json` are byte-identical to before. The full `check-generated`
 target passes with the ICPSR capture directory absent from `output/`.
 
-Skip budget: 16 of 143 test modules skip when the gitignored `output/` is
-absent. An unbudgeted green repeats a known deselection failure, so the budget
-is a number the job asserts against.
+`.github/workflows/ci.yml` runs one job, `bounded-gates`, on push, pull
+request and manual dispatch: `actions/checkout@v4`, `astral-sh/setup-uv@v6`
+pinned to `0.11.x` with its cache enabled, `uv python install 3.12`,
+`uv sync --frozen`, then `make lint`, `make check-generated`,
+`make audit-registry-inventory`, `make test-json-binding`,
+`uv run pytest -q -n auto --junitxml="$RUNNER_TEMP/pytest.xml"`, and the skip
+budget over that report.
+
+Measured 2026-08-11 by cloning this branch to a directory with no `output/`
+tree, syncing with uv 0.11.5, and running each step in order: sync 0s, lint 1s,
+`check-generated` 5s, `audit-registry-inventory` 1s, `test-json-binding` 2s,
+the suite 52s, the budget check 0s. Every step exits 0. `uv 0.11.5` reads the
+committed `uv.lock` (`version = 1`, `revision = 1`) without relocking.
+
+`make test`'s remaining target, `audit-registry-real-data`, is excluded: it
+reads the gitignored captures and is release-job work under item 6. `make test`
+itself is not called, because the suite step needs `--junitxml` and the report
+is written outside the checkout; the command is otherwise
+`make test-package`'s.
+
+Skip budget: 101 skipped tests, asserted by
+`tools/check_skip_budget.py --budget 101` against the JUnit XML the suite step
+writes. It counts tests reported skipped in one run, not modules: a structured
+count rather than a parse of the summary line. It fails when the count exceeds
+the budget and says so when the count falls below it, because a budget that is
+loose is a budget nobody lowered. Verified both ways against the measured
+report: `--budget 100` exits 1 with `skip budget exceeded: 101 skipped, 100
+budgeted`, and `--budget 120` exits 0 naming the slack.
+
+The number is measured, not the earlier module estimate. A clean clone before
+this change reported 89 skipped, 1 failed and 11 errors: twelve tests read
+pinned captures under `output/` and raised a missing-file error instead of
+skipping, the same failure class the ICPSR fixture work closed for
+`check-generated`. Four guards close it, each skipping on absence only:
+`tests/test_atlas_v3_registry_codes.py:66` and
+`tests/test_generate_atlas_v3_full.py:3137` skip when
+`output/registry-real-data-sources` is absent, and
+`tests/test_generate_atlas_v3_full.py:1275,3119` skip on the `FileNotFoundError`
+that names an absent pinned input while still failing on the `ValueError` a
+moved digest raises. The clean clone then reports 2,498 passed and 101 skipped,
+which is 89 + 12. That run covers 2,599 tests against the 2,610 a run with
+`output/` present covers, because some parametrizations enumerate the captures
+that are there.
 
 ## 6. Release job, separate from continuous integration
 
