@@ -1046,3 +1046,62 @@ the cited paths are sufficient.
    it and the release adapters it reads moved into `candidate_retrieval.py`,
    which the research benchmarks already consumed — the consolidation this
    entry previously described as intended but unperformed.
+
+### REF-024: Record the cross-product ownership boundary once
+
+- **Date:** 2026-08-11
+- **Status:** Accepted as the canonical cross-product boundary; supersedes the
+  ownership clauses of SpicySearch
+  `docs/decisions/0001-four-product-boundary.md` that assign document capture,
+  renditions, text representations, and structural passages to SpicyRegs and
+  topic assignments to Rulespec Extrapolator, and the older Rulespec and README
+  prose carrying those same assignments. The rest of Decision 0001 stands.
+
+The platform has five products and six ownership rows, extending
+[REF-008](#ref-008-count-four-products-and-five-ownership-rows)'s counting rule
+with DocSpec. Rulespec Core owns portable schemas, generated types, identity
+functions, validators, diagnostics, and conformance fixtures. SpicyRegs
+discovers and selects regulatory sources, then publishes `SourceCatalogRelease`.
+DocSpec independently consumes that release, captures files, extracts
+representations, creates structural segments and evidence coordinates, and
+publishes `DocumentRelease`. RefSpec owns vocabularies and publishes Atlas
+releases and search views. Rulespec Extrapolator performs Rulespec-based logical
+structuring only. SpicySearch joins documents with RefSpec topics, creates
+snapshot-specific topic tags, builds disposable indexes, and serves search.
+
+Products exchange immutable releases and installed packages. They never import
+sibling source trees or read sibling databases. Nothing shipped to an unowned
+upstream repository names an owned product — by import, by path, or by URN — and
+a test on the payload proves that before each contribution.
+
+This complements
+[REF-022](#ref-022-adopt-the-cross-product-search-topology-and-approve-the-agentic-graph-search-direction)
+and changes nothing in it. REF-022 fixes the search topology, makes SpicySearch
+the only junction between RefSpec and DocSpec, and already assigns topic tagging
+to SpicySearch; that assignment is one row of the wider boundary stated here,
+not reopened by it. REF-022 remains the entry governing the agentic graph search
+direction and its stage gates.
+
+Other decisions and plans link to this entry instead of restating it. The
+duplication is the defect being removed: two independent statements of this
+boundary already existed and had diverged over whether declared version bounds
+suffice to prove a consumable surface. One decision, cited by identifier rather
+than by checkout path, is the fix. This entry changes the day a product's
+published release shape changes; another document needing one of its rows is not
+that day.
+
+### REF-025: Retain canonical Label.id in the next search view
+
+- **Date:** 2026-08-11
+- **Status:** Accepted for the next RefSpec search-view version
+
+The next search-view version retains the canonical `Label.id`. SpicySearch uses
+that identifier directly. No consumer-generated substitute identifier is
+allowed.
+
+A substitute minted downstream is a second label identity with no producer, so
+two products can disagree about which label a row names while each passes its
+own checks. Carrying `Label.id` on the wire removes the disagreement at its
+source rather than reconciling it afterward. This entry changes the day the
+search view stops carrying a canonical label identity; a consumer finding that
+identifier inconvenient is not that day.
