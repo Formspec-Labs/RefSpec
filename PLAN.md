@@ -84,22 +84,160 @@ multi-scheme development Atlas.
 
 ## 2. Bounded Atlas 3.0 distribution for the Federal Register Thesaurus
 
-Publish one bounded Atlas 3.0 distribution for the April 1, 2025 Federal
-Register Thesaurus scheme:
+One bounded Atlas 3.0 distribution carries one governed scheme, the April 1,
+2025 Federal Register Thesaurus, at release
+`urn:ref:atlas-release:3:federal-register-thesaurus:2025-04-01`. The
+requirement is inherited from SpicySearch. RefSpec verifies the distribution
+before publication rather than accepting the numbers on the consumer's word.
 
-- release `urn:ref:atlas-release:3:federal-register-thesaurus:2025-04-01`
-- source SHA-256
-  `66dd28fff5defedfb151d04dc4ef255181085cce76618cb10c9372db6540810f`
-- 1,051,423 bytes
-- 705 concepts, 1,138 labels, 1,451 resolved relation rows
+The source is `output/registry-real-data-sources/federal-register-thesaurus-2025.pdf`,
+SHA-256 `66dd28fff5defedfb151d04dc4ef255181085cce76618cb10c9372db6540810f`,
+1,051,423 bytes, 180 pages, verified on disk before anything read it as
+meaning. `src/refspec/registry/federal_register_thesaurus_2025.py:34,37` holds
+the same digest and byte length, and
+`src/refspec/atlas/v3_registry_vocabularies.py:1500` verifies the pin again as
+it loads.
 
-The requirement is inherited from SpicySearch. RefSpec verifies the
-distribution before publication rather than accepting the numbers on the
-consumer's word.
+### The bounded mode is the existing generator, scoped
+
+`tools/generate_atlas_v3_full.py` grew a release allowlist rather than a second
+generator. `split_construction_unit_keys` (`:2372`) routes each requested key
+to the loader that declares it, refusing an unknown key and an empty request;
+`build_distribution` (`:10256`) takes `include_keys`, and `main` (`:10477`)
+takes `--only-release`, repeatable, which also scopes `--check-inputs`.
+
+The change is small because every later step was already release-scoped:
+`verify_inputs` verifies the pins of the loaded releases,
+`_validate_compiled_producer_rows` and `_validate_compiled_producer_output`
+close over the loaded rows, the source accounting lists the loaded source
+releases, and `distribution_identity` digests that accounting. Bounding the
+load bounds the distribution.
+
+Both reuse paths are refused for a bounded build. Each compares a prior
+distribution against the whole code-declared topology --
+`_plan_incremental_construction` returns `None` unless the prior summary's keys
+equal `_declared_construction_unit_keys()` -- which a bounded distribution
+deliberately is not, so a bounded build is always cold. It costs 5.8s.
+
+`tests/test_generate_atlas_v3_full.py:618` pins the source/mapping split and
+both refusals, `:631` pins that only the named key reaches either loader, and
+`:661` pins that neither reuse path is consulted even with an exactly reusable
+distribution sitting at the output path, and that `--reuse-from` is refused
+outright.
+
+### Measured, from the artifact
+
+Built 2026-08-11 into `output/atlas-3.0-federal-register-thesaurus-2025-04-01/distribution`:
+13 files, 1,850,412 bytes, two RDF packs and six compact packs, one asserted
+graph of 57,686 quads and empty projection and derived graphs. Manifest SHA-256
+`fb76eb08bea4a94c6286810c14a8e1062c2f21655b9fc656f2fe2557278d6060`, identity
+`urn:ref:atlas:distribution:3.0-full-development:53f231d21a6aede37300afb7d3c1203f6392847ef177659327c97f5505aa00b0`,
+source-accounting digest
+`sha256:d580c8c420e98bf14f0a06990cc6f8f8da4973fb049c7f4647d0bc6fbe02a377`. The
+identity is item 3's mechanism: the SHA-256 of the accounting the manifest
+covers. `manifest.createdAt` and `acceptance.evaluatedAt` are
+`2025-04-01T00:00:00+00:00`, the release date, not a build clock, so the same
+source bytes rebuild the same tree: a second build to a different output
+produced a byte-identical directory and the same manifest digest. Publication
+is `_promote_validated_distribution` (`:8434`), which renames a validated
+candidate over the output and renames the previous tree back on any failure.
+
+The four counts are measured, not copied. The prefix of the identity still
+reads `3.0-full-development`; it names the producer profile, and the
+distribution's own claim of scope is the single release its accounting lists.
+
+`tools/verify_federal_register_thesaurus_distribution.py` reads both ends and
+compares them as sets, so a distribution carrying the right number of wrong
+rows fails. The source end (`:87`) is the parsed occurrence ledger, the only
+place the source-side count exists — a distribution carries the resolved subset
+and cannot state what it dropped. The published end (`:111`) is counted from
+authenticated compact packs through `verify_atlas_parquet_source_metadata` and
+`read_compact_record_pack`, against an external manifest digest, rather than
+from the producer's own receipt inside the artifact.
+
+- 705 concepts, against 705 official terms in the source;
+- 1,138 labels, being 705 preferred and 433 alternate;
+- 1,451 relation rows;
+- 1,463 source related-reference occurrences: 1,451 resolved, 11
+  `suggestedOpenTermPattern`, 1 `unresolved`. The 12 unrepresented occurrences
+  are the ones the source did not resolve to a managed concept.
+
+705 source records, and the release the distribution carries is
+`urn:ref:atlas-release:3:federal-register-thesaurus:2025-04-01`. The receipt is
+`output/atlas-3.0-federal-register-thesaurus-2025-04-01-verification-receipt.json`,
+beside the distribution rather than inside it.
+
+The independent Atlas 3.0 binding validator, reading only the distribution
+bytes, reports the same numbers in 8.2s:
+`{"labels":1138,"nativeRelationAssertions":1451,"relationAssertions":1451,"releases":1,"resources":705,"sourceRecords":705}`
+with `quadCount` 57,686.
+
+`tests/test_verify_federal_register_thesaurus_distribution.py:27` pins the
+source refusals, `:37` pins the occurrence ledger, and `:52` substitutes one
+relation endpoint for an invented one and asserts the receipt still measures
+1,451 relation rows and still fails — counting alone would pass it.
+
+### The 1.1 search view over it
+
+`output/atlas-3.0-federal-register-thesaurus-2025-04-01-parquet-view`, manifest
+SHA-256 `064f2d3e08def64a669b8f8898c378734ae1064fba853ea02283c1ac97ae9e76`, view
+id
+`urn:ref:atlas-parquet-view:d2b55629b29614f44dbae2bf8a19e730d0fb15022050e5a632044eb2760951fc`,
+is the full view over the bounded distribution.
+
+`output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view`, manifest
+SHA-256 `b2551b4cc3d757acf0df677ec6bee57ce00cb5ceff45c4835630edd129067999`, view
+id
+`urn:ref:atlas-parquet-search-view:70b99411997b4b2f0d96dfd058b5cfed2a0f5e9e0fb45d2445a0641a6539671d`,
+is the 1.1 search view over that. `schemaVersion` and
+`construction.implementationVersion` are both `1.1`; `input.atlas.distributionId`
+and `input.atlas.manifestSha256` pin the bounded distribution above. Its Label
+columns are `id`, `resource`, `label_role`, `value`, `language`, `release`,
+`source_record`; `Label.id` is absent from `status.omittedFields`; and the first
+label identifier is
+`urn:ref:atlas-label:002edff666b12976c42256757dc7704dbf7615f60b1fae2183b148eb2ecd751a`.
+5,452 role rows of which 1,138 are labels, 397,761 bytes in nine files.
+`refspec-build-atlas-search-view --verify-only` passes on that directory.
+
+### Commands
+
+```sh
+make release-atlas-federal-register-thesaurus
+make verify-atlas-federal-register-thesaurus
+
+uv run refspec-build-atlas-parquet-view \
+  --distribution output/atlas-3.0-federal-register-thesaurus-2025-04-01/distribution \
+  --expected-manifest-sha256 fb76eb08bea4a94c6286810c14a8e1062c2f21655b9fc656f2fe2557278d6060 \
+  --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-parquet-view
+
+uv run refspec-build-atlas-search-view \
+  --full-view output/atlas-3.0-federal-register-thesaurus-2025-04-01-parquet-view \
+  --expected-manifest-sha256 064f2d3e08def64a669b8f8898c378734ae1064fba853ea02283c1ac97ae9e76 \
+  --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view
+
+uv run refspec-build-atlas-search-view --verify-only \
+  --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view \
+  --expected-manifest-sha256 b2551b4cc3d757acf0df677ec6bee57ce00cb5ceff45c4835630edd129067999
+
+uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
+  python bindings/atlas/3.0/tools/validate.py \
+  --distribution output/atlas-3.0-federal-register-thesaurus-2025-04-01/distribution
+```
+
+The two `make` targets are the release-job section of `Makefile`, wired into
+neither `test` nor `check-generated` nor continuous integration, per item 6.
+`ATLAS_FR_RELEASE_MANIFEST_SHA256` is the external pin the verifier checks
+against; it is a constant because the build is deterministic.
+
+Everything above lands under the gitignored `output/`, so the tracked proof is
+the generator's allowlist, the verifier, their six tests, and this record.
+`make check-generated` exits 0 unchanged, `ruff check .` is clean, and the
+whole suite is 2,577 passed and 39 skipped with `output/` present.
 
 - Owner: RefSpec.
-- Exit gate: the source digest matches before the build runs, producer-side
-  semantic verification reproduces the four counts, and publication is atomic.
+- Exit gate: met. The source digest matched before the build ran, producer-side
+  semantic verification reproduced the four counts from the published bytes,
+  and publication is a rename of a validated candidate.
 
 ## 3. Content-derived distribution identity
 
@@ -150,14 +288,14 @@ instant to the payload raises. `:1245` pins the instant derivation, its
 canonical-date refusals, its independence from argument order, and the
 incremental floor. `:2847` now proves both halves of the ledger check: an
 unresealed mutation fails on identity, and the same mutation resealed reaches
-the membership reconciliation underneath it. The module's 109 tests pass and
-`ruff check .` is clean; the whole suite is 2,571 passed and 39 skipped with
-`output/` present.
+the membership reconciliation underneath it. The module's 112 tests pass and
+`ruff check .` is clean.
 
 The generator's self pin moved with the file, from
 `sha256:0cc31b3d395a8d95de074854f302ebec22e79c15b624385d2601f19f7974e62e` to
 `sha256:f41957758986b2dfe1ece25438d563643be63ab637aaf69a3a83720b5614b702`
-(`:171`), written by `--repin`.
+(`:171`), written by `--repin`. Item 2's allowlist moved it again, to
+`sha256:54983dd712b6ea2eb766748821d620c1fe2acf4d149ebffab859b9e4df8f4419`.
 
 The change governs the next build. The four builds on disk keep the identifier
 they were written with; nothing rewrites them in place, and both reuse paths
@@ -250,8 +388,12 @@ that are there.
 ## 6. Release job, separate from continuous integration
 
 The bounded single-scheme Atlas build of item 2 and its semantic verification
-run in the release job only. The multi-scheme full-Atlas generator stays out
-of both gates: it reads gitignored inputs and builds schemes the MVP cuts.
+run in the release job only, as `make release-atlas-federal-register-thesaurus`
+and `make verify-atlas-federal-register-thesaurus` under the release-job section
+of `Makefile`. Neither is a prerequisite of `test` or `check-generated`, and
+neither appears in `.github/workflows/ci.yml`. The multi-scheme full-Atlas
+generator stays out of both gates: it reads gitignored inputs and builds schemes
+the MVP cuts.
 
 ## 7. Package only production code
 
