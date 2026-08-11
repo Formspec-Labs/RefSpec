@@ -25,6 +25,7 @@ check-generated:
 	uv run python tools/generate_atlas_index.py --check
 	uv run python tools/generate_atlas_v3_registry_coverage.py --check
 	uv run python tools/generate_atlas_v3_registry_descriptors.py --check
+	uv run python tools/build_registry_source_manifest.py --check
 	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
 		python bindings/atlas/3.0/tools/build_fixtures.py --check
 

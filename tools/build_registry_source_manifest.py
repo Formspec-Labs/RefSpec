@@ -9,6 +9,7 @@ import hashlib
 import importlib
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -1215,8 +1216,13 @@ def _icpsr_managed_release_test_inputs(
 ) -> list[dict[str, Any]]:
     """Describe the multi-artifact publisher capture as one source collection."""
 
+    # The capture collection lives under gitignored output/; the two files this
+    # builder reads at generation time are pinned as byte-identical tracked
+    # copies under tests/fixtures/ so `--check` holds from a clean clone.
+    # localPath metadata keeps naming the capture location.
     capture_root = Path("output/refspec-vocabulary-portfolio/icpsr/2026-07-30")
-    manifest_path = repository_root / capture_root / "index/manifest.json"
+    fixture_root = Path("tests/fixtures/icpsr_managed_release")
+    manifest_path = repository_root / fixture_root / "capture-index-manifest-2026-07-30.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     descriptors = [manifest["robots"], *manifest["pages"]]
     members: list[dict[str, Any]] = []
@@ -1238,7 +1244,7 @@ def _icpsr_managed_release_test_inputs(
             }
         )
     xml_path = capture_root / "subject.xml"
-    xml_payload = (repository_root / xml_path).read_bytes()
+    xml_payload = (repository_root / fixture_root / "subject-2026-07-30.xml").read_bytes()
     members.append(
         {
             "name": "subjectXml",
@@ -1372,11 +1378,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository-root", type=Path, default=REPOSITORY_ROOT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--check", action="store_true", help="verify the checked manifest (default: write it)")
     args = parser.parse_args()
-    payload = build_manifest(args.repository_root.resolve())
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(canonical_json(payload) + "\n", encoding="utf-8")
-    return 0
+    try:
+        payload = build_manifest(args.repository_root.resolve())
+        generated = canonical_json(payload) + "\n"
+        if args.check:
+            if not args.output.is_file() or args.output.read_text(encoding="utf-8") != generated:
+                raise ValueError(
+                    "checked registry source manifest differs from generation; "
+                    "run tools/build_registry_source_manifest.py"
+                )
+            print(f"registry source manifest is current: {payload['moduleCount']} registry modules")
+            return 0
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(generated, encoding="utf-8")
+        return 0
+    except (OSError, TypeError, ValueError) as error:
+        print(f"registry source manifest error: {error}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
