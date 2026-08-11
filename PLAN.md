@@ -28,14 +28,54 @@ Small repository edits carry neither.
 
 ## 1. Search view carrying `Label.id`
 
-Publish a new search-view version containing canonical `Label.id` (REF-025).
+Search view 1.1 carries canonical `Label.id` (REF-025).
 
 `src/refspec/atlas/parquet_search_view.py:35,38` sets
-`SEARCH_VIEW_SCHEMA_VERSION = "1.0"` and
-`SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.0"`. The LABEL Arrow schema at
-`:123-132` carries `resource`, `label_role`, `value`, `language`, `release`,
-and `source_record`, and no label identifier. The change moves the builder,
-the Arrow schemas, the member verifier at `:390`, and the tests together.
+`SEARCH_VIEW_SCHEMA_VERSION = "1.1"` and
+`SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.1"`. The LABEL Arrow schema at
+`:126-136` carries `id` ahead of `resource`, `label_role`, `value`, `language`,
+`release`, and `source_record`. The builder copies `id` from the full view's
+`tables/labels.parquet`, whose LABEL schema at `parquet_view.py:163` carries
+the same canonical `Label.id` the compact packs carry as `LabelRecord.id`
+(`compact_pack.py:163`); nothing in the search view mints a label identifier.
+`Label.id` is gone from `status.omittedFields`, so a 1.0 manifest and a 1.1
+manifest differ in that list as well as in `schemaVersion`.
+
+Verification requires the field. `verify_atlas_parquet_search_view` refuses a
+LABEL member whose Arrow schema has no `id` with a message naming REF-025 and
+version 1.1, before the generic schema comparison; the manifest check names the
+expected schema version; and `_transform` refuses a full-view label row without
+`id` during a build. `AtlasDuckDBView.open` verifies before it opens, so it
+carries the same refusal.
+
+`tests/test_atlas_parquet_view.py::test_search_view_refuses_a_label_member_without_canonical_label_id`
+rewrites a built view's Label member without the column and reseals the
+manifest around it, so the byte length, member digest, schema digest, row count
+and file-membership checks all pass; `verify_atlas_parquet_search_view` and
+`AtlasDuckDBView.open` both raise on the absent field.
+`test_compact_search_view_preserves_graph_and_omits_native_payload` pins
+`schemaVersion` 1.1 and the label row's `id` against the full view's.
+
+Built from real data on 2026-08-11:
+`output/atlas-3.0-parquet-search-view-2026-08-11`, from the full view
+`output/atlas-3.0-parquet-view-2026-08-10` pinned at
+`cd712aacc0308594e6cad77be327b482779a3fb4cc93dacd7d0c6bb04d1d5207`. Manifest
+SHA-256 `cf645ad8316875b43735561ec2910cf42fd05cf90961dcde2c59c0fdce59759d`,
+view id
+`urn:ref:atlas-parquet-search-view:6e2489f0124ffa7e0c1f508452a449057e05de376b4e02b88778581d59786446`,
+3,288,830 role rows of which 984,114 are labels, 224,874,647 bytes in nine
+files. Its Label columns are `id`, `resource`, `label_role`, `value`,
+`language`, `release`, `source_record`, and the first label identifier is
+`urn:ref:atlas-label:3b03086ebc31340c3c348d57ee2b20f0a99b053e451db0767262165efab4bc61`.
+`refspec-build-atlas-search-view --verify-only` passes on that directory and,
+on the 1.0 view built from the same full view, exits with `compact view type or
+version is unsupported: expected schema version 1.1`. The identifier costs
+30,887,361 bytes there: 74,779,216 against 43,891,855 for the Label member.
+
+Both directories are under the gitignored `output/`, so the tracked proof is
+the test, not the bytes. Item 2 is where a bounded distribution and a search
+view over it get published from a pinned source rather than from the
+multi-scheme development Atlas.
 
 - Owner: RefSpec.
 - Exit gate: a published search view whose LABEL member carries the canonical

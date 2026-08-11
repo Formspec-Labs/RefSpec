@@ -105,17 +105,28 @@ digests or identifiers whose values are either reconstructed from a retained
 identifier or used only to authenticate the pinned full view. Those omitted
 values remain in the pinned full view and canonical RDF.
 
+Search view 1.1 carries the canonical `Label.id` in the Label table's `id`
+column, copied from the pinned full view (REF-025). The manifest states
+`schemaVersion: 1.1`, `Label.id` is absent from `status.omittedFields`, and
+verification refuses a Label member without that column and refuses a manifest
+naming another schema version.
+
 ```sh
 uv run refspec-build-atlas-search-view \
-  --full-view output/atlas-3.0-parquet-view-2026-08-07 \
-  --expected-manifest-sha256 1b0839f51a80e8d66cff31905b87306127aefebe6f936107850f1e9677700197 \
-  --output output/atlas-3.0-parquet-search-view-2026-08-07
+  --full-view output/atlas-3.0-parquet-view-2026-08-10 \
+  --expected-manifest-sha256 cd712aacc0308594e6cad77be327b482779a3fb4cc93dacd7d0c6bb04d1d5207 \
+  --output output/atlas-3.0-parquet-search-view-2026-08-11
 ```
 
-The measured compact development view contains the same 3,288,830 role rows in
-175,586,262 bytes (about 167 MiB; 170 MB allocated on the build machine). Its
-manifest SHA-256 is
-`b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c`.
+The 2026-08-11 compact development view contains the same 3,288,830 role rows,
+984,114 of them labels, in 224,874,647 bytes across nine files (about 214 MiB).
+Its manifest SHA-256 is
+`cf645ad8316875b43735561ec2910cf42fd05cf90961dcde2c59c0fdce59759d` and its view
+identifier is
+`urn:ref:atlas-parquet-search-view:6e2489f0124ffa7e0c1f508452a449057e05de376b4e02b88778581d59786446`.
+The label identifier costs 30,887,361 bytes on this data: `tables/labels.parquet`
+is 74,779,216 bytes against 43,891,855 in the 1.0 view built from the same full
+view, and the members total 224,869,901 bytes against 193,982,540.
 
 ## Explore the data
 
@@ -140,8 +151,8 @@ consumer can use the same verified tables without importing explorer code.
 from refspec.atlas import open_atlas_duckdb_view
 
 with open_atlas_duckdb_view(
-    "output/atlas-3.0-parquet-search-view-2026-08-07",
-    trusted_manifest_digest="sha256:b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c",
+    "output/atlas-3.0-parquet-search-view-2026-08-11",
+    trusted_manifest_digest="sha256:cf645ad8316875b43735561ec2910cf42fd05cf90961dcde2c59c0fdce59759d",
 ) as atlas:
     rows = atlas.query_rows(
         "SELECT id, definition FROM atlas_resources WHERE semantic_ring = ? LIMIT 20",
@@ -155,8 +166,8 @@ details without parsing the RDF packs.
 
 ```sh
 uv run refspec-atlas-explorer \
-  output/atlas-3.0-parquet-search-view-2026-08-07 \
-  --manifest-digest b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c
+  output/atlas-3.0-parquet-search-view-2026-08-11 \
+  --manifest-digest cf645ad8316875b43735561ec2910cf42fd05cf90961dcde2c59c0fdce59759d
 ```
 
 The command opens `http://127.0.0.1:8000/`. DuckDB reads ordinary graph queries
@@ -177,8 +188,8 @@ authority layers while delegating only ranked text search to this query package:
 ```sh
 uv run refspec-atlas-explorer \
   output/atlas-3.0-full-2026-08-06/atlas-explorer-preview.html \
-  --search-view output/atlas-3.0-parquet-search-view-2026-08-07 \
-  --manifest-digest b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c
+  --search-view output/atlas-3.0-parquet-search-view-2026-08-11 \
+  --manifest-digest cf645ad8316875b43735561ec2910cf42fd05cf90961dcde2c59c0fdce59759d
 ```
 
 The server rejects an RDF preview and compact view that pin different Atlas
