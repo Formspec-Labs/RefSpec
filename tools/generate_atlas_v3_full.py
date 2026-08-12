@@ -7,17 +7,8 @@ semantic rings, direct authored relations, release provenance, and separately
 evidenced mapping releases. It never invents inverse, transitive, or similarity
 mappings.
 
-Before invoking a parser, the incremental planner authenticates a prior Atlas
-3.0 distribution and re-receipts each release's raw inputs and adapter recipe.
-It copies clean release-local RDF and compact packs, reads only the clean claims
-needed for global joins, and reparses changed releases plus mapping releases
-whose endpoints changed. The catalog is always rebuilt from current pinned
-descriptors. A dirty incremental build must produce the same declared bytes as
-a cold build from the same inputs. If every construction input is unchanged,
-``exactDistributionReuse`` skips all semantic work; an incompatible proof takes
-the cold path.
-
-Output is a digest-pinned, compressed, release-local distribution. Explorer
+Every build is cold: it parses each pinned input, reconstructs the whole graph,
+and rewrites every pack. Output is a digest-pinned, compressed, release-local distribution. Explorer
 indexes remain optional reproducible views, and no database service is needed.
 The generator validates normalized rows and fixed constructors against the
 pinned compiled SHACL profile; independent consumers still validate serialized
@@ -36,19 +27,18 @@ import importlib.util
 import json
 import platform
 import re
-import shutil
 import sys
 import tempfile
 import time
 import unicodedata
-from collections import ChainMap, Counter, defaultdict, deque
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import date
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TextIO
 from typing import Literal as TypeLiteral
@@ -66,7 +56,6 @@ from refspec.atlas.compact_pack import (
     CompactPackHeader,
     CompactPackInventory,
     CompactRecordRole,
-    read_compact_record_pack,
     write_compact_record_pack,
 )
 from refspec.atlas.registry_claim_input import (
@@ -180,7 +169,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:50f54765b38dec1d97708ed9b88fb77f5185a200ecf6e073ba6fd8f86128e16d"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:3f4437404f921f2828a98d9f5aecc867500fb03955419f03cecd8cae99aa0d27"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -417,100 +406,28 @@ class PackContentReceipt:
 
 @dataclass(slots=True)
 class IncrementalPackMaterialization:
-    """Verified prior-pack index plus current materialization outcomes.
+    """Ledger of the packs one cold build wrote.
 
-    This deliberately does not claim incremental graph construction. The
-    compiled producer proof requires complete normalized rows and complete
-    sealed graphs, so every build still reconstructs and sorts current RDF.
-    Only an unchanged pack's already-compressed transport bytes are reusable.
+    Named for the ``incrementalPackMaterialization`` wire block it renders.
+    The reuse arm that once fed it is gone -- every build reconstructs and
+    sorts current RDF and rewrites every pack -- so the reuse fields of that
+    block are cold-path constants until the 3.1 wire bump retires them.
     """
 
-    prior_root: Path | None = None
-    prior_distribution_id: str | None = None
-    prior_manifest_digest: str | None = None
-    prior_packs_by_path: Mapping[str, Mapping[str, Any]] = dataclasses.field(
-        default_factory=dict
-    )
     rebuilt_paths: list[str] = dataclasses.field(default_factory=list)
-    reused_paths: list[str] = dataclasses.field(default_factory=list)
-
-    def report(self) -> dict[str, Any]:
-        report: dict[str, Any] = {
-            "currentCanonicalPackContent": "fullyRecomputedAndSorted",
-            "graphConstruction": "fullRebuildRequiredByCompiledProducerProof",
-            "mode": "incrementalPackMaterialization",
-            "rebuiltPackCount": len(self.rebuilt_paths),
-            "rebuiltPacks": sorted(self.rebuilt_paths),
-            "reuseCriterion": "contentDigestByteLengthAndQuadCount",
-            "reusedPackCount": len(self.reused_paths),
-            "reusedPacks": sorted(self.reused_paths),
-        }
-        if self.prior_root is None:
-            report["priorDistribution"] = "notProvided"
-        else:
-            report.update(
-                {
-                    "priorDistribution": "closedManifestAndMembersVerified",
-                    "priorDistributionId": self.prior_distribution_id,
-                    "priorManifestDigest": self.prior_manifest_digest,
-                }
-            )
-        return report
-
-
-@dataclass(frozen=True, slots=True)
-class IncrementalConstructionReuse:
-    """Authenticated unchanged release units selected from one prior Atlas."""
-
-    prior_root: Path
-    prior_manifest: Mapping[str, Any]
-    prior_summary: Mapping[str, Any]
-    clean_keys: frozenset[str]
-    dirty_keys: frozenset[str]
-    reused_accounting_rows: Mapping[str, Mapping[str, Any]]
-    clean_state: CleanConstructionState | None = None
 
     def report(self) -> dict[str, Any]:
         return {
-            "cleanReleaseCount": len(self.clean_keys),
-            "cleanReleases": sorted(self.clean_keys),
-            "dirtyReleaseCount": len(self.dirty_keys),
-            "dirtyReleases": sorted(self.dirty_keys),
-            "mode": "releaseLocalIncrementalConstruction",
-            "priorDistributionId": self.prior_manifest["distributionId"],
-            "priorManifestDigest": _sha256_file(
-                self.prior_root / "atlas-manifest.json"
-            ),
-            "status": "passed",
+            "currentCanonicalPackContent": "fullyRecomputedAndSorted",
+            "graphConstruction": "fullRebuildRequiredByCompiledProducerProof",
+            "mode": "incrementalPackMaterialization",
+            "priorDistribution": "notProvided",
+            "rebuiltPackCount": len(self.rebuilt_paths),
+            "rebuiltPacks": sorted(self.rebuilt_paths),
+            "reuseCriterion": "contentDigestByteLengthAndQuadCount",
+            "reusedPackCount": 0,
+            "reusedPacks": [],
         }
-
-
-@dataclass(frozen=True, slots=True)
-class ReusedConstructionMaterial:
-    """Authenticated clean-unit files and subject indexes for a dirty write."""
-
-    rdf_packs: tuple[Mapping[str, Any], ...]
-    compact_packs: tuple[Mapping[str, Any], ...]
-    compact_path_owners: Mapping[str, str]
-    rdf_subject_owners: Mapping[URIRef, tuple[str, str | None]]
-    rdf_pack_ids: Mapping[tuple[str, str | None], str]
-    compact_subject_pack_ids: Mapping[URIRef, str]
-
-
-@dataclass(frozen=True, slots=True)
-class CleanConstructionState:
-    """Minimal authenticated clean rows needed by dirty global construction."""
-
-    resources: Mapping[str, tuple[str, URIRef, URIRef]]
-    identifier_targets: Mapping[tuple[str, str], str]
-    compact_subject_pack_ids: Mapping[URIRef, str]
-    rdf_subject_owners: Mapping[URIRef, tuple[str, str | None]]
-    statement_type_counts: Mapping[str, int]
-    mapping_policy_iris: frozenset[URIRef]
-    relation_triples: Mapping[
-        tuple[URIRef, URIRef, URIRef],
-        tuple[URIRef, ...],
-    ]
 
 
 @dataclass(frozen=True, slots=True)
@@ -563,13 +480,6 @@ class _MutationTrackedGraph(Graph):
             super().remove(triple)
             self.revision += len(removed)
         return self
-
-
-def _copy_build_graph(source: Graph) -> _MutationTrackedGraph:
-    graph = _new_build_graph()
-    for triple in source:
-        graph.add(triple)
-    return graph
 
 
 def _new_build_graph() -> _MutationTrackedGraph:
@@ -951,9 +861,8 @@ def _canonical_digest(value: Any) -> str:
 def distribution_scope_profile(source_release_count: int) -> str:
     """Name a build's scope from the source releases its own ledger declares.
 
-    This asks the one question the reuse planner asks -- is this the complete
-    code-declared release topology? -- of the same authority,
-    ``_declared_construction_unit_keys``. A bounded selection is a subset of
+    This asks one question -- is this the complete code-declared release
+    topology? -- of the single authority, ``_declared_construction_unit_keys``. A bounded selection is a subset of
     those keys and every declared unit contributes one ledger row, so the row
     count answers set membership exactly. There is deliberately no scope flag
     beside it: a second switch is a second thing to set wrong.
@@ -1034,23 +943,14 @@ def _release_instant(issued: str) -> str:
     return f"{issued}T00:00:00+00:00"
 
 
-def _distribution_instant(
-    releases: Iterable[LoadedRelease],
-    *,
-    floor: str | None = None,
-) -> str:
+def _distribution_instant(releases: Iterable[LoadedRelease]) -> str:
     """Take a build's recorded instant from the newest release date it carries.
 
     A build clock would make two builds of identical content unequal, so the
-    recorded instant is a fact of the pinned sources instead. An incremental
-    build reconstructs only the dirty releases, so it takes the prior
-    distribution's instant as a floor to reach the same value a cold build over
-    the same inputs reaches.
+    recorded instant is a fact of the pinned sources instead.
     """
 
     instants = [_release_instant(release.issued) for release in releases]
-    if floor is not None:
-        instants.append(floor)
     if not instants:
         raise ValueError("a distribution instant requires at least one pinned release")
     return max(instants)
@@ -2422,9 +2322,7 @@ def split_construction_unit_keys(
 
     ``load_releases`` and ``load_mapping_releases`` each refuse a key they do
     not declare, so a bounded caller has to route every requested key to the
-    loader that owns it. The incremental path already splits the same way from
-    the prior construction summary; this derives the split from code instead,
-    which is what a cold bounded build has.
+    loader that owns it.
     """
 
     from refspec.atlas.v3_registry_alignments import REGISTRY_MAPPING_RELEASE_KEYS
@@ -3575,61 +3473,6 @@ def _ensure_release_schemes(
         _add_content_digest(graph, scheme)
 
 
-def _ensure_construction_seed_schemes(
-    graph: Graph,
-    seeds: Sequence[ReleaseConstructionSeed],
-) -> None:
-    """Rebuild release-derived catalog schemes from portable construction facts."""
-
-    grouped: dict[str, list[ReleaseConstructionSeed]] = defaultdict(list)
-    for seed in seeds:
-        if seed.kind == "sourceRelease":
-            if seed.scheme_iri is None or seed.resource_profile is None:
-                raise ValueError(f"source construction unit lacks scheme facts: {seed.key}")
-            grouped[seed.scheme_iri].append(seed)
-    policies = ATLAS_VALIDATE._profile_policies()
-    for scheme_iri, scheme_seeds in sorted(grouped.items()):
-        scheme = URIRef(scheme_iri)
-        profiles = {seed.resource_profile for seed in scheme_seeds}
-        rings = {seed.ring for seed in scheme_seeds}
-        registry_sources = {
-            seed.registry_source_iri
-            for seed in scheme_seeds
-            if seed.registry_source_iri is not None
-        }
-        if len(profiles) != 1 or len(registry_sources) > 1:
-            raise ValueError(f"construction scheme ownership differs: {scheme}")
-        profile_name = next(iter(profiles))
-        profile = ATLAS[profile_name]
-        policy = policies.get(profile)
-        if policy is None or not rings <= set(policy["applicableSemanticRings"]):
-            raise ValueError(f"construction scheme has unsupported rings: {scheme}")
-        if (scheme, RDF.type, ATLAS.ResourceScheme) in graph:
-            if set(graph.objects(scheme, ATLAS.resourceProfile)) != {profile}:
-                raise ValueError(f"registry scheme profile differs: {scheme}")
-            if not {ATLAS[ring] for ring in rings} <= set(
-                graph.objects(scheme, ATLAS.supportedRing)
-            ):
-                raise ValueError(f"registry scheme omits a release ring: {scheme}")
-            if "subject" in rings and (scheme, RDF.type, SKOS.ConceptScheme) not in graph:
-                raise ValueError(f"registry subject scheme is not SKOS: {scheme}")
-            continue
-        if len(registry_sources) != 1:
-            raise ValueError(f"construction child scheme lacks registry owner: {scheme}")
-        source = URIRef(next(iter(registry_sources)))
-        if (source, RDF.type, ATLAS.RegistrySource) not in graph:
-            raise ValueError(f"construction scheme names unknown registry source: {source}")
-        graph.add((scheme, RDF.type, ATLAS.ResourceScheme))
-        if profile == ATLAS.conceptScheme or "subject" in rings:
-            graph.add((scheme, RDF.type, SKOS.ConceptScheme))
-        graph.add((scheme, DCTERMS.identifier, Literal(str(scheme))))
-        graph.add((scheme, ATLAS.resourceProfile, profile))
-        graph.add((scheme, ATLAS.sourceDescriptor, source))
-        for ring in sorted(rings):
-            graph.add((scheme, ATLAS.supportedRing, ATLAS[ring]))
-        _add_content_digest(graph, scheme)
-
-
 def _expected_projection_graph(asserted: Graph) -> Graph:
     """Build the validator-defined projection in the lean single-context store."""
 
@@ -3823,9 +3666,6 @@ def _validate_compiled_binding_profile() -> dict[str, str]:
 def _validate_compiled_producer_rows(
     releases: tuple[LoadedRelease, ...],
     mapping_releases: Sequence[RegistryMappingRelease] = (),
-    *,
-    clean_state: CleanConstructionState | None = None,
-    clean_seeds: Sequence[ReleaseConstructionSeed] = (),
 ) -> CompiledProducerValidationReceipt:
     """Validate source and evidence-backed mapping rows against compiled SHACL.
 
@@ -3836,8 +3676,6 @@ def _validate_compiled_producer_rows(
 
     if not releases and not mapping_releases:
         raise ValueError("compiled producer validation requires source releases")
-    if clean_state is None and clean_seeds:
-        raise ValueError("compiled producer clean seeds require clean indexes")
     binding_profile = _validate_compiled_binding_profile()
     english_only_scan = _english_only_scan(releases)
     profile_policies = ATLAS_VALIDATE._profile_policies()
@@ -3847,17 +3685,11 @@ def _validate_compiled_producer_rows(
     descriptor_graph = _registry_asserted_graph()
     try:
         _ensure_release_schemes(descriptor_graph, releases)
-        _ensure_construction_seed_schemes(descriptor_graph, clean_seeds)
         catalog_carriers = {
             str(subject)
             for carrier_type in (ATLAS.RegistrySource, ATLAS.ResourceScheme)
             for subject in descriptor_graph.subjects(RDF.type, carrier_type)
         }
-        catalog_carriers.update(
-            seed.scheme_iri
-            for seed in clean_seeds
-            if seed.scheme_iri is not None
-        )
         identifier_schemes = {
             str(subject)
             for subject in descriptor_graph.subjects(
@@ -3867,60 +3699,29 @@ def _validate_compiled_producer_rows(
             if (subject, RDF.type, ATLAS.ResourceScheme) in descriptor_graph
         }
 
-        clean_source_release_iris = {
-            seed.source_release_iri for seed in clean_seeds
-        }
-        clean_atlas_release_iris = {
-            seed.atlas_release_iri
-            for seed in clean_seeds
-            if seed.atlas_release_iri is not None
-        }
-        dirty_source_release_iris = {
+        resource_source_release_iris = {
             release.source_release_iri for release in releases
         }
         mapping_source_release_iris = {
             release.source_release_iri for release in mapping_releases
         }
-        if (
-            dirty_source_release_iris & mapping_source_release_iris
-            or clean_source_release_iris
-            & (dirty_source_release_iris | mapping_source_release_iris)
-        ):
+        if resource_source_release_iris & mapping_source_release_iris:
             raise ValueError("resource and mapping source release identities overlap")
         source_release_iris = (
-            clean_source_release_iris
-            | dirty_source_release_iris
-            | mapping_source_release_iris
+            resource_source_release_iris | mapping_source_release_iris
         )
-        dirty_atlas_release_iris = {
-            release.atlas_release_iri for release in releases
-        }
-        if clean_atlas_release_iris & dirty_atlas_release_iris:
-            raise ValueError("clean and dirty Atlas release identities overlap")
-        atlas_release_iris = clean_atlas_release_iris | dirty_atlas_release_iris
+        atlas_release_iris = {release.atlas_release_iri for release in releases}
         if source_release_iris & atlas_release_iris:
             raise ValueError("source and Atlas release identities overlap")
         if (source_release_iris | atlas_release_iris) & catalog_carriers:
             raise ValueError("release identity overlaps a registry catalog carrier")
 
-        clean_resources: Mapping[str, tuple[str, URIRef, URIRef]] = (
-            MappingProxyType({})
-            if clean_state is None
-            else clean_state.resources
-        )
         resource_index: dict[str, tuple[str, URIRef, URIRef]] = {}
 
         def resource_facts(resource_iri: str) -> tuple[str, URIRef, URIRef] | None:
-            return resource_index.get(resource_iri) or clean_resources.get(
-                resource_iri
-            )
+            return resource_index.get(resource_iri)
 
         relation_evidence_records: set[URIRef] = set()
-        clean_identifier_targets: Mapping[tuple[str, str], str] = (
-            MappingProxyType({})
-            if clean_state is None
-            else clean_state.identifier_targets
-        )
         identifier_targets: dict[tuple[str, str], str] = {}
         label_count = 0
         identifier_count = 0
@@ -4008,7 +3809,7 @@ def _validate_compiled_producer_rows(
                     raise ValueError(
                         f"resource identity overlaps another carrier: {resource_iri}"
                     )
-                if resource_iri in resource_index or resource_iri in clean_resources:
+                if resource_iri in resource_index:
                     raise ValueError(f"Atlas releases repeat resource IRI {resource_iri}")
                 resource_index[resource_iri] = (
                     release.spec.key,
@@ -4095,10 +3896,7 @@ def _validate_compiled_producer_rows(
                     ):
                         raise ValueError(f"{resource_iri} has an invalid identifier row")
                     key = (scheme_iri, identifier.value)
-                    previous_target = identifier_targets.get(
-                        key,
-                        clean_identifier_targets.get(key),
-                    )
+                    previous_target = identifier_targets.get(key)
                     if previous_target is None:
                         identifier_targets[key] = resource_iri
                         previous_target = resource_iri
@@ -4112,18 +3910,10 @@ def _validate_compiled_producer_rows(
                 if release.spec.emit_source_assignments:
                     source_assignment_count += 1
 
-        dirty_relations: dict[
+        current_relations: dict[
             tuple[URIRef, URIRef, URIRef],
             tuple[URIRef, ...],
         ] = {}
-        current_relations = ChainMap(
-            dirty_relations,
-            (
-                MappingProxyType({})
-                if clean_state is None
-                else clean_state.relation_triples
-            ),
-        )
         cross_ring_claims: set[tuple[str, str, str, str, str]] = set()
         mapping_claims: set[tuple[str, str, str]] = set()
         remap_evidence_count = 0
@@ -4700,282 +4490,6 @@ def _validate_compiled_producer_output(
     }
 
 
-def _expected_dirty_constructor_counts(
-    releases: Sequence[LoadedRelease],
-    mapping_releases: Sequence[RegistryMappingRelease],
-) -> dict[str, int]:
-    resources = sum(len(release.resources) for release in releases)
-    labels = sum(
-        len(resource.labels) for release in releases for resource in release.resources
-    )
-    identifiers = sum(
-        len(resource.identifiers)
-        for release in releases
-        for resource in release.resources
-    )
-    native = sum(len(release.relations) for release in releases)
-    cross = sum(len(release.cross_ring_relations) for release in releases)
-    mappings = sum(len(release.mappings) for release in mapping_releases)
-    mapping_records: set[URIRef] = set()
-    for mapping_release in mapping_releases:
-        for mapping in mapping_release.mappings:
-            for evidence in mapping.evidence:
-                locator, digest, payload = _mapping_evidence(
-                    mapping_release,
-                    mapping,
-                    evidence,
-                )
-                record, _ = _source_record_constructor(
-                    source_release=URIRef(mapping_release.source_release_iri),
-                    source_locator=locator,
-                    source_digest=digest,
-                    native_payload=payload,
-                )
-                mapping_records.add(record)
-    assignments = sum(
-        len(release.resources)
-        for release in releases
-        if release.spec.emit_source_assignments
-    )
-    statements = assignments + native + cross + mappings
-    return {
-        "crossRingRelationAssertions": cross,
-        "derivedRelations": 0,
-        "identifiers": identifiers,
-        "labels": labels,
-        "mappingAssertions": mappings,
-        "nativeRelationAssertions": native,
-        "projectedRelations": 0,
-        "relationAssertions": statements,
-        "releases": len(releases),
-        "resources": resources,
-        "sourceAssignments": assignments,
-        "sourceRecords": (
-            resources
-            + len(mapping_records)
-            + sum(
-                relation.predicate == str(ATLAS.thesaurusRelated)
-                for release in releases
-                for relation in release.relations
-            )
-            + sum(
-                len(release.supplemental_source_records)
-                for release in releases
-            )
-        ),
-    }
-
-
-def _incremental_full_counts(
-    dirty_counts: Mapping[str, int],
-    reuse: IncrementalConstructionReuse,
-) -> dict[str, int]:
-    if reuse.clean_state is None:
-        raise ValueError("incremental full counts require clean compact state")
-    prior_rows = {row["key"]: row for row in reuse.prior_summary["releases"]}
-    clean_role_counts: Counter[str] = Counter()
-    for key in reuse.clean_keys:
-        clean_role_counts.update(prior_rows[key]["recordCounts"])
-    statements = Counter(reuse.clean_state.statement_type_counts)
-    merged = dict(dirty_counts)
-    merged["resources"] += clean_role_counts["resources"]
-    merged["labels"] += clean_role_counts["labels"]
-    merged["identifiers"] += clean_role_counts["identifiers"]
-    merged["sourceRecords"] += clean_role_counts["sourceRecords"]
-    merged["relationAssertions"] += clean_role_counts["statements"]
-    merged["releases"] += sum(
-        prior_rows[key]["kind"] == "sourceRelease" for key in reuse.clean_keys
-    )
-    merged["sourceAssignments"] += statements["SourceAssignment"]
-    merged["nativeRelationAssertions"] += statements["NativeRelationAssertion"]
-    merged["mappingAssertions"] += statements["MappingAssertion"]
-    merged["crossRingRelationAssertions"] += statements[
-        "CrossRingRelationAssertion"
-    ]
-    return merged
-
-
-def _dirty_accounting_subset(
-    accounting: Mapping[str, Any],
-    source_releases: frozenset[str],
-) -> dict[str, Any]:
-    rows = [
-        _plain(row)
-        for row in accounting["inputs"]
-        if row["sourceRelease"] in source_releases
-    ]
-    represented = sum(
-        disposition["status"] == "represented"
-        for row in rows
-        for disposition in row["dispositions"]
-    )
-    excluded = sum(
-        disposition["status"] == "excluded"
-        for row in rows
-        for disposition in row["dispositions"]
-    )
-    unresolved = sum(
-        disposition["status"] == "unresolved"
-        for row in rows
-        for disposition in row["dispositions"]
-    )
-    # The subset never leaves this process: it exists so the dirty releases can
-    # be reconciled against the same validator a whole build uses. Deriving its
-    # identity from its own rows keeps that validator's rule -- an accounting
-    # names the content it is the digest of -- true for the subset as well.
-    return _identified_source_accounting(
-        {
-            "inputs": rows,
-            "totals": {
-                "excluded": excluded,
-                "represented": represented,
-                "sourceRecords": represented + excluded + unresolved,
-                "sourceReleases": len(rows),
-                "unresolved": unresolved,
-            },
-            "type": "AtlasSourceAccounting",
-            "version": "3.0",
-        }
-    )
-
-
-def _validate_incremental_merged_accounting(
-    accounting: Mapping[str, Any],
-    *,
-    expected_release_count: int,
-) -> str:
-    """Close clean+dirty ledger identity without reparsing trusted clean rows."""
-
-    if set(accounting) != {"distributionId", "inputs", "totals", "type", "version"}:
-        raise ValueError("incremental source accounting fields differ")
-    if (
-        accounting.get("distributionId") != distribution_identity(accounting)
-        or accounting.get("type") != "AtlasSourceAccounting"
-        or accounting.get("version") != "3.0"
-    ):
-        raise ValueError("incremental source accounting identity differs")
-    rows = accounting.get("inputs")
-    if not isinstance(rows, list) or len(rows) != expected_release_count:
-        raise ValueError("incremental source accounting release count differs")
-    source_releases: list[str] = []
-    source_records: set[str] = set()
-    status_counts: Counter[str] = Counter()
-    for row in rows:
-        if not isinstance(row, Mapping) or set(row) != {
-            "declaredMemberCount",
-            "dispositions",
-            "membershipMode",
-            "sourceRelease",
-        }:
-            raise ValueError("incremental source accounting row fields differ")
-        source_release = row["sourceRelease"]
-        dispositions = row["dispositions"]
-        if (
-            not isinstance(source_release, str)
-            or not isinstance(dispositions, list)
-            or row["declaredMemberCount"] != len(dispositions)
-        ):
-            raise ValueError("incremental source accounting row is incomplete")
-        source_releases.append(source_release)
-        for disposition in dispositions:
-            if not isinstance(disposition, Mapping):
-                raise TypeError("incremental source accounting disposition is not an object")
-            source_record = disposition.get("sourceRecord")
-            status = disposition.get("status")
-            if (
-                not isinstance(source_record, str)
-                or not source_record.startswith("urn:ref:atlas-source-record:")
-                or source_record in source_records
-                or status not in {"represented", "excluded", "unresolved"}
-            ):
-                raise ValueError(
-                    "incremental source accounting SourceRecord or status differs"
-                )
-            source_records.add(source_record)
-            status_counts[status] += 1
-    if source_releases != sorted(source_releases) or len(source_releases) != len(
-        set(source_releases)
-    ):
-        raise ValueError("incremental source accounting releases are not unique and sorted")
-    expected_totals = {
-        "excluded": status_counts["excluded"],
-        "represented": status_counts["represented"],
-        "sourceRecords": len(source_records),
-        "sourceReleases": expected_release_count,
-        "unresolved": status_counts["unresolved"],
-    }
-    if accounting["totals"] != expected_totals:
-        raise ValueError("incremental source accounting totals differ")
-    return _canonical_digest(accounting)
-
-
-def _validate_incremental_producer_output(
-    releases: Sequence[LoadedRelease],
-    graphs: BuildGraphs,
-    producer_validation: CompiledProducerValidationReceipt,
-    *,
-    emitted_release_keys: frozenset[str],
-    mapping_releases: Sequence[RegistryMappingRelease] = (),
-) -> dict[str, Any]:
-    """Seal dirty constructors while retaining full normalized-row validation."""
-
-    if not emitted_release_keys:
-        raise ValueError("incremental producer output requires at least one dirty unit")
-    if dict(producer_validation.binding_profile) != dict(
-        _COMPILED_PRODUCER_BINDING_PINS
-    ):
-        raise ValueError("incremental producer binding receipt differs")
-    if graphs.projection or graphs.derived:
-        raise ValueError("incremental producer requires empty view graphs")
-    if any(graphs.asserted.triples((None, RKAF.supersedesAssertion, None))):
-        raise ValueError("incremental producer does not support supersession")
-    observed_dirty_counts = _counts(graphs)
-    expected_dirty_counts = _expected_dirty_constructor_counts(
-        releases,
-        mapping_releases,
-    )
-    if observed_dirty_counts != expected_dirty_counts:
-        raise ValueError(
-            "incremental dirty constructor counts differ: "
-            f"expected={expected_dirty_counts}, observed={observed_dirty_counts}"
-        )
-    _validate_compiled_evidence_output(
-        graphs.asserted,
-        expected_dirty_counts,
-        mapping_releases,
-    )
-    dirty_source_releases = frozenset(
-        {
-            *(release.source_release_iri for release in releases),
-            *(release.source_release_iri for release in mapping_releases),
-        }
-    )
-    _validate_compiled_source_accounting(
-        releases,
-        _dirty_accounting_subset(graphs.accounting, dirty_source_releases),
-        mapping_releases,
-    )
-    accounting_digest = _validate_incremental_merged_accounting(
-        graphs.accounting,
-        expected_release_count=producer_validation.source_release_count,
-    )
-    if not isinstance(graphs.asserted, _MutationTrackedGraph):
-        raise TypeError("incremental producer graph lacks a mutation receipt")
-    graphs.sealed_asserted_revision = graphs.asserted.revision
-    return {
-        "bindingProfile": dict(producer_validation.binding_profile),
-        "checks": list(_COMPILED_PRODUCER_CHECKS),
-        "constructorProfile": _COMPILED_PRODUCER_PROFILE,
-        "counts": dict(producer_validation.expected_counts),
-        "mode": _COMPILED_PRODUCER_MODE,
-        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
-        "shaclMetaValidation": "pySHACL",
-        "sourceAccountingDigest": accounting_digest,
-        "sourceReleaseCount": producer_validation.source_release_count,
-        "status": "passed",
-    }
-
-
 def _finalize_source_accounting_inputs(
     accounting_inputs: list[dict[str, Any]],
 ) -> None:
@@ -5006,10 +4520,6 @@ def _build_graphs(
     mapping_releases: Sequence[RegistryMappingRelease] = (),
     include_projection: bool = True,
     all_plans: Sequence[ReleasePackPlan] = (),
-    clean_state: CleanConstructionState | None = None,
-    prior_catalog: Graph | None = None,
-    emit_release_keys: frozenset[str] | None = None,
-    reused_accounting_rows: Mapping[str, Mapping[str, Any]] = MappingProxyType({}),
 ) -> BuildGraphs:
     current_keys = {
         *(release.spec.key for release in releases),
@@ -5019,41 +4529,9 @@ def _build_graphs(
     if len(plans_by_key) != len(all_plans):
         raise ValueError("Atlas release plans repeat a key")
     all_release_keys = set(plans_by_key) if all_plans else current_keys
-    if not current_keys <= all_release_keys:
-        raise ValueError("loaded releases are absent from the Atlas release plan")
-    emitted_keys = (
-        all_release_keys if emit_release_keys is None else set(emit_release_keys)
-    )
-    unknown_emitted = sorted(emitted_keys - all_release_keys)
-    if unknown_emitted:
-        raise ValueError(f"unknown incremental construction units: {unknown_emitted}")
-    if current_keys != emitted_keys:
-        raise ValueError("every loaded release must be a dirty emitted construction unit")
-    reused_keys = all_release_keys - emitted_keys
-    if emit_release_keys is None and reused_accounting_rows:
-        raise ValueError("cold graph construction cannot reuse accounting rows")
-    source_release_by_key = {
-        **{release.spec.key: release.source_release_iri for release in releases},
-        **{
-            release.key: release.source_release_iri
-            for release in mapping_releases
-        },
-        **{
-            key: plan.source_release_iri
-            for key, plan in plans_by_key.items()
-            if key not in current_keys
-        },
-    }
-    expected_reused_accounting = {
-        source_release_by_key[key] for key in reused_keys
-    }
-    if set(reused_accounting_rows) != expected_reused_accounting:
-        raise ValueError("reused accounting rows do not match clean construction units")
-    asserted = (
-        _registry_asserted_graph()
-        if prior_catalog is None
-        else _copy_build_graph(prior_catalog)
-    )
+    if current_keys != all_release_keys:
+        raise ValueError("loaded releases do not match the Atlas release plan")
+    asserted = _registry_asserted_graph()
     _ensure_release_schemes(asserted, releases)
     native_policy = _add_policy(asserted, SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD)
     mapping_policies = {
@@ -5062,27 +4540,17 @@ def _build_graphs(
     }
 
     source_release_nodes: dict[str, URIRef] = {}
-    clean_resources: Mapping[str, tuple[str, URIRef, URIRef]] = (
-        MappingProxyType({})
-        if clean_state is None
-        else clean_state.resources
-    )
     resource_facts: dict[str, tuple[str, URIRef, URIRef]] = {}
 
     def facts_for(resource_iri: str) -> tuple[str, URIRef, URIRef]:
         try:
-            return resource_facts.get(resource_iri) or clean_resources[resource_iri]
+            return resource_facts[resource_iri]
         except KeyError as error:
             raise ValueError(
                 f"resource endpoint is outside loaded releases: {resource_iri}"
             ) from error
 
     resource_record: dict[str, URIRef] = {}
-    clean_identifier_targets: Mapping[tuple[str, str], str] = (
-        MappingProxyType({})
-        if clean_state is None
-        else clean_state.identifier_targets
-    )
     identifier_targets: dict[tuple[str, str], str] = {}
     accounting_inputs: list[dict[str, Any]] = []
     source_accounting_by_release: dict[str, dict[str, Any]] = {}
@@ -5094,22 +4562,17 @@ def _build_graphs(
             len(releases),
             current=release.spec.key,
         )
-        emit_release = release.spec.key in emitted_keys
         release_instant = _release_instant(release.issued)
         source_locator = URIRef(
             "urn:ref:source-artifact-set:"
             + release.source_release_digest.removeprefix("sha256:")
         )
-        source_release = (
-            _add_source_release(
-                asserted,
-                identifier=release.source_release_iri,
-                digest=release.source_release_digest,
-                issued=release.issued,
-                locator=source_locator,
-            )
-            if emit_release
-            else URIRef(release.source_release_iri)
+        source_release = _add_source_release(
+            asserted,
+            identifier=release.source_release_iri,
+            digest=release.source_release_digest,
+            issued=release.issued,
+            locator=source_locator,
         )
         source_release_nodes[release.source_release_iri] = source_release
         atlas_release = URIRef(release.atlas_release_iri)
@@ -5118,22 +4581,21 @@ def _build_graphs(
             release.spec.ring
         )
         scheme = URIRef(release.scheme_iri)
-        if emit_release:
-            asserted.add((atlas_release, RDF.type, ATLAS.AtlasRelease))
-            asserted.add((atlas_release, ATLAS.resourceProfile, profile))
-            asserted.add((atlas_release, ATLAS.semanticRing, ring))
-            asserted.add((atlas_release, ATLAS.inScheme, scheme))
-            asserted.add(
-                (atlas_release, RKAF.membershipMode, RKAF.completeMembership)
+        asserted.add((atlas_release, RDF.type, ATLAS.AtlasRelease))
+        asserted.add((atlas_release, ATLAS.resourceProfile, profile))
+        asserted.add((atlas_release, ATLAS.semanticRing, ring))
+        asserted.add((atlas_release, ATLAS.inScheme, scheme))
+        asserted.add(
+            (atlas_release, RKAF.membershipMode, RKAF.completeMembership)
+        )
+        asserted.add((atlas_release, DCTERMS.identifier, Literal(release.spec.key)))
+        asserted.add(
+            (
+                atlas_release,
+                DCTERMS.issued,
+                Literal(release.issued, datatype=XSD.date),
             )
-            asserted.add((atlas_release, DCTERMS.identifier, Literal(release.spec.key)))
-            asserted.add(
-                (
-                    atlas_release,
-                    DCTERMS.issued,
-                    Literal(release.issued, datatype=XSD.date),
-                )
-            )
+        )
 
         dispositions: list[dict[str, Any]] = []
         for resource_position, resource_row in enumerate(
@@ -5150,10 +4612,7 @@ def _build_graphs(
                         f"{resource_position}/{len(release.resources)}"
                     ),
                 )
-            if (
-                resource_row.iri in resource_facts
-                or resource_row.iri in clean_resources
-            ):
+            if resource_row.iri in resource_facts:
                 raise ValueError(
                     f"Atlas releases repeat resource IRI {resource_row.iri}"
                 )
@@ -5177,8 +4636,6 @@ def _build_graphs(
                 atlas_release,
                 ring,
             )
-            if not emit_release:
-                continue
             asserted.add((resource, RDF.type, ATLAS.AtlasResource))
             asserted.add((resource, RDF.type, resource_class))
             if ring == ATLAS.subject:
@@ -5225,10 +4682,7 @@ def _build_graphs(
                     identifier_row.scheme_iri,
                     identifier_row.value,
                 )
-                previous_target = identifier_targets.get(
-                    identifier_key,
-                    clean_identifier_targets.get(identifier_key),
-                )
+                previous_target = identifier_targets.get(identifier_key)
                 if previous_target is None:
                     identifier_targets[identifier_key] = resource_row.iri
                     previous_target = resource_row.iri
@@ -5325,23 +4779,13 @@ def _build_graphs(
                     "status": "excluded",
                 }
             )
-        if emit_release:
-            _add_content_digest(asserted, atlas_release)
-            accounting_row = {
-                "declaredMemberCount": len(dispositions),
-                "dispositions": dispositions,
-                "membershipMode": _accounting_membership_mode(release.spec.scope),
-                "sourceRelease": str(source_release),
-            }
-        else:
-            try:
-                accounting_row = _plain(
-                    reused_accounting_rows[release.source_release_iri]
-                )
-            except KeyError as error:
-                raise ValueError(
-                    f"reused construction unit lacks accounting: {release.spec.key}"
-                ) from error
+        _add_content_digest(asserted, atlas_release)
+        accounting_row = {
+            "declaredMemberCount": len(dispositions),
+            "dispositions": dispositions,
+            "membershipMode": _accounting_membership_mode(release.spec.scope),
+            "sourceRelease": str(source_release),
+        }
         accounting_inputs.append(accounting_row)
         source_accounting_by_release[release.source_release_iri] = accounting_row
         _STATUS.progress(
@@ -5358,37 +4802,20 @@ def _build_graphs(
             len(mapping_releases),
             current=mapping_release.key,
         )
-        emit_release = mapping_release.key in emitted_keys
-        source_release = (
-            _add_source_release(
-                asserted,
-                identifier=mapping_release.source_release_iri,
-                digest=mapping_release.source_release_digest,
-                issued=mapping_release.issued,
-                locator=URIRef(mapping_release.inputs[0].source_iri),
-            )
-            if emit_release
-            else URIRef(mapping_release.source_release_iri)
+        source_release = _add_source_release(
+            asserted,
+            identifier=mapping_release.source_release_iri,
+            digest=mapping_release.source_release_digest,
+            issued=mapping_release.issued,
+            locator=URIRef(mapping_release.inputs[0].source_iri),
         )
         source_release_nodes[mapping_release.source_release_iri] = source_release
-        if emit_release:
-            accounting_row = {
-                "declaredMemberCount": 0,
-                "dispositions": [],
-                "membershipMode": _accounting_membership_mode(
-                    mapping_release.scope
-                ),
-                "sourceRelease": str(source_release),
-            }
-        else:
-            try:
-                accounting_row = _plain(
-                    reused_accounting_rows[mapping_release.source_release_iri]
-                )
-            except KeyError as error:
-                raise ValueError(
-                    f"reused construction unit lacks accounting: {mapping_release.key}"
-                ) from error
+        accounting_row = {
+            "declaredMemberCount": 0,
+            "dispositions": [],
+            "membershipMode": _accounting_membership_mode(mapping_release.scope),
+            "sourceRelease": str(source_release),
+        }
         accounting_inputs.append(accounting_row)
         source_accounting_by_release[
             mapping_release.source_release_iri
@@ -5400,22 +4827,9 @@ def _build_graphs(
             current=mapping_release.key,
         )
 
-    for key in sorted(reused_keys):
-        source_release_iri = source_release_by_key[key]
-        if source_release_iri in source_accounting_by_release:
-            continue
-        try:
-            accounting_row = _plain(reused_accounting_rows[source_release_iri])
-        except KeyError as error:
-            raise ValueError(f"clean construction unit lacks accounting: {key}") from error
-        accounting_inputs.append(accounting_row)
-        source_accounting_by_release[source_release_iri] = accounting_row
-
     native_count = 0
     remap_evidence_count = 0
     for release in releases:
-        if release.spec.key not in emitted_keys:
-            continue
         release_instant = _release_instant(release.issued)
         relation_ring, _, _ = _ring_dispatch(release.spec.ring)
         for relation in release.relations:
@@ -5474,15 +4888,10 @@ def _build_graphs(
                 decided_at=release_instant,
             )
             native_count += 1
-    expected_native_count = sum(
-        len(release.relations)
-        for release in releases
-        if release.spec.key in emitted_keys
-    )
+    expected_native_count = sum(len(release.relations) for release in releases)
     expected_remap_count = sum(
         relation.predicate == str(ATLAS.thesaurusRelated)
         for release in releases
-        if release.spec.key in emitted_keys
         for relation in release.relations
     )
     if native_count != expected_native_count:
@@ -5497,8 +4906,6 @@ def _build_graphs(
 
     cross_ring_count = 0
     for release in releases:
-        if release.spec.key not in emitted_keys:
-            continue
         release_instant = _release_instant(release.issued)
         for relation in release.cross_ring_relations:
             try:
@@ -5549,9 +4956,7 @@ def _build_graphs(
             )
             cross_ring_count += 1
     expected_cross_ring_count = sum(
-        len(release.cross_ring_relations)
-        for release in releases
-        if release.spec.key in emitted_keys
+        len(release.cross_ring_relations) for release in releases
     )
     if cross_ring_count != expected_cross_ring_count:
         raise ValueError(
@@ -5562,8 +4967,6 @@ def _build_graphs(
 
     mapping_count = 0
     for mapping_release in mapping_releases:
-        if mapping_release.key not in emitted_keys:
-            continue
         try:
             mapping_policy = mapping_policies[mapping_release.key]
         except KeyError as error:
@@ -5655,9 +5058,7 @@ def _build_graphs(
             for source_record, assertions in sorted(mapping_dispositions.items())
         )
     expected_mapping_count = sum(
-        len(release.mappings)
-        for release in mapping_releases
-        if release.key in emitted_keys
+        len(release.mappings) for release in mapping_releases
     )
     if mapping_count != expected_mapping_count:
         raise ValueError(
@@ -5922,103 +5323,6 @@ def _compress_nquads(source: Path, target: Path) -> PackWriteReceipt:
     )
 
 
-def _nquads_content_receipt(path: Path) -> PackContentReceipt:
-    """Receipt current canonical pack content without retaining it in memory."""
-
-    digest = hashlib.sha256()
-    byte_length = 0
-    quad_count = 0
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-            byte_length += len(block)
-            quad_count += block.count(b"\n")
-    return PackContentReceipt(
-        byte_length=byte_length,
-        digest="sha256:" + digest.hexdigest(),
-        quad_count=quad_count,
-    )
-
-
-def _copy_verified_prior_pack(
-    prior_path: Path,
-    target: Path,
-    *,
-    current: PackContentReceipt,
-    prior_pack: Mapping[str, Any],
-) -> PackWriteReceipt:
-    """Copy one prior transport only after its stored and content receipts agree."""
-
-    if prior_path.is_symlink() or not prior_path.is_file():
-        raise ValueError(f"prior stored pack is missing or unsafe: {prior_pack['path']}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    transport_digest = hashlib.sha256()
-    transport_byte_length = 0
-    target_created = False
-    try:
-        with prior_path.open("rb") as source, target.open("xb") as destination:
-            target_created = True
-            for block in iter(lambda: source.read(1024 * 1024), b""):
-                destination.write(block)
-                transport_digest.update(block)
-                transport_byte_length += len(block)
-        observed_transport_digest = "sha256:" + transport_digest.hexdigest()
-        transport = prior_pack["transport"]
-        if (
-            transport_byte_length != transport["byteLength"]
-            or observed_transport_digest != transport["digest"]
-        ):
-            raise ValueError(
-                f"prior stored pack transport differs: {prior_pack['path']}"
-            )
-
-        try:
-            observed_content = _nquads_content_receipt_from_zstd(target)
-        except Exception as error:
-            raise ValueError(
-                f"prior stored pack is not valid zstd: {prior_pack['path']}"
-            ) from error
-        expected_content = prior_pack["content"]
-        if (
-            observed_content.digest != expected_content["digest"]
-            or observed_content.byte_length != expected_content["byteLength"]
-            or observed_content.quad_count != expected_content["quadCount"]
-            or observed_content != current
-        ):
-            raise ValueError(
-                f"prior stored pack content differs: {prior_pack['path']}"
-            )
-    except BaseException:
-        if target_created:
-            target.unlink(missing_ok=True)
-        raise
-    return PackWriteReceipt(
-        content_byte_length=current.byte_length,
-        content_digest=current.digest,
-        content_quad_count=current.quad_count,
-        transport_byte_length=transport_byte_length,
-        transport_digest="sha256:" + transport_digest.hexdigest(),
-    )
-
-
-def _nquads_content_receipt_from_zstd(path: Path) -> PackContentReceipt:
-    """Receipt the uncompressed form of one stored zstd pack."""
-
-    digest = hashlib.sha256()
-    byte_length = 0
-    quad_count = 0
-    with zstd.open(path, "rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-            byte_length += len(block)
-            quad_count += block.count(b"\n")
-    return PackContentReceipt(
-        byte_length=byte_length,
-        digest="sha256:" + digest.hexdigest(),
-        quad_count=quad_count,
-    )
-
-
 def _materialize_nquads_pack(
     source: Path,
     target: Path,
@@ -6026,41 +5330,11 @@ def _materialize_nquads_pack(
     relative_path: str,
     incremental: IncrementalPackMaterialization | None,
 ) -> PackWriteReceipt:
-    """Compress current content or reuse an exactly matching prior transport."""
+    """Compress current canonical content and record the write."""
 
-    if incremental is None:
-        return _compress_nquads(source, target)
-    prior_pack = incremental.prior_packs_by_path.get(relative_path)
-    if prior_pack is not None:
-        current = _nquads_content_receipt(source)
-        prior_content = prior_pack["content"]
-        expected_pack_id = (
-            "urn:ref:atlas:pack:"
-            + prior_content["digest"].removeprefix("sha256:")
-        )
-        if prior_pack["packId"] != expected_pack_id:
-            raise ValueError(f"prior stored pack identity differs: {relative_path}")
-        if (
-            current.digest == prior_content["digest"]
-            and current.byte_length == prior_content["byteLength"]
-            and current.quad_count == prior_content["quadCount"]
-        ):
-            if incremental.prior_root is None:
-                raise AssertionError("prior pack index has no distribution root")
-            prior_path = ATLAS_VALIDATE._safe_distribution_path(
-                incremental.prior_root,
-                relative_path,
-            )
-            receipt = _copy_verified_prior_pack(
-                prior_path,
-                target,
-                current=current,
-                prior_pack=prior_pack,
-            )
-            incremental.reused_paths.append(relative_path)
-            return receipt
     receipt = _compress_nquads(source, target)
-    incremental.rebuilt_paths.append(relative_path)
+    if incremental is not None:
+        incremental.rebuilt_paths.append(relative_path)
     return receipt
 
 
@@ -6098,9 +5372,7 @@ def _release_subject_owners(
             raise ValueError(f"source release is emitted more than once: {source_release}")
         source_release_owners[source_release] = key
 
-    # The complete plan set is also used by incremental construction so dirty
-    # subjects can resolve references to clean releases.  Only release nodes
-    # actually present in this graph belong to the partial write.
+    # Only release nodes actually present in this graph belong to the write.
     owners: dict[URIRef, str] = {
         node: owner
         for node, owner in {
@@ -6908,7 +6180,6 @@ def _write_compact_release_packs(
     *,
     pack_owners: Mapping[URIRef, tuple[str, str | None]],
     releases_by_key: Mapping[str, ReleasePackPlan],
-    external_subject_pack_ids: Mapping[URIRef, str] = MappingProxyType({}),
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """Write deterministic release-local logical records beside the RDF packs."""
 
@@ -7012,7 +6283,6 @@ def _write_compact_release_packs(
             dependency_keys: set[
                 tuple[str, str | None, CompactRecordRole]
             ] = set()
-            external_dependency_ids: set[str] = set()
             with spool_path.open("r", encoding="utf-8", newline="") as stream:
                 for raw_subject in stream:
                     subject = URIRef(raw_subject.rstrip("\n"))
@@ -7028,10 +6298,6 @@ def _write_compact_release_packs(
                             role,
                         ):
                             dependency_keys.add(target_key)
-                        elif target_key is None:
-                            external_pack_id = external_subject_pack_ids.get(target)
-                            if external_pack_id is not None:
-                                external_dependency_ids.add(external_pack_id)
             missing_dependencies = sorted(
                 (
                     key
@@ -7046,10 +6312,7 @@ def _write_compact_release_packs(
                     f"{missing_dependencies[:5]}"
                 )
             dependencies = sorted(
-                {
-                    *(inventories_by_key[key]["packId"] for key in dependency_keys),
-                    *external_dependency_ids,
-                }
+                {inventories_by_key[key]["packId"] for key in dependency_keys}
             )
             inventory = write_compact_record_pack(
                 output,
@@ -7085,15 +6348,6 @@ def _write_asserted_packs(
     incremental: IncrementalPackMaterialization | None = None,
     compact_inventories: list[dict[str, Any]] | None = None,
     compact_path_owners: dict[str, str] | None = None,
-    external_rdf_subject_owners: Mapping[
-        URIRef, tuple[str, str | None]
-    ] = MappingProxyType({}),
-    external_rdf_pack_ids: Mapping[
-        tuple[str, str | None], str
-    ] = MappingProxyType({}),
-    external_compact_subject_pack_ids: Mapping[
-        URIRef, str
-    ] = MappingProxyType({}),
 ) -> list[dict[str, Any]]:
     """Write source-release-owned asserted packs and one shared catalog pack."""
 
@@ -7138,8 +6392,6 @@ def _write_asserted_packs(
                 if owner is None or not isinstance(obj, URIRef):
                     continue
                 object_key = pack_owners.get(obj)
-                if object_key is None:
-                    object_key = external_rdf_subject_owners.get(obj)
                 if object_key is None:
                     continue
                 if object_key != key:
@@ -7215,16 +6467,11 @@ def _write_asserted_packs(
                 continue
             dependency_ids = {catalog_id}
             for dependency in cross_pack_dependencies.get(key, set()):
-                local_pack = staged.get(dependency)
-                if local_pack is not None:
-                    dependency_ids.add(local_pack["packId"])
-                    continue
                 try:
-                    dependency_ids.add(external_rdf_pack_ids[dependency])
+                    dependency_ids.add(staged[dependency]["packId"])
                 except KeyError as error:
                     raise ValueError(
-                        "incremental RDF dependency has no authenticated pack: "
-                        f"{dependency}"
+                        f"RDF pack dependency has no written pack: {dependency}"
                     ) from error
             pack["dependencies"] = sorted(dependency_ids)
         if (compact_inventories is None) != (compact_path_owners is None):
@@ -7235,7 +6482,6 @@ def _write_asserted_packs(
                 asserted,
                 pack_owners=pack_owners,
                 releases_by_key=releases_by_key,
-                external_subject_pack_ids=external_compact_subject_pack_ids,
             )
             compact_inventories.extend(emitted_inventories)
             compact_path_owners.update(emitted_owners)
@@ -7326,15 +6572,6 @@ def _write_graph_packs(
     incremental: IncrementalPackMaterialization | None = None,
     compact_inventories: list[dict[str, Any]] | None = None,
     compact_path_owners: dict[str, str] | None = None,
-    external_rdf_subject_owners: Mapping[
-        URIRef, tuple[str, str | None]
-    ] = MappingProxyType({}),
-    external_rdf_pack_ids: Mapping[
-        tuple[str, str | None], str
-    ] = MappingProxyType({}),
-    external_compact_subject_pack_ids: Mapping[
-        URIRef, str
-    ] = MappingProxyType({}),
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if releases:
         asserted_packs = _write_asserted_packs(
@@ -7344,9 +6581,6 @@ def _write_graph_packs(
             incremental=incremental,
             compact_inventories=compact_inventories,
             compact_path_owners=compact_path_owners,
-            external_rdf_subject_owners=external_rdf_subject_owners,
-            external_rdf_pack_ids=external_rdf_pack_ids,
-            external_compact_subject_pack_ids=external_compact_subject_pack_ids,
         )
     else:
         relative = Path("packs") / "atlas.nq.zst"
@@ -7545,75 +6779,6 @@ def _trusted_writer_receipt_checks(
             "bounded external sort",
         ],
     }
-
-
-def _load_incremental_pack_materialization(
-    prior_root: Path | None,
-) -> IncrementalPackMaterialization:
-    """Load a closed prior distribution as a fail-closed pack-reuse source."""
-
-    if prior_root is None:
-        return IncrementalPackMaterialization()
-    if prior_root.is_symlink() or not prior_root.is_dir():
-        raise ValueError(
-            f"prior Atlas distribution is missing or unsafe: {prior_root}"
-        )
-    prior_root = prior_root.resolve()
-    manifest_path = prior_root / "atlas-manifest.json"
-    if manifest_path.is_symlink() or not manifest_path.is_file():
-        raise ValueError(
-            f"prior Atlas manifest is missing or unsafe: {manifest_path}"
-        )
-    manifest = ATLAS_VALIDATE._load_json(
-        manifest_path,
-        require_canonical=True,
-    )
-    if not isinstance(manifest, Mapping):
-        raise TypeError("prior Atlas manifest root is not an object")
-    schemas, registry = ATLAS_VALIDATE._schema_registry()
-    ATLAS_VALIDATE._validate_json_schema(
-        manifest,
-        "manifest",
-        schemas=schemas,
-        registry=registry,
-        label="prior manifest",
-    )
-    ATLAS_VALIDATE._check_manifest_digest(manifest)
-    ATLAS_VALIDATE._check_pack_manifest(manifest)
-    # This checks the complete declared closure, lengths, and every path/symlink
-    # boundary. Exact transport and uncompressed receipts are checked only for
-    # a pack selected for reuse, avoiding a full prior-RDF validation pass.
-    _, construction_summary = _construction_summary_member(prior_root, manifest)
-    ATLAS_VALIDATE._check_distribution_files(
-        prior_root,
-        manifest,
-        construction_summary,
-    )
-    for member in manifest["members"]:
-        member_path = ATLAS_VALIDATE._safe_distribution_path(
-            prior_root,
-            member["path"],
-        )
-        if _sha256_file(member_path) != member["digest"]:
-            raise ValueError(
-                f"prior Atlas member digest differs: {member['path']}"
-            )
-    for pack in manifest["packs"]:
-        expected_pack_id = (
-            "urn:ref:atlas:pack:"
-            + pack["content"]["digest"].removeprefix("sha256:")
-        )
-        if pack["packId"] != expected_pack_id:
-            raise ValueError(f"prior stored pack identity differs: {pack['path']}")
-    packs_by_path = {pack["path"]: pack for pack in manifest["packs"]}
-    if len(packs_by_path) != len(manifest["packs"]):
-        raise ValueError("prior Atlas manifest contains duplicate pack paths")
-    return IncrementalPackMaterialization(
-        prior_root=prior_root,
-        prior_distribution_id=manifest["distributionId"],
-        prior_manifest_digest=_sha256_file(manifest_path),
-        prior_packs_by_path=packs_by_path,
-    )
 
 
 _COMPACT_ROLE_COUNT_FIELDS = MappingProxyType(
@@ -8175,8 +7340,6 @@ def _write_candidate_distribution(
     created_at: str,
     compiled_validation: Mapping[str, Any] | None = None,
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
-    construction_reuse: IncrementalConstructionReuse | None = None,
-    reuse_from: Path | None = None,
     semantic_construction: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Write and producer-validate a candidate that is not yet publishable."""
@@ -8197,7 +7360,7 @@ def _write_candidate_distribution(
             "asserted graph changed after compiled producer validation"
         )
 
-    incremental = _load_incremental_pack_materialization(reuse_from)
+    incremental = IncrementalPackMaterialization()
     output.mkdir(parents=True, exist_ok=True)
     extras = sorted(path.name for path in output.iterdir())
     if extras:
@@ -8208,25 +7371,8 @@ def _write_candidate_distribution(
     construction_summary_path = output / "atlas-construction-summary.json"
     manifest_path = output / "atlas-manifest.json"
     producer_validation_path = output / "atlas-producer-validation.json"
-    reused_material = (
-        None
-        if construction_reuse is None
-        else _materialize_clean_construction_units(
-            output,
-            construction_reuse,
-            releases,
-        )
-    )
-    compact_inventories: list[dict[str, Any]] = (
-        []
-        if reused_material is None
-        else [_plain(pack) for pack in reused_material.compact_packs]
-    )
-    compact_path_owners: dict[str, str] = (
-        {}
-        if reused_material is None
-        else dict(reused_material.compact_path_owners)
-    )
+    compact_inventories: list[dict[str, Any]] = []
+    compact_path_owners: dict[str, str] = {}
     _STATUS.phase("write-rdf-and-compact-packs")
     packs, graph_descriptors = _write_graph_packs(
         output,
@@ -8235,40 +7381,7 @@ def _write_candidate_distribution(
         incremental=incremental,
         compact_inventories=compact_inventories,
         compact_path_owners=compact_path_owners,
-        external_rdf_subject_owners=(
-            MappingProxyType({})
-            if reused_material is None
-            else reused_material.rdf_subject_owners
-        ),
-        external_rdf_pack_ids=(
-            MappingProxyType({})
-            if reused_material is None
-            else reused_material.rdf_pack_ids
-        ),
-        external_compact_subject_pack_ids=(
-            MappingProxyType({})
-            if reused_material is None
-            else reused_material.compact_subject_pack_ids
-        ),
     )
-    if reused_material is not None:
-        packs = _merge_incremental_rdf_packs(
-            packs,
-            reused_material.rdf_packs,
-            prior_manifest=construction_reuse.prior_manifest,
-        )
-        graph_descriptors = [
-            {
-                "id": _ROLE_GRAPH_IDS[role],
-                "inventoryDigest": _graph_inventory_digest(packs, role),
-                "packCount": sum(bool(pack["graphCounts"][role]) for pack in packs),
-                "quadCount": sum(
-                    pack["graphCounts"][role] for pack in packs
-                ),
-                "role": role,
-            }
-            for role in ("asserted", "projection", "derived")
-        ]
     if graphs.asserted.revision != graphs.sealed_asserted_revision:
         raise ValueError("asserted graph changed while writing Atlas packs")
     _STATUS.phase("write-receipts-and-manifest")
@@ -8500,1107 +7613,6 @@ def _promote_validated_distribution(
         raise
 
 
-def _resolve_semantic_input_path(logical_path: str) -> Path:
-    """Resolve one authenticated logical input path without accepting traversal."""
-
-    if "\\" in logical_path:
-        raise ValueError(f"input inventory path is not portable: {logical_path}")
-    relative = PurePosixPath(logical_path)
-    if (
-        relative.is_absolute()
-        or not relative.parts
-        or any(part in {"", ".", ".."} for part in relative.parts)
-    ):
-        raise ValueError(f"input inventory path is unsafe: {logical_path}")
-    if relative.parts[0] == "refspec":
-        base = ROOT
-        parts = relative.parts[1:]
-    elif relative.parts[0] == "spicy-regs":
-        base = SPICY_REGS_ROOT
-        parts = relative.parts[1:]
-    else:
-        base = ROOT
-        parts = relative.parts
-    if not parts:
-        raise ValueError(f"input inventory path has no file name: {logical_path}")
-    return base.joinpath(*parts)
-
-
-def _verify_semantic_input_inventory(
-    inventory: Mapping[str, Any],
-) -> int:
-    """Recheck every exact raw input without invoking any source parser."""
-
-    pins = _semantic_input_pin_rows(inventory)
-    for pin in pins:
-        path = _resolve_semantic_input_path(pin["path"])
-        _verify_pinned_file(
-            path,
-            logical_path=pin["path"],
-            expected_digest=pin["sha256"],
-        )
-        if path.stat().st_size != pin["byteLength"]:
-            raise ValueError(
-                f"pinned Atlas input byte length differs: {pin['path']}"
-            )
-    return len(pins)
-
-
-def _load_exact_distribution_reuse_report(
-    prior_root: Path,
-    *,
-    manifest: Mapping[str, Any],
-    semantic_construction: Mapping[str, Any],
-) -> tuple[dict[str, Any], int]:
-    """Load the authenticated raw-input inventory beside a prior distribution."""
-
-    report_path = _generation_report_path(prior_root)
-    if report_path.is_symlink() or not report_path.is_file():
-        raise FileNotFoundError(
-            f"exact distribution reuse report is missing or unsafe: {report_path}"
-        )
-    report = ATLAS_VALIDATE._load_json(report_path, require_canonical=True)
-    if not isinstance(report, dict):
-        raise TypeError("exact distribution reuse report root is not an object")
-    distribution = report.get("distribution")
-    if (
-        not isinstance(distribution, Mapping)
-        or distribution.get("id") != manifest["distributionId"]
-        or distribution.get("manifestDigest")
-        != _sha256_file(prior_root / "atlas-manifest.json")
-    ):
-        raise ValueError("exact distribution reuse report names a different distribution")
-    inventory = report.get("inputInventory")
-    if not isinstance(inventory, Mapping):
-        raise TypeError("exact distribution reuse report has no input inventory")
-    if _canonical_digest(_semantic_input_pin_rows(inventory)) != semantic_construction[
-        "inputInventoryDigest"
-    ]:
-        raise ValueError("exact distribution reuse input inventory digest differs")
-    input_count = _verify_semantic_input_inventory(inventory)
-    if input_count != semantic_construction["inputFileCount"]:
-        raise ValueError("exact distribution reuse input file count differs")
-    return report, input_count
-
-
-def _verify_exact_distribution_pack_contents(
-    root: Path,
-    manifest: Mapping[str, Any],
-) -> int:
-    """Verify each decompressed pack before trusting prior semantic output."""
-
-    for pack in manifest["packs"]:
-        path = ATLAS_VALIDATE._safe_distribution_path(root, pack["path"])
-        observed = _nquads_content_receipt_from_zstd(path)
-        expected = pack["content"]
-        if (
-            observed.digest != expected["digest"]
-            or observed.byte_length != expected["byteLength"]
-            or observed.quad_count != expected["quadCount"]
-        ):
-            raise ValueError(
-                f"exact distribution reuse pack content differs: {pack['path']}"
-            )
-    return len(manifest["packs"])
-
-
-def _construction_summary_member(
-    root: Path,
-    manifest: Mapping[str, Any],
-) -> tuple[Path, dict[str, Any]]:
-    members = [
-        member
-        for member in manifest.get("members", ())
-        if member.get("role") == "constructionSummary"
-    ]
-    if len(members) != 1:
-        raise ValueError("Atlas manifest does not have one construction summary")
-    member = members[0]
-    path = ATLAS_VALIDATE._safe_distribution_path(root, member["path"])
-    summary = ATLAS_VALIDATE._load_json(
-        path,
-        require_canonical=True,
-        expected_digest=member["digest"],
-    )
-    if not isinstance(summary, dict):
-        raise TypeError("Atlas construction summary root is not an object")
-    return path, summary
-
-
-def _load_authenticated_construction_prior(
-    prior_root: Path,
-) -> tuple[
-    Mapping[str, Any],
-    Mapping[str, Any],
-    Mapping[str, Any],
-    Mapping[str, Any],
-    Mapping[str, Any],
-] | None:
-    """Load a compatible prior construction proof without parsing source data."""
-
-    if prior_root.is_symlink() or not prior_root.is_dir():
-        raise ValueError(f"prior Atlas distribution is missing or unsafe: {prior_root}")
-    prior_root = prior_root.resolve()
-    manifest_path = prior_root / "atlas-manifest.json"
-    if manifest_path.is_symlink() or not manifest_path.is_file():
-        return None
-    manifest = ATLAS_VALIDATE._load_json(manifest_path, require_canonical=True)
-    if not isinstance(manifest, Mapping):
-        raise TypeError("prior Atlas manifest root is not an object")
-    current_binding = {
-        "validatorVersion": "3.0",
-        "version": "3.0",
-        **ATLAS_VALIDATE._binding_digests(),
-    }
-    if manifest.get("binding") != current_binding:
-        return None
-    members = {member.get("role"): member for member in manifest.get("members", ())}
-    if set(members) != {
-        "sourceAccounting",
-        "acceptance",
-        "producerValidation",
-        "constructionSummary",
-    }:
-        return None
-
-    def load_member(role: str) -> Mapping[str, Any]:
-        member = members[role]
-        value = ATLAS_VALIDATE._load_json(
-            ATLAS_VALIDATE._safe_distribution_path(prior_root, member["path"]),
-            require_canonical=True,
-            expected_digest=member["digest"],
-        )
-        if not isinstance(value, Mapping):
-            raise TypeError(f"prior Atlas {role} root is not an object")
-        return value
-
-    accounting = load_member("sourceAccounting")
-    acceptance = load_member("acceptance")
-    producer = load_member("producerValidation")
-    summary = load_member("constructionSummary")
-    if (
-        producer.get("implementationDigest")
-        != _COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
-        or summary.get("recipeDigest") != _shared_semantic_recipe_digest()
-    ):
-        return None
-    schemas, registry = ATLAS_VALIDATE._schema_registry()
-    for value, schema_name, label in (
-        (manifest, "manifest", "prior manifest"),
-        (accounting, "sourceAccounting", "prior source accounting"),
-        (acceptance, "acceptance", "prior acceptance"),
-        (producer, "producerValidation", "prior producer validation"),
-        (summary, "constructionSummary", "prior construction summary"),
-    ):
-        ATLAS_VALIDATE._validate_json_schema(
-            value,
-            schema_name,
-            schemas=schemas,
-            registry=registry,
-            label=label,
-        )
-    ATLAS_VALIDATE._check_manifest_digest(manifest)
-    ATLAS_VALIDATE._check_pack_manifest(manifest)
-    ATLAS_VALIDATE._check_distribution_files(prior_root, manifest, summary)
-    member_digests = {member["path"]: member["digest"] for member in manifest["members"]}
-    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance)
-    ATLAS_VALIDATE._check_producer_validation(
-        manifest,
-        acceptance,
-        producer,
-        summary,
-        member_digests,
-        accounting,
-    )
-    ATLAS_VALIDATE._check_acceptance_metadata(manifest, acceptance, member_digests)
-    ATLAS_VALIDATE._check_construction_summary_identity(
-        manifest,
-        producer,
-        summary,
-        member_digests,
-    )
-    ATLAS_VALIDATE._check_construction_accounting(summary, accounting)
-    _check_compiled_validation_report(
-        producer,
-        manifest=manifest,
-        accounting_path=ATLAS_VALIDATE._safe_distribution_path(
-            prior_root,
-            members["sourceAccounting"]["path"],
-        ),
-        construction_summary_path=ATLAS_VALIDATE._safe_distribution_path(
-            prior_root,
-            members["constructionSummary"]["path"],
-        ),
-    )
-    return manifest, summary, accounting, producer, acceptance
-
-
-def _current_preparse_input_pin(pin: Mapping[str, Any]) -> dict[str, Any]:
-    """Receipt current source bytes using only a prior portable input locator."""
-
-    path = _resolve_semantic_input_path(pin["path"])
-    if path.is_symlink() or not path.is_file():
-        raise FileNotFoundError(f"Atlas construction input is missing or unsafe: {pin['path']}")
-    return {
-        "byteLength": path.stat().st_size,
-        "path": pin["path"],
-        "role": pin["role"],
-        "sha256": _sha256_file(path),
-        "sourceIri": pin["sourceIri"],
-    }
-
-
-def _current_adapter_recipe_input(pin: Mapping[str, Any]) -> dict[str, Any]:
-    """Re-receipt one prior portable Python recipe path without importing it."""
-
-    path = _resolve_semantic_input_path(pin["path"])
-    try:
-        path.relative_to(ROOT / "src" / "refspec")
-    except ValueError as error:
-        raise ValueError(
-            f"adapter recipe input is outside src/refspec: {pin['path']}"
-        ) from error
-    if path.is_symlink() or not path.is_file():
-        raise FileNotFoundError(f"Atlas adapter recipe input is missing: {pin['path']}")
-    return {
-        "byteLength": path.stat().st_size,
-        "path": pin["path"],
-        "sha256": _sha256_file(path),
-    }
-
-
-def _current_construction_seeds_from_summary(
-    summary: Mapping[str, Any],
-) -> tuple[ReleaseConstructionSeed, ...]:
-    """Re-receipt current raw and adapter bytes from a prior portable index."""
-
-    source_receipts: dict[str, dict[str, Any]] = {}
-    adapter_receipts: dict[str, dict[str, Any]] = {}
-
-    def current_source_pin(pin: Mapping[str, Any]) -> dict[str, Any]:
-        logical_path = pin["path"]
-        receipt = source_receipts.get(logical_path)
-        if receipt is None:
-            observed = _current_preparse_input_pin(pin)
-            receipt = {
-                "byteLength": observed["byteLength"],
-                "path": logical_path,
-                "sha256": observed["sha256"],
-            }
-            source_receipts[logical_path] = receipt
-        return {
-            **receipt,
-            "role": pin["role"],
-            "sourceIri": pin["sourceIri"],
-        }
-
-    def current_adapter_pin(pin: Mapping[str, Any]) -> dict[str, Any]:
-        logical_path = pin["path"]
-        receipt = adapter_receipts.get(logical_path)
-        if receipt is None:
-            receipt = _current_adapter_recipe_input(pin)
-            adapter_receipts[logical_path] = receipt
-        return dict(receipt)
-
-    return tuple(
-        ReleaseConstructionSeed(
-            key=row["key"],
-            source_release_iri=row["sourceRelease"],
-            atlas_release_iri=row.get("atlasRelease"),
-            ring=row["semanticRing"],
-            input_pins=tuple(
-                current_source_pin(pin) for pin in row["inputs"]
-            ),
-            adapter_recipe_inputs=tuple(
-                current_adapter_pin(pin)
-                for pin in row["adapterRecipeInputs"]
-            ),
-            resource_profile=row.get("resourceProfile"),
-            scheme_iri=row.get("scheme"),
-            registry_source_iri=row.get("registrySource"),
-            endpoint_release_keys=tuple(
-                dependency["releaseKey"]
-                for dependency in row["endpointDependencies"]
-            ),
-            kind=row["kind"],
-        )
-        for row in sorted(summary["releases"], key=lambda item: item["key"])
-    )
-
-
-def _plan_incremental_construction(
-    prior_root: Path | None,
-) -> tuple[IncrementalConstructionReuse, tuple[ReleaseConstructionSeed, ...]] | None:
-    """Compare release-local current input receipts before invoking any parser."""
-
-    if prior_root is None:
-        return None
-    loaded = _load_authenticated_construction_prior(prior_root)
-    if loaded is None:
-        return None
-    manifest, summary, accounting, _producer, _acceptance = loaded
-    prior_rows = {row["key"]: row for row in summary["releases"]}
-    if len(prior_rows) != len(summary["releases"]):
-        raise ValueError("prior construction summary repeats release keys")
-    # Global recipe equality above proves that the loader declarations and
-    # their adapter code have not changed.  This explicit key inventory still
-    # prevents an accidentally unregistered added/removed unit from being
-    # inferred from the prior summary.  Any code-declared version switch is a
-    # recipe miss and takes the cold path in this safe initial implementation.
-    if set(prior_rows) != set(_declared_construction_unit_keys()):
-        return None
-    current_catalog_inputs = [
-        {
-            "byteLength": REGISTRY_DESCRIPTORS.stat().st_size,
-            "path": REGISTRY_DESCRIPTORS_LOGICAL_PATH,
-            "role": "registryDescriptors",
-            "sha256": _sha256_file(REGISTRY_DESCRIPTORS),
-            "sourceIri": "urn:ref:atlas:registry-descriptors:3.0",
-        },
-        {
-            "byteLength": REGISTRY_DESCRIPTORS_PROOF.stat().st_size,
-            "path": REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH,
-            "role": "registryDescriptorProof",
-            "sha256": _sha256_file(REGISTRY_DESCRIPTORS_PROOF),
-            "sourceIri": "urn:ref:atlas:registry-descriptor-proof:3.0",
-        },
-    ]
-    current_catalog_inputs.sort(
-        key=lambda pin: (pin["path"], pin["role"], pin["sha256"])
-    )
-    if summary["catalog"]["inputs"] != current_catalog_inputs:
-        return None
-    current_seeds = _current_construction_seeds_from_summary(summary)
-    current_base = _construction_base_build_keys(
-        current_seeds,
-        binding_bundle_digest=summary["bindingBundleDigest"],
-        recipe_digest=summary["recipeDigest"],
-    )
-    dirty = {
-        key
-        for key, row in prior_rows.items()
-        if current_base[key]["baseBuildKey"] != row["baseBuildKey"]
-    }
-    dependents: dict[str, set[str]] = defaultdict(set)
-    for key, row in prior_rows.items():
-        for dependency in row["endpointDependencies"]:
-            dependency_key = dependency["releaseKey"]
-            dependents[dependency_key].add(key)
-            if (
-                current_base[dependency_key]["baseBuildKey"]
-                != dependency["baseBuildKey"]
-            ):
-                dirty.add(key)
-    pending = deque(sorted(dirty))
-    while pending:
-        changed_key = pending.popleft()
-        for dependent_key in sorted(dependents.get(changed_key, ())):
-            if dependent_key in dirty:
-                continue
-            dirty.add(dependent_key)
-            pending.append(dependent_key)
-    if not dirty:
-        return None
-    accounting_by_release = {
-        row["sourceRelease"]: row for row in accounting["inputs"]
-    }
-    clean = set(prior_rows) - dirty
-    reused_accounting = {
-        prior_rows[key]["sourceRelease"]: accounting_by_release[
-            prior_rows[key]["sourceRelease"]
-        ]
-        for key in clean
-    }
-    return (
-        IncrementalConstructionReuse(
-            prior_root=prior_root.resolve(),
-            prior_manifest=manifest,
-            prior_summary=summary,
-            clean_keys=frozenset(clean),
-            dirty_keys=frozenset(dirty),
-            reused_accounting_rows=MappingProxyType(reused_accounting),
-        ),
-        tuple(current_seeds),
-    )
-
-
-def _release_plans_from_construction_summary(
-    summary: Mapping[str, Any],
-) -> tuple[ReleasePackPlan, ...]:
-    return tuple(
-        ReleasePackPlan(
-            key=row["key"],
-            source_release_iri=row["sourceRelease"],
-            atlas_release_iri=row.get("atlasRelease"),
-            ring=row["semanticRing"],
-            resource_count=row["recordCounts"]["resources"],
-            kind=row["kind"],
-        )
-        for row in summary["releases"]
-    )
-
-
-def _load_clean_construction_state(
-    reuse: IncrementalConstructionReuse,
-) -> CleanConstructionState:
-    """Read only clean rows needed for dirty joins and global invariants.
-
-    Resource and Release identities can be referenced across construction-unit
-    boundaries, so they retain compact/RDF pack ownership. Identifier and
-    Statement rows contribute only their global claims and counts. The current
-    compiled producer forbids supersession and lifecycle output, which makes
-    Label, EvidenceBinding, and SourceRecord rows safe to skip entirely.
-    """
-
-    prior_rows = {row["key"]: row for row in reuse.prior_summary["releases"]}
-    compact_by_path = {
-        descriptor["path"]: descriptor
-        for descriptor in reuse.prior_summary["compactPacks"]
-    }
-    plans_by_key = {
-        plan.key: plan
-        for plan in _release_plans_from_construction_summary(reuse.prior_summary)
-    }
-    resources: dict[str, tuple[str, URIRef, URIRef]] = {}
-    compact_subject_pack_ids: dict[URIRef, str] = {}
-    rdf_subject_owners: dict[URIRef, tuple[str, str | None]] = (
-        {} if reuse.clean_state is None else dict(reuse.clean_state.rdf_subject_owners)
-    )
-    statement_type_counts: Counter[str] = Counter()
-    mapping_policy_iris: set[URIRef] = set()
-    relation_triples: dict[
-        tuple[URIRef, URIRef, URIRef],
-        tuple[URIRef, ...],
-    ] = {}
-    identifier_targets: dict[tuple[str, str], str] = {}
-
-    for key in sorted(reuse.clean_keys):
-        plan = plans_by_key[key]
-        owner = _release_pack_token(plan)
-        construction_row = prior_rows[key]
-        accounting_row = reuse.reused_accounting_rows[plan.source_release_iri]
-        if (
-            len(accounting_row["dispositions"])
-            != construction_row["recordCounts"]["sourceRecords"]
-        ):
-            raise ValueError(f"clean {key} source-accounting record count differs")
-        if construction_row["recordCounts"]["lifecycleEvents"]:
-            raise ValueError(
-                f"clean {key} has lifecycle rows unsupported by incremental construction"
-            )
-        for path in prior_rows[key]["compactPackPaths"]:
-            descriptor = compact_by_path[path]
-            role = descriptor["role"]
-            if role in {
-                CompactRecordRole.EVIDENCE_BINDING.value,
-                CompactRecordRole.LABEL.value,
-                CompactRecordRole.LIFECYCLE_EVENT.value,
-                CompactRecordRole.SOURCE_RECORD.value,
-            }:
-                # These rows are not cross-unit targets in the compiled profile.
-                continue
-            artifact = read_compact_record_pack(reuse.prior_root, descriptor)
-            partition = descriptor.get("partition", {}).get("prefix")
-            for logical_row in artifact.rows:
-                subject = URIRef(logical_row["id"])
-                if partition is not None and not hashlib.sha256(
-                    str(subject).encode("utf-8")
-                ).hexdigest().startswith(partition):
-                    raise ValueError(f"clean compact row is outside its partition: {subject}")
-                if role in {
-                    CompactRecordRole.RELEASE.value,
-                    CompactRecordRole.RESOURCE.value,
-                }:
-                    if subject in compact_subject_pack_ids:
-                        raise ValueError(f"clean compact record id repeats: {subject}")
-                    compact_subject_pack_ids[subject] = descriptor["packId"]
-                    rdf_subject_owners[subject] = (
-                        owner,
-                        _release_pack_partition(plan, subject),
-                    )
-                if role == CompactRecordRole.RESOURCE.value:
-                    resource_iri = logical_row["id"]
-                    resources[resource_iri] = (
-                        key,
-                        URIRef(logical_row["release"]),
-                        ATLAS[logical_row["semanticRing"]],
-                    )
-                elif role == CompactRecordRole.IDENTIFIER.value:
-                    claim = (
-                        logical_row["identifierScheme"],
-                        logical_row["identifierValue"],
-                    )
-                    previous = identifier_targets.setdefault(
-                        claim,
-                        logical_row["identifies"],
-                    )
-                    if previous != logical_row["identifies"]:
-                        raise ValueError(
-                            f"clean identifier claim has two targets: {claim}"
-                        )
-                elif role == CompactRecordRole.STATEMENT.value:
-                    statement_type_counts[logical_row["statementType"]] += 1
-                    if logical_row["statementType"] == "MappingAssertion":
-                        mapping_policy_iris.add(URIRef(logical_row["policy"]))
-                    if logical_row["statementType"] in {
-                        "NativeRelationAssertion",
-                        "MappingAssertion",
-                        "CrossRingRelationAssertion",
-                    }:
-                        relation_triples[
-                            (
-                                URIRef(logical_row["subject"]),
-                                URIRef(logical_row["predicate"]),
-                                URIRef(logical_row["object"]),
-                            )
-                        ] = (
-                        )
-
-    return CleanConstructionState(
-        resources=MappingProxyType(resources),
-        identifier_targets=MappingProxyType(identifier_targets),
-        compact_subject_pack_ids=MappingProxyType(compact_subject_pack_ids),
-        rdf_subject_owners=MappingProxyType(rdf_subject_owners),
-        statement_type_counts=MappingProxyType(dict(statement_type_counts)),
-        mapping_policy_iris=frozenset(mapping_policy_iris),
-        relation_triples=MappingProxyType(relation_triples),
-    )
-
-
-def _add_clean_mapping_policies(
-    graph: Graph,
-    reuse: IncrementalConstructionReuse,
-) -> None:
-    """Restore only policies referenced by authenticated clean mapping rows."""
-
-    if reuse.clean_state is None:
-        raise ValueError("clean mapping policies require clean construction state")
-    policies = reuse.clean_state.mapping_policy_iris
-    if not policies:
-        return
-    catalog_packs = [
-        pack for pack in reuse.prior_manifest["packs"] if pack["kind"] == "catalog"
-    ]
-    if len(catalog_packs) != 1:
-        raise ValueError("prior distribution does not have one catalog pack")
-    graph_ids = {
-        row["role"]: URIRef(row["id"])
-        for row in reuse.prior_manifest["graphs"]
-    }
-    dataset = Dataset(default_union=True)
-    try:
-        ATLAS_VALIDATE._parse_pack_into_dataset(
-            dataset,
-            reuse.prior_root,
-            catalog_packs[0],
-            graph_ids,
-            defaultdict(dict),
-        )
-        asserted = dataset.graph(graph_ids["asserted"])
-        for policy in sorted(policies, key=str):
-            if (policy, RDF.type, ATLAS.EditorialPolicy) not in asserted:
-                raise ValueError(
-                    f"clean mapping policy is absent from the prior catalog: {policy}"
-                )
-            triples = tuple(asserted.triples((policy, None, None)))
-            if not triples:
-                raise ValueError(f"clean mapping policy has no facts: {policy}")
-            for triple in triples:
-                graph.add(triple)
-    finally:
-        dataset.close()
-
-
-def _verify_exact_distribution_compact_contents(
-    root: Path,
-    construction_summary: Mapping[str, Any],
-) -> int:
-    compact_packs = construction_summary.get("compactPacks")
-    if not isinstance(compact_packs, list):
-        raise TypeError("construction summary compactPacks is not an array")
-    for descriptor in compact_packs:
-        read_compact_record_pack(root, descriptor)
-    return len(compact_packs)
-
-
-def _copy_closed_distribution(
-    source: Path,
-    target: Path,
-    *,
-    manifest: Mapping[str, Any],
-) -> None:
-    """Copy an already-verified immutable distribution into a candidate root."""
-
-    _, construction_summary = _construction_summary_member(source, manifest)
-    paths = {
-        "atlas-manifest.json",
-        *(member["path"] for member in manifest["members"]),
-        *(pack["path"] for pack in manifest["packs"]),
-        *(pack["path"] for pack in construction_summary["compactPacks"]),
-    }
-    target.mkdir(parents=True, exist_ok=False)
-    for relative_path in sorted(paths):
-        source_path = ATLAS_VALIDATE._safe_distribution_path(
-            source,
-            relative_path,
-        )
-        target_path = target / relative_path
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with source_path.open("rb") as input_stream, target_path.open("xb") as output_stream:
-            shutil.copyfileobj(input_stream, output_stream, length=1024 * 1024)
-
-
-def _copy_authenticated_file(
-    source_root: Path,
-    target_root: Path,
-    *,
-    relative_path: str,
-    digest: str,
-    byte_length: int,
-) -> None:
-    """Authenticate and copy one declared transport in a single source pass."""
-
-    source = ATLAS_VALIDATE._safe_distribution_path(source_root, relative_path)
-    if source.stat().st_size != byte_length:
-        raise ValueError(f"prior Atlas transport length differs: {relative_path}")
-    target = target_root / PurePosixPath(relative_path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists():
-        raise FileExistsError(f"incremental construction path collides: {relative_path}")
-    copied = 0
-    observed_digest = hashlib.sha256()
-    with source.open("rb") as input_stream, target.open("xb") as output_stream:
-        while chunk := input_stream.read(1024 * 1024):
-            observed_digest.update(chunk)
-            output_stream.write(chunk)
-            copied += len(chunk)
-    if (
-        copied != byte_length
-        or target.stat().st_size != byte_length
-        or "sha256:" + observed_digest.hexdigest() != digest
-    ):
-        raise ValueError(f"prior Atlas transport receipt differs: {relative_path}")
-
-
-def _materialize_clean_construction_units(
-    output: Path,
-    reuse: IncrementalConstructionReuse,
-    plans: Sequence[ReleasePackPlan],
-) -> ReusedConstructionMaterial:
-    """Authenticate and copy every clean release without rebuilding its RDF."""
-
-    plans_by_key = {plan.key: plan for plan in plans}
-    if len(plans_by_key) != len(plans):
-        raise ValueError("incremental release plans repeat a key")
-    prior_rows = {
-        row["key"]: row for row in reuse.prior_summary["releases"]
-    }
-    if len(prior_rows) != len(reuse.prior_summary["releases"]):
-        raise ValueError("prior construction summary repeats a release key")
-    if not reuse.clean_keys <= set(prior_rows) or not reuse.clean_keys <= set(plans_by_key):
-        raise ValueError("clean construction units are absent from the current plan")
-    prior_rdf_by_path = {
-        pack["path"]: pack for pack in reuse.prior_manifest["packs"]
-    }
-    prior_compact_by_path = {
-        pack["path"]: pack for pack in reuse.prior_summary["compactPacks"]
-    }
-    rdf_packs: list[Mapping[str, Any]] = []
-    compact_packs: list[Mapping[str, Any]] = []
-    compact_path_owners: dict[str, str] = {}
-    rdf_subject_owners: dict[URIRef, tuple[str, str | None]] = (
-        {}
-        if reuse.clean_state is None
-        else dict(reuse.clean_state.rdf_subject_owners)
-    )
-    rdf_pack_ids: dict[tuple[str, str | None], str] = {}
-    compact_subject_pack_ids: dict[URIRef, str] = (
-        {}
-        if reuse.clean_state is None
-        else dict(reuse.clean_state.compact_subject_pack_ids)
-    )
-
-    for key in sorted(reuse.clean_keys):
-        row = prior_rows[key]
-        plan = plans_by_key[key]
-        owner = _release_pack_token(plan)
-        for receipt in row["rdfPacks"]:
-            try:
-                descriptor = prior_rdf_by_path[receipt["path"]]
-            except KeyError as error:
-                raise ValueError(f"clean unit {key} owns an unknown RDF pack") from error
-            if receipt != {
-                "contentDigest": descriptor["content"]["digest"],
-                "packId": descriptor["packId"],
-                "path": descriptor["path"],
-            }:
-                raise ValueError(f"clean unit {key} RDF receipt differs")
-            _copy_authenticated_file(
-                reuse.prior_root,
-                output,
-                relative_path=descriptor["path"],
-                digest=descriptor["transport"]["digest"],
-                byte_length=descriptor["transport"]["byteLength"],
-            )
-            partition = descriptor.get("partition", {}).get("prefix")
-            pack_key = (owner, partition)
-            if pack_key in rdf_pack_ids:
-                raise ValueError(f"clean unit {key} repeats an RDF partition")
-            rdf_pack_ids[pack_key] = descriptor["packId"]
-            rdf_packs.append(_plain(descriptor))
-
-        for path in row["compactPackPaths"]:
-            try:
-                descriptor = prior_compact_by_path[path]
-            except KeyError as error:
-                raise ValueError(f"clean unit {key} owns an unknown compact pack") from error
-            _copy_authenticated_file(
-                reuse.prior_root,
-                output,
-                relative_path=path,
-                digest=descriptor["transport"]["digest"],
-                byte_length=descriptor["transport"]["byteLength"],
-            )
-            compact_packs.append(_plain(descriptor))
-            compact_path_owners[path] = key
-            # The planner already authenticated and indexed the minimal compact
-            # roles. Clean SourceRecord rows may carry multi-gigabyte native
-            # payloads and are never cross-release targets, so no compact file
-            # is expanded again during materialization.
-            if (
-                reuse.clean_state is not None
-                or descriptor["role"] == CompactRecordRole.SOURCE_RECORD.value
-            ):
-                continue
-            artifact = read_compact_record_pack(reuse.prior_root, descriptor)
-            for logical_row in artifact.rows:
-                subject = URIRef(logical_row["id"])
-                compact_partition = descriptor.get("partition", {}).get("prefix")
-                if compact_partition is not None and not hashlib.sha256(
-                    str(subject).encode("utf-8")
-                ).hexdigest().startswith(compact_partition):
-                    raise ValueError(
-                        f"clean compact row is outside its partition: {subject}"
-                    )
-                if subject in compact_subject_pack_ids:
-                    raise ValueError(f"clean compact record id repeats: {subject}")
-                compact_subject_pack_ids[subject] = descriptor["packId"]
-                rdf_subject_owners[subject] = (
-                    owner,
-                    _release_pack_partition(plan, subject),
-                )
-
-    return ReusedConstructionMaterial(
-        rdf_packs=tuple(rdf_packs),
-        compact_packs=tuple(compact_packs),
-        compact_path_owners=MappingProxyType(compact_path_owners),
-        rdf_subject_owners=MappingProxyType(rdf_subject_owners),
-        rdf_pack_ids=MappingProxyType(rdf_pack_ids),
-        compact_subject_pack_ids=MappingProxyType(compact_subject_pack_ids),
-    )
-
-
-def _merge_incremental_rdf_packs(
-    current_packs: Sequence[Mapping[str, Any]],
-    clean_packs: Sequence[Mapping[str, Any]],
-    *,
-    prior_manifest: Mapping[str, Any],
-) -> list[dict[str, Any]]:
-    """Rebind reused pack dependencies to the current path-stable pack IDs."""
-
-    all_packs = [_plain(pack) for pack in (*current_packs, *clean_packs)]
-    current_by_path = {pack["path"]: pack for pack in all_packs}
-    if len(current_by_path) != len(all_packs):
-        raise ValueError("incremental RDF pack paths overlap")
-    prior_id_to_path = {
-        pack["packId"]: pack["path"] for pack in prior_manifest["packs"]
-    }
-    if len(prior_id_to_path) != len(prior_manifest["packs"]):
-        raise ValueError("prior RDF pack IDs are not unique")
-    clean_paths = {pack["path"] for pack in clean_packs}
-    for pack in all_packs:
-        if pack["path"] not in clean_paths:
-            continue
-        dependencies: list[str] = []
-        for prior_id in pack["dependencies"]:
-            try:
-                dependency_path = prior_id_to_path[prior_id]
-                dependencies.append(current_by_path[dependency_path]["packId"])
-            except KeyError as error:
-                raise ValueError(
-                    f"clean pack dependency is outside the current closure: {prior_id}"
-                ) from error
-        pack["dependencies"] = sorted(set(dependencies))
-    all_packs.sort(key=lambda pack: pack["packId"])
-    return all_packs
-
-
-def _write_exact_distribution_reuse_report(
-    output: Path,
-    prior_report: Mapping[str, Any],
-    *,
-    manifest_digest: str,
-    reuse_result: Mapping[str, Any],
-) -> None:
-    report = {
-        **_plain(prior_report),
-        "distribution": {
-            # Exact reuse promotes the prior distribution unchanged, so it keeps
-            # the identity its own ledger derives. `_try_exact_distribution_reuse`
-            # has already refused a prior whose identity is not that digest.
-            "id": reuse_result["priorDistributionId"],
-            "manifestDigest": manifest_digest,
-            "path": _generation_report_distribution_path(output),
-        },
-        "exactDistributionReuse": _plain(reuse_result),
-    }
-    payload = ATLAS_VALIDATE.canonical_json_bytes(report)
-    report_path = _generation_report_path(output)
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
-        prefix=f".{report_path.name}.",
-        dir=report_path.parent,
-        delete=False,
-    ) as stream:
-        stream.write(payload)
-        temporary_path = Path(stream.name)
-    try:
-        temporary_path.replace(report_path)
-    except BaseException:
-        temporary_path.unlink(missing_ok=True)
-        raise
-
-
-def _try_exact_distribution_reuse(
-    output: Path,
-    *,
-    reuse_from: Path | None,
-) -> dict[str, Any] | None:
-    """Reuse one exact prior distribution or return to the full build path.
-
-    Missing receipts and deliberate recipe or binding changes are compatible
-    cache misses. Once the prior proof claims compatibility, any malformed
-    report, changed raw input, unsafe member, or digest mismatch fails closed.
-    """
-
-    prior_root = reuse_from
-    if prior_root is None:
-        prior_root = output if output.exists() else None
-    if prior_root is None:
-        return None
-    if prior_root.is_symlink() or not prior_root.is_dir():
-        raise ValueError(
-            f"prior Atlas distribution is missing or unsafe: {prior_root}"
-        )
-    prior_root = prior_root.resolve()
-    manifest_path = prior_root / "atlas-manifest.json"
-    if manifest_path.is_symlink() or not manifest_path.is_file():
-        return None
-    manifest = ATLAS_VALIDATE._load_json(manifest_path, require_canonical=True)
-    if not isinstance(manifest, Mapping):
-        raise TypeError("prior Atlas manifest root is not an object")
-
-    current_binding_profile = _validate_compiled_binding_profile()
-    current_binding = {
-        "validatorVersion": "3.0",
-        "version": "3.0",
-        **ATLAS_VALIDATE._binding_digests(),
-    }
-    if (
-        current_binding_profile != dict(_COMPILED_PRODUCER_BINDING_PINS)
-        or manifest.get("binding") != current_binding
-    ):
-        return None
-
-    producer_member = next(
-        (
-            member
-            for member in manifest.get("members", ())
-            if member.get("role") == "producerValidation"
-        ),
-        None,
-    )
-    if not isinstance(producer_member, Mapping):
-        return None
-    producer_path = ATLAS_VALIDATE._safe_distribution_path(
-        prior_root,
-        producer_member["path"],
-    )
-    producer_validation = ATLAS_VALIDATE._load_json(
-        producer_path,
-        require_canonical=True,
-        expected_digest=producer_member["digest"],
-    )
-    if not isinstance(producer_validation, Mapping):
-        raise TypeError("prior producer validation root is not an object")
-    if (
-        producer_validation.get("implementationDigest")
-        != _COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
-    ):
-        return None
-    semantic_construction = producer_validation.get("semanticConstruction")
-    if not isinstance(semantic_construction, Mapping):
-        return None
-    expected_semantic = _semantic_construction_receipt_from_values(
-        input_file_count=semantic_construction.get("inputFileCount"),
-        input_inventory_digest=semantic_construction.get(
-            "inputInventoryDigest"
-        ),
-        recipe_digest=semantic_construction.get("recipeDigest"),
-    )
-    if semantic_construction != expected_semantic:
-        raise ValueError("semantic construction receipt fields differ")
-    # Only now is the prior build eligible. Recheck its complete proof and all
-    # raw inputs and pack bytes before skipping semantic construction.
-    incremental = _load_incremental_pack_materialization(prior_root)
-    manifest = ATLAS_VALIDATE._load_json(manifest_path, require_canonical=True)
-    if not isinstance(manifest, Mapping):
-        raise TypeError("prior Atlas manifest root is not an object")
-    members = {member["role"]: member for member in manifest["members"]}
-    accounting_path = ATLAS_VALIDATE._safe_distribution_path(
-        prior_root,
-        members["sourceAccounting"]["path"],
-    )
-    construction_summary_path, construction_summary = _construction_summary_member(
-        prior_root,
-        manifest,
-    )
-    acceptance = ATLAS_VALIDATE._load_json(
-        ATLAS_VALIDATE._safe_distribution_path(
-            prior_root,
-            members["acceptance"]["path"],
-        ),
-        require_canonical=True,
-        expected_digest=members["acceptance"]["digest"],
-    )
-    accounting = ATLAS_VALIDATE._load_json(
-        accounting_path,
-        require_canonical=True,
-        expected_digest=members["sourceAccounting"]["digest"],
-    )
-    schemas, registry = ATLAS_VALIDATE._schema_registry()
-    for value, schema_name, label in (
-        (manifest, "manifest", "prior manifest"),
-        (acceptance, "acceptance", "prior acceptance"),
-        (producer_validation, "producerValidation", "prior producer validation"),
-        (accounting, "sourceAccounting", "prior source accounting"),
-        (construction_summary, "constructionSummary", "prior construction summary"),
-    ):
-        ATLAS_VALIDATE._validate_json_schema(
-            value,
-            schema_name,
-            schemas=schemas,
-            registry=registry,
-            label=label,
-        )
-    if construction_summary["recipeDigest"] != _shared_semantic_recipe_digest():
-        return None
-    # A bounded prior carries fewer releases than this build declares, so
-    # reusing it whole would republish a subset as though it were the topology
-    # the caller asked for. The incremental planner refuses the same prior for
-    # the same reason and against the same authority.
-    if {row["key"] for row in construction_summary["releases"]} != set(
-        _declared_construction_unit_keys()
-    ):
-        return None
-    # A distribution built before the identity was content-derived carries a
-    # fabricated identifier its ledger does not produce. Reuse would republish
-    # that identifier, so such a prior is incompatible and takes the cold path.
-    if accounting["distributionId"] != distribution_identity(accounting):
-        return None
-    current_seeds = _current_construction_seeds_from_summary(construction_summary)
-    if semantic_construction["recipeDigest"] != _semantic_recipe_digest(
-        current_seeds,
-        shared_recipe_digest=construction_summary["recipeDigest"],
-    ):
-        return None
-    member_digests = {
-        member["path"]: member["digest"] for member in manifest["members"]
-    }
-    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance)
-    ATLAS_VALIDATE._check_producer_validation(
-        manifest,
-        acceptance,
-        producer_validation,
-        construction_summary,
-        member_digests,
-        accounting,
-    )
-    ATLAS_VALIDATE._check_acceptance_metadata(
-        manifest,
-        acceptance,
-        member_digests,
-    )
-    _check_compiled_validation_report(
-        producer_validation,
-        manifest=manifest,
-        accounting_path=accounting_path,
-        construction_summary_path=construction_summary_path,
-    )
-    prior_report, input_count = _load_exact_distribution_reuse_report(
-        prior_root,
-        manifest=manifest,
-        semantic_construction=semantic_construction,
-    )
-    writer_receipts = _trusted_writer_receipt_checks(
-        prior_root,
-        manifest=manifest,
-    )
-    pack_count = _verify_exact_distribution_pack_contents(prior_root, manifest)
-    compact_pack_count = _verify_exact_distribution_compact_contents(
-        prior_root,
-        construction_summary,
-    )
-    manifest_digest = _sha256_file(manifest_path)
-    result = {
-        "fallbackOnIncompatibility": "fullSemanticRebuild",
-        "inputFileCount": input_count,
-        "mode": "exactDistributionReuse",
-        "packCount": pack_count,
-        "compactPackCount": compact_pack_count,
-        "priorDistributionId": incremental.prior_distribution_id,
-        "priorManifestDigest": manifest_digest,
-        "reuseScope": "wholeDistributionExactInputsOnly",
-        "semanticWorkSkipped": [
-            "sourceParsing",
-            "normalizedRowValidationAndGlobalJoins",
-            "rdfGraphConstruction",
-            "compactRecordConstruction",
-            "canonicalSorting",
-            "packCompression",
-        ],
-        "status": "passed",
-        "transportReceiptChecks": writer_receipts["status"],
-    }
-
-    if output.resolve() != prior_root:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(
-            prefix=f".{output.name}.semantic-reuse-",
-            dir=output.parent,
-        ) as raw_temporary_root:
-            temporary_root = Path(raw_temporary_root)
-            candidate = temporary_root / "distribution"
-            _copy_closed_distribution(
-                prior_root,
-                candidate,
-                manifest=manifest,
-            )
-            _trusted_writer_receipt_checks(candidate, manifest=manifest)
-            _promote_validated_distribution(
-                candidate,
-                output,
-                temporary_root=temporary_root,
-            )
-    _write_exact_distribution_reuse_report(
-        output,
-        prior_report,
-        manifest_digest=manifest_digest,
-        reuse_result=result,
-    )
-    return result
-
-
 def _write_distribution(
     output: Path,
     graphs: BuildGraphs,
@@ -9609,16 +7621,10 @@ def _write_distribution(
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
     generation_report: Mapping[str, Any],
     compiled_validation: Mapping[str, Any],
-    construction_reuse: IncrementalConstructionReuse | None = None,
-    reuse_from: Path | None = None,
 ) -> dict[str, Any]:
     """Validate in a sibling temporary directory, then promote the result."""
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    # Reuse is safe only after the planner has authenticated a compatible
-    # construction summary or when the caller supplies an explicit source.
-    # Reaching the cold path means an existing output was not compatible, so
-    # do not feed that historical distribution back into the pack writer.
     counts = compiled_validation.get("counts")
     if not isinstance(counts, Mapping):
         raise TypeError("compiled producer validation has no count receipt")
@@ -9644,8 +7650,6 @@ def _write_distribution(
             created_at=created_at,
             compiled_validation=compiled_validation,
             construction_seeds=construction_seeds,
-            construction_reuse=construction_reuse,
-            reuse_from=reuse_from,
             semantic_construction=semantic_construction,
         )
         report = {
@@ -9919,12 +7923,6 @@ def _construction_input_pin(pin: RegistryInputPin) -> dict[str, Any]:
 def _release_construction_seeds(
     releases: Sequence[LoadedRelease],
     mapping_releases: Sequence[RegistryMappingRelease] = (),
-    *,
-    external_resources: Mapping[
-        str,
-        tuple[str, URIRef, URIRef],
-    ] = MappingProxyType({}),
-    known_release_keys: frozenset[str] = frozenset(),
 ) -> tuple[ReleaseConstructionSeed, ...]:
     """Describe release-local raw inputs and cross-release endpoint dependencies."""
 
@@ -9932,8 +7930,7 @@ def _release_construction_seeds(
     for release in releases:
         for resource in release.resources:
             previous = resource_owner.setdefault(resource.iri, release.spec.key)
-            external = external_resources.get(resource.iri)
-            if previous != release.spec.key or external is not None:
+            if previous != release.spec.key:
                 raise ValueError(
                     f"Atlas resource belongs to multiple construction units: {resource.iri}"
                 )
@@ -9942,9 +7939,6 @@ def _release_construction_seeds(
         owner = resource_owner.get(resource_iri)
         if owner is not None:
             return owner
-        external = external_resources.get(resource_iri)
-        if external is not None:
-            return external[0]
         raise ValueError(
             f"{context} endpoint is outside the loaded construction units: "
             f"{resource_iri}"
@@ -10014,7 +8008,7 @@ def _release_construction_seeds(
     keys = [seed.key for seed in seeds]
     if len(keys) != len(set(keys)):
         raise ValueError("Atlas construction unit keys are not unique")
-    known_keys = set(keys) | set(known_release_keys)
+    known_keys = set(keys)
     for seed in seeds:
         unknown = sorted(set(seed.endpoint_release_keys) - known_keys)
         if unknown:
@@ -10049,335 +8043,33 @@ def _direct_source_counts(
     return counts
 
 
-def _input_inventory_from_construction_seeds(
-    seeds: Sequence[ReleaseConstructionSeed],
-    plans: Sequence[ReleasePackPlan],
-) -> dict[str, Any]:
-    """Build the whole-build raw-input inventory without reparsing clean sources."""
-
-    plans_by_key = {plan.key: plan for plan in plans}
-    if len(plans_by_key) != len(plans) or {seed.key for seed in seeds} != set(
-        plans_by_key
-    ):
-        raise ValueError("construction seeds and plans differ while inventorying inputs")
-    source_rows: list[dict[str, Any]] = []
-    mapping_rows: list[dict[str, Any]] = []
-    for seed in sorted(seeds, key=lambda item: item.key):
-        row = {
-            "inputs": [_plain(pin) for pin in seed.input_pins],
-            "key": seed.key,
-            "sourceRelease": seed.source_release_iri,
-        }
-        if seed.kind == "mapping":
-            mapping_rows.append(row)
-        else:
-            source_rows.append(
-                {
-                    **row,
-                    "expectedResources": plans_by_key[seed.key].resource_count,
-                    "usesPriorAtlasGraph": False,
-                }
-            )
-    return {
-        "expectedResources": sum(
-            plan.resource_count for plan in plans if plan.kind == "sourceRelease"
-        ),
-        "registryDescriptors": 88,
-        "registryDescriptorsPin": {
-            "byteLength": REGISTRY_DESCRIPTORS.stat().st_size,
-            "digest": REGISTRY_DESCRIPTORS_EXPECTED_DIGEST,
-            "path": REGISTRY_DESCRIPTORS_LOGICAL_PATH,
-        },
-        "registryDescriptorsProofPin": {
-            "byteLength": REGISTRY_DESCRIPTORS_PROOF.stat().st_size,
-            "digest": REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST,
-            "path": REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH,
-        },
-        "mappingSources": mapping_rows,
-        "sources": source_rows,
-    }
-
-
-def _incremental_generation_report(
-    *,
-    created_at: str,
-    counts: Mapping[str, int],
-    english_only_scan: Mapping[str, Any],
-    inventory: Mapping[str, Any],
-    plans: Sequence[ReleasePackPlan],
-    reuse: IncrementalConstructionReuse,
-    semantic_construction: Mapping[str, Any],
-    mapping_releases: Sequence[RegistryMappingRelease] = (),
-) -> dict[str, Any]:
-    """Describe a complete build while naming the units actually reconstructed."""
-
-    dirty_mappings = {release.key: release for release in mapping_releases}
-    prior_rows = {row["key"]: row for row in reuse.prior_summary["releases"]}
-    return {
-        "createdAt": created_at,
-        "directSourceCounts": {
-            "crossRingRelations": counts["crossRingRelationAssertions"],
-            "identifiers": counts["identifiers"],
-            "labels": counts["labels"],
-            "nativeRelations": counts["nativeRelationAssertions"],
-            "resources": counts["resources"],
-        },
-        "englishOnlyPolicy": {
-            "atlasLabelLanguage": "en",
-            "multilingualLabelTextInRdf": "prohibited",
-            "rawMultilingualSources": "externalByExactLocatorAndDigest",
-        },
-        "englishOnlyScan": _plain(english_only_scan),
-        "incrementalConstruction": reuse.report(),
-        "inputInventory": _plain(inventory),
-        "mappingReleases": [
-            {
-                "evidenceBindingCount": (
-                    sum(
-                        len(mapping.evidence)
-                        for mapping in dirty_mappings[plan.key].mappings
-                    )
-                    if plan.key in dirty_mappings
-                    else prior_rows[plan.key]["recordCounts"]["evidenceBindings"]
-                ),
-                "key": plan.key,
-                "mappingCount": plan.resource_count,
-                "sourceRelease": plan.source_release_iri,
-            }
-            for plan in sorted(plans, key=lambda item: item.key)
-            if plan.kind == "mapping"
-        ],
-        "semanticConstruction": _plain(semantic_construction),
-        "sourceReleases": [
-            {
-                "atlasRelease": plan.atlas_release_iri,
-                "key": plan.key,
-                "resourceCount": plan.resource_count,
-                "sourceRelease": plan.source_release_iri,
-            }
-            for plan in sorted(plans, key=lambda item: item.key)
-            if plan.kind == "sourceRelease"
-        ],
-        "type": "AtlasGenerationReport",
-        "version": "3.0-development",
-    }
-
-
-def _merge_incremental_plans_and_seeds(
-    *,
-    dirty_plans: Sequence[ReleasePackPlan],
-    dirty_seeds: Sequence[ReleaseConstructionSeed],
-    provisional_seeds: Sequence[ReleaseConstructionSeed],
-    reuse: IncrementalConstructionReuse,
-) -> tuple[tuple[ReleasePackPlan, ...], tuple[ReleaseConstructionSeed, ...]]:
-    """Replace only dirty prior construction identities with parser output."""
-
-    prior_plans = {
-        plan.key: plan
-        for plan in _release_plans_from_construction_summary(reuse.prior_summary)
-    }
-    provisional_by_key = {seed.key: seed for seed in provisional_seeds}
-    dirty_plans_by_key = {plan.key: plan for plan in dirty_plans}
-    dirty_seeds_by_key = {seed.key: seed for seed in dirty_seeds}
-    if set(dirty_plans_by_key) != set(dirty_seeds_by_key) or set(
-        dirty_plans_by_key
-    ) != set(reuse.dirty_keys):
-        raise ValueError("dirty parser output differs from the incremental plan")
-    if set(prior_plans) != set(provisional_by_key):
-        raise ValueError("prior plans and current pre-parse receipts differ")
-    plans = tuple(
-        dirty_plans_by_key.get(key, prior_plans[key]) for key in sorted(prior_plans)
-    )
-    seeds = tuple(
-        dirty_seeds_by_key.get(key, provisional_by_key[key])
-        for key in sorted(provisional_by_key)
-    )
-    shared_recipe_digest = _shared_semantic_recipe_digest()
-    base_keys = _construction_base_build_keys(
-        seeds,
-        binding_bundle_digest=reuse.prior_summary["bindingBundleDigest"],
-        recipe_digest=shared_recipe_digest,
-    )
-    prior_rows = {row["key"]: row for row in reuse.prior_summary["releases"]}
-    for key in reuse.clean_keys:
-        if base_keys[key]["baseBuildKey"] != prior_rows[key]["baseBuildKey"]:
-            raise ValueError(f"clean construction unit changed after planning: {key}")
-    return plans, seeds
-
-
-def _build_incremental_distribution(
-    output: Path,
-    *,
-    reuse: IncrementalConstructionReuse,
-    provisional_seeds: Sequence[ReleaseConstructionSeed],
-) -> dict[str, Any]:
-    """Reparse dirty units and combine them with authenticated clean packs."""
-
-    clean_state = _load_clean_construction_state(reuse)
-    reuse = dataclasses.replace(reuse, clean_state=clean_state)
-    mapping_keys = frozenset(
-        row["key"]
-        for row in reuse.prior_summary["releases"]
-        if row["kind"] == "mapping"
-    )
-    dirty_mapping_keys = reuse.dirty_keys & mapping_keys
-    dirty_source_keys = reuse.dirty_keys - mapping_keys
-    releases = load_releases(dirty_source_keys)
-    mapping_releases = load_mapping_releases(dirty_mapping_keys)
-    # Verify the selected source pins before validating or constructing rows.
-    verify_inputs(releases, mapping_releases)
-    dirty_row_receipt = _validate_compiled_producer_rows(
-        releases,
-        mapping_releases,
-        clean_state=clean_state,
-        clean_seeds=tuple(
-            seed for seed in provisional_seeds if seed.key in reuse.clean_keys
-        ),
-    )
-    english_only_scan = dirty_row_receipt.english_only_scan
-    dirty_plans = _release_pack_plans(releases, mapping_releases)
-    dirty_seeds = _release_construction_seeds(
-        releases,
-        mapping_releases,
-        external_resources=clean_state.resources,
-        known_release_keys=reuse.clean_keys,
-    )
-    plans, seeds = _merge_incremental_plans_and_seeds(
-        dirty_plans=dirty_plans,
-        dirty_seeds=dirty_seeds,
-        provisional_seeds=provisional_seeds,
-        reuse=reuse,
-    )
-    inventory = _input_inventory_from_construction_seeds(seeds, plans)
-    semantic_construction = _semantic_construction_receipt(inventory, seeds)
-    current_catalog = _registry_asserted_graph()
-    try:
-        _ensure_construction_seed_schemes(current_catalog, seeds)
-        _add_clean_mapping_policies(current_catalog, reuse)
-        graphs = _build_graphs(
-            releases,
-            mapping_releases=mapping_releases,
-            include_projection=False,
-            all_plans=plans,
-            clean_state=clean_state,
-            prior_catalog=current_catalog,
-            emit_release_keys=reuse.dirty_keys,
-            reused_accounting_rows=reuse.reused_accounting_rows,
-        )
-    finally:
-        current_catalog.close()
-    dirty_counts = dict(dirty_row_receipt.expected_counts)
-    full_counts = _incremental_full_counts(dirty_counts, reuse)
-    producer_receipt = dataclasses.replace(
-        dirty_row_receipt,
-        expected_counts=MappingProxyType(full_counts),
-        source_release_count=len(plans),
-    )
-    compiled_validation = _validate_incremental_producer_output(
-        releases,
-        graphs,
-        producer_receipt,
-        emitted_release_keys=reuse.dirty_keys,
-        mapping_releases=mapping_releases,
-    )
-    generation_report = _incremental_generation_report(
-        created_at=_distribution_instant(
-            releases,
-            floor=reuse.prior_manifest["createdAt"],
-        ),
-        counts=full_counts,
-        english_only_scan=english_only_scan,
-        inventory=inventory,
-        plans=plans,
-        reuse=reuse,
-        semantic_construction=semantic_construction,
-        mapping_releases=mapping_releases,
-    )
-    ATLAS_VALIDATE.canonical_json_bytes(generation_report)
-    result = _write_distribution(
-        output,
-        graphs,
-        releases=plans,
-        construction_seeds=seeds,
-        construction_reuse=reuse,
-        generation_report=generation_report,
-        compiled_validation=compiled_validation,
-        reuse_from=reuse.prior_root,
-    )
-    return {**result, "incrementalConstruction": reuse.report()}
-
-
 def build_distribution(
     output: Path,
     *,
-    reuse_from: Path | None = None,
     registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
     include_keys: frozenset[str] | None = None,
 ) -> None:
     """Build, validate, and atomically promote the Atlas 3 distribution.
 
-    ``include_keys`` bounds the build to a named set of construction units.
-    Every later step is already release-scoped -- input verification, compiled
-    producer validation, the source accounting, and the content-derived
-    distribution identity all read the loaded releases -- so bounding the load
-    bounds the distribution, including the scope segment its identity carries.
-    Both reuse paths are refused for a bounded build: they compare a prior
-    distribution against the whole code-declared topology, which a bounded
-    distribution deliberately is not.
+    Every build is cold. ``include_keys`` bounds the build to a named set of
+    construction units. Every later step is already release-scoped -- input
+    verification, compiled producer validation, the source accounting, and the
+    content-derived distribution identity all read the loaded releases -- so
+    bounding the load bounds the distribution, including the scope segment its
+    identity carries.
     """
 
     output.parent.mkdir(parents=True, exist_ok=True)
     claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
-    if claim_inputs and (reuse_from is not None or output.exists()):
+    if claim_inputs and output.exists():
         raise ValueError(
-            "injected registry claim builds currently require a new output and "
-            "do not reuse a prior distribution"
+            "injected registry claim builds currently require a new output"
         )
-    # One authority decides scope everywhere: an allowlist naming the whole
-    # declared topology is a full build, identity segment and reuse eligibility
-    # alike. Only a genuine subset is bounded.
-    bounded = (
-        include_keys is not None
-        and include_keys != _declared_construction_unit_keys()
-    )
-    if bounded and reuse_from is not None:
-        raise ValueError("a bounded Atlas build does not reuse a prior distribution")
     source_keys, mapping_keys = (
         (None, None)
         if include_keys is None
         else split_construction_unit_keys(include_keys)
     )
-    _STATUS.phase("plan-reuse")
-    prior_root = reuse_from
-    if prior_root is None and output.exists():
-        prior_root = output
-    incremental_plan = (
-        None
-        if claim_inputs or bounded
-        else _plan_incremental_construction(prior_root)
-    )
-    if incremental_plan is not None:
-        reuse, provisional_seeds = incremental_plan
-        _STATUS.phase("build-incremental-distribution")
-        result = _build_incremental_distribution(
-            output,
-            reuse=reuse,
-            provisional_seeds=provisional_seeds,
-        )
-        print(json.dumps(result, indent=2, sort_keys=True))
-        return
-    exact_reuse = (
-        None
-        if claim_inputs or bounded
-        else _try_exact_distribution_reuse(
-            output,
-            reuse_from=reuse_from,
-        )
-    )
-    if exact_reuse is not None:
-        _STATUS.phase("reuse-exact-distribution")
-        print(json.dumps(exact_reuse, indent=2, sort_keys=True))
-        return
     _STATUS.phase("load-source-releases")
     releases = load_releases(
         include_keys=source_keys,
@@ -10485,7 +8177,6 @@ def build_distribution(
         construction_seeds=construction_seeds,
         generation_report=generation_report,
         compiled_validation=compiled_validation,
-        reuse_from=reuse_from,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 
@@ -10546,14 +8237,6 @@ def main() -> int:
         help="verify and report all direct inputs without writing a distribution",
     )
     parser.add_argument(
-        "--reuse-from",
-        type=Path,
-        help=(
-            "reuse verified matching pack transport bytes from this Atlas 3 "
-            "distribution; an existing --output is used automatically"
-        ),
-    )
-    parser.add_argument(
         "--quiet",
         action="store_true",
         help="suppress human-facing status lines on stderr",
@@ -10582,8 +8265,7 @@ def main() -> int:
         metavar="RELEASE_KEY",
         help=(
             "bound the build to this construction unit; repeat for additional "
-            "keys. A bounded build is always cold and never reuses a prior "
-            "distribution"
+            "keys"
         ),
     )
     args = parser.parse_args()
@@ -10628,7 +8310,6 @@ def main() -> int:
             return 0
         build_distribution(
             args.output.resolve(),
-            reuse_from=(args.reuse_from.resolve() if args.reuse_from else None),
             registry_claim_inputs=registry_claim_inputs,
             include_keys=include_keys,
         )

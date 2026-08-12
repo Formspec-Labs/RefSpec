@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import sys
@@ -2014,6 +2015,73 @@ def test_fail_fast_and_audit_name_the_same_constraint_components(
         verdicts[str(mode)] = error.value
 
     fast, audit = verdicts["None"], verdicts[atlas_validate.AUDIT_VALIDATION_MODE]
+    assert fast.code == audit.code == "shacl.data"
+    assert _shacl_components(fast) == _shacl_components(audit)
+    assert _shacl_components(fast) == sorted(set(_shacl_components(fast)))
+
+
+def _shacl_data_corpus_case_ids() -> tuple[str, ...]:
+    """Name every invalid corpus case whose first issue is `shacl.data`.
+
+    Derived, never listed: the corpus is the register of what the binding
+    rejects, so a case added there joins this sweep without a second edit.
+    """
+
+    corpus = json.loads(
+        (BINDING_ROOT / "fixtures" / "corpus.json").read_text(encoding="utf-8")
+    )
+    return tuple(
+        sorted(
+            case["id"]
+            for case in corpus["cases"]
+            if case["expected"] == "invalid" and case["firstIssue"] == "shacl.data"
+        )
+    )
+
+
+# Release tier, not the dev budget. This re-validates every shacl.data corpus
+# case twice -- once fail-fast, once whole-graph normative -- which costs
+# minutes, and the dev suite is held to a 60s warn / 240s fail budget. The
+# plan's findings register (v3.6) item (a) records why the breadth is
+# required: kill-5's engine-parity protocol wants the full shacl.data set as
+# the standing parity corpus, and the committed dev-tier test above covers
+# only six mechanism cases. Set REFSPEC_RELEASE_TIER=1 to run it; the release
+# workflow's "Full independent acceptance" tier is where it belongs.
+_RELEASE_TIER_ONLY = pytest.mark.skipif(
+    os.environ.get("REFSPEC_RELEASE_TIER") != "1",
+    reason="release tier only; set REFSPEC_RELEASE_TIER=1 (plan v3.6 findings (a))",
+)
+
+
+@_RELEASE_TIER_ONLY
+@pytest.mark.parametrize("case", _shacl_data_corpus_case_ids())
+def test_corpus_wide_cross_mode_shacl_parity(
+    case: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail-fast is a report budget over the whole corpus, never a verdict.
+
+    The dev-tier test above pins six mechanisms. This pins all of them: for
+    every corpus case whose first issue is `shacl.data`, the focused red path
+    and the whole-graph normative engine must agree on the failure code and on
+    the sorted constraint-component list an operator reads. A mode that
+    reported a different component set would make the default path a different
+    validator, which is the risk the plan accepts only because this holds.
+    """
+
+    distribution = BINDING_ROOT / "fixtures" / "invalid" / case
+    verdicts: dict[str | None, atlas_validate.AtlasValidationError] = {}
+    for mode in (None, atlas_validate.AUDIT_VALIDATION_MODE):
+        if mode is None:
+            monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
+        else:
+            monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, mode)
+        with pytest.raises(atlas_validate.AtlasValidationError) as error:
+            atlas_validate.validate_distribution(distribution)
+        verdicts[mode] = error.value
+
+    fast = verdicts[None]
+    audit = verdicts[atlas_validate.AUDIT_VALIDATION_MODE]
     assert fast.code == audit.code == "shacl.data"
     assert _shacl_components(fast) == _shacl_components(audit)
     assert _shacl_components(fast) == sorted(set(_shacl_components(fast)))
