@@ -1,0 +1,59 @@
+{"env": {"python": "3.12.13 arm64", "pyoxigraph": "0.5.9", "oxrdflib": "0.5.0", "rdflib": "7.5.0", "pyshacl": "0.31.0", "validate.py.sha256": "3da3778fc88f69097b04ad38406eecfc572fb20641191f9ba72202fe5f03a961", "atlas.shacl.ttl.sha256": "724aefcf349c51b74af75387c638365502db2f4638e27aa16e5f241090c8d48c", "machine_note": "concurrent test suite running in the main tree; load average 8-18 throughout"}}
+{"cpu_s": 1.708, "packs": 5, "peak_rss_gb": 0.455, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "oxi-store", "wall_s": 1.712}
+{"cpu_s": 1.818, "packs": 5, "peak_rss_gb": 0.735, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "oxi-store-bulk", "wall_s": 1.049}
+{"cpu_s": 0.898, "packs": 5, "peak_rss_gb": 0.023, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "oxi-parse-count", "wall_s": 0.899}
+{"cpu_s": 1.816, "packs": 5, "peak_rss_gb": 0.467, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "oxi-store-zstd", "wall_s": 1.825}
+{"cpu_s": 12.59, "packs": 5, "peak_rss_gb": 1.32, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "rdflib-stock", "wall_s": 12.622}
+{"cpu_s": 18.064, "packs": 5, "peak_rss_gb": 1.297, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "rdflib-lexical", "wall_s": 18.074}
+{"cpu_s": 19.404, "packs": 5, "peak_rss_gb": 1.299, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "rdflib-full", "wall_s": 19.412}
+{"cpu_s": 0.688, "packs": 5, "peak_rss_gb": 0.046, "q": 1, "quads_declared": 1013723, "quads_seen": 1013723, "variant": "rdflib-profile-only", "wall_s": 0.688}
+{"bytes": 17147434, "peak_rss_gb": 0.078, "q": "1b", "quads": 100000, "variant": "oxi-store", "wall_s": 0.141}
+{"bytes": 40092607, "peak_rss_gb": 0.113, "q": "1b", "quads": 200000, "variant": "oxi-store", "wall_s": 0.3}
+{"bytes": 85990910, "peak_rss_gb": 0.198, "q": "1b", "quads": 400000, "variant": "oxi-store", "wall_s": 0.643}
+{"bytes": 193043301, "peak_rss_gb": 0.382, "q": "1b", "quads": 856733, "variant": "oxi-store", "wall_s": 1.435}
+{"bytes": 17147434, "peak_rss_gb": 0.156, "q": "1b", "quads": 100000, "variant": "rdflib-stock", "wall_s": 1.11}
+{"bytes": 40092607, "peak_rss_gb": 0.279, "q": "1b", "quads": 200000, "variant": "rdflib-stock", "wall_s": 2.307}
+{"bytes": 85990910, "peak_rss_gb": 0.53, "q": "1b", "quads": 400000, "variant": "rdflib-stock", "wall_s": 4.841}
+{"bytes": 193043301, "peak_rss_gb": 1.139, "q": "1b", "quads": 856733, "variant": "rdflib-stock", "wall_s": 10.766}
+{"bytes": 17147434, "peak_rss_gb": 0.022, "q": "1b", "quads": 100000, "variant": "oxi-parse-count", "wall_s": 0.085}
+{"bytes": 193043301, "peak_rss_gb": 0.023, "q": "1b", "quads": 856733, "variant": "oxi-parse-count", "wall_s": 0.778}
+{"cpu_s": 12.37, "peak_rss_gb": 0.022, "q": "1c-full", "quads_seen": 29283283, "variant": "bytes-canonical", "wall_s": 12.4}
+{"q": "1d-iri", "scope": "full", "candidate_lines": 29283283, "packs_refused": 2, "packs_total": 126, "lines_refused": 7770, "note": "pyoxigraph refuses atlas:sourceLocator IRIs containing unescaped [ and ]; rdflib accepts all of them"}
+{"load_rss_gb": 1.316, "load_wall_s": 17.154, "q": 2, "variant": "native"}
+{"load_rss_gb": 0.473, "load_wall_s": 1.538, "q": 2, "variant": "oxrdflib-bulk"}
+{"load_rss_gb": 0.445, "load_wall_s": 11.048, "q": 2, "variant": "oxrdflib-parse"}
+{"load_wall_s": 17.228, "peak_rss_gb": 1.333, "q": 2, "variant": "native/iter", "work_result": 1013723, "work_wall_s": 0.743}
+{"load_wall_s": 1.566, "peak_rss_gb": 0.479, "q": 2, "variant": "oxrdflib-bulk/iter", "work_result": 1013723, "work_wall_s": 3.117}
+{"load_wall_s": 17.339, "peak_rss_gb": 1.341, "q": 2, "variant": "native/roles", "work_result": 104898, "work_wall_s": 1.522}
+{"load_wall_s": 1.534, "peak_rss_gb": 0.536, "q": 2, "variant": "oxrdflib-bulk/roles", "work_result": 104898, "work_wall_s": 3.635}
+{"changed_terms": 5, "cases": 9, "q": 2, "variant": "fidelity"}
+{"converter": "stock", "digest_different": 6211, "digest_same": 44, "digest_error": 0, "packs": 3, "q": "2c", "subjects": 6255}
+{"converter": "patched", "digest_different": 4027, "digest_same": 2228, "digest_error": 0, "packs": 3, "q": "2c", "subjects": 6255}
+{"conforms": false, "load_wall_s": 18.927, "peak_rss_gb": 2.159, "q": 3, "packs": 5, "report_chars": 32984889, "shacl_wall_s": 84.078, "variant": "native"}
+{"q": 3, "packs": 5, "variant": "oxrdflib", "shacl_wall_s": ">2343 (killed at 39m03s, 98.7% cpu, did not finish)", "note": "lower bound 28x native"}
+{"conforms": false, "load_wall_s": 1.967, "packs": 3, "peak_rss_gb": 0.408, "q": 3, "report_chars": 14568575, "shacl_wall_s": 12.591, "variant": "native"}
+{"q": 3, "packs": 3, "variant": "oxrdflib", "shacl_wall_s": ">1790 (killed at 30m04s, did not finish)", "note": "lower bound 142x native"}
+{"conforms": true, "packs": 2, "q": 3, "report_chars": 33, "shacl_wall_s": 0.071, "variant": "native"}
+{"conforms": false, "packs": 2, "q": 3, "report_chars": 98090, "shacl_wall_s": 0.573, "variant": "oxrdflib", "note": "8.1x slower AND 89 spurious sh:in violations - different verdict"}
+{"conforms": true, "packs": 2, "q": 3, "variant": "oxrdflib+patched-from_ox", "note": "verdict parity restored by normalize=False + xsd:string->simple form"}
+{"impl": "python", "injected": null, "issues": [], "peak_rss_gb": 1.293, "q": 4, "wall_s": 0.32}
+{"impl": "sparql", "injected": null, "issues": [], "peak_rss_gb": 0.471, "q": 4, "wall_s": 0.358, "per_query_s": {"label-literal-form-not-one": 0.08, "label-release-differs": 0.071, "label-shares-no-source-record": 0.063, "preflabel-language-collision": 0.024, "resource-release-not-one": 0.009, "role-literal-reuse": 0.089, "role-node-reuse": 0.021}}
+{"impl": "python", "injected": "preflabel-language", "issues": ["dataset.label-integrity: http://eurovoc.europa.eu/c_ff983fb3 has more than one preferred label in a language"], "q": 4, "wall_s": 0.198}
+{"impl": "sparql", "injected": "preflabel-language", "issues": ["dataset.label-integrity/preflabel-language-collision: <http://eurovoc.europa.eu/c_ff983fb3> \"en\""], "q": 4, "wall_s": 0.37}
+{"impl": "python", "injected": "role-node-reuse", "issues": ["dataset.label-integrity: http://eurovoc.europa.eu/c_ff983fb3 reuses a label node or literal across SKOS-XL roles"], "q": 4, "wall_s": 0.054}
+{"impl": "sparql", "injected": "role-node-reuse", "issues": ["dataset.label-integrity/role-node-reuse: <http://eurovoc.europa.eu/c_ff983fb3> <urn:ref:atlas-label:afa38...>", "dataset.label-integrity/role-literal-reuse: <http://eurovoc.europa.eu/c_ff983fb3> \"user authorisation\"@en"], "q": 4, "wall_s": 0.366}
+{"q": 4, "loc": {"python_original_nonblank": 62, "sparql_port_query_lines": 39, "sparql_port_with_preamble": 63}}
+{"carriers": 104898, "load_wall_s": 1.81, "peak_rss_gb": 0.524, "probe": "roles-oxigraph-native", "q": "5-port", "sweep_wall_s": 0.707}
+{"lines": 1013723, "peak_rss_gb": 0.021, "probe": "canonicality-on-bytes", "q": "5-port", "rejected": 0, "scope": "5 staging packs", "wall_s": 1.56}
+{"lines": 29283283, "peak_rss_gb": 0.026, "probe": "canonicality-on-bytes", "q": "5-port", "rejected": 0, "scope": "full", "wall_s": 49.07}
+{"datatypes": {"rdf:JSON": 11596, "xsd:date": 7, "xsd:dateTime": 58730}, "lang_tagged_literals": 24974, "other_typed_literals": 70333, "plain_literals": 100055, "probe": "census", "q": 6, "root": "staging", "xsd_string_typed_literals": 18998}
+{"datatypes": {"rdf:JSON": 590652, "xsd:date": 219, "xsd:dateTime": 1120858}, "lang_tagged_literals": 998215, "other_typed_literals": 1711729, "plain_literals": 2272626, "probe": "census", "q": 6, "root": "full", "xsd_string_typed_literals": 1519235}
+{"cpu_s": 2.78, "lines_rewritten": 0, "peak_rss_gb": 0.705, "probe": "etl", "q": 6, "quads_in_store": 1013723, "root": "staging", "wall_s": 3.05}
+{"cpu_s": 53.14, "lines_rewritten": 7770, "packs_still_refused": [], "peak_rss_gb": 0.838, "probe": "etl-count", "q": 6, "quads_accepted": 29283283, "root": "full", "wall_s": 54.54}
+{"cases": 7, "probe": "converter", "q": 6, "still_changed": 1, "note": "normalize=False fixes 4 of 5; the xsd:string/simple-form collision is unfixable at the boundary"}
+{"q": 6, "probe": "etl-invertibility", "iris_already_containing_%5B_or_%5D": 42, "note": "naive unescape would corrupt these 42; pre-escaping % as %25 makes the ETL exactly invertible"}
+{"q": 7, "probe": "node-digest-from-bytes", "packs": 3, "nodes_compared": 6255, "identical": 6255, "different": 0, "missing": 0, "bytes_wall_s": 0.064, "rdflib_wall_s": 0.315}
+{"q": 7, "probe": "node-digest-from-bytes", "packs": 5, "nodes_compared": 104898, "identical": 104898, "different": 0, "missing": 0, "bytes_wall_s": 0.781, "rdflib_wall_s": 3.609, "peak_rss_gb": 1.37}
+{"q": 7, "probe": "node-digest-from-bytes", "scope": "full", "nodes_digested": 3289015, "wall_s": 25.41, "peak_rss_gb": 0.144, "note": "the phase table charges 131s for this, on top of the 1024s rdflib parse it depends on"}
+{"q": 7, "probe": "native-payload-from-bytes", "scope": "full", "payloads_checked": 590561, "noncanonical": 0, "wall_s": 19.17, "peak_rss_gb": 0.042}
+{"q": 7, "probe": "dead-code", "finding": "_check_explorer_reachability defined at validate.py:7414, never called, and 'explorer-reachability' is absent from REQUIRED_GATES; the RDF explorer it served was deleted in 83bf5d01"}
