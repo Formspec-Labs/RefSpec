@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import hashlib
 import io
 import json
@@ -1516,6 +1517,74 @@ def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties()
         closed.shape for closed in plan.closed_shapes
     }
     assert plan.checks_relation_ring_context
+    # Both lifted `sh:xone` guarantees, and the alarm for either drifting. A
+    # lift refuses silently by design -- the engine still answers, correctly,
+    # just at the cost the lift exists to remove -- so this is where a shapes
+    # edit that outran `_EVIDENCE_WARRANT_BRANCH_SIGNATURES` is caught.
+    assert plan.warrant_branches is not None
+    assert len(plan.warrant_branches) == 6
+    assert not list(plan.shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
+    assert not list(plan.shapes.objects(ATLAS.RelationAssertionShape, SH.xone))
+    assert list(shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
+
+
+def test_lifted_warrant_xone_is_refused_when_the_shape_drifts() -> None:
+    """A lift that outlives its shape would be a different validator.
+
+    The warrant table is parsed out of the shapes graph, but the lift only
+    engages while the parsed table is exactly the signature it was proved
+    equivalent to. Every way the shape can move -- a branch's discriminating
+    value edited, a branch added, a branch carrying a SHACL form the precheck
+    cannot evaluate -- must put the `sh:xone` back in the engine's hands
+    rather than quietly answer from a stale table.
+    """
+
+    _, shapes = atlas_validate._parse_binding_graphs()
+    head = next(shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
+    branches = list(shapes.items(head))
+    adoption = next(
+        branch
+        for branch in branches
+        if any(
+            shapes.value(property_shape, SH.hasValue) == RKAF.formalAdoptionEvent
+            for property_shape in shapes.objects(branch, SH.property)
+        )
+    )
+    role_shape = next(
+        property_shape
+        for property_shape in shapes.objects(adoption, SH.property)
+        if shapes.value(property_shape, SH.hasValue) == RKAF.formalAdoptionEvent
+    )
+
+    for name, mutate in (
+        (
+            "value edited",
+            lambda graph: (
+                graph.remove((role_shape, SH.hasValue, RKAF.formalAdoptionEvent)),
+                graph.add((role_shape, SH.hasValue, RKAF.registrationEvent)),
+            ),
+        ),
+        (
+            "condition dropped",
+            lambda graph: graph.remove((role_shape, SH.hasValue, None)),
+        ),
+        (
+            "unevaluable form added",
+            lambda graph: graph.add((role_shape, SH.minLength, Literal(1))),
+        ),
+        (
+            "second xone",
+            lambda graph: graph.add((ATLAS.EvidenceBindingShape, SH.xone, RDF.nil)),
+        ),
+    ):
+        drifted = atlas_validate._copy_graph(shapes)
+        mutate(drifted)
+        plan = atlas_validate._batched_shacl_plan(drifted)
+
+        assert atlas_validate._evidence_warrant_branch_table(drifted) is None, name
+        assert plan.warrant_branches is None, name
+        # Refused means the engine keeps it, so the guarantee is never dropped.
+        assert list(plan.shapes.objects(ATLAS.EvidenceBindingShape, SH.xone)), name
 
 
 @pytest.mark.parametrize(
@@ -1526,6 +1595,8 @@ def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties()
         ("digest", False),
         ("evidence", False),
         ("ring-context", False),
+        ("warrant-unsanctioned", False),
+        ("warrant-adoption-attestation", False),
     ),
 )
 def test_batched_shacl_conformance_matches_normative_shapes(
@@ -1534,7 +1605,27 @@ def test_batched_shacl_conformance_matches_normative_shapes(
 ) -> None:
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
-    if mutation == "closed-property":
+    if mutation == "warrant-unsanctioned":
+        # No branch pins rkaf:retrievalSignal, so this matches zero branches.
+        binding = next(asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+        asserted.remove((binding, RKAF.evidenceRole, None))
+        asserted.add((binding, RKAF.evidenceRole, RKAF.retrievalSignal))
+    elif mutation == "warrant-adoption-attestation":
+        # rkaf:basedOnAttestation is forbidden by five of the six branches, so
+        # a binding that is not an adoption and names one matches none.
+        binding = next(
+            subject
+            for subject in asserted.subjects(RDF.type, RKAF.EvidenceBinding)
+            if next(asserted.objects(subject, RKAF.evidenceRole), None)
+            != RKAF.formalAdoptionEvent
+        )
+        other = next(
+            subject
+            for subject in asserted.subjects(RDF.type, RKAF.EvidenceBinding)
+            if subject != binding
+        )
+        asserted.add((binding, RKAF.basedOnAttestation, other))
+    elif mutation == "closed-property":
         resource = next(asserted.subjects(RDF.type, ATLAS.SubjectConcept))
         asserted.add((resource, URIRef("urn:test:unexpected"), Literal("extra")))
     elif mutation == "digest":
@@ -1986,11 +2077,11 @@ def test_batched_shacl_reduces_shape_dispatches_on_valid_fixture(
         counts.append(active_counter[0])
 
     original_count, batched_count = counts
-    # Batching still removes most dispatches. The margin was a factor of three
-    # before the six-branch sh:xone that replaced atlas:reviewMethod: an xone
-    # dispatches each branch in both modes, so it raises the batched floor
-    # without raising the unbatched ceiling proportionally.
-    assert batched_count * 2 < original_count
+    # Batching removes most dispatches, and now that both `sh:xone`
+    # guarantees are lifted it removes the branch dispatches too: an xone
+    # dispatches each of its branches per focus node, which is what made the
+    # warrant xone ~67% of the SHACL phase at full scale.
+    assert batched_count * 3 < original_count
 
 
 def test_distribution_member_digests_are_reused_after_required_reads(
@@ -2616,6 +2707,121 @@ def test_graph_role_pass_enforces_derived_type_exclusivity() -> None:
 
     assert raised.value.code == "dataset.graph-placement"
     assert "derived subject" in raised.value.detail
+
+
+def test_placement_observation_from_the_parser_matches_a_store_walk() -> None:
+    """One code path decides placement; only who walked the quads differs.
+
+    The parser accumulates the predicate verdicts and the subject/type map as
+    it goes, so `_check_graph_roles` no longer re-walks 32M quads to learn
+    them. That is a cost change and must be nothing else: the observation the
+    parser hands over has to be indistinguishable from the one derived off the
+    finished store.
+    """
+
+    manifest = json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
+    graph_ids = atlas_validate._check_pack_manifest(manifest)
+    parsed = atlas_validate._AssertedPlacementObservation(
+        graph_id=graph_ids["asserted"],
+        projection_only_predicates=atlas_validate._projection_only_predicates(),
+    )
+    _, graphs = atlas_validate._parse_packed_dataset(
+        VALID_DISTRIBUTION,
+        manifest,
+        graph_ids,
+        asserted_placement=parsed,
+    )
+    walked = atlas_validate._AssertedPlacementObservation.from_graph(graphs["asserted"])
+
+    assert parsed.first_violation is None
+    assert parsed.first_violation == walked.first_violation
+    assert set(parsed.types) == set(walked.types)
+    assert {subject: set(types) for subject, types in parsed.types.items()} == {
+        subject: set(types) for subject, types in walked.types.items()
+    }
+    # Every asserted subject is present, typed or not -- "exactly one concrete
+    # carrier type" is a claim about subjects, so a subject the map dropped
+    # would be a check that silently stopped running.
+    assert set(parsed.types) == set(graphs["asserted"].subjects())
+    assert atlas_validate._check_graph_roles(graphs, asserted_placement=parsed) is not None
+    # Spent, and safe to hand over again: a drained map must re-derive rather
+    # than answer an emptied one.
+    assert parsed.consumed
+    assert atlas_validate._check_graph_roles(graphs, asserted_placement=parsed).resource_count > 0
+
+
+def test_acceptance_does_not_walk_the_asserted_store_twice_for_placement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The parse observer replaces the walk; it must not merely precede it."""
+
+    original = atlas_validate._AssertedPlacementObservation.from_graph
+
+    def refuse(asserted: Graph) -> Any:
+        raise AssertionError("graph-role placement must ride the parse, not a second store walk")
+
+    monkeypatch.setattr(
+        atlas_validate._AssertedPlacementObservation,
+        "from_graph",
+        staticmethod(refuse),
+    )
+    result = atlas_validate.validate_distribution(VALID_DISTRIBUTION)
+
+    assert result["quadCount"] > 0
+    assert original is not None
+
+
+def test_acceptance_freezes_the_parsed_heap_only_for_the_semantic_phases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Freezing the parsed heap is a pause budget, never a leak.
+
+    The store is frozen out of the cyclic collector's reach once the packs are
+    parsed and before the semantic gates run -- full collections over a stable
+    22 GB heap buy nothing. It has to be unfrozen again on the way out, or a
+    library caller validating in a loop accumulates every distribution it ever
+    parsed in the permanent generation.
+    """
+
+    calls: list[str] = []
+    real_freeze, real_unfreeze = gc.freeze, gc.unfreeze
+    real_parse = atlas_validate._parse_packed_dataset
+    real_semantics = atlas_validate._validate_semantics_then_record_ownership
+
+    def traced(name: str, wrapped: Any) -> Any:
+        def call(*args: Any, **kwargs: Any) -> Any:
+            calls.append(name)
+            return wrapped(*args, **kwargs)
+
+        return call
+
+    monkeypatch.setattr(gc, "freeze", traced("freeze", real_freeze))
+    monkeypatch.setattr(gc, "unfreeze", traced("unfreeze", real_unfreeze))
+    monkeypatch.setattr(atlas_validate, "_parse_packed_dataset", traced("parse", real_parse))
+    monkeypatch.setattr(
+        atlas_validate,
+        "_validate_semantics_then_record_ownership",
+        traced("semantics", real_semantics),
+    )
+    result = atlas_validate.validate_distribution(VALID_DISTRIBUTION)
+
+    assert result["quadCount"] > 0
+    assert calls == ["parse", "freeze", "semantics", "unfreeze"]
+    assert gc.get_freeze_count() == 0
+
+
+def test_acceptance_unfreezes_even_when_a_semantic_gate_refuses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A refusal is the common case on a red build; it must not leave a freeze."""
+
+    monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
+    with pytest.raises(atlas_validate.AtlasValidationError):
+        atlas_validate.validate_distribution(
+            BINDING_ROOT / "fixtures" / "invalid" / "evidence-warrant-unsanctioned"
+        )
+
+    assert gc.get_freeze_count() == 0
 
 
 def test_semantic_inventory_eliminates_repeated_carrier_enumeration(

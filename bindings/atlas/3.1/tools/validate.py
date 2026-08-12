@@ -53,6 +53,7 @@ from collections import Counter, defaultdict, deque
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import UTC, datetime
 from decimal import Decimal
 from functools import lru_cache
@@ -1026,6 +1027,104 @@ class _BatchedShaclPlan:
     shapes: Graph
     closed_shapes: tuple[_ClosedShapePlan, ...]
     checks_relation_ring_context: bool
+    # The parsed atlas:EvidenceBindingShape warrant `sh:xone`, one frozenset of
+    # `(path, hasValue, minCount, maxCount)` rows per branch, or None when the
+    # shape drifted from the pinned signature and the engine keeps the xone.
+    warrant_branches: tuple[frozenset[tuple[Any, Any, int | None, int | None]], ...] | None = None
+
+
+# How `_AssertedPlacementObservation` classifies one asserted predicate, once.
+_PLACEMENT_ALLOWED = 0
+_PLACEMENT_TYPE = 1
+_PLACEMENT_PROJECTED = 2
+_PLACEMENT_UNSUPPORTED = 3
+
+
+@dataclass(slots=True)
+class _AssertedPlacementObservation:
+    """Asserted-graph placement facts accumulated while the packs are parsed.
+
+    `_check_graph_roles` used to learn these by iterating the whole asserted
+    store a second time: one pass over every quad for the predicate allowlist
+    and to collect the subjects, then one `rdf:type` lookup per subject. At
+    32M quads that is the CPU-bound half of the check's measured 570s
+    (`plans/validation-cost-reset-plan.md`, "Inside-the-phases trace"). The
+    parser already touches every quad, so the same facts ride along for one
+    memoized dict lookup per quad and the check keeps only the per-subject
+    type-set equality pass it exists for.
+
+    Semantics are unchanged, deliberately. Nothing here fails: a bad predicate
+    is *recorded*, and `_check_graph_roles` still raises it, in the same order,
+    with the same code and the same message -- so no failure moves phase and
+    no corpus first issue can move with it. `types` holds every asserted
+    subject, including subjects that carry no `rdf:type` at all, because "has
+    exactly one concrete carrier type" is one of the things being checked.
+    """
+
+    graph_id: URIRef
+    projection_only_predicates: frozenset[URIRef]
+    types: dict[URIRef, tuple[Any, ...]] = dataclass_field(default_factory=dict)
+    verdicts: dict[URIRef, int] = dataclass_field(default_factory=dict)
+    first_violation: tuple[int, URIRef, URIRef] | None = None
+    consumed: bool = False
+
+    def consume_types(self) -> dict[URIRef, tuple[Any, ...]]:
+        """Hand the subject/type map over, once, so the reader can drain it.
+
+        The map is the largest thing the check holds at full scale, so the
+        placement pass frees it entry by entry rather than at the end. Handing
+        it over marks the observation spent: a second `_check_graph_roles` over
+        the same object re-derives from the store instead of reading an
+        emptied map.
+        """
+
+        types, self.types, self.consumed = self.types, {}, True
+        return types
+
+    def _classify(self, predicate: URIRef) -> int:
+        """Rank one predicate the way the placement loop used to, per quad."""
+
+        if predicate == RDF.type:
+            verdict = _PLACEMENT_TYPE
+        elif predicate in self.projection_only_predicates:
+            verdict = _PLACEMENT_PROJECTED
+        elif predicate not in ALLOWED_ASSERTED_PREDICATES:
+            verdict = _PLACEMENT_UNSUPPORTED
+        else:
+            verdict = _PLACEMENT_ALLOWED
+        self.verdicts[predicate] = verdict
+        return verdict
+
+    def observe(self, subject: URIRef, predicate: URIRef, obj: Any) -> None:
+        types = self.types
+        verdict = self.verdicts.get(predicate)
+        if verdict is None:
+            verdict = self._classify(predicate)
+        if verdict == _PLACEMENT_TYPE:
+            types[subject] = (*types.get(subject, ()), obj)
+            return
+        if subject not in types:
+            types[subject] = ()
+        if verdict and self.first_violation is None:
+            self.first_violation = (verdict, subject, predicate)
+
+    @classmethod
+    def from_graph(cls, asserted: Graph) -> _AssertedPlacementObservation:
+        """Observe an already-parsed graph, for callers that did not parse here.
+
+        `validate_preparsed_distribution` hands over a resident graph and the
+        tests call `_check_graph_roles` directly, so the check keeps a way to
+        compute what the parser would have handed it. One code path decides
+        placement either way; only who walked the quads differs.
+        """
+
+        observation = cls(
+            graph_id=asserted.identifier,
+            projection_only_predicates=_projection_only_predicates(),
+        )
+        for subject, predicate, obj in asserted:
+            observation.observe(subject, predicate, obj)
+        return observation
 
 
 class _DigestingReader:
@@ -1320,11 +1419,13 @@ class _LexicalNQuadsParser(NQuadsParser):
         self,
         *args: Any,
         subject_observer: Callable[[URIRef, URIRef], None] | None = None,
+        asserted_placement: _AssertedPlacementObservation | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.graph_counts: Counter[URIRef] = Counter()
         self.subject_observer = subject_observer
+        self.asserted_placement = asserted_placement
         self.observed_subject: URIRef | None = None
         self.observed_subject_graphs: set[URIRef] = set()
 
@@ -1378,6 +1479,10 @@ class _LexicalNQuadsParser(NQuadsParser):
             self.observed_subject_graphs.add(context)
             if self.subject_observer is not None:
                 self.subject_observer(context, subject)
+        # Graph-role placement rides the quad the parser is already holding.
+        placement = self.asserted_placement
+        if placement is not None and context == placement.graph_id:
+            placement.observe(subject, predicate, obj)
         self.sink.get_context(context).add((subject, predicate, obj))
         self.graph_counts[context] += 1
 
@@ -1387,11 +1492,15 @@ def _parse_nquads_preserving_lexical_forms(
     source: Any,
     *,
     subject_observer: Callable[[URIRef, URIRef], None] | None = None,
+    asserted_placement: _AssertedPlacementObservation | None = None,
 ) -> Counter[URIRef]:
     """Parse and count canonical N-Quads without global literal normalization."""
 
     input_source = create_input_source(source=source, format="nquads")
-    parser = _LexicalNQuadsParser(subject_observer=subject_observer)
+    parser = _LexicalNQuadsParser(
+        subject_observer=subject_observer,
+        asserted_placement=asserted_placement,
+    )
     try:
         parser.parse(input_source, dataset)
     finally:
@@ -2253,6 +2362,8 @@ def _parse_pack_into_dataset(
     pack: Mapping[str, Any],
     graph_ids: Mapping[str, URIRef],
     subject_owners: Mapping[str, dict[URIRef, str]],
+    *,
+    asserted_placement: _AssertedPlacementObservation | None = None,
 ) -> Counter[URIRef]:
     """Stream, receipt, and parse one independently addressable pack."""
 
@@ -2304,6 +2415,7 @@ def _parse_pack_into_dataset(
                 dataset,
                 content_reader,
                 subject_observer=observe_subject,
+                asserted_placement=asserted_placement,
             )
             content_reader.finish(pack["content"])
             transport_reader.finish(
@@ -2334,8 +2446,15 @@ def _parse_packed_dataset(
     root: Path,
     manifest: Mapping[str, Any],
     graph_ids: Mapping[str, URIRef],
+    *,
+    asserted_placement: _AssertedPlacementObservation | None = None,
 ) -> tuple[Dataset, dict[str, Graph]]:
-    """Parse verified packs into one graph store for global Atlas invariants."""
+    """Parse verified packs into one graph store for global Atlas invariants.
+
+    An optional `asserted_placement` accumulates the graph-role facts
+    `_check_graph_roles` would otherwise re-derive by walking the whole store
+    again; see that observation's own docstring.
+    """
 
     dataset = Dataset()
     subject_owners: dict[str, dict[URIRef, str]] = {
@@ -2359,6 +2478,7 @@ def _parse_packed_dataset(
             pack,
             graph_ids,
             subject_owners,
+            asserted_placement=asserted_placement,
         )
         aggregate_counts.update(counts)
         _STATUS.progress(
@@ -2514,6 +2634,74 @@ _SHAPE_EXPECTING_PREDICATES = (
 )
 _SHAPE_LIST_PREDICATES = (SH["and"], SH["or"], SH.xone)
 
+# atlas:EvidenceBindingShape's warrant `sh:xone`, as this validator last proved
+# it liftable: one frozenset of `(path, sh:hasValue, sh:minCount, sh:maxCount)`
+# rows per branch, in no particular order.
+#
+# This is a PIN, not the semantics. The conditions the precheck evaluates are
+# parsed out of the shapes graph at plan-build time
+# (`_evidence_warrant_branch_table`), so the warrant table is read off the wire
+# rather than restated in Python; this literal answers only "is the shape still
+# the one the lift was proved equivalent to?". Any drift -- an amended warrant
+# table, a seventh branch, a branch carrying a SHACL form the precheck cannot
+# evaluate -- refuses the lift and hands the `sh:xone` back to the engine,
+# exactly as `_can_lift_relation_ring_context` refuses. The refusal is silent
+# but not unnoticed: `test_batched_shacl_plan_keeps_normative_shapes_and_lifts_
+# direct_properties` asserts the lift engaged, so drift fails a test rather
+# than quietly costing the acceptance hour back.
+_EVIDENCE_WARRANT_BRANCH_SIGNATURES = frozenset(
+    {
+        frozenset(  # publisherAssertion
+            {
+                (RKAF.epistemicBasis, RKAF.sourceExplicit, None, None),
+                (RKAF.evidenceRole, RKAF.officialSourceMetadata, None, None),
+                (RKAF.assertionOrigin, RKAF.imported, None, None),
+                (RKAF.basedOnAttestation, None, None, 0),
+            }
+        ),
+        frozenset(  # deterministicTransformation
+            {
+                (RKAF.epistemicBasis, RKAF.deterministicDerivation, None, None),
+                (RKAF.evidenceRole, RKAF.structuralEvidence, None, None),
+                (RKAF.assertionOrigin, RKAF.deterministicExtraction, None, None),
+                (RKAF.basedOnAttestation, None, None, 0),
+            }
+        ),
+        frozenset(  # humanReview
+            {
+                (RKAF.assertionOrigin, RKAF.humanAsserted, None, None),
+                (RKAF.attestorKind, RKAF.humanUser, None, None),
+                (RKAF.epistemicBasis, RKAF.editorialAssertion, None, None),
+                (RKAF.evidenceRole, RKAF.textualEvidence, None, None),
+                (RKAF.basedOnAttestation, None, None, 0),
+            }
+        ),
+        frozenset(  # operatorAdoption -- the only branch that MAY name what it adopted
+            {
+                (RKAF.epistemicBasis, RKAF.editorialAssertion, None, None),
+                (RKAF.evidenceRole, RKAF.formalAdoptionEvent, None, None),
+                (RKAF.assertionOrigin, RKAF.imported, None, None),
+            }
+        ),
+        frozenset(  # twoMachineAdjudication
+            {
+                (RKAF.assertionOrigin, RKAF.aiSuggested, None, None),
+                (RKAF.epistemicBasis, RKAF.statisticalInference, None, None),
+                (RKAF.evidenceRole, RKAF.reviewedAuthorityChain, None, None),
+                (RKAF.basedOnAttestation, None, None, 0),
+            }
+        ),
+        frozenset(  # trustedPipelineReview
+            {
+                (RKAF.epistemicBasis, RKAF.deterministicDerivation, None, None),
+                (RKAF.evidenceRole, RKAF.authorityCitation, None, None),
+                (RKAF.assertionOrigin, RKAF.imported, None, None),
+                (RKAF.basedOnAttestation, None, None, 0),
+            }
+        ),
+    }
+)
+
 # Which SHACL report a refused distribution gets. See `_run_shacl`.
 VALIDATION_MODE_ENV = "REFSPEC_ATLAS_VALIDATION_MODE"
 AUDIT_VALIDATION_MODE = "audit"
@@ -2617,15 +2805,118 @@ def _can_lift_relation_ring_context(shapes: Graph) -> bool:
     }
 
 
+def _warrant_branch_signature(
+    shapes: Graph,
+    branch: Any,
+) -> frozenset[tuple[Any, Any, int | None, int | None]] | None:
+    """Parse one `sh:xone` branch into `(path, hasValue, minCount, maxCount)` rows.
+
+    Returns None for any branch that is not a plain conjunction of property
+    shapes over single IRI paths carrying only those three constraints. Every
+    other SHACL form -- a node constraint on the branch itself, a property path
+    expression, a second constraint kind -- stays with the engine, because this
+    is the only form the precheck below knows how to evaluate exactly.
+    """
+
+    if set(shapes.predicates(branch, None)) - {SH.property}:
+        return None
+    rows: set[tuple[Any, Any, int | None, int | None]] = set()
+    for property_shape in shapes.objects(branch, SH.property):
+        if set(shapes.predicates(property_shape, None)) - {
+            SH.path,
+            SH.hasValue,
+            SH.minCount,
+            SH.maxCount,
+        }:
+            return None
+        paths = list(shapes.objects(property_shape, SH.path))
+        values = list(shapes.objects(property_shape, SH.hasValue))
+        minimums = list(shapes.objects(property_shape, SH.minCount))
+        maximums = list(shapes.objects(property_shape, SH.maxCount))
+        if len(paths) != 1 or not isinstance(paths[0], URIRef):
+            return None
+        if len(values) > 1 or len(minimums) > 1 or len(maximums) > 1:
+            return None
+        rows.add(
+            (
+                paths[0],
+                values[0] if values else None,
+                int(minimums[0]) if minimums else None,
+                int(maximums[0]) if maximums else None,
+            )
+        )
+    return frozenset(rows) if rows else None
+
+
+def _evidence_warrant_branch_table(
+    shapes: Graph,
+) -> tuple[frozenset[tuple[Any, Any, int | None, int | None]], ...] | None:
+    """Read the warrant `sh:xone` off the shapes graph, or refuse to lift it.
+
+    Measured 2026-08-12 (`plans/validation-cost-reset-plan.md`, "Inside-the-
+    phases trace"): ~67% of the SHACL phase of a 62-minute acceptance run --
+    about 21 minutes -- was this one constraint evaluated by engine trial. Six
+    branches are dispatched per evidence binding, five of them fail by design,
+    and each failure mints a pretty-printed validation report the engine then
+    discards. The guarantee behind all of that is a six-entry table, so it is
+    lifted into the batched prechecks the way the relation ring context is.
+
+    Verified here, from the shapes graph, before anything is lifted: exactly
+    one `sh:xone` on atlas:EvidenceBindingShape; every member parses into the
+    restricted `(path, hasValue, minCount, maxCount)` form above; and the set
+    of parsed branch signatures is *exactly* the pinned six, with six members
+    (so a duplicated branch cannot pass by set equality). The returned table is
+    the parsed one -- the precheck evaluates the shapes' own conditions, not a
+    second Python copy of the warrant semantics.
+    """
+
+    heads = list(shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
+    if len(heads) != 1:
+        return None
+    branches = [_warrant_branch_signature(shapes, branch) for branch in shapes.items(heads[0])]
+    if any(branch is None for branch in branches):
+        return None
+    if len(branches) != len(_EVIDENCE_WARRANT_BRANCH_SIGNATURES):
+        return None
+    if frozenset(branches) != _EVIDENCE_WARRANT_BRANCH_SIGNATURES:
+        return None
+    return tuple(branches)  # type: ignore[arg-type]
+
+
+def _warrant_branch_holds(
+    values: Mapping[Any, AbstractSet[Any]],
+    branch: AbstractSet[tuple[Any, Any, int | None, int | None]],
+) -> bool:
+    """Evaluate one parsed branch against a focus node's value sets.
+
+    SHACL semantics for the three constraints this form admits, and nothing
+    else: `sh:hasValue` holds when the value set contains that node,
+    `sh:minCount`/`sh:maxCount` bound the number of distinct value nodes.
+    """
+
+    for path, has_value, minimum, maximum in branch:
+        node_values = values[path]
+        if has_value is not None and has_value not in node_values:
+            return False
+        if minimum is not None and len(node_values) < minimum:
+            return False
+        if maximum is not None and len(node_values) > maximum:
+            return False
+    return True
+
+
 def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
     """Build a valid-data execution graph without changing normative shapes.
 
     pySHACL 0.31 evaluates every ``sh:property`` shape once per focus node.
     Atlas property constraints are direct children of targeted node shapes, so
     targeting those property shapes directly preserves conformance while
-    batching all focus nodes into one constraint evaluation. Closed-shape and
-    the high-volume relation ring-context checks run once below. Any failure
-    falls back to the untouched shapes for the original report.
+    batching all focus nodes into one constraint evaluation. Closed-shape
+    checks and the two high-volume `sh:xone` guarantees -- the relation ring
+    context and the evidence warrant -- are lifted into the prechecks below,
+    each only after the shapes graph is proved to still carry the exact
+    signature the lift was written against. Any failure falls back to the
+    untouched shapes for the original report.
     """
 
     execution = _copy_graph(shapes)
@@ -2677,10 +2968,15 @@ def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
     if checks_relation_ring_context:
         execution.remove((ATLAS.RelationAssertionShape, SH.xone, None))
 
+    warrant_branches = _evidence_warrant_branch_table(shapes)
+    if warrant_branches is not None:
+        execution.remove((ATLAS.EvidenceBindingShape, SH.xone, None))
+
     return _BatchedShaclPlan(
         shapes=execution,
         closed_shapes=tuple(sorted(closed_plans, key=lambda plan: str(plan.shape))),
         checks_relation_ring_context=checks_relation_ring_context,
+        warrant_branches=warrant_branches,
     )
 
 
@@ -2709,11 +3005,12 @@ def _batched_shacl_precheck_misses(
 ) -> list[Any]:
     """Return one focus node per lifted constraint that the fast path refuses.
 
-    Each lifted constraint (one closed shape, or the relation ring context)
-    can only ever produce its own constraint component, so one violating focus
-    node per lifted constraint is enough to reproduce that component under the
-    normative shapes.  `first_only` stops at the first miss for the plain
-    conformance question, which is all the audit path needs.
+    Each lifted constraint (one closed shape, the relation ring context, or
+    the evidence warrant) can only ever produce its own constraint component,
+    so one violating focus node per lifted constraint is enough to reproduce
+    that component under the normative shapes.  `first_only` stops at the
+    first miss for the plain conformance question, which is all the audit path
+    needs.
     """
 
     misses: list[Any] = []
@@ -2745,6 +3042,29 @@ def _batched_shacl_precheck_misses(
             same_ring = semantic_count >= 1 and source_count == 0 and target_count == 0
             cross_ring = semantic_count == 0 and source_count >= 1 and target_count >= 1
             if same_ring == cross_ring:
+                if first_only:
+                    return [focus]
+                if miss is None or str(focus) < str(miss):
+                    miss = focus
+        if miss is not None:
+            misses.append(miss)
+
+    if plan.warrant_branches is not None:
+        # One indexed read per constrained path per binding, then the parsed
+        # table decides. `sh:xone` conforms for exactly one satisfied branch,
+        # so both zero and two are misses and both hand the same
+        # XoneConstraintComponent back through focused re-validation.
+        warrant_paths = tuple({row[0] for branch in plan.warrant_branches for row in branch})
+        miss = None
+        for focus in _core_shacl_targets(data_graph, normative_shapes, ATLAS.EvidenceBindingShape):
+            values = {path: set(data_graph.objects(focus, path)) for path in warrant_paths}
+            matched = 0
+            for branch in plan.warrant_branches:
+                if _warrant_branch_holds(values, branch):
+                    matched += 1
+                    if matched > 1:
+                        break
+            if matched != 1:
                 if first_only:
                     return [focus]
                 if miss is None or str(focus) < str(miss):
@@ -3005,9 +3325,10 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
                     conforms, _, report = _validate_shacl_data(validation_view, plan.shapes)
             else:
                 # Both halves of the fast path run before reporting: the
-                # prechecks answer for the lifted closed and ring-context
-                # constraints, the batched shapes answer for every other one,
-                # and only their union is a complete sample of what failed.
+                # prechecks answer for the lifted closed, ring-context and
+                # warrant constraints, the batched shapes answer for every
+                # other one, and only their union is a complete sample of what
+                # failed.
                 misses = _batched_shacl_precheck_misses(
                     validation_view,
                     shapes,
@@ -3056,7 +3377,11 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
         )
 
 
-def _check_graph_roles(graphs: Mapping[str, Graph]) -> SemanticInventory:
+def _check_graph_roles(
+    graphs: Mapping[str, Graph],
+    *,
+    asserted_placement: _AssertedPlacementObservation | None = None,
+) -> SemanticInventory:
     asserted = graphs["asserted"]
     projection = graphs["projection"]
     derived = graphs["derived"]
@@ -3064,17 +3389,24 @@ def _check_graph_roles(graphs: Mapping[str, Graph]) -> SemanticInventory:
     mutable_carriers: dict[URIRef, set[URIRef]] = {
         carrier_type: set() for carrier_type in ASSERTED_CARRIER_TYPES
     }
-    asserted_subjects: set[URIRef] = set()
+    # The predicate scan and the subject/type collection are the parser's, when
+    # the parser ran here; otherwise they are taken now, off the same quads.
+    placement = asserted_placement
+    if placement is None or placement.consumed or placement.graph_id != asserted.identifier:
+        placement = _AssertedPlacementObservation.from_graph(asserted)
 
-    for subject, predicate, _ in asserted:
-        asserted_subjects.add(subject)
-        if predicate in projection_only_predicates:
+    if placement.first_violation is not None:
+        verdict, subject, predicate = placement.first_violation
+        if verdict == _PLACEMENT_PROJECTED:
             _fail("dataset.graph-placement", f"bare projected predicate {predicate} occurs in asserted graph")
-        if predicate not in ALLOWED_ASSERTED_PREDICATES:
-            _fail("dataset.graph-placement", f"unsupported asserted predicate {predicate} on {subject}")
-    while asserted_subjects:
-        subject = asserted_subjects.pop()
-        types = set(asserted.objects(subject, RDF.type))
+        _fail("dataset.graph-placement", f"unsupported asserted predicate {predicate} on {subject}")
+    # Drained rather than iterated, as the subject set it replaces was: the map
+    # carries one entry per asserted subject, and at full scale that is the
+    # largest thing this check holds.
+    asserted_types = placement.consume_types()
+    while asserted_types:
+        subject, declared_types = asserted_types.popitem()
+        types = set(declared_types)
         unsupported_types = types - ALLOWED_ASSERTED_TYPES
         if unsupported_types:
             _fail(
@@ -7584,6 +7916,7 @@ def _validate_semantic_graphs(
     graphs: Mapping[str, Graph],
     *,
     member_digests: Mapping[str, str],
+    asserted_placement: _AssertedPlacementObservation | None = None,
 ) -> dict[str, Any]:
     """Run every graph-level semantic gate against three parsed graph roles."""
 
@@ -7597,7 +7930,7 @@ def _validate_semantic_graphs(
     _STATUS.phase("run-shacl")
     _run_shacl(graphs, ontology, shapes)
     _STATUS.phase("check-graph-roles")
-    inventory = _check_graph_roles(graphs)
+    inventory = _check_graph_roles(graphs, asserted_placement=asserted_placement)
     _STATUS.phase("check-profile-and-identifier-semantics")
     _check_profile_conformance(graphs["asserted"], inventory)
     _check_identifier_uniqueness(graphs["asserted"], inventory)
@@ -7716,6 +8049,7 @@ def _validate_semantics_then_record_ownership(
     construction_summary: Mapping[str, Any],
     *,
     member_digests: Mapping[str, str],
+    asserted_placement: _AssertedPlacementObservation | None = None,
 ) -> dict[str, Any]:
     """Preserve semantic first issues before reconciling record ownership."""
 
@@ -7725,6 +8059,7 @@ def _validate_semantics_then_record_ownership(
         acceptance,
         graphs,
         member_digests=member_digests,
+        asserted_placement=asserted_placement,
     )
     _STATUS.phase("check-construction-record-ownership")
     _check_construction_record_ownership(graphs["asserted"], construction_summary)
@@ -7835,16 +8170,49 @@ def validate_distribution(
         accounting,
     )
     _STATUS.phase("parse-rdf-packs")
-    dataset, graphs = _parse_packed_dataset(root, manifest, graph_ids)
-    _STATUS.phase("validate-semantic-graphs")
-    result = _validate_semantics_then_record_ownership(
-        manifest,
-        accounting,
-        acceptance,
-        graphs,
-        construction_summary,
-        member_digests=member_digests,
+    placement = _AssertedPlacementObservation(
+        graph_id=graph_ids["asserted"],
+        projection_only_predicates=_projection_only_predicates(),
     )
+    dataset, graphs = _parse_packed_dataset(
+        root,
+        manifest,
+        graph_ids,
+        asserted_placement=placement,
+    )
+    # The packs are parsed and the three role graphs are final. Nothing after
+    # this point adds to the store, so what it holds -- tens of millions of
+    # indexed RDF terms in cycles between the graph views and their shared
+    # in-memory store -- is a stable heap that CPython's cyclic collector
+    # re-walks on every full collection and can never free. The 2026-08-12
+    # trace measured those bursts over a 22 GB heap at 1-2 minutes of the
+    # acceptance hour, buying nothing (`plans/validation-cost-reset-plan.md`,
+    # "Inside-the-phases trace"). So: one collection to settle what parse left
+    # behind, then freeze what survives out of the collector's reach.
+    #
+    # Freezing is not disabling. Objects allocated after this -- everything
+    # SHACL and the semantic checks build -- are still tracked and still
+    # collected, and frozen objects keep ordinary reference counting; only
+    # cycle *detection* skips them. Nothing downstream depends on cycle
+    # collection for correctness: neither this module nor rdflib 7.5 nor
+    # pyshacl 0.31 registers a weakref callback or a gc-dependent finalizer.
+    # Unfrozen again below so a library caller's heap is left as it was found;
+    # the standalone CLI re-freezes at exit (`_prepare_cli_heap_for_exit`).
+    gc.collect()
+    gc.freeze()
+    try:
+        _STATUS.phase("validate-semantic-graphs")
+        result = _validate_semantics_then_record_ownership(
+            manifest,
+            accounting,
+            acceptance,
+            graphs,
+            construction_summary,
+            member_digests=member_digests,
+            asserted_placement=placement,
+        )
+    finally:
+        gc.unfreeze()
     # Keep the shared Dataset store alive for every graph view through the last check.
     del dataset
     if cache_dir is not None:
