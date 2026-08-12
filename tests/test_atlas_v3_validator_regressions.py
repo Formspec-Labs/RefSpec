@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import shutil
 import sys
 from collections.abc import Mapping
@@ -1889,9 +1890,10 @@ def test_batched_shacl_conformance_matches_normative_shapes(
     assert _shacl_conformance_pair(graphs) == (expected, expected)
 
 
-def test_batched_shacl_invalid_path_falls_back_to_exact_normative_report(
+def test_audit_mode_invalid_path_falls_back_to_exact_normative_report(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -1924,6 +1926,212 @@ def test_batched_shacl_invalid_path_falls_back_to_exact_normative_report(
 
     assert calls == [shapes]
     assert str(fast_error.value) == str(original_error.value)
+
+
+def _shacl_components(error: atlas_validate.AtlasValidationError) -> list[str]:
+    match = re.search(r"does not conform \[([^\]]*)\]", error.detail)
+    assert match is not None, error.detail
+    return match.group(1).split(", ")
+
+
+def test_red_path_reports_without_running_the_whole_graph_normative_engine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The default red path never hands the whole graph to the normative engine.
+
+    Measured on the 32M-quad build, that whole-graph run cost 94 minutes and
+    produced nothing but the wording of a failure the fast path had already
+    detected. So the report now comes from the focus nodes the fast path
+    named -- and it must still name the same constraint components as the
+    audit run, which is the only part of the message that is contractual.
+    """
+
+    monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
+    _, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
+    binding = next(asserted.subjects(RKAF.bindsAssertion, assertion))
+    asserted.remove((binding, None, None))
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    calls: list[Graph] = []
+    original_validate = atlas_validate._validate_shacl_data
+
+    def counted(data_graph: Graph, shape_graph: Graph) -> tuple[bool, Any, str]:
+        calls.append(shape_graph)
+        return original_validate(data_graph, shape_graph)
+
+    monkeypatch.setattr(atlas_validate, "_validate_shacl_data", counted)
+    with pytest.raises(atlas_validate.AtlasValidationError) as fast_error:
+        atlas_validate._run_shacl(graphs, ontology, shapes)
+
+    assert [call is shapes for call in calls] == [False]
+
+    calls.clear()
+    monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
+    with pytest.raises(atlas_validate.AtlasValidationError) as audit_error:
+        atlas_validate._run_shacl(graphs, ontology, shapes)
+
+    assert calls[-1] is shapes
+    assert fast_error.value.code == audit_error.value.code == "shacl.data"
+    assert _shacl_components(fast_error.value) == _shacl_components(audit_error.value)
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        # One case per way the fast path can detect a miss: a lifted closed
+        # shape, a lifted ring-context xone, an inlined value shape, a
+        # value-side class constraint, and the derived role rather than the
+        # asserted one.
+        "assertion-extra-property",
+        "mapping-subject-ring-dated",
+        "mapping-period-start-not-datetime",
+        "mapping-missing-evidence",
+        "derived-is-authoritative",
+        "evidence-warrant-unsanctioned",
+    ),
+)
+def test_fail_fast_and_audit_name_the_same_constraint_components(
+    case: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail-fast is a report budget, never a different verdict.
+
+    Every corpus case that fires `shacl.data` must fire it with the same code
+    and the same sorted component list in both modes; the corpus pins the
+    codes, and this pins the components the operator reads.
+    """
+
+    distribution = BINDING_ROOT / "fixtures" / "invalid" / case
+    verdicts: dict[str, atlas_validate.AtlasValidationError] = {}
+    for mode in (None, atlas_validate.AUDIT_VALIDATION_MODE):
+        if mode is None:
+            monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
+        else:
+            monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, mode)
+        with pytest.raises(atlas_validate.AtlasValidationError) as error:
+            atlas_validate.validate_distribution(distribution)
+        verdicts[str(mode)] = error.value
+
+    fast, audit = verdicts["None"], verdicts[atlas_validate.AUDIT_VALIDATION_MODE]
+    assert fast.code == audit.code == "shacl.data"
+    assert _shacl_components(fast) == _shacl_components(audit)
+    assert _shacl_components(fast) == sorted(set(_shacl_components(fast)))
+
+
+def test_focus_sample_names_one_node_per_violated_constraint() -> None:
+    """2,003 identical violations must cost one re-validated node, not 2,003."""
+
+    _, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    bindings = list(asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+    assert len(bindings) > 1
+    for binding in bindings:
+        asserted.remove((binding, RKAF.evidentiaryFunction, None))
+        asserted.add((binding, RKAF.evidentiaryFunction, URIRef("urn:test:not-a-function")))
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    ontology_view = atlas_validate.inoculate(Graph(), ontology)
+    view = atlas_validate._ShaclDataView([asserted, ontology_view])
+    plan = atlas_validate._batched_shacl_plan(shapes)
+
+    conforms, report, _ = atlas_validate._validate_shacl_data(view, plan.shapes)
+    samples = atlas_validate._shacl_focus_samples((), report)
+
+    assert not conforms
+    assert samples is not None
+    assert len(samples) == 1
+    assert samples[0] in bindings
+    groups = atlas_validate._root_shape_focus_groups(view, shapes, samples)
+    assert groups is not None
+    assert set(groups) == {ATLAS.EvidenceBindingShape}
+    assert "InConstraintComponent" in (
+        atlas_validate._focused_shacl_report(view, shapes, samples) or ""
+    )
+
+
+def test_smoke_check_is_a_sample_that_can_never_reach_the_receipt_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A smoke result is a sample, and it must be impossible to bank one.
+
+    The receipt cache answers a later acceptance run from an earlier verdict,
+    so a sampled result reaching it would turn "we looked at three packs" into
+    "this distribution was accepted".
+    """
+
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("a smoke run must never touch the validation receipt cache")
+
+    monkeypatch.setattr(atlas_validate, "_read_validation_receipt", refuse)
+    monkeypatch.setattr(atlas_validate, "_write_validation_receipt", refuse)
+
+    result = atlas_validate.smoke_check(VALID_DISTRIBUTION)
+    smoke = result["smoke"]
+
+    assert set(result) == {"smoke"}
+    assert 0 < smoke["sampledPackCount"] <= smoke["packCount"]
+    assert 0 < smoke["sampledQuadCount"] <= smoke["totalQuadCount"]
+    assert "not acceptance" in smoke["warning"]
+    assert {"unsampled-packs", "source-accounting", "adjudication", "compact-layer"} <= set(
+        smoke["notChecked"]
+    )
+    assert not set(smoke["checked"]) & set(smoke["notChecked"])
+
+    assert atlas_validate.main(["--smoke", str(VALID_DISTRIBUTION), "--quiet"]) == 0
+    assert json.loads(capsys.readouterr().out)["smoke"] == smoke
+
+    # The cache flag belongs to acceptance and is refused here rather than
+    # quietly ignored, and the two questions cannot be asked at once.
+    assert (
+        atlas_validate.main(
+            ["--smoke", str(VALID_DISTRIBUTION), "--cache-dir", str(tmp_path), "--quiet"]
+        )
+        == 1
+    )
+    assert "cache.path" in capsys.readouterr().err
+    assert (
+        atlas_validate.main(
+            [
+                "--smoke",
+                str(VALID_DISTRIBUTION),
+                "--distribution",
+                str(VALID_DISTRIBUTION),
+                "--quiet",
+            ]
+        )
+        == 1
+    )
+    assert "smoke.mode" in capsys.readouterr().err
+
+
+def test_smoke_check_shacl_refuses_a_sampled_defect() -> None:
+    """The sampled SHACL pass is the real one, against the full shapes."""
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as error:
+        atlas_validate.smoke_check(BINDING_ROOT / "fixtures" / "invalid" / "evidence-warrant-unsanctioned")
+
+    assert error.value.code == "shacl.data"
+    assert "XoneConstraintComponent" in error.value.detail
+
+
+def test_smoke_sample_takes_every_pack_kind_within_its_budget() -> None:
+    """Kind coverage first: a size-ordered sample skips every mapping pack."""
+
+    manifest = json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
+    kinds = {pack["kind"] for pack in manifest["packs"]}
+    sample = atlas_validate._smoke_sample_packs(manifest)
+
+    assert kinds
+    assert {pack["kind"] for pack in sample} == kinds
+    assert sum(pack["content"]["byteLength"] for pack in sample) <= (
+        atlas_validate.SMOKE_SAMPLE_MAX_CONTENT_BYTES
+    )
+    # Dependencies come with the packs that declare them, or the sample would
+    # report violations the distribution does not have.
+    sampled_ids = {pack["packId"] for pack in sample}
+    assert all(set(pack["dependencies"]) <= sampled_ids for pack in sample)
 
 
 def test_batched_shacl_reduces_shape_dispatches_on_valid_fixture(

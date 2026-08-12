@@ -3,6 +3,35 @@
 The validator deliberately imports no RefSpec package code.  A consumer can
 copy this binding directory, install ``requirements.txt``, and verify an Atlas
 distribution offline.
+
+Three entry points, and only one of them is acceptance:
+
+``validate_distribution`` (``--distribution``)
+    The verdict.  Every gate, whole distribution, nothing sampled.
+
+``validate_binding`` (no arguments)
+    The binding's own corpus: schemas, ontology, shapes, and every fixture.
+
+``smoke_check`` (``--smoke``)
+    A bounded sample, in seconds, that proves nothing about the distribution
+    as a whole.  See its docstring for exactly what it does and does not
+    check.  It never reads or writes the validation receipt cache.
+
+SHACL, and why red builds are fast.  Data conformance runs through a batched
+fast path (``_batched_shacl_plan``) whose conformance verdict is equivalent to
+the normative shapes.  Until 2026-08-11 a *failing* graph then re-ran the full
+normative engine over the whole graph purely to phrase the report: measured on
+a 32M-quad non-conforming distribution, that report cost **94 minutes**, 78%
+of a two-hour run, on the exact path a developer iterates on.  So the default
+red path now reports from the focus nodes the fast path already named,
+re-validated under the unmodified normative shapes over the unmodified data
+graph (``_focused_shacl_report``) -- the same engine, the same ``shacl.data``
+code, the same constraint-component list.  Setting
+``REFSPEC_ATLAS_VALIDATION_MODE=audit`` restores the whole-graph normative run
+for release and audit use; anything else, including unset, fails fast.  Both
+decisions, the measurement behind them, and the smoke tier are recorded in
+``plans/validation-cost-reset-plan.md`` ("What the 2h instrumented run
+changes", items 1-2).
 """
 
 from __future__ import annotations
@@ -157,6 +186,13 @@ COMPACT_PACK_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
 NQUADS_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
 NQUADS_DATASET_MAX_CONTENT_BYTES = 32 * 1024 * 1024 * 1024
 COMPACT_RDF_SAMPLE_SIZE = 5
+# The smoke tier's sample. See `smoke_check`: up to three packs per pack kind,
+# each taken with its declared dependency closure, while the whole sample stays
+# under a content budget a laptop parses in about a minute. Neither number
+# means anything about conformance -- they only bound how long an obviously
+# broken build takes to find.
+SMOKE_SAMPLE_PACK_COUNT = 3
+SMOKE_SAMPLE_MAX_CONTENT_BYTES = 320 * 1024 * 1024
 HIERARCHY_REACHABILITY_BATCH_BITS = 2_048
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMPACT_PACK_ID_PREFIX = "urn:ref:atlas:compact-pack:"
@@ -2779,6 +2815,18 @@ _SHAPE_EXPECTING_PREDICATES = (
 )
 _SHAPE_LIST_PREDICATES = (SH["and"], SH["or"], SH.xone)
 
+# Which SHACL report a refused distribution gets. See `_run_shacl`.
+VALIDATION_MODE_ENV = "REFSPEC_ATLAS_VALIDATION_MODE"
+AUDIT_VALIDATION_MODE = "audit"
+# How many distinct violated constraints the focused red path reproduces. The
+# number of distinct (shape, component, path) signatures a graph can violate is
+# bounded by the shapes file, so this only binds on a distribution that
+# violates nearly all of the binding at once -- and when it binds, the
+# whole-graph report is used rather than risk naming fewer components than the
+# audit run would.
+SHACL_FOCUS_SAMPLE_LIMIT = 256
+_FOCUS_NODE_SCHEMES = ("http:", "https:", "urn:", "file:")
+
 
 def _copy_graph(graph: Graph) -> Graph:
     copied = Graph(identifier=graph.identifier)
@@ -2953,20 +3001,44 @@ def _core_shacl_targets(data_graph: Graph, shapes: Graph, shape: Any) -> set[Any
     return targets
 
 
-def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _BatchedShaclPlan) -> bool:
-    """Return false when a lifted constraint needs the original SHACL report."""
+def _batched_shacl_precheck_misses(
+    data_graph: Graph,
+    normative_shapes: Graph,
+    plan: _BatchedShaclPlan,
+    *,
+    first_only: bool,
+) -> list[Any]:
+    """Return one focus node per lifted constraint that the fast path refuses.
 
+    Each lifted constraint (one closed shape, or the relation ring context)
+    can only ever produce its own constraint component, so one violating focus
+    node per lifted constraint is enough to reproduce that component under the
+    normative shapes.  `first_only` stops at the first miss for the plain
+    conformance question, which is all the audit path needs.
+    """
+
+    misses: list[Any] = []
     for closed in plan.closed_shapes:
+        miss: Any = None
         for focus in _core_shacl_targets(data_graph, normative_shapes, closed.shape):
-            for predicate, obj in data_graph.predicate_objects(focus):
-                if (
-                    (predicate, obj) != (RDF.type, RDFS.Resource)
-                    and predicate not in closed.ignored_paths
-                    and predicate not in closed.allowed_paths
-                ):
-                    return False
+            if any(
+                (predicate, obj) != (RDF.type, RDFS.Resource)
+                and predicate not in closed.ignored_paths
+                and predicate not in closed.allowed_paths
+                for predicate, obj in data_graph.predicate_objects(focus)
+            ):
+                if first_only:
+                    return [focus]
+                # Keep the lexicographically least violating node so the
+                # red-path sample -- and the report built from it -- is
+                # stable across runs; set iteration order is not.
+                if miss is None or str(focus) < str(miss):
+                    miss = focus
+        if miss is not None:
+            misses.append(miss)
 
     if plan.checks_relation_ring_context:
+        miss = None
         for focus in _core_shacl_targets(data_graph, normative_shapes, ATLAS.RelationAssertionShape):
             semantic_count = sum(1 for _ in data_graph.objects(focus, ATLAS.semanticRing))
             source_count = sum(1 for _ in data_graph.objects(focus, ATLAS.sourceRing))
@@ -2974,8 +3046,24 @@ def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _
             same_ring = semantic_count >= 1 and source_count == 0 and target_count == 0
             cross_ring = semantic_count == 0 and source_count >= 1 and target_count >= 1
             if same_ring == cross_ring:
-                return False
-    return True
+                if first_only:
+                    return [focus]
+                if miss is None or str(focus) < str(miss):
+                    miss = focus
+        if miss is not None:
+            misses.append(miss)
+    return misses
+
+
+def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _BatchedShaclPlan) -> bool:
+    """Return false when a lifted constraint needs the original SHACL report."""
+
+    return not _batched_shacl_precheck_misses(
+        data_graph,
+        normative_shapes,
+        plan,
+        first_only=True,
+    )
 
 
 def _validate_shacl_data(data_graph: Graph, shapes: Graph) -> tuple[bool, Any, str]:
@@ -2990,6 +3078,148 @@ def _validate_shacl_data(data_graph: Graph, shapes: Graph) -> tuple[bool, Any, s
         allow_warnings=False,
         meta_shacl=False,
     )
+
+
+def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[URIRef] | None:
+    """Name focus nodes that reproduce every violation the fast path found.
+
+    The fast path knows more than "no". Its precheck misses arrive as focus
+    nodes already, and its batched report carries one `sh:focusNode` per
+    violation. Two violations of the same `(sourceShape, component, path)` can
+    only ever produce the same constraint component, so one focus node per
+    distinct signature reproduces the whole component list -- 2,003 identical
+    evidence-binding violations become one node to re-validate.
+
+    Returns None whenever the sample cannot be trusted to be complete or
+    usable, which sends the caller back to the whole-graph normative report.
+    """
+
+    sampled: list[Any] = list(precheck_misses)
+    if isinstance(report, Graph):
+        by_signature: dict[tuple[str, str, str], Any] = {}
+        for result in report.subjects(RDF.type, SH.ValidationResult):
+            focus = next(report.objects(result, SH.focusNode), None)
+            component = next(report.objects(result, SH.sourceConstraintComponent), None)
+            if focus is None or component is None:
+                return None
+            signature = (
+                str(next(report.objects(result, SH.sourceShape), "")),
+                str(component),
+                str(next(report.objects(result, SH.resultPath), "")),
+            )
+            # Keep the lexicographically least focus node per signature so
+            # the red-path report is run-stable (graph iteration order is
+            # not) -- the plan's report-canonicalization rule.
+            previous = by_signature.get(signature)
+            if previous is None or str(focus) < str(previous):
+                by_signature[signature] = focus
+        sampled.extend(by_signature[signature] for signature in sorted(by_signature))
+
+    if not sampled or len(sampled) > SHACL_FOCUS_SAMPLE_LIMIT:
+        return None
+    unique: list[URIRef] = []
+    seen: set[Any] = set()
+    for focus in sampled:
+        # pySHACL resolves anything else through its CURIE expander, which
+        # would hand the engine a different node than the one that failed.
+        if not isinstance(focus, URIRef) or not str(focus).lower().startswith(_FOCUS_NODE_SCHEMES):
+            return None
+        if focus not in seen:
+            seen.add(focus)
+            unique.append(focus)
+    return unique
+
+
+def _root_shape_focus_groups(
+    data_graph: Graph,
+    shapes: Graph,
+    focus_nodes: Sequence[URIRef],
+) -> dict[URIRef, list[URIRef]] | None:
+    """Group sampled focus nodes under the normative shapes that target them.
+
+    This is `_core_shacl_targets` read backwards: instead of resolving one
+    shape's targets over the whole graph, it asks of one node which shapes
+    target it, which costs a handful of indexed lookups per node instead of a
+    scan per shape. Returns None if any node is targeted by nothing, because
+    that would mean this resolution and the engine's disagree.
+
+    Invariant this rides on: resolution reads the four SHACL Core target
+    predicates only, which is complete for today's shapes file (39
+    `sh:targetClass`, 1 `sh:targetObjectsOf`; no implicit class targets, no
+    `sh:sparql`, no `sh:deactivated`). A shape acquiring any other target
+    form must extend this resolution -- a node targeted by *nothing* falls
+    back to the whole-graph run, but a node this resolution groups under
+    only *some* of its targeting shapes would silently shrink the component
+    list, which is contractual.
+    """
+
+    targeting: dict[URIRef, dict[Any, list[URIRef]]] = {
+        predicate: defaultdict(list) for predicate in _SHACL_TARGET_PREDICATES
+    }
+    for predicate in _SHACL_TARGET_PREDICATES:
+        for shape, value in shapes.subject_objects(predicate):
+            if not isinstance(shape, URIRef):
+                return None
+            targeting[predicate][value].append(shape)
+
+    groups: dict[URIRef, list[URIRef]] = defaultdict(list)
+    for focus in focus_nodes:
+        matched: set[URIRef] = set(targeting[SH.targetNode].get(focus, ()))
+        for node_type in data_graph.objects(focus, RDF.type):
+            for target_class in data_graph.transitive_objects(node_type, RDFS.subClassOf):
+                matched.update(targeting[SH.targetClass].get(target_class, ()))
+        for predicate, shapes_of in targeting[SH.targetSubjectsOf].items():
+            if next(data_graph.objects(focus, predicate), None) is not None:
+                matched.update(shapes_of)
+        for predicate, shapes_of in targeting[SH.targetObjectsOf].items():
+            if next(data_graph.subjects(predicate, focus), None) is not None:
+                matched.update(shapes_of)
+        if not matched:
+            return None
+        for shape in matched:
+            groups[shape].append(focus)
+    return groups
+
+
+def _focused_shacl_report(
+    data_graph: Graph,
+    shapes: Graph,
+    focus_nodes: Sequence[URIRef],
+) -> str | None:
+    """Report the sampled focus nodes under the unmodified normative shapes.
+
+    pySHACL's `use_shapes` plus `focus_nodes` skips target resolution
+    entirely: each named shape is evaluated against exactly the sampled nodes
+    it targets, over the same full data graph, so every value-side constraint
+    (`sh:class`, sequence paths, inverse paths) still sees the whole
+    distribution and the components are the engine's own. Returns None when
+    nothing was reproduced, which sends the caller back to the whole-graph run.
+    """
+
+    groups = _root_shape_focus_groups(data_graph, shapes, focus_nodes)
+    if not groups:
+        return None
+    reports: list[str] = []
+    for shape in sorted(groups, key=str):
+        try:
+            conforms, _, report = shacl_validate(
+                data_graph,
+                shacl_graph=shapes,
+                use_shapes=[shape],
+                focus_nodes=groups[shape],
+                inference="none",
+                inplace=True,
+                advanced=False,
+                abort_on_first=False,
+                allow_infos=False,
+                allow_warnings=False,
+                meta_shacl=False,
+            )
+        except Exception:  # noqa: BLE001 - fall back to the whole-graph report
+            return None
+        if not conforms:
+            reports.append(" ".join(str(report).split()))
+    return " ".join(reports) if reports else None
 
 
 @lru_cache(maxsize=1)
@@ -3037,10 +3267,30 @@ def _prove_shape_graph_conforms(ontology_digest: str, shapes_digest: str) -> Non
 
 
 def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> None:
-    """Validate authoritative inputs; exact regeneration validates the projection."""
+    """Validate authoritative inputs; exact regeneration validates the projection.
+
+    Red builds fail fast. Measured on a 32M-quad non-conforming distribution
+    (2026-08-11, `plans/validation-cost-reset-plan.md`), the batched fast path
+    detected the miss in minutes and the whole-graph normative run then took
+    **94 minutes solely to phrase the failure report** -- 78% of a two-hour
+    run, on the path a developer iterates on. So the default red path
+    re-validates only the focus nodes the fast path already named, under the
+    unmodified normative shapes over the unmodified data graph
+    (`_focused_shacl_report`): the same engine, the same constraint
+    components, seconds instead of hours.
+
+    `REFSPEC_ATLAS_VALIDATION_MODE=audit` restores the whole-graph normative
+    run -- read once, here, so one distribution is never validated half in
+    each mode. Anything else, including unset, fails fast. The failure code is
+    `shacl.data` and the message names every violated constraint component in
+    both modes; the focused path only narrows which nodes the engine is asked
+    about, and falls back to the whole-graph report whenever the sample cannot
+    be trusted to reproduce the same components.
+    """
 
     _prove_shape_graph_conforms(file_sha256(ONTOLOGY_PATH), file_sha256(SHAPES_PATH))
 
+    audit = os.environ.get(VALIDATION_MODE_ENV) == AUDIT_VALIDATION_MODE
     ontology_view = inoculate(Graph(), ontology)
     plan = _batched_shacl_plan(shapes)
     for role in ("asserted", "derived"):
@@ -3049,35 +3299,62 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
             validation_view.namespace_manager.bind(prefix, namespace)
         conforms = False
         report: Any = ""
+        focus_samples: list[URIRef] | None = None
         try:
-            if _batched_shacl_prechecks(validation_view, shapes, plan):
-                conforms, _, report = _validate_shacl_data(validation_view, plan.shapes)
+            if audit:
+                if _batched_shacl_prechecks(validation_view, shapes, plan):
+                    conforms, _, report = _validate_shacl_data(validation_view, plan.shapes)
+            else:
+                # Both halves of the fast path run before reporting: the
+                # prechecks answer for the lifted closed and ring-context
+                # constraints, the batched shapes answer for every other one,
+                # and only their union is a complete sample of what failed.
+                misses = _batched_shacl_precheck_misses(
+                    validation_view,
+                    shapes,
+                    plan,
+                    first_only=False,
+                )
+                conforms, results, report = _validate_shacl_data(validation_view, plan.shapes)
+                conforms = conforms and not misses
+                if not conforms:
+                    focus_samples = _shacl_focus_samples(misses, results)
         except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
             conforms = False
             report = str(exc)
+            focus_samples = None
         if conforms:
             continue
 
-        # Keep the normative processor's exact report and error behavior for
-        # every invalid graph and for any unsupported fast-path condition.
-        try:
-            conforms, _, report = _validate_shacl_data(validation_view, shapes)
-        except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
-            _fail("shacl.data", f"SHACL processor failed for {role}: {exc}")
-        if not conforms:
+        compact = _focused_shacl_report(validation_view, shapes, focus_samples) if focus_samples else None
+        if compact is None:
+            # Keep the normative processor's exact report and error behavior
+            # for audit mode, for every unsupported fast-path condition, and
+            # for any sample the focused run could not reproduce.
+            try:
+                conforms, _, report = _validate_shacl_data(validation_view, shapes)
+            except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
+                _fail("shacl.data", f"SHACL processor failed for {role}: {exc}")
+            if conforms:
+                continue
             compact = " ".join(str(report).split())
-            # Name every violated constraint component before the detail. A
-            # multi-violation report runs past the length cap below, so which
-            # constraint actually fired used to depend on graph iteration order
-            # -- unreadable for an operator and unpinnable for a regression
-            # test. The component list is short, complete, and order-stable.
-            components = ", ".join(
-                sorted(set(re.findall(r"Constraint Violation in (\w+)", compact)))
-            )
-            _fail(
-                "shacl.data",
-                f"{role} graph does not conform [{components}]: {compact[:900]}",
-            )
+        # Name every violated constraint component before the detail. A
+        # multi-violation report runs past the length cap below, so which
+        # constraint actually fired used to depend on graph iteration order
+        # -- unreadable for an operator and unpinnable for a regression
+        # test. The component list is short, complete, and order-stable.
+        components = ", ".join(
+            sorted(set(re.findall(r"Constraint Violation in (\w+)", compact)))
+        )
+        hint = (
+            ""
+            if audit
+            else " (rerun with REFSPEC_ATLAS_VALIDATION_MODE=audit for the whole-graph normative report)"
+        )
+        _fail(
+            "shacl.data",
+            f"{role} graph does not conform [{components}]: {compact[:900]}{hint}",
+        )
 
 
 def _check_graph_roles(graphs: Mapping[str, Graph]) -> SemanticInventory:
@@ -7819,6 +8096,167 @@ def validate_distribution(
     return result
 
 
+def _smoke_sample_packs(manifest: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """Choose the packs a smoke run parses: every kind first, then size.
+
+    Up to `SMOKE_SAMPLE_PACK_COUNT` packs of each declared pack kind, taken in
+    manifest order, round-robin across kinds so no kind is crowded out, and
+    only while the accumulated content stays under
+    `SMOKE_SAMPLE_MAX_CONTENT_BYTES`.  Kind coverage is the point: the defect
+    this tier exists to catch lived in the mapping packs, and a purely
+    size-ordered sample skips every one of them, because a mapping pack drags
+    both endpoint vocabularies in behind it.
+
+    Each pack is taken with its declared dependency closure, which is not
+    optional: packs are partitioned by subject, so a sampled pack's
+    `sh:class` and sequence-path values live in the packs it declares as
+    dependencies, and a sample without them reports violations the
+    distribution does not have.
+    """
+
+    packs_by_id = {pack["packId"]: pack for pack in manifest["packs"]}
+
+    def closure(pack: Mapping[str, Any]) -> dict[str, Mapping[str, Any]] | None:
+        selected: dict[str, Mapping[str, Any]] = {}
+        pending = [pack["packId"]]
+        while pending:
+            pack_id = pending.pop()
+            if pack_id in selected:
+                continue
+            member = packs_by_id.get(pack_id)
+            if member is None:
+                return None
+            selected[pack_id] = member
+            pending.extend(member["dependencies"])
+        return selected
+
+    by_kind: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    for pack in manifest["packs"]:
+        by_kind[pack["kind"]].append(pack)
+    cursors = dict.fromkeys(by_kind, 0)
+    sampled: dict[str, Mapping[str, Any]] = {}
+    budget = SMOKE_SAMPLE_MAX_CONTENT_BYTES
+    for _ in range(SMOKE_SAMPLE_PACK_COUNT):
+        for kind in sorted(by_kind):
+            candidates = by_kind[kind]
+            index = cursors[kind]
+            while index < len(candidates):
+                members = closure(candidates[index])
+                index += 1
+                if members is None:
+                    continue
+                cost = sum(
+                    member["content"]["byteLength"]
+                    for pack_id, member in members.items()
+                    if pack_id not in sampled
+                )
+                if cost > budget:
+                    continue
+                sampled.update(members)
+                budget -= cost
+                break
+            cursors[kind] = index
+    return [pack for pack in manifest["packs"] if pack["packId"] in sampled]
+
+
+def smoke_check(root: Path) -> dict[str, Any]:
+    """Sample one distribution in seconds. This is NOT acceptance.
+
+    A smoke run answers one question -- "is this build obviously broken?" --
+    and answers it from a bounded sample, so a green result proves nothing
+    about the distribution as a whole. It exists because all 2,003 evidence
+    bindings in the 2026-08-11 full build carried the same defect, and one
+    binding checked at fixture scale would have caught it in milliseconds
+    instead of two hours (`plans/validation-cost-reset-plan.md`).
+
+    Checked: the manifest against its JSON Schema, the manifest's canonical
+    payload digest, the binding pins in the manifest and the acceptance
+    record, and SHACL data conformance of the sampled packs against the full
+    normative shapes (which verifies those packs' transport and content
+    receipts on the way in).
+
+    Not checked: every other pack, the closed-distribution digest walk, source
+    accounting, producer validation, the acceptance record's own contents,
+    graph-role placement, node identity, projection and derivation, SKOS
+    integrity, adjudication, and the compact layer. `validate_distribution`
+    is the only function that answers acceptance, and a smoke run never
+    reads or writes its receipt cache.
+    """
+
+    _STATUS.phase("smoke-load-manifest")
+    schemas, registry = _schema_registry()
+    manifest_path = root / MANIFEST_FILE
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        _fail("distribution.file", "atlas-manifest.json is missing or unsafe")
+    manifest = _load_json(manifest_path, require_canonical=True)
+    _validate_json_schema(manifest, "manifest", schemas=schemas, registry=registry, label="manifest")
+    _check_manifest_digest(manifest)
+
+    members_by_role = {member["role"]: member for member in manifest["members"]}
+    acceptance = _load_json(
+        _safe_distribution_path(root, members_by_role["acceptance"]["path"]),
+        require_canonical=True,
+    )
+    _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
+    _check_binding_pins(manifest, acceptance)
+
+    graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
+    sample = _smoke_sample_packs(manifest)
+    if not sample:
+        _fail("smoke.sample", "no pack and dependency closure fits the smoke sample budget")
+
+    _STATUS.phase("smoke-parse-sampled-packs")
+    dataset = Dataset()
+    subject_owners: dict[str, dict[URIRef, str]] = {role: {} for role in graph_ids}
+    sampled_quads = 0
+    for position, pack in enumerate(sample, start=1):
+        _STATUS.progress("smoke-parse-sampled-packs", position - 1, len(sample), current=pack["path"])
+        _parse_pack_into_dataset(dataset, root, pack, graph_ids, subject_owners)
+        sampled_quads += pack["content"]["quadCount"]
+        _STATUS.progress("smoke-parse-sampled-packs", position, len(sample), current=pack["path"])
+
+    _STATUS.phase("smoke-run-shacl")
+    ontology, shapes = _parse_binding_graphs()
+    graphs = {role: dataset.graph(graph_id) for role, graph_id in graph_ids.items()}
+    _run_shacl(graphs, ontology, shapes)
+    del dataset
+    return {
+        "smoke": {
+            "checked": [
+                "manifest-schema",
+                "manifest-digest",
+                "binding-pins",
+                "sampled-pack-receipts",
+                "sampled-shacl-data",
+            ],
+            "distributionId": manifest["distributionId"],
+            "notChecked": [
+                "closed-distribution",
+                "source-accounting",
+                "producer-validation",
+                "acceptance-record",
+                "graph-roles",
+                "node-identity",
+                "projection",
+                "derivation",
+                "skos-integrity",
+                "adjudication",
+                "compact-layer",
+                "unsampled-packs",
+            ],
+            "packCount": len(manifest["packs"]),
+            "sampledPackCount": len(sample),
+            "sampledPacks": sorted(pack["path"] for pack in sample),
+            "sampledQuadCount": sampled_quads,
+            "totalQuadCount": sum(pack["content"]["quadCount"] for pack in manifest["packs"]),
+            "warning": (
+                "smoke sampling is not acceptance and proves nothing about the "
+                "distribution as a whole; run validate_distribution for a verdict"
+            ),
+        }
+    }
+
+
 def _check_registry_descriptors(
     profile_map: Mapping[str, Any],
     coverage: Mapping[str, Any],
@@ -8371,6 +8809,17 @@ def _parser() -> argparse.ArgumentParser:
         help="validate one distribution instead of the complete binding corpus",
     )
     parser.add_argument(
+        "--smoke",
+        type=Path,
+        help=(
+            "NOT ACCEPTANCE: sample one distribution in seconds -- manifest "
+            "schema, manifest digest, binding pins, and SHACL data "
+            "conformance over a bounded pack sample. A green smoke run "
+            "proves nothing about the distribution as a whole; use "
+            "--distribution for a verdict"
+        ),
+    )
+    parser.add_argument(
         "--cache-dir",
         type=Path,
         help="private local receipt cache for repeated --distribution validation",
@@ -8388,16 +8837,25 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     args = _parser().parse_args(list(argv) if argv is not None else None)
     _STATUS = _StatusReporter(
-        enabled=not args.quiet and args.distribution is not None,
+        enabled=not args.quiet and (args.distribution is not None or args.smoke is not None),
     )
     if args.distribution is not None:
         _STATUS.phase("validate-distribution")
+    elif args.smoke is not None:
+        _STATUS.phase("smoke-check")
     try:
+        if args.smoke is not None and args.distribution is not None:
+            _fail("smoke.mode", "--smoke and --distribution answer different questions; pass one")
+        # A smoke result is a sample, never a verdict, so it must never be
+        # able to reach the receipt cache -- neither to read one nor to leave
+        # one that a later acceptance run could be answered from.
         if args.cache_dir is not None and args.distribution is None:
             _fail("cache.path", "--cache-dir requires --distribution")
         result = (
             validate_distribution(args.distribution, cache_dir=args.cache_dir)
             if args.distribution
+            else smoke_check(args.smoke)
+            if args.smoke
             else validate_binding()
         )
     except AtlasValidationError as exc:
