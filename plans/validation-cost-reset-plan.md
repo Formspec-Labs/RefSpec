@@ -120,6 +120,27 @@ Release-workflow runner + artifact store: infrastructure, unblocks the
 weekly reproducible-rebuild job (whose remaining blockers after the
 recipeDigest deletion are exactly those two).
 
+**STANDING PRACTICES — adopted from the spikes, DEFERRED (owner: "we'll
+do that later"), do when the waves are done:**
+- Strict-parser lint step: ~10-line pyoxigraph.parse sweep over the
+  packs in the release workflow — permanent "any parser accepts this"
+  guarantee (the sweep that found findings (h)/(i)).
+- Shapes-change scale benchmark: constraint-shape performance is
+  emergent, not compositional (Jena's combination pathology; pySHACL has
+  the same exposure) — a staging-scale SHACL timing gate at release
+  tier, failing on ~3× regression.
+- Differential-oracle pattern as standing policy for any check
+  replacement: keep the old implementation as a test-only oracle, prove
+  verdict agreement over real data + mutations (caught the silent
+  escaped-UCHAR divergence).
+- FR double-build determinism gate (~12s) as a release-workflow step —
+  the miniature of the weekly reproducible-rebuild job, runnable now.
+- Recorded constraints: the sh:class + inoculated-union-view coupling is
+  load-bearing (58,730 false violations without it — any engine work
+  replicates the view first); instrument-then-optimize is the proven
+  loop (bench_phases harness + /usr/bin/sample technique live on the
+  spike branches).
+
 **Spike evidence — COMMITTED AS BRANCHES (2026-08-12):**
 `spike/oxigraph-substrate` (f81b3749) and `spike/jena-shacl` (028dd63b).
 The worktrees under .claude/worktrees/ hold the same branches checked out
