@@ -5868,6 +5868,7 @@ def _project_logical_records(
     asserted: Graph,
     *,
     pack_owners: Mapping[URIRef, tuple[str, str | None]],
+    releases_by_key: Mapping[str, ReleasePackPlan],
     parquet: AtlasParquetTableWriter | None,
 ) -> dict[str, dict[str, int]]:
     """Project every release-owned subject into the typed Parquet tables.
@@ -5886,16 +5887,28 @@ def _project_logical_records(
     are tallied here as well. They used to be read back off the compact pack
     inventory -- the producer counting its own output -- and are now taken from
     the graph walk, which is what the validator recomputes them against.
+
+    The tally is keyed by construction-unit key, not by pack token. Those are
+    two different strings: `pack_owners` is keyed for the filesystem, so
+    `_release_pack_token` casefolds the unit key and replaces every character a
+    pack path may not carry, which turns `eurovoc-4.24` into `eurovoc-4-24`.
+    The construction summary is keyed by the unit itself. `releases_by_key`
+    maps one to the other and is the only place that translation happens.
     """
 
+    unit_key_by_token = {
+        token: release.key for token, release in releases_by_key.items()
+    }
     subjects_by_role: dict[CompactRecordRole, list[tuple[URIRef, str]]] = {
         role: [] for role in CompactRecordRole
     }
-    for subject, (owner, _) in pack_owners.items():
-        subjects_by_role[_compact_record_role(asserted, subject)].append((subject, owner))
+    for subject, (token, _) in pack_owners.items():
+        subjects_by_role[_compact_record_role(asserted, subject)].append(
+            (subject, unit_key_by_token[token])
+        )
     record_counts: dict[str, dict[str, int]] = {
-        owner: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
-        for owner, _ in pack_owners.values()
+        unit_key_by_token[token]: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
+        for token, _ in pack_owners.values()
     }
     for role in CompactRecordRole:
         rows = subjects_by_role[role]
@@ -6063,6 +6076,7 @@ def _write_asserted_packs(
                 _project_logical_records(
                     asserted,
                     pack_owners=pack_owners,
+                    releases_by_key=releases_by_key,
                     parquet=parquet,
                 )
             )

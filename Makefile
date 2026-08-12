@@ -1,7 +1,8 @@
 .PHONY: generate check-generated lint test test-package test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
-	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
+	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
+	stage-atlas-mapping-topology
 
 # No default. The prior default (output/atlas-3.1-full-2026-08-07-ring-audit)
 # is retired: HEAD's binding refuses that distribution's constructorProfile
@@ -170,6 +171,29 @@ release-atlas-federal-register-thesaurus:
 		python tools/generate_atlas_v3_full.py \
 		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
 		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
+
+# The staging gate to run BEFORE any full build. The Federal Register release is
+# one source unit whose key is already a valid pack-path token, so a build
+# bounded to it exercises neither cross-release ownership nor the unit-key /
+# pack-token distinction -- `eurovoc-4.24` owns `packs/sources/eurovoc-4-24/`,
+# and conflating the two survived a green FR staging artifact and failed the
+# ~25-minute full build. These four units cost about a minute and cover what
+# the single-unit artifact cannot: two dotted keys, one path-safe key, one
+# mapping unit, and the three cross-release endpoint dependencies it declares.
+ATLAS_MAPPING_STAGE_ROOT ?= output/atlas-3.1-mapping-topology-staging
+
+stage-atlas-mapping-topology:
+	rm -rf "$(ATLAS_MAPPING_STAGE_ROOT)"
+	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
+		python tools/generate_atlas_v3_full.py \
+		--only-release eurovoc-4.24 \
+		--only-release eurovoc-domains-4.24 \
+		--only-release lcsh-eurovoc-alignment-endpoints-2026-08-06 \
+		--only-release eurovoc-lcsh-alignment-20240711 \
+		--output "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/validate.py \
+		--distribution "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
 
 # Reads both ends and compares them: the exact publisher PDF, whose occurrence
 # ledger is the only place the source-side count exists, and the published

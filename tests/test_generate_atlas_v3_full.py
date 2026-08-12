@@ -1872,6 +1872,61 @@ def test_asserted_pack_writer_rejects_oversized_nquads_line(
         generator._write_asserted_packs(tmp_path, asserted, ())
 
 
+def test_record_counts_are_keyed_by_unit_key_not_by_pack_token(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A construction unit and its pack path are two different strings.
+
+    `_release_pack_token` casefolds a unit key and replaces every character a
+    pack path may not carry, so `eurovoc-4.24` owns `packs/sources/eurovoc-4-24/`.
+    The construction summary is keyed by the unit; `pack_owners` is keyed for
+    the filesystem. A tally that published the pack token would disagree with
+    the unit enumeration for exactly the units whose key is not already a valid
+    path token -- three of the 110 in the full topology, and none of the
+    single-unit staging artifacts, whose keys are all path-safe.
+
+    Pinned at fixture scale because the divergence needs only one dotted key,
+    not the topology that happens to contain them.
+    """
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    release = _compiled_source_release(tmp_path)
+    dotted_key = "unit-test.release.4.24"
+    plan = generator.ReleasePackPlan(
+        key=dotted_key,
+        source_release_iri=release.source_release_iri,
+        atlas_release_iri=release.atlas_release_iri,
+        ring=release.spec.ring,
+        resource_count=len(release.resources),
+    )
+    assert generator._release_pack_token(plan) == "unit-test-release-4-24"
+    assert generator._release_pack_token(plan) != plan.key
+
+    graphs = generator._build_graphs((release,), include_projection=False)
+    try:
+        pack_root = tmp_path / "packed"
+        pack_root.mkdir()
+        record_counts: dict[str, dict[str, int]] = {}
+        packs = generator._write_asserted_packs(
+            pack_root,
+            graphs.asserted,
+            (plan,),
+            record_counts=record_counts,
+        )
+
+        # The tally is keyed by the unit, and the pack path by the token.
+        assert set(record_counts) == {dotted_key}
+        assert any("unit-test-release-4-24" in pack["path"] for pack in packs)
+        assert record_counts[dotted_key]["resources"] == len(release.resources)
+    finally:
+        graphs.release()
+
+
 def test_builder_emits_parquet_from_the_graph_it_already_walks(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
