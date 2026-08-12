@@ -617,13 +617,31 @@ measured under 60s; see the budget re-spec open item).
       dependency — and it moves the enforcement to where kill-6 says it
       belongs. Implementation waits only on (h)/(i)'s resolution, since
       the byte grammar encodes the profile.
-      **Oxigraph verdict (measured, no-go):** the substrate rung alone
-      does not exist — pySHACL requires rdflib, the oxrdflib shim is
-      4.2× slower on iteration and silently rewrites literals (99% of
-      node digests change; 89 spurious SHACL violations; never finishes
-      at 61k+ quads). Oxigraph pays only behind the Jena door, priced at
-      7–11 weeks for ~20 min once per release. Kill-5's sentence is
-      confirmed by measurement: the engine door is the only door.
+      **Oxigraph verdict (measured; REVISED from no-go to SEQUENCED
+      after the spike falsified its own port-cost claim):** the shim
+      rung stays dead (oxrdflib is 4.2× slower and silently rewrites
+      literals — 99% of digests change, 89 spurious violations, never
+      finishes at 61k+ quads; and those spurious violations are an
+      RDFLIB term-identity artifact, not oxigraph's). But the "60–65%
+      won't port" claim was WRONG: the sorted canonical packs ARE an
+      index, so node digests (3,289,015 in 25.4s vs 131s+parse,
+      104,898/104,898 parity), native-payload checks (590,561 in 19.2s),
+      and canonicality (49.1s) all compute from raw bytes with no store
+      and no term model — which also dissolves the literal-form blocker
+      for digests. Revised sequence: (1) NOW, no decision needed —
+      bucket-1 byte passes (~days, lands ≈33 min and decouples digests
+      from any term model); (2) THEN the engine question stands alone:
+      if Jena enters it REPLACES pySHACL (two engines = kill-10's
+      duplication anti-pattern at engine level; dropping pySHACL frees
+      rdflib from the acceptance path, making the oxigraph substrate
+      real), priced with the dev-loop JVM cost (single-invocation /
+      long-lived-process mitigations) and gated on wire normalization
+      (h)/(i) FIRST — on today's dual-form wire the two engines can
+      legitimately disagree and parity would diff a term-identity bug.
+      Revised full ladder: ~12–13 min at 3–5 weeks (was 7–11). Also
+      found: `_check_explorer_reachability` is dead code at
+      validate.py:7414 (never called; its gate was replaced by
+      record-ownership in cb10a8e8) — delete at next validator pass.
 - [ ] Reconcile the ledger's five-axis "duplication in model.py" note with
       the code (one definition found; generator imports it).
 - [x] **Next campaign SCOPED (v3.6, 2026-08-12; full map in the session's
