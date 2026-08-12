@@ -5,6 +5,28 @@
 Written for a blind agent resuming with zero session context. The history
 below this section is the evidence record; THIS section is the state.
 
+**JENA FINAL DELTA (agent's last report, 2026-08-12, supersedes the
+"strong lead" caveat):** the full-scale slowness is a constraint
+COMBINATION inside a single node shape, not any constraint alone — every
+probe individually fast at 29.3M quads (literalForm-only 42.3s; +closed
+42.5s; sh:class→590k-instance 44.0s) but the verbatim SkosXlLabelShape
+standalone >1,829s aborted, and HEAD's own batched-plan shapes as a
+shapes file ALSO slow (>1,844s) — so the cheap decomposition fix does
+not exist. Minimal repro preserved:
+`.claude/worktrees/agent-a7937c98dc15549c2/jena-spike/shapes/only-label-standalone.ttl`
+(~40 lines; `bin/reproduce` end-to-end; staging data kept, full-scale
+intermediates regenerate in ~12s). The last bisection (sh:closed +
+sh:class together, the untested pair) started but did not finish —
+lead, not measurement. Three bounded follow-ups, <1h each, worth ONE
+session only because move 2 depends on the answer: (a) finish that
+bisection and file it upstream as the minimal repro, (b) try Jena 5.x
+on the already-present JDK 17 (regression check), (c) try TopQuadrant
+SHACL (the never-tested half of kill-5's comparison cell). Dev-loop
+integration is actively negative without a long-lived JVM driver
+(0.24-0.41s startup × 115 fixtures vs pySHACL's 0.07s/case). Verdict
+unchanged: no-go today, parity asset banked, ~100× SHACL-SPARQL stands
+as move 2's pre-commit blocker.
+
 **State of the tree.** HEAD `b9545930` on branch
 `atlas-v3-binding-and-relation-research` (nothing pushed; no upstream).
 The working tree is DIRTY with the in-flight "Wave 0+A" changes (an agent
@@ -14,8 +36,15 @@ docs/seal-design.md negative-space + stale seal-1 schema fix;
 src/refspec/seal.py docstrings; bindings/atlas/3.1/README.md +
 ATLAS_US_EU_COMPARISON.md (11→13 gate count) + README.md + docs/decisions.md
 prose; tools/verify_atlas_source_fidelity.py stale default;
-ci.yml/release.yml touches). FIRST ACTION: `git diff` these against the
-Wave 0+A brief in "v3.8/v3.9" below; finish anything half-done (the brief:
+ci.yml/release.yml touches). The Wave 0+A agent died ON THE GATES STEP
+with all edits reportedly complete — so FIRST ACTION is not re-editing
+but GATING: `make lint && make check-generated && uv run --no-sync
+pytest -q -n auto`, plus a bounded FR build via the changed Makefile
+target (`make release-atlas-federal-register-thesaurus`) whose manifest
+digest WILL move (env unification put the builder on the project env) —
+update the two Makefile FR pins from it, run the verify target, then
+commit by explicit path. If a gate fails, `git diff` against the brief in
+"v3.8/v3.9" below to find the half-done edit (the brief:
 unify the two builder invocations into the project env — Makefile targets
 that run tools/generate_atlas_v3_full.py switch from
 --with-requirements to bare `uv run`; pin .python-version; add the missing
@@ -90,6 +119,21 @@ session). Reader/seal admission waits on the owner's key ceremony.
 Release-workflow runner + artifact store: infrastructure, unblocks the
 weekly reproducible-rebuild job (whose remaining blockers after the
 recipeDigest deletion are exactly those two).
+
+**Spike worktrees (preserved evidence, reproducible; delete only after
+harvesting):**
+- Oxigraph: `.claude/worktrees/agent-a9301012cdaa44814/spike/` —
+  scripts q1_parse.py..q7_bytes_are_enough.py, the IRI-escape ETL,
+  `measurements.jsonl` (all raw numbers), pinned venv (pyoxigraph 0.5.9,
+  oxrdflib 0.5.0). Source of: the byte-pass parity proofs (3.29M node
+  digests exact), the 7,770-IRI and literal-form defect discoveries, the
+  full-scale parse-count technique (54.5s/29.3M quads, constant memory).
+- Jena: `.claude/worktrees/agent-a7937c98dc15549c2/jena-spike/` —
+  `bin/reproduce` end-to-end, prep/inject/compare scripts, vendored
+  Temurin JDK 21 + Jena 6.2.0 tarballs (digest-verified), `out/`
+  reports; `bin/clean-data` drops the ~13 GB intermediates. Source of:
+  the parity PASS, the sh:class scaling lead, the ~100× SHACL-SPARQL
+  number, the report-canonicalization rules.
 
 **Stale-entry corrections for the sections below** (kept for history, do
 not act on them): the "Open items" REF-026 entry is DONE (cce6f0ce); the
