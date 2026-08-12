@@ -68,7 +68,24 @@ supersessions of REF-015/018/019/020/021. Artifact of record:
 passed, smoked). FR pins in the Makefile verify today.
 
 **What is NEXT, in order (briefs in v3.8/v3.9 below):**
-1. Finish + commit Wave 0+A (above).
+0. [DONE] Wave 0+A gated + committed (5c1b585d); Wave B + Tier-1
+   engine-neutral refactors + byte-pass LANDED (107d8558): recipeDigest /
+   EVIDENCE_WARRANTS (shapes ARE the table; attestorKind 1/6) /
+   declaredMemberCount deleted; langtag rule (corpus 130); leg-framed
+   seal sentences; report handling engine-neutral incl. the
+   sh:sourceShape decoupling; byte-pass node digests (narrow retention,
+   graph fallback, parity test) + the native-payload double-encode
+   dedup over 590,561 records. **SEAL-READY CANDIDATE:
+   `output/atlas-3.1-full-2026-08-12c`, distributionId
+   `urn:ref:atlas:distribution:3.1-full-development:8239dbfa…967a3`,
+   manifest sha256 `68fd4797…59478` — built 23:49, producer-validated,
+   smoked.** New residues for a later pass: (i)
+   producer_validation.semanticConstruction has no producer left
+   (reuse-subsystem orphan) — deletion candidate, wire-visible; (ii)
+   the byte-pass full-scale saving is unconfirmed (needs one full
+   validate_distribution acceptance run; staging showed evidence-phase
+   −22.5%).
+1. [DONE — see 0]
 2. **Wave B — ONE rebuild** (any corpus/binding change invalidates every
    on-disk artifact via bindingBundleDigest, so cluster): delete
    `recipeDigest` (verifierless self-agreement; validate.py:6543 compares
