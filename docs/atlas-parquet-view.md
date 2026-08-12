@@ -182,19 +182,9 @@ that extension on first use, after which the local cache supports offline use.
 The explorer reports a clear error if the extension is unavailable; it does not
 silently substitute a different ranking rule.
 
-The full RDF graph explorer can retain its asserted, projection, and derived
-authority layers while delegating only ranked text search to this query package:
-
-```sh
-uv run refspec-atlas-explorer \
-  output/atlas-3.0-full-2026-08-06/atlas-explorer-preview.html \
-  --search-view output/atlas-3.0-parquet-search-view-2026-08-11 \
-  --manifest-digest cf645ad8316875b43735561ec2910cf42fd05cf90961dcde2c59c0fdce59759d
-```
-
-The server rejects an RDF preview and compact view that pin different Atlas
-distribution IDs or manifest digests. Omitting `--search-view` retains the
-verified static-shard search from REF-018 and requires no database service.
+Serving a preview built from RDF is retired: the explorer now reads only a
+compact search-view directory, and the `--search-view` flag that paired an RDF
+preview with this query package is gone with it (REF-018-supersession-pending).
 
 Use `--no-browser` when the caller manages the browser, and use `--port 0` to
 select an available port.

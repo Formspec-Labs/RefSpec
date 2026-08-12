@@ -51,12 +51,11 @@ def test_semantic_rings_agree_across_every_python_site() -> None:
     assert registry.RING_RELATIONS.keys() == SEMANTIC_RINGS
 
     from refspec import atlas_index
-    from refspec.atlas import compact_pack, explorer_rdf, v3_source_data
+    from refspec.atlas import compact_pack, v3_source_data
 
     assert atlas_index.SEMANTIC_RINGS is SEMANTIC_RINGS
     assert compact_pack._SEMANTIC_RINGS is SEMANTIC_RINGS
     assert v3_source_data.SEMANTIC_RINGS is SEMANTIC_RINGS
-    assert explorer_rdf._RINGS is SEMANTIC_RINGS
 
     coverage = _load_tool_module("generate_atlas_v3_registry_coverage")
     assert coverage.SEMANTIC_RINGS is SEMANTIC_RINGS

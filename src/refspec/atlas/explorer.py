@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
 from refspec.atlas.explorer_frontend import render_atlas_explorer_frontend
-from refspec.atlas.explorer_rdf import (
+from refspec.atlas.explorer_render import (
     _EXPLORER_RECORD_PREFIX_LENGTH,
     _EXPLORER_SHARD_BUNDLE_TYPE,
     _EXPLORER_SHARD_INDEX_TYPE,
