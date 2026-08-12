@@ -1122,8 +1122,11 @@ atlas:EvidenceBindingShape
   # admissible axis combinations. Exactly one branch must hold, so a producer
   # cannot assemble a combination no review method sanctioned -- which is the
   # closure the single enum used to provide. rkaf:basedOnAttestation is
-  # required by exactly one branch and forbidden by the other five, replacing
-  # the atlas:adoptedEvidence biconditional this shape used to carry.
+  # PERMITTED by exactly one branch and forbidden by the other five, which is
+  # what keeps operatorAdoption the only warrant that may name a prior
+  # attestation. It is not REQUIRED there -- see that branch's comment for why
+  # the atlas:adoptedEvidence biconditional this shape used to carry did not
+  # survive contact with the only real adoption source Atlas has.
   sh:xone (
     [
       # publisherAssertion
@@ -1148,11 +1151,30 @@ atlas:EvidenceBindingShape
       sh:property [ sh:path rkaf:basedOnAttestation ; sh:maxCount 0 ]
     ]
     [
-      # operatorAdoption -- the only branch that names what it adopted
+      # operatorAdoption -- the only branch that MAY name what it adopted.
+      # rkaf:basedOnAttestation is optional here, deliberately. REF-016 records
+      # this warrant for Atlas re-applying a pinned publisher claim to an
+      # edition the publisher did not scope; when what was adopted is an
+      # external publisher artifact, Atlas never minted a binding for it, so no
+      # prior rkaf:EvidenceBinding exists to point at. The adoption still names
+      # what it adopted -- by atlas:evidenceSourceRecord and its digest, the
+      # whole-source-record granularity this shape's head comment states is the
+      # only granularity Atlas can address. Requiring a finer, Atlas-internal
+      # referent claimed an addressability Atlas does not have, and no real
+      # build satisfied it on any day it stood. rkaf agrees: the field is
+      # optional on #LocalAdoption, as it already is in this binding's own
+      # compact JSON layer (validate.py COMPACT_RECORD_FIELDS).
+      #
+      # When a prior Atlas attestation DOES exist, this branch remains the only
+      # sanctioned place to name it, and the chain must still resolve to a
+      # non-adoption terminal without cycling -- see _check_evidence_bindings,
+      # proved by invalid/adoption-without-referent and adoption-chain-cycle.
+      # Exactly-one-branch is unaffected: rkaf:evidenceRole is minCount 1 /
+      # maxCount 1 and every branch pins a distinct value, so evidenceRole
+      # alone still resolves the sh:xone.
       sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:editorialAssertion ] ;
       sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:formalAdoptionEvent ] ;
-      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:imported ] ;
-      sh:property [ sh:path rkaf:basedOnAttestation ; sh:minCount 1 ]
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:imported ]
     ]
     [
       # twoMachineAdjudication
@@ -1202,8 +1224,18 @@ atlas:LifecycleEventShape
   # sh:hasValue, so it already closes the set. A separate sh:in could not be
   # violated on its own -- an unknown kind satisfies neither branch -- and a
   # constraint no fixture can isolate is a second copy of the value set, not a
-  # check. This is unlike atlas:EvidenceBindingShape, where the axis sh:in
-  # values ARE independently reachable because most branches leave them free.
+  # check. This is unlike atlas:EvidenceBindingShape, where an axis sh:in IS
+  # independently violable: no branch constrains rkaf:evidentiaryFunction and
+  # only two of six constrain rkaf:attestorKind, so a value outside those enums
+  # is rejected by the sh:in alone and by nothing else. The reachability is
+  # partial, not uniform, and saying otherwise overstated it: every branch pins
+  # rkaf:evidenceRole, so four of its ten enumerated values (retrievalSignal,
+  # mappingRationale, registrationEvent, rescissionEvidence) satisfy no branch
+  # and cannot appear on a conforming binding; rkaf:epistemicBasis has one such
+  # value (userAssertion). Those enums are wider than the warrant table on
+  # purpose -- they are rkaf's, restated whole rather than trimmed to Atlas's
+  # current six warrants -- but the gap is a fact about this shape, not a claim
+  # that every enumerated value is reachable.
   sh:property [
     sh:path rkaf:lifecycleEventKind ;
     sh:minCount 1 ;

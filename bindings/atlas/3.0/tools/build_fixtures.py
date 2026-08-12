@@ -3276,12 +3276,29 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
 
     def adoption_without_referent(fixture: Fixture) -> None:
-        # operatorAdoption evidence that names nothing it adopted: the exact
-        # regression this shape and check exist to reject. Reidentify the
-        # binding after the removal so this fixture's only defect is the
-        # missing adoptedEvidence, not an incidentally stale contentDigest.
+        # operatorAdoption evidence whose rkaf:basedOnAttestation names a
+        # binding the distribution does not contain. NAMING a referent is
+        # optional -- Atlas adopts pinned external publisher artifacts it never
+        # minted a binding for (REF-016), so the bare adoption this case used to
+        # carry is now legal and proves nothing. What is not optional is that a
+        # referent, once named, RESOLVES. That is the obligation this case
+        # exists to prove, and it is the half of the old biconditional that
+        # survived.
+        #
+        # Reidentify the binding after the retarget so this fixture's only
+        # defect is the unresolvable referent, not an incidentally stale
+        # contentDigest.
         evidence = _operator_adopted_evidence(fixture)
         _remove_subject_predicate(fixture.asserted, evidence, RKAF.basedOnAttestation)
+        fixture.asserted.add(
+            (
+                evidence,
+                RKAF.basedOnAttestation,
+                # Absent by construction: an all-zero digest is not the content
+                # digest of any node this builder can emit.
+                URIRef("urn:ref:atlas-evidence:" + "0" * 64),
+            )
+        )
         _remove_subject_predicate(fixture.asserted, evidence, ATLAS.contentDigest)
         digest = atlas_validate.rdf_node_digest(fixture.asserted, evidence)
         replacement = URIRef("urn:ref:atlas-evidence:" + digest.removeprefix("sha256:"))

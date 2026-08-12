@@ -520,8 +520,18 @@ atlas:resourceCollection a atlas:ResourceProfile ; rdfs:label "resource collecti
 #   publisherAssertion          sourceExplicit + officialSourceMetadata
 #   deterministicTransformation deterministicDerivation + structuralEvidence
 #   humanReview                 humanAsserted + humanUser attestor
-#   operatorAdoption            editorialAssertion + formalAdoptionEvent,
-#                               and rkaf:basedOnAttestation names what it adopted
+#   operatorAdoption            editorialAssertion + formalAdoptionEvent;
+#                               atlas:evidenceSourceRecord and its digest name
+#                               what was adopted, at the whole-source-record
+#                               granularity Atlas can actually address.
+#                               rkaf:basedOnAttestation is OPTIONAL here and
+#                               names a prior Atlas attestation when one
+#                               exists; adopting a pinned external publisher
+#                               artifact (REF-016) has none, because Atlas
+#                               never minted a binding for the publisher's own
+#                               claim. This is still the only warrant that may
+#                               carry a referent at all, and a referent that IS
+#                               named must resolve to a non-adoption terminal.
 #   twoMachineAdjudication      aiSuggested + reviewedAuthorityChain, and the
 #                               bound assertion carries a machine-adjudication
 #                               proof set (see the block above): this warrant

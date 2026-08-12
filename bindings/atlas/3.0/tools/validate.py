@@ -4258,9 +4258,16 @@ def _check_evidence_bindings(
     source_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
     bindings = _carrier_nodes(asserted, RKAF.EvidenceBinding, inventory)
 
-    # An operatorAdoption binding must name what it adopted, and the adoption
-    # chain it starts must resolve to a non-adoption terminal without cycling.
-    # This is purely a property of the reviewMethod/adoptedEvidence graph, so it
+    # Only an operatorAdoption binding may name a prior attestation, and when it
+    # names one, the chain it starts must resolve to a non-adoption terminal
+    # without cycling. Naming one is OPTIONAL: Atlas adopts pinned external
+    # publisher artifacts it never minted a binding for (REF-016), so most
+    # adoptions name no referent and are complete without one -- what they
+    # adopted is named by atlas:evidenceSourceRecord and its digest. See the
+    # operatorAdoption branch on atlas:EvidenceBindingShape for the whole
+    # argument; this check and that branch have to agree, and this is the pair
+    # that disagreed with the producer for three builds running.
+    # This is purely a property of the warrant/basedOnAttestation graph, so it
     # is resolved before any content-identity check below: a cycle or a dangling
     # reference is diagnosed on its own terms rather than masked by an unrelated
     # stale-digest failure on one of the bindings it touches.
@@ -4279,17 +4286,12 @@ def _check_evidence_bindings(
             )
         adopted_evidence = adopted_values[0] if adopted_values else None
         if declares_adoption:
-            if adopted_evidence is None:
-                _fail(
-                    "dataset.evidence-adoption",
-                    f"{binding} declares a formal adoption event but names no "
-                    "basedOnAttestation",
+            if adopted_evidence is not None:
+                adopted_evidence_by_binding[binding] = _iri(
+                    adopted_evidence,
+                    code="dataset.evidence-adoption",
+                    label="basedOnAttestation",
                 )
-            adopted_evidence_by_binding[binding] = _iri(
-                adopted_evidence,
-                code="dataset.evidence-adoption",
-                label="basedOnAttestation",
-            )
         elif adopted_evidence is not None:
             _fail(
                 "dataset.evidence-adoption",
