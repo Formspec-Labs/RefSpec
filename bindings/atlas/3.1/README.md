@@ -640,7 +640,13 @@ then proves exact regeneration from the current registry inputs.
 An Atlas acceptance proves that the distribution conforms to this binding. It
 does not authorize search expansion, entity linking, assignment, publication,
 or another product use. Such permission remains in a separately pinned product
-policy.
+policy. It also proves nothing about the source side: every gate here is
+artifact-internal, so an acceptance says the bytes are well-formed and
+internally consistent, **not** that they faithfully transcribe the publisher
+sources they claim to carry, and not that the captures behind them were
+complete. Source fidelity is a separate, scheduled audit
+(`tools/verify_atlas_source_fidelity.py` in the producing repository) that
+reads both ends and writes its own receipt beside the distribution.
 
 ## Validation order
 

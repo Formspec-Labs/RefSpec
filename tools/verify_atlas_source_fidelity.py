@@ -40,10 +40,17 @@ and what we assert about them, and it fails the run. Narrow executable policies
 may define an Atlas representation only after checking their exact prerequisites
 and exact permitted claim set; a policy name is never a waiver.
 
-Usage::
+Usage. ``--distribution`` is required: there is no default distribution, because
+a default silently audits whatever build happens to be on disk (the retired
+``output/atlas-3.0-full-2026-08-07-ring-audit`` tree was exactly that). Name the
+artifact, or go through the Makefile target, which names it for you::
 
-    uv run python tools/verify_atlas_source_fidelity.py
-    uv run python tools/verify_atlas_source_fidelity.py --output findings.json
+    make audit-atlas-v3-source-fidelity \\
+        ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01
+
+    uv run python tools/verify_atlas_source_fidelity.py \\
+        --distribution output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution \\
+        --output findings.json
 
 Exit codes: ``0`` all checks passed and ``1`` one or more checks failed. Missing
 or malformed inputs are collected as check failures so the remaining independent
@@ -77,7 +84,12 @@ except ImportError:  # pragma: no cover - exercised by the older interpreter
     from backports import zstd
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DISTRIBUTION = REPOSITORY_ROOT / "output" / "atlas-3.0-full-2026-08-07-ring-audit"
+# No default distribution, deliberately. The old one
+# (output/atlas-3.0-full-2026-08-07-ring-audit) outlived the wire it was built
+# from and stayed on disk, so a bare invocation kept auditing a retired artifact
+# and reporting a fidelity verdict about a distribution nobody ships. Same
+# reasoning as ATLAS_V3_AUDIT_ROOT in the Makefile: the caller names the
+# artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
 VERIFIER_VERSION = "atlas-source-fidelity/10"
@@ -7569,11 +7581,24 @@ def render(results: Iterable[CheckResult]) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--distribution", type=Path, default=DEFAULT_DISTRIBUTION)
+    parser.add_argument("--distribution", type=Path, default=None)
     parser.add_argument("--source-root", type=Path, default=DEFAULT_SOURCE_ROOT)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--minimum-label-sample", type=int, default=200)
     args = parser.parse_args(argv)
+
+    if args.distribution is None:
+        parser.error(
+            "--distribution is required; there is no default. The old default "
+            "(output/atlas-3.0-full-2026-08-07-ring-audit) was retired and would "
+            "audit an artifact nobody ships. Name the distribution directory that "
+            "holds atlas-manifest.json, e.g.\n"
+            "  uv run python tools/verify_atlas_source_fidelity.py "
+            "--distribution output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution\n"
+            "or go through the Makefile target, which resolves the directory for you:\n"
+            "  make audit-atlas-v3-source-fidelity "
+            "ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01"
+        )
 
     ctx = build_context(
         args.distribution,

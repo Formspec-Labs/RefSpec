@@ -4,7 +4,7 @@
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
 	stage-atlas-mapping-topology
 
-# No default. The prior default (output/atlas-3.1-full-2026-08-07-ring-audit)
+# No default. The prior default (output/atlas-3.0-full-2026-08-07-ring-audit)
 # is retired: HEAD's binding refuses that distribution's constructorProfile
 # (see plans/validation-cost-reset-plan.md). Callers must name a distribution
 # that validates under HEAD.
@@ -22,6 +22,9 @@ generate:
 	uv run python tools/generate_atlas_index.py --write
 	uv run python tools/generate_atlas_v3_registry_coverage.py --write
 	uv run python tools/generate_atlas_v3_registry_descriptors.py --write
+# Position mirrors the `--check` line in check-generated. This builder has no
+# `--write` flag: writing is what it does unless `--check` is passed.
+	uv run python tools/build_registry_source_manifest.py
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/build_fixtures.py
 
@@ -126,11 +129,12 @@ test-atlas-v3: atlas-v3-fixtures
 audit-atlas-v3-source-fidelity:
 	@if [ -z "$(ATLAS_V3_AUDIT_ROOT)" ]; then \
 		echo "error: ATLAS_V3_AUDIT_ROOT is unset. The old default" >&2; \
-		echo "(output/atlas-3.1-full-2026-08-07-ring-audit) was retired:" >&2; \
+		echo "(output/atlas-3.0-full-2026-08-07-ring-audit) was retired:" >&2; \
 		echo "HEAD's binding refuses that distribution's constructorProfile" >&2; \
-		echo "(see plans/validation-cost-reset-plan.md). Set" >&2; \
-		echo "ATLAS_V3_AUDIT_ROOT explicitly to a distribution that" >&2; \
-		echo "validates under HEAD before running this audit." >&2; \
+		echo "(see plans/validation-cost-reset-plan.md). Name a distribution" >&2; \
+		echo "that validates under HEAD, for example:" >&2; \
+		echo "  make audit-atlas-v3-source-fidelity \\" >&2; \
+		echo "    ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01" >&2; \
 		exit 1; \
 	fi
 	@audit_distribution="$(ATLAS_V3_AUDIT_ROOT)"; \
@@ -157,18 +161,26 @@ audit-atlas-v3-source-fidelity:
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
 ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.1-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= 6089bf3a4c5ca852d1f6ae3cbc939ee4638986244761a4974450660e8e93ff0a
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= 614d02e25b6f1677a0ca9e6bbde09af55f5e77732dcb10d8c35444f3f79c21ab
 # The served Parquet view is a separate sealed artifact with its own external
 # pin; the seal payload binds both digests, and the view manifest names this
 # distribution manifest back.
-ATLAS_FR_RELEASE_VIEW_SHA256 ?= cdd011ca6c885ed6723641c2c74649e826a2b54634418e23c1b8f7ee8c99c549
+ATLAS_FR_RELEASE_VIEW_SHA256 ?= b5c2910da2abc3407912d8b03f67c31ce5ce2b5dcc2cf74c2e9ca9da5809e308
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
 
+# Bare `uv run`, i.e. the PROJECT environment -- deliberately, and it must stay
+# that way. The builder imports RefSpec package code, so it is a project tool,
+# not a binding consumer; `--with-requirements bindings/atlas/3.1/requirements.txt`
+# used to be layered here and silently pinned a DIFFERENT rdflib (7.6.0) than
+# the release workflow's bare `uv run` (7.5.0). Same tree, two entry points,
+# two manifest digests. One environment is the only way the external pin below
+# means anything. The validator invocations elsewhere in this file keep
+# `--no-project --with-requirements` for the opposite reason: they must prove a
+# consumer can verify offline with no RefSpec package code at all.
 release-atlas-federal-register-thesaurus:
-	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
-		python tools/generate_atlas_v3_full.py \
+	uv run python tools/generate_atlas_v3_full.py \
 		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
 		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
 
@@ -184,8 +196,7 @@ ATLAS_MAPPING_STAGE_ROOT ?= output/atlas-3.1-mapping-topology-staging
 
 stage-atlas-mapping-topology:
 	rm -rf "$(ATLAS_MAPPING_STAGE_ROOT)"
-	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
-		python tools/generate_atlas_v3_full.py \
+	uv run python tools/generate_atlas_v3_full.py \
 		--only-release eurovoc-4.24 \
 		--only-release eurovoc-domains-4.24 \
 		--only-release lcsh-eurovoc-alignment-endpoints-2026-08-06 \

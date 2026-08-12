@@ -82,8 +82,11 @@ jobs:
           enable-cache: true
           version: "0.11.x"
 
+      # No version argument: `uv python install` reads `.python-version`, which
+      # pins the exact patch. `3.12` here would resolve to whatever the latest
+      # 3.12 patch is on the day the job runs -- a build input nobody declared.
       - name: Install Python
-        run: uv python install 3.12
+        run: uv python install
 
       - name: Install dependencies
         run: uv sync --frozen
@@ -264,8 +267,11 @@ jobs:
           enable-cache: true
           version: "0.11.x"
 
+      # No version argument: `uv python install` reads `.python-version`, which
+      # pins the exact patch. `3.12` here would resolve to whatever the latest
+      # 3.12 patch is on the day the job runs -- a build input nobody declared.
       - name: Install Python
-        run: uv python install 3.12
+        run: uv python install
 
       - name: Install dependencies
         run: uv sync --frozen

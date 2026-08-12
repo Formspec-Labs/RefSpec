@@ -112,13 +112,26 @@ nodes, semantic rings, resource profiles, governed schemes, class assignments,
 and named-graph placement are outside its scope. Publisher defects are reported
 separately and do not fail fidelity when Atlas preserves them unchanged.
 
-The current verifier covers 23 of the default candidate's 110 construction
-units. All 14 covered native-control units match exactly; all nine covered RDF
-vocabulary or mapping units have differences. The remaining 87 units are
-explicit failures, not assumed matches. Set `ATLAS_V3_AUDIT_ROOT` to audit
-another completed build. Do not claim full Atlas source fidelity until
-`uncoveredUnits` is empty, every construction unit has `"status": "exact"`,
-every check passes, and the receipt records `"passed": true`.
+The audit has no default artifact: `ATLAS_V3_AUDIT_ROOT` (or, invoking the tool
+directly, `--distribution`) names the build under audit, every time. The
+previous default was a retired 3.0 ring-audit tree that outlived its wire and
+stayed on disk, so a bare invocation reported a fidelity verdict about a
+distribution nobody ships. Point it at a 3.1 distribution that validates under
+HEAD, for example the Federal Register release
+`make release-atlas-federal-register-thesaurus` writes:
+
+```
+make audit-atlas-v3-source-fidelity \
+    ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01
+```
+
+Coverage is per-build and read from that build's receipt; the last figures
+published here (23 of 110 construction units covered, 14 native-control units
+exact, nine RDF units differing) describe the retired 3.0 candidate and are kept
+only as the shape of the finding. Uncovered units are explicit failures, not
+assumed matches. Do not claim full Atlas source fidelity until `uncoveredUnits`
+is empty, every construction unit has `"status": "exact"`, every check passes,
+and the receipt records `"passed": true`.
 
 Atlas 1.0 and 2.0 remain historical formats. New producers and consumers must
 target Atlas 3.0. The

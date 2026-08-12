@@ -1180,7 +1180,11 @@ they do not re-run the producer's gates. Key custody: offline ed25519 per
 docs/seal-design.md §2 (Sigstore is the documented upgrade path). The
 independent control in a single-maintainer topology is the scheduled
 reproducible rebuild plus one full-validator run against a shipped artifact.
-This entry is the identifier the SpicySearch plan cites to adopt
+The seal's negative space is part of the claim: it attests that acceptance ran
+on these bytes, not that those bytes faithfully transcribe the publisher
+sources behind them and not that the captures were complete — source fidelity
+is the auditor's separate scheduled job, never a consequence of a valid
+signature. This entry is the identifier the SpicySearch plan cites to adopt
 `verify_seal` at its admission seam.
 
 **Frequency follows trust boundaries.** Full validation runs at build

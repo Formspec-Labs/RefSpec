@@ -94,9 +94,11 @@ release.
 Atlas has therefore reached a specific stage:
 
 - The binding and release machinery are strong.
-- The candidate records all 11 artifact-internal acceptance gates as passed.
-  Those gates inspect the built artifact; they do not compare it with publisher
-  bytes.
+- Acceptance today is 13 artifact-internal gates, and a distribution is refused
+  unless it records every one of them as passed. (The dated candidate above
+  recorded the 11 that existed when it was built; that number is a property of
+  that build, not of what acceptance means now.) All of these gates inspect the
+  built artifact; none of them compares it with publisher bytes.
 - Independent source fidelity is not established. The source-only development
   audit covers 23 of 110 construction units; 87 remain uncovered. The covered
   set contains 14 direct native-control comparisons and nine RDF comparisons.

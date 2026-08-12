@@ -23,6 +23,12 @@ is the one placement with no cycle and no second root of trust. The other
 direction is checked too: the view's `input.manifestSha256` must be the
 manifest digest this seal signs, so neither artifact can be paired with a
 distribution it was not derived from.
+
+What the seal does NOT reach: the source side. It attests that acceptance ran
+on these bytes; it does not attest that the artifact faithfully transcribes its
+publisher sources -- that is the fidelity auditor's scheduled job
+(`tools/verify_atlas_source_fidelity.py`) -- nor that the publisher captures
+behind it were complete.
 """
 
 from __future__ import annotations
@@ -416,7 +422,13 @@ def verify_seal(
     *,
     parquet_view_path: Path | str | None = None,
 ) -> SealVerification:
-    """Verify the signature, all three bound digests, closed membership, and every pinned byte."""
+    """Verify the signature, all three bound digests, closed membership, and every pinned byte.
+
+    Artifact-internal only: a pass says acceptance ran on these exact bytes. It
+    says nothing about whether those bytes faithfully transcribe the publisher
+    sources, or whether the captures behind them were complete -- source
+    fidelity is the auditor's separate, scheduled job.
+    """
 
     root = Path(root)
     if not root.is_dir():

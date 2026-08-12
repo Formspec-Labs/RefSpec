@@ -15,7 +15,7 @@ which runs against the real Federal Register Thesaurus distribution.
 
 ## 1. What the signature attests
 
-The signed payload binds four things and nothing else:
+The signed payload binds five things and nothing else:
 
 | Field | Meaning |
 | --- | --- |
@@ -58,6 +58,16 @@ attest provenance while the consumer story claimed conformance.
 It does not attest that the gate set was the right gate set, or that the
 validator was correct. Those are claims about the producer, and no signature
 can make them; see point 4.
+
+Nor does it reach the source side at all. The seal attests that acceptance ran
+on **these bytes**; it does **not** attest that the artifact faithfully
+transcribes its publisher sources — that is the fidelity auditor's scheduled
+job (`tools/verify_atlas_source_fidelity.py`), which reads the publisher
+captures and the distribution independently and writes its own receipt — nor
+that those captures were complete. A perfectly sealed distribution built from a
+half-captured or mistranscribed source is a real and unsignalled outcome. The
+acceptance gates are artifact-internal; nothing inside the artifact can prove
+what was left outside it.
 
 **Normative: `verify_seal` is not a signature check.** It performs, in order:
 
@@ -199,7 +209,8 @@ trailing newline. The signed bytes are the canonical JSON encoding of the
     "acceptanceSha256": "sha256:<64 lowercase hex>",
     "distributionId": "urn:ref:atlas:distribution:...",
     "manifestSha256": "sha256:<64 lowercase hex>",
-    "sealFormat": "refspec-distribution-seal-1"
+    "parquetViewManifestSha256": "sha256:<64 lowercase hex>",
+    "sealFormat": "refspec-distribution-seal-2"
   },
   "signature": "-----BEGIN SSH SIGNATURE-----\n...\n-----END SSH SIGNATURE-----\n",
   "signerIdentity": "release@example.org",
