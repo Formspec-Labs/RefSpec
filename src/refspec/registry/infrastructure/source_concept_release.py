@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Self, cast
 
-from refspec import binding
+from refspec import release_model
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -137,7 +137,7 @@ def _plain(value: Any) -> Any:
 def _canonical_bytes(value: object) -> bytes:
     plain = _plain(value)
     try:
-        binding.validate_canonical_value(plain)
+        release_model.validate_canonical_value(plain)
     except (TypeError, ValueError) as error:
         raise SourceConceptReleaseError(str(error)) from error
     return canonical_json_bytes(plain)
@@ -162,7 +162,7 @@ def _canonical_jsonl(rows: Sequence[Mapping[str, Any]]) -> bytes:
     plain_rows = tuple(cast(Mapping[str, Any], _plain(row)) for row in rows)
     try:
         for row in plain_rows:
-            binding.validate_canonical_value(row)
+            release_model.validate_canonical_value(row)
     except (TypeError, ValueError) as error:
         raise SourceConceptReleaseError(str(error)) from error
     return canonical_jsonl_bytes(plain_rows)
@@ -1238,8 +1238,8 @@ def _read_json(payload: bytes, label: str) -> Any:
     try:
         return json.loads(
             payload.decode("utf-8"),
-            object_pairs_hook=binding.reject_duplicate_keys,
-            parse_constant=binding.reject_nonfinite_constant,
+            object_pairs_hook=release_model.reject_duplicate_keys,
+            parse_constant=release_model.reject_nonfinite_constant,
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
         raise SourceConceptReleaseError(f"{label} must be valid canonical UTF-8 JSON") from error

@@ -48,11 +48,6 @@ from types import MappingProxyType
 from typing import Any, Self, cast
 
 from refspec.immutable import deep_freeze_json
-from refspec.managed_release import (
-    ManagedReleaseExpression,
-    ManagedReleaseMember,
-    ManagedReleaseRelation,
-)
 from refspec.registry.icpsr_subject import (
     ICPSR_SUBJECT_SCHEME_IRI,
     ICPSR_SUBJECT_XML_URL,
@@ -66,7 +61,12 @@ from refspec.registry.managed_releases.icpsr_managed_release import (
     IcpsrManagedReleaseError,
     IcpsrManagedReleaseView,
 )
-from refspec.release_graph import rulespec_graph_digest
+from refspec.release_model import (
+    ManagedReleaseExpression,
+    ManagedReleaseMember,
+    ManagedReleaseRelation,
+    rulespec_graph_digest,
+)
 from refspec.storage import canonical_json
 
 from .concept_release import (

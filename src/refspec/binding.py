@@ -6,7 +6,6 @@ import argparse
 import copy
 import hashlib
 import json
-import math
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -17,11 +16,30 @@ from typing import Any
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
+# The canonical-JSON primitives and CORE_FACETS moved to ``refspec.release_model``
+# so the atlas build path can reach them without importing this module. Every
+# alias below publishes a name at its historical spelling; most (SAFE_INTEGER,
+# the canonical-JSON primitives) this module no longer uses itself, but
+# CORE_FACETS is still consumed here too -- the alias keeps a single
+# definition rather than a second copy.
+from refspec.release_model import CORE_FACETS as CORE_FACETS
+from refspec.release_model import SAFE_INTEGER as SAFE_INTEGER
+from refspec.release_model import (
+    DuplicateKeyError,
+    canonical_payload_digest,
+    digest_field,
+    reject_duplicate_keys,
+    reject_nonfinite_constant,
+)
+from refspec.release_model import canonical_json_bytes as canonical_json_bytes
+from refspec.release_model import canonical_payload as canonical_payload
+from refspec.release_model import canonical_sha256 as canonical_sha256
+from refspec.release_model import validate_canonical_value as validate_canonical_value
+
 REFSPEC_ROOT = Path(__file__).resolve().parents[2]
 BINDING_ROOT = REFSPEC_ROOT / "bindings" / "json" / "1.0"
 SCHEMA_ROOT = BINDING_ROOT / "schemas"
 FIXTURE_ROOT = BINDING_ROOT / "fixtures"
-SAFE_INTEGER = 9_007_199_254_740_991
 CANONICALIZATION_ALGORITHM = "urn:ref:canonical-json:v1"
 
 TYPE_SCHEMAS = {
@@ -91,21 +109,6 @@ USAGE_ELIGIBILITY_RANK = {
 # Python check consumes them (unlike usageEligibility, which the
 # accepted-output gate ranks), so no matching Python constant is declared
 # here; one would be unenforced structure.
-
-CORE_FACETS = {
-    "urn:ref:facet:general-subject",
-    "urn:ref:facet:specialist-subject",
-    "urn:ref:facet:entity",
-    "urn:ref:facet:legal-location",
-    "urn:ref:facet:industry-classification",
-    "urn:ref:facet:affected-population",
-    "urn:ref:facet:genre",
-    "urn:ref:facet:regulatory-action",
-    "urn:ref:facet:administrative-process-stage",
-    "urn:ref:facet:code-list-value",
-    "urn:ref:facet:ontology-class",
-    "urn:ref:facet:observation-measure",
-}
 
 COVERAGE_FEATURES = {
     "labels",
@@ -201,10 +204,6 @@ REQUIRED_MANIFEST_REQUIREMENTS = {
 }
 
 
-class DuplicateKeyError(ValueError):
-    """Raised when a JSON object repeats a key."""
-
-
 @dataclass(frozen=True)
 class Diagnostic:
     requirement: str
@@ -212,19 +211,6 @@ class Diagnostic:
 
     def render(self) -> str:
         return f"{self.requirement}: {self.message}"
-
-
-def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise DuplicateKeyError(f"duplicate JSON object key {key!r}")
-        result[key] = value
-    return result
-
-
-def reject_nonfinite_constant(value: str) -> None:
-    raise ValueError(f"non-finite JSON number {value} is forbidden")
 
 
 def _embedded_asset_relative_path(path: Path) -> str | None:
@@ -284,79 +270,6 @@ def load_json(path: Path) -> Any:
         object_pairs_hook=reject_duplicate_keys,
         parse_constant=reject_nonfinite_constant,
     )
-
-
-def validate_canonical_value(value: Any, path: str = "$") -> None:
-    if value is None:
-        raise ValueError(f"{path}: null is forbidden; omit an optional field")
-    if isinstance(value, bool):
-        return
-    if isinstance(value, int):
-        if abs(value) > SAFE_INTEGER:
-            raise ValueError(f"{path}: integer exceeds the interoperable JSON range")
-        return
-    if isinstance(value, float):
-        if not math.isfinite(value):
-            raise ValueError(f"{path}: non-finite number is forbidden")
-        raise TypeError(
-            f"{path}: JSON floating-point numbers are forbidden; use a canonical decimal string"
-        )
-    if isinstance(value, str):
-        return
-    if isinstance(value, list):
-        for index, item in enumerate(value):
-            validate_canonical_value(item, f"{path}[{index}]")
-        return
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if not isinstance(key, str):
-                raise TypeError(f"{path}: object keys must be strings")
-            validate_canonical_value(item, f"{path}.{key}")
-        return
-    raise ValueError(f"{path}: unsupported JSON value {type(value).__name__}")
-
-
-def digest_field(record: dict[str, Any]) -> str:
-    if record.get("type") in {
-        "urn:ref:type:EnrichmentProfile",
-        "urn:ref:type:OutputProfile",
-    }:
-        return "contentDigest"
-    return "canonicalPayloadDigest"
-
-
-def canonical_json_bytes(value: Any) -> bytes:
-    """Return the one canonical JSON encoding the platform digests.
-
-    The bytes never carry a trailing newline. A newline is a property of the
-    file writer that stores the value, not of the value being digested, so a
-    writer appends it after this function and a digest never sees it.
-    """
-
-    return json.dumps(
-        value,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode("utf-8")
-
-
-def canonical_sha256(value: Any) -> str:
-    """Digest any JSON-compatible value in the one canonical form."""
-
-    return "sha256:" + hashlib.sha256(canonical_json_bytes(value)).hexdigest()
-
-
-def canonical_payload(record: dict[str, Any]) -> bytes:
-    field = digest_field(record)
-    payload = {key: value for key, value in record.items() if key != field}
-    validate_canonical_value(payload)
-    return canonical_json_bytes(payload)
-
-
-def canonical_payload_digest(record: dict[str, Any]) -> str:
-    return "sha256:" + hashlib.sha256(canonical_payload(record)).hexdigest()
 
 
 def text_digest(value: str) -> str:

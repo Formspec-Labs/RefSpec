@@ -19,12 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Self, TypeAlias, cast
 
-from refspec import binding
 from refspec.immutable import deep_freeze_json
-from refspec.managed_release import (
-    ManagedReleaseError,
-    ManagedReleaseGraphFactsView,
-)
+from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     plain_json,
@@ -47,7 +43,13 @@ from refspec.registry.infrastructure.source_identity import (
     SourceIdentityError,
     require_aware_datetime_text,
 )
-from refspec.release_graph import rulespec_graph_digest
+from refspec.release_model import (
+    ManagedReleaseError,
+    reject_duplicate_keys,
+    reject_nonfinite_constant,
+    rulespec_graph_digest,
+    validate_canonical_value,
+)
 
 MANAGED_RELEASE_RING_ASSIGNMENT_VERSION = "1.0"
 
@@ -72,7 +74,7 @@ def _plain(value: Any) -> Any:
 def _canonical_bytes(value: object) -> bytes:
     plain = _plain(value)
     try:
-        binding.validate_canonical_value(plain)
+        validate_canonical_value(plain)
     except (TypeError, ValueError) as error:
         raise ConceptReleaseError(str(error)) from error
     return canonical_json_bytes(plain)
@@ -143,8 +145,8 @@ def _read_json(payload: bytes, label: str) -> Any:
     try:
         return json.loads(
             payload.decode("utf-8"),
-            object_pairs_hook=binding.reject_duplicate_keys,
-            parse_constant=binding.reject_nonfinite_constant,
+            object_pairs_hook=reject_duplicate_keys,
+            parse_constant=reject_nonfinite_constant,
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
         raise ConceptReleaseError(

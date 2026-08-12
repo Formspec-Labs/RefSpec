@@ -20,13 +20,13 @@ from rdflib import BNode, Graph, Namespace, URIRef
 from rdflib import Literal as RdfLiteral
 from rdflib.namespace import DCAT, DCTERMS, PROV, RDF, XSD
 
-from refspec.managed_release import (
+from refspec.managed_release import ManagedReleaseView
+from refspec.release_model import (
     ManagedReleaseExpression,
     ManagedReleaseMember,
     ManagedReleaseRelation,
-    ManagedReleaseView,
+    rulespec_graph_digest,
 )
-from refspec.release_graph import rulespec_graph_digest
 from refspec.storage import canonical_json
 
 ATLAS = Namespace("https://refspec.org/ns/vocabulary-atlas/v2#")

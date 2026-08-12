@@ -11,11 +11,6 @@ from types import MappingProxyType
 from typing import Any, Self, cast
 
 from refspec.immutable import deep_freeze_json
-from refspec.managed_release import (
-    ManagedReleaseExpression,
-    ManagedReleaseMember,
-    ManagedReleaseRelation,
-)
 from refspec.registry.federal_register_thesaurus_2025 import (
     ALTERNATE_LABEL_PROPERTY_IRI,
     FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
@@ -30,7 +25,12 @@ from refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_r
     FederalRegisterThesaurus2025ManagedReleaseError,
     FederalRegisterThesaurus2025ManagedReleaseView,
 )
-from refspec.release_graph import rulespec_graph_digest
+from refspec.release_model import (
+    ManagedReleaseExpression,
+    ManagedReleaseMember,
+    ManagedReleaseRelation,
+    rulespec_graph_digest,
+)
 
 from .concept_release import (
     ConceptReleaseError,

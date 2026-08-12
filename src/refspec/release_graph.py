@@ -25,6 +25,7 @@ from refspec import binding
 from refspec.generated_rulespec_dependency import (
     RULESPEC_DEPENDENCY_BYTES,
 )
+from refspec.release_model import rulespec_graph_digest
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DEPENDENCY_MANIFEST = REFSPEC_ROOT / "profiles" / "rulespec-dependency.json"
@@ -362,20 +363,6 @@ class ReleaseGraphGateReport:
             "rulespecFailures": list(self.rulespec_failures),
             "crossBoundaryFailures": list(self.cross_boundary_failures),
         }
-
-
-def rulespec_graph_digest(graph: Any) -> str:
-    """Return the exact canonical-JSON digest used to bind a bundle graph."""
-
-    binding.validate_canonical_value(graph)
-    payload = json.dumps(
-        graph,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode("utf-8")
-    return f"sha256:{hashlib.sha256(payload).hexdigest()}"
 
 
 def canonical_value_digest(value: Any) -> str:

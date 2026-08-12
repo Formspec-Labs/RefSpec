@@ -37,8 +37,8 @@ from refspec.registry.icpsr_subject import (
     parse_icpsr_subject_xml,
 )
 from refspec.registry.infrastructure.controlled_identifier import validate_identifier_date
+from refspec.release_model import canonical_text_digest, normalize_unicode_text
 from refspec.storage import canonical_json
-from refspec.vocabulary import canonical_text_digest, normalize_unicode_text
 
 MANAGED_RELEASE_VERSION = "icpsr-uri-verified-development-v1"
 PARSER_VERSION = "refspec-icpsr-managed-release-v1"

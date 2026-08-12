@@ -17,7 +17,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Protocol, cast
 
-from refspec.managed_release import ManagedReleaseConceptMapping
+from refspec.release_model import ManagedReleaseConceptMapping
 from refspec.vocabulary import require_language_tag
 
 _ABSOLUTE_IRI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:[^\s]+$")

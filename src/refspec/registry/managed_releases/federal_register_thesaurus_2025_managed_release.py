@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from refspec import binding
+from refspec import release_model
 from refspec.immutable import deep_freeze_json
 from refspec.policies.federal_register_lists_of_subjects import (
     LISTS_OF_SUBJECTS_RESOLUTION_POLICY_VERSION,
@@ -67,12 +67,12 @@ def _sha256_bytes(value: bytes) -> str:
 
 def _seal(record: Mapping[str, Any]) -> dict[str, Any]:
     result = dict(record)
-    result["canonicalPayloadDigest"] = binding.canonical_payload_digest(result)
+    result["canonicalPayloadDigest"] = release_model.canonical_payload_digest(result)
     return result
 
 
 def _verify_seal(record: Mapping[str, Any], *, label: str) -> None:
-    expected = binding.canonical_payload_digest(dict(record))
+    expected = release_model.canonical_payload_digest(dict(record))
     if record.get("canonicalPayloadDigest") != expected:
         raise FederalRegisterThesaurus2025ManagedReleaseError(
             f"{label} digest drifted"

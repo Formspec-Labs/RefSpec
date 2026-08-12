@@ -74,13 +74,24 @@ from refspec.release_graph import (
     RULESPEC_VALIDATOR_COMPONENT_ID,
     canonical_value_digest,
     defined_rulespec_identifiers,
+)
+from refspec.release_model import (
+    CONCEPT_EVENT_PARTICIPANT_COLUMNS,
+    CONCEPT_LABEL_COLUMNS,
+    CONCEPT_RELATION_COLUMNS,
+    ManagedReleaseAuthorizationError,
+    ManagedReleaseCandidatePermission,
+    ManagedReleaseConceptMapping,
+    ManagedReleaseError,
+    ManagedReleaseExpression,
+    ManagedReleaseIdentityLink,
+    ManagedReleaseLifecycleParticipant,
+    ManagedReleaseMember,
+    ManagedReleaseRelation,
     rulespec_graph_digest,
 )
 from refspec.storage import canonical_json
 from refspec.vocabulary import (
-    CONCEPT_EVENT_PARTICIPANT_COLUMNS,
-    CONCEPT_LABEL_COLUMNS,
-    CONCEPT_RELATION_COLUMNS,
     ReferenceRuntimeError,
     indexed_expression_id_set_digest,
     indexed_expression_identity_from_record,
@@ -185,14 +196,6 @@ _RELATION_PROPERTIES = {
     "http://www.w3.org/2004/02/skos/core#related": "skos:related",
 }
 _ELSST_NATIVE_SKOS_IMPORT_POLICY = "urn:ref:policy:elsst-native-skos-lossless:v1"
-
-
-class ManagedReleaseError(ValueError):
-    """A managed-release bundle is incomplete, mutable, or inconsistent."""
-
-
-class ManagedReleaseAuthorizationError(ManagedReleaseError):
-    """The selected managed release does not authorize the requested use."""
 
 
 def _freeze(value: Any) -> Any:
@@ -1202,16 +1205,6 @@ def _validate_combined_receipt(
 
 
 @dataclass(frozen=True, slots=True)
-class ManagedReleaseMember:
-    """One exact member of a complete Rulespec release."""
-
-    member_iri: str
-    release_iri: str
-    scheme_iri: str
-    record: Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
 class ManagedReleaseGraphFactsView:
     """Verified graph facts from a managed bundle, without corpus eligibility.
 
@@ -1287,98 +1280,6 @@ class ManagedReleaseGraphFactsView:
         for member in self._members.values():
             if release_iri is None or member.release_iri == release_iri:
                 yield member
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseIdentityLink:
-    """One exact native identity, version, or replacement link.
-
-    The link comes directly from a frozen source member record.  RefSpec
-    expands only the JSON-LD predicate spelling; it does not create a
-    ``ConceptVersion`` record or infer an identity relation.
-    """
-
-    subject_member_iri: str
-    predicate_iri: str
-    object_iri: str
-    subject_release_iri: str
-    object_release_iri: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseExpression:
-    """One immutable indexed expression retained for evidence and lookup."""
-
-    expression_id: str
-    member_iri: str
-    indexed_text: str
-    original_literal: str
-    language_tag: str | None
-    semantic_property_iri: str
-    source_property_or_path: str
-    record: Mapping[str, Any]
-    label_role: str | None = None
-    source_status: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseRelation:
-    """One immutable normalized relation between exact release members."""
-
-    relation_id: str
-    subject_member_iri: str
-    predicate_iri: str
-    object_member_iri: str
-    release_iri: str
-    record: Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseLifecycleParticipant:
-    """One immutable predecessor or successor release member."""
-
-    event_iri: str
-    operation: str
-    participant_role: str
-    member_iri: str
-    release_iri: str
-    ordinal: int
-    record: Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseConceptMapping:
-    """One validated Rulespec mapping; never an exact-identity lookup."""
-
-    mapping_iri: str
-    source_member_iri: str
-    relation_iri: str
-    target_member_iri: str
-    source_release_iri: str
-    target_release_iri: str
-    record: Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseCandidatePermission:
-    """One exact candidate-use permission resolved by RefSpec.
-
-    This value is an immutable view of the selected registry deployment, its
-    OutputProfile row, and the matching EnrichmentProfile route.  It grants no
-    accepted-output authority.
-    """
-
-    facet_iri: str
-    assignment_role_iri: str
-    resource_route: str
-    reference_resource_release: Mapping[str, Any]
-    registry_import_snapshot: Mapping[str, Any]
-    required_import_features: tuple[str, ...]
-    permission_row: Mapping[str, Any]
-    output_profile: Mapping[str, Any]
-    enrichment_profile: Mapping[str, Any]
-    coverage_report: Mapping[str, Any]
-    registry_deployment: Mapping[str, Any]
 
 
 @dataclass(frozen=True, slots=True)

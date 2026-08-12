@@ -20,7 +20,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from refspec import binding
+from refspec import release_model
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     canonical_jsonl_bytes,
@@ -30,12 +30,12 @@ from refspec.registry.infrastructure.artifact_serialization import (
     source_artifact_path,
 )
 from refspec.registry.infrastructure.identifier_validation import SHA256_DIGEST
-from refspec.storage import canonical_json
-from refspec.vocabulary import (
+from refspec.release_model import (
     CONCEPT_EVENT_PARTICIPANT_COLUMNS,
     CONCEPT_LABEL_COLUMNS,
     CONCEPT_RELATION_COLUMNS,
 )
+from refspec.storage import canonical_json
 
 _ABSOLUTE_IRI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:[^\s]+$")
 _SHA256 = SHA256_DIGEST
@@ -89,7 +89,7 @@ def _replace_linked_record_digests(
             and "digest" in result
         ):
             target = sealed_by_id[identifier]
-            result["digest"] = target[binding.digest_field(dict(target))]
+            result["digest"] = target[release_model.digest_field(dict(target))]
         return result
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         return [
@@ -168,8 +168,8 @@ def reseal_linked_ref_records(
                 records_by_id[identifier],
                 sealed_by_id,
             )
-            digest_field = binding.digest_field(record)
-            record[digest_field] = binding.canonical_payload_digest(record)
+            digest_field = release_model.digest_field(record)
+            record[digest_field] = release_model.canonical_payload_digest(record)
             sealed_by_id[identifier] = record
             remaining.remove(identifier)
 
@@ -202,11 +202,11 @@ def _validated_record_identity(
         raise ManagedVocabularyBundleError(f"{label}.type is required")
     if not isinstance(identifier, str) or _ABSOLUTE_IRI.fullmatch(identifier) is None:
         raise ManagedVocabularyBundleError(f"{label}.id must be an absolute IRI")
-    digest_field = binding.digest_field(plain)
+    digest_field = release_model.digest_field(plain)
     digest = plain.get(digest_field)
     if not isinstance(digest, str) or _SHA256.fullmatch(digest) is None:
         raise ManagedVocabularyBundleError(f"{label}.{digest_field} must be an exact SHA-256 digest")
-    expected = binding.canonical_payload_digest(plain)
+    expected = release_model.canonical_payload_digest(plain)
     if digest != expected:
         raise ManagedVocabularyBundleError(f"{label}.{digest_field} is stale: expected {expected}, got {digest}")
     return plain, record_type, identifier, digest

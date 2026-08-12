@@ -159,7 +159,7 @@ def _unique_sorted_iris(value: Any, location: str) -> list[str]:
 
 
 def _profile_digest(profile_map: Mapping[str, Any]) -> str:
-    from refspec.binding import canonical_sha256
+    from refspec.release_model import canonical_sha256
 
     return canonical_sha256({key: value for key, value in profile_map.items() if key != "profileDigest"})
 
@@ -469,7 +469,7 @@ def _registry_modules(repository_root: Path) -> set[str]:
 
 
 def _set_digest(values: set[str] | list[str]) -> str:
-    from refspec.binding import canonical_sha256
+    from refspec.release_model import canonical_sha256
 
     return canonical_sha256(sorted(values))
 
@@ -481,7 +481,7 @@ def _counter(values: Sequence[str]) -> dict[str, int]:
 def render_json(value: Any) -> str:
     """Render one canonical compact JSON document with a terminal newline."""
 
-    from refspec.binding import canonical_json_bytes
+    from refspec.release_model import canonical_json_bytes
 
     return canonical_json_bytes(value).decode("utf-8") + "\n"
 
@@ -495,7 +495,7 @@ def build_registry_coverage(
 ) -> dict[str, Any]:
     """Build a compact proof that the catalog, index, and live registry are covered."""
 
-    from refspec.binding import canonical_sha256
+    from refspec.release_model import canonical_sha256
 
     by_kind = validate_profile_map(profile_map, catalog)
     catalog_digest = _digest(catalog.get("catalogDigest"), "resource catalog.catalogDigest")

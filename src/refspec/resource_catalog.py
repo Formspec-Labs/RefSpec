@@ -15,7 +15,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from refspec.binding import canonical_sha256
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseError,
     SourceConceptReleaseView,
@@ -24,6 +23,7 @@ from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceError,
     SourceControlledResourceView,
 )
+from refspec.release_model import canonical_sha256
 
 CATALOG_INPUT_FORMAT = "refspec-resource-catalog-input/experimental-v0"
 DISTRIBUTION_INPUT_FORMAT = "refspec-portable-resource-distributions/experimental-v0"

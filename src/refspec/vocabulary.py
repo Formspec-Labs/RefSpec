@@ -11,7 +11,6 @@ import hashlib
 import json
 import math
 import re
-import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
@@ -22,6 +21,13 @@ from typing import Any, cast
 from urllib.parse import urlsplit
 
 from refspec import binding
+from refspec.release_model import (
+    CONCEPT_EVENT_PARTICIPANT_COLUMNS,
+    CONCEPT_LABEL_COLUMNS,
+    CONCEPT_RELATION_COLUMNS,
+)
+from refspec.release_model import canonical_text_digest as canonical_text_digest
+from refspec.release_model import normalize_unicode_text as normalize_unicode_text
 from refspec.storage import (
     canonical_json,
     parse_json_list,
@@ -76,46 +82,6 @@ _LEGACY_AUTHORITIES = frozenset(
         "fused-registry-v1",
         "legacyFusedRegistry",
     }
-)
-
-CONCEPT_LABEL_COLUMNS = (
-    "label_id",
-    "concept_iri",
-    "scheme_iri",
-    "release_iri",
-    "import_snapshot_id",
-    "distribution_artifact_id",
-    "source_property_iri",
-    "label_role",
-    "original_literal",
-    "language_tag",
-    "status",
-    "expression_id",
-    "migration_only",
-)
-CONCEPT_RELATION_COLUMNS = (
-    "relation_id",
-    "release_iri",
-    "import_snapshot_id",
-    "distribution_artifact_id",
-    "subject_concept_iri",
-    "subject_scheme_iri",
-    "predicate_iri",
-    "object_concept_iri",
-    "object_scheme_iri",
-    "source_property_or_path",
-    "migration_only",
-)
-CONCEPT_EVENT_PARTICIPANT_COLUMNS = (
-    "event_id",
-    "operation",
-    "participant_role",
-    "concept_iri",
-    "concept_type_iri",
-    "release_iri",
-    "complete_membership",
-    "ordinal",
-    "migration_only",
 )
 
 REQUIRED_IMPORT_FEATURES = frozenset(
@@ -471,12 +437,6 @@ def _require_release_graph_validation_receipt(
             "identifiers"
         )
     return frozenset(covered)
-
-
-def normalize_unicode_text(value: object) -> str:
-    """Normalize search text without discarding non-ASCII characters."""
-    normalized = unicodedata.normalize("NFKC", str(value or "")).casefold()
-    return " ".join(normalized.split())
 
 
 @dataclass(frozen=True)
@@ -1081,11 +1041,6 @@ class IndexedVocabularyExpression:
 
     def sealed_payload(self) -> dict[str, Any]:
         return seal_payload(self.payload())
-
-
-def canonical_text_digest(value: str) -> str:
-    """Digest exact UTF-8 text without JSON quoting."""
-    return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def indexed_expression_identity(

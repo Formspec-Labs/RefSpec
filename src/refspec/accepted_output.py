@@ -17,7 +17,8 @@ from types import MappingProxyType
 from typing import Any, cast
 
 from refspec import binding
-from refspec.managed_release import ManagedReleaseMember, ManagedReleaseView
+from refspec.managed_release import ManagedReleaseView
+from refspec.release_model import ManagedReleaseMember
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _GATE_IMPLEMENTATION_ID = (

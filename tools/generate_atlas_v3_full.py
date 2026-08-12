@@ -94,7 +94,6 @@ from refspec.atlas.v3_source_data import (
 from refspec.atlas.v3_source_data import (
     LabelRole as SourceLabelRole,
 )
-from refspec.binding import canonical_sha256 as refspec_canonical_sha256
 from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseView,
@@ -112,6 +111,7 @@ from refspec.registry.managed_releases.icpsr_managed_release import (
     IcpsrManagedReleaseView,
     open_icpsr_managed_release_sources,
 )
+from refspec.release_model import canonical_sha256 as refspec_canonical_sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.0"
@@ -180,7 +180,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:2cd5756ac1d8823ce949d14082670fb0fb13833aa7b10c5c859ec4bca4fd2a4c"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:952a4d87e5c56414cf802a9725db03840388370bdecaa300c7453691b522e544"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (

@@ -16,17 +16,17 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
-from refspec.binding import (
-    CORE_FACETS,
-    canonical_sha256,
-    reject_duplicate_keys,
-    reject_nonfinite_constant,
-)
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseError,
     SourceConceptReleaseView,
+)
+from refspec.release_model import (
+    CORE_FACETS,
+    canonical_sha256,
+    reject_duplicate_keys,
+    reject_nonfinite_constant,
 )
 
 ATLAS_INDEX_INPUT_FORMAT = "refspec-atlas-index-input/experimental-v0"
