@@ -446,6 +446,22 @@ cross-release semantic comparison rather than an arbitrary relationship.
 
 ### REF-015: Make compact managed records the eventual Atlas source of truth
 
+> **Superseded by REF-028:** compact managed records are not becoming the
+> Atlas source of truth. The compact JSONL/Zstandard transport this entry
+> introduced as a non-authoritative sidecar was deleted from the wire in the
+> 3.1 bump (`cb10a8e8`), together with the parity cutover it was staged for.
+> The separation of concerns it borrowed stands and is delivered: one
+> governed record set (the asserted RDF), several reproducible consumer
+> views (the typed Parquet view, the search view, the explorer). What is
+> retired is the specific claim that the *compact record* would become
+> canonical after a parity acceptance — that acceptance never ran, no
+> consumer ever read the packs as authority, and the served projection is
+> now Parquet. The eight closed roles, their exact field sets, and the one
+> normalization every producer and verifier must agree on survive as the
+> logical-record contract in `refspec/atlas/compact_pack.py`; only the file
+> format is gone. A real reversal, recorded as one: this entry's direction
+> was accepted, and it is withdrawn rather than completed.
+
 - **Date:** 2026-08-06
 - **Status:** Accepted direction; canonical cutover requires parity acceptance
 
@@ -457,7 +473,7 @@ form](https://www.mediawiki.org/wiki/Wikibase/Indexing/RDF_Dump_Format). Atlas
 will apply that separation to versioned United States public reference sources:
 one governed record set, several reproducible consumer views.
 
-The current [Atlas 3.0 RDF binding](../bindings/atlas/3.0/README.md) remains
+The current [Atlas RDF binding](../bindings/atlas/3.1/README.md) remains
 canonical during migration. Compact managed records become canonical only in a
 deliberate binding cutover after they reproduce every authoritative RDF fact
 and pass independent parity checks. Until then, compact packs are
@@ -825,7 +841,7 @@ the cited paths are sufficient.
    wire in rulespec's own vocabulary — 22 rkaf terms, no `atlas:` mint —
    shaped from `constraints/analysis/resolver-proof-record.cue` and
    `machine-adjudication.cue`, with `rkaf:Artifact` resolving every sealed
-   digest to bundled bytes. `bindings/atlas/3.0/tools/validate.py` carries
+   digest to bundled bytes. `bindings/atlas/3.1/tools/validate.py` carries
    the `machine-adjudication` gate (independence, complete support, verdict
    lattice, sealed-digest and identity binding) over ~35 corpus cases, and
    `bindings/atlas/1.0/` was deleted in the same commit that landed them,
@@ -1258,3 +1274,61 @@ corpus, ~−13,700 in production and test code. Carry-forwards, recorded:
 nothing; `IncrementalPackMaterialization` keeps its wire-tied name until
 the 3.1 bump; the release workflow's acceptance job needs
 `REFSPEC_RELEASE_TIER=1` and a pytest invocation for the parity sweep.
+
+### REF-028: The 3.1 atomic replacement — the wire the campaign could not prove
+
+- **Date:** 2026-08-12
+- **Status:** Accepted; executed (`8ba8d8ea` stage A, `cb10a8e8` stage B).
+  Scoping in [the plan](../plans/validation-cost-reset-plan.md) v3.6 item
+  (4); the three unanimous fable+opus calls in v3.7. Continues REF-027;
+  supersedes REF-015.
+
+**3.1 replaces 3.0 atomically, in place.** Precedent `5c6d889a` — git
+history is the archive. No external consumer of the distribution format
+exists; SpicySearch is insulated by the search view's own pin. Both
+conditions the v3.7 decision set were met before the bump: the fixtures
+un-commit landed first (`41f1bf70`), so the rename is a 22-file move and
+not an 8,340-file diff, and 3.1 was staged on the bounded Federal Register
+Thesaurus artifact before anything larger. The re-ordering that decision
+recorded held: wire cuts → fresh 3.1 build → *that* is the first sealed
+artifact. Sealing a 3.0 build first would have minted the retiring
+format's only external consumer.
+
+**What the wire lost.** Node digests on eleven carriers — a triple
+restating what the node's own facts already say, on every carrier that
+does not derive its IRI from it (the two that do keep it; the rest are
+recomputed on demand, so the retained Parquet `content_digest` column
+never becomes comparand-less; the shapes are closed, so removal makes the
+triple forbidden rather than optional). The compact JSONL wire (~1,250
+producer lines, 839 validator lines, and the packs). False proofs:
+`shaclDataProof: compiledAgainstPinnedOntologyAndShapes` passed while
+those shapes rejected 2,003 evidence bindings; `shaclMetaValidation`, a
+`checks` prose list, and an `implementationDigest` the producer compared
+against its own constant said the same unprovable thing in three more
+registers — none checkable by an independent reader. Reuse constants that
+reported "no reuse happened" on every build ever produced.
+
+**What it gained.** A seal-covered served projection: the seal payload
+(`refspec-distribution-seal-2`) binds `parquetViewManifestSha256` beside
+the manifest and acceptance digests, and `verify_seal` walks the view's
+tables; the obvious placement — the construction summary pinning the view
+manifest — is a digest cycle, and the seal, written after both artifacts
+are final, is the one placement where the dependency runs one way.
+Honest receipts: producer validation states which constructor ran, what it
+counted, and which bytes those counts belong to; semantic conformance is
+the independent validator's verdict, and only that. Two producer
+self-agreements became graph comparisons: per-release record counts are
+recomputed from the asserted RDF by the new `record-ownership` gate, and
+record-identity equality between the served tables and the graph is
+proved in both directions with the comparand stated in `validate.py`.
+The producer's implementation self-pin — whose only real effect was that
+every builder edit failed the next build until repinned — is gone;
+`--repin` survives for the six binding-profile digests.
+
+**Proof.** First 3.1 artifact: the bounded FR Thesaurus build,
+`urn:ref:atlas:distribution:3.1-bounded-development:44ad80a2…`, manifest
+`sha256:9f1f379e…`, view manifest `sha256:638fd2bd…`; independently
+validated in 5.9s; byte-reproducible over distribution, generation report
+and view; sealed and verified end to end — 4 members, 2 packs, 8 tables,
+1,599,155 bytes walked under one signature. Corpus 127 cases / 114
+invalid; full suite 2,467 passed at 96.8s.
