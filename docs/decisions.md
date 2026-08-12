@@ -559,6 +559,14 @@ pack reuse must not pretend that work is complete.
 
 ### REF-018: Serve full-corpus exploration as a verified static view
 
+> **Superseded by REF-026:** the RDF explorer this describes is deleted. Its
+> reader re-verified the distribution independently of the validator and had
+> already drifted to 11 acceptance gates against the validator's 13 — the
+> failure class REF-026 names. `explorer.py` builds the same browser from the
+> compact Parquet search view, and the verified static-shard contract
+> survives unchanged in `explorer_render`. The entry is retained verbatim as
+> design lineage.
+
 - **Date:** 2026-08-06
 - **Status:** Accepted
 
@@ -578,6 +586,17 @@ pinned Atlas release, transfer no authority, and never change the asserted,
 projection, or derived graph roles.
 
 ### REF-019: Reuse an exact Atlas distribution before source parsing
+
+> **Superseded by REF-027:** exact whole-distribution reuse is deleted
+> (`74aaafd9`). Its recipe digest covers eleven shared modules and the
+> generator's own source, so any producer edit missed the cache by
+> construction; in the artifact record it hit once, on a distribution
+> rebuilt from unchanged inputs. What it bought was one skipped rebuild,
+> against a fail-closed comparison of the full input inventory, manifest
+> closure, and every stored and decompressed pack receipt. Every build is
+> now cold. The `packMaterialization` block keeps its reuse fields at their
+> cold-path constants until the 3.1 wire bump. The entry is retained
+> verbatim as design lineage.
 
 - **Date:** 2026-08-06
 - **Status:** Accepted for the unreleased Atlas 3.0 implementation
@@ -610,6 +629,17 @@ compact-record cutover in REF-015 remains the preferred place to add that
 capability rather than treating compressed RDF as an unverified cache.
 
 ### REF-020: Authenticate release-local Atlas construction for safe incremental builds
+
+> **Superseded by REF-027:** release-local incremental construction is
+> deleted (`74aaafd9`). No incremental build was ever produced — the
+> acceptance it named (cold-versus-incremental byte parity) was never met,
+> so the planner, clean-unit readers, and dirty/clean accounting merge
+> stood as untested machinery threaded through the cold path they were
+> meant to shortcut. The `atlas-construction-summary.json` member and its
+> authenticated build keys survive unchanged: they are the construction
+> evidence this entry correctly identified, and the manifest still pins
+> them. Only the reuse arm that read them back is gone. The entry is
+> retained verbatim as design lineage.
 
 - **Date:** 2026-08-06
 - **Status:** Accepted for the unreleased Atlas 3.0 implementation
@@ -659,10 +689,9 @@ is neither an Atlas release member nor a competing knowledge model. Failure to
 load DuckDB's official `fts` extension is explicit; RefSpec does not silently
 restore the former hand-written ranking.
 
-This decision does not replace REF-018. The full RDF explorer still uses
-verified static shards for graph authority layers, adjacency, and evidence; a
-local server may delegate only ranked search to the matching DuckDB view. The
-static explorer remains usable without DuckDB. Canonical Atlas authority stays
+The RDF explorer this paragraph deferred to is retired with REF-018; the
+explorer now reads the compact Parquet view directly and no longer delegates
+only ranked search to it. The static explorer remains usable without DuckDB. Canonical Atlas authority stays
 with the accepted release representation, and SpicySearch continues to own
 product retrieval, ranking, and agent-facing search behavior.
 
@@ -1180,3 +1209,52 @@ rulespec package (rulespec `0710dcd`..`c584a1d`), and the consumer cutover
 land with this revision. Governance archive proceeds as a split, not
 whole files — the extraction proved `managed_release.py`, `binding.py`,
 `release_graph.py`, and `vocabulary.py` are majority build-path.
+
+### REF-027: The deletion campaign — reuse, RDF explorer, governance workflow, fixture corpus
+
+- **Date:** 2026-08-12
+- **Status:** Accepted; executed. The scoping map and the unanimous
+  fable+opus wire-wave decisions live in
+  [plans/validation-cost-reset-plan.md](../plans/validation-cost-reset-plan.md)
+  (v3.6/v3.7).
+
+Four deletions, each verified against a running consumer (or the proven
+absence of one) before landing:
+
+**Fixture corpus un-committed** (`41f1bf70`). The generator's one-line
+self-seal — hashing its own source into every receipt — made any edit a
+512-file diff; it is replaced by a fixed literal, and the 8,339 generated
+files (72.3 MB) leave the index. `corpus.json` and `fixtures-receipt.json`
+stay committed; a cold checkout rebuilds the tree in ~9s and proves it
+against the receipt.
+
+**RDF explorer deleted** (`83bf5d01`, −8,438). `explorer.py` had already
+replaced it as the shipped console script; the RDF path had no entry point
+and no CI, and its reader carried the 11-vs-13 acceptance-gate drift that
+REF-026 cites — resolved here by deletion. The 1,383 lines `explorer.py`
+actually consumes moved byte-identical into `explorer_render.py`,
+verified by AST closure.
+
+**Candidate-use / accepted-output workflow archived** (`18d104a1`,
+−1,818; recoverable in full at `83bf5d01`). `require_candidate_use`
+resolved one complete candidate-use row — a selected deployment decision,
+its permission row, facet route, and passing coverage report — and
+`accepted_output.py` held the sole path from an authorized candidate to an
+accepted output. The model was sound; it is shelved because no institution
+operates it: the pre-deletion trace found zero build- or serving-path
+consumers — the atlas build reads `iter_expressions` with its own
+retirement rule, so the machinery was exercised only by its own tests.
+`refspec.__all__` shrinks 60 → 55, deliberately. Reviving it means naming
+the institution that operates it first.
+
+**Incremental/exact-reuse subsystem deleted** (`74aaafd9`, −3,485; see
+the REF-019/REF-020 supersessions). With it landed the corpus-wide
+cross-mode SHACL parity sweep (46 cases, release-tier), closing the
+engine-parity gap the plan's findings register named.
+
+Net for the campaign: roughly −147,000 committed lines including the
+corpus, ~−13,700 in production and test code. Carry-forwards, recorded:
+`ManagedReleaseAuthorizationError` is now a public exception raised by
+nothing; `IncrementalPackMaterialization` keeps its wire-tied name until
+the 3.1 bump; the release workflow's acceptance job needs
+`REFSPEC_RELEASE_TIER=1` and a pytest invocation for the parity sweep.

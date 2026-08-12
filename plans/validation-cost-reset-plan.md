@@ -25,9 +25,12 @@ anything wire-visible, immediate for internal code.
 - Layer inventory: ~37,400 lines bespoke validation, +14,200 declarative,
   +16,000 validator-tests, +4,819-line fixture factory. `src/refspec` =
   102,660 lines (exact).
-- Verified drift: `explorer_rdf.py:57` requires 11 acceptance gates,
+- Verified drift: `explorer_rdf.py:57` required 11 acceptance gates,
   `validate.py:764` requires 13 (missing `explorer-reachability`,
-  `machine-adjudication`). Eligibility lattice ×3 + currency test confirmed.
+  `machine-adjudication`). [RESOLVED: patched in cd769d44, then the whole
+  RDF explorer deleted in 83bf5d01 — the drift class is gone with its
+  carrier.] Eligibility lattice ×3 + currency test confirmed [RESOLVED:
+  one packaged import, 3d98985a].
   (A claimed five-axis-rule code duplication was NOT confirmed: one
   definition at `validate.py:471`; the generator imports it. The ledger's
   duplication note may refer to ontology prose — verify before citing.)
@@ -409,6 +412,52 @@ measured under 60s; see the budget re-spec open item).
     consumer). Then: derived TSV view from the build, exporter lessons
     recovered from `5ed56db5^`. Drop the unused `sssom` dev dependency now.
 
+## Wire-wave decisions (v3.7 — fable+opus advisory consensus, unanimous, 2026-08-12)
+
+1. **Parquet is lossless per logical record: all five warrant fields become
+   columns** (4 axes + nullable based_on_attestation; correction: evidence_role
+   was already carried; based_on_attestation is fixture-only today but omitting
+   it prices REF-016's chain link as a future 3.2 bump). Measured cost on the
+   real 560k-row table: **+99 KB / +0.12%** (pessimistic +1.5%). Named
+   consumers: the whole-record parity check (a projection comparison is
+   structurally blind to the exact bug class that produced the warrant
+   defect) and the `logicalRecordsPreserved: True` manifest claim, which is
+   FALSE today (third instance of the sealed-false-claim class) and becomes
+   true. `native_payload` pins as the RDF literal's exact lexical bytes
+   (canonical_native_json_bytes; code-point key ordering, not JCS; SAFE_INTEGER
+   bounds; no trailing newline) so parity is two byte comparisons; the
+   duplicate encoder at `parquet_view.py:326` is deleted (kill-10). The
+   full-view schema bump (1.0→2.0) rides the same 3.1 gate. Kill-2
+   consequence adopted: once the contentDigest triple leaves the RDF, the
+   validator RECOMPUTES node digests to check the retained column — the
+   column never becomes comparand-less.
+2. **The ordering unfreeze is REJECTED; frozen first-issue is permanent.**
+   Collect-all would rewrite 539 NoReturn sites to buy a weaker partial-order
+   pin; measured lifetime cost of the freeze is 29 line-edits; the
+   alternates-array form is refused outright (monotonic loosening).
+   Reframing: `firstIssue` is a golden observation, not a consumer promise —
+   stated in the 3.1 README (which also drops "MUST fail closed in this
+   order" as external contract); authors reorder freely and re-record the
+   observation in the same reviewed commit. STRENGTHENING adopted instead:
+   per-case `shaclComponents` arrays in corpus.json, asserted in both
+   validation modes at release tier — closes findings item (a), delivers
+   kill-5's engine-parity corpus as data, and converts the 46 vacuous
+   `shacl.data` pins into real ones. (The in-flight test-based parity gate
+   serves until the 3.1 corpus schema lands.) This supersedes kill-8's
+   "error ordering unfreezes" clause.
+3. **3.1 replaces 3.0 atomically** (precedent 5c6d889a: "git history is the
+   archive"; no external consumer of the distribution format exists;
+   SpicySearch is insulated by the search view's own 1.1 pin). Conditions:
+   the fixtures un-commit lands FIRST (else the bump is an 8,340-file
+   diff); 3.1 is staged on the FR Thesaurus artifact before the ~1h full
+   build; the two IRI-bearing digests the search view derives identity from
+   (evidence content digest, assertion_identity_digest) survive the cut —
+   verified in implementation or the atomic story acquires a second repo.
+   **Deliberate re-ordering of the plan's own steps, recorded:** wire cuts
+   → fresh 3.1 build → THAT is the first sealed artifact → reader cutover.
+   Sealing a 3.0 build first would mint the format's only external consumer
+   the moment before deleting the format.
+
 ## Open items
 
 - [x] Per-phase table landed (see Measured evidence): 78% SHACL, 21% parse,
@@ -471,13 +520,62 @@ measured under 60s; see the budget re-spec open item).
       into the phase-table completion item.
 - [x] Stale `ATLAS_V3_AUDIT_ROOT` default retired (W1-A: no default;
       fail-fast with explanation when unset).
-- [ ] Budget gate re-spec (W2 finding: 112–140s straddles the 120s line —
-      `make test` flipped red on an identical tree). Decision: warn >60s
-      stays; hard FAIL moves to 240s as a runaway guard; the 120s FAIL arms
-      only when the suite is measured under 60s after the deletion campaign
-      shrinks it.
+- [x] Budget gate re-spec IMPLEMENTED (cd769d44 + follow-up): warn >60s,
+      hard FAIL 240s runaway guard; 120s re-arms when the suite is next
+      measured under 60s.
+- [ ] **Findings register (v3.6 — all open findings, owner-visible):**
+      (a) The 46-case cross-mode SHACL parity breadth is UNPROTECTED — the
+      committed test covers 6 mechanism cases; kill-5's protocol needs the
+      full shacl.data set as the standing engine-parity corpus. Fix: a
+      corpus-wide cross-mode component-list test, tiered OUTSIDE the dev
+      budget (release-workflow/audit tier) — lands with builder wave 1.
+      (b) Warrant-shape companions, deferred as separate decisions: four
+      `rkaf:evidenceRole` sh:in values reachable by no branch (dead
+      vocabulary); `attestorKind` pinned by 2/6 SHACL branches vs 6/6
+      Python table rows (same drift class, smaller). Each fix needs its
+      negative case per the corpus rule.
+      (c) `_check_evidence_bindings`' "cites unknown evidence binding" is
+      unreachable as a first issue (defensive depth behind sh:class) —
+      candidate for deletion or documentation at the next validator pass.
+      (d) Cross-repo copy: `SEARCH_VIEW_OMITTED_FIELDS` is byte-identical
+      in spicysearch and refspec (kill-10 instance across repos) — fold
+      into the package boundary or the SpicySearch REF-026 adoption.
+      (e) rdflib 7.6→7.5 downgrade forced by rdfcanon==1.0.0's exact pin
+      inside the rulespec wheel — relax upstream when rdfcanon permits;
+      until then the pin is load-bearing.
+      (f) The fixture factory mints the same falsified
+      `shaclDataProof: compiledAgainstPinnedOntologyAndShapes` claim as
+      the production builder — both framings die in the version-gated
+      wire wave (builder wave 2 / 3.1 bump), fixture side rides the
+      fixtures-reframe wave only if wire-invisible.
 - [ ] Reconcile the ledger's five-axis "duplication in model.py" note with
       the code (one definition found; generator imports it).
-- [ ] **Next candidates for the same treatment** (review: "too timid"):
-      `tools/generate_atlas_v3_full.py` (10,644 lines — largest file in the
-      repo) and `explorer_rdf.py` (~6,200 lines beyond its verify stack).
+- [x] **Next campaign SCOPED (v3.6, 2026-08-12; full map in the session's
+      scoping report).** Ranked by payoff÷risk, sequenced 1→4 because each
+      shrinks the next: (1) **Fixtures reframed** — kill-8 as written is
+      REJECTED: the corpus spans 31 first-issue codes not 115, the ≥46
+      shacl.data cases ARE the engine-parity corpus kill-5 requires, and
+      the "small helper" floors at ~1,000 lines. Instead: delete the
+      one-line self-seal (`build_fixtures.py` hashes its own source into
+      every receipt — the cause of 512-file diffs per edit), stop
+      committing the 8,340-file/73 MB tree (corpus.json + receipt stay;
+      `--check` proves reproducibility over 2 files), ordering-unfreeze
+      only together with audit-mode collect-all. (2) **Builder waves 1–2**:
+      the incremental/reuse subsystem is provably dead (zero incremental
+      builds ever; the recipe cache key hashes 12 modules + its own source
+      and always misses) → −3,450 lines incl. tests, kills the --repin tax;
+      the "compiledProducerValidation proof" framing is FALSIFIED (passed
+      while shapes rejected 2,003 bindings) → delete ~180 lines of false
+      assurance; REF-019/020 supersessions required. (3) **Explorer**: the
+      RDF explorer was already replaced by explorer.py (shipped CLI,
+      rebound names); delete the RDF path whole → −5,100 lines, leaving a
+      ~1,545-line explorer_render.py; REF-018/021 supersessions required.
+      (4) **Wire cuts**: kill-3 is a serializer swap (compact records
+      already derive from the in-memory graph; Parquet already carries
+      content_digest columns), kill-2 rides behind it; needs
+      bindings/atlas/3.1, 14 SHACL edits, REF-015 SUPERSESSION (a real
+      reversal — compact-as-source-of-truth dies), and the parity check's
+      comparand MUST stay in validate.py or it degenerates to tautology.
+      Two evidence/derived digests are IRI-bearing and are NOT cut. Plan
+      corrections found while scoping: the 11-vs-13 gate drift is fixed at
+      HEAD, and the release workflow exists (ee89f513).

@@ -144,11 +144,18 @@ jobs:
         timeout-minutes: 120 # 2x the ~1h measured budget (plan item 3)
         env:
           REFSPEC_ATLAS_VALIDATION_MODE: audit
+          # Release tier: the corpus-wide cross-mode SHACL parity sweep
+          # (REF-027 carry-forward; 46 cases, ~34s) runs only here, not in
+          # the dev budget.
+          REFSPEC_RELEASE_TIER: "1"
         run: |
           uv run --no-project \
             --with-requirements bindings/atlas/3.0/requirements.txt \
             python bindings/atlas/3.0/tools/validate.py \
             --distribution "$DISTRIBUTION_ROOT"
+          uv run --no-sync pytest \
+            tests/test_atlas_v3_validator_regressions.py \
+            -q -k "corpus_wide"
 
       # Job 4: seal minting. INTENTIONALLY A STUB -- `if: false`. Arms only
       # once the key-custody decision (Seal design §2, docs/seal-design.md)
