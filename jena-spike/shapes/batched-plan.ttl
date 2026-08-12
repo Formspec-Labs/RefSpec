@@ -1,0 +1,1717 @@
+@prefix atlas: <https://refspec.org/ns/atlas/v3#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rkaf: <https://rulespec.org/ns/v1#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+atlas:AILineageShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:AILineage .
+
+atlas:ArtifactShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:Artifact .
+
+atlas:AtlasReleaseShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:AtlasRelease ;
+    sh:xone ( [ sh:property [ sh:hasValue rkaf:completeMembership ;
+                        sh:path rkaf:membershipMode ],
+                    [ sh:minCount 1 ;
+                        sh:path prov:hadMember ] ] [ sh:property [ sh:hasValue rkaf:partialMembership ;
+                        sh:path rkaf:membershipMode ],
+                    [ sh:minCount 1 ;
+                        sh:path prov:hadMember ] ] [ sh:property [ sh:hasValue rkaf:membershipNotEnumerated ;
+                        sh:path rkaf:membershipMode ],
+                    [ sh:maxCount 0 ;
+                        sh:path prov:hadMember ] ] ) .
+
+atlas:AtlasResourceShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+atlas:ConceptHostingSchemeShape a sh:NodeShape ;
+    sh:class skos:ConceptScheme ;
+    sh:targetObjectsOf skos:inScheme .
+
+atlas:CrossRingRelationAssertionShape a sh:NodeShape ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+atlas:DateTimeValueShape a sh:NodeShape ;
+    sh:datatype xsd:dateTime ;
+    sh:nodeKind sh:Literal .
+
+atlas:DerivedRelationShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:DerivedRelation .
+
+atlas:DigestValueShape a sh:NodeShape ;
+    sh:datatype xsd:string ;
+    sh:message "A digest MUST use the lowercase sha256:<64 hex> form." ;
+    sh:nodeKind sh:Literal ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" .
+
+atlas:EditorialPolicyShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:EditorialPolicy .
+
+atlas:EffectivePeriodShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:EffectivePeriod .
+
+atlas:EntityResourceShape a sh:NodeShape ;
+    sh:targetClass atlas:EntityResource .
+
+atlas:EvidenceBindingShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+atlas:IdentifierShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:Identifier .
+
+atlas:LegalIdentityResourceShape a sh:NodeShape ;
+    sh:targetClass atlas:LegalIdentityResource .
+
+atlas:LifecycleEventShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:LifecycleEvent ;
+    sh:xone ( [ sh:property [ sh:hasValue rkaf:rescission ;
+                        sh:path rkaf:lifecycleEventKind ],
+                    [ sh:minCount 1 ;
+                        sh:path atlas:fromRelease ],
+                    [ sh:maxCount 0 ;
+                        sh:path atlas:toRelease ] ] [ sh:property [ sh:hasValue rkaf:supersession ;
+                        sh:path rkaf:lifecycleEventKind ],
+                    [ sh:minCount 1 ;
+                        sh:path atlas:toRelease ],
+                    [ sh:maxCount 0 ;
+                        sh:path atlas:fromRelease ] ] ) .
+
+atlas:MappingAssertionShape a sh:NodeShape ;
+    sh:targetClass atlas:MappingAssertion ;
+    sh:xone ( [ sh:property [ sh:in ( atlas:value atlas:legalIdentity ) ;
+                        sh:path atlas:semanticRing ],
+                    [ sh:maxCount 1 ;
+                        sh:minCount 1 ;
+                        sh:path rkaf:hasEffectivePeriod ] ] [ sh:property [ sh:in ( atlas:subject atlas:entity ) ;
+                        sh:path atlas:semanticRing ],
+                    [ sh:maxCount 0 ;
+                        sh:path rkaf:hasEffectivePeriod ] ] ) .
+
+atlas:NativeRelationAssertionShape a sh:NodeShape ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+atlas:NonEmptyStringValueShape a sh:NodeShape ;
+    sh:datatype xsd:string ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal .
+
+atlas:ProjectedRelationShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:ProjectedRelation ;
+    sh:xone ( [ sh:property [ sh:minCount 1 ;
+                        sh:path atlas:semanticRing ],
+                    [ sh:maxCount 0 ;
+                        sh:path atlas:sourceRing ],
+                    [ sh:maxCount 0 ;
+                        sh:path atlas:targetRing ] ] [ sh:property [ sh:maxCount 0 ;
+                        sh:path atlas:semanticRing ],
+                    [ sh:minCount 1 ;
+                        sh:path atlas:sourceRing ],
+                    [ sh:minCount 1 ;
+                        sh:path atlas:targetRing ] ] ) .
+
+atlas:RegistryConflictShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:RegistryConflict .
+
+atlas:RegistrySourceShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:RegistrySource .
+
+atlas:RelationAssertionShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+atlas:RelationComparisonContextShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:or ( [ sh:property [ sh:hasValue rkaf:comparisonUnknown ;
+                        sh:path rkaf:comparisonOutcome ] ] [ sh:property [ sh:minCount 1 ;
+                        sh:path rkaf:comparisonProofRecord ] ] ) ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+atlas:ResolverProofIssuerShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:ResolverProofIssuer .
+
+atlas:ResolverProofRecordShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+atlas:ResourceProfileValueShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI .
+
+atlas:ResourceSchemeShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:or ( [ sh:not [ sh:property [ sh:hasValue atlas:conceptScheme ;
+                                sh:path atlas:resourceProfile ] ] ] [ sh:class skos:ConceptScheme ] ) ;
+    sh:targetClass atlas:ResourceScheme .
+
+atlas:SemanticRingValueShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI .
+
+atlas:SkosMappingAssertionShape a sh:NodeShape ;
+    sh:targetClass atlas:SkosMappingAssertion .
+
+atlas:SkosXlLabelShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass skosxl:Label .
+
+atlas:SourceAssignmentShape a sh:NodeShape ;
+    sh:targetClass atlas:SourceAssignment .
+
+atlas:SourceRecordShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:SourceRecord .
+
+atlas:SourceReleaseShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:targetClass atlas:SourceRelease .
+
+atlas:SubjectConceptShape a sh:NodeShape ;
+    sh:targetClass atlas:SubjectConcept .
+
+atlas:TextLiteralValueShape a sh:NodeShape ;
+    sh:nodeKind sh:Literal ;
+    sh:or _:n13868ad72e2c4c74af223288dce22543b3 .
+
+atlas:ValueResourceShape a sh:NodeShape ;
+    sh:or ( [ sh:not [ sh:class skos:Concept ] ;
+                sh:property [ sh:maxCount 0 ;
+                        sh:path skos:inScheme ] ] [ sh:class skos:Concept ;
+                sh:property [ sh:equals atlas:inScheme ;
+                        sh:maxCount 1 ;
+                        sh:minCount 1 ;
+                        sh:path skos:inScheme ] ] ) ;
+    sh:targetClass atlas:ValueResource .
+
+<https://refspec.org/ns/atlas/v3/shapes> a owl:Ontology ;
+    rdfs:label "RefSpec Atlas SHACL shapes 3.1"@en ;
+    rdfs:comment "Closed-world publication constraints for the asserted, projection, and derived roles of an Atlas 3.1 dataset."@en ;
+    owl:versionInfo "3.1" .
+
+[] sh:equals atlas:resourceProfile ;
+    sh:path ( atlas:inRelease atlas:resourceProfile ) ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:equals atlas:inRelease ;
+    sh:path [ sh:inversePath prov:hadMember ] ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:hasValue atlas:subject ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:SubjectConcept .
+
+[] sh:equals atlas:inScheme ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path skos:inScheme ;
+    sh:targetClass atlas:SubjectConcept .
+
+[] sh:hasValue atlas:entity ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:EntityResource .
+
+[] sh:maxCount 0 ;
+    sh:path skos:inScheme ;
+    sh:targetClass atlas:EntityResource .
+
+[] sh:hasValue atlas:value ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:ValueResource .
+
+[] sh:hasValue atlas:legalIdentity ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:LegalIdentityResource .
+
+[] sh:maxCount 0 ;
+    sh:path skos:inScheme ;
+    sh:targetClass atlas:LegalIdentityResource .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:identifierValue ;
+    sh:targetClass atlas:Identifier .
+
+[] sh:class atlas:ResourceScheme ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:identifierScheme ;
+    sh:targetClass atlas:Identifier .
+
+[] sh:class atlas:AtlasResource ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:identifies ;
+    sh:targetClass atlas:Identifier .
+
+[] sh:class atlas:SourceRecord ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRecord ;
+    sh:targetClass atlas:Identifier .
+
+[] sh:hasValue atlas:identifierScheme ;
+    sh:path ( atlas:identifierScheme atlas:resourceProfile ) ;
+    sh:targetClass atlas:Identifier .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class atlas:SourceRelease ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:inSourceRelease ;
+    sh:targetClass atlas:SourceRecord .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:sourceDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass atlas:SourceRecord .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceLocator ;
+    sh:targetClass atlas:SourceRecord .
+
+[] sh:datatype rdf:JSON ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:nativePayload ;
+    sh:targetClass atlas:SourceRecord .
+
+[] sh:class atlas:AtlasResource ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:representsResource ;
+    sh:targetClass atlas:SourceRecord .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:datatype rdf:JSON ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:policyPayload ;
+    sh:targetClass atlas:EditorialPolicy .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class atlas:Identifier ;
+    sh:minCount 2 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:conflictingEntries ;
+    sh:targetClass rkaf:RegistryConflict .
+
+[] sh:in ( rkaf:informational rkaf:operationalConflict ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:severity ;
+    sh:targetClass rkaf:RegistryConflict .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:detectedAt ;
+    sh:targetClass rkaf:RegistryConflict .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:datatype rdf:langString ;
+    sh:languageIn ( "en" ) ;
+    sh:maxCount 1 ;
+    sh:message "Atlas 3.1 label literals MUST use the English language tag @en." ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path skosxl:literalForm ;
+    sh:targetClass skosxl:Label .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:inRelease ;
+    sh:targetClass skosxl:Label .
+
+[] sh:class atlas:SourceRecord ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRecord ;
+    sh:targetClass skosxl:Label .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rdf:subject ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rdf:predicate ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rdf:object ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:class atlas:Release ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRelease ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:class atlas:Release ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:targetRelease ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRing ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:targetRing ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:assertedAt ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:class atlas:EditorialPolicy ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:governedByPolicy ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:class atlas:RelationAssertion ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:supersedesAssertion ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:class rkaf:EffectivePeriod ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:hasEffectivePeriod ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:assertionIdentityDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] sh:class rkaf:EvidenceBinding ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path [ sh:inversePath rkaf:bindsAssertion ] ;
+    sh:targetClass atlas:CrossRingRelationAssertion,
+        atlas:MappingAssertion,
+        atlas:NativeRelationAssertion,
+        atlas:RelationAssertion,
+        atlas:SkosMappingAssertion,
+        atlas:SourceAssignment .
+
+[] rdf:first [ sh:property [ sh:minCount 1 ;
+                    sh:path atlas:semanticRing ],
+                [ sh:maxCount 0 ;
+                    sh:path atlas:sourceRing ],
+                [ sh:maxCount 0 ;
+                    sh:path atlas:targetRing ] ] ;
+    rdf:rest ( [ sh:property [ sh:maxCount 0 ;
+                        sh:path atlas:semanticRing ],
+                    [ sh:minCount 1 ;
+                        sh:path atlas:sourceRing ],
+                    [ sh:minCount 1 ;
+                        sh:path atlas:targetRing ] ] ) .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:subject ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:object ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:sourceRelease ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:targetRelease ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:equals atlas:semanticRing ;
+    sh:path ( rdf:subject atlas:semanticRing ) ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:equals atlas:semanticRing ;
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:equals atlas:sourceRelease ;
+    sh:path ( rdf:subject atlas:inRelease ) ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] sh:equals atlas:targetRelease ;
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:targetClass atlas:MappingAssertion .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:identifier ;
+    sh:targetClass atlas:SourceRelease .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:datatype xsd:dateTime ;
+    sh:lessThanOrEquals rkaf:effectivePeriodEnd ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:effectivePeriodStart ;
+    sh:pattern "^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T00:00:00[+]00:00$" ;
+    sh:targetClass rkaf:EffectivePeriod .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:effectivePeriodEnd ;
+    sh:pattern "^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T23:59:59[+]00:00$" ;
+    sh:targetClass rkaf:EffectivePeriod .
+
+[] sh:hasValue atlas:subject ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:SkosMappingAssertion .
+
+[] sh:class atlas:SubjectConcept ;
+    sh:path rdf:subject ;
+    sh:targetClass atlas:SkosMappingAssertion .
+
+[] sh:class atlas:SubjectConcept ;
+    sh:path rdf:object ;
+    sh:targetClass atlas:SkosMappingAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:sourceRelease ;
+    sh:targetClass atlas:SkosMappingAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:targetRelease ;
+    sh:targetClass atlas:SkosMappingAssertion .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:subject ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:issued ;
+    sh:targetClass atlas:SourceRelease .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:object ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:sourceRelease ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:targetRelease ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:equals atlas:semanticRing ;
+    sh:path ( rdf:subject atlas:semanticRing ) ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:equals atlas:semanticRing ;
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:equals atlas:sourceRelease ;
+    sh:path ( rdf:subject atlas:inRelease ) ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:sourceDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass atlas:SourceRelease .
+
+[] sh:equals atlas:targetRelease ;
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:targetClass atlas:NativeRelationAssertion .
+
+[] sh:class atlas:SourceRecord ;
+    sh:path rdf:subject ;
+    sh:targetClass atlas:SourceAssignment .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:object ;
+    sh:targetClass atlas:SourceAssignment .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:targetRelease ;
+    sh:targetClass atlas:SourceAssignment .
+
+[] sh:equals atlas:sourceRelease ;
+    sh:path ( rdf:subject atlas:inSourceRelease ) ;
+    sh:targetClass atlas:SourceAssignment .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceLocator ;
+    sh:targetClass atlas:SourceRelease .
+
+[] sh:equals atlas:targetRelease ;
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:targetClass atlas:SourceAssignment .
+
+[] sh:equals atlas:semanticRing ;
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:targetClass atlas:SourceAssignment .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:subject ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:class atlas:AtlasResource ;
+    sh:path rdf:object ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:sourceRelease ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:path atlas:targetRelease ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:disjoint atlas:targetRing ;
+    sh:path atlas:sourceRing ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:equals atlas:sourceRing ;
+    sh:path ( rdf:subject atlas:semanticRing ) ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:equals atlas:targetRing ;
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:equals atlas:sourceRelease ;
+    sh:path ( rdf:subject atlas:inRelease ) ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:identifier ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:equals atlas:targetRelease ;
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:targetClass atlas:CrossRingRelationAssertion .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class atlas:RelationAssertion ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:bindsAssertion ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:class atlas:SourceRecord ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:evidenceSourceRecord ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:evidenceSourceDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:attestor ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:in ( rkaf:humanUser rkaf:aiModel rkaf:aiAgent rkaf:automatedParser rkaf:team rkaf:organization rkaf:community rkaf:formalReviewer rkaf:conceptMintingAuthority ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:attestorKind ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:issued ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:hasValue rkaf:approved ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:decision ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:class atlas:ResourceScheme ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:inScheme ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:attestedAt ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:in ( rkaf:humanAsserted rkaf:aiSuggested rkaf:imported rkaf:deterministicExtraction ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:assertionOrigin ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:in ( rkaf:sourceExplicit rkaf:deterministicDerivation rkaf:statisticalInference rkaf:editorialAssertion rkaf:userAssertion ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:epistemicBasis ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:in ( rkaf:textualEvidence rkaf:structuralEvidence rkaf:retrievalSignal rkaf:authorityCitation rkaf:officialSourceMetadata rkaf:reviewedAuthorityChain rkaf:formalAdoptionEvent rkaf:mappingRationale rkaf:registrationEvent rkaf:rescissionEvidence ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:evidenceRole ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:resourceProfile ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:in ( rkaf:supports rkaf:qualifies rkaf:contradicts rkaf:definesScope rkaf:providesContext ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:evidentiaryFunction ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:class rkaf:EvidenceBinding ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:basedOnAttestation ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] sh:in ( rkaf:completeMembership rkaf:partialMembership rkaf:membershipNotEnumerated ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:membershipMode ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:contentDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:EvidenceBinding .
+
+[] rdf:first [ sh:property [ sh:hasValue rkaf:sourceExplicit ;
+                    sh:path rkaf:epistemicBasis ],
+                [ sh:hasValue rkaf:officialSourceMetadata ;
+                    sh:path rkaf:evidenceRole ],
+                [ sh:hasValue rkaf:imported ;
+                    sh:path rkaf:assertionOrigin ],
+                [ sh:maxCount 0 ;
+                    sh:path rkaf:basedOnAttestation ] ] ;
+    rdf:rest ( [ sh:property [ sh:hasValue rkaf:deterministicDerivation ;
+                        sh:path rkaf:epistemicBasis ],
+                    [ sh:hasValue rkaf:structuralEvidence ;
+                        sh:path rkaf:evidenceRole ],
+                    [ sh:hasValue rkaf:deterministicExtraction ;
+                        sh:path rkaf:assertionOrigin ],
+                    [ sh:maxCount 0 ;
+                        sh:path rkaf:basedOnAttestation ] ] [ sh:property [ sh:hasValue rkaf:humanAsserted ;
+                        sh:path rkaf:assertionOrigin ],
+                    [ sh:hasValue rkaf:humanUser ;
+                        sh:path rkaf:attestorKind ],
+                    [ sh:hasValue rkaf:editorialAssertion ;
+                        sh:path rkaf:epistemicBasis ],
+                    [ sh:hasValue rkaf:textualEvidence ;
+                        sh:path rkaf:evidenceRole ],
+                    [ sh:maxCount 0 ;
+                        sh:path rkaf:basedOnAttestation ] ] [ sh:property [ sh:hasValue rkaf:editorialAssertion ;
+                        sh:path rkaf:epistemicBasis ],
+                    [ sh:hasValue rkaf:formalAdoptionEvent ;
+                        sh:path rkaf:evidenceRole ],
+                    [ sh:hasValue rkaf:imported ;
+                        sh:path rkaf:assertionOrigin ] ] [ sh:property [ sh:hasValue rkaf:aiSuggested ;
+                        sh:path rkaf:assertionOrigin ],
+                    [ sh:hasValue rkaf:statisticalInference ;
+                        sh:path rkaf:epistemicBasis ],
+                    [ sh:hasValue rkaf:reviewedAuthorityChain ;
+                        sh:path rkaf:evidenceRole ],
+                    [ sh:maxCount 0 ;
+                        sh:path rkaf:basedOnAttestation ] ] [ sh:property [ sh:hasValue rkaf:deterministicDerivation ;
+                        sh:path rkaf:epistemicBasis ],
+                    [ sh:hasValue rkaf:authorityCitation ;
+                        sh:path rkaf:evidenceRole ],
+                    [ sh:hasValue rkaf:imported ;
+                        sh:path rkaf:assertionOrigin ],
+                    [ sh:maxCount 0 ;
+                        sh:path rkaf:basedOnAttestation ] ] ) .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class atlas:RelationAssertion ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:appliesTo ;
+    sh:targetClass rkaf:LifecycleEvent .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:lifecycleEventKind ;
+    sh:targetClass rkaf:LifecycleEvent .
+
+[] sh:class atlas:AtlasResource ;
+    sh:nodeKind sh:IRI ;
+    sh:path prov:hadMember ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:effectiveDate ;
+    sh:targetClass rkaf:LifecycleEvent .
+
+[] sh:class atlas:Release ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:fromRelease ;
+    sh:targetClass rkaf:LifecycleEvent .
+
+[] sh:class atlas:Release ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:toRelease ;
+    sh:targetClass rkaf:LifecycleEvent .
+
+[] sh:class atlas:SourceRecord ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRecord ;
+    sh:targetClass rkaf:LifecycleEvent .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:hasArtifactIdentifier ;
+    sh:targetClass rkaf:Artifact .
+
+[] sh:in ( rkaf:partner-defined ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:artifactIdentifierScheme ;
+    sh:targetClass rkaf:Artifact .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:hasContentDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:Artifact .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:hasValue rkaf:machineAdjudicationProof ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:proofType ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:class rkaf:ResolverProofIssuer ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:proofIssuer ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:class rkaf:RelationComparisonContext ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:proofComparisonContext ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:in ( rkaf:gatePass rkaf:gateFail rkaf:gateUnknown ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:proofOutcome ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofRationale ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:proofInput ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofInputDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofEvaluatedAt ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofSnapshot ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofRecordDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:class rkaf:AILineage ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:hasAILineage ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:independenceGroup ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:in ( rkaf:verdictSame rkaf:verdictNearSame rkaf:verdictTargetBroader rkaf:verdictTargetNarrower rkaf:verdictRelated ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:adjudicationVerdict ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:sealedRequestDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:sealedResponseArtifact ;
+    sh:targetClass rkaf:ResolverProofRecord .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:proofResolver ;
+    sh:targetClass rkaf:ResolverProofIssuer .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofResolverVersion ;
+    sh:targetClass rkaf:ResolverProofIssuer .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:proofPolicy ;
+    sh:targetClass rkaf:ResolverProofIssuer .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:proofPolicyVersion ;
+    sh:targetClass rkaf:ResolverProofIssuer .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:modelId ;
+    sh:targetClass rkaf:AILineage .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:modelVersion ;
+    sh:targetClass rkaf:AILineage .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:promptTemplateRef ;
+    sh:targetClass rkaf:AILineage .
+
+[] sh:datatype xsd:decimal ;
+    sh:maxCount 1 ;
+    sh:maxInclusive 2.0 ;
+    sh:minCount 1 ;
+    sh:minInclusive 0.0 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:temperature ;
+    sh:targetClass rkaf:AILineage .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:inputContextHash ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass rkaf:AILineage .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class rkaf:Artifact ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonBaselineArtifact ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:class rkaf:Artifact ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonObservedArtifact ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:class atlas:RelationAssertion ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonExpectedAssertion ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonConsumer ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonScope ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:comparisonEvaluationTime ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:comparisonPolicyVersion ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonDetector ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:comparisonDetectorVersion ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:comparisonSnapshot ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:in ( rkaf:comparisonSatisfied rkaf:comparisonAffirmedDeniedDiscrepancy rkaf:comparisonConflict rkaf:comparisonNotComparable rkaf:comparisonUnknown ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path rkaf:comparisonOutcome ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] sh:class rkaf:ResolverProofRecord ;
+    sh:nodeKind sh:IRI ;
+    sh:path rkaf:comparisonProofRecord ;
+    sh:targetClass rkaf:RelationComparisonContext .
+
+[] rdf:first rdf:type ;
+    rdf:rest ( rdfs:label ) .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:relationSubject ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:relationPredicate ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:relationObject ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRing ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:targetRing ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:supportingAssertion ;
+    sh:targetClass atlas:ProjectedRelation .
+
+[] rdf:first rdf:type ;
+    rdf:rest ( rdfs:label ) .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:relationSubject ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:relationPredicate ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:relationObject ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:derivedFromAssertion ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:derivationRule ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:engine ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:engineVersion ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path rkaf:inputDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:generatedAt ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:contentDigest ;
+    sh:pattern "^sha256:[0-9a-f]{64}$" ;
+    sh:targetClass atlas:DerivedRelation .
+
+[] sh:equals atlas:resourceProfile ;
+    sh:path ( atlas:inScheme atlas:resourceProfile ) ;
+    sh:targetClass atlas:AtlasRelease .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:resourceProfile ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:class atlas:RegistrySource ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceDescriptor ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:nodeKind sh:IRI ;
+    sh:path atlas:supportedRing ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:datatype rdf:JSON ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:descriptorPayload ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:maxCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:identifier ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:maxCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:title ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:class atlas:ResourceScheme ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:collectionMember ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:datatype xsd:string ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:validationRule ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:recordStatus ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:identifier ;
+    sh:targetClass atlas:RegistrySource .
+
+[] sh:nodeKind sh:Literal ;
+    sh:or _:n13868ad72e2c4c74af223288dce22543b3 ;
+    sh:path atlas:definition ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:nodeKind sh:Literal ;
+    sh:or _:n13868ad72e2c4c74af223288dce22543b3 ;
+    sh:path atlas:note ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:datatype xsd:dateTime ;
+    sh:lessThanOrEquals atlas:validUntil ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:validFrom ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:validUntil ;
+    sh:targetClass atlas:ResourceScheme .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path dcterms:title ;
+    sh:targetClass atlas:RegistrySource .
+
+[] rdf:first rdf:type ;
+    rdf:rest () .
+
+[] sh:class atlas:AtlasRelease ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:inRelease ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:class atlas:ResourceScheme ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:inScheme ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:semanticRing ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:resourceProfile ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:class atlas:SourceRecord ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path atlas:sourceRecord ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:datatype xsd:string ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:notation ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:minLength 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:recordStatus ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:nodeKind sh:Literal ;
+    sh:or _:n13868ad72e2c4c74af223288dce22543b3 ;
+    sh:path atlas:definition ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:nodeKind sh:Literal ;
+    sh:or _:n13868ad72e2c4c74af223288dce22543b3 ;
+    sh:path atlas:note ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:datatype rdf:JSON ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:descriptorPayload ;
+    sh:targetClass atlas:RegistrySource .
+
+[] sh:datatype xsd:integer ;
+    sh:maxCount 1 ;
+    sh:minInclusive 0 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:componentPosition ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:datatype xsd:dateTime ;
+    sh:lessThanOrEquals atlas:validUntil ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:validFrom ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:datatype xsd:dateTime ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:path atlas:validUntil ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:class skos:ConceptScheme ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path skos:inScheme ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:class skosxl:Label ;
+    sh:disjoint skosxl:altLabel,
+        skosxl:hiddenLabel ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:path skosxl:prefLabel ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:class skosxl:Label ;
+    sh:disjoint skosxl:hiddenLabel ;
+    sh:nodeKind sh:IRI ;
+    sh:path skosxl:altLabel ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:class skosxl:Label ;
+    sh:nodeKind sh:IRI ;
+    sh:path skosxl:hiddenLabel ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:minCount 1 ;
+    sh:path [ sh:alternativePath ( skosxl:prefLabel skosxl:altLabel skosxl:hiddenLabel ) ] ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:datatype xsd:string ;
+    sh:in ( "assignmentEvidenceOnly" "childReleaseOnly" "definitionOnly" "historicalEvidenceOnly" "mappingAssertionsOnly" "memberRelease" "noPublisherRecord" "resourceFamily" "reviewWithheld" ) ;
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path atlas:memberDisposition ;
+    sh:targetClass atlas:RegistrySource .
+
+[] sh:maxCount 0 ;
+    sh:path skos:prefLabel ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:maxCount 0 ;
+    sh:path skos:altLabel ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:maxCount 0 ;
+    sh:path skos:hiddenLabel ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:equals atlas:inScheme ;
+    sh:path ( atlas:inRelease atlas:inScheme ) ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+[] sh:equals atlas:semanticRing ;
+    sh:path ( atlas:inRelease atlas:semanticRing ) ;
+    sh:targetClass atlas:AtlasResource,
+        atlas:EntityResource,
+        atlas:LegalIdentityResource,
+        atlas:SubjectConcept,
+        atlas:ValueResource .
+
+_:n13868ad72e2c4c74af223288dce22543b1 sh:datatype rdf:langString .
+
+_:n13868ad72e2c4c74af223288dce22543b2 sh:datatype xsd:string .
+
+_:n13868ad72e2c4c74af223288dce22543b4 rdf:first _:n13868ad72e2c4c74af223288dce22543b2 ;
+    rdf:rest () .
+
+_:n13868ad72e2c4c74af223288dce22543b3 rdf:first _:n13868ad72e2c4c74af223288dce22543b1 ;
+    rdf:rest _:n13868ad72e2c4c74af223288dce22543b4 .
+

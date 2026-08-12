@@ -1,0 +1,10 @@
+Validation Report
+Conforms: False
+Results (1):
+Constraint Violation in ClosedConstraintComponent (http://www.w3.org/ns/shacl#ClosedConstraintComponent):
+	Severity: sh:Violation
+	Source Shape: atlas:AtlasResourceShape
+	Focus Node: <http://eurovoc.europa.eu/08133>
+	Value Node: Literal("x")
+	Result Path: atlas:undeclaredProperty
+	Message: Node <http://eurovoc.europa.eu/08133> is closed. It cannot have value: Literal("x")

@@ -1,0 +1,15 @@
+#!/bin/zsh
+# Which shape carries the full-scale cost. Each run pays the same parse, so the
+# spread between runs is the shape's own validation cost.
+# Heap capped at 12g: the -Xmx24g run let G1 expand into a machine already
+# swapping, which is not a release-runner configuration anyone should copy.
+SPIKE="${0:A:h:h}"
+DATA="${DATA:-$SPIKE/data/full/view.nt}"
+export JVM_ARGS="${JVM_ARGS:--Xmx12g}"
+for s in "$@"; do
+  print "=== $s ==="
+  /usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$SPIKE/shapes/only-$s.ttl" \
+    --data "$DATA" > "$SPIKE/out/jena-only-$s.ttl" 2> "$SPIKE/out/jena-only-$s.time"
+  grep -o "sh:conforms *[a-z]*" "$SPIKE/out/jena-only-$s.ttl"
+  grep -E "^real|^user" "$SPIKE/out/jena-only-$s.time"
+done

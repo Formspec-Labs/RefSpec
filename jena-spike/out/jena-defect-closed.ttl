@@ -1,0 +1,24 @@
+PREFIX atlas:   <https://refspec.org/ns/atlas/v3#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX owl:     <http://www.w3.org/2002/07/owl#>
+PREFIX prov:    <http://www.w3.org/ns/prov#>
+PREFIX rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rkaf:    <https://rulespec.org/ns/v1#>
+PREFIX sh:      <http://www.w3.org/ns/shacl#>
+PREFIX skos:    <http://www.w3.org/2004/02/skos/core#>
+PREFIX skosxl:  <http://www.w3.org/2008/05/skos-xl#>
+PREFIX xsd:     <http://www.w3.org/2001/XMLSchema#>
+
+[ rdf:type     sh:ValidationReport;
+  sh:conforms  false;
+  sh:result    [ rdf:type                      sh:ValidationResult;
+                 sh:focusNode                  <http://eurovoc.europa.eu/08133>;
+                 sh:resultMessage              "Closed[http://www.w3.org/2004/02/skos/core#hiddenLabel, https://refspec.org/ns/atlas/v3#inRelease, https://refspec.org/ns/atlas/v3#recordStatus, https://refspec.org/ns/atlas/v3#sourceRecord, https://refspec.org/ns/atlas/v3#componentPosition, https://refspec.org/ns/atlas/v3#notation, https://refspec.org/ns/atlas/v3#definition, http://www.w3.org/2004/02/skos/core#inScheme, https://refspec.org/ns/atlas/v3#inScheme, https://refspec.org/ns/atlas/v3#validUntil, https://refspec.org/ns/atlas/v3#note, https://refspec.org/ns/atlas/v3#resourceProfile, http://www.w3.org/2004/02/skos/core#prefLabel, https://refspec.org/ns/atlas/v3#validFrom, http://www.w3.org/2008/05/skos-xl#prefLabel, http://www.w3.org/2004/02/skos/core#altLabel, http://www.w3.org/2008/05/skos-xl#hiddenLabel, https://refspec.org/ns/atlas/v3#semanticRing, http://www.w3.org/2008/05/skos-xl#altLabel][http://www.w3.org/1999/02/22-rdf-syntax-ns#type] Property = <https://refspec.org/ns/atlas/v3#undeclaredProperty> : Object = \"x\"";
+                 sh:resultPath                 atlas:undeclaredProperty;
+                 sh:resultSeverity             sh:Violation;
+                 sh:sourceConstraintComponent  sh:ClosedConstraintComponent;
+                 sh:sourceShape                atlas:AtlasResourceShape;
+                 sh:value                      "x"
+               ]
+] .

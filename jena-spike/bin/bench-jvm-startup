@@ -1,0 +1,12 @@
+#!/bin/zsh
+# The fixed cost a subprocess pays that an in-process engine does not:
+# JVM boot + Jena class load + shapes-graph parse, measured against an empty
+# data file so nothing else is in the number.
+set -e
+SPIKE="${0:A:h:h}"
+SHAPES=/Users/mikewolfd/Work/spicy-regs/RefSpec/bindings/atlas/3.1/shapes/atlas.shacl.ttl
+: > "$SPIKE/data/empty.nt"
+for i in 1 2 3; do
+  /usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" \
+    --data "$SPIKE/data/empty.nt" > /dev/null
+done

@@ -1,0 +1,9 @@
+#!/bin/zsh
+# Repeat the staging Jena run so the headline number is a mean, not one sample.
+set -e
+SPIKE="${0:A:h:h}"
+SHAPES=/Users/mikewolfd/Work/spicy-regs/RefSpec/bindings/atlas/3.1/shapes/atlas.shacl.ttl
+for i in 1 2 3 4 5; do
+  /usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" \
+    --data "$SPIKE/data/staging/view.nt" > /dev/null
+done

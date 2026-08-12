@@ -1,0 +1,10 @@
+#!/bin/zsh
+# Jena SHACL over each injected-defect view. Wall time is printed per run.
+set -e
+SPIKE="${0:A:h:h}"
+SHAPES=/Users/mikewolfd/Work/spicy-regs/RefSpec/bindings/atlas/3.1/shapes/atlas.shacl.ttl
+for d in xone cardinality closed both; do
+  print "=== defect: $d ==="
+  /usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" \
+    --data "$SPIKE/data/staging/view-defect-$d.nt" > "$SPIKE/out/jena-defect-$d.ttl"
+done

@@ -1,0 +1,21 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix spike:  <urn:spike:shapes#> .
+
+# atlas:SkosXlLabelShape with its two sh:class property constraints removed, so
+# the only work per focus node is a literal check. If this is fast at full scale
+# while the unmodified shape is not, sh:class is where the time goes.
+spike:LiteralFormOnlyShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:nodeKind sh:IRI ;
+  sh:property [
+    sh:path skosxl:literalForm ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1 ;
+    sh:datatype rdf:langString ;
+    sh:languageIn ( "en" )
+  ] .

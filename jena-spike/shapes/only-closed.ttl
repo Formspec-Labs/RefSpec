@@ -1,0 +1,25 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix spike:  <urn:spike:shapes#> .
+
+# only-literalform.ttl plus the one thing the earlier probes were missing:
+# sh:closed. Both sh:class constraints are gone, so if THIS is slow at full
+# scale, sh:closed is the super-linear term -- which is also the constraint
+# validate.py's _batched_shacl_plan already lifts out of pySHACL
+# (_ClosedShapePlan), for the same reason.
+spike:ClosedOnlyShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path skosxl:literalForm ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal
+  ] ;
+  sh:property [ sh:path atlas:inRelease ] ;
+  sh:property [ sh:path atlas:sourceRecord ] .

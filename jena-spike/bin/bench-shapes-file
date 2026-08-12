@@ -1,0 +1,10 @@
+#!/bin/zsh
+# Time one shapes file against the full-scale view.
+# Usage: bench-shapes-file <shapes.ttl>
+SPIKE="${0:A:h:h}"
+export JVM_ARGS="${JVM_ARGS:--Xmx16g}"
+/usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$1" \
+  --data "$SPIKE/data/full/view.nt" > "$SPIKE/out/jena-probe.ttl" 2> "$SPIKE/out/jena-probe.time"
+grep -o "sh:conforms *[a-z]*" "$SPIKE/out/jena-probe.ttl"
+grep -cE "sh:ValidationResult" "$SPIKE/out/jena-probe.ttl"
+grep -E "^real|^user" "$SPIKE/out/jena-probe.time"

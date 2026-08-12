@@ -1,0 +1,14 @@
+#!/bin/zsh
+# Per-focus-node cost at full scale. Same parse, same shapes, one target node --
+# so (this run - a parse-only run) is what one focus node costs, and that times
+# the focus-node count is the projection the aborted whole-graph runs could not
+# give. Usage: bench-one-node <node-IRI-without-angle-brackets> [shapes-file]
+set -e
+SPIKE="${0:A:h:h}"
+SHAPES="${2:-$SPIKE/shapes/only-label.ttl}"
+export JVM_ARGS="${JVM_ARGS:--Xmx16g}"
+print "== parse only (riot in-memory load of the same file) =="
+/usr/bin/time -p "$SPIKE/bin/jena" riot --validate --syntax=ntriples "$SPIKE/data/full/view.nt" > /dev/null 2>/dev/null
+print "== one target node =="
+/usr/bin/time -p "$SPIKE/bin/jena" shacl validate --target "$1" --shapes "$SHAPES" \
+  --data "$SPIKE/data/full/view.nt" 2>&1 | grep -E "^real|^user|conforms"

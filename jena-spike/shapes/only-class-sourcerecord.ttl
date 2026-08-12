@@ -1,0 +1,19 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix spike:  <urn:spike:shapes#> .
+
+# Same 984,114 focus nodes as only-class.ttl, but the sh:class target is
+# atlas:SourceRecord (590,561 instances) instead of atlas:AtlasRelease (110).
+# If this is the slow one, Jena's sh:class cost tracks the size of the CLASS
+# EXTENSION, not the number of focus nodes.
+spike:ClassSourceRecordShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:property [
+    sh:path atlas:sourceRecord ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRecord
+  ] .

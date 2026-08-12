@@ -1,0 +1,10 @@
+#!/bin/zsh
+# Worktree-local Jena launcher: ./bin/jena <tool> [args...]
+# Nothing installed system-wide. JVM heap capped for a shared machine.
+SPIKE="${0:A:h:h}"
+export JAVA_HOME="$SPIKE/jdk-21.0.12+8/Contents/Home"
+export JENA_HOME="$SPIKE/apache-jena-6.2.0"
+export PATH="$JAVA_HOME/bin:$PATH"
+export JVM_ARGS="${JVM_ARGS:--Xmx7g}"
+tool="$1"; shift
+exec "$JENA_HOME/bin/$tool" "$@"

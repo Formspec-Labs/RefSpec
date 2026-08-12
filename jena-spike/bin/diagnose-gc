@@ -1,0 +1,8 @@
+#!/bin/zsh
+# Is the full-scale run constraint-bound or GC-bound? Run the CHEAPEST shape
+# (skosxl:Label -- three property constraints, no sequence or inverse paths)
+# over the full view with GC logging, and read the heap occupancy back.
+SPIKE="${0:A:h:h}"
+export JVM_ARGS="-Xmx16g -Xlog:gc:file=$SPIKE/out/gc.log:time,level,tags"
+exec "$SPIKE/bin/jena" shacl validate --shapes "$SPIKE/shapes/only-label.ttl" \
+  --data "$SPIKE/data/full/view.nt" > "$SPIKE/out/jena-gc-probe.ttl" 2>/dev/null

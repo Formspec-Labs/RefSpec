@@ -1,0 +1,15 @@
+@prefix atlas: <https://refspec.org/ns/atlas/v3#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+[] a sh:ValidationReport ;
+    sh:conforms false ;
+    sh:result [ a sh:ValidationResult ;
+            sh:focusNode <http://eurovoc.europa.eu/08133> ;
+            sh:resultMessage "Node <http://eurovoc.europa.eu/08133> is closed. It cannot have value: Literal(\"x\")" ;
+            sh:resultPath atlas:undeclaredProperty ;
+            sh:resultSeverity sh:Violation ;
+            sh:sourceConstraintComponent sh:ClosedConstraintComponent ;
+            sh:sourceShape atlas:AtlasResourceShape ;
+            sh:value "x" ] .
+

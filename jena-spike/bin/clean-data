@@ -1,0 +1,7 @@
+#!/bin/zsh
+# Drop the bulk intermediates (~18 GB). Scripts, shapes, reports and the
+# vendored JDK/Jena stay, so `bin/reproduce` still rebuilds everything.
+SPIKE="${0:A:h:h}"
+rm -f "$SPIKE"/data/*.nq "$SPIKE"/data/*.nt
+rm -rf "$SPIKE/data/full" "$SPIKE/data/staging"
+du -sh "$SPIKE"

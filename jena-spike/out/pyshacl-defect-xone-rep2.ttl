@@ -1,0 +1,14 @@
+@prefix atlas: <https://refspec.org/ns/atlas/v3#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+[] a sh:ValidationReport ;
+    sh:conforms false ;
+    sh:result [ a sh:ValidationResult ;
+            sh:focusNode <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46> ;
+            sh:resultMessage "Node <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46> must conform to exactly one shape in [ sh:property [ sh:hasValue rkaf:imported ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:officialSourceMetadata ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:sourceExplicit ; sh:path rkaf:epistemicBasis ], [ sh:maxCount Literal(\"0\", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:deterministicDerivation ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:deterministicExtraction ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:structuralEvidence ; sh:path rkaf:evidenceRole ], [ sh:maxCount Literal(\"0\", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:editorialAssertion ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:humanAsserted ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:humanUser ; sh:path rkaf:attestorKind ], [ sh:hasValue rkaf:textualEvidence ; sh:path rkaf:evidenceRole ], [ sh:maxCount Literal(\"0\", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:editorialAssertion ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:formalAdoptionEvent ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:imported ; sh:path rkaf:assertionOrigin ] ] , [ sh:property [ sh:hasValue rkaf:aiSuggested ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:reviewedAuthorityChain ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:statisticalInference ; sh:path rkaf:epistemicBasis ], [ sh:maxCount Literal(\"0\", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:authorityCitation ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:deterministicDerivation ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:imported ; sh:path rkaf:assertionOrigin ], [ sh:maxCount Literal(\"0\", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ]" ;
+            sh:resultSeverity sh:Violation ;
+            sh:sourceConstraintComponent sh:XoneConstraintComponent ;
+            sh:sourceShape atlas:EvidenceBindingShape ;
+            sh:value <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46> ] .
+

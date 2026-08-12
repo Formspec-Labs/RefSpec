@@ -1,0 +1,34 @@
+#!/bin/zsh
+# The cost a subprocess engine adds to the DEV loop, if Jena replaces pySHACL:
+# one JVM per fixture. The binding corpus is ~115 cases, and the plan's budget
+# gate warns >60s / fails >240s, so this fixed cost is priced against that gate.
+#
+# Three variants:
+#   cold   -- plain JVM start, shapes parsed from Turtle each time
+#   cds    -- same, with an AppCDS archive of the classes the first run loaded
+# Data is an empty graph so only the fixed cost is measured.
+set -e
+zmodload zsh/datetime
+SPIKE="${0:A:h:h}"
+SHAPES=/Users/mikewolfd/Work/spicy-regs/RefSpec/bindings/atlas/3.1/shapes/atlas.shacl.ttl
+: > "$SPIKE/data/empty.nt"
+N=${N:-10}
+
+print "== cold =="
+start=$EPOCHREALTIME
+for i in $(seq $N); do
+  "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" --data "$SPIKE/data/empty.nt" > /dev/null
+done
+end=$EPOCHREALTIME
+print "runs=$N total=$((end - start))s per_run=$(( (end - start) / N ))s"
+
+print "== AppCDS (auto-created archive) =="
+rm -f "$SPIKE/out/jena.jsa"
+export JVM_ARGS="-XX:+AutoCreateSharedArchive -XX:SharedArchiveFile=$SPIKE/out/jena.jsa"
+"$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" --data "$SPIKE/data/empty.nt" > /dev/null 2>&1 || true
+start=$EPOCHREALTIME
+for i in $(seq $N); do
+  "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" --data "$SPIKE/data/empty.nt" > /dev/null 2>&1
+done
+end=$EPOCHREALTIME
+print "runs=$N total=$((end - start))s per_run=$(( (end - start) / N ))s"

@@ -1,0 +1,15 @@
+Validation Report
+Conforms: False
+Results (2):
+Constraint Violation in MaxCountConstraintComponent (http://www.w3.org/ns/shacl#MaxCountConstraintComponent):
+	Severity: sh:Violation
+	Source Shape: [ sh:class skosxl:Label ; sh:disjoint skosxl:altLabel, skosxl:hiddenLabel ; sh:maxCount Literal("1", datatype=xsd:integer) ; sh:nodeKind sh:IRI ; sh:path skosxl:prefLabel ]
+	Focus Node: <http://eurovoc.europa.eu/08133>
+	Result Path: skosxl:prefLabel
+	Message: More than 1 values on <http://eurovoc.europa.eu/08133>->skosxl:prefLabel
+Constraint Violation in XoneConstraintComponent (http://www.w3.org/ns/shacl#XoneConstraintComponent):
+	Severity: sh:Violation
+	Source Shape: atlas:EvidenceBindingShape
+	Focus Node: <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46>
+	Value Node: <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46>
+	Message: Node <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46> must conform to exactly one shape in [ sh:property [ sh:hasValue rkaf:imported ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:officialSourceMetadata ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:sourceExplicit ; sh:path rkaf:epistemicBasis ], [ sh:maxCount Literal("0", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:deterministicDerivation ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:deterministicExtraction ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:structuralEvidence ; sh:path rkaf:evidenceRole ], [ sh:maxCount Literal("0", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:editorialAssertion ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:humanAsserted ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:humanUser ; sh:path rkaf:attestorKind ], [ sh:hasValue rkaf:textualEvidence ; sh:path rkaf:evidenceRole ], [ sh:maxCount Literal("0", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:editorialAssertion ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:formalAdoptionEvent ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:imported ; sh:path rkaf:assertionOrigin ] ] , [ sh:property [ sh:hasValue rkaf:aiSuggested ; sh:path rkaf:assertionOrigin ], [ sh:hasValue rkaf:reviewedAuthorityChain ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:statisticalInference ; sh:path rkaf:epistemicBasis ], [ sh:maxCount Literal("0", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ] , [ sh:property [ sh:hasValue rkaf:authorityCitation ; sh:path rkaf:evidenceRole ], [ sh:hasValue rkaf:deterministicDerivation ; sh:path rkaf:epistemicBasis ], [ sh:hasValue rkaf:imported ; sh:path rkaf:assertionOrigin ], [ sh:maxCount Literal("0", datatype=xsd:integer) ; sh:path rkaf:basedOnAttestation ] ]

@@ -1,0 +1,19 @@
+PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rkaf:  <https://rulespec.org/ns/v1#>
+PREFIX sh:    <http://www.w3.org/ns/shacl#>
+PREFIX spike: <urn:spike:shapes#>
+PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
+
+[ rdf:type     sh:ValidationReport;
+  sh:conforms  false;
+  sh:result    [ rdf:type                      sh:ValidationResult;
+                 sh:focusNode                  <urn:ref:atlas-evidence:0000f3200768271d91f0b753c7da39834b9bd930fc24cfab1dcfdb7c79af9b46>;
+                 sh:resultMessage              "warrant axis combination https://rulespec.org/ns/v1#imported|https://rulespec.org/ns/v1#sourceExplicit|https://rulespec.org/ns/v1#mappingRationale is not one of the six sanctioned warrants";
+                 sh:resultSeverity             sh:Violation;
+                 sh:sourceConstraint           spike:SparqlWarrantShape;
+                 sh:sourceConstraintComponent  sh:SPARQLConstraintComponent;
+                 sh:sourceShape                spike:SparqlWarrantShape;
+                 sh:value                      "https://rulespec.org/ns/v1#imported|https://rulespec.org/ns/v1#sourceExplicit|https://rulespec.org/ns/v1#mappingRationale"
+               ]
+] .

@@ -1,0 +1,68 @@
+#!/bin/zsh
+# Reproduce the whole spike from a clean worktree.
+#
+# Prerequisites downloaded into ./dl (nothing installed system-wide):
+#   apache-jena-6.2.0.tar.gz  sha512 verified against
+#     https://dlcdn.apache.org/jena/binaries/apache-jena-6.2.0.tar.gz.sha512
+#   temurin21.tar.gz  from
+#     https://api.adoptium.net/v3/binary/latest/21/ga/mac/aarch64/jdk/hotspot/normal/eclipse
+#     sha256 021d629349ebc12a409faa517b837ec80ceee8f58a5ac85c788ecad07ca6881c
+#   Jena 6.2.0 requires Java 21+; the machine's Homebrew JDK 17 is rejected
+#   with UnsupportedClassVersionError (class file 65 vs 61).
+#
+# Artifacts are read from the MAIN repo (worktrees do not carry output/) and
+# never mutated; everything this writes lands under ./data and ./out.
+set -e
+SPIKE="${0:A:h:h}"
+REPO=/Users/mikewolfd/Work/spicy-regs/RefSpec
+PY="$REPO/.venv/bin/python"
+STAGING="$REPO/output/atlas-3.1-mapping-topology-staging/distribution"
+FULL="$REPO/output/atlas-3.1-full-2026-08-12"
+SHAPES="$REPO/bindings/atlas/3.1/shapes/atlas.shacl.ttl"
+GRAPH=urn:ref:atlas:graph:v3:asserted
+mkdir -p "$SPIKE/data" "$SPIKE/out"
+
+print "== Q4 prep: zstdcat the packs =="
+"$PY" "$SPIKE/prep_dist.py" "$STAGING" "$SPIKE/data/staging-asserted.nq"
+
+print "== Q2 view: data triples + inoculate(ontology), pySHACL's own function =="
+"$PY" "$SPIKE/prep_view.py" "$GRAPH" "$SPIKE/data/staging-asserted.nq" "$SPIKE/data/staging"
+
+print "== Q1 riot parse rate =="
+"$SPIKE/bin/bench-riot" "$SPIKE/data/staging-asserted.nq"
+"$PY" "$SPIKE/rdflib_parse_bench.py" plain "$SPIKE/data/staging-asserted.nq"
+"$PY" "$SPIKE/rdflib_parse_bench.py" atlas  "$SPIKE/data/staging-asserted.nq"
+
+print "== Q2 parity on the conforming artifact -- both must say conforms=true =="
+/usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" \
+  --data "$SPIKE/data/staging/view.nt" > "$SPIKE/out/jena-staging-report.ttl"
+"$PY" "$SPIKE/pyshacl_run.py" "$SPIKE/data/staging/view.nt" "$SPIKE/out/pyshacl-staging-report.ttl"
+
+print "== Q2 control: drop the inoculated ontology, expect Jena to light up =="
+"$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" \
+  --data "$SPIKE/data/staging/data-triples.nt" > "$SPIKE/out/jena-no-ontology.ttl"
+grep -c "sh:ValidationResult" "$SPIKE/out/jena-no-ontology.ttl"
+
+print "== Q3 defect parity =="
+"$PY" "$SPIKE/inject_defects.py" "$SPIKE/data/staging/data-triples.nt" \
+  "$SPIKE/data/staging/ontology-inoculated.nt" "$SPIKE/data/staging"
+"$SPIKE/bin/run-jena-defects"
+"$SPIKE/bin/run-pyshacl-defects"
+for d in xone cardinality closed both; do
+  print "--- $d ---"
+  [ -f "$SPIKE/out/jena-defect-$d.ttl" ] || continue
+  "$PY" "$SPIKE/compare_reports.py" "$SPIKE/out/jena-defect-$d.ttl" "$SPIKE/out/pyshacl-defect-$d.ttl"
+done
+
+print "== the plan's SHACL-SPARQL question, benchmarked at scale =="
+/usr/bin/time -p "$SPIKE/bin/jena" shacl validate --shapes "$SPIKE/shapes/sparql-warrant.shacl.ttl" \
+  --data "$SPIKE/data/staging/view-defect-xone.nt" > "$SPIKE/out/jena-sparql-defect.ttl"
+SPIKE_PYSHACL_ADVANCED=1 "$PY" "$SPIKE/pyshacl_run.py" \
+  "$SPIKE/data/staging/view-defect-xone.nt" "$SPIKE/out/pyshacl-sparql-defect.ttl" \
+  "$SPIKE/shapes/sparql-warrant.shacl.ttl"
+
+print "== full scale (only with >25 GB free; writes ~12.4 GB of scratch) =="
+"$PY" "$SPIKE/prep_dist.py" "$FULL" "$SPIKE/data/full-asserted.nq"
+"$SPIKE/bin/bench-riot" "$SPIKE/data/full-asserted.nq"
+"$PY" "$SPIKE/prep_view.py" "$GRAPH" "$SPIKE/data/full-asserted.nq" "$SPIKE/data/full"
+"$SPIKE/bin/run-jena-full"

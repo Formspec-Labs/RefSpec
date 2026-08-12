@@ -1,0 +1,29 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix spike:  <urn:spike:shapes#> .
+
+# only-closed.ttl (42.5s at full scale) with ONE sh:class added. sh:closed alone
+# is fast, sh:class alone is fast (44-65s); this is the one pair never measured
+# together. Minimal delta, so a slow result names the interaction exactly.
+spike:ClosedPlusClassShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path skosxl:literalForm ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal
+  ] ;
+  sh:property [
+    sh:path atlas:inRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasRelease
+  ] ;
+  sh:property [ sh:path atlas:sourceRecord ] .

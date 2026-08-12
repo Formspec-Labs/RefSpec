@@ -1,0 +1,18 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix spike:  <urn:spike:shapes#> .
+
+# The complement of only-literalform.ttl: the same 984,114 skosxl:Label focus
+# nodes, one sh:class constraint and nothing else. Isolates sh:class as the
+# super-linear term.
+spike:ClassOnlyShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:property [
+    sh:path atlas:inRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasRelease
+  ] .

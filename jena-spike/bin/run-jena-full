@@ -1,0 +1,10 @@
+#!/bin/zsh
+# Full-scale (29.3M quad) Jena SHACL run over the exact validation view.
+# Heap is raised well past the 8 GB shared-machine cap only because free memory
+# was verified >25 GB first; drop JVM_ARGS back to -Xmx7g otherwise.
+set -e
+SPIKE="${0:A:h:h}"
+SHAPES=/Users/mikewolfd/Work/spicy-regs/RefSpec/bindings/atlas/3.1/shapes/atlas.shacl.ttl
+export JVM_ARGS="${JVM_ARGS:--Xmx24g}"
+/usr/bin/time -l "$SPIKE/bin/jena" shacl validate --shapes "$SHAPES" \
+  --data "$SPIKE/data/full/view.nt" > "$SPIKE/out/jena-full-report.ttl"

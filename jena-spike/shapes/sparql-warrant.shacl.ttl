@@ -1,0 +1,44 @@
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix rkaf:  <https://rulespec.org/ns/v1#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix spike: <urn:spike:shapes#> .
+
+# Synthetic SHACL-SPARQL shape, benchmarked at scale per the validation-cost
+# reset plan: "a synthetic sh:sparql shape is benchmarked at scale BEFORE
+# boundary-collapse move 2 commits to compiler-emitted SHACL-SPARQL, since that
+# is the one factor where Jena is first-class and pySHACL is weak."
+#
+# It restates the EvidenceBindingShape sh:xone as one SPARQL constraint: the
+# admissible (assertionOrigin, epistemicBasis, evidenceRole) combinations, closed
+# by a NOT IN over the six warrants. This is exactly the shape a CUE compiler
+# would emit for an axis-combination rule, and it is a real three-way join per
+# focus node over 29,365 focus nodes at staging.
+
+spike:SparqlWarrantShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:EvidenceBinding ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "warrant axis combination {?value} is not one of the six sanctioned warrants" ;
+    sh:prefixes spike:prefixes ;
+    sh:select """
+      SELECT $this ?value
+      WHERE {
+        $this rkaf:assertionOrigin ?origin ;
+              rkaf:epistemicBasis  ?basis ;
+              rkaf:evidenceRole    ?role .
+        BIND(CONCAT(STR(?origin), '|', STR(?basis), '|', STR(?role)) AS ?value)
+        FILTER(?value NOT IN (
+          "https://rulespec.org/ns/v1#imported|https://rulespec.org/ns/v1#sourceExplicit|https://rulespec.org/ns/v1#officialSourceMetadata",
+          "https://rulespec.org/ns/v1#deterministicExtraction|https://rulespec.org/ns/v1#deterministicDerivation|https://rulespec.org/ns/v1#structuralEvidence",
+          "https://rulespec.org/ns/v1#humanAsserted|https://rulespec.org/ns/v1#editorialAssertion|https://rulespec.org/ns/v1#textualEvidence",
+          "https://rulespec.org/ns/v1#imported|https://rulespec.org/ns/v1#editorialAssertion|https://rulespec.org/ns/v1#formalAdoptionEvent",
+          "https://rulespec.org/ns/v1#aiSuggested|https://rulespec.org/ns/v1#statisticalInference|https://rulespec.org/ns/v1#reviewedAuthorityChain",
+          "https://rulespec.org/ns/v1#imported|https://rulespec.org/ns/v1#deterministicDerivation|https://rulespec.org/ns/v1#authorityCitation"
+        ))
+      }
+      """
+  ] .
+
+spike:prefixes
+  sh:declare [ sh:prefix "rkaf" ; sh:namespace "https://rulespec.org/ns/v1#"^^xsd:anyURI ] .

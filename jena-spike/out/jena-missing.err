@@ -1,0 +1,18 @@
+Error loading data/does-not-exist.nt
+org.apache.jena.riot.RiotNotFoundException: Not found: data/does-not-exist.nt
+	at org.apache.jena.riot.RDFParser.openTypedInputStream(RDFParser.java:476)
+	at org.apache.jena.riot.RDFParser.parseURI(RDFParser.java:363)
+	at org.apache.jena.riot.RDFParser.parse(RDFParser.java:357)
+	at org.apache.jena.riot.RDFParserBuilder.parse(RDFParserBuilder.java:493)
+	at org.apache.jena.riot.RDFDataMgr.parseFromURI(RDFDataMgr.java:564)
+	at org.apache.jena.riot.RDFDataMgr.read(RDFDataMgr.java:192)
+	at org.apache.jena.riot.RDFDataMgr.read(RDFDataMgr.java:134)
+	at shacl.shacl_validate.lambda$load$0(shacl_validate.java:151)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at shacl.shacl_validate.load(shacl_validate.java:149)
+	at shacl.shacl_validate.exec(shacl_validate.java:121)
+	at org.apache.jena.cmd.CmdMain.mainMethod(CmdMain.java:101)
+	at org.apache.jena.cmd.CmdMain.mainRun(CmdMain.java:64)
+	at org.apache.jena.cmd.CmdMain.mainRun(CmdMain.java:52)
+	at shacl.shacl_validate.main(shacl_validate.java:71)
+	at shacl.shacl.main(shacl.java:78)

@@ -1,0 +1,19 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+[] a sh:ValidationReport ;
+    sh:conforms false ;
+    sh:result [ a sh:ValidationResult ;
+            sh:focusNode <http://eurovoc.europa.eu/08133> ;
+            sh:resultMessage "More than 1 values on <http://eurovoc.europa.eu/08133>->skosxl:prefLabel" ;
+            sh:resultPath skosxl:prefLabel ;
+            sh:resultSeverity sh:Violation ;
+            sh:sourceConstraintComponent sh:MaxCountConstraintComponent ;
+            sh:sourceShape [ sh:class skosxl:Label ;
+                    sh:disjoint skosxl:altLabel,
+                        skosxl:hiddenLabel ;
+                    sh:maxCount 1 ;
+                    sh:nodeKind sh:IRI ;
+                    sh:path skosxl:prefLabel ] ] .
+

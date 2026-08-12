@@ -1,0 +1,41 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+
+# atlas:SkosXlLabelShape copied VERBATIM from atlas.shacl.ttl, standing alone --
+# no other shape in the graph. Every constraint in it was individually fast at
+# full scale (42-65s), and the only slow runs were ones where the whole shapes
+# graph was loaded. If this is fast, the cost tracks the SHAPES GRAPH, not this
+# shape's constraints.
+atlas:SkosXlLabelShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path skosxl:literalForm ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1 ;
+    sh:datatype rdf:langString ;
+    sh:languageIn ( "en" ) ;
+    sh:message "Atlas 3.1 label literals MUST use the English language tag @en."
+  ] ;
+  sh:property [
+    sh:path atlas:inRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasRelease
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRecord ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRecord
+  ] .

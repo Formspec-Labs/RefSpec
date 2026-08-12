@@ -1,0 +1,5 @@
+data/
+dl/
+jdk-21.0.12+8/
+apache-jena-6.2.0/
+__pycache__/

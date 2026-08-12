@@ -1,0 +1,10 @@
+#!/bin/zsh
+# pySHACL over each injected-defect view, same settings as validate.py.
+set -e
+SPIKE="${0:A:h:h}"
+PY=/Users/mikewolfd/Work/spicy-regs/RefSpec/.venv/bin/python
+for d in xone cardinality closed both; do
+  print "=== defect: $d ==="
+  "$PY" "$SPIKE/pyshacl_run.py" "$SPIKE/data/staging/view-defect-$d.nt" \
+    "$SPIKE/out/pyshacl-defect-$d.ttl"
+done

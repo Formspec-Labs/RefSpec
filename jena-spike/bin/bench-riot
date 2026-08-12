@@ -1,0 +1,10 @@
+#!/bin/zsh
+# Q1: riot streaming parse rate. `--validate` streams, so memory stays flat
+# regardless of scale -- this is the number to compare against rdflib's.
+set -e
+SPIKE="${0:A:h:h}"
+for f in "$@"; do
+  print "=== $f ==="
+  /usr/bin/time -l "$SPIKE/bin/jena" riot --validate --time --syntax=nquads "$f" 2>&1 \
+    | grep -E "per second|real|maximum resident"
+done
