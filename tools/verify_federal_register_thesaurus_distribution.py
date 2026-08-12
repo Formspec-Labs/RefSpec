@@ -1,4 +1,4 @@
-"""Reconcile a bounded Atlas 3.0 distribution with the pinned thesaurus PDF.
+"""Reconcile a bounded Atlas 3.1 distribution with the pinned thesaurus PDF.
 
 The release job publishes one governed scheme, the April 1, 2025 Federal
 Register Thesaurus, and has to answer one question afterwards: do the published
@@ -14,10 +14,11 @@ and cannot state what it dropped.
 
 The distribution end is measured from the published bytes. The manifest,
 supporting members, and pack inventory are authenticated against an external
-manifest digest, then every compact record pack is authenticated and read.
-Resource, label, and statement identities are counted from those rows -- not
-copied from the producer's own receipt inside the artifact, which is the
-producer's claim rather than an independent reading of it.
+manifest digest; the served Parquet view beside it is authenticated against its
+own external view-manifest digest, and every table is then read. Resource,
+label, and statement identities are counted from those rows -- not copied from
+the producer's own receipt inside the artifact, which is the producer's claim
+rather than an independent reading of it.
 
 Both ends are then compared as sets, so a distribution that carries the right
 number of wrong rows fails. Any difference is written to the receipt and exits
@@ -33,8 +34,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from refspec.atlas.compact_pack import read_compact_record_pack
-from refspec.atlas.parquet_view import verify_atlas_parquet_source_metadata
+import pyarrow.parquet as pq
+
+from refspec.atlas.compact_pack import CompactRecordRole
+from refspec.atlas.parquet_tables import TABLE_DIRECTORY, TABLE_NAMES
+from refspec.atlas.parquet_view import (
+    verify_atlas_parquet_source_metadata,
+    verify_atlas_parquet_view,
+)
 from refspec.atlas.v3_registry_vocabularies import (
     DEFAULT_SOURCE_ROOT,
     load_federal_register_2025_release,
@@ -111,6 +118,8 @@ def source_occurrence_ledger(source_root: Path) -> dict[str, Any]:
 def _measure_distribution(
     distribution: Path,
     expected_manifest_digest: str,
+    parquet_view: Path,
+    expected_view_manifest_digest: str,
 ) -> dict[str, Any]:
     """Read the published bytes and count what they actually carry."""
 
@@ -118,32 +127,44 @@ def _measure_distribution(
         distribution,
         expected_manifest_digest,
     )
+    view_manifest = verify_atlas_parquet_view(
+        parquet_view,
+        expected_manifest_digest=expected_view_manifest_digest,
+    )
+    if view_manifest["input"]["manifestSha256"] != verified.manifest_digest:
+        raise BoundedReleaseVerificationError(
+            "the Parquet view was derived from a different distribution manifest"
+        )
     resources: set[str] = set()
     labels: set[tuple[str, str, str]] = set()
     statements: set[tuple[str, str, str]] = set()
     source_records: set[str] = set()
     releases: set[str] = set()
     label_roles: Counter[str] = Counter()
-    for descriptor in verified.compact_packs:
-        artifact = read_compact_record_pack(verified.root, descriptor)
-        role = str(descriptor["role"])
-        for row in artifact.rows:
-            if role == "Resource":
-                resources.add(row["id"])
-            elif role == "Label":
-                labels.add((row["resource"], row["labelRole"], row["value"]))
-                label_roles[row["labelRole"]] += 1
-            elif role == "Statement":
-                statements.add((row["subject"], row["predicate"], row["object"]))
-            elif role == "SourceRecord":
-                source_records.add(row["id"])
-            elif role == "Release":
-                releases.add(row["id"])
+    for role in CompactRecordRole:
+        table = pq.ParquetFile(parquet_view / TABLE_DIRECTORY / TABLE_NAMES[role])
+        for batch in table.iter_batches():
+            rows = batch.to_pylist()
+            if role is CompactRecordRole.RESOURCE:
+                resources.update(row["id"] for row in rows)
+            elif role is CompactRecordRole.LABEL:
+                for row in rows:
+                    labels.add((row["resource"], row["label_role"], row["value"]))
+                    label_roles[row["label_role"]] += 1
+            elif role is CompactRecordRole.STATEMENT:
+                statements.update(
+                    (row["subject"], row["predicate"], row["object"]) for row in rows
+                )
+            elif role is CompactRecordRole.SOURCE_RECORD:
+                source_records.update(row["id"] for row in rows)
+            elif role is CompactRecordRole.RELEASE:
+                releases.update(row["id"] for row in rows)
     return {
         "distributionId": verified.manifest["distributionId"],
         "labelRoleCounts": dict(sorted(label_roles.items())),
         "labels": labels,
         "manifestSha256": verified.manifest_digest,
+        "parquetViewId": view_manifest["viewId"],
         "releases": releases,
         "resources": resources,
         "sourceRecords": source_records,
@@ -169,6 +190,8 @@ def verify_distribution(
     distribution: Path,
     *,
     expected_manifest_digest: str,
+    parquet_view: Path,
+    expected_view_manifest_digest: str,
     source_root: Path,
 ) -> dict[str, Any]:
     """Reconcile the published distribution with the pinned publisher source."""
@@ -189,7 +212,12 @@ def verify_distribution(
         (relation.subject, relation.predicate, relation.object)
         for relation in release.relations
     }
-    measured = _measure_distribution(distribution, expected_manifest_digest)
+    measured = _measure_distribution(
+        distribution,
+        expected_manifest_digest,
+        parquet_view,
+        expected_view_manifest_digest,
+    )
 
     failures: list[str] = []
     _difference("concepts", expected_resources, measured["resources"], failures)
@@ -220,6 +248,11 @@ def verify_distribution(
             "manifestSha256": measured["manifestSha256"],
             "path": str(distribution),
         },
+        "parquetView": {
+            "path": str(parquet_view),
+            "viewId": measured["parquetViewId"],
+            "viewManifestSha256": expected_view_manifest_digest,
+        },
         "failures": failures,
         "labelRoleCounts": measured["labelRoleCounts"],
         "measuredCounts": counts,
@@ -236,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--distribution", type=Path, required=True)
     parser.add_argument("--expected-manifest-sha256", required=True)
+    parser.add_argument("--parquet-view", type=Path, required=True)
+    parser.add_argument("--expected-view-manifest-sha256", required=True)
     parser.add_argument("--source-root", type=Path, default=DEFAULT_SOURCE_ROOT)
     parser.add_argument(
         "--output",
@@ -247,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
         receipt = verify_distribution(
             args.distribution.resolve(),
             expected_manifest_digest=args.expected_manifest_sha256,
+            parquet_view=args.parquet_view.resolve(),
+            expected_view_manifest_digest=args.expected_view_manifest_sha256,
             source_root=args.source_root,
         )
     except (BoundedReleaseVerificationError, ValueError) as error:

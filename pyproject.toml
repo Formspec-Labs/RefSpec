@@ -20,7 +20,7 @@ dependencies = [
 
 [project.scripts]
 refspec-atlas-explorer = "refspec.atlas.explorer_cli:main"
-refspec-build-atlas-parquet-view = "refspec.atlas.parquet_view_cli:main"
+refspec-verify-atlas-parquet-view = "refspec.atlas.parquet_view_cli:main"
 refspec-build-atlas-search-view = "refspec.atlas.parquet_search_view_cli:main"
 refspec-validate-atlas-parquet = "refspec.atlas.parquet_preflight_cli:main"
 refspec-validate = "refspec.binding:main"
@@ -48,7 +48,7 @@ dev = [
     "ruff==0.16.0",
     # Six test modules import the Atlas 3.0 binding validator directly. It needs
     # these, and they are pinned to the exact versions in
-    # bindings/atlas/3.0/requirements.txt so the validator behaves identically
+    # bindings/atlas/3.1/requirements.txt so the validator behaves identically
     # under `make test-package` and under `make test-atlas-v3`.
     "owlrl==7.1.4",
     "pyshacl==0.31.0",

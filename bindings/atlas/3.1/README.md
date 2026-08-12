@@ -1,11 +1,11 @@
-# RefSpec Atlas 3.0
+# RefSpec Atlas 3.1
 
-Atlas 3.0 is an authority-first RDF profile for governed vocabularies,
+Atlas 3.1 is an authority-first RDF profile for governed vocabularies,
 code lists, identifier authorities, classifications, structural schemas, and
 related reference resources. It keeps the content-addressed release and proof
 discipline of Atlas 2.0 while making the semantic model explicit in RDF.
 
-Atlas 3.0 is a greenfield binding. It does not preserve the Atlas 1.0 or 2.0
+Atlas 3.1 is a greenfield binding. It does not preserve the Atlas 1.0 or 2.0
 wire format. A producer MUST NOT translate an older release silently and claim
 3.0 conformance.
 
@@ -44,7 +44,6 @@ supporting JSON files, one or more N-Quads packs, and no symlinks:
 | `atlas-acceptance.json` | acceptance | Passed validation gates and their evidence |
 | `atlas-producer-validation.json` | producer validation | Compiled producer checks pinned to this binding and release |
 | `atlas-construction-summary.json` | construction summary | Authenticated release-local build keys, inputs, dependencies, and pack receipts |
-| `packs/compact/**/*.jsonl.zst` | compact construction records | Non-authoritative logical records used to verify and reuse unchanged release units |
 
 The manifest MUST validate against
 [`schemas/atlas-manifest.schema.json`](schemas/atlas-manifest.schema.json).
@@ -52,9 +51,9 @@ The other JSON files MUST validate against their correspondingly named schemas.
 Every schema uses JSON Schema Draft 2020-12 and is closed to unknown fields.
 
 The manifest pins the exact ontology, SHACL shapes, core JSON Schemas, validator
-version, every RDF pack, and all four supporting JSON files. The construction
-summary transitively pins every compact construction pack. Its
-`bindingBundleDigest` additionally covers a sorted path, length, and digest
+version, every RDF pack, and all four supporting JSON files — in 3.1 that is
+the whole distribution, in one hop. Its `bindingBundleDigest` additionally
+covers a sorted path, length, and digest
 inventory of the ontology, shapes, every schema, registry profile map,
 conformance-corpus declaration, coverage proof, and real-registry descriptor
 dataset and proof, so a supporting binding asset cannot change invisibly.
@@ -93,22 +92,18 @@ identity independent from compression settings.
 The construction summary is not another semantic authority. It is a sealed
 index of how the authoritative RDF was built. For each source or mapping
 release it records the exact input pins, adapter recipe, endpoint dependencies,
-build key, source-accounting digest, owned RDF packs, compact logical-record
-packs, and role counts. An incremental producer MAY reuse a unit only after it
-verifies those receipts and independently recomputes the current pre-parse input
-pins and build key. A changed source invalidates its unit, every mapping unit
-that names it as an endpoint, and the shared catalog. Clean units bypass their
-source parser and graph constructors. The merged candidate MUST still pass the
-complete producer checks and reproduce the same bytes as a cold build for the
-same inputs.
+build key, source-accounting digest, owned RDF packs, and per-role logical
+record counts. Those counts are not the producer's own tally read back: the
+validator resolves every carrier in the asserted graph to the construction unit
+that owns it and recomputes them.
 
-Compact construction packs use closed `Resource`, `Label`, `Statement`,
+Logical records use the closed `Resource`, `Label`, `Statement`,
 `EvidenceBinding`, `SourceRecord`, `Release`, `Identifier`, and
-`LifecycleEvent` roles. Their canonical rows, defaults, dependencies, logical
-digest, uncompressed receipt, and stored-byte receipt are all authenticated by
-the construction summary. They remain non-authoritative until the separate
-compact-record cutover in REF-015; consumers continue to treat the RDF packs as
-the Atlas 3.0 knowledge base.
+`LifecycleEvent` roles. In 3.0 they also shipped as compact JSONL packs under
+`packs/compact/`; that wire is deleted. The served projection is now the typed
+Parquet view written beside the distribution (see
+[the Parquet view](../../../docs/atlas-parquet-view.md)), and consumers continue
+to treat the RDF packs as the Atlas 3.1 knowledge base.
 
 The manifest's `graphs` rows reconcile aggregate quad and pack counts. A graph
 `inventoryDigest` is SHA-256 over REF-canonical JSON containing the sorted list
@@ -338,7 +333,7 @@ SKOS-XL labels are canonical. Every label:
 4. identifies its exact Atlas release; and
 5. identifies the source record from which it was produced.
 
-Atlas 3.0 is English-only. Producers MUST omit non-English source labels from
+Atlas 3.1 is English-only. Producers MUST omit non-English source labels from
 the Atlas distribution and MUST NOT emit untagged label literals. The original
 source may remain multilingual outside the distribution and may be referenced
 by its exact locator and digest.
@@ -364,7 +359,7 @@ SKOS-XL labels and requires exact equality.
 
 Every relation assertion uses the standard RDF reification fields
 `rdf:subject`, `rdf:predicate`, and `rdf:object`. Rulespec's separation of
-proposition, evidence, and lifecycle informed this design, but Atlas 3.0 does
+proposition, evidence, and lifecycle informed this design, but Atlas 3.1 does
 not claim Rulespec record conformance: RefSpec's currently pinned Rulespec
 dependency is unpublished and explicitly ineligible for production
 conformance. A future Rulespec compatibility view MUST pin and validate an
@@ -558,19 +553,26 @@ recomputes every receipt. The file MUST include these gate names:
 - `machine-adjudication`
 - `source-accounting`
 - `projection-parity`
-- `explorer-reachability`
+- `record-ownership`
 - `reasoning-isolation`
 - `profile-conformance`
 
-`explorer-reachability` is a property of the distribution, not of any product
-built from it. The compact packs are the substrate the Parquet search view, its
-DuckDB session, and the explorer are all built from, so the gate requires the
-compact record identity of each role to equal the asserted graph's record
-identity for that role. It therefore refuses a record the served projection
-omits — one no filter, no search, and neither concept endpoint can ever reach
-— a record the projection carries that the distribution never asserted, and a
-record repeated across two packs. None of the three changes a role count, and
-the row sample reads only a fixed few positions per pack.
+`record-ownership` requires the per-release logical record counts the
+construction summary publishes to equal the counts recomputed from the asserted
+graph, release by release and role by role. Every carrier is resolved to the
+construction unit that owns it and tallied; a published count the graph does
+not support is refused. It replaces `explorer-reachability`, which held the
+same class of property over the compact JSONL packs the distribution no longer
+carries.
+
+The reachability property itself did not go away: the served projection is now
+the typed Parquet view beside the distribution, and full record-identity
+equality per role — both directions — is proved by the builder against that
+view, with the comparand still stated in `validate.py`
+(`_check_explorer_reachability`, `_rdf_record_ids_by_role`). A distribution's
+acceptance receipt no longer claims it, because the view is no longer a
+distribution member; the seal binds the view's manifest digest instead, so one
+signature still reaches both artifacts.
 
 Retrieval quality is deliberately **not** a gate here. Ranking is a property of
 a view built from a distribution and of the whole corpus's term statistics, not
@@ -621,8 +623,9 @@ The reference validator's gates, in the order it runs them:
    and require exact equality; otherwise verify its asserted preconditions;
 8. prove that allowlisted reasoning adds no assertion, projection record, or
    authoritative graph statement;
-9. authenticate every compact row, reconcile the compact record identity of
-   each role against the asserted graph's, and reconcile the sampled rows; and
+9. recompute every release's per-role logical record counts from the asserted
+   graph and require the construction summary's published counts to equal
+   them; and
 10. require the acceptance gate set; then, for binding validation, verify the
     sealed corpus, registry coverage report, and real-registry descriptor
     export.
@@ -651,22 +654,29 @@ by a private local authentication key. A missing, malformed, moved, or modified
 receipt is only a cache miss and triggers full validation. The cache directory
 must remain outside the distribution. If any pack or root input changes, the
 validator reparses the complete graph because the global checks above still
-need the cross-pack facts; compact per-pack receipts cannot safely replace
-those facts.
+need the cross-pack facts; per-pack receipts cannot safely replace those facts.
 
-A trusted writer MAY satisfy `shacl-data` with a compiled producer proof instead
-of running general SHACL over its own generated RDF. The proof MUST pin the
-exact ontology and SHACL-shape digests it implements, run meta-SHACL, validate
-the normalized source and evidence-backed mapping rows and their joins, and reconcile
-the fixed constructor counts with source accounting and exact pack receipts. It
-MUST fail closed when either binding pin changes. The current compiled profile
-admits source resources, English labels, identifiers, native and cross-ring
-relations, source assignments, and separately pinned explicit mappings with
-one or more approved evidence bindings. Projections, derived relations,
-inferred mappings, and supersession remain absent.
+A trusted writer satisfies `shacl-data` by validating the normalized source and
+evidence-backed mapping rows and their joins and reconciling the fixed
+constructor counts with source accounting and exact pack receipts. The current
+constructor profile admits source resources, English labels, identifiers,
+native and cross-ring relations, source assignments, and separately pinned
+explicit mappings with one or more approved evidence bindings. Projections,
+derived relations, inferred mappings, and supersession remain absent.
 
-The generation report distinguishes this compiled producer proof from
-independent consumer validation. A consumer does not inherit the writer's trust
+`atlas-producer-validation.json` is a **receipt, not a proof**, and 3.1 says so
+by deleting what it used to claim. The 3.0 wire carried
+`shaclDataProof: compiledAgainstPinnedOntologyAndShapes`,
+`shaclMetaValidation`, an `implementationDigest` the producer compared against
+its own constant, and an eight-line `checks` prose list. The first passed while
+these shapes rejected 2,003 evidence bindings; none of the four were checkable
+by an independent reader. What is left is what the producer can actually show:
+which constructor profile ran, what it counted, and which exact serialized
+bytes those counts belong to. Semantic conformance is the independent
+validator's verdict, and only that.
+
+The generation report distinguishes this producer receipt from independent
+consumer validation. A consumer does not inherit the writer's trust
 or resident state: `validate_distribution` still decompresses and parses the
 files, runs normative SHACL and the global semantic checks, and recomputes every
 receipt. The conformance tests compare representative output from every current

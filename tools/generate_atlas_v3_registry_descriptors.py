@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate or verify the Atlas 3.0 RDF descriptors for the RefSpec registry."""
+"""Generate or verify the Atlas 3.1 RDF descriptors for the RefSpec registry."""
 
 from __future__ import annotations
 
@@ -18,23 +18,23 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 
 ROOT = Path(__file__).resolve().parents[1]
-BINDING_TOOLS = ROOT / "bindings" / "atlas" / "3.0" / "tools"
+BINDING_TOOLS = ROOT / "bindings" / "atlas" / "3.1" / "tools"
 sys.path.insert(0, str(BINDING_TOOLS))
-from rdf_canonical import nquads_line, ntriples_term
+from rdf_canonical import nquads_line
 
 from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
 INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
-PROFILES = ROOT / "bindings" / "atlas" / "3.0" / "registry-resource-profiles.json"
-DATASET_OUTPUT = ROOT / "bindings" / "atlas" / "3.0" / "tests" / "registry-descriptors.nq"
-PROOF_OUTPUT = ROOT / "bindings" / "atlas" / "3.0" / "tests" / "registry-descriptors.json"
+PROFILES = ROOT / "bindings" / "atlas" / "3.1" / "registry-resource-profiles.json"
+DATASET_OUTPUT = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.nq"
+PROOF_OUTPUT = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.json"
 
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 GRAPH_IRI = URIRef("urn:ref:atlas-v3:registry-descriptors")
-EXPORT_FORMAT = "refspec-atlas-registry-descriptors/3.0"
-PROFILE_FORMAT = "refspec-atlas-registry-resource-profiles/3.0"
-SCHEMA_VERSION = "3.0"
+EXPORT_FORMAT = "refspec-atlas-registry-descriptors/3.1"
+PROFILE_FORMAT = "refspec-atlas-registry-resource-profiles/3.1"
+SCHEMA_VERSION = "3.1"
 RESOURCE_PROFILES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )
@@ -193,7 +193,7 @@ def _validated_inputs(
     if index.get("resourceCatalogDigest") != catalog_digest:
         _fail("atlas index does not pin the supplied resource catalog digest")
     if profiles.get("format") != PROFILE_FORMAT or profiles.get("schemaVersion") != SCHEMA_VERSION:
-        _fail("registry resource profiles must use the Atlas 3.0 profile format")
+        _fail("registry resource profiles must use the Atlas 3.1 profile format")
     if profiles.get("namespace") != str(ATLAS):
         _fail(f"registry resource profiles must use namespace {ATLAS}")
 
@@ -242,7 +242,7 @@ def _validated_inputs(
         kind = _string(raw_resource.get("resourceKind"), f"{location}.resourceKind")
         _string(raw_resource.get("title"), f"{location}.title")
         if kind not in profile_for_kind:
-            _fail(f"resource kind {kind!r} has no Atlas 3.0 profile")
+            _fail(f"resource kind {kind!r} has no Atlas 3.1 profile")
         resources[resource_id] = raw_resource
         catalog_kinds.add(kind)
     if catalog_kinds != set(profile_for_kind):
@@ -283,19 +283,6 @@ def scheme_iri(resource_id: str) -> URIRef:
 
 def source_descriptor_iri(resource_id: str) -> URIRef:
     return URIRef("urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~"))
-
-
-def rdf_node_digest(graph: Graph, node: URIRef) -> str:
-    """Digest sorted outgoing predicate-object N-Triples pairs, excluding the digest."""
-
-    rows = sorted(
-        f"{ntriples_term(predicate)} {ntriples_term(obj)} ."
-        for predicate, obj in graph.predicate_objects(node)
-        if predicate != ATLAS.contentDigest
-    )
-    if not rows:
-        _fail(f"resource scheme {node} has no digestible RDF statements")
-    return "sha256:" + hashlib.sha256(("\n".join(rows) + "\n").encode("utf-8")).hexdigest()
 
 
 def serialize_nquads(graph: Graph) -> bytes:
@@ -344,7 +331,6 @@ def build_registry_descriptors(
                 Literal(canonical_json_bytes(resource).decode("utf-8"), datatype=RDF.JSON),
             )
         )
-        graph.add((source_node, ATLAS.contentDigest, Literal(rdf_node_digest(graph, source_node))))
 
         # A mapping-only source owns evidence-bearing assertions, not members.
         # REF-014 allows a registry source to supply no ResourceScheme.
@@ -367,7 +353,6 @@ def build_registry_descriptors(
         graph.add((node, ATLAS.sourceDescriptor, source_node))
         for ring in sorted(rings_by_resource.get(resource_id, set())):
             graph.add((node, ATLAS.supportedRing, ATLAS[ring]))
-        graph.add((node, ATLAS.contentDigest, Literal(rdf_node_digest(graph, node))))
 
     dataset = serialize_nquads(graph)
     resource_ids = sorted(resources)
@@ -435,14 +420,14 @@ def main() -> int:
         proof_value = json.loads(proof)
         counts = proof_value["counts"]
         print(
-            "Atlas 3.0 registry descriptors are current: "
+            "Atlas 3.1 registry descriptors are current: "
             f"{counts['resourceSchemeCount']} schemes, "
             f"{counts['atlasIndexPlacementCount']} index placements, "
             f"{counts['quadCount']} quads"
         )
         return 0
     except (RegistryDescriptorError, OSError, TypeError, ValueError) as error:
-        print(f"Atlas 3.0 registry descriptor error: {error}", file=sys.stderr)
+        print(f"Atlas 3.1 registry descriptor error: {error}", file=sys.stderr)
         return 1
 
 

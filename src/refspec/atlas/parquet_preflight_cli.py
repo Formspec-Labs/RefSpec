@@ -12,7 +12,7 @@ from refspec.atlas.parquet_preflight import validate_atlas_parquet_preflight
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--distribution", type=Path, required=True, help="Atlas 3.0 distribution directory")
+    parser.add_argument("--distribution", type=Path, required=True, help="Atlas 3.1 distribution directory")
     parser.add_argument("--view", type=Path, required=True, help="derived Atlas Parquet view directory")
     parser.add_argument(
         "--distribution-manifest-digest",

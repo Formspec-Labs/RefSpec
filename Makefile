@@ -3,7 +3,7 @@
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 
-# No default. The prior default (output/atlas-3.0-full-2026-08-07-ring-audit)
+# No default. The prior default (output/atlas-3.1-full-2026-08-07-ring-audit)
 # is retired: HEAD's binding refuses that distribution's constructorProfile
 # (see plans/validation-cost-reset-plan.md). Callers must name a distribution
 # that validates under HEAD.
@@ -21,8 +21,8 @@ generate:
 	uv run python tools/generate_atlas_index.py --write
 	uv run python tools/generate_atlas_v3_registry_coverage.py --write
 	uv run python tools/generate_atlas_v3_registry_descriptors.py --write
-	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
-		python bindings/atlas/3.0/tools/build_fixtures.py
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/build_fixtures.py
 
 # The last step here also MATERIALIZES the Atlas 3.0 case tree. Those 8,339
 # files are generated and gitignored, so on a cold checkout that rebuild writes
@@ -38,8 +38,8 @@ check-generated:
 	uv run python tools/generate_atlas_v3_registry_coverage.py --check
 	uv run python tools/generate_atlas_v3_registry_descriptors.py --check
 	uv run python tools/build_registry_source_manifest.py --check
-	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
-		python bindings/atlas/3.0/tools/build_fixtures.py --check
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/build_fixtures.py --check
 
 # `test-atlas-v3` is deliberately absent. `test-package` already runs the
 # identical command inside
@@ -58,12 +58,12 @@ test: lint check-generated audit-registry-inventory test-json-binding test-packa
 # Build the Atlas 3.0 case tree if, and only if, it is not there. `--check`
 # both builds and proves (against `fixtures-receipt.json`), so the cold path
 # gets its ~9s build and the warm path pays one directory test. Anything that
-# reads `bindings/atlas/3.0/fixtures/valid|invalid` should depend on this.
+# reads `bindings/atlas/3.1/fixtures/valid|invalid` should depend on this.
 atlas-v3-fixtures:
-	@if [ ! -d bindings/atlas/3.0/fixtures/valid ]; then \
+	@if [ ! -d bindings/atlas/3.1/fixtures/valid ]; then \
 		echo "Atlas 3.0 fixtures absent (generated, gitignored); building once"; \
-		uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
-			python bindings/atlas/3.0/tools/build_fixtures.py --check; \
+		uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+			python bindings/atlas/3.1/tools/build_fixtures.py --check; \
 	fi
 
 # First, because it is the cheapest gate in the pipeline (~1s against ~1.7min).
@@ -119,13 +119,13 @@ test-json-binding:
 		python bindings/json/1.0/tools/validate.py
 
 test-atlas-v3: atlas-v3-fixtures
-	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
-		python bindings/atlas/3.0/tools/validate.py
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/validate.py
 
 audit-atlas-v3-source-fidelity:
 	@if [ -z "$(ATLAS_V3_AUDIT_ROOT)" ]; then \
 		echo "error: ATLAS_V3_AUDIT_ROOT is unset. The old default" >&2; \
-		echo "(output/atlas-3.0-full-2026-08-07-ring-audit) was retired:" >&2; \
+		echo "(output/atlas-3.1-full-2026-08-07-ring-audit) was retired:" >&2; \
 		echo "HEAD's binding refuses that distribution's constructorProfile" >&2; \
 		echo "(see plans/validation-cost-reset-plan.md). Set" >&2; \
 		echo "ATLAS_V3_AUDIT_ROOT explicitly to a distribution that" >&2; \
@@ -136,7 +136,7 @@ audit-atlas-v3-source-fidelity:
 	if [ ! -f "$$audit_distribution/atlas-manifest.json" ]; then \
 		audit_distribution="$$audit_distribution/distribution"; \
 	fi; \
-	uv run --with-requirements bindings/atlas/3.0/requirements.txt \
+	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
 		python tools/verify_atlas_source_fidelity.py \
 		--distribution "$$audit_distribution" \
 		--source-root "$(ATLAS_V3_AUDIT_SOURCE_ROOT)" \
@@ -154,27 +154,33 @@ audit-atlas-v3-source-fidelity:
 # byte and the manifest digest below stays an external pin rather than a
 # reading of whatever happens to be on disk.
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
-ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.0-federal-register-thesaurus-2025-04-01
+ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.1-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= d5c198b8f0be73ce58adf64765501ca254741e830e7af7e87488a6844c04f1e4
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= 9f1f379e6edb03c0a1e15188e3dfd698d555296da2b814879f8562dcfa5cf9ee
+# The served Parquet view is a separate sealed artifact with its own external
+# pin; the seal payload binds both digests, and the view manifest names this
+# distribution manifest back.
+ATLAS_FR_RELEASE_VIEW_SHA256 ?= 638fd2bd25555848efa535d4e22cd9324bb0dc2cf1c258f5977f2397e50a6668
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
 
 release-atlas-federal-register-thesaurus:
-	uv run --with-requirements bindings/atlas/3.0/requirements.txt \
+	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
 		python tools/generate_atlas_v3_full.py \
 		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
 		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
 
 # Reads both ends and compares them: the exact publisher PDF, whose occurrence
 # ledger is the only place the source-side count exists, and the published
-# bytes, counted from authenticated compact packs rather than from the
+# bytes, counted from the authenticated Parquet tables rather than from the
 # producer's own receipt inside the artifact.
 verify-atlas-federal-register-thesaurus:
-	uv run --with-requirements bindings/atlas/3.0/requirements.txt \
+	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
 		python tools/verify_federal_register_thesaurus_distribution.py \
 		--distribution "$(ATLAS_FR_RELEASE_ROOT)/distribution" \
 		--expected-manifest-sha256 "$(ATLAS_FR_RELEASE_MANIFEST_SHA256)" \
+		--parquet-view "$(ATLAS_FR_RELEASE_ROOT)/parquet-view" \
+		--expected-view-manifest-sha256 "$(ATLAS_FR_RELEASE_VIEW_SHA256)" \
 		--source-root "$(ATLAS_FR_RELEASE_SOURCE_ROOT)" \
 		--output "$(ATLAS_FR_RELEASE_RECEIPT)"

@@ -303,7 +303,7 @@ def test_opm_plum_real_cache_publishes_only_closed_non_person_values() -> None:
 def test_large_loader_bindings_match_catalog_index_and_profile_map() -> None:
     catalog = json.loads((ROOT / "portfolio/resource-catalog-v0.json").read_bytes())
     atlas_index = json.loads((ROOT / "portfolio/atlas-index-v0.json").read_bytes())
-    profile_map = json.loads((ROOT / "bindings/atlas/3.0/registry-resource-profiles.json").read_bytes())
+    profile_map = json.loads((ROOT / "bindings/atlas/3.1/registry-resource-profiles.json").read_bytes())
     catalog_by_id = {row["resourceId"]: row for row in catalog["resources"]}
     index_by_id = {
         row["resourceId"]: row for row in atlas_index["rows"] if row["resourceId"] in large.LARGE_REGISTRY_BINDINGS

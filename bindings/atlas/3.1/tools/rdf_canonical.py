@@ -14,7 +14,7 @@ ABSOLUTE_IRI_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:[^\s]+$")
 # implements this exact credentials check as `absolute_uri_issue`. It is not
 # imported here: the Atlas binding tools are deliberately independent of the
 # RefSpec package (see validate.py's module docstring) so a consumer can copy
-# the `bindings/atlas/3.0` directory and validate a distribution offline
+# the `bindings/atlas/3.1` directory and validate a distribution offline
 # without the rest of this repository. There is no import cycle to break --
 # just a self-containment boundary this module must not cross -- so the
 # equivalent check is inlined below instead of reusing the helper directly. It

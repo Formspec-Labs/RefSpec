@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -10,11 +9,9 @@ import pytest
 from rdflib import Namespace
 
 from refspec.atlas.compact_pack import (
-    CompactPackHeader,
     CompactRecordRole,
     compact_record_fields,
-    read_compact_record_pack,
-    write_compact_record_pack,
+    normalize_compact_record,
 )
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
 from refspec.atlas.explorer import (
@@ -44,7 +41,6 @@ from refspec.atlas.parquet_search_view import (
     verify_atlas_parquet_search_view,
 )
 from refspec.atlas.parquet_tables import (
-    TABLE_NAMES,
     TABLE_SCHEMAS,
     AtlasParquetTableWriter,
     column_name,
@@ -52,10 +48,8 @@ from refspec.atlas.parquet_tables import (
     unpreserved_record_fields,
 )
 from refspec.atlas.parquet_view import (
-    BUILDER_SOURCE_REPRESENTATION,
     VIEW_SCHEMA_VERSION,
     AtlasParquetViewError,
-    build_atlas_parquet_view,
     seal_atlas_parquet_view,
     verify_atlas_parquet_view,
 )
@@ -78,6 +72,32 @@ _D3 = "sha256:" + "3" * 64
 _D4 = "sha256:" + "4" * 64
 
 
+#: The rows each fixture distribution's served view carries, keyed by that
+#: distribution's resolved path. The builder stages these tables during its own
+#: graph walk; a test has no graph, so it re-stages them on demand.
+_STAGED_RECORDS: dict[str, dict[CompactRecordRole, list[Mapping[str, object]]]] = {}
+
+
+def _stage_tables(source: Path, staged: Path) -> None:
+    writer = AtlasParquetTableWriter(staged)
+    try:
+        for role, records in _STAGED_RECORDS[str(source.resolve())].items():
+            for record in records:
+                writer.add(role, normalize_compact_record(role, record))
+        writer.close()
+    except BaseException:
+        writer.__exit__()
+        raise
+
+
+def _seal_view(source: Path, output: Path, *, expected_manifest_digest: str) -> dict[str, object]:
+    """Stage this fixture's tables the way the builder does, then seal them."""
+
+    staged = output.parent / f".{output.name}.staged-tables"
+    _stage_tables(source, staged)
+    return seal_atlas_parquet_view(source, staged, output, expected_manifest_digest=expected_manifest_digest)
+
+
 def _payload_digest(value: object) -> str:
     return "sha256:" + hashlib.sha256(canonical_json_bytes(value)[:-1]).hexdigest()
 
@@ -92,6 +112,7 @@ def _write_json(path: Path, value: dict[str, object]) -> bytes:
 def _fixture_distribution(
     root: Path,
     *,
+    staged_tables: Path | None = None,
     source_native_payload: Mapping[str, object] | None = None,
     source_digest: str = _D3,
     include_alias: bool = False,
@@ -194,7 +215,7 @@ def _fixture_distribution(
             "contentDigest": _D3,
         },
     }
-    compact_packs = []
+    records_by_role: dict[CompactRecordRole, list[Mapping[str, object]]] = {}
     for role, row in rows.items():
         records = [row]
         if include_alias and role is CompactRecordRole.LABEL:
@@ -210,25 +231,16 @@ def _fixture_distribution(
                     "contentDigest": _D3,
                 }
             )
-        inventory = write_compact_record_pack(
-            root,
-            CompactPackHeader(role=role.value, path=f"packs/compact/{role.value.casefold()}.jsonl.zst"),
-            records,
-            compression_level=1,
-        )
-        compact_packs.append(inventory.to_dict())
-    compact_packs.sort(key=lambda row: row["path"])
+        records_by_role[role] = records
+    _STAGED_RECORDS[str(root.resolve())] = records_by_role
     empty_inventory_digest = _payload_digest([])
     binding_digest = "sha256:" + "a" * 64
     summary: dict[str, object] = {
         "assertedInventoryDigest": empty_inventory_digest,
         "bindingBundleDigest": binding_digest,
-        "compactPackCount": len(compact_packs),
-        "compactPackInventoryDigest": sha256_digest(canonical_json_bytes(compact_packs)),
-        "compactPacks": compact_packs,
         "distributionId": "urn:test:atlas-distribution",
         "type": "AtlasConstructionSummary",
-        "version": "3.0",
+        "version": "3.1",
     }
     summary["canonicalPayloadDigest"] = _payload_digest(summary)
     summary_raw = _write_json(root / "atlas-construction-summary.json", summary)
@@ -247,7 +259,7 @@ def _fixture_distribution(
         "counts": {},
         "createdAt": "2026-08-07T00:00:00+00:00",
         "distributionId": "urn:test:atlas-distribution",
-        "format": "refspec-atlas-packed-nquads-3.0",
+        "format": "refspec-atlas-packed-nquads-3.1",
         "graphs": [
             {
                 "id": "urn:ref:atlas:graph:v3:asserted",
@@ -273,7 +285,7 @@ def _fixture_distribution(
         ],
         "members": [member],
         "packs": [],
-        "schemaVersion": "3.0",
+        "schemaVersion": "3.1",
         "type": "AtlasManifest",
     }
     manifest["canonicalPayloadDigest"] = _payload_digest(manifest)
@@ -287,7 +299,7 @@ def test_builds_and_verifies_typed_lossless_logical_view(tmp_path: Path) -> None
     source_pin = _fixture_distribution(source)
     output = tmp_path / "view"
 
-    manifest = build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    manifest = _seal_view(source, output, expected_manifest_digest=source_pin)
 
     assert set(manifest["counts"]) == {role.value for role in CompactRecordRole}
     assert set(manifest["counts"].values()) == {1}
@@ -359,7 +371,7 @@ def test_registry_claim_bundle_round_trips_through_atlas_parquet(
         source_digest=source_digest,
     )
     atlas_view = tmp_path / "atlas-parquet"
-    manifest = build_atlas_parquet_view(
+    manifest = _seal_view(
         source,
         atlas_view,
         expected_manifest_digest=atlas_pin,
@@ -394,7 +406,7 @@ def test_warrant_columns_carry_every_axis_and_the_optional_referent(
     source.mkdir()
     source_pin = _fixture_distribution(source)
     output = tmp_path / "view"
-    manifest = build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    manifest = _seal_view(source, output, expected_manifest_digest=source_pin)
 
     schema = pq.read_schema(output / "tables/evidence-bindings.parquet")
     warrant_columns = (
@@ -417,10 +429,10 @@ def test_warrant_columns_carry_every_axis_and_the_optional_referent(
     assert row["evidence_role"] == "urn:test:role"
     assert row["evidentiary_function"] == "urn:test:function"
     assert row["based_on_attestation"] is None
-    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "2.0"
+    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.0"
 
 
-def test_logical_records_preserved_is_computed_from_the_compact_contract() -> None:
+def test_logical_records_preserved_is_computed_from_the_record_contract() -> None:
     """The manifest claim is derived, so it cannot outlive its truth.
 
     Every field a compact record can carry must have a column. Drop one and
@@ -453,7 +465,7 @@ def test_native_payload_column_is_the_literal_lexical_bytes(tmp_path: Path) -> N
         source_digest=sha256_digest(expected),
     )
     output = tmp_path / "view"
-    build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    _seal_view(source, output, expected_manifest_digest=source_pin)
 
     row = pq.read_table(output / "tables/source-records.parquet").to_pylist()[0]
     assert row["native_payload"] == expected
@@ -461,47 +473,13 @@ def test_native_payload_column_is_the_literal_lexical_bytes(tmp_path: Path) -> N
     assert hashlib.sha256(row["native_payload"]).digest() == row["source_digest"]
 
 
-def test_the_builder_and_the_compact_path_write_the_same_tables(tmp_path: Path) -> None:
-    """The staged-table seal is the same view the compact derivation makes.
-
-    Stage B deletes the compact JSONL wire and with it
-    `build_atlas_parquet_view`'s record source. This is what makes that
-    deletion safe to take: the writer both producers share turns the same
-    logical records into the same bytes, so the builder's tables are not a
-    second implementation to re-prove.
-    """
-
-    source = tmp_path / "atlas"
-    source.mkdir()
-    source_pin = _fixture_distribution(source)
-    derived = tmp_path / "derived"
-    build_atlas_parquet_view(source, derived, expected_manifest_digest=source_pin)
-
-    staged = tmp_path / "staged"
-    staged.mkdir()
-    writer = AtlasParquetTableWriter(staged)
-    for descriptor in json.loads((source / "atlas-construction-summary.json").read_bytes())["compactPacks"]:
-        role = CompactRecordRole(descriptor["role"])
-        writer.extend(role, read_compact_record_pack(source, descriptor).rows)
-    writer.close()
-    sealed = tmp_path / "sealed"
-    manifest = seal_atlas_parquet_view(source, staged, sealed, expected_manifest_digest=source_pin)
-
-    for role in CompactRecordRole:
-        name = f"tables/{role.value.casefold()}"  # only used for the failure message
-        assert (sealed / f"tables/{TABLE_NAMES[role]}").read_bytes() == (
-            derived / f"tables/{TABLE_NAMES[role]}"
-        ).read_bytes(), name
-    assert manifest["construction"]["sourceRepresentation"] == BUILDER_SOURCE_REPRESENTATION
-    assert manifest["counts"] == json.loads((derived / "view-manifest.json").read_bytes())["counts"]
-
 
 def test_rebuild_is_byte_stable(tmp_path: Path) -> None:
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
-    first = build_atlas_parquet_view(source, tmp_path / "first", expected_manifest_digest=source_pin)
-    second = build_atlas_parquet_view(source, tmp_path / "second", expected_manifest_digest=source_pin)
+    first = _seal_view(source, tmp_path / "first", expected_manifest_digest=source_pin)
+    second = _seal_view(source, tmp_path / "second", expected_manifest_digest=source_pin)
     assert first == second
     assert [row["sha256"] for row in first["members"]] == [row["sha256"] for row in second["members"]]
 
@@ -511,10 +489,10 @@ def test_refuses_input_manifest_drift_and_output_tampering(tmp_path: Path) -> No
     source.mkdir()
     source_pin = _fixture_distribution(source)
     with pytest.raises(AtlasParquetViewError, match="digest differs"):
-        build_atlas_parquet_view(source, tmp_path / "wrong", expected_manifest_digest=_D1)
+        _seal_view(source, tmp_path / "wrong", expected_manifest_digest=_D1)
 
     output = tmp_path / "view"
-    build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    _seal_view(source, output, expected_manifest_digest=source_pin)
     view_pin = sha256_digest((output / "view-manifest.json").read_bytes())
     with (output / "tables/resources.parquet").open("ab") as stream:
         stream.write(b"tamper")
@@ -528,13 +506,13 @@ def test_refuses_extra_input_or_view_member(tmp_path: Path) -> None:
     source_pin = _fixture_distribution(source)
     (source / "extra.txt").write_text("extra")
     with pytest.raises(AtlasParquetViewError, match="membership is not closed"):
-        build_atlas_parquet_view(source, tmp_path / "view", expected_manifest_digest=source_pin)
+        _seal_view(source, tmp_path / "view", expected_manifest_digest=source_pin)
 
     source = tmp_path / "atlas-2"
     source.mkdir()
     source_pin = _fixture_distribution(source)
     output = tmp_path / "view-2"
-    build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    _seal_view(source, output, expected_manifest_digest=source_pin)
     view_pin = sha256_digest((output / "view-manifest.json").read_bytes())
     (output / "extra.txt").write_text("extra")
     with pytest.raises(AtlasParquetViewError, match="membership is not closed"):
@@ -546,7 +524,7 @@ def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: 
     source.mkdir()
     source_pin = _fixture_distribution(source)
     full = tmp_path / "full"
-    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    _seal_view(source, full, expected_manifest_digest=source_pin)
     full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
 
     compact = tmp_path / "compact"
@@ -581,7 +559,7 @@ def test_search_view_refuses_a_label_member_without_canonical_label_id(tmp_path:
     source.mkdir()
     source_pin = _fixture_distribution(source)
     full = tmp_path / "full"
-    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    _seal_view(source, full, expected_manifest_digest=source_pin)
     full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
     compact = tmp_path / "compact"
     manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
@@ -611,7 +589,7 @@ def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
     source.mkdir()
     source_pin = _fixture_distribution(source)
     full = tmp_path / "full"
-    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    _seal_view(source, full, expected_manifest_digest=source_pin)
     full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
     compact = tmp_path / "compact"
     build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
@@ -627,7 +605,7 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
     source.mkdir()
     source_pin = _fixture_distribution(source, include_alias=True)
     full = tmp_path / "full"
-    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    _seal_view(source, full, expected_manifest_digest=source_pin)
     full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
     compact = tmp_path / "compact"
     build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
@@ -709,7 +687,7 @@ def test_search_view_matches_whole_tokens_only(tmp_path: Path) -> None:
     source.mkdir()
     source_pin = _fixture_distribution(source, include_alias=True)
     full = tmp_path / "full"
-    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    _seal_view(source, full, expected_manifest_digest=source_pin)
     full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
     compact = tmp_path / "compact"
     build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)

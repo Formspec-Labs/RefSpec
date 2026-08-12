@@ -19,7 +19,7 @@ from rdflib import Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF, SH, SKOS, XSD
 
 ROOT = Path(__file__).resolve().parents[1]
-BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.0"
+BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
 VALID_DISTRIBUTION = BINDING_ROOT / "fixtures" / "valid" / "all-resource-profiles"
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 RKAF = Namespace("https://rulespec.org/ns/v1#")
@@ -58,216 +58,9 @@ def _sha256(payload: bytes) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
-def test_independent_compact_reader_replays_all_authenticated_receipts(
-    tmp_path: Path,
-) -> None:
-    from refspec.atlas.compact_pack import CompactPackHeader, build_compact_record_pack
-
-    artifact = build_compact_record_pack(
-        CompactPackHeader(
-            role="Resource",
-            path="packs/compact/source/resource.jsonl.zst",
-        ),
-        [
-            {
-                "contentDigest": _sha256(b"resource-rdf-facts"),
-                "id": "urn:ref:atlas-test:resource:one",
-                "release": "urn:ref:atlas-test:release:one",
-                "resourceProfile": "conceptScheme",
-                "scheme": "urn:ref:atlas-test:scheme:one",
-                "semanticRing": "subject",
-                "sourceRecord": "urn:ref:atlas-test:source-record:one",
-            }
-        ],
-    )
-    target = tmp_path / artifact.inventory.path
-    target.parent.mkdir(parents=True)
-    target.write_bytes(artifact.transport)
-
-    observed = atlas_validate._read_compact_pack(
-        tmp_path,
-        artifact.inventory.to_dict(),
-    )
-
-    assert observed.rows == artifact.rows
-    assert observed.full_summary == artifact.global_invariant_summary
-
-    streamed: list[Mapping[str, Any]] = []
-    streamed_observed = atlas_validate._read_compact_pack(
-        tmp_path,
-        artifact.inventory.to_dict(),
-        retain_rows=False,
-        row_consumer=streamed.append,
-    )
-
-    assert streamed_observed.rows == ()
-    assert tuple(streamed) == artifact.rows
-    assert streamed_observed.full_summary == artifact.global_invariant_summary
 
 
-@pytest.mark.parametrize(
-    ("record_count", "expected"),
-    (
-        (0, frozenset()),
-        (1, frozenset({0})),
-        (3, frozenset({0, 1, 2})),
-        (100, frozenset({0, 24, 49, 74, 99})),
-    ),
-)
-def test_compact_rdf_sample_is_bounded_stable_and_spread_across_each_pack(
-    record_count: int,
-    expected: frozenset[int],
-) -> None:
-    assert atlas_validate._compact_sample_indices(record_count) == expected
 
-
-@pytest.mark.parametrize(
-    ("role", "filename", "row"),
-    (
-        (
-            "Statement",
-            "statement",
-            {
-                "assertedAt": "2026-08-06T00:00:00+00:00",
-                "assertionIdentityDigest": "sha256:" + "1" * 64,
-                "id": "urn:ref:atlas-test:statement:new",
-                "object": "urn:ref:atlas-test:resource:two",
-                "policy": "urn:ref:atlas-test:policy:one",
-                "predicate": str(SKOS.related),
-                "semanticRing": "subject",
-                "sourceRelease": "urn:ref:atlas-test:release:one",
-                "statementType": "NativeRelationAssertion",
-                "subject": "urn:ref:atlas-test:resource:one",
-                "supersedesAssertion": "urn:ref:atlas-test:statement:old",
-                "targetRelease": "urn:ref:atlas-test:release:one",
-            },
-        ),
-        (
-            "LifecycleEvent",
-            "lifecycle-event",
-            {
-                "effectiveDate": "2026-08-06T00:00:00+00:00",
-                "appliesTo": "urn:ref:atlas-test:resource:one",
-                "lifecycleEventKind": "urn:ref:atlas-test:event-type:retired",
-                "fromRelease": "urn:ref:atlas-test:release:one",
-                "id": "urn:ref:atlas-test:lifecycle-event:one",
-                "sourceRecords": [
-                    "urn:ref:atlas-test:source-record:one",
-                    "urn:ref:atlas-test:source-record:two",
-                ],
-                "toRelease": "urn:ref:atlas-test:release:two",
-            },
-        ),
-    ),
-)
-def test_independent_compact_reader_supports_complete_lossless_roles(
-    tmp_path: Path,
-    role: str,
-    filename: str,
-    row: dict[str, Any],
-) -> None:
-    from refspec.atlas.compact_pack import CompactPackHeader, build_compact_record_pack
-
-    artifact = build_compact_record_pack(
-        CompactPackHeader(
-            role=role,
-            path=f"packs/compact/source/{filename}.jsonl.zst",
-        ),
-        [row],
-    )
-    target = tmp_path / artifact.inventory.path
-    target.parent.mkdir(parents=True)
-    target.write_bytes(artifact.transport)
-
-    observed = atlas_validate._read_compact_pack(
-        tmp_path,
-        artifact.inventory.to_dict(),
-    )
-
-    assert observed.rows == artifact.rows
-    assert observed.full_summary == artifact.global_invariant_summary
-
-
-@pytest.mark.parametrize(
-    ("role", "row", "expected"),
-    (
-        (
-            "Statement",
-            {
-                "id": "urn:statement:new",
-                "subject": "urn:resource:one",
-                "object": "urn:resource:two",
-                "sourceRelease": "urn:release:one",
-                "targetRelease": "urn:release:two",
-                "supersedesAssertion": "urn:statement:old",
-            },
-            {
-                "urn:resource:one",
-                "urn:resource:two",
-                "urn:release:one",
-                "urn:release:two",
-                "urn:statement:old",
-            },
-        ),
-        (
-            "LifecycleEvent",
-            {
-                "id": "urn:event:one",
-                "appliesTo": "urn:resource:one",
-                "fromRelease": "urn:release:one",
-                "toRelease": "urn:release:two",
-                "sourceRecords": ["urn:record:one", "urn:record:two"],
-            },
-            {
-                "urn:resource:one",
-                "urn:release:one",
-                "urn:release:two",
-                "urn:record:one",
-                "urn:record:two",
-            },
-        ),
-    ),
-)
-def test_compact_direct_dependencies_include_every_replay_prerequisite(
-    role: str,
-    row: Mapping[str, Any],
-    expected: set[str],
-) -> None:
-    assert atlas_validate._compact_direct_dependency_subjects(role, row) == expected
-
-
-def test_compact_size_gate_rejects_aggregate_role_count_drift(
-    tmp_path: Path,
-) -> None:
-    asserted = Graph()
-    asserted.add((URIRef("urn:resource:one"), RDF.type, ATLAS.AtlasResource))
-    construction_summary = {
-        "compactPacks": [
-            {
-                "content": {"recordCount": 2},
-                "path": "packs/compact/source/resource.jsonl.zst",
-                "role": "Resource",
-            }
-        ],
-        "releases": [
-            {
-                "atlasRelease": "urn:release:one",
-                "compactPackPaths": ["packs/compact/source/resource.jsonl.zst"],
-                "key": "source",
-                "sourceRelease": "urn:source-release:one",
-            }
-        ],
-    }
-
-    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._check_compact_shape_size_and_rdf_sample(
-            tmp_path,
-            asserted,
-            construction_summary,
-        )
-
-    assert raised.value.code == "construction.compact"
-    assert "logical record counts differ" in raised.value.detail
 
 
 def test_construction_reused_input_paths_require_one_global_identity() -> None:
@@ -308,130 +101,7 @@ def test_construction_reused_input_paths_require_one_global_identity() -> None:
     assert "conflicting pinned identities" in raised.value.detail
 
 
-def test_semantic_first_issue_precedes_compact_checks(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls: list[str] = []
 
-    def reject_semantics(*_args: object, **_kwargs: object) -> dict[str, Any]:
-        calls.append("semantic")
-        raise atlas_validate.AtlasValidationError(
-            "semantic.first-issue",
-            "intended semantic fixture failure",
-        )
-
-    def reject_compact(*_args: object, **_kwargs: object) -> None:
-        calls.append("compact")
-        raise AssertionError("compact checks must not mask a semantic first issue")
-
-    monkeypatch.setattr(atlas_validate, "_validate_semantic_graphs", reject_semantics)
-    monkeypatch.setattr(
-        atlas_validate,
-        "_check_compact_shape_size_and_rdf_sample",
-        reject_compact,
-    )
-
-    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._validate_semantics_then_compact_checks(
-            tmp_path,
-            {},
-            {},
-            {},
-            {"asserted": Graph()},
-            {},
-            member_digests={},
-        )
-
-    assert raised.value.code == "semantic.first-issue"
-    assert calls == ["semantic"]
-
-
-def test_compact_shape_size_and_sample_run_after_successful_semantic_gates(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls: list[str] = []
-
-    def accept_semantics(*_args: object, **_kwargs: object) -> dict[str, Any]:
-        calls.append("semantic")
-        return {"status": "passed"}
-
-    def reject_compact(*_args: object, **_kwargs: object) -> None:
-        calls.append("compact")
-        raise atlas_validate.AtlasValidationError(
-            "construction.sample",
-            "intended construction fixture failure",
-        )
-
-    monkeypatch.setattr(atlas_validate, "_validate_semantic_graphs", accept_semantics)
-    monkeypatch.setattr(
-        atlas_validate,
-        "_check_compact_shape_size_and_rdf_sample",
-        reject_compact,
-    )
-
-    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._validate_semantics_then_compact_checks(
-            tmp_path,
-            {},
-            {},
-            {},
-            {"asserted": Graph()},
-            {},
-            member_digests={},
-        )
-
-    assert raised.value.code == "construction.sample"
-    assert calls == ["semantic", "compact"]
-
-
-@pytest.mark.parametrize(
-    ("receipt", "expected_code"),
-    (
-        ("transport", "pack.transport"),
-        ("content", "construction.compact"),
-        ("logical", "construction.compact"),
-        ("summary", "construction.compact"),
-    ),
-)
-def test_independent_compact_reader_rejects_each_tampered_receipt(
-    tmp_path: Path,
-    receipt: str,
-    expected_code: str,
-) -> None:
-    from refspec.atlas.compact_pack import CompactPackHeader, build_compact_record_pack
-
-    artifact = build_compact_record_pack(
-        CompactPackHeader(
-            role="Identifier",
-            path="packs/compact/source/identifier.jsonl.zst",
-        ),
-        [
-            {
-                "id": "urn:ref:atlas-test:identifier:one",
-                "identifierScheme": "urn:ref:atlas-test:identifier-scheme:one",
-                "identifierValue": "ONE",
-                "identifies": "urn:ref:atlas-test:resource:one",
-                "sourceRecord": "urn:ref:atlas-test:source-record:one",
-            }
-        ],
-    )
-    target = tmp_path / artifact.inventory.path
-    target.parent.mkdir(parents=True)
-    target.write_bytes(artifact.transport)
-    descriptor = artifact.inventory.to_dict()
-    if receipt == "logical":
-        descriptor["logicalRowsDigest"] = "sha256:" + "0" * 64
-    elif receipt == "summary":
-        descriptor["globalInvariantSummary"]["digest"] = "sha256:" + "0" * 64
-    else:
-        descriptor[receipt]["digest"] = "sha256:" + "0" * 64
-
-    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._read_compact_pack(tmp_path, descriptor)
-
-    assert raised.value.code == expected_code
 
 
 def test_shacl_data_view_truth_does_not_count_the_complete_graph(
@@ -569,7 +239,7 @@ def test_source_accounting_duplicate_disposition_keeps_json_schema_error() -> No
             "unresolved": 0,
         },
         "type": "AtlasSourceAccounting",
-        "version": "3.0",
+        "version": "3.1",
     }
     schemas, registry = atlas_validate._schema_registry()
 
@@ -664,7 +334,7 @@ def test_source_accounting_disposition_targets_are_status_specific(
             "unresolved": int(status == "unresolved"),
         },
         "type": "AtlasSourceAccounting",
-        "version": "3.0",
+        "version": "3.1",
     }
     schemas, registry = atlas_validate._schema_registry()
 
@@ -958,29 +628,21 @@ def _install_producer_validation(
     proof: dict[str, Any] = {
         "assertedInventoryDigest": asserted_inventory_digest,
         "binding": dict(manifest["binding"]),
-        "checks": ["unit-test compiled producer proof"],
         "constructionSummary": {
-            "compactPackCount": construction["compactPackCount"],
-            "compactPackInventoryDigest": construction[
-                "compactPackInventoryDigest"
-            ],
             "digest": construction_digest,
             "path": atlas_validate.CONSTRUCTION_SUMMARY_FILE,
             "profile": "atlas-3-authenticated-construction-summary-v1",
             "releaseCount": construction["releaseCount"],
             "releaseInventoryDigest": construction["releaseInventoryDigest"],
         },
-        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1",
+        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-v1",
         "counts": dict(manifest["counts"]),
-        "implementationDigest": _sha256(b"unit-test-producer-implementation"),
         "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
-        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
-        "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": accounting_digest,
         "sourceReleaseCount": accounting["totals"]["sourceReleases"],
         "status": "passed",
         "type": "AtlasProducerValidation",
-        "version": "3.0",
+        "version": "3.1",
     }
     proof.update(overrides)
     proof_bytes = atlas_validate.canonical_json_bytes(proof)
@@ -1550,7 +1212,7 @@ def test_python_cross_ring_policy_matrix_is_closed(
         atlas_validate._cross_ring_relation_policies()
 
     assert raised.value.code == "profile.policy"
-    assert "closed Atlas 3.0 matrix" in raised.value.detail
+    assert "closed Atlas 3.1 matrix" in raised.value.detail
 
 
 @pytest.mark.parametrize("conflicting_target", (False, True))
@@ -2238,7 +1900,7 @@ def test_smoke_check_is_a_sample_that_can_never_reach_the_receipt_cache(
     assert 0 < smoke["sampledPackCount"] <= smoke["packCount"]
     assert 0 < smoke["sampledQuadCount"] <= smoke["totalQuadCount"]
     assert "not acceptance" in smoke["warning"]
-    assert {"unsampled-packs", "source-accounting", "adjudication", "compact-layer"} <= set(
+    assert {"unsampled-packs", "source-accounting", "adjudication", "record-ownership"} <= set(
         smoke["notChecked"]
     )
     assert not set(smoke["checked"]) & set(smoke["notChecked"])
@@ -2346,17 +2008,7 @@ def test_distribution_member_digests_are_reused_after_required_reads(
 
     monkeypatch.setattr(atlas_validate, "file_sha256", counted)
     graph_ids = atlas_validate._check_pack_manifest(manifest)
-    construction_path = distribution / atlas_validate.CONSTRUCTION_SUMMARY_FILE
-    construction = (
-        atlas_validate._load_json(construction_path, require_canonical=True)
-        if construction_path.exists()
-        else None
-    )
-    member_digests = atlas_validate._check_distribution_files(
-        distribution,
-        manifest,
-        construction,
-    )
+    member_digests = atlas_validate._check_distribution_files(distribution, manifest)
     accounting = atlas_validate._load_json(
         distribution / "atlas-source-accounting.json",
         require_canonical=True,
@@ -2390,7 +2042,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 1042
+    assert result["quadCount"] == 947
     assert result["inferredMappingCount"] == 7
 
 
@@ -2402,7 +2054,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 1042
+    assert result["quadCount"] == 947
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -2411,7 +2063,7 @@ def test_publisher_only_compiled_producer_identity_is_rejected(
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(
         distribution,
-        constructorProfile="atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        constructorProfile="atlas-3-source-and-publisher-mapping-v1",
         mode="compiledSourceAndPublisherMappingProducerValidation",
     )
 
@@ -2427,7 +2079,11 @@ def test_compiled_producer_proof_digest_tampering_is_rejected(
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(distribution)
     proof_path = distribution / atlas_validate.PRODUCER_VALIDATION_FILE
-    proof_path.write_bytes(proof_path.read_bytes().replace(b"unit-test", b"tamper___", 1))
+    # Any byte change is a member-digest mismatch; keep the length so the
+    # digest check is what fires rather than the length check.
+    proof_path.write_bytes(
+        proof_path.read_bytes().replace(b"AtlasProducerValidation", b"AtlasProducerValidatioN", 1)
+    )
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
         atlas_validate.validate_distribution(distribution)
@@ -2513,7 +2169,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 919
+    assert result["quadCount"] == 836
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(
@@ -2789,18 +2445,8 @@ def test_distribution_file_set_is_recursively_closed(tmp_path: Path) -> None:
     extra.parent.mkdir()
     extra.write_bytes(b"unlisted\n")
 
-    construction_path = distribution / atlas_validate.CONSTRUCTION_SUMMARY_FILE
-    construction = (
-        atlas_validate._load_json(construction_path, require_canonical=True)
-        if construction_path.exists()
-        else None
-    )
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._check_distribution_files(
-            distribution,
-            manifest,
-            construction,
-        )
+        atlas_validate._check_distribution_files(distribution, manifest)
 
     assert raised.value.code == "distribution.members"
 
@@ -2933,25 +2579,6 @@ def test_canonical_renderer_caches_repeated_iri_terms(
     atlas_validate._cached_iri_term.cache_clear()
 
 
-def test_general_node_digest_pass_skips_records_verified_by_specialized_checks(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _, graphs, _ = _load_valid_graphs()
-    original = atlas_validate.rdf_node_digest
-
-    def reject_duplicate_work(graph: Graph, node: URIRef) -> str:
-        if (node, RDF.type, RKAF.EvidenceBinding) in graph or (
-            node,
-            RDF.type,
-            ATLAS.ProjectedRelation,
-        ) in graph:
-            raise AssertionError(f"specialized check already verifies {node}")
-        return original(graph, node)
-
-    monkeypatch.setattr(atlas_validate, "rdf_node_digest", reject_duplicate_work)
-    atlas_validate._check_node_digests(graphs)
-
-
 def test_graph_role_pass_enforces_asserted_carrier_exclusivity() -> None:
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
@@ -3030,8 +2657,7 @@ def test_semantic_inventory_eliminates_repeated_carrier_enumeration(
     atlas_validate._check_label_integrity(asserted, inventory)
     atlas_validate._check_evidence_bindings(asserted, inventory)
     atlas_validate._validate_assertions(asserted, inventory)
-    precomputed = atlas_validate._check_native_payloads(asserted, inventory)
-    atlas_validate._check_node_digests(graphs, inventory, precomputed)
+    atlas_validate._check_native_payloads(asserted, inventory)
     atlas_validate._check_source_accounting(asserted, accounting, inventory)
     atlas_validate._check_counts(manifest, graphs, inventory)
 
@@ -3071,43 +2697,6 @@ def test_release_metadata_is_resolved_once_per_release(
         for release in releases
         for predicate in release_predicates
     }
-
-
-def test_general_node_digest_pass_does_not_globally_sort_carriers(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import builtins
-
-    _, graphs, _ = _load_valid_graphs()
-    inventory = atlas_validate._check_graph_roles(graphs)
-    original_sorted = builtins.sorted
-
-    def reject_node_set_sort(iterable: Any, *args: object, **kwargs: object) -> Any:
-        if isinstance(iterable, (set, frozenset)):
-            pytest.fail("node digest validation must not globally sort carrier sets")
-        return original_sorted(iterable, *args, **kwargs)
-
-    monkeypatch.setattr(atlas_validate, "sorted", reject_node_set_sort, raising=False)
-    atlas_validate._check_node_digests(graphs, inventory)
-
-
-def test_policy_digest_is_reused_by_general_node_validation(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _, graphs, _ = _load_valid_graphs()
-    asserted = graphs["asserted"]
-    inventory = atlas_validate._check_graph_roles(graphs)
-    precomputed = atlas_validate._check_native_payloads(asserted, inventory)
-    policies = inventory.nodes(ATLAS.EditorialPolicy)
-    original = atlas_validate.rdf_node_digest
-
-    def reject_policy_rehash(graph: Graph, node: URIRef) -> str:
-        if node in policies:
-            raise AssertionError("policy digest was already computed for identity validation")
-        return original(graph, node)
-
-    monkeypatch.setattr(atlas_validate, "rdf_node_digest", reject_policy_rehash)
-    atlas_validate._check_node_digests(graphs, inventory, precomputed)
 
 
 def test_empty_derived_graph_skips_assertion_indexes() -> None:
@@ -3624,7 +3213,7 @@ def test_cli_heap_freeze_happens_after_output_flush_and_not_inside_main(
 
 
 def test_the_binding_tools_import_nothing_from_the_refspec_package() -> None:
-    """A consumer copies `bindings/atlas/3.0/` and validates a distribution offline.
+    """A consumer copies `bindings/atlas/3.1/` and validates a distribution offline.
 
     `rdf_canonical.ntriples_term` inlines the credentials refusal that
     `refspec.registry.infrastructure.identifier_validation.absolute_uri_issue`

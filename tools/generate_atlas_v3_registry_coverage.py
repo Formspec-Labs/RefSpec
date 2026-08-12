@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate or verify compact Atlas 3.0 coverage of the RefSpec registry."""
+"""Generate or verify compact Atlas 3.1 coverage of the RefSpec registry."""
 
 from __future__ import annotations
 
@@ -18,11 +18,11 @@ from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
 INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
-PROFILES = ROOT / "bindings" / "atlas" / "3.0" / "registry-resource-profiles.json"
-OUTPUT = ROOT / "bindings" / "atlas" / "3.0" / "tests" / "registry-coverage.json"
+PROFILES = ROOT / "bindings" / "atlas" / "3.1" / "registry-resource-profiles.json"
+OUTPUT = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-coverage.json"
 
-PROFILE_FORMAT = "refspec-atlas-registry-resource-profiles/3.0"
-COVERAGE_FORMAT = "refspec-atlas-registry-coverage/3.0"
+PROFILE_FORMAT = "refspec-atlas-registry-resource-profiles/3.1"
+COVERAGE_FORMAT = "refspec-atlas-registry-coverage/3.1"
 ATLAS_NAMESPACE = "https://refspec.org/ns/atlas/v3#"
 SKOS_NAMESPACE = "http://www.w3.org/2004/02/skos/core#"
 SKOSXL_LABEL = "http://www.w3.org/2008/05/skos-xl#Label"
@@ -312,7 +312,7 @@ def _validate_cross_ring_relation_policies(profile_map: Mapping[str, Any]) -> No
         observed[pair] = predicates
     if observed_order != sorted(observed_order) or observed != expected:
         raise RegistryCoverageError(
-            "profile map.crossRingRelationPolicies differ from the closed Atlas 3.0 matrix"
+            "profile map.crossRingRelationPolicies differ from the closed Atlas 3.1 matrix"
         )
 
 
@@ -337,8 +337,8 @@ def validate_profile_map(
     )
     if profile_map["format"] != PROFILE_FORMAT:
         raise RegistryCoverageError(f"profile map format must be {PROFILE_FORMAT!r}")
-    if profile_map["schemaVersion"] != "3.0":
-        raise RegistryCoverageError("profile map schemaVersion must be '3.0'")
+    if profile_map["schemaVersion"] != "3.1":
+        raise RegistryCoverageError("profile map schemaVersion must be '3.1'")
     if profile_map["namespace"] != ATLAS_NAMESPACE:
         raise RegistryCoverageError(f"profile map namespace must be {ATLAS_NAMESPACE!r}")
     claimed_digest = _digest(profile_map["profileDigest"], "profile map.profileDigest")
@@ -632,7 +632,7 @@ def build_registry_coverage(
             "resourceCatalogDigest": catalog_digest,
         },
         "profiles": profile_summary,
-        "schemaVersion": "3.0",
+        "schemaVersion": "3.1",
         "setDigests": {
             "catalogOnlyDescriptorIds": _set_digest(catalog_only_descriptors),
             "catalogResourceIds": _set_digest(catalog_resources),
@@ -699,14 +699,14 @@ def main() -> int:
             )
         summary = report["summary"]
         print(
-            "Atlas 3.0 registry coverage is current: "
+            "Atlas 3.1 registry coverage is current: "
             f"{summary['catalogResourceCount']} resources, "
             f"{summary['registryModuleCount']} modules, "
             f"{summary['atlasIndexRowCount']} indexed placements"
         )
         return 0
     except (RegistryCoverageError, OSError, ValueError) as error:
-        print(f"Atlas 3.0 registry coverage error: {error}", file=sys.stderr)
+        print(f"Atlas 3.1 registry coverage error: {error}", file=sys.stderr)
         return 1
 
 

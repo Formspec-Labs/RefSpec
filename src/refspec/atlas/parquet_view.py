@@ -1,18 +1,21 @@
-"""Build and verify a compact Parquet view of an Atlas 3.0 distribution.
+"""Close and verify the typed Parquet view of an Atlas 3.1 distribution.
 
-The canonical Atlas remains the asserted RDF distribution.  This module turns
-its authenticated compact logical-record packs into typed, queryable Parquet
-tables.  It preserves every logical record and its canonical RDF content
-digest, but does not duplicate the 30-million-row N-Quads serialization.
+The canonical Atlas remains the asserted RDF distribution.  The typed Parquet
+tables are its served projection: they preserve every logical record and its
+canonical RDF node digest without duplicating the 30-million-row N-Quads
+serialization.
 
-The schema, the row projection, and the writer live in
-:mod:`refspec.atlas.parquet_tables`, because the Atlas builder now emits these
-same tables directly from its in-memory graph as it walks it for the RDF and
-compact packs.  This module is the path for a distribution whose builder did
-not: it re-derives the tables from authenticated compact packs.  It retires
-with the compact JSONL wire, not before -- until then both producers must
-write byte-comparable tables, which one shared writer is the only way to
-guarantee.
+The tables are written by the Atlas builder, out of the same in-memory graph
+walk that writes the RDF packs, and this module gives them their authenticated
+identity: it verifies the distribution manifest, writes the view manifest
+against it, re-verifies the closed result, and promotes it.  The second
+producer that re-derived the tables from compact JSONL packs is gone with that
+wire; :func:`seal_atlas_parquet_view` is the only path.
+
+The view is written beside the distribution, never inside it -- a distribution
+validates its own membership as a closed set.  What binds the two is the seal:
+its signed payload carries this view manifest's digest alongside the
+distribution manifest's, so one signature reaches every byte of both.
 """
 
 from __future__ import annotations
@@ -21,9 +24,6 @@ import importlib.metadata
 import json
 import os
 import re
-import shutil
-import tempfile
-from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -31,11 +31,7 @@ from typing import Any
 
 import pyarrow.parquet as pq
 
-from refspec.atlas.compact_pack import (
-    CompactPackInventory,
-    CompactRecordRole,
-    read_compact_record_pack,
-)
+from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import (
     PARQUET_MEMBER_FIELDS,
     arrow_schema_sha256,
@@ -51,8 +47,6 @@ from refspec.atlas.parquet_tables import (
     ROW_GROUP_SIZE,
     TABLE_MEDIA_TYPE,
     TABLE_SCHEMAS,
-    AtlasParquetTableError,
-    AtlasParquetTableWriter,
     logical_records_preserved,
     table_relative_path,
     unpreserved_record_fields,
@@ -62,13 +56,15 @@ from refspec.registry.infrastructure.artifact_serialization import (
     sha256_digest,
 )
 
-# 2.0: the five warrant columns landed (four rkaf axes plus the optional
-# basedOnAttestation referent), so the projection is lossless per logical
-# record and `logicalRecordsPreserved` is computed rather than declared.
-VIEW_SCHEMA_VERSION = "2.0"
+# 3.0: the compact JSONL wire is gone, so the input pin loses
+# `compactPackInventoryDigest` and the tables are the distribution's only
+# served projection. 2.0 added the five warrant columns (four rkaf axes plus
+# the optional basedOnAttestation referent), which is what makes
+# `logicalRecordsPreserved` computed rather than declared.
+VIEW_SCHEMA_VERSION = "3.0"
 VIEW_RECORD_TYPE = "AtlasParquetViewManifest"
 VIEW_IMPLEMENTATION = "refspec.atlas.parquet_view"
-VIEW_IMPLEMENTATION_VERSION = "2.0"
+VIEW_IMPLEMENTATION_VERSION = "3.0"
 VIEW_ID_PREFIX = "urn:ref:atlas-parquet-view:"
 MANIFEST_FILE = "view-manifest.json"
 
@@ -159,7 +155,6 @@ class VerifiedAtlasParquetSourceMetadata:
     manifest: Mapping[str, Any]
     manifest_digest: str
     construction_summary: Mapping[str, Any]
-    compact_packs: tuple[Mapping[str, Any], ...]
 
     @property
     def view_input_pin(self) -> dict[str, Any]:
@@ -171,7 +166,6 @@ class VerifiedAtlasParquetSourceMetadata:
             "assertedInventoryDigest": asserted["inventoryDigest"],
             "bindingBundleDigest": self.manifest["binding"]["bindingBundleDigest"],
             "canonicalPayloadDigest": self.manifest["canonicalPayloadDigest"],
-            "compactPackInventoryDigest": self.construction_summary["compactPackInventoryDigest"],
             "constructionSummaryDigest": construction["digest"],
             "distributionId": self.manifest["distributionId"],
             "manifestSha256": self.manifest_digest,
@@ -185,9 +179,8 @@ def verify_atlas_parquet_source_metadata(
 ) -> VerifiedAtlasParquetSourceMetadata:
     """Verify the Atlas manifest, supporting members, and pack inventory.
 
-    Compact-pack bytes are authenticated when the builder reads them. This
-    check is not an Atlas release-conformance verdict; call the independent
-    Atlas validator for that verdict.
+    This check is not an Atlas release-conformance verdict; call the
+    independent Atlas validator for that verdict.
     """
 
     if root.is_symlink() or not root.is_dir():
@@ -200,8 +193,8 @@ def verify_atlas_parquet_source_metadata(
         raise AtlasParquetViewError("Atlas root manifest fields are unsupported")
     if (
         manifest["type"] != "AtlasManifest"
-        or manifest["schemaVersion"] != "3.0"
-        or manifest["format"] != "refspec-atlas-packed-nquads-3.0"
+        or manifest["schemaVersion"] != "3.1"
+        or manifest["format"] != "refspec-atlas-packed-nquads-3.1"
     ):
         raise AtlasParquetViewError("Atlas root manifest type, version, or format is unsupported")
     payload = dict(manifest)
@@ -229,14 +222,6 @@ def verify_atlas_parquet_source_metadata(
     summary_digest = _digest_text(summary_payload.pop("canonicalPayloadDigest", None), "summary payload digest")
     if canonical_payload_sha256(summary_payload) != summary_digest:
         raise AtlasParquetViewError("construction summary canonicalPayloadDigest differs")
-    compact_packs = construction_summary.get("compactPacks")
-    if not isinstance(compact_packs, list) or not compact_packs:
-        raise AtlasParquetViewError("construction summary has no compact packs")
-    if construction_summary.get("compactPackCount") != len(compact_packs):
-        raise AtlasParquetViewError("construction summary compact pack count differs")
-    if construction_summary.get("compactPackInventoryDigest") != sha256_digest(canonical_json_bytes(compact_packs)):
-        raise AtlasParquetViewError("construction summary compact pack inventory digest differs")
-
     asserted = [graph for graph in graphs if graph.get("role") == "asserted"]
     if len(asserted) != 1:
         raise AtlasParquetViewError("Atlas requires exactly one asserted graph descriptor")
@@ -297,18 +282,6 @@ def verify_atlas_parquet_source_metadata(
         expected_id = "urn:ref:atlas:pack:" + str(content.get("digest", "")).removeprefix("sha256:")
         if pack.get("packId") != expected_id:
             raise AtlasParquetViewError(f"Atlas RDF pack identity differs: {pack.get('path')}")
-    compact_paths: list[str] = []
-    compact_ids: set[str] = set()
-    for descriptor in compact_packs:
-        inventory = CompactPackInventory.from_dict(descriptor)
-        path = _safe_path(root, inventory.path)
-        expected_files.add(path.relative_to(root).as_posix())
-        compact_paths.append(inventory.path)
-        if inventory.pack_id in compact_ids:
-            raise AtlasParquetViewError("compact pack identifiers are not unique")
-        compact_ids.add(inventory.pack_id)
-    if compact_paths != sorted(compact_paths) or len(compact_paths) != len(set(compact_paths)):
-        raise AtlasParquetViewError("compact pack paths must be unique and sorted")
     if artifact_file_paths(root) != expected_files:
         raise AtlasParquetViewError("Atlas distribution file membership is not closed")
     return VerifiedAtlasParquetSourceMetadata(
@@ -316,50 +289,13 @@ def verify_atlas_parquet_source_metadata(
         manifest=manifest,
         manifest_digest=expected_manifest_digest,
         construction_summary=construction_summary,
-        compact_packs=tuple(compact_packs),
     )
 
 
-#: What the builder writes when it emits the tables from its own graph, and
-#: what this module writes when it re-derives them from the compact packs.
-#: The value is part of the view identity, so a consumer can tell which
-#: producer wrote the tables it is reading.
+#: What the builder writes when it emits the tables from its own graph. It is
+#: part of the view identity, so a consumer can tell which producer wrote the
+#: tables it is reading.
 BUILDER_SOURCE_REPRESENTATION = "atlasBuilderAssertedGraph"
-COMPACT_SOURCE_REPRESENTATION = "authenticatedAtlasCompactLogicalRecords"
-
-
-def _write_tables(
-    input_: VerifiedAtlasParquetSourceMetadata,
-    output: Path,
-) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    descriptors_by_role: dict[CompactRecordRole, list[Mapping[str, Any]]] = {role: [] for role in CompactRecordRole}
-    for descriptor in input_.compact_packs:
-        try:
-            role = CompactRecordRole(str(descriptor.get("role")))
-        except ValueError as error:
-            raise AtlasParquetViewError(f"unsupported compact record role {descriptor.get('role')!r}") from error
-        descriptors_by_role[role].append(descriptor)
-
-    writer = AtlasParquetTableWriter(output)
-    try:
-        for role in CompactRecordRole:
-            for descriptor in descriptors_by_role[role]:
-                writer.extend(role, read_compact_record_pack(input_.root, descriptor).rows)
-        members, counts = writer.close()
-    except AtlasParquetTableError as error:
-        writer.__exit__()
-        raise AtlasParquetViewError(str(error)) from error
-    except BaseException:
-        writer.__exit__()
-        raise
-    expected_counts = Counter()
-    for descriptor in input_.compact_packs:
-        expected_counts[str(descriptor["role"])] += int(descriptor["content"]["recordCount"])
-    if Counter({role: count for role, count in counts.items() if count}) != expected_counts:
-        raise AtlasParquetViewError(
-            f"Parquet row counts differ from compact pack inventory: expected={dict(expected_counts)}, actual={counts}"
-        )
-    return members, counts
 
 
 def atlas_parquet_view_manifest(
@@ -371,11 +307,9 @@ def atlas_parquet_view_manifest(
 ) -> dict[str, Any]:
     """Assemble the view manifest for tables that are already written.
 
-    Both producers end here, so the manifest, its identity, and the status
-    block have exactly one definition.  ``logicalRecordsPreserved`` is
-    computed from the schema against the compact record contract -- the claim
-    was hard-coded ``True`` while four warrant axes had no column, which is
-    what made it false.
+    ``logicalRecordsPreserved`` is computed from the schema against the logical
+    record contract -- the claim was hard-coded ``True`` while four warrant
+    axes had no column, which is what made it false.
     """
 
     gaps = unpreserved_record_fields()
@@ -415,36 +349,6 @@ def atlas_parquet_view_manifest(
     return manifest
 
 
-def build_atlas_parquet_view(
-    distribution: Path,
-    output: Path,
-    *,
-    expected_manifest_digest: str,
-) -> dict[str, Any]:
-    """Build one immutable, typed Parquet view from an exact Atlas 3.0 input."""
-
-    if output.is_symlink() or output.exists():
-        raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    input_ = verify_atlas_parquet_source_metadata(distribution, expected_manifest_digest)
-    temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
-    try:
-        members, counts = _write_tables(input_, temporary)
-        manifest = atlas_parquet_view_manifest(
-            input_,
-            members,
-            counts,
-            source_representation=COMPACT_SOURCE_REPRESENTATION,
-        )
-        (temporary / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
-        verify_atlas_parquet_view(temporary, expected_manifest_digest=file_sha256(temporary / MANIFEST_FILE))
-        os.rename(temporary, output)
-        return manifest
-    except BaseException:
-        shutil.rmtree(temporary, ignore_errors=True)
-        raise
-
-
 def seal_atlas_parquet_view(
     distribution: Path,
     staged_tables: Path,
@@ -458,8 +362,7 @@ def seal_atlas_parquet_view(
     by the time the distribution manifest exists the tables are on disk and
     only their authenticated identity is missing.  This verifies that manifest,
     writes the view manifest against it, re-verifies the closed result, and
-    promotes it -- the same three steps :func:`build_atlas_parquet_view` takes,
-    minus the re-read of the compact packs.
+    promotes it.
     """
 
     if output.is_symlink() or output.exists():
@@ -578,11 +481,9 @@ def verify_atlas_parquet_view(
 
 __all__ = [
     "BUILDER_SOURCE_REPRESENTATION",
-    "COMPACT_SOURCE_REPRESENTATION",
     "AtlasParquetViewError",
     "VerifiedAtlasParquetSourceMetadata",
     "atlas_parquet_view_manifest",
-    "build_atlas_parquet_view",
     "seal_atlas_parquet_view",
     "verify_atlas_parquet_source_metadata",
     "verify_atlas_parquet_view",

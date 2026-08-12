@@ -288,7 +288,7 @@ def test_mapping_supersession_is_content_derived_closed_and_preserves_disagreeme
     # published Atlas distribution, and the binding validator is what refuses an
     # unresolvable reference over it -- atlas:RelationAssertionShape ranges
     # rkaf:supersedesAssertion with sh:class atlas:RelationAssertion, and
-    # bindings/atlas/3.0/tools/validate.py fails "supersedes itself or an
+    # bindings/atlas/3.1/tools/validate.py fails "supersedes itself or an
     # unknown assertion" over the distribution's whole assertion set.
     assert validate_mapping_assertions(
         (replace(successor, supersedes=("urn:ref:mapping-assertion:subject:missing",)),),

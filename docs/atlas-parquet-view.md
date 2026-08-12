@@ -1,4 +1,4 @@
-# Atlas 3.0 Parquet view
+# Atlas 3.1 Parquet view
 
 The Atlas Parquet view is a derived, queryable representation of every closed
 logical record in an exact Atlas 3.0 distribution. The asserted RDF remains the
@@ -32,24 +32,22 @@ The immutable output contains typed Parquet tables for:
 - lifecycle events, including an explicit zero-row table when Atlas declares
   no events.
 
-`view-manifest.json` pins the input Atlas manifest, canonical payload, asserted
-inventory, binding, ontology, construction summary, compact inventory, table
+`view-manifest.json` (schema 3.0) pins the input Atlas manifest, canonical
+payload, asserted inventory, binding, ontology, construction summary, table
 schemas, row counts, byte lengths, and file digests. It states
 `expansion: not_used`, `canonicalAtlas: false`, and
-`containsExactRdfTable: false`.
+`containsExactRdfTable: false`, and it publishes `logicalRecordsPreserved`
+computed from the schema against the logical record contract rather than
+declared.
 
-## Build and verify
+## Verify
+
+The view is produced by the build; the CLI verifies one:
 
 ```sh
-uv run refspec-build-atlas-parquet-view \
-  --distribution output/atlas-3.0-full-2026-08-06/distribution \
-  --expected-manifest-sha256 9b5d6392a993815070471734e8fea77f60e0973bdba6d05f66be11af805a1f24 \
-  --output output/atlas-3.0-parquet-view-2026-08-07
-
-uv run refspec-build-atlas-parquet-view \
-  --verify-only \
-  --output output/atlas-3.0-parquet-view-2026-08-07 \
-  --expected-manifest-sha256 1b0839f51a80e8d66cff31905b87306127aefebe6f936107850f1e9677700197
+uv run refspec-verify-atlas-parquet-view \
+  --view output/atlas-3.1-federal-register-thesaurus-2025-04-01/parquet-view \
+  --expected-manifest-sha256 638fd2bd25555848efa535d4e22cd9324bb0dc2cf1c258f5977f2397e50a6668
 ```
 
 The measured development build contains 3,288,830 logical records in
@@ -86,14 +84,16 @@ JSON result lists the remaining release-only checks: closed JSON schemas and
 binding pins; producer and acceptance receipts; normative SHACL; RDF lexical,
 graph-role, dependency, and node-digest rules; assertion policy, identity, and
 lifecycle semantics; projection and derived replay; transitive SKOS conflict
-analysis; source-accounting reconciliation; compact-to-RDF sampling; and
+analysis; source-accounting reconciliation; construction record ownership; and
 reasoning isolation. Run the independent Atlas validator before calling a
 distribution conformant.
 
 The retired exhaustive compact-to-RDF parity implementation remains available
 through the [dated archive note](../research/archive/atlas-3.0-exhaustive-compact-parity-2026-08-08.md).
-The active release validator authenticates every compact row, reconciles exact
-record counts, and compares a bounded deterministic sample with RDF.
+The active release validator recomputes every release's logical record counts
+from the asserted graph; the builder proves full record-identity equality
+between the served tables and the graph, both directions, and compares a
+bounded deterministic sample of whole rows against the RDF.
 
 ## Compact search profile
 

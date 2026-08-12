@@ -31,7 +31,7 @@
 > capability inventory referenced by the
 > [product boundary and API disposition](../docs/product-boundary-and-api-disposition.md).
 > The active consumer format is the
-> [Vocabulary Atlas Distribution 3.0 binding](../bindings/atlas/3.0/README.md), which defines
+> [Vocabulary Atlas Distribution 3.0 binding](../bindings/atlas/3.1/README.md), which defines
 > the published boundary that other products verify. The
 > retired standalone design behind REF-001…REF-006 has been removed.
 

@@ -147,8 +147,7 @@ def _verified_parquet_input() -> VerifiedAtlasParquetSourceMetadata:
             "members": [{"digest": _digest("5"), "role": "constructionSummary"}],
         },
         manifest_digest=_digest("6"),
-        construction_summary={"compactPackInventoryDigest": _digest("7")},
-        compact_packs=(),
+        construction_summary={},
     )
 
 

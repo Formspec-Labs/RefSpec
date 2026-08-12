@@ -249,8 +249,8 @@ uv run refspec-build-atlas-search-view --verify-only \
   --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view \
   --expected-manifest-sha256 e728fee7cc6d3ed58629d63fc698f66d0b9b5ddba195a29fb8d1151fc72d054f
 
-uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
-  python bindings/atlas/3.0/tools/validate.py \
+uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+  python bindings/atlas/3.1/tools/validate.py \
   --distribution output/atlas-3.0-federal-register-thesaurus-2025-04-01/distribution
 ```
 

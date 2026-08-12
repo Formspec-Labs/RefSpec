@@ -2,15 +2,27 @@
 
 The seal is detached and lives beside the distribution directory, never inside
 it: a distribution validates its own membership as a closed set, so a file
-written into that directory makes the sealed artifact fail its own walk.
+written into that directory makes the sealed artifact fail its own walk. The
+served Parquet view sits beside it for the same reason.
 
 `verify_seal` is deliberately not a signature check. Downstream admission gates
 recompute member digests before they read a byte, so a seal that only proved
 provenance would be refused at that seam. This module proves the signature, the
-two digests the signature binds, and then closed membership plus every pinned
-byte on disk: members, packs, and the compact packs the construction summary
-declares. `create_seal` runs that same walk before it signs, so a seal can only
-exist over an artifact that already verifies.
+three digests the signature binds, and then closed membership plus every pinned
+byte on disk: the distribution's members and packs, and every table of the
+Parquet view. `create_seal` runs that same walk before it signs, so a seal can
+only exist over an artifact that already verifies.
+
+**Why the view digest is in the signed payload rather than in the construction
+summary.** The obvious shape -- the summary pinning `view-manifest.json` --
+does not exist: the view manifest pins the distribution manifest's digest and
+the construction summary's digest as its input identity, and the summary is a
+manifest member, so a summary that pinned the view manifest would be a cycle.
+The seal is written after both artifacts are final, so binding the view there
+is the one placement with no cycle and no second root of trust. The other
+direction is checked too: the view's `input.manifestSha256` must be the
+manifest digest this seal signs, so neither artifact can be paired with a
+distribution it was not derived from.
 """
 
 from __future__ import annotations
@@ -27,14 +39,24 @@ from typing import Any
 from refspec.input_pin import verify_file_pin
 from refspec.release_model import canonical_json_bytes, reject_duplicate_keys, reject_nonfinite_constant
 
-SEAL_FORMAT = "refspec-distribution-seal-1"
+# -2: the compact JSONL packs the summary used to declare are gone, and the
+# payload binds the served Parquet view's manifest digest instead.
+SEAL_FORMAT = "refspec-distribution-seal-2"
 SEAL_TYPE = "RefSpecDistributionSeal"
 SIGNATURE_NAMESPACE = "refspec-distribution-seal"
 MANIFEST_MEMBER = "atlas-manifest.json"
 ACCEPTANCE_MEMBER = "atlas-acceptance.json"
-CONSTRUCTION_SUMMARY_ROLE = "constructionSummary"
+DEFAULT_PARQUET_VIEW_NAME = "parquet-view"
 SEAL_KEYS = frozenset({"payload", "signature", "signerIdentity", "type"})
-PAYLOAD_KEYS = frozenset({"acceptanceSha256", "distributionId", "manifestSha256", "sealFormat"})
+PAYLOAD_KEYS = frozenset(
+    {
+        "acceptanceSha256",
+        "distributionId",
+        "manifestSha256",
+        "parquetViewManifestSha256",
+        "sealFormat",
+    }
+)
 _READ_BLOCK = 1024 * 1024
 _SSH_KEYGEN_TIMEOUT_SECONDS = 60
 
@@ -51,9 +73,10 @@ class SealVerification:
     signer_identity: str
     manifest_sha256: str
     acceptance_sha256: str
+    parquet_view_manifest_sha256: str
     member_count: int
     pack_count: int
-    compact_pack_count: int
+    parquet_table_count: int
     verified_byte_length: int
 
 
@@ -63,7 +86,6 @@ class _DistributionWalk:
 
     member_count: int
     pack_count: int
-    compact_pack_count: int
     verified_byte_length: int
 
 
@@ -236,11 +258,11 @@ def _declare(expected: set[str], relative: str) -> None:
 def _walk_distribution(root: Path, manifest: dict[str, Any]) -> _DistributionWalk:
     """Authenticate closed membership and every pinned byte under one distribution root.
 
-    The manifest alone does not reach every byte: the compact JSONL packs are
-    declared by `atlas-construction-summary.json`, which is itself a manifest
-    member. Its digest is therefore proved by the member walk below, and only
-    then is it dereferenced — the same closed-membership definition the Atlas
-    validator enforces in `_check_distribution_files`.
+    The manifest reaches every byte in one hop now that the compact JSONL packs
+    are gone: `members[]` and `packs[].transport` are the whole set, which is
+    the same closed membership the Atlas validator enforces in
+    `_check_distribution_files`. The served projection is not in here; it is
+    walked separately by `_walk_parquet_view`.
     """
 
     members = manifest.get("members")
@@ -252,37 +274,66 @@ def _walk_distribution(root: Path, manifest: dict[str, Any]) -> _DistributionWal
     expected: set[str] = {MANIFEST_MEMBER}
     verified_byte_length = 0
 
-    summary_relative: str | None = None
     for member in members:
         relative, byte_length = _verify_pinned_file(root, member, member, "member")
         _declare(expected, relative)
         verified_byte_length += byte_length
-        if member.get("role") == CONSTRUCTION_SUMMARY_ROLE:
-            summary_relative = relative
 
-    # Only now, with its own digest proved by the member walk above, is the
-    # construction summary trusted enough to extend the tree it declares.
-    compact_packs: list[Any] = []
-    if summary_relative is not None:
-        summary = _read_json_object(root / summary_relative, "construction summary")
-        compact_packs = summary.get("compactPacks", [])
-        if not isinstance(compact_packs, list):
-            raise SealError(f"the construction summary states no compactPacks list: {summary_relative}")
-
-    for kind, entries in (("pack", packs), ("compact pack", compact_packs)):
-        for pack in entries:
-            transport = pack.get("transport") if isinstance(pack, dict) else None
-            relative, byte_length = _verify_pinned_file(root, pack, transport, kind)
-            _declare(expected, relative)
-            verified_byte_length += byte_length
+    for pack in packs:
+        transport = pack.get("transport") if isinstance(pack, dict) else None
+        relative, byte_length = _verify_pinned_file(root, pack, transport, "pack")
+        _declare(expected, relative)
+        verified_byte_length += byte_length
 
     _check_closed_membership(expected, files, directories)
     return _DistributionWalk(
         member_count=len(members),
         pack_count=len(packs),
-        compact_pack_count=len(compact_packs),
         verified_byte_length=verified_byte_length,
     )
+
+
+def default_parquet_view_path(root: Path | str) -> Path:
+    """Name the sibling Parquet view directory the Atlas builder writes."""
+
+    return Path(root).parent / DEFAULT_PARQUET_VIEW_NAME
+
+
+def _walk_parquet_view(
+    view_root: Path,
+    *,
+    expected_manifest_sha256: str,
+    expected_distribution_manifest_sha256: str,
+) -> tuple[int, int]:
+    """Authenticate the served Parquet view against the digest the seal binds.
+
+    Every table byte is proved here, by the view's own closed-membership
+    verifier rather than by a second copy of it. What this adds is the pairing:
+    the view manifest must be the one the signature names, and its input pin
+    must name the distribution manifest the signature also names.
+    """
+
+    from refspec.atlas.parquet_view import (
+        MANIFEST_FILE as VIEW_MANIFEST_FILE,
+    )
+    from refspec.atlas.parquet_view import (
+        AtlasParquetViewError,
+        verify_atlas_parquet_view,
+    )
+
+    if view_root.is_symlink() or not view_root.is_dir():
+        raise SealError(f"the sealed Parquet view is missing or unsafe: {view_root}")
+    manifest_sha256 = _file_sha256(view_root / VIEW_MANIFEST_FILE, "Parquet view manifest")
+    if manifest_sha256 != expected_manifest_sha256:
+        raise SealError(f"the Parquet view manifest differs from the sealed digest: {view_root}")
+    try:
+        view_manifest = verify_atlas_parquet_view(view_root, expected_manifest_digest=manifest_sha256)
+    except AtlasParquetViewError as error:
+        raise SealError(f"the sealed Parquet view does not verify: {error}") from error
+    if view_manifest["input"]["manifestSha256"] != expected_distribution_manifest_sha256:
+        raise SealError("the sealed Parquet view was derived from a different distribution manifest")
+    members = view_manifest["members"]
+    return len(members), sum(int(member["byteLength"]) for member in members)
 
 
 def default_seal_path(root: Path | str) -> Path:
@@ -298,6 +349,7 @@ def create_seal(
     signer_identity: str,
     *,
     seal_path: Path | str | None = None,
+    parquet_view_path: Path | str | None = None,
 ) -> Path:
     """Write one detached seal beside the distribution and return its path."""
 
@@ -329,11 +381,22 @@ def create_seal(
     # A signature over an artifact nobody walked is a promise about bytes the
     # signer never read, so the mint runs exactly the walk the reader runs.
     _walk_distribution(root, manifest)
+    manifest_sha256 = _file_sha256(manifest_path, "manifest")
+    view_root = Path(parquet_view_path) if parquet_view_path is not None else default_parquet_view_path(root)
+    from refspec.atlas.parquet_view import MANIFEST_FILE as VIEW_MANIFEST_FILE
+
+    view_manifest_sha256 = _file_sha256(view_root / VIEW_MANIFEST_FILE, "Parquet view manifest")
+    _walk_parquet_view(
+        view_root,
+        expected_manifest_sha256=view_manifest_sha256,
+        expected_distribution_manifest_sha256=manifest_sha256,
+    )
 
     payload = {
         "acceptanceSha256": _file_sha256(acceptance_path, "acceptance receipt"),
         "distributionId": distribution_id,
-        "manifestSha256": _file_sha256(manifest_path, "manifest"),
+        "manifestSha256": manifest_sha256,
+        "parquetViewManifestSha256": view_manifest_sha256,
         "sealFormat": SEAL_FORMAT,
     }
     seal = {
@@ -350,8 +413,10 @@ def verify_seal(
     root: Path | str,
     seal_path: Path | str,
     allowed_signers_path: Path | str,
+    *,
+    parquet_view_path: Path | str | None = None,
 ) -> SealVerification:
-    """Verify the signature, both bound digests, closed membership, and every pinned byte."""
+    """Verify the signature, all three bound digests, closed membership, and every pinned byte."""
 
     root = Path(root)
     if not root.is_dir():
@@ -398,18 +463,31 @@ def verify_seal(
     if acceptance_sha256 != payload["acceptanceSha256"]:
         raise SealError(f"the acceptance receipt differs from the sealed digest: {acceptance_path}")
 
-    # 4. Closed membership, then every member, pack, and compact pack streamed
-    #    from disk. A pack's `path` names its transport bytes, so `transport`
-    #    carries that file's pin.
+    # 4. Closed membership, then every member and pack streamed from disk. A
+    #    pack's `path` names its transport bytes, so `transport` carries that
+    #    file's pin.
     walk = _walk_distribution(root, manifest)
+
+    # 5. The served Parquet view beside the distribution, proved against the
+    #    third digest the signature binds and paired back to this manifest.
+    view_manifest_sha256 = payload["parquetViewManifestSha256"]
+    if not isinstance(view_manifest_sha256, str) or not view_manifest_sha256:
+        raise SealError("the seal payload names no parquetViewManifestSha256")
+    view_root = Path(parquet_view_path) if parquet_view_path is not None else default_parquet_view_path(root)
+    table_count, table_byte_length = _walk_parquet_view(
+        view_root,
+        expected_manifest_sha256=view_manifest_sha256,
+        expected_distribution_manifest_sha256=manifest_sha256,
+    )
 
     return SealVerification(
         distribution_id=distribution_id,
         signer_identity=signer_identity,
         manifest_sha256=manifest_sha256,
         acceptance_sha256=acceptance_sha256,
+        parquet_view_manifest_sha256=view_manifest_sha256,
         member_count=walk.member_count,
         pack_count=walk.pack_count,
-        compact_pack_count=walk.compact_pack_count,
-        verified_byte_length=walk.verified_byte_length,
+        parquet_table_count=table_count,
+        verified_byte_length=walk.verified_byte_length + table_byte_length,
     )

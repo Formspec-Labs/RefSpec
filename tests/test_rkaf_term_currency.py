@@ -143,7 +143,7 @@ def test_every_rkaf_term_refspec_uses_exists_in_the_packaged_registry() -> None:
     # deliberately excludes "*Shape node names" from the registry as "shape
     # identifiers, not data vocabulary" -- confirmed structurally by
     # test_no_shape_identifier_is_a_real_vocabulary_term below, which fails
-    # the day that stops being true. bindings/atlas/3.0/tools/validate.py
+    # the day that stops being true. bindings/atlas/3.1/tools/validate.py
     # cites two of rulespec's SHACL shapes by name in prose, comparing
     # Atlas's own validation rules to them; that is documentation, not a
     # claim that a JSON-LD graph or BehaviorTestCase this repository builds

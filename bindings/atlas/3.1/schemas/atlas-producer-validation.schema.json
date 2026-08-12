@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-producer-validation.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/atlas-producer-validation.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
@@ -9,27 +9,12 @@
     "binding": {
       "$ref": "atlas-manifest.schema.json#/$defs/binding"
     },
-    "checks": {
-      "items": {
-        "$ref": "common.schema.json#/$defs/nonEmptyString"
-      },
-      "minItems": 1,
-      "type": "array",
-      "uniqueItems": true
-    },
     "constructorProfile": {
-      "const": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1"
+      "const": "atlas-3-source-and-evidence-backed-mapping-v1"
     },
     "constructionSummary": {
       "additionalProperties": false,
       "properties": {
-        "compactPackCount": {
-          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
-          "minimum": 1
-        },
-        "compactPackInventoryDigest": {
-          "$ref": "common.schema.json#/$defs/digest"
-        },
         "digest": {
           "$ref": "common.schema.json#/$defs/digest"
         },
@@ -52,17 +37,12 @@
         "path",
         "digest",
         "releaseCount",
-        "releaseInventoryDigest",
-        "compactPackCount",
-        "compactPackInventoryDigest"
+        "releaseInventoryDigest"
       ],
       "type": "object"
     },
     "counts": {
       "$ref": "atlas-manifest.schema.json#/$defs/aggregateCounts"
-    },
-    "implementationDigest": {
-      "$ref": "common.schema.json#/$defs/digest"
     },
     "mode": {
       "const": "compiledSourceAndEvidenceBackedMappingProducerValidation"
@@ -96,12 +76,6 @@
       ],
       "type": "object"
     },
-    "shaclDataProof": {
-      "const": "compiledAgainstPinnedOntologyAndShapes"
-    },
-    "shaclMetaValidation": {
-      "const": "pySHACL"
-    },
     "sourceAccountingDigest": {
       "$ref": "common.schema.json#/$defs/digest"
     },
@@ -116,7 +90,7 @@
       "const": "AtlasProducerValidation"
     },
     "version": {
-      "const": "3.0"
+      "const": "3.1"
     }
   },
   "required": [
@@ -126,16 +100,12 @@
     "mode",
     "constructorProfile",
     "constructionSummary",
-    "implementationDigest",
     "binding",
     "assertedInventoryDigest",
     "sourceAccountingDigest",
     "sourceReleaseCount",
-    "counts",
-    "checks",
-    "shaclDataProof",
-    "shaclMetaValidation"
+    "counts"
   ],
-  "title": "RefSpec Atlas 3.0 compiled source and publisher-mapping validation",
+  "title": "RefSpec Atlas 3.1 source and publisher-mapping producer receipt",
   "type": "object"
 }

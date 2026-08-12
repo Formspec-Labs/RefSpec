@@ -68,12 +68,9 @@ def _compiled_test_report(
         graphs.sealed_asserted_revision = graphs.asserted.revision
     return {
         "bindingProfile": dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-        "checks": ["unit-test compiled producer proof"],
         "constructorProfile": generator._COMPILED_PRODUCER_PROFILE,
         "counts": generator._counts(graphs),
         "mode": generator._COMPILED_PRODUCER_MODE,
-        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
-        "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": generator._canonical_digest(graphs.accounting),
         "sourceReleaseCount": generator._counts(graphs)["releases"],
         "status": "passed",
@@ -99,7 +96,7 @@ def _compiled_test_accounting() -> dict[str, object]:
                 "unresolved": 0,
             },
             "type": "AtlasSourceAccounting",
-            "version": "3.0",
+            "version": "3.1",
         }
     )
 
@@ -263,13 +260,13 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
     events: list[str] = []
 
     compiled_validation = _compiled_test_report(graphs)
-    original_check = generator._check_compiled_validation_report
+    original_check = generator._check_producer_validation_receipt
 
     def checked(*args, **kwargs) -> None:
         events.append("compiled")
         original_check(*args, **kwargs)
 
-    monkeypatch.setattr(generator, "_check_compiled_validation_report", checked)
+    monkeypatch.setattr(generator, "_check_producer_validation_receipt", checked)
     monkeypatch.setattr(
         generator.ATLAS_VALIDATE,
         "validate_preparsed_distribution",
@@ -296,28 +293,21 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
         "AtlasProducerValidation"
     )
     assert result["compiledProducerValidation"]["binding"] == manifest["binding"]
-    assert result["compiledProducerValidation"]["implementationDigest"] == (
-        generator._COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
-    )
     assert result["trustedWriterReceiptChecks"]["mode"] == "trustedWriterReceipts"
     assert result["packMaterialization"] == {
         "currentCanonicalPackContent": "fullyRecomputedAndSorted",
-        "graphConstruction": "fullRebuildRequiredByCompiledProducerProof",
-        "mode": "incrementalPackMaterialization",
-        "priorDistribution": "notProvided",
+        "graphConstruction": "fullRebuild",
+        "mode": "coldPackMaterialization",
         "rebuiltPackCount": 2,
         "rebuiltPacks": [
             "packs/catalog.nq.zst",
             "packs/sources/unit-test-release/all.nq.zst",
         ],
-        "reuseCriterion": "contentDigestByteLengthAndQuadCount",
-        "reusedPackCount": 0,
-        "reusedPacks": [],
     }
     assert result["independentFileConsumerValidation"] == {
         "performedByGenerator": False,
         "requiredForIndependentConsumers": True,
-        "validator": "bindings/atlas/3.0/tools/validate.py:validate_distribution",
+        "validator": "bindings/atlas/3.1/tools/validate.py:validate_distribution",
     }
 
 
@@ -376,7 +366,6 @@ def _receipted_test_graphs() -> generator.BuildGraphs:
             Literal("2026-08-06", datatype=generator.XSD.date),
         )
     )
-    generator._add_content_digest(asserted, atlas_release)
     return generator.BuildGraphs(
         asserted=asserted,
         projection=generator._new_build_graph(),
@@ -775,11 +764,6 @@ def test_shared_row_validator_rejects_a_malformed_label_row(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(generator, "_registry_asserted_graph", _compiled_descriptor_graph)
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
     releases, _ = _compiled_mapping_case(tmp_path)
     dirty, clean = releases
     malformed_label = dataclasses.replace(
@@ -803,11 +787,6 @@ def test_shared_row_validator_rejects_duplicate_cross_ring_claims(
     releases, _ = _compiled_mapping_case(tmp_path)
     dirty, clean = releases
     entity_scheme = URIRef("urn:test:scheme:entities")
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
 
     def descriptor_graph() -> Graph:
         graph = _compiled_descriptor_graph()
@@ -1344,11 +1323,6 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
     )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     mapping_releases = (mapping_release,)
 
@@ -1509,11 +1483,6 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
     )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     mapping = mapping_release.mappings[0]
     secondary_pin = mapping_release.inputs[1]
@@ -1616,11 +1585,6 @@ def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
     )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     mapping = mapping_release.mappings[0]
     second_approval = dataclasses.replace(
@@ -1676,11 +1640,6 @@ def test_compiled_output_rejects_wrong_mapping_assertion_in_source_accounting(
         generator,
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
-    )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
     )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     mapping_releases = (mapping_release,)
@@ -1738,11 +1697,6 @@ def test_mapping_rejects_endpoint_release_version_drift(
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
     )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     drifted_mapping = dataclasses.replace(
         mapping_release.mappings[0],
@@ -1780,7 +1734,6 @@ def test_compiled_producer_validates_rows_and_constructor_output(
     )
 
     assert report["mode"] == generator._COMPILED_PRODUCER_MODE
-    assert report["shaclDataProof"] == "compiledAgainstPinnedOntologyAndShapes"
     assert report["counts"] == {
         "crossRingRelationAssertions": 0,
         "derivedRelations": 0,
@@ -1805,11 +1758,6 @@ def test_compiled_producer_retains_supplemental_source_claim_records(
         generator,
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
-    )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
     )
     release = _compiled_source_release(tmp_path)
     supplemental = RegistrySupplementalSourceRecord(
@@ -1858,39 +1806,7 @@ def test_compiled_producer_retains_supplemental_source_claim_records(
     assert len(supplemental_nodes) == 1
 
 
-def test_compiled_producer_fails_closed_when_shape_profile_drifts(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    observed = generator.ATLAS_VALIDATE._binding_digests()
-    monkeypatch.setattr(
-        generator.ATLAS_VALIDATE,
-        "_binding_digests",
-        lambda: {**observed, "shapesDigest": "sha256:" + "0" * 64},
-    )
 
-    with pytest.raises(ValueError, match="validation profile drifted"):
-        generator._validate_compiled_binding_profile()
-
-
-def test_compiled_producer_implementation_pin_is_current() -> None:
-    assert generator._compiled_producer_implementation_digest() == (
-        generator._COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
-    )
-
-
-def test_semantic_recipe_changes_with_parser_library_version(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    baseline = generator._shared_semantic_recipe_digest()
-    current_version = generator.package_version
-
-    def changed_version(distribution: str) -> str:
-        version = current_version(distribution)
-        return version + "+changed" if distribution == "openpyxl" else version
-
-    monkeypatch.setattr(generator, "package_version", changed_version)
-
-    assert generator._shared_semantic_recipe_digest() != baseline
 
 
 def test_compiled_producer_rejects_empty_release(
@@ -1901,11 +1817,6 @@ def test_compiled_producer_rejects_empty_release(
         generator,
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
-    )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
     )
     release = _compiled_source_release(tmp_path)
     release = dataclasses.replace(
@@ -1936,11 +1847,6 @@ def test_compiled_producer_rejects_subject_scheme_without_skos_type(
         )
     )
     monkeypatch.setattr(generator, "_registry_asserted_graph", lambda: descriptor)
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
 
     with pytest.raises(ValueError, match="not a SKOS ConceptScheme"):
         generator._validate_compiled_producer_rows(
@@ -1972,11 +1878,10 @@ def test_builder_emits_parquet_from_the_graph_it_already_walks(
 ) -> None:
     """One walk, two serializations, and the tables prove against the RDF.
 
-    The Parquet rows come off the same normalized records the compact packs
-    are written from, so the tables cost the graph walk that was already
-    happening rather than a re-read of everything that walk just wrote. The
-    comparand for the proof is the binding validator's, never the builder's
-    own projection.
+    The Parquet rows come off the graph walk that writes the RDF packs, so the
+    tables cost that walk rather than a re-read of everything it just wrote.
+    The comparand for the proof is the binding validator's, never the
+    builder's own projection.
     """
 
     monkeypatch.setattr(
@@ -1991,23 +1896,29 @@ def test_builder_emits_parquet_from_the_graph_it_already_walks(
         pack_root.mkdir()
         tables = tmp_path / "parquet-tables"
         writer = generator.AtlasParquetTableWriter(tables)
-        compact_inventories: list[dict] = []
-        compact_owners: dict[str, str] = {}
+        record_counts: dict[str, dict[str, int]] = {}
         generator._write_asserted_packs(
             pack_root,
             graphs.asserted,
             generator._release_pack_plans((release,), ()),
-            compact_inventories=compact_inventories,
-            compact_path_owners=compact_owners,
             parquet=writer,
+            record_counts=record_counts,
         )
         members, counts = writer.close()
 
-        # Every compact record reached a Parquet row, role for role.
+        # Every logical record reached a Parquet row, role for role, and the
+        # per-release counts the construction summary publishes are the same
+        # tally.
         expected = Counter()
-        for inventory in compact_inventories:
-            expected[inventory["role"]] += inventory["content"]["recordCount"]
-        assert {role: count for role, count in counts.items() if count} == dict(expected)
+        for owned in record_counts.values():
+            for field, count in owned.items():
+                expected[field] += count
+        by_field = {
+            generator._COMPACT_ROLE_COUNT_FIELDS[role]: count
+            for role, count in counts.items()
+            if count
+        }
+        assert by_field == {field: count for field, count in expected.items() if count}
         assert {member["role"] for member in members} == {
             role.value for role in generator.CompactRecordRole
         }
@@ -2016,7 +1927,11 @@ def test_builder_emits_parquet_from_the_graph_it_already_walks(
         assert receipt["status"] == "passed"
         assert receipt["sampledRowsAgainstRdf"] > 0
         assert receipt["sourceRecordPayloadRows"] == counts["SourceRecord"]
+        assert receipt["reachabilityRows"] == sum(counts.values())
         assert receipt["comparand"].endswith("validate.py:parquet_row_from_rdf")
+        assert receipt["reachabilityComparand"].endswith(
+            "validate.py:_check_explorer_reachability"
+        )
     finally:
         graphs.release()
 
@@ -2048,9 +1963,8 @@ def test_parquet_parity_refuses_a_table_the_graph_does_not_say(
             pack_root,
             graphs.asserted,
             generator._release_pack_plans((release,), ()),
-            compact_inventories=[],
-            compact_path_owners={},
             parquet=writer,
+            record_counts={},
         )
         writer.close()
         generator._check_parquet_view_against_graph(tables, graphs.asserted)
@@ -2072,6 +1986,64 @@ def test_parquet_parity_refuses_a_table_the_graph_does_not_say(
             generator._check_parquet_view_against_graph(tables, graphs.asserted)
         assert error.value.code == "construction.parquet"
         assert "epistemic_basis" in error.value.detail
+    finally:
+        graphs.release()
+
+
+def test_parquet_parity_refuses_a_record_the_served_tables_cannot_reach(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reachability property the compact layer used to carry, negative-tested.
+
+    `explorer-record-unreachable` was a corpus case while the served
+    projection was compact JSONL inside the distribution. The projection is
+    now the Parquet view beside it, which fixtures do not carry, so the case
+    moves here: one label row is retitled to an id the graph never asserts,
+    leaving every count equal, and the gate must still refuse it. The
+    comparand stays `validate.py:_check_explorer_reachability`.
+    """
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    release = _compiled_source_release(tmp_path)
+    graphs = generator._build_graphs((release,), include_projection=False)
+    try:
+        pack_root = tmp_path / "packed"
+        pack_root.mkdir()
+        tables = tmp_path / "parquet-tables"
+        writer = generator.AtlasParquetTableWriter(tables)
+        generator._write_asserted_packs(
+            pack_root,
+            graphs.asserted,
+            generator._release_pack_plans((release,), ()),
+            parquet=writer,
+            record_counts={},
+        )
+        writer.close()
+        generator._check_parquet_view_against_graph(tables, graphs.asserted)
+
+        role = generator.CompactRecordRole.LABEL
+        table_path = tables / generator.TABLE_DIRECTORY / generator.TABLE_NAMES[role]
+        table = pq.read_table(table_path)
+        assert table.num_rows > 0
+        rows = table.to_pylist()
+        rows[0]["id"] = "urn:ref:atlas-label:" + "9" * 64
+        table_path.unlink()
+        pq.write_table(
+            pa.Table.from_pylist(rows, schema=table.schema),
+            table_path,
+            compression="zstd",
+        )
+
+        with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as error:
+            generator._check_parquet_view_against_graph(tables, graphs.asserted)
+        assert error.value.code == "construction.reachability"
+        assert "unreachable=" in error.value.detail
+        assert "unasserted=" in error.value.detail
     finally:
         graphs.release()
 
@@ -2171,11 +2143,6 @@ def test_compiled_producer_rejects_compact_row_mutations(
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
     )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
-    )
     release = _compiled_source_release(
         tmp_path,
         labels=labels,
@@ -2194,11 +2161,6 @@ def test_compiled_producer_rejects_projection_and_accounting_mutations(
         generator,
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
-    )
-    monkeypatch.setattr(
-        generator,
-        "_validate_compiled_binding_profile",
-        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
     )
     release = _compiled_source_release(tmp_path)
     producer_receipt = generator._validate_compiled_producer_rows((release,))
@@ -2854,9 +2816,9 @@ def test_source_record_canonicalizes_native_payload_once_and_preserves_identity(
     assert str(graph.value(record, generator.ATLAS.nativePayload)) == expected_bytes.decode(
         "utf-8"
     )
-    assert str(graph.value(record, generator.ATLAS.contentDigest)) == (
-        generator.ATLAS_VALIDATE.rdf_node_digest(graph, record)
-    )
+    # The record does not publish its own digest: nothing derives its IRI
+    # from one, so the wire carries none and the closed shapes refuse one.
+    assert list(graph.objects(record, generator.ATLAS.contentDigest)) == []
 
 
 def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() -> None:
@@ -2867,20 +2829,10 @@ def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() ->
     graph = RemoveRejectingGraph()
     policy = URIRef("urn:test:policy")
     evidence_record = URIRef("urn:test:evidence-record")
-    graph.add(
-        (
-            policy,
-            generator.ATLAS.contentDigest,
-            generator.Literal("sha256:" + "2" * 64),
-        )
-    )
-    graph.add(
-        (
-            evidence_record,
-            generator.ATLAS.contentDigest,
-            generator.Literal("sha256:" + "3" * 64),
-        )
-    )
+    # Both digests are now recomputed from the node's own facts, so each node
+    # needs facts to digest rather than a digest triple to read.
+    graph.add((policy, RDF.type, generator.ATLAS.EditorialPolicy))
+    graph.add((evidence_record, RDF.type, generator.ATLAS.SourceRecord))
 
     generator._add_evidenced_assertion(
         graph,
@@ -3243,15 +3195,6 @@ def test_build_graphs_emits_content_derived_registry_identifiers(
         (generator.ATLAS.identifierScheme, identifier_scheme),
         (generator.ATLAS.identifies, resource),
         (generator.ATLAS.sourceRecord, source_record),
-        (
-            generator.ATLAS.contentDigest,
-            generator.Literal(
-                generator.ATLAS_VALIDATE.rdf_node_digest(
-                    graphs.asserted,
-                    identifier,
-                )
-            ),
-        ),
     }
     assert generator._counts(graphs)["identifiers"] == 1
 
@@ -3433,7 +3376,7 @@ def test_real_document_releases_emit_identifiers_and_cross_ring_assignment(
 def test_the_producer_refuses_a_warrant_whose_records_it_cannot_emit() -> None:
     """Fail at intake, not at the end of a full build.
 
-    The Atlas 3.0 binding admits the twoMachineAdjudication evidence warrant and
+    The Atlas 3.1 binding admits the twoMachineAdjudication evidence warrant and
     obliges every assertion carrying it to be licensed by a complete
     machine-adjudication record set -- a comparison context, its independent
     proof records, their issuers and model lineages, and the artifacts that
@@ -3479,7 +3422,7 @@ def test_every_other_binding_warrant_still_passes_producer_intake() -> None:
 def test_the_producer_refuses_a_mapping_ring_whose_dates_it_cannot_emit() -> None:
     """The same fail-at-intake rule, for the rings that need a period.
 
-    Since ring temporal context landed on the Atlas 3.0 wire, a value-ring or
+    Since ring temporal context landed on the Atlas 3.1 wire, a value-ring or
     legal-identity-ring MappingAssertion must carry an rkaf:hasEffectivePeriod
     resolving to a well-formed rkaf:EffectivePeriod. Nothing in
     refspec.atlas.v3_source_data carries an effective date for a mapping, so

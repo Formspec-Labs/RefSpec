@@ -1,7 +1,8 @@
 """Prove the distribution seal against the real HEAD-conforming FR Thesaurus build.
 
-Every test runs over a copy of that distribution, because the negative cases
-tamper with bytes and the artifact of record must survive them untouched.
+Every test runs over a copy of that distribution and of the served Parquet view
+beside it, because the negative cases tamper with bytes and the artifacts of
+record must survive them untouched.
 """
 
 from __future__ import annotations
@@ -15,29 +16,32 @@ from typing import Any
 
 import pytest
 
+from refspec.atlas.parquet_artifact import file_sha256
+from refspec.atlas.parquet_view import MANIFEST_FILE as VIEW_MANIFEST_FILE
 from refspec.release_model import canonical_json_bytes
 from refspec.seal import (
     ACCEPTANCE_MEMBER,
-    CONSTRUCTION_SUMMARY_ROLE,
     MANIFEST_MEMBER,
     SIGNATURE_NAMESPACE,
     SealError,
     create_seal,
+    default_parquet_view_path,
     default_seal_path,
     verify_seal,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-DISTRIBUTION_ROOT = (
-    REPOSITORY_ROOT / "output" / "atlas-3.0-federal-register-thesaurus-2025-04-01" / "distribution"
-)
+RELEASE_ROOT = REPOSITORY_ROOT / "output" / "atlas-3.1-federal-register-thesaurus-2025-04-01"
+DISTRIBUTION_ROOT = RELEASE_ROOT / "distribution"
+PARQUET_VIEW_ROOT = RELEASE_ROOT / "parquet-view"
 SIGNER_IDENTITY = "release@refspec.test"
 
 pytestmark = pytest.mark.skipif(
-    not (DISTRIBUTION_ROOT / MANIFEST_MEMBER).is_file(),
+    not (DISTRIBUTION_ROOT / MANIFEST_MEMBER).is_file()
+    or not (PARQUET_VIEW_ROOT / VIEW_MANIFEST_FILE).is_file(),
     reason=(
-        "the HEAD-conforming Federal Register Thesaurus distribution is not built at "
-        f"{DISTRIBUTION_ROOT.relative_to(REPOSITORY_ROOT)}"
+        "the HEAD-conforming Federal Register Thesaurus distribution and its served "
+        f"Parquet view are not built at {RELEASE_ROOT.relative_to(REPOSITORY_ROOT)}"
     ),
 )
 
@@ -78,12 +82,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _construction_summary(distribution: Path) -> dict[str, Any]:
-    manifest = _read_json(distribution / MANIFEST_MEMBER)
-    member = next(entry for entry in manifest["members"] if entry["role"] == CONSTRUCTION_SUMMARY_ROLE)
-    return _read_json(distribution / member["path"])
-
-
 @pytest.fixture(scope="module")
 def signing_key(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _generate_key(tmp_path_factory.mktemp("release-key"), "release")
@@ -97,9 +95,22 @@ def allowed_signers(tmp_path_factory: pytest.TempPathFactory, signing_key: Path)
 
 @pytest.fixture
 def distribution(tmp_path: Path) -> Path:
+    """Copy both sealed artifacts: the distribution and the view beside it.
+
+    The seal binds three digests, and the third is the served Parquet view's
+    manifest. The view sits beside the distribution, so the copy has to keep
+    that relationship or `default_parquet_view_path` finds nothing.
+    """
+
     root = tmp_path / "distribution"
     shutil.copytree(DISTRIBUTION_ROOT, root)
+    shutil.copytree(PARQUET_VIEW_ROOT, default_parquet_view_path(root))
     return root
+
+
+@pytest.fixture
+def parquet_view(distribution: Path) -> Path:
+    return default_parquet_view_path(distribution)
 
 
 @pytest.fixture
@@ -117,12 +128,19 @@ def test_seal_is_written_beside_the_distribution_and_verifies_every_member_and_p
     assert not sealed.is_relative_to(distribution)
 
     manifest = json.loads((distribution / MANIFEST_MEMBER).read_text(encoding="utf-8"))
-    compact_packs = _construction_summary(distribution)["compactPacks"]
+    view = default_parquet_view_path(distribution)
+    view_manifest = json.loads((view / VIEW_MANIFEST_FILE).read_text(encoding="utf-8"))
     seal = json.loads(sealed.read_text(encoding="utf-8"))
     assert seal["type"] == "RefSpecDistributionSeal"
     assert seal["signerIdentity"] == SIGNER_IDENTITY
     assert seal["signature"].startswith("-----BEGIN SSH SIGNATURE-----")
-    assert set(seal["payload"]) == {"acceptanceSha256", "distributionId", "manifestSha256", "sealFormat"}
+    assert set(seal["payload"]) == {
+        "acceptanceSha256",
+        "distributionId",
+        "manifestSha256",
+        "parquetViewManifestSha256",
+        "sealFormat",
+    }
 
     result = verify_seal(distribution, sealed, allowed_signers)
 
@@ -132,13 +150,16 @@ def test_seal_is_written_beside_the_distribution_and_verifies_every_member_and_p
     assert result.acceptance_sha256 == seal["payload"]["acceptanceSha256"]
     assert result.member_count == len(manifest["members"]) == 4
     assert result.pack_count == len(manifest["packs"]) == 2
-    # The manifest alone does not reach every byte: the compact packs are
-    # declared by the construction summary, which is a manifest member.
-    assert result.compact_pack_count == len(compact_packs) == 6
+    # The third bound digest: the served Parquet view beside the distribution,
+    # which the manifest cannot declare without a cycle -- the view manifest
+    # pins the distribution manifest's own digest.
+    assert result.parquet_view_manifest_sha256 == file_sha256(view / VIEW_MANIFEST_FILE)
+    assert result.parquet_table_count == len(view_manifest["members"]) == 8
+    assert view_manifest["input"]["manifestSha256"] == result.manifest_sha256
     assert result.verified_byte_length == sum(
         [member["byteLength"] for member in manifest["members"]]
         + [pack["transport"]["byteLength"] for pack in manifest["packs"]]
-        + [pack["transport"]["byteLength"] for pack in compact_packs]
+        + [member["byteLength"] for member in view_manifest["members"]]
     )
 
     # Every file on disk is walked; nothing in the sealed tree is unreached.
@@ -146,7 +167,6 @@ def test_seal_is_written_beside_the_distribution_and_verifies_every_member_and_p
         {MANIFEST_MEMBER}
         | {member["path"] for member in manifest["members"]}
         | {pack["path"] for pack in manifest["packs"]}
-        | {pack["path"] for pack in compact_packs}
     )
     assert walked == {
         path.relative_to(distribution).as_posix() for path in distribution.rglob("*") if path.is_file()
@@ -252,18 +272,46 @@ def test_create_seal_refuses_a_distribution_with_no_manifest(
         create_seal(distribution, signing_key, SIGNER_IDENTITY)
 
 
-def test_a_tampered_compact_pack_fails_the_walk_naming_the_compact_pack(
+def test_a_tampered_parquet_table_fails_the_view_walk(
     distribution: Path,
+    parquet_view: Path,
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
-    """The compact packs are outside the manifest; the construction summary reaches them."""
+    """The served projection is outside the distribution; the seal payload reaches it."""
 
-    compact = _construction_summary(distribution)["compactPacks"][0]["path"]
-    assert compact.startswith("packs/compact/") and compact.endswith(".jsonl.zst")
-    _tamper_one_byte(distribution / compact)
+    view_manifest = json.loads((parquet_view / VIEW_MANIFEST_FILE).read_text(encoding="utf-8"))
+    table = view_manifest["members"][0]["path"]
+    assert table.startswith("tables/") and table.endswith(".parquet")
+    _tamper_one_byte(parquet_view / table)
 
-    with pytest.raises(SealError, match=re.escape(f"compact pack differs from the sealed manifest: {compact}")):
+    with pytest.raises(SealError, match="the sealed Parquet view does not verify"):
+        verify_seal(distribution, sealed, allowed_signers)
+
+
+def test_a_tampered_view_manifest_fails_against_the_sealed_view_digest(
+    distribution: Path,
+    parquet_view: Path,
+    sealed: Path,
+    allowed_signers: Path,
+) -> None:
+    _tamper_one_byte(parquet_view / VIEW_MANIFEST_FILE)
+
+    with pytest.raises(SealError, match="Parquet view manifest differs from the sealed digest"):
+        verify_seal(distribution, sealed, allowed_signers)
+
+
+def test_a_missing_parquet_view_fails_the_seal(
+    distribution: Path,
+    parquet_view: Path,
+    sealed: Path,
+    allowed_signers: Path,
+) -> None:
+    """A distribution copied without its served view is not the sealed artifact."""
+
+    shutil.rmtree(parquet_view)
+
+    with pytest.raises(SealError, match="sealed Parquet view is missing or unsafe"):
         verify_seal(distribution, sealed, allowed_signers)
 
 
@@ -319,7 +367,7 @@ def test_a_symlinked_directory_inside_the_sealed_tree_is_refused(
         verify_seal(distribution, sealed, allowed_signers)
 
 
-def test_a_payload_carrying_a_fifth_key_is_refused_for_strictness_not_for_its_signature(
+def test_a_payload_carrying_an_extra_key_is_refused_for_strictness_not_for_its_signature(
     tmp_path: Path,
     distribution: Path,
     sealed: Path,
@@ -350,7 +398,7 @@ def test_a_payload_carrying_a_fifth_key_is_refused_for_strictness_not_for_its_si
     assert "ssh-keygen" not in str(refusal.value)
 
 
-def test_a_seal_carrying_a_fifth_top_level_key_is_refused(
+def test_a_seal_carrying_an_extra_top_level_key_is_refused(
     tmp_path: Path,
     distribution: Path,
     sealed: Path,

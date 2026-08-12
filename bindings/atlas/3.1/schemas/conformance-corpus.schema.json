@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/conformance-corpus.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/conformance-corpus.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
@@ -107,7 +107,7 @@
       "const": "AtlasConformanceCorpus"
     },
     "version": {
-      "const": "3.0"
+      "const": "3.1"
     }
   },
   "required": [
@@ -115,6 +115,6 @@
     "version",
     "cases"
   ],
-  "title": "RefSpec Atlas 3.0 conformance corpus",
+  "title": "RefSpec Atlas 3.1 conformance corpus",
   "type": "object"
 }

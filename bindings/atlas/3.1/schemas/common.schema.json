@@ -1,7 +1,7 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/common.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/common.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Atlas 3.0 common schema definitions",
+  "title": "Atlas 3.1 common schema definitions",
   "$defs": {
     "absoluteIri": {
       "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s<>]+$",

@@ -12,7 +12,7 @@ from rdflib import Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF, SKOS
 
 ROOT = Path(__file__).resolve().parents[1]
-BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.0"
+BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
 VALIDATOR_PATH = BINDING_ROOT / "tools" / "validate.py"
 FIXTURE_BUILDER = BINDING_ROOT / "tools" / "build_fixtures.py"
 VALID_DISTRIBUTION = BINDING_ROOT / "fixtures" / "valid" / "all-resource-profiles"
@@ -75,10 +75,10 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 128,
-        "invalidCount": 115,
+        "caseCount": 127,
+        "invalidCount": 114,
         "registryDescriptorCount": 88,
-        "registryDescriptorQuadCount": 1171,
+        "registryDescriptorQuadCount": 994,
         "schemaCount": 10,
     }
 
@@ -152,7 +152,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 11,
     }
-    assert result["quadCount"] == 1042
+    assert result["quadCount"] == 947
     assert result["inferredMappingCount"] == 7
 
 
@@ -326,6 +326,22 @@ def test_supersession_projects_only_the_terminal_current_claim() -> None:
     assert successor in set(projection.objects(None, ATLAS.supportingAssertion))
 
 
+def _policy_node_digest(graph: Graph, node: URIRef) -> str:
+    """Recompute one node's digest the way an independent reader must.
+
+    `atlas:contentDigest` is off the wire for every carrier that does not
+    derive its IRI from it -- an editorial policy's IRI *is* the digest -- so
+    the assertion identity basis is checked here against a digest this test
+    derives itself rather than one the artifact restates.
+    """
+
+    rows = sorted(
+        f"{predicate.n3()} {obj.n3()} ." for predicate, obj in graph.predicate_objects(node)
+    )
+    return "sha256:" + hashlib.sha256(("\n".join(rows) + "\n").encode("utf-8")).hexdigest()
+
+
+
 def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> None:
     _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
@@ -334,7 +350,7 @@ def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> N
     basis = {
         "object": str(asserted.value(assertion, RDF.object)),
         "policy": str(policy),
-        "policyContentDigest": str(asserted.value(policy, ATLAS.contentDigest)),
+        "policyContentDigest": _policy_node_digest(asserted, policy),
         "predicate": str(asserted.value(assertion, RDF.predicate)),
         "semanticRing": str(asserted.value(assertion, ATLAS.semanticRing)),
         "sourceRelease": str(asserted.value(assertion, ATLAS.sourceRelease)),
@@ -369,7 +385,7 @@ def test_cross_ring_assertion_identity_uses_both_directed_rings() -> None:
     basis = {
         "object": str(asserted.value(assertion, RDF.object)),
         "policy": str(policy),
-        "policyContentDigest": str(asserted.value(policy, ATLAS.contentDigest)),
+        "policyContentDigest": _policy_node_digest(asserted, policy),
         "predicate": str(asserted.value(assertion, RDF.predicate)),
         "sourceRelease": str(asserted.value(assertion, ATLAS.sourceRelease)),
         "sourceRing": str(asserted.value(assertion, ATLAS.sourceRing)),
@@ -430,7 +446,7 @@ def _sandboxed_repository(tmp_path: Path) -> Path:
     """
 
     root = tmp_path / "repo"
-    binding = root / "bindings" / "atlas" / "3.0"
+    binding = root / "bindings" / "atlas" / "3.1"
     binding.parent.mkdir(parents=True)
     shutil.copytree(BINDING_ROOT, binding)
     adapter = root / "src" / "refspec" / "atlas" / "v3_source_data.py"
@@ -440,7 +456,7 @@ def _sandboxed_repository(tmp_path: Path) -> Path:
 
 
 def _sandboxed_check(root: Path) -> subprocess.CompletedProcess[str]:
-    binding = root / "bindings" / "atlas" / "3.0"
+    binding = root / "bindings" / "atlas" / "3.1"
     return subprocess.run(
         [
             "uv",
@@ -469,7 +485,7 @@ def test_fixture_receipt_fast_path_passes_on_a_clean_tree(tmp_path: Path) -> Non
 
 def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Path) -> None:
     root = _sandboxed_repository(tmp_path)
-    tampered = root / "bindings" / "atlas" / "3.0" / "fixtures" / "corpus.json"
+    tampered = root / "bindings" / "atlas" / "3.1" / "fixtures" / "corpus.json"
     payload = tampered.read_bytes()
     tampered.write_bytes(payload.replace(b"all-resource-profiles", b"all-resource-profilez", 1))
 
@@ -479,12 +495,12 @@ def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Pat
     # refused, the full rebuild-and-diff runs, and it reports the difference.
     assert result.returncode != 0
     assert "receipt matches" not in result.stdout
-    assert "Atlas 3.0 fixtures differ" in result.stdout + result.stderr
+    assert "Atlas 3.1 fixtures differ" in result.stdout + result.stderr
 
 
 def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
     root = _sandboxed_repository(tmp_path)
-    ontology = root / "bindings" / "atlas" / "3.0" / "ontology" / "atlas.ttl"
+    ontology = root / "bindings" / "atlas" / "3.1" / "ontology" / "atlas.ttl"
     ontology.write_bytes(ontology.read_bytes() + b"\n# an input digest the receipt does not know\n")
 
     result = _sandboxed_check(root)
@@ -493,12 +509,12 @@ def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
     # byte must re-derive rather than trust the receipt.
     assert "receipt matches" not in result.stdout
     assert result.returncode != 0
-    assert "Atlas 3.0 fixtures differ" in result.stdout + result.stderr
+    assert "Atlas 3.1 fixtures differ" in result.stdout + result.stderr
 
 
 def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Path) -> None:
     root = _sandboxed_repository(tmp_path)
-    receipt = root / "bindings" / "atlas" / "3.0" / "fixtures-receipt.json"
+    receipt = root / "bindings" / "atlas" / "3.1" / "fixtures-receipt.json"
 
     receipt.write_bytes(b"{ this is not json")
     unparseable = _sandboxed_check(root)

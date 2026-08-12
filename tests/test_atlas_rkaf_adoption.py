@@ -50,7 +50,7 @@ from tests.test_rkaf_term_currency import (
 )
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
-BINDING_ROOT = REFSPEC_ROOT / "bindings" / "atlas" / "3.0"
+BINDING_ROOT = REFSPEC_ROOT / "bindings" / "atlas" / "3.1"
 ONTOLOGY = BINDING_ROOT / "ontology" / "atlas.ttl"
 SHAPES = BINDING_ROOT / "shapes" / "atlas.shacl.ttl"
 SCHEMAS = BINDING_ROOT / "schemas"
@@ -481,6 +481,6 @@ def test_every_wire_adoption_names_a_rejecting_conformance_case() -> None:
     assert not missing, (
         f"{len(missing)} adopted rkaf: term(s) name a negative fixture the "
         f"conformance corpus does not reject: {missing}. Build the fixture in "
-        "bindings/atlas/3.0/tools/build_fixtures.py so the validator proves the "
+        "bindings/atlas/3.1/tools/build_fixtures.py so the validator proves the "
         "constraint fires."
     )

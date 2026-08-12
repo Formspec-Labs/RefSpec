@@ -11,7 +11,7 @@ rather than an inference of ours.  A tool that ran a citation *recogniser* over
 the same text would be replacing a curated answer with a guess.
 
 That distinction is what makes these edges *asserted* rather than *derived* under
-[REF-014](../docs/decisions.md) and the Atlas 3.0 binding: an
+[REF-014](../docs/decisions.md) and the Atlas 3.1 binding: an
 ``atlas:NativeRelationAssertion`` "preserves a publisher-authored relation
 between resources in the same semantic ring", and its endpoints "may belong to
 one release or to different releases".  A marked-up ``<ref href>`` is exactly

@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_ROOT = ROOT / "bindings" / "atlas" / "3.0" / "schemas"
+SCHEMA_ROOT = ROOT / "bindings" / "atlas" / "3.1" / "schemas"
 DIGEST = "sha256:" + "1" * 64
 
 
@@ -55,8 +55,8 @@ def _binding() -> dict[str, str]:
         "ontologyDigest": DIGEST,
         "shapesDigest": DIGEST,
         "sourceAccountingSchemaDigest": DIGEST,
-        "validatorVersion": "3.0",
-        "version": "3.0",
+        "validatorVersion": "3.1",
+        "version": "3.1",
     }
 
 
@@ -100,7 +100,7 @@ def _manifest() -> dict[str, Any]:
         "counts": _counts(),
         "createdAt": "2026-08-06T00:00:00Z",
         "distributionId": "urn:ref:atlas-test:distribution",
-        "format": "refspec-atlas-packed-nquads-3.0",
+        "format": "refspec-atlas-packed-nquads-3.1",
         "graphs": [
             {
                 "id": "urn:ref:atlas-test:graph:asserted",
@@ -152,7 +152,7 @@ def _manifest() -> dict[str, Any]:
                 },
             }
         ],
-        "schemaVersion": "3.0",
+        "schemaVersion": "3.1",
         "type": "AtlasManifest",
     }
 

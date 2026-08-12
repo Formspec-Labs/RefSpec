@@ -12,9 +12,9 @@
 
 <https://refspec.org/ns/atlas/v3/shapes>
   a owl:Ontology ;
-  rdfs:label "RefSpec Atlas SHACL shapes 3.0"@en ;
-  rdfs:comment "Closed-world publication constraints for the asserted, projection, and derived roles of an Atlas 3.0 dataset."@en ;
-  owl:versionInfo "3.0" .
+  rdfs:label "RefSpec Atlas SHACL shapes 3.1"@en ;
+  rdfs:comment "Closed-world publication constraints for the asserted, projection, and derived roles of an Atlas 3.1 dataset."@en ;
+  owl:versionInfo "3.1" .
 
 # Reusable value shapes
 
@@ -97,12 +97,6 @@ atlas:RegistrySourceShape
       "resourceFamily"
       "reviewWithheld"
     )
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] .
 
 atlas:SourceReleaseShape
@@ -134,12 +128,6 @@ atlas:SourceReleaseShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] .
 
 atlas:AtlasReleaseShape
@@ -178,12 +166,6 @@ atlas:AtlasReleaseShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:ResourceProfileValueShape
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] ;
   # Rulespec owns this vocabulary: #ReferenceResourceMembershipMode in
   # constraints/core/reference-resource-release.cue, over the same
@@ -243,12 +225,6 @@ atlas:ResourceSchemeShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:ResourceProfileValueShape
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] ;
   sh:property [
     sh:path atlas:sourceDescriptor ;
@@ -346,12 +322,6 @@ atlas:AtlasResourceShape
     sh:minCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class atlas:SourceRecord
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] ;
   sh:property [ sh:path atlas:notation ; sh:node atlas:NonEmptyStringValueShape ] ;
   sh:property [ sh:path atlas:recordStatus ; sh:maxCount 1 ; sh:node atlas:NonEmptyStringValueShape ] ;
@@ -488,12 +458,6 @@ atlas:IdentifierShape
     sh:class atlas:SourceRecord
   ] ;
   sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
-  ] ;
-  sh:property [
     sh:path ( atlas:identifierScheme atlas:resourceProfile ) ;
     sh:hasValue atlas:identifierScheme
   ] .
@@ -534,12 +498,6 @@ atlas:SourceRecordShape
     sh:path atlas:representsResource ;
     sh:nodeKind sh:IRI ;
     sh:class atlas:AtlasResource
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] .
 
 atlas:EditorialPolicyShape
@@ -554,12 +512,6 @@ atlas:EditorialPolicyShape
     sh:maxCount 1 ;
     sh:nodeKind sh:Literal ;
     sh:datatype rdf:JSON
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] .
 
 # rkaf:RegistryConflict, upstream's #RegistryConflict over the three fields
@@ -631,7 +583,7 @@ atlas:SkosXlLabelShape
     sh:minLength 1 ;
     sh:datatype rdf:langString ;
     sh:languageIn ( "en" ) ;
-    sh:message "Atlas 3.0 label literals MUST use the English language tag @en."
+    sh:message "Atlas 3.1 label literals MUST use the English language tag @en."
   ] ;
   sh:property [
     sh:path atlas:inRelease ;
@@ -646,12 +598,6 @@ atlas:SkosXlLabelShape
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class atlas:SourceRecord
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] .
 
 # Evidence-bearing relation assertions
@@ -756,12 +702,6 @@ atlas:RelationAssertionShape
   ] ;
   sh:property [
     sh:path atlas:assertionIdentityDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
@@ -1246,7 +1186,6 @@ atlas:LifecycleEventShape
   sh:property [ sh:path atlas:fromRelease ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:Release ] ;
   sh:property [ sh:path atlas:toRelease ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:Release ] ;
   sh:property [ sh:path atlas:sourceRecord ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:SourceRecord ] ;
-  sh:property [ sh:path atlas:contentDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:node atlas:DigestValueShape ] ;
   # Each kind names the release it moves the assertion across, and only that
   # one. A rescission leaves a release; a supersession admits the successor
   # into one. Without this a producer could emit either pointer on either kind
@@ -1730,12 +1669,6 @@ atlas:ProjectedRelationShape
     sh:path atlas:supportingAssertion ;
     sh:minCount 1 ;
     sh:nodeKind sh:IRI
-  ] ;
-  sh:property [
-    sh:path atlas:contentDigest ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:node atlas:DigestValueShape
   ] ;
   sh:xone (
     [

@@ -1,7 +1,7 @@
 """Fast relational preflight for an authenticated Atlas Parquet view.
 
 This is a development gate, not a replacement for the Atlas 3 normative RDF
-validator.  It uses the compact logical-record view to catch the global
+validator.  It uses the typed logical-record view to catch the global
 referential and cardinality failures that are expensive to discover by
 repeatedly walking a large RDFLib graph.
 """
@@ -74,7 +74,7 @@ RELEASE_ONLY_CHECKS = (
     "projection-and-derived-graph-replay",
     "skos-transitive-conflict-analysis",
     "source-accounting-ledger-reconciliation",
-    "compact-shape-size-and-rdf-sample",
+    "construction-record-ownership",
     "reasoning-isolation",
 )
 
@@ -587,9 +587,9 @@ def validate_atlas_parquet_preflight(
 ) -> dict[str, Any]:
     """Run the authenticated columnar preflight for one exact distribution."""
 
-    # The view builder uses this same source-metadata verifier before it reads
-    # and authenticates compact packs. Keeping one implementation prevents
-    # trust-chain drift while the preflight API is still experimental.
+    # The Atlas builder uses this same source-metadata verifier when it seals
+    # the view. Keeping one implementation prevents trust-chain drift while the
+    # preflight API is still experimental.
     verified_input = verify_atlas_parquet_source_metadata(distribution, expected_distribution_manifest_digest)
     view_manifest = verify_atlas_parquet_view(
         view,

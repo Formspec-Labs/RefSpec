@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools" / "generate_atlas_v3_registry_coverage.py"
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
 INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
-PROFILES = ROOT / "bindings" / "atlas" / "3.0" / "registry-resource-profiles.json"
-REPORT = ROOT / "bindings" / "atlas" / "3.0" / "tests" / "registry-coverage.json"
+PROFILES = ROOT / "bindings" / "atlas" / "3.1" / "registry-resource-profiles.json"
+REPORT = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-coverage.json"
 
 SPEC = importlib.util.spec_from_file_location("generate_atlas_v3_registry_coverage", TOOL)
 assert SPEC is not None and SPEC.loader is not None
@@ -163,7 +163,7 @@ def test_cross_ring_relation_policy_rejects_reversal_and_skos_predicates() -> No
     )
     _resign(reversed_pair)
 
-    with pytest.raises(coverage.RegistryCoverageError, match="closed Atlas 3.0 matrix"):
+    with pytest.raises(coverage.RegistryCoverageError, match="closed Atlas 3.1 matrix"):
         coverage.validate_profile_map(reversed_pair, catalog)
 
     skos_predicate = copy.deepcopy(profiles)

@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/registry-coverage.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/registry-coverage.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "codeSchemeProfile": {
@@ -270,7 +270,7 @@
       "$ref": "common.schema.json#/$defs/digest"
     },
     "format": {
-      "const": "refspec-atlas-registry-coverage/3.0"
+      "const": "refspec-atlas-registry-coverage/3.1"
     },
     "inputs": {
       "additionalProperties": false,
@@ -321,7 +321,7 @@
       "type": "object"
     },
     "schemaVersion": {
-      "const": "3.0"
+      "const": "3.1"
     },
     "setDigests": {
       "additionalProperties": false,
@@ -503,6 +503,6 @@
     "summary",
     "unsupported"
   ],
-  "title": "RefSpec Atlas 3.0 registry coverage",
+  "title": "RefSpec Atlas 3.1 registry coverage",
   "type": "object"
 }

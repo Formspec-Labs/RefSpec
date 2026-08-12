@@ -74,7 +74,7 @@ strongest properties across unrelated public domains.
 ## Atlas today
 
 The Atlas 3.0 binding already defines a strong authority and release model. See
-the [Atlas 3.0 binding](bindings/atlas/3.0/README.md) and the
+the [Atlas 3.0 binding](bindings/atlas/3.1/README.md) and the
 [decision ledger](docs/decisions.md).
 
 The local development candidate reviewed on August 7, 2026 contained:

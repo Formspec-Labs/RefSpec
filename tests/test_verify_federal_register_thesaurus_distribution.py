@@ -69,12 +69,18 @@ def test_verification_fails_on_the_right_count_of_wrong_rows(
     substituted = min(statements)
     swapped = (substituted[0], substituted[1], "urn:ref:source-concept:v2:invented")
 
-    def measured(_distribution: Path, _digest: str) -> dict[str, object]:
+    def measured(
+        _distribution: Path,
+        _digest: str,
+        _view: Path,
+        _view_digest: str,
+    ) -> dict[str, object]:
         return {
             "distributionId": "urn:ref:atlas:distribution:test:0",
             "labelRoleCounts": {"alternate": 433, "preferred": 705},
             "labels": labels,
             "manifestSha256": "sha256:" + "0" * 64,
+            "parquetViewId": "urn:ref:atlas-parquet-view:" + "0" * 64,
             "releases": {verifier.ATLAS_RELEASE_IRI},
             "resources": resources,
             "sourceRecords": resources,
@@ -85,6 +91,8 @@ def test_verification_fails_on_the_right_count_of_wrong_rows(
     receipt = verifier.verify_distribution(
         Path("unused"),
         expected_manifest_digest="sha256:" + "0" * 64,
+        parquet_view=Path("unused-view"),
+        expected_view_manifest_digest="sha256:" + "1" * 64,
         source_root=source_root,
     )
 

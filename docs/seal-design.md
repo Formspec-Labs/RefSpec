@@ -19,26 +19,34 @@ The signed payload binds four things and nothing else:
 
 | Field | Meaning |
 | --- | --- |
-| `sealFormat` | `refspec-distribution-seal-1` — the format this payload is read under |
+| `sealFormat` | `refspec-distribution-seal-2` — the format this payload is read under |
 | `distributionId` | the identity the manifest and the acceptance receipt both name |
 | `manifestSha256` | SHA-256 of the `atlas-manifest.json` bytes |
 | `acceptanceSha256` | SHA-256 of the `atlas-acceptance.json` bytes |
+| `parquetViewManifestSha256` | SHA-256 of the served Parquet view's `view-manifest.json` bytes |
 
-The manifest digest reaches every byte of the distribution, but **not in one
-hop, and the difference is load-bearing.** The manifest pins each member and
-each pack transport by digest and byte length; it does *not* name the compact
-JSONL packs under `packs/compact/`. Those are declared by
-`atlas-construction-summary.json` in its `compactPacks[].transport` pins — and
-that summary is itself a manifest member (role `constructionSummary`), so the
-manifest digest pins the file that pins them. Reaching the compact bytes is
-therefore one dereference deeper: verify the summary's own digest as a member,
-*then* read it and walk what it declares. A verifier that stopped at the
-manifest would leave 6 files and ~795 KB of the Federal Register Thesaurus
-distribution unchecked while reporting success. This is the same closed
-membership the Atlas validator enforces in `_check_distribution_files`
-(`bindings/atlas/3.0/tools/validate.py`), which enumerates exactly: the
-manifest file, `members[]`, `packs[].transport`, and the construction summary's
-`compactPacks[].transport`.
+The manifest digest reaches every byte **of the distribution**, in one hop:
+`members[]` and `packs[].transport` are the whole set, each pinned by digest
+and byte length. This is the same closed membership the Atlas validator
+enforces in `_check_distribution_files`
+(`bindings/atlas/3.1/tools/validate.py`), which enumerates exactly the manifest
+file, `members[]`, and `packs[].transport`. Under 3.0 there was a second hop —
+the compact JSONL packs under `packs/compact/`, declared by
+`atlas-construction-summary.json` rather than by the manifest. That wire is
+gone.
+
+**The third digest, and why it is in the payload rather than in a member.** The
+served projection is now the typed Parquet view, and it sits *beside* the
+distribution for the same reason the seal does: a distribution validates its
+own membership as a closed set. So the manifest cannot reach it — and the
+construction summary cannot pin it either, because the view manifest pins the
+distribution manifest's digest and the summary's digest as its input identity,
+and the summary is a manifest member. A summary that pinned the view manifest
+would be a cycle. The seal is written after both artifacts are final, so
+binding the view there is the one placement with no cycle and no second root of
+trust. The pairing is checked in both directions: the view's
+`input.manifestSha256` must be the manifest digest this seal signs, so neither
+artifact can be presented with a distribution it was not derived from.
 
 The acceptance digest is what turns a provenance claim into a correctness
 claim: the receipt names the gates, their verdicts, the evidence digest of
@@ -54,7 +62,7 @@ can make them; see point 4.
 **Normative: `verify_seal` is not a signature check.** It performs, in order:
 
 1. strict structural reading of the seal file — exactly the four top-level keys
-   and exactly the four payload keys, no duplicate JSON object keys, no
+   and exactly the five payload keys, no duplicate JSON object keys, no
    non-finite numbers — then OpenSSH signature verification of the canonical
    payload bytes;
 2. recompute `atlas-manifest.json`'s SHA-256 from disk, compare to the sealed
@@ -65,17 +73,24 @@ can make them; see point 4.
    way to one — and anything that is neither a regular file nor a directory;
 5. walk every entry in the manifest's `members` list and every entry in its
    `packs` list, recomputing SHA-256 and byte length from disk, streaming in
-   1 MiB blocks so no pack is ever held in memory; then dereference the
-   now-authenticated construction summary and walk every
-   `compactPacks[].transport` the same way; a path declared twice is refused;
+   1 MiB blocks so no pack is ever held in memory; a path declared twice is
+   refused;
 6. close membership: the files found in step 4 must be **exactly** the manifest
    plus the paths walked in step 5, and the directories found must be exactly
    the parents those paths imply. An added file, an unexpected directory, or a
-   missing one is refused, naming the offending path.
+   missing one is refused, naming the offending path;
+7. walk the served Parquet view beside the distribution: recompute its
+   `view-manifest.json` digest and compare it to `parquetViewManifestSha256`,
+   then run the view's own closed verifier (`verify_atlas_parquet_view`), which
+   proves every table's bytes, schema, schema digest and row count and refuses
+   an unlisted file in the view directory; finally require the view's
+   `input.manifestSha256` to be the manifest digest step 2 proved.
 
-Steps 4–6 are what make the artifact a closed set rather than a lower bound: a
+Steps 4–7 are what make the artifact a closed set rather than a lower bound: a
 file dropped into the sealed tree changes no pinned digest, so only closure
-catches it.
+catches it — and a view swapped for one derived from a different build changes
+no distribution digest, so only the payload binding and the input pin catch
+that.
 
 Signature-only verification is forbidden. The consuming seams already
 recompute member digests before they parse anything —
@@ -85,18 +100,19 @@ refuses a manifest carrying unsupported fields) and
 `DocSpec/src/docspec/adapters/source_catalog.py` (root digest recomputed over
 raw bytes at both admit and open) — so a seal that only proved provenance would
 be refused at admission. `verify_seal` returns `SealVerification`, naming the
-distribution id, signer identity, both bound digests, the member, pack, and
-compact-pack counts, and the total pinned byte length walked (members + packs +
-compact packs; the manifest's own bytes are proved by the sealed digest in step
-2, not by a pin, and are not counted); the first thing that does not hold
+distribution id, signer identity, all three bound digests, the member, pack,
+and Parquet-table counts, and the total pinned byte length walked (members +
+packs + tables; the manifest's own bytes are proved by the sealed digest in
+step 2, not by a pin, and are not counted); the first thing that does not hold
 raises `SealError` naming it.
 
 A pack's `path` names its **transport** bytes on disk, so `transport.digest`
-and `transport.byteLength` are the pins recomputed — for manifest packs and for
-compact packs alike. `content.digest` describes the decompressed payload (the
-N-Quads, or the JSONL rows of a compact pack); it is derived from the same bytes
-by a deterministic decompressor, so pinning the transport pins the content, and
-the reader is spared decompressing 7 GB to learn what it already knows.
+and `transport.byteLength` are the pins recomputed. `content.digest` describes
+the decompressed N-Quads; it is derived from the same bytes by a deterministic
+decompressor, so pinning the transport pins the content, and the reader is
+spared decompressing 7 GB to learn what it already knows. Parquet tables carry
+no separate transport: `sha256` and `byteLength` in the view manifest are the
+file's own bytes.
 
 ## 2. Key custody
 

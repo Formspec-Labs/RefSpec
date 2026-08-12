@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/registry-descriptors.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/registry-descriptors.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
@@ -90,7 +90,7 @@
       "type": "object"
     },
     "format": {
-      "const": "refspec-atlas-registry-descriptors/3.0"
+      "const": "refspec-atlas-registry-descriptors/3.1"
     },
     "graphIri": {
       "$ref": "common.schema.json#/$defs/absoluteIri",
@@ -123,7 +123,7 @@
       "$ref": "common.schema.json#/$defs/digest"
     },
     "schemaVersion": {
-      "const": "3.0"
+      "const": "3.1"
     }
   },
   "required": [
@@ -136,6 +136,6 @@
     "resourceIdSetDigest",
     "schemaVersion"
   ],
-  "title": "RefSpec Atlas 3.0 registry descriptors",
+  "title": "RefSpec Atlas 3.1 registry descriptors",
   "type": "object"
 }

@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-manifest.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/atlas-manifest.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "aggregateCounts": {
@@ -80,10 +80,10 @@
           "$ref": "common.schema.json#/$defs/digest"
         },
         "validatorVersion": {
-          "const": "3.0"
+          "const": "3.1"
         },
         "version": {
-          "const": "3.0"
+          "const": "3.1"
         }
       },
       "required": [
@@ -603,7 +603,7 @@
       "$ref": "common.schema.json#/$defs/absoluteIri"
     },
     "format": {
-      "const": "refspec-atlas-packed-nquads-3.0"
+      "const": "refspec-atlas-packed-nquads-3.1"
     },
     "graphs": {
       "items": false,
@@ -746,7 +746,7 @@
       "uniqueItems": true
     },
     "schemaVersion": {
-      "const": "3.0"
+      "const": "3.1"
     },
     "type": {
       "const": "AtlasManifest"
@@ -765,6 +765,6 @@
     "counts",
     "canonicalPayloadDigest"
   ],
-  "title": "RefSpec Atlas 3.0 packed manifest",
+  "title": "RefSpec Atlas 3.1 packed manifest",
   "type": "object"
 }

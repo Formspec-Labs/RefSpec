@@ -11,7 +11,7 @@ permission beyond rights supplied by applicable law.
 
 ## Documents
 
-- [Vocabulary Atlas Distribution 3.0 — normative consumer format](bindings/atlas/3.0/README.md)
+- [Vocabulary Atlas Distribution 3.0 — normative consumer format](bindings/atlas/3.1/README.md)
 - [Atlas Parquet view and explorer](docs/atlas-parquet-view.md)
 - [Atlas source-fidelity issues and priorities](docs/atlas-source-fidelity-issues.md)
 - [Atlas in the United States and Europe — landscape comparison](ATLAS_US_EU_COMPARISON.md)
@@ -89,7 +89,7 @@ graph roles.
 
 The full-development generator reads pinned publisher distributions and
 versioned registry caches. It does not consume an Atlas 1.0 or 2.0 graph. See
-the [Atlas 3.0 binding](bindings/atlas/3.0/README.md) for the distribution,
+the [Atlas 3.0 binding](bindings/atlas/3.1/README.md) for the distribution,
 validation, and consumer requirements.
 
 ### Atlas source-fidelity development audit

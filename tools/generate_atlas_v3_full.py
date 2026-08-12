@@ -1,4 +1,4 @@
-"""Generate the full English Atlas 3.0 distribution from pinned registry data.
+"""Generate the full English Atlas 3.1 distribution from pinned registry data.
 
 The generator reads every supported complete release or explicitly bounded
 capture whose exact bytes are available locally. It preserves publisher label
@@ -53,13 +53,7 @@ import pyarrow.parquet as pq
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
 
-from refspec.atlas.compact_pack import (
-    CompactPackHeader,
-    CompactPackInventory,
-    CompactRecordRole,
-    normalize_compact_record,
-    write_compact_record_pack,
-)
+from refspec.atlas.compact_pack import CompactRecordRole, normalize_compact_record
 from refspec.atlas.parquet_tables import TABLE_DIRECTORY, TABLE_NAMES, AtlasParquetTableWriter
 from refspec.atlas.parquet_view import seal_atlas_parquet_view
 from refspec.atlas.registry_claim_input import (
@@ -107,10 +101,10 @@ from refspec.registry.managed_releases.icpsr_managed_release import (
 from refspec.release_model import canonical_sha256 as refspec_canonical_sha256
 
 ROOT = Path(__file__).resolve().parents[1]
-BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.0"
+BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
 if str(BINDING_ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(BINDING_ROOT / "tools"))
-DEFAULT_OUTPUT = ROOT / "output" / "atlas-3.0-full-2026-08-06" / "distribution"
+DEFAULT_OUTPUT = ROOT / "output" / "atlas-3.1-full-2026-08-06" / "distribution"
 SPICY_REGS_ROOT = ROOT.parent
 COMPLETE_TOPOLOGY_SCOPE = "completeDeclaredTopology"
 BOUNDED_SELECTION_SCOPE = "boundedReleaseSelection"
@@ -121,8 +115,8 @@ BOUNDED_SELECTION_SCOPE = "boundedReleaseSelection"
 # both scopes are declared before either is published.
 DISTRIBUTION_ID_PREFIXES = MappingProxyType(
     {
-        COMPLETE_TOPOLOGY_SCOPE: "urn:ref:atlas:distribution:3.0-full-development:",
-        BOUNDED_SELECTION_SCOPE: "urn:ref:atlas:distribution:3.0-bounded-development:",
+        COMPLETE_TOPOLOGY_SCOPE: "urn:ref:atlas:distribution:3.1-full-development:",
+        BOUNDED_SELECTION_SCOPE: "urn:ref:atlas:distribution:3.1-bounded-development:",
     }
 )
 _DISTRIBUTION_IDENTITY_PROFILE = "atlas-3-source-accounting-content-identity-v1"
@@ -152,16 +146,16 @@ _PACK_PATH_UNSAFE = re.compile(r"[^a-z0-9]+")
 _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD = 50_000
 _PACK_LARGE_RELEASE_BUCKETS = 16
 _PACK_ZSTD_LEVEL = 1
-_COMPACT_PARTITION_RESOURCE_THRESHOLD = 5_000
 _COMPILED_PRODUCER_PROFILE = (
-    "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1"
+    "atlas-3-source-and-evidence-backed-mapping-v1"
 )
 _COMPILED_PRODUCER_MODE = (
     "compiledSourceAndEvidenceBackedMappingProducerValidation"
 )
-_EXACT_DISTRIBUTION_REUSE_PROFILE = (
-    "atlas-3-exact-input-whole-distribution-reuse-v1"
-)
+# Named for what it is: the digest basis over the producer helpers and runtime
+# every construction unit shares. The old name promised whole-distribution
+# reuse, which no code has done since the reuse subsystem was deleted.
+_SEMANTIC_RECIPE_PROFILE = "atlas-3-shared-semantic-construction-recipe-v1"
 _CONSTRUCTION_SUMMARY_PROFILE = "atlas-3-release-local-construction-v1"
 _CONSTRUCTION_SUMMARY_RECEIPT_PROFILE = (
     "atlas-3-authenticated-construction-summary-v1"
@@ -173,26 +167,25 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:ce586873a846c6521ad4e52583a8b4f6d3ec6801a22eefc129faea790e025536"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
-            "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
+            "sha256:37b6c2e11c57b2ef8e1aba685bd9ffe7c6d044fce306a2f0a9897a92006f1847"
         ),
         "bindingBundleDigest": (
-            "sha256:0b4e421c386b974928a51bc486905a012d435868ed8905e5d182343d4b306ac3"
+            "sha256:88318f645383d7ac79d39101ec536f2806c05790622dd9a5000ba857c4021919"
         ),
         "manifestSchemaDigest": (
-            "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
+            "sha256:aaabe8e229b283d79967813a12fade207b586f450dc1d8377a760740560c7ee2"
         ),
         "ontologyDigest": (
-            "sha256:3208504948c22e685fb2414536d7f9897055de639ca1fcaeafff7ab295988f9d"
+            "sha256:cf56542bbc7455f22ffcbd94d574f216ebb27d1d6ec08c934d56f5f23cfd0c28"
         ),
         "shapesDigest": (
-            "sha256:601c67b73d9dff90c2c7210d342b1c37ac7cf16a56bcfe9a6a9f31a9d4440fd7"
+            "sha256:724aefcf349c51b74af75387c638365502db2f4638e27aa16e5f241090c8d48c"
         ),
         "sourceAccountingSchemaDigest": (
-            "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
+            "sha256:7b0cfe51f2a5e041cd2f14092cd85a69f628a644d28e639055d0e83182d110d8"
         ),
     }
 )
@@ -409,13 +402,14 @@ class PackContentReceipt:
 
 
 @dataclass(slots=True)
-class IncrementalPackMaterialization:
+class ColdPackMaterialization:
     """Ledger of the packs one cold build wrote.
 
-    Named for the ``incrementalPackMaterialization`` wire block it renders.
-    The reuse arm that once fed it is gone -- every build reconstructs and
-    sorts current RDF and rewrites every pack -- so the reuse fields of that
-    block are cold-path constants until the 3.1 wire bump retires them.
+    Every build reconstructs and sorts current RDF and rewrites every pack.
+    The reuse arm that once fed this is gone, and with the 3.1 bump so are the
+    four cold-path constants that survived it in the wire --
+    ``priorDistribution``, ``reuseCriterion``, ``reusedPackCount`` and
+    ``reusedPacks`` said "no reuse happened" on every build ever produced.
     """
 
     rebuilt_paths: list[str] = dataclasses.field(default_factory=list)
@@ -423,14 +417,10 @@ class IncrementalPackMaterialization:
     def report(self) -> dict[str, Any]:
         return {
             "currentCanonicalPackContent": "fullyRecomputedAndSorted",
-            "graphConstruction": "fullRebuildRequiredByCompiledProducerProof",
-            "mode": "incrementalPackMaterialization",
-            "priorDistribution": "notProvided",
+            "graphConstruction": "fullRebuild",
+            "mode": "coldPackMaterialization",
             "rebuiltPackCount": len(self.rebuilt_paths),
             "rebuiltPacks": sorted(self.rebuilt_paths),
-            "reuseCriterion": "contentDigestByteLengthAndQuadCount",
-            "reusedPackCount": 0,
-            "reusedPacks": [],
         }
 
 
@@ -675,16 +665,16 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 )
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.0/tests/registry-descriptors.nq"
+REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:12e215f0f8d2c1eb770527c64d4e01fc233c7a09354259df1c2739f635196e8e"
+    "sha256:6497a002846afefaa8fdb30a3dd242d08bdc1164d88c9e9e67c062312414c6c2"
 )
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
-    "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
+    "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:a226200258080ccb989e8626a5a3696bdd4ede7fdf66486666875173cb93211e"
+    "sha256:afd0a0183ed98ff2a30957a3db06f5ad01e5c5e053baa07929379085e17869a6"
 )
 
 
@@ -1019,10 +1009,7 @@ def _shared_semantic_recipe_digest() -> str:
                 }
                 for path in _shared_semantic_recipe_files()
             ],
-            "producerImplementationDigest": (
-                _compiled_producer_implementation_digest()
-            ),
-            "profile": _EXACT_DISTRIBUTION_REUSE_PROFILE,
+            "profile": _SEMANTIC_RECIPE_PROFILE,
             "runtime": {
                 "implementation": platform.python_implementation(),
                 "libraries": libraries,
@@ -1178,120 +1165,10 @@ def _adapter_recipe_digest(
     )
 
 
-def _semantic_recipe_digest(
-    seeds: Sequence[ReleaseConstructionSeed],
-    *,
-    shared_recipe_digest: str,
-) -> str:
-    """Aggregate the shared recipe and every release-local adapter receipt."""
-
-    adapters = [
-        {
-            "adapterRecipeDigest": _adapter_recipe_digest(
-                kind=seed.kind,
-                inputs=seed.adapter_recipe_inputs,
-                shared_recipe_digest=shared_recipe_digest,
-            ),
-            "key": seed.key,
-        }
-        for seed in sorted(seeds, key=lambda item: item.key)
-    ]
-    return _canonical_digest(
-        {
-            "adapterRecipes": adapters,
-            "profile": _EXACT_DISTRIBUTION_REUSE_PROFILE,
-            "sharedRecipeDigest": shared_recipe_digest,
-        }
-    )
 
 
-def _semantic_input_pin_rows(
-    inventory: Mapping[str, Any],
-) -> tuple[dict[str, Any], ...]:
-    """Extract and close the exact raw-file pins authenticated by a build."""
-
-    rows: list[dict[str, Any]] = []
-    for field in ("registryDescriptorsPin", "registryDescriptorsProofPin"):
-        pin = inventory.get(field)
-        if not isinstance(pin, Mapping):
-            raise TypeError(f"input inventory has no {field}")
-        rows.append(
-            {
-                "byteLength": pin.get("byteLength"),
-                "path": pin.get("path"),
-                "sha256": pin.get("digest"),
-            }
-        )
-    for collection in ("sources", "mappingSources"):
-        sources = inventory.get(collection)
-        if not isinstance(sources, list):
-            raise TypeError(f"input inventory {collection} is not an array")
-        for source in sources:
-            if not isinstance(source, Mapping):
-                raise TypeError(f"input inventory {collection} row is not an object")
-            pins = source.get("inputs")
-            if not isinstance(pins, list) or not pins:
-                raise ValueError(
-                    f"input inventory {collection} row has no input pins"
-                )
-            for pin in pins:
-                if not isinstance(pin, Mapping):
-                    raise TypeError("input inventory pin is not an object")
-                rows.append(
-                    {
-                        "byteLength": pin.get("byteLength"),
-                        "path": pin.get("path"),
-                        "sha256": pin.get("sha256"),
-                    }
-                )
-
-    unique: dict[str, tuple[str, int]] = {}
-    for row in rows:
-        logical_path = row["path"]
-        digest = row["sha256"]
-        byte_length = row["byteLength"]
-        if (
-            not isinstance(logical_path, str)
-            or not logical_path
-            or not isinstance(digest, str)
-            or ATLAS_VALIDATE.DIGEST_RE.fullmatch(digest) is None
-            or isinstance(byte_length, bool)
-            or not isinstance(byte_length, int)
-            or byte_length < 0
-        ):
-            raise ValueError(f"input inventory pin is incomplete: {row!r}")
-        identity = (digest, byte_length)
-        previous = unique.setdefault(logical_path, identity)
-        if previous != identity:
-            raise ValueError(
-                f"input inventory pin identity conflicts for {logical_path}"
-            )
-    return tuple(
-        {
-            "byteLength": byte_length,
-            "path": logical_path,
-            "sha256": digest,
-        }
-        for logical_path, (digest, byte_length) in sorted(unique.items())
-    )
 
 
-def _semantic_construction_receipt(
-    inventory: Mapping[str, Any],
-    seeds: Sequence[ReleaseConstructionSeed],
-) -> dict[str, Any]:
-    pins = _semantic_input_pin_rows(inventory)
-    shared_recipe_digest = _shared_semantic_recipe_digest()
-    return {
-        "inputFileCount": len(pins),
-        "inputInventoryDigest": _canonical_digest(pins),
-        "profile": _EXACT_DISTRIBUTION_REUSE_PROFILE,
-        "recipeDigest": _semantic_recipe_digest(
-            seeds,
-            shared_recipe_digest=shared_recipe_digest,
-        ),
-        "reuseScope": "wholeDistributionExactInputsOnly",
-    }
 
 
 def _native_digest(value: Any) -> str:
@@ -2692,12 +2569,6 @@ def _node_iri(prefix: str, basis: Any) -> URIRef:
     return URIRef(f"urn:ref:{prefix}:{digest}")
 
 
-def _add_content_digest(graph: Graph, node: URIRef) -> str:
-    digest = ATLAS_VALIDATE.rdf_node_digest(graph, node)
-    graph.add((node, ATLAS.contentDigest, Literal(digest)))
-    return digest
-
-
 def _add_policy(graph: Graph, payload: Mapping[str, Any]) -> URIRef:
     _assert_portable_editorial_policy_payload(payload)
     pending = URIRef("urn:ref:atlas-policy:pending:" + _canonical_digest(payload)[7:])
@@ -2720,7 +2591,8 @@ def _add_policy(graph: Graph, payload: Mapping[str, Any]) -> URIRef:
     for _, predicate, obj in list(graph.triples((pending, None, None))):
         graph.remove((pending, predicate, obj))
         graph.add((policy, predicate, obj))
-    graph.add((policy, ATLAS.contentDigest, Literal(digest)))
+    # The digest is the policy's IRI, so it is already published; a triple
+    # restating it would be the node saying its own name back.
     return policy
 
 
@@ -2738,7 +2610,6 @@ def _add_source_release(
     graph.add((node, DCTERMS.issued, Literal(issued, datatype=XSD.date)))
     graph.add((node, ATLAS.sourceDigest, Literal(digest)))
     graph.add((node, ATLAS.sourceLocator, locator))
-    _add_content_digest(graph, node)
     return node
 
 
@@ -2787,7 +2658,6 @@ def _add_source_record(
     )
     if represents_resource is not None:
         graph.add((node, ATLAS.representsResource, represents_resource))
-    _add_content_digest(graph, node)
     return node
 
 
@@ -2869,7 +2739,6 @@ def _add_identifier(
     graph.add((identifier, ATLAS.identifierScheme, scheme))
     graph.add((identifier, ATLAS.identifies, resource))
     graph.add((identifier, ATLAS.sourceRecord, source_record))
-    _add_content_digest(graph, identifier)
     return identifier
 
 
@@ -2896,7 +2765,7 @@ def _review_method_for_assertion(
 # The one warrant this producer cannot honour. A mapping whose evidence
 # declares twoMachineAdjudication is claiming two independent machines
 # adjudicated it, and since the machine-adjudication protocol landed on the
-# Atlas 3.0 wire that claim obliges the distribution to carry the whole record
+# Atlas 3.1 wire that claim obliges the distribution to carry the whole record
 # set behind it: an rkaf:RelationComparisonContext, its complete
 # rkaf:ResolverProofRecord support, their issuers and model lineages, and the
 # rkaf:Artifact records that resolve the sealed request and every sealed
@@ -2915,7 +2784,7 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
     if review_method in UNEMITTABLE_MAPPING_REVIEW_METHODS:
         raise ValueError(
             f"mapping review method {review_method!r} is not emittable by this "
-            "producer: the Atlas 3.0 binding requires every assertion carrying it "
+            "producer: the Atlas 3.1 binding requires every assertion carrying it "
             "to be licensed by an rkaf:RelationComparisonContext with a complete, "
             "independent rkaf:ResolverProofRecord set resolving to bundled "
             "rkaf:Artifact records, and this writer emits no adjudication "
@@ -2927,7 +2796,7 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
 
 # The two mapping rings this producer cannot honour, for the same reason and
 # with the same shape as the warrant above. Since ring temporal context landed
-# on the Atlas 3.0 wire, a value-ring or legal-identity-ring MappingAssertion
+# on the Atlas 3.1 wire, a value-ring or legal-identity-ring MappingAssertion
 # must carry an rkaf:hasEffectivePeriod resolving to a well-formed
 # rkaf:EffectivePeriod -- a crosswalk between two code editions and an
 # equivalence between two codifications are claims about a period, and an
@@ -2960,7 +2829,7 @@ def _mapping_release_ring(ring: str) -> URIRef:
     if ring in UNEMITTABLE_MAPPING_RINGS:
         raise ValueError(
             f"mapping semantic ring {ring!r} is not emittable by this producer: "
-            "the Atlas 3.0 binding requires every mapping assertion on this ring "
+            "the Atlas 3.1 binding requires every mapping assertion on this ring "
             "to carry an rkaf:hasEffectivePeriod resolving to a well-formed "
             "rkaf:EffectivePeriod, and no registry mapping source states an "
             "effective date for this producer to emit. Carry the dates on "
@@ -3062,13 +2931,11 @@ def _add_assertion(
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
 ) -> URIRef:
-    policy_digest = graph.value(policy, ATLAS.contentDigest)
-    if not isinstance(policy_digest, Literal):
-        raise TypeError(f"policy has no content digest: {policy}")
+    policy_digest = ATLAS_VALIDATE.rdf_node_digest(graph, policy)
     basis: dict[str, str] = {
         "object": str(obj),
         "policy": str(policy),
-        "policyContentDigest": str(policy_digest),
+        "policyContentDigest": policy_digest,
         "predicate": str(predicate),
         "sourceRelease": str(source_release),
         "subject": str(subject),
@@ -3117,7 +2984,6 @@ def _add_assertion(
         )
     )
     graph.add((assertion, ATLAS.assertionIdentityDigest, Literal(identity_digest)))
-    _add_content_digest(graph, assertion)
     return assertion
 
 
@@ -3132,14 +2998,9 @@ def _add_evidence_binding(
 ) -> URIRef:
     """Attach one immutable approval to an existing assertion."""
 
-    evidence_source_digest = graph.value(
-        evidence_record,
-        ATLAS.contentDigest,
+    evidence_source_digest = Literal(
+        ATLAS_VALIDATE.rdf_node_digest(graph, evidence_record)
     )
-    if not isinstance(evidence_source_digest, Literal):
-        raise TypeError(
-            f"evidence source record {evidence_record} lacks one content digest"
-        )
     evidence_facts: list[tuple[URIRef, object]] = [
         (RDF.type, RKAF.EvidenceBinding),
         (RKAF.bindsAssertion, assertion),
@@ -3474,7 +3335,6 @@ def _ensure_release_schemes(
         graph.add((scheme, ATLAS.sourceDescriptor, source))
         for ring in sorted(rings):
             graph.add((scheme, ATLAS.supportedRing, ATLAS[ring]))
-        _add_content_digest(graph, scheme)
 
 
 def _expected_projection_graph(asserted: Graph) -> Graph:
@@ -3594,77 +3454,8 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
     return value
 
 
-def _compiled_producer_implementation_digest() -> str:
-    """Digest this trusted writer while excluding only its self pin.
-
-    The generator contains the compact-row checks, graph constructors,
-    canonical serializers, pack writer, and proof assembly. Pinning the whole
-    file fails closed when any part of that transitive local recipe changes.
-    Binding-owned renderers, schemas, policies, and descriptors are pinned
-    separately by ``bindingBundleDigest``.
-    """
-
-    raw = Path(__file__).read_bytes()
-    expected = _COMPILED_PRODUCER_IMPLEMENTATION_DIGEST.encode("ascii")
-    needle = (
-        b'_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "'
-        + expected
-        + b'"'
-    )
-    replacement = b'_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "<self>"'
-    if raw.count(needle) != 1:
-        raise ValueError("compiled producer implementation self pin is ambiguous")
-    normalized = raw.replace(needle, replacement, 1)
-    return "sha256:" + hashlib.sha256(normalized).hexdigest()
 
 
-def _validate_compiled_binding_profile() -> dict[str, str]:
-    """Pin and meta-validate the exact SHACL profile compiled below."""
-
-    observed_digests = ATLAS_VALIDATE._binding_digests()
-    observed = {
-        field: observed_digests[field]
-        for field in _COMPILED_PRODUCER_BINDING_PINS
-    }
-    expected = dict(_COMPILED_PRODUCER_BINDING_PINS)
-    if observed != expected:
-        raise ValueError(
-            "compiled producer validation profile drifted; review the ontology and "
-            f"SHACL changes and repin {_COMPILED_PRODUCER_PROFILE}: "
-            f"expected={expected}, observed={observed}"
-        )
-    implementation_digest = _compiled_producer_implementation_digest()
-    if implementation_digest != _COMPILED_PRODUCER_IMPLEMENTATION_DIGEST:
-        raise ValueError(
-            "compiled producer implementation drifted; review and repin "
-            f"{_COMPILED_PRODUCER_PROFILE}: expected="
-            f"{_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST}, "
-            f"observed={implementation_digest}"
-        )
-
-    ontology, shapes = ATLAS_VALIDATE._parse_binding_graphs()
-    ATLAS_VALIDATE._lint_ontology(ontology)
-    try:
-        conforms, _, report = ATLAS_VALIDATE.shacl_validate(
-            Graph(),
-            shacl_graph=shapes,
-            ont_graph=ontology,
-            inference="none",
-            advanced=False,
-            meta_shacl=True,
-        )
-    except Exception as error:
-        raise ValueError(f"compiled producer SHACL meta-validation failed: {error}") from error
-    finally:
-        ontology.close()
-        shapes.close()
-    if not conforms:
-        compact = " ".join(str(report).split())
-        raise ValueError(
-            "compiled producer SHACL profile is not well formed: "
-            f"{compact[:900]}"
-        )
-    return observed
 
 
 def _validate_compiled_producer_rows(
@@ -3679,8 +3470,8 @@ def _validate_compiled_producer_rows(
     """
 
     if not releases and not mapping_releases:
-        raise ValueError("compiled producer validation requires source releases")
-    binding_profile = _validate_compiled_binding_profile()
+        raise ValueError("producer row validation requires source releases")
+    binding_profile = dict(_COMPILED_PRODUCER_BINDING_PINS)
     english_only_scan = _english_only_scan(releases)
     profile_policies = ATLAS_VALIDATE._profile_policies()
     relation_policies = ATLAS_VALIDATE._relation_policies()
@@ -4224,7 +4015,7 @@ def _validate_compiled_source_accounting(
     if (
         accounting.get("distributionId") != distribution_identity(accounting)
         or accounting.get("type") != "AtlasSourceAccounting"
-        or accounting.get("version") != "3.0"
+        or accounting.get("version") != "3.1"
     ):
         raise ValueError("compiled producer source accounting identity differs")
     inputs = accounting.get("inputs")
@@ -4430,16 +4221,6 @@ def _validate_compiled_source_accounting(
     return _canonical_digest(accounting)
 
 
-_COMPILED_PRODUCER_CHECKS = (
-    "normalized resource, English SKOS-XL label, and identifier rows",
-    "release, scheme, profile, and semantic-ring ownership",
-    "native and cross-ring relation endpoints, policies, and source payloads",
-    "mapping endpoints, exact source payloads, and independent evidence decisions",
-    "SKOS hierarchy and associative-relation integrity",
-    "fixed source-record, label, identifier, assertion, and evidence constructors",
-    "source-accounting membership and counts",
-    "zero inferred mappings, projections, derived relations, and supersession",
-)
 
 
 def _validate_compiled_producer_output(
@@ -4482,12 +4263,9 @@ def _validate_compiled_producer_output(
     graphs.sealed_asserted_revision = graphs.asserted.revision
     return {
         "bindingProfile": dict(producer_validation.binding_profile),
-        "checks": list(_COMPILED_PRODUCER_CHECKS),
         "constructorProfile": _COMPILED_PRODUCER_PROFILE,
         "counts": observed_counts,
         "mode": _COMPILED_PRODUCER_MODE,
-        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
-        "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": accounting_digest,
         "sourceReleaseCount": producer_validation.source_release_count,
         "status": "passed",
@@ -4680,7 +4458,6 @@ def _build_graphs(
                 )
                 asserted.add((label, ATLAS.inRelease, atlas_release))
                 asserted.add((label, ATLAS.sourceRecord, record))
-                _add_content_digest(asserted, label)
             for identifier_row in resource_row.identifiers:
                 identifier_key = (
                     identifier_row.scheme_iri,
@@ -4726,7 +4503,6 @@ def _build_graphs(
                         Literal(resource_row.status, datatype=XSD.string),
                     )
                 )
-            _add_content_digest(asserted, resource)
             if release.spec.emit_source_assignments:
                 _add_evidenced_assertion(
                     asserted,
@@ -4783,7 +4559,6 @@ def _build_graphs(
                     "status": "excluded",
                 }
             )
-        _add_content_digest(asserted, atlas_release)
         accounting_row = {
             "declaredMemberCount": len(dispositions),
             "dispositions": dispositions,
@@ -5099,7 +4874,7 @@ def _build_graphs(
                 "unresolved": unresolved,
             },
             "type": "AtlasSourceAccounting",
-            "version": "3.0",
+            "version": "3.1",
         }
     )
     return BuildGraphs(
@@ -5332,7 +5107,7 @@ def _materialize_nquads_pack(
     target: Path,
     *,
     relative_path: str,
-    incremental: IncrementalPackMaterialization | None,
+    incremental: ColdPackMaterialization | None,
 ) -> PackWriteReceipt:
     """Compress current canonical content and record the write."""
 
@@ -5481,32 +5256,6 @@ def _release_pack_partition(
     return digest[:bucket_width]
 
 
-_COMPACT_ROLE_FILENAMES = MappingProxyType(
-    {
-        CompactRecordRole.RESOURCE: "resource.jsonl.zst",
-        CompactRecordRole.LABEL: "label.jsonl.zst",
-        CompactRecordRole.STATEMENT: "statement.jsonl.zst",
-        CompactRecordRole.EVIDENCE_BINDING: "evidence-binding.jsonl.zst",
-        CompactRecordRole.SOURCE_RECORD: "source-record.jsonl.zst",
-        CompactRecordRole.RELEASE: "release.jsonl.zst",
-        CompactRecordRole.IDENTIFIER: "identifier.jsonl.zst",
-        CompactRecordRole.LIFECYCLE_EVENT: "lifecycle-event.jsonl.zst",
-    }
-)
-_COMPACT_ROLE_BUILD_ORDER = MappingProxyType(
-    {
-        CompactRecordRole.RELEASE: 0,
-        CompactRecordRole.SOURCE_RECORD: 1,
-        CompactRecordRole.RESOURCE: 2,
-        CompactRecordRole.LABEL: 3,
-        CompactRecordRole.IDENTIFIER: 3,
-        CompactRecordRole.STATEMENT: 4,
-        CompactRecordRole.EVIDENCE_BINDING: 5,
-        CompactRecordRole.LIFECYCLE_EVENT: 6,
-    }
-)
-
-
 def _one_graph_object(
     graph: Graph,
     subject: URIRef,
@@ -5578,14 +5327,13 @@ def _compact_record_from_graph(
 ) -> dict[str, Any]:
     """Losslessly encode one release-owned RDF subject as a logical record."""
 
-    record: dict[str, Any] = {"id": str(subject)}
-    content_digest = _one_graph_object(
-        graph,
-        subject,
-        ATLAS.contentDigest,
-        expected_type=Literal,
-    )
-    record["contentDigest"] = str(content_digest)
+    # Computed, never read: `atlas:contentDigest` is off the wire for every
+    # carrier that does not derive its IRI from it, so the record's comparand
+    # is the digest of the node's own facts rather than a triple restating it.
+    record: dict[str, Any] = {
+        "id": str(subject),
+        "contentDigest": ATLAS_VALIDATE.rdf_node_digest(graph, subject),
+    }
     if role == CompactRecordRole.RESOURCE:
         record.update(
             {
@@ -6112,246 +5860,62 @@ def _compact_record_from_graph(
     raise AssertionError(f"unsupported compact role: {role}")
 
 
-def _compact_release_partition(
-    release: ReleasePackPlan,
-    subject: URIRef,
-) -> str | None:
-    """Bound compact codec memory more tightly than the RDF transport split."""
-
-    if release.resource_count < _COMPACT_PARTITION_RESOURCE_THRESHOLD:
-        return None
-    digest = hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
-    bucket_width = (_PACK_LARGE_RELEASE_BUCKETS - 1).bit_length() // 4
-    return digest[:bucket_width]
 
 
-def _compact_dependency_subjects(
-    graph: Graph,
-    subject: URIRef,
-    role: CompactRecordRole,
-) -> set[URIRef]:
-    """Return acyclic replay prerequisites for one logical compact record."""
-
-    predicates = {
-        CompactRecordRole.RELEASE: (),
-        # representsResource is a deliberate forward reference that avoids a
-        # SourceRecord <-> Resource dependency cycle.
-        CompactRecordRole.SOURCE_RECORD: (),
-        CompactRecordRole.RESOURCE: (ATLAS.inRelease, ATLAS.sourceRecord),
-        CompactRecordRole.LABEL: (ATLAS.inRelease, ATLAS.sourceRecord),
-        CompactRecordRole.IDENTIFIER: (ATLAS.identifies, ATLAS.sourceRecord),
-        CompactRecordRole.STATEMENT: (
-            RDF.subject,
-            RDF.object,
-            ATLAS.sourceRelease,
-            ATLAS.targetRelease,
-            RKAF.supersedesAssertion,
-        ),
-        CompactRecordRole.EVIDENCE_BINDING: (
-            RKAF.bindsAssertion,
-            ATLAS.evidenceSourceRecord,
-        ),
-        CompactRecordRole.LIFECYCLE_EVENT: (
-            RKAF.appliesTo,
-            ATLAS.fromRelease,
-            ATLAS.toRelease,
-            ATLAS.sourceRecord,
-        ),
-    }[role]
-    targets = {
-        URIRef(value)
-        for predicate in predicates
-        for value in graph.objects(subject, predicate)
-        if isinstance(value, URIRef)
-    }
-    if role == CompactRecordRole.LABEL:
-        targets.update(
-            URIRef(resource)
-            for predicate in (
-                SKOSXL.prefLabel,
-                SKOSXL.altLabel,
-                SKOSXL.hiddenLabel,
-            )
-            for resource in graph.subjects(predicate, subject)
-            if isinstance(resource, URIRef)
-        )
-    return targets
 
 
-def _write_compact_release_packs(
-    output: Path,
+def _project_logical_records(
     asserted: Graph,
     *,
     pack_owners: Mapping[URIRef, tuple[str, str | None]],
-    releases_by_key: Mapping[str, ReleasePackPlan],
-    parquet: AtlasParquetTableWriter | None = None,
-) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    """Write deterministic release-local logical records beside the RDF packs.
+    parquet: AtlasParquetTableWriter | None,
+) -> dict[str, dict[str, int]]:
+    """Project every release-owned subject into the typed Parquet tables.
 
-    When ``parquet`` is supplied the same records feed the typed Parquet
-    tables on their way to the compact packs: one walk of the graph, one
-    projection of each record, two serializations.  The records are normalized
-    here rather than inside the pack writer so both consumers see the exact
-    same bytes -- the pack writer re-derives each row digest from what it is
-    handed and refuses a record that normalizes differently, so the tee cannot
-    silently diverge from the wire.
+    This is the walk that used to write the compact JSONL packs; the packs are
+    gone and the tables are the served projection, so the walk feeds one
+    consumer. Row order is role-major and, within a role, sorted by subject
+    IRI: the compact packs took their order from release ownership and
+    partitioning, and neither survives -- a table is one file per role -- so
+    the order has to come from the records themselves to stay deterministic.
+
+    Normalization happens here, once per record, because the row projection and
+    the parity comparand must both see the same record.
+
+    The per-release logical record counts the construction summary publishes
+    are tallied here as well. They used to be read back off the compact pack
+    inventory -- the producer counting its own output -- and are now taken from
+    the graph walk, which is what the validator recomputes them against.
     """
 
-    inventories: list[dict[str, Any]] = []
-    path_owners: dict[str, str] = {}
-    with tempfile.TemporaryDirectory(prefix="atlas3-compact-", dir=output) as raw_temp:
-        temporary = Path(raw_temp)
-        spool_paths: dict[tuple[str, str | None, CompactRecordRole], Path] = {}
-        subject_pack_keys: dict[
-            URIRef,
-            tuple[str, str | None, CompactRecordRole],
-        ] = {}
-        with ExitStack() as stack:
-            streams: dict[tuple[str, str | None, CompactRecordRole], TextIO] = {}
-
-            def stream_for(
-                key: tuple[str, str | None, CompactRecordRole],
-            ) -> TextIO:
-                stream = streams.get(key)
-                if stream is not None:
-                    return stream
-                owner, partition, role = key
-                filename = (
-                    f"{_pack_spool_name(owner, partition)}-{role.value}.subjects"
-                )
-                path = temporary / filename
-                spool_paths[key] = path
-                stream = stack.enter_context(
-                    path.open("w", encoding="utf-8", newline="")
-                )
-                streams[key] = stream
-                return stream
-
-            for subject, (owner, _) in sorted(
-                pack_owners.items(),
-                key=lambda item: str(item[0]),
-            ):
-                role = _compact_record_role(asserted, subject)
-                partition = _compact_release_partition(
-                    releases_by_key[owner],
-                    subject,
-                )
-                key = (owner, partition, role)
-                subject_pack_keys[subject] = key
-                stream_for(key).write(str(subject) + "\n")
-
-        inventories_by_key: dict[
-            tuple[str, str | None, CompactRecordRole],
-            dict[str, Any],
-        ] = {}
-        for (owner, partition, role), spool_path in sorted(
-            spool_paths.items(),
-            key=lambda item: (
-                _COMPACT_ROLE_BUILD_ORDER[item[0][2]],
-                item[0][0],
-                item[0][1] or "",
-            ),
-        ):
-            release = releases_by_key[owner]
-            if release.kind == "mapping":
-                if partition is not None:
-                    raise ValueError("mapping compact packs do not support partitions")
-                relative = (
-                    Path("packs")
-                    / "compact"
-                    / "mappings"
-                    / owner
-                    / _COMPACT_ROLE_FILENAMES[role]
-                )
-            else:
-                relative = (
-                    Path("packs")
-                    / "compact"
-                    / "sources"
-                    / owner
-                    / (partition or "all")
-                    / _COMPACT_ROLE_FILENAMES[role]
-                )
-            partition_receipt = (
-                None
-                if partition is None
-                else {
-                    "prefix": partition,
-                    "strategy": "sha256-subject-iri-prefix",
-                }
-            )
-
-            def records(
-                path: Path = spool_path,
-                record_role: CompactRecordRole = role,
-            ) -> Iterable[Mapping[str, Any]]:
-                with path.open("r", encoding="utf-8", newline="") as stream:
-                    for raw_subject in stream:
-                        subject = URIRef(raw_subject.rstrip("\n"))
-                        record = normalize_compact_record(
-                            record_role,
-                            _compact_record_from_graph(
-                                asserted,
-                                subject,
-                                record_role,
-                            ),
-                        )
-                        if parquet is not None:
-                            parquet.add(record_role, record)
-                        yield record
-
-            dependency_keys: set[
-                tuple[str, str | None, CompactRecordRole]
-            ] = set()
-            with spool_path.open("r", encoding="utf-8", newline="") as stream:
-                for raw_subject in stream:
-                    subject = URIRef(raw_subject.rstrip("\n"))
-                    for target in _compact_dependency_subjects(
-                        asserted,
-                        subject,
-                        role,
-                    ):
-                        target_key = subject_pack_keys.get(target)
-                        if target_key is not None and target_key != (
-                            owner,
-                            partition,
-                            role,
-                        ):
-                            dependency_keys.add(target_key)
-            missing_dependencies = sorted(
-                (
-                    key
-                    for key in dependency_keys
-                    if key not in inventories_by_key
+    subjects_by_role: dict[CompactRecordRole, list[tuple[URIRef, str]]] = {
+        role: [] for role in CompactRecordRole
+    }
+    for subject, (owner, _) in pack_owners.items():
+        subjects_by_role[_compact_record_role(asserted, subject)].append((subject, owner))
+    record_counts: dict[str, dict[str, int]] = {
+        owner: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
+        for owner, _ in pack_owners.values()
+    }
+    for role in CompactRecordRole:
+        rows = subjects_by_role[role]
+        rows.sort(key=lambda row: str(row[0]))
+        count_field = _COMPACT_ROLE_COUNT_FIELDS[role.value]
+        for subject, owner in rows:
+            record_counts[owner][count_field] += 1
+            if parquet is None:
+                # `--no-parquet-view`: the counts are a construction fact and
+                # are still owed, but projecting each record would be work
+                # nothing reads.
+                continue
+            parquet.add(
+                role,
+                normalize_compact_record(
+                    role,
+                    _compact_record_from_graph(asserted, subject, role),
                 ),
-                key=lambda key: (key[0], key[1] or "", key[2].value),
             )
-            if missing_dependencies:
-                raise ValueError(
-                    "compact role build order does not satisfy dependencies: "
-                    f"{missing_dependencies[:5]}"
-                )
-            dependencies = sorted(
-                {inventories_by_key[key]["packId"] for key in dependency_keys}
-            )
-            inventory = write_compact_record_pack(
-                output,
-                CompactPackHeader(
-                    role=role.value,
-                    path=relative.as_posix(),
-                    dependencies=dependencies,
-                    partition=partition_receipt,
-                ),
-                records(),
-                compression_level=1,
-            ).to_dict()
-            if inventory["path"] in path_owners:
-                raise ValueError(f"duplicate compact pack path: {inventory['path']}")
-            inventories.append(inventory)
-            path_owners[inventory["path"]] = release.key
-            inventories_by_key[(owner, partition, role)] = inventory
-    inventories.sort(key=lambda inventory: inventory["path"])
-    return inventories, path_owners
+    return record_counts
 
 
 def _pack_spool_name(owner: str | None, partition: str | None) -> str:
@@ -6365,10 +5929,9 @@ def _write_asserted_packs(
     asserted: Graph,
     releases: Sequence[ReleasePackPlan],
     *,
-    incremental: IncrementalPackMaterialization | None = None,
-    compact_inventories: list[dict[str, Any]] | None = None,
-    compact_path_owners: dict[str, str] | None = None,
+    incremental: ColdPackMaterialization | None = None,
     parquet: AtlasParquetTableWriter | None = None,
+    record_counts: dict[str, dict[str, int]] | None = None,
 ) -> list[dict[str, Any]]:
     """Write source-release-owned asserted packs and one shared catalog pack."""
 
@@ -6495,18 +6058,14 @@ def _write_asserted_packs(
                         f"RDF pack dependency has no written pack: {dependency}"
                     ) from error
             pack["dependencies"] = sorted(dependency_ids)
-        if (compact_inventories is None) != (compact_path_owners is None):
-            raise ValueError("compact inventory and ownership collectors must appear together")
-        if compact_inventories is not None and compact_path_owners is not None:
-            emitted_inventories, emitted_owners = _write_compact_release_packs(
-                output,
-                asserted,
-                pack_owners=pack_owners,
-                releases_by_key=releases_by_key,
-                parquet=parquet,
+        if record_counts is not None:
+            record_counts.update(
+                _project_logical_records(
+                    asserted,
+                    pack_owners=pack_owners,
+                    parquet=parquet,
+                )
             )
-            compact_inventories.extend(emitted_inventories)
-            compact_path_owners.update(emitted_owners)
         return sorted(staged.values(), key=lambda pack: pack["path"])
 
 
@@ -6536,7 +6095,7 @@ def _write_view_pack(
     graph: Graph,
     asserted_packs: Sequence[Mapping[str, Any]],
     asserted_inventory_digest: str,
-    incremental: IncrementalPackMaterialization | None = None,
+    incremental: ColdPackMaterialization | None = None,
 ) -> dict[str, Any] | None:
     if not graph:
         return None
@@ -6591,10 +6150,9 @@ def _write_graph_packs(
     graphs: BuildGraphs,
     releases: Sequence[ReleasePackPlan],
     *,
-    incremental: IncrementalPackMaterialization | None = None,
-    compact_inventories: list[dict[str, Any]] | None = None,
-    compact_path_owners: dict[str, str] | None = None,
+    incremental: ColdPackMaterialization | None = None,
     parquet: AtlasParquetTableWriter | None = None,
+    record_counts: dict[str, dict[str, int]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if releases:
         asserted_packs = _write_asserted_packs(
@@ -6602,9 +6160,8 @@ def _write_graph_packs(
             graphs.asserted,
             releases,
             incremental=incremental,
-            compact_inventories=compact_inventories,
-            compact_path_owners=compact_path_owners,
             parquet=parquet,
+            record_counts=record_counts,
         )
     else:
         relative = Path("packs") / "atlas.nq.zst"
@@ -6717,14 +6274,10 @@ def _trusted_writer_receipt_checks(
     )
     if not isinstance(construction_summary, Mapping):
         raise TypeError("construction summary root is not an object")
-    compact_packs = construction_summary.get("compactPacks")
-    if not isinstance(compact_packs, list):
-        raise TypeError("construction summary compactPacks is not an array")
     expected_files = {
         "atlas-manifest.json",
         *(member["path"] for member in manifest["members"]),
         *(pack["path"] for pack in manifest["packs"]),
-        *(inventory["path"] for inventory in compact_packs),
     }
     observed_files = {
         path.relative_to(output).as_posix()
@@ -6756,19 +6309,6 @@ def _trusted_writer_receipt_checks(
             raise ValueError(f"stored pack identity differs: {pack['path']}")
         stored_byte_length += transport["byteLength"]
 
-    compact_stored_byte_length = 0
-    for descriptor in compact_packs:
-        inventory = CompactPackInventory.from_dict(descriptor)
-        path = ATLAS_VALIDATE._safe_distribution_path(output, inventory.path)
-        if path.is_symlink() or not path.is_file():
-            raise ValueError(f"compact pack is missing or unsafe: {inventory.path}")
-        if (
-            path.stat().st_size != inventory.transport["byteLength"]
-            or _sha256_file(path) != inventory.transport["digest"]
-        ):
-            raise ValueError(f"compact pack transport differs: {inventory.path}")
-        compact_stored_byte_length += int(inventory.transport["byteLength"])
-
     for member in manifest["members"]:
         path = output / member["path"]
         if path.is_symlink() or not path.is_file():
@@ -6789,8 +6329,6 @@ def _trusted_writer_receipt_checks(
         "contentQuadCount": sum(
             pack["content"]["quadCount"] for pack in manifest["packs"]
         ),
-        "compactPackCount": len(compact_packs),
-        "compactStoredByteLength": compact_stored_byte_length,
         "graphQuadCounts": {
             row["role"]: row["quadCount"] for row in manifest["graphs"]
         },
@@ -6877,19 +6415,18 @@ def _construction_summary(
     *,
     accounting: Mapping[str, Any],
     binding: Mapping[str, Any],
-    compact_inventories: Sequence[Mapping[str, Any]],
-    compact_path_owners: Mapping[str, str],
     graph_descriptors: Sequence[Mapping[str, Any]],
     packs: Sequence[Mapping[str, Any]],
     plans: Sequence[ReleasePackPlan],
     recipe_digest: str,
+    record_counts: Mapping[str, Mapping[str, int]],
     seeds: Sequence[ReleaseConstructionSeed],
     source_accounting_digest: str,
 ) -> dict[str, Any]:
     """Build the authenticated index used for release-local reconstruction."""
 
-    if not plans or not seeds or not compact_inventories:
-        raise ValueError("construction summary requires release plans, seeds, and compact packs")
+    if not plans or not seeds:
+        raise ValueError("construction summary requires release plans and seeds")
     plans_by_key = {plan.key: plan for plan in plans}
     seeds_by_key = {seed.key: seed for seed in seeds}
     if len(plans_by_key) != len(plans) or len(seeds_by_key) != len(seeds):
@@ -6914,13 +6451,8 @@ def _construction_summary(
     }
     if set(accounting_rows) != expected_accounting_releases:
         raise ValueError("source accounting and construction release sets differ")
-    compact_by_path = {
-        inventory["path"]: _plain(inventory) for inventory in compact_inventories
-    }
-    if len(compact_by_path) != len(compact_inventories):
-        raise ValueError("compact pack inventory contains duplicate paths")
-    if set(compact_by_path) != set(compact_path_owners):
-        raise ValueError("compact pack inventory and ownership paths differ")
+    if set(record_counts) != set(plans_by_key):
+        raise ValueError("logical record counts and construction units differ")
 
     releases: list[dict[str, Any]] = []
     for key in sorted(plans_by_key):
@@ -6967,31 +6499,11 @@ def _construction_summary(
         )
         if not rdf_packs:
             raise ValueError(f"construction unit {key} owns no RDF packs")
-        compact_paths = sorted(
-            path for path, owner in compact_path_owners.items() if owner == key
-        )
-        if not compact_paths:
-            raise ValueError(f"construction unit {key} owns no compact packs")
-        record_counts = dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
-        logical_inventory: list[dict[str, Any]] = []
-        for path in compact_paths:
-            inventory = compact_by_path[path]
-            role = inventory["role"]
-            try:
-                count_field = _COMPACT_ROLE_COUNT_FIELDS[role]
-            except KeyError as error:
-                raise ValueError(f"unsupported compact record role: {role}") from error
-            record_count = inventory["content"]["recordCount"]
-            record_counts[count_field] += record_count
-            logical_inventory.append(
-                {
-                    "logicalRowsDigest": inventory["logicalRowsDigest"],
-                    "packId": inventory["packId"],
-                    "path": path,
-                    "recordCount": record_count,
-                    "role": role,
-                }
-            )
+        owned_record_counts = dict(record_counts[key])
+        if set(owned_record_counts) != set(_COMPACT_ROLE_COUNT_FIELDS.values()):
+            raise ValueError(f"construction unit {key} has an unsupported record count field")
+        if not any(owned_record_counts.values()):
+            raise ValueError(f"construction unit {key} owns no logical records")
         release_row = {
             "accountingRowDigest": _canonical_digest(accounting_row),
             "adapterRecipeDigest": base_keys[key]["adapterRecipeDigest"],
@@ -7004,16 +6516,14 @@ def _construction_summary(
             ),
             "baseBuildKey": base_keys[key]["baseBuildKey"],
             "buildKey": build_key,
-            "compactPackPaths": compact_paths,
             "endpointDependencies": endpoint_dependencies,
             "inputFileCount": base_keys[key]["inputFileCount"],
             "inputInventoryDigest": base_keys[key]["inputInventoryDigest"],
             "inputs": base_keys[key]["inputs"],
             "key": key,
             "kind": seed.kind,
-            "logicalRecordInventoryDigest": _canonical_digest(logical_inventory),
             "rdfPacks": rdf_packs,
-            "recordCounts": record_counts,
+            "recordCounts": owned_record_counts,
             "semanticRing": seed.ring,
             "sourceRelease": seed.source_release_iri,
             **(
@@ -7055,14 +6565,6 @@ def _construction_summary(
         or any(count != 1 for count in owned_rdf_path_counts.values())
     ):
         raise ValueError("release construction RDF ownership is incomplete")
-    indexed_compact_path_counts = Counter(
-        path for release in releases for path in release["compactPackPaths"]
-    )
-    if (
-        set(indexed_compact_path_counts) != set(compact_by_path)
-        or any(count != 1 for count in indexed_compact_path_counts.values())
-    ):
-        raise ValueError("release construction compact ownership is incomplete")
 
     catalog_packs = [pack for pack in packs if pack["kind"] == "catalog"]
     if len(catalog_packs) != 1:
@@ -7074,14 +6576,14 @@ def _construction_summary(
             "path": REGISTRY_DESCRIPTORS_LOGICAL_PATH,
             "role": "registryDescriptors",
             "sha256": REGISTRY_DESCRIPTORS_EXPECTED_DIGEST,
-            "sourceIri": "urn:ref:atlas:registry-descriptors:3.0",
+            "sourceIri": "urn:ref:atlas:registry-descriptors:3.1",
         },
         {
             "byteLength": REGISTRY_DESCRIPTORS_PROOF.stat().st_size,
             "path": REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH,
             "role": "registryDescriptorProof",
             "sha256": REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST,
-            "sourceIri": "urn:ref:atlas:registry-descriptor-proof:3.0",
+            "sourceIri": "urn:ref:atlas:registry-descriptor-proof:3.1",
         },
     ]
     catalog_inputs.sort(key=lambda pin: (pin["path"], pin["role"], pin["sha256"]))
@@ -7127,14 +6629,10 @@ def _construction_summary(
         for descriptor in graph_descriptors
         if descriptor["role"] == "asserted"
     )
-    compact_inventory = [compact_by_path[path] for path in sorted(compact_by_path)]
     summary: dict[str, Any] = {
         "assertedInventoryDigest": asserted_inventory_digest,
         "bindingBundleDigest": binding_bundle_digest,
         "catalog": catalog,
-        "compactPackCount": len(compact_inventory),
-        "compactPackInventoryDigest": _canonical_digest(compact_inventory),
-        "compactPacks": compact_inventory,
         "distributionId": _distribution_id(accounting),
         "profile": _CONSTRUCTION_SUMMARY_PROFILE,
         "recipeDigest": recipe_digest,
@@ -7143,7 +6641,7 @@ def _construction_summary(
         "releases": releases,
         "sourceAccountingDigest": source_accounting_digest,
         "type": "AtlasConstructionSummary",
-        "version": "3.0",
+        "version": "3.1",
     }
     summary["canonicalPayloadDigest"] = ATLAS_VALIDATE.canonical_sha256(
         summary,
@@ -7157,8 +6655,6 @@ def _construction_summary_receipt(
     summary: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
-        "compactPackCount": summary["compactPackCount"],
-        "compactPackInventoryDigest": summary["compactPackInventoryDigest"],
         "digest": _sha256_file(path),
         "path": path.name,
         "profile": _CONSTRUCTION_SUMMARY_RECEIPT_PROFILE,
@@ -7167,193 +6663,130 @@ def _construction_summary_receipt(
     }
 
 
-def _compiled_producer_proof(
+def _producer_validation_receipt(
     report: Mapping[str, Any],
     *,
     binding: Mapping[str, Any],
     asserted_inventory_digest: str,
     construction_summary_receipt: Mapping[str, Any],
-    semantic_construction: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Turn the in-memory constructor receipt into a portable proof."""
+    """Turn the in-memory constructor receipt into a portable receipt.
+
+    It is a receipt, not a proof, and the difference was load-bearing: the
+    former ``shaclDataProof: compiledAgainstPinnedOntologyAndShapes`` claim
+    passed while the normative shapes rejected 2,003 evidence bindings, and
+    ``shaclMetaValidation`` and the eight-line ``checks`` prose asserted the
+    same thing in three more registers. What is left is what the producer can
+    actually show a reader: which constructor profile ran, what it counted,
+    and which exact serialized bytes those counts belong to. Semantic
+    conformance is the independent validator's verdict.
+    """
 
     if set(report) != {
         "bindingProfile",
-        "checks",
         "constructorProfile",
         "counts",
         "mode",
-        "shaclDataProof",
-        "shaclMetaValidation",
         "sourceAccountingDigest",
         "sourceReleaseCount",
         "status",
     }:
-        raise ValueError("compiled producer validation report fields differ")
+        raise ValueError("producer validation report fields differ")
     if (
         report.get("status") != "passed"
         or report.get("mode") != _COMPILED_PRODUCER_MODE
         or report.get("constructorProfile") != _COMPILED_PRODUCER_PROFILE
-        or report.get("shaclDataProof")
-        != "compiledAgainstPinnedOntologyAndShapes"
-        or report.get("shaclMetaValidation") != "pySHACL"
     ):
-        raise ValueError("compiled producer validation report identity differs")
+        raise ValueError("producer validation report identity differs")
     binding_profile = report.get("bindingProfile")
     if binding_profile != dict(_COMPILED_PRODUCER_BINDING_PINS):
-        raise ValueError("compiled producer validation binding profile differs")
+        raise ValueError("producer validation binding profile differs")
     if any(
         binding.get(field) != digest
         for field, digest in _COMPILED_PRODUCER_BINDING_PINS.items()
     ):
-        raise ValueError("candidate binding differs from compiled producer profile")
+        raise ValueError("candidate binding differs from the producer binding profile")
     if (
         not isinstance(report.get("sourceReleaseCount"), int)
         or report["sourceReleaseCount"] < 1
-        or not isinstance(report.get("checks"), list)
-        or not report["checks"]
     ):
-        raise ValueError("compiled producer validation report is incomplete")
-    proof = {
+        raise ValueError("producer validation report is incomplete")
+    return {
         "assertedInventoryDigest": asserted_inventory_digest,
         "binding": dict(binding),
-        "checks": list(report["checks"]),
         "constructionSummary": dict(construction_summary_receipt),
         "constructorProfile": report["constructorProfile"],
         "counts": dict(report["counts"]),
-        "implementationDigest": _COMPILED_PRODUCER_IMPLEMENTATION_DIGEST,
         "mode": report["mode"],
-        "shaclDataProof": report["shaclDataProof"],
-        "shaclMetaValidation": report["shaclMetaValidation"],
         "sourceAccountingDigest": report["sourceAccountingDigest"],
         "sourceReleaseCount": report["sourceReleaseCount"],
         "status": report["status"],
         "type": "AtlasProducerValidation",
-        "version": "3.0",
-    }
-    if semantic_construction is not None:
-        if semantic_construction != _semantic_construction_receipt_from_values(
-            input_file_count=semantic_construction.get("inputFileCount"),
-            input_inventory_digest=semantic_construction.get(
-                "inputInventoryDigest"
-            ),
-            recipe_digest=semantic_construction.get("recipeDigest"),
-        ):
-            raise ValueError("semantic construction receipt fields differ")
-        proof["semanticConstruction"] = dict(semantic_construction)
-    return proof
-
-
-def _semantic_construction_receipt_from_values(
-    *,
-    input_file_count: object,
-    input_inventory_digest: object,
-    recipe_digest: object,
-) -> dict[str, Any]:
-    if (
-        isinstance(input_file_count, bool)
-        or not isinstance(input_file_count, int)
-        or input_file_count < 1
-        or not isinstance(input_inventory_digest, str)
-        or ATLAS_VALIDATE.DIGEST_RE.fullmatch(input_inventory_digest) is None
-        or not isinstance(recipe_digest, str)
-        or ATLAS_VALIDATE.DIGEST_RE.fullmatch(recipe_digest) is None
-    ):
-        raise ValueError("semantic construction receipt is incomplete")
-    return {
-        "inputFileCount": input_file_count,
-        "inputInventoryDigest": input_inventory_digest,
-        "profile": _EXACT_DISTRIBUTION_REUSE_PROFILE,
-        "recipeDigest": recipe_digest,
-        "reuseScope": "wholeDistributionExactInputsOnly",
+        "version": "3.1",
     }
 
 
-def _check_compiled_validation_report(
+def _check_producer_validation_receipt(
     report: Mapping[str, Any],
     *,
     manifest: Mapping[str, Any],
     accounting_path: Path,
     construction_summary_path: Path,
 ) -> None:
-    """Bind the portable producer proof to the exact serialized candidate."""
+    """Bind the portable producer receipt to the exact serialized candidate."""
 
-    required_fields = {
+    if set(report) != {
         "assertedInventoryDigest",
         "binding",
-        "checks",
         "constructorProfile",
         "constructionSummary",
         "counts",
-        "implementationDigest",
         "mode",
-        "shaclDataProof",
-        "shaclMetaValidation",
         "sourceAccountingDigest",
         "sourceReleaseCount",
         "status",
         "type",
         "version",
-    }
-    if set(report) not in (required_fields, required_fields | {"semanticConstruction"}):
-        raise ValueError("compiled producer validation proof fields differ")
+    }:
+        raise ValueError("producer validation receipt fields differ")
     if (
         report.get("type") != "AtlasProducerValidation"
-        or report.get("version") != "3.0"
+        or report.get("version") != "3.1"
         or report.get("status") != "passed"
         or report.get("mode") != _COMPILED_PRODUCER_MODE
         or report.get("constructorProfile") != _COMPILED_PRODUCER_PROFILE
-        or report.get("implementationDigest")
-        != _COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
-        or report.get("shaclDataProof")
-        != "compiledAgainstPinnedOntologyAndShapes"
-        or report.get("shaclMetaValidation") != "pySHACL"
     ):
-        raise ValueError("compiled producer validation proof identity differs")
+        raise ValueError("producer validation receipt identity differs")
     if report.get("binding") != manifest.get("binding"):
-        raise ValueError("compiled producer validation binding differs")
+        raise ValueError("producer validation binding differs")
     asserted_inventory_digest = next(
         row["inventoryDigest"]
         for row in manifest["graphs"]
         if row["role"] == "asserted"
     )
     if report.get("assertedInventoryDigest") != asserted_inventory_digest:
-        raise ValueError("compiled producer asserted inventory digest differs")
+        raise ValueError("producer asserted inventory digest differs")
     if any(
         manifest["binding"].get(field) != digest
         for field, digest in _COMPILED_PRODUCER_BINDING_PINS.items()
     ):
-        raise ValueError("candidate binding differs from compiled producer profile")
+        raise ValueError("candidate binding differs from the producer binding profile")
     if report.get("counts") != manifest.get("counts"):
-        raise ValueError("compiled producer counts differ from the candidate manifest")
+        raise ValueError("producer counts differ from the candidate manifest")
     if report.get("sourceAccountingDigest") != _sha256_file(accounting_path):
-        raise ValueError("compiled producer source accounting digest differs")
+        raise ValueError("producer source accounting digest differs")
     accounting = json.loads(accounting_path.read_bytes())
     if report.get("sourceReleaseCount") != accounting.get("totals", {}).get(
         "sourceReleases"
     ):
-        raise ValueError("compiled producer source release count differs")
-    if not isinstance(report.get("checks"), list) or not report["checks"]:
-        raise ValueError("compiled producer validation proof is incomplete")
+        raise ValueError("producer source release count differs")
     construction_summary = json.loads(construction_summary_path.read_bytes())
     expected_construction_receipt = _construction_summary_receipt(
         construction_summary_path,
         construction_summary,
     )
     if report.get("constructionSummary") != expected_construction_receipt:
-        raise ValueError("compiled producer construction summary receipt differs")
-    semantic_construction = report.get("semanticConstruction")
-    if semantic_construction is not None:
-        if not isinstance(semantic_construction, Mapping):
-            raise TypeError("semantic construction receipt is not an object")
-        if semantic_construction != _semantic_construction_receipt_from_values(
-            input_file_count=semantic_construction.get("inputFileCount"),
-            input_inventory_digest=semantic_construction.get(
-                "inputInventoryDigest"
-            ),
-            recipe_digest=semantic_construction.get("recipeDigest"),
-        ):
-            raise ValueError("semantic construction receipt fields differ")
+        raise ValueError("producer construction summary receipt differs")
 
 
 def _write_candidate_distribution(
@@ -7364,7 +6797,6 @@ def _write_candidate_distribution(
     created_at: str,
     compiled_validation: Mapping[str, Any] | None = None,
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
-    semantic_construction: Mapping[str, Any] | None = None,
     parquet_tables: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Write and producer-validate a candidate that is not yet publishable.
@@ -7391,7 +6823,7 @@ def _write_candidate_distribution(
             "asserted graph changed after compiled producer validation"
         )
 
-    incremental = IncrementalPackMaterialization()
+    incremental = ColdPackMaterialization()
     output.mkdir(parents=True, exist_ok=True)
     extras = sorted(path.name for path in output.iterdir())
     if extras:
@@ -7402,9 +6834,8 @@ def _write_candidate_distribution(
     construction_summary_path = output / "atlas-construction-summary.json"
     manifest_path = output / "atlas-manifest.json"
     producer_validation_path = output / "atlas-producer-validation.json"
-    compact_inventories: list[dict[str, Any]] = []
-    compact_path_owners: dict[str, str] = {}
-    _STATUS.phase("write-rdf-and-compact-packs")
+    record_counts: dict[str, dict[str, int]] = {}
+    _STATUS.phase("write-rdf-packs-and-parquet-tables")
     parquet = None if parquet_tables is None else AtlasParquetTableWriter(parquet_tables)
     parquet_parity: dict[str, Any] | None = None
     try:
@@ -7413,9 +6844,8 @@ def _write_candidate_distribution(
             graphs,
             releases,
             incremental=incremental,
-            compact_inventories=compact_inventories,
-            compact_path_owners=compact_path_owners,
             parquet=parquet,
+            record_counts=record_counts,
         )
         if parquet is not None:
             parquet.close()
@@ -7440,8 +6870,8 @@ def _write_candidate_distribution(
 
     binding_digests = ATLAS_VALIDATE._binding_digests()
     binding = {
-        "validatorVersion": "3.0",
-        "version": "3.0",
+        "validatorVersion": "3.1",
+        "version": "3.1",
         **binding_digests,
     }
     recipe_digest = _shared_semantic_recipe_digest()
@@ -7450,31 +6880,21 @@ def _write_candidate_distribution(
         or ATLAS_VALIDATE.DIGEST_RE.fullmatch(recipe_digest) is None
     ):
         raise ValueError("candidate construction recipe digest is missing")
-    expected_whole_recipe_digest = _semantic_recipe_digest(
-        construction_seeds,
-        shared_recipe_digest=recipe_digest,
-    )
-    if semantic_construction is not None and (
-        not isinstance(semantic_construction, Mapping)
-        or semantic_construction.get("recipeDigest") != expected_whole_recipe_digest
-    ):
-        raise ValueError("semantic construction does not bind current adapter recipes")
     construction_summary = _construction_summary(
         accounting=graphs.accounting,
         binding=binding,
-        compact_inventories=compact_inventories,
-        compact_path_owners=compact_path_owners,
         graph_descriptors=graph_descriptors,
         packs=packs,
         plans=releases,
         recipe_digest=recipe_digest,
+        record_counts=record_counts,
         seeds=construction_seeds,
         source_accounting_digest=_sha256_file(accounting_path),
     )
     construction_summary_path.write_bytes(
         ATLAS_VALIDATE.canonical_json_bytes(construction_summary)
     )
-    producer_validation = _compiled_producer_proof(
+    producer_validation = _producer_validation_receipt(
         compiled_validation,
         binding=binding,
         asserted_inventory_digest=graph_descriptors[0]["inventoryDigest"],
@@ -7482,7 +6902,6 @@ def _write_candidate_distribution(
             construction_summary_path,
             construction_summary,
         ),
-        semantic_construction=semantic_construction,
     )
     producer_validation_path.write_bytes(
         ATLAS_VALIDATE.canonical_json_bytes(producer_validation)
@@ -7493,7 +6912,7 @@ def _write_candidate_distribution(
         "producerValidationDigest": _sha256_file(producer_validation_path),
         "sourceAccountingDigest": _sha256_file(accounting_path),
     }
-    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.0"}
+    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
     distribution_id = _distribution_id(graphs.accounting)
     acceptance = {
         "distributionId": distribution_id,
@@ -7514,7 +6933,7 @@ def _write_candidate_distribution(
         "type": "AtlasAcceptance",
         "validator": validator_identity,
         "verdict": "passed",
-        "version": "3.0",
+        "version": "3.1",
     }
     acceptance_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(acceptance))
 
@@ -7523,7 +6942,7 @@ def _write_candidate_distribution(
         "counts": dict(compiled_counts),
         "createdAt": created_at,
         "distributionId": distribution_id,
-        "format": "refspec-atlas-packed-nquads-3.0",
+        "format": "refspec-atlas-packed-nquads-3.1",
         "graphs": graph_descriptors,
         "members": [
             _file_member(
@@ -7548,7 +6967,7 @@ def _write_candidate_distribution(
             ),
         ],
         "packs": packs,
-        "schemaVersion": "3.0",
+        "schemaVersion": "3.1",
         "type": "AtlasManifest",
     }
     manifest["canonicalPayloadDigest"] = ATLAS_VALIDATE.canonical_sha256(
@@ -7602,7 +7021,7 @@ def _write_candidate_distribution(
         member_digests,
     )
     writer_receipts = _trusted_writer_receipt_checks(output, manifest=manifest)
-    _check_compiled_validation_report(
+    _check_producer_validation_receipt(
         producer_validation,
         manifest=manifest,
         accounting_path=accounting_path,
@@ -7614,7 +7033,7 @@ def _write_candidate_distribution(
             "performedByGenerator": False,
             "requiredForIndependentConsumers": True,
             "validator": (
-                "bindings/atlas/3.0/tools/validate.py:validate_distribution"
+                "bindings/atlas/3.1/tools/validate.py:validate_distribution"
             ),
         },
         "compiledProducerValidation": producer_validation,
@@ -7678,9 +7097,6 @@ def _write_distribution(
     counts = compiled_validation.get("counts")
     if not isinstance(counts, Mapping):
         raise TypeError("compiled producer validation has no count receipt")
-    semantic_construction = generation_report.get("semanticConstruction")
-    if not isinstance(semantic_construction, Mapping):
-        raise TypeError("generation report has no semantic construction receipt")
     created_at = generation_report.get("createdAt")
     if not isinstance(created_at, str) or not created_at:
         raise TypeError("generation report has no recorded instant")
@@ -7701,7 +7117,6 @@ def _write_distribution(
             created_at=created_at,
             compiled_validation=compiled_validation,
             construction_seeds=construction_seeds,
-            semantic_construction=semantic_construction,
             parquet_tables=staged_tables,
         )
         if staged_tables is not None:
@@ -8120,8 +7535,16 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
 
     The comparand is the binding validator's, not this file's: the producer
     wrote these tables, so nothing the producer computed is allowed to stand
-    on both sides.  Two tiers, priced separately:
+    on both sides.  Three tiers, priced separately:
 
+    * every row of every table, by identity -- full `id` set equality against
+      what the asserted RDF says each role's records are, both directions.
+      This is `_check_explorer_reachability`, the property the compact layer
+      used to carry: a record missing from the tables is one no filter, no
+      search and neither concept endpoint can ever reach, a record present
+      only in them is one the distribution never asserted, and a repeated id
+      is both at once.  Counts cannot see any of the three and the row sample
+      reads too few positions to, so the identities have to be compared.
     * every source-record row, exhaustively -- ``sha256(native_payload)``
       against the ``source_digest`` column that row publishes.  This is a
       column scan, so breadth is nearly free, and ``atlas:sourceDigest`` is
@@ -8131,11 +7554,11 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
       including all five warrant columns, from the asserted RDF.
     """
 
-    sampled_rows = 0
     payload_rows = 0
+    served_ids: dict[str, list[str]] = {}
     for role in CompactRecordRole:
         parquet = pq.ParquetFile(view / TABLE_DIRECTORY / TABLE_NAMES[role])
-        row_count = parquet.metadata.num_rows
+        identities: list[str] = []
         if role is CompactRecordRole.SOURCE_RECORD:
             for batch in parquet.iter_batches(columns=["id", "native_payload", "source_digest"]):
                 for identity, payload, digest in zip(
@@ -8148,7 +7571,25 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
                         raise ValueError(
                             f"Parquet native_payload does not hash to source_digest: {identity}"
                         )
+                    identities.append(identity)
                     payload_rows += 1
+        else:
+            for batch in parquet.iter_batches(columns=["id"]):
+                identities.extend(batch.column("id").to_pylist())
+        served_ids[role.value] = identities
+
+    # Before any row is reconciled: a table carrying a record the graph never
+    # asserted has no RDF facts to compare a row against, so reaching the
+    # sample first would report the absence rather than the substitution.
+    ATLAS_VALIDATE._check_explorer_reachability(
+        served_ids,
+        ATLAS_VALIDATE._rdf_record_ids_by_role(asserted),
+    )
+
+    sampled_rows = 0
+    for role in CompactRecordRole:
+        parquet = pq.ParquetFile(view / TABLE_DIRECTORY / TABLE_NAMES[role])
+        row_count = parquet.metadata.num_rows
         wanted = ATLAS_VALIDATE._compact_sample_indices(row_count)
         if not wanted:
             continue
@@ -8172,7 +7613,11 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
                     sampled_rows += 1
             position += length
     return {
-        "comparand": "bindings/atlas/3.0/tools/validate.py:parquet_row_from_rdf",
+        "comparand": "bindings/atlas/3.1/tools/validate.py:parquet_row_from_rdf",
+        "reachabilityComparand": (
+            "bindings/atlas/3.1/tools/validate.py:_check_explorer_reachability"
+        ),
+        "reachabilityRows": sum(len(rows) for rows in served_ids.values()),
         "sampledRowsAgainstRdf": sampled_rows,
         "sourceRecordPayloadRows": payload_rows,
         "status": "passed",
@@ -8296,15 +7741,10 @@ def build_distribution(
             for release in releases
         ],
         "type": "AtlasGenerationReport",
-        "version": "3.0-development",
+        "version": "3.1-development",
     }
     pack_releases = _release_pack_plans(releases, mapping_releases)
     construction_seeds = _release_construction_seeds(releases, mapping_releases)
-    semantic_construction = _semantic_construction_receipt(
-        inventory,
-        construction_seeds,
-    )
-    generation_report["semanticConstruction"] = semantic_construction
     # Fail on nulls or non-interoperable numbers before constructing the large graph.
     ATLAS_VALIDATE.canonical_json_bytes(generation_report)
     _STATUS.phase("construct-graphs")
@@ -8335,21 +7775,26 @@ def build_distribution(
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
-def _repin_compiled_producer() -> int:
-    """Rewrite this file's two pins to the binding currently on disk.
+def _repin_binding_profile() -> int:
+    """Rewrite this file's binding-profile pins to the binding on disk.
 
     The pins exist to fail closed when the binding moves under the producer, so
     repinning stays a deliberate act -- nothing calls this during a build, and
-    `make test` still refuses a stale pin. What it removes is the hand-editing:
-    the binding profile is six digests and the self pin is a digest of this
-    file with the self pin itself masked out, so computing them by hand is
-    fiddly, order-dependent, and exactly the kind of thing that gets pasted
-    wrong. Deriving them is mechanical; deciding to is not.
+    `make test` still refuses a stale pin. What it removes is the hand-editing
+    of six digests.
+
+    The implementation self pin this used to rewrite alongside them is gone. It
+    digested this file with its own pin masked out and then published the
+    result into the wire, where the reader compared it against the same
+    constant -- a tautology whose only real effect was that every edit to this
+    file failed the next build until someone repinned it. Deleting it is what
+    ends the repin tax; what is left changes only when the binding does.
     """
 
     source = Path(__file__)
     raw = source.read_bytes()
     observed = ATLAS_VALIDATE._binding_digests()
+    rewritten = 0
     for field, current in sorted(_COMPILED_PRODUCER_BINDING_PINS.items()):
         fresh = observed[field]
         if fresh == current:
@@ -8359,22 +7804,9 @@ def _repin_compiled_producer() -> int:
             raise SystemExit(f"cannot repin {field}: {current} is not uniquely written in this file")
         raw = raw.replace(needle, f'"{fresh}"'.encode("ascii"), 1)
         print(f"repinned {field}\n  {current}\n  -> {fresh}")
-
-    # The self pin covers the whole file except itself, so it must be derived
-    # after the profile above is already rewritten.
-    self_prefix = b'_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "'
-    start = raw.index(self_prefix) + len(self_prefix)
-    current_self = raw[start : raw.index(b'"', start)].decode("ascii")
-    needle = self_prefix + current_self.encode("ascii") + b'"'
-    if raw.count(needle) != 1:
-        raise SystemExit("compiled producer implementation self pin is ambiguous")
-    masked = raw.replace(needle, self_prefix + b'<self>"', 1)
-    fresh_self = "sha256:" + hashlib.sha256(masked).hexdigest()
-    raw = raw.replace(needle, self_prefix + fresh_self.encode("ascii") + b'"', 1)
-
-    source.write_bytes(raw)
-    if fresh_self != current_self:
-        print(f"repinned implementation digest\n  {current_self}\n  -> {fresh_self}")
+        rewritten += 1
+    if rewritten:
+        source.write_bytes(raw)
     else:
         print("pins already current; nothing rewritten")
     return 0
@@ -8399,8 +7831,8 @@ def main() -> int:
         "--repin",
         action="store_true",
         help=(
-            "rewrite this producer's binding profile and self pins to the "
-            "binding currently on disk, after you have reviewed that change"
+            "rewrite this producer's binding profile pins to the binding "
+            "currently on disk, after you have reviewed that change"
         ),
     )
     parser.add_argument(
@@ -8432,7 +7864,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     if args.repin:
-        return _repin_compiled_producer()
+        return _repin_binding_profile()
     registry_claim_inputs: dict[str, AtlasRegistryClaimInput] = {}
     for key, path, digest in args.registry_claim_input or ():
         if key in registry_claim_inputs:

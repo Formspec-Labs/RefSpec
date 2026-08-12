@@ -336,7 +336,7 @@ def _validated_relation_context(
     # A producer promoting them to the xsd:dateTime the wire requires writes
     # `<effectiveFrom>T00:00:00+00:00` and `<effectiveThrough>T23:59:59+00:00`
     # -- the convention is pinned by sh:pattern on atlas:EffectivePeriodShape
-    # in bindings/atlas/3.0/shapes/atlas.shacl.ttl, with the negative cases
+    # in bindings/atlas/3.1/shapes/atlas.shacl.ttl, with the negative cases
     # mapping-period-start-not-utc-midnight and
     # mapping-period-end-not-utc-day-end, so a distribution that promotes a
     # day differently is refused rather than merely undocumented.
@@ -1129,7 +1129,7 @@ class MappingAssertion:
             # Unconditional. The Atlas 2.0 relation bundle that used to reopen a
             # proof adapter and admit machine support here is retired: a machine
             # verdict now reaches a published mapping only as an
-            # rkaf:ResolverProofRecord set adjudicated by the Atlas 3.0 binding
+            # rkaf:ResolverProofRecord set adjudicated by the Atlas 3.1 binding
             # validator, never as evidence handed straight to this validator.
             raise SemanticFoundationError(
                 "machine-backed mapping assertions are not admitted here; a machine "
@@ -1292,7 +1292,7 @@ def validate_mapping_supersession(values: Sequence[MappingAssertion]) -> None:
     Atlas distribution, not any Python collection. It is enforced there:
     ``atlas:RelationAssertionShape`` ranges ``rkaf:supersedesAssertion`` with
     ``sh:class atlas:RelationAssertion``, so a dangling IRI is not a conforming
-    dataset, and ``bindings/atlas/3.0/tools/validate.py`` refuses an assertion
+    dataset, and ``bindings/atlas/3.1/tools/validate.py`` refuses an assertion
     that "supersedes itself or an unknown assertion" over the whole
     distribution's assertion set, with the same lineage, ordering and
     single-successor rules restated on the wire records.

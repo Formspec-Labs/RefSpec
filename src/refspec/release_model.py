@@ -210,7 +210,7 @@ def canonical_native_json_bytes(value: Any) -> bytes:
     stores in the ``atlas:nativePayload`` literal, what ``atlas:sourceDigest``
     hashes, and what the Parquet ``native_payload`` column carries, so the
     column is the literal's exact lexical bytes and parity is a byte
-    comparison rather than a re-encoding.  The Atlas 3.0 binding validator
+    comparison rather than a re-encoding.  The Atlas 3.1 binding validator
     holds its own copy deliberately -- it imports no RefSpec package code, and
     the RDF<->Parquet comparand has to be independent of the emitter to prove
     anything (plans/validation-cost-reset-plan.md, wire-wave decision 1).

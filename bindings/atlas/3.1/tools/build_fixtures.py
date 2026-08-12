@@ -1,4 +1,4 @@
-"""Build the sealed Atlas 3.0 conformance corpus deterministically."""
+"""Build the sealed Atlas 3.1 conformance corpus deterministically."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ CREATED_AT = "2026-08-05T12:00:00+00:00"
 CONSTRUCTION_PROFILE = "atlas-3-release-local-construction-v1"
 CONSTRUCTION_RECEIPT_PROFILE = "atlas-3-authenticated-construction-summary-v1"
 CONSTRUCTOR_PROFILE = (
-    "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1"
+    "atlas-3-source-and-evidence-backed-mapping-v1"
 )
 COMPACT_ROLE_ORDER = (
     "Release",
@@ -61,11 +61,6 @@ class Fixture:
     manifest_patch: dict[str, Any]
     omitted_gate: str | None = None
     post_write: Callable[[Path], None] | None = None
-    # Rewrites the compact rows after they are derived from the asserted graph
-    # and before they are packed, so a case can make the served projection
-    # disagree with the graph while every downstream receipt still seals
-    # honestly over the bytes that were actually written.
-    compact_rows_patch: Callable[[dict[tuple[str, str], list[dict[str, Any]]]], None] | None = None
     rdf_zstd_all: bool = False
     rdf_partition_owner: str | None = None
     # Set false by the three negatives whose whole point is a stale proof
@@ -232,7 +227,6 @@ def _add_policy(graph: Graph, *, version: str) -> URIRef:
     for _, predicate, obj in list(graph.triples((pending, None, None))):
         graph.remove((pending, predicate, obj))
         graph.add((policy, predicate, obj))
-    graph.add((policy, ATLAS.contentDigest, Literal(digest)))
     return policy
 
 
@@ -322,13 +316,11 @@ def _add_assertion(
         if len(policies) != 1:
             raise ValueError("_add_assertion needs an explicit policy when the graph has != 1 policy")
         policy = policies[0]
-    policy_digest = graph.value(policy, ATLAS.contentDigest)
-    if not isinstance(policy_digest, Literal):
-        raise TypeError("_add_assertion policy has no contentDigest")
+    policy_digest = atlas_validate.rdf_node_digest(graph, policy)
     basis = {
         "object": str(obj),
         "policy": str(policy),
-        "policyContentDigest": str(policy_digest),
+        "policyContentDigest": policy_digest,
         "predicate": str(predicate),
         "sourceRelease": str(source_release),
         "subject": str(subject),
@@ -381,13 +373,6 @@ def _add_assertion(
             )
         )
     graph.add((assertion, ATLAS.assertionIdentityDigest, Literal(digest)))
-    graph.add(
-        (
-            assertion,
-            ATLAS.contentDigest,
-            Literal(atlas_validate.rdf_node_digest(graph, assertion)),
-        )
-    )
     evidence = URIRef(f"urn:ref:atlas-evidence:pending:{evidence_name}")
     graph.add((evidence, RDF.type, RKAF.EvidenceBinding))
     graph.add((evidence, RKAF.bindsAssertion, assertion))
@@ -482,16 +467,17 @@ def _endpoint_artifact(graph: Graph, endpoint: URIRef) -> URIRef:
     """The captured state of one compared Atlas resource.
 
     Identified by the resource it captures and digest-addressed to that
-    resource's own atlas:contentDigest, which is the pair validate.py checks:
-    a comparison cannot claim to have read an endpoint whose recorded content
-    is something else.
+    resource's own node digest, which is the pair validate.py checks: a
+    comparison cannot claim to have read an endpoint whose recorded content is
+    something else. The digest is recomputed rather than read -- carriers that
+    do not derive their IRI from it no longer publish it.
     """
 
     return _add_artifact(
         graph,
         _adjudication_iri("artifact", "endpoint", _local_name(endpoint)),
         identifiers=[str(endpoint)],
-        digest=str(graph.value(endpoint, ATLAS.contentDigest)),
+        digest=atlas_validate.rdf_node_digest(graph, endpoint),
     )
 
 
@@ -726,7 +712,10 @@ def _reseal_adjudication(graph: Graph) -> None:
         endpoints = [
             URIRef(str(identifier))
             for identifier in graph.objects(artifact, RKAF.hasArtifactIdentifier)
-            if (URIRef(str(identifier)), ATLAS.contentDigest, None) in graph
+            if any(
+                (URIRef(str(identifier)), RDF.type, resource_type) in graph
+                for resource_type in atlas_validate.RESOURCE_TYPES
+            )
         ]
         if len(endpoints) != 1:
             continue
@@ -735,7 +724,7 @@ def _reseal_adjudication(graph: Graph) -> None:
             (
                 artifact,
                 RKAF.hasContentDigest,
-                Literal(str(graph.value(endpoints[0], ATLAS.contentDigest))),
+                Literal(atlas_validate.rdf_node_digest(graph, endpoints[0])),
             )
         )
     for proof in sorted(graph.subjects(RDF.type, RKAF.ResolverProofRecord), key=str):
@@ -1146,32 +1135,6 @@ def _base_fixture() -> Fixture:
     # relabelled. Lifecycle events now appear exactly where they change what a
     # consumer sees -- rescission-lifecycle and superseded-policy-revision.
 
-    digest_classes = {
-        ATLAS.RegistrySource,
-        ATLAS.ResourceScheme,
-        ATLAS.AtlasRelease,
-        ATLAS.SourceRelease,
-        ATLAS.AtlasResource,
-        ATLAS.SubjectConcept,
-        ATLAS.EntityResource,
-        ATLAS.ValueResource,
-        ATLAS.LegalIdentityResource,
-        ATLAS.Identifier,
-        ATLAS.SourceRecord,
-        RKAF.EvidenceBinding,
-        ATLAS.EditorialPolicy,
-        RKAF.LifecycleEvent,
-        SKOSXL.Label,
-    }
-    digest_nodes = {
-        node
-        for class_iri in digest_classes
-        for node in asserted.subjects(RDF.type, class_iri)
-        if isinstance(node, URIRef)
-    }
-    for node in sorted(digest_nodes, key=str):
-        asserted.add((node, ATLAS.contentDigest, Literal(atlas_validate.rdf_node_digest(asserted, node))))
-
     # The machine-adjudication proof set for the one mapping whose evidence
     # declares the twoMachineAdjudication warrant. It is built here, after every
     # resource digest exists, because each proof pins the exact content of the
@@ -1241,7 +1204,7 @@ def _base_fixture() -> Fixture:
             "unresolved": 0,
         },
         "type": "AtlasSourceAccounting",
-        "version": "3.0",
+        "version": "3.1",
     }
     return Fixture(
         asserted=asserted,
@@ -1332,7 +1295,6 @@ def _sha256(payload: bytes) -> str:
 # `tools/generate_atlas_v3_full.py` seals its own implementation digest,
 # because a released distribution genuinely does have to say which program
 # produced it.
-PRODUCER_IMPLEMENTATION_DIGEST = _sha256(b"atlas-3-fixture-producer")
 
 
 def _atlas_name(value: URIRef) -> str:
@@ -1717,6 +1679,14 @@ def _compact_logical_rows(
     baseline: Graph,
     units: Sequence[ConstructionUnit],
 ) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    """Resolve every logical record to the construction unit that owns it.
+
+    The rows themselves are no longer written anywhere -- the compact JSONL
+    wire is gone and fixtures carry no Parquet view -- but the ownership walk
+    is what the construction summary's per-release `recordCounts` are taken
+    from, and the validator recomputes exactly those counts from the graph.
+    """
+
     atlas_owner, source_owner = _unit_owner_maps(units)
     baseline_units = _construction_units(baseline)
     baseline_atlas_owner, baseline_source_owner = _unit_owner_maps(baseline_units)
@@ -1792,90 +1762,6 @@ def _compact_logical_rows(
     return dict(rows_by_owner_role)
 
 
-def _write_compact_packs(
-    root: Path,
-    rows_by_owner_role: Mapping[tuple[str, str], Sequence[Mapping[str, Any]]],
-) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    descriptors: list[dict[str, Any]] = []
-    path_owners: dict[str, str] = {}
-    subject_pack_ids: dict[str, str] = {}
-    all_subjects = {
-        row["id"]
-        for rows in rows_by_owner_role.values()
-        for row in rows
-    }
-    for role in COMPACT_ROLE_ORDER:
-        for owner in sorted(
-            key_owner
-            for key_owner, key_role in rows_by_owner_role
-            if key_role == role
-        ):
-            rows = [dict(row) for row in rows_by_owner_role[(owner, role)]]
-            row_ids = {row["id"] for row in rows}
-            dependency_ids: set[str] = set()
-            for row in rows:
-                for dependency_subject in atlas_validate._compact_direct_dependency_subjects(
-                    role, row
-                ):
-                    if dependency_subject in row_ids or dependency_subject not in all_subjects:
-                        continue
-                    dependency_pack_id = subject_pack_ids.get(dependency_subject)
-                    if dependency_pack_id is None:
-                        raise ValueError(
-                            f"compact fixture build order missed {dependency_subject} for {role}"
-                        )
-                    dependency_ids.add(dependency_pack_id)
-            dependencies = sorted(dependency_ids)
-            summary = atlas_validate._compact_full_summary(role, rows)
-            summary_receipt = atlas_validate._compact_summary_receipt(summary)
-            header = {
-                "defaults": {},
-                "dependencies": dependencies,
-                "globalInvariantSummaryDigest": summary_receipt["digest"],
-                "recordSchemaVersion": "1.0",
-                "role": role,
-                "schemaVersion": "1.0",
-                "type": "AtlasCompactPackHeader",
-            }
-            row_bytes = [atlas_validate._compact_canonical_json_bytes(row) for row in rows]
-            content = atlas_validate._compact_canonical_json_bytes(header) + b"".join(row_bytes)
-            content_digest = _sha256(content)
-            transport = atlas_validate.zstd.compress(content)
-            path = f"packs/compact/{owner}/{role.lower()}.jsonl.zst"
-            descriptor = {
-                "content": {
-                    "byteLength": len(content),
-                    "digest": content_digest,
-                    "mediaType": "application/x-ndjson",
-                    "recordCount": len(rows),
-                },
-                "defaults": {},
-                "dependencies": dependencies,
-                "globalInvariantSummary": summary_receipt,
-                "logicalRowsDigest": _sha256(b"".join(row_bytes)),
-                "packId": "urn:ref:atlas:compact-pack:"
-                + content_digest.removeprefix("sha256:"),
-                "path": path,
-                "recordSchemaVersion": "1.0",
-                "role": role,
-                "transport": {
-                    "byteLength": len(transport),
-                    "compression": "zstd",
-                    "digest": _sha256(transport),
-                    "mediaType": "application/zstd",
-                },
-            }
-            target = root / path
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(transport)
-            descriptors.append(descriptor)
-            path_owners[path] = owner
-            for row in rows:
-                subject_pack_ids[row["id"]] = descriptor["packId"]
-    descriptors.sort(key=lambda descriptor: descriptor["path"])
-    return descriptors, path_owners
-
-
 def _file_pin(path: Path, *, logical_path: str, role: str, source_iri: str) -> dict[str, Any]:
     payload = path.read_bytes()
     return {
@@ -1898,8 +1784,6 @@ def _construction_summary(
     graph_rows: Sequence[Mapping[str, Any]],
     rdf_packs: Sequence[Mapping[str, Any]],
     rdf_by_unit: Mapping[str, Sequence[Mapping[str, Any]]],
-    compact_packs: Sequence[Mapping[str, Any]],
-    compact_path_owners: Mapping[str, str],
     compact_rows: Mapping[tuple[str, str], Sequence[Mapping[str, Any]]],
 ) -> dict[str, Any]:
     del counts
@@ -1917,7 +1801,6 @@ def _construction_summary(
         "sha256": atlas_validate.file_sha256(adapter_path),
     }
     accounting_rows = {row["sourceRelease"]: row for row in fixture.accounting["inputs"]}
-    compact_by_path = {pack["path"]: pack for pack in compact_packs}
     atlas_owner, source_owner = _unit_owner_maps(units)
     base_rows: dict[str, dict[str, Any]] = {}
     for unit in units:
@@ -1984,25 +1867,10 @@ def _construction_summary(
             }
             for key in sorted(dependency_keys)
         ]
-        compact_paths = sorted(
-            path for path, owner in compact_path_owners.items() if owner == unit.key
-        )
         record_counts = dict.fromkeys(COMPACT_ROLE_COUNT_FIELDS.values(), 0)
-        logical_inventory = []
-        for path in compact_paths:
-            descriptor = compact_by_path[path]
-            record_counts[COMPACT_ROLE_COUNT_FIELDS[descriptor["role"]]] += descriptor[
-                "content"
-            ]["recordCount"]
-            logical_inventory.append(
-                {
-                    "logicalRowsDigest": descriptor["logicalRowsDigest"],
-                    "packId": descriptor["packId"],
-                    "path": path,
-                    "recordCount": descriptor["content"]["recordCount"],
-                    "role": descriptor["role"],
-                }
-            )
+        for (owner, role), rows in compact_rows.items():
+            if owner == unit.key:
+                record_counts[COMPACT_ROLE_COUNT_FIELDS[role]] += len(rows)
         unit_rdf_packs = sorted(rdf_by_unit[unit.key], key=lambda pack: pack["path"])
         release_rows.append(
             {
@@ -2018,13 +1886,9 @@ def _construction_summary(
                         "endpointDependencies": endpoint_dependencies,
                     }
                 ),
-                "compactPackPaths": compact_paths,
                 "endpointDependencies": endpoint_dependencies,
                 "key": unit.key,
                 "kind": "sourceRelease",
-                "logicalRecordInventoryDigest": atlas_validate.canonical_sha256(
-                    logical_inventory
-                ),
                 "rdfPacks": [
                     {
                         "contentDigest": rdf_pack["content"]["digest"],
@@ -2050,15 +1914,15 @@ def _construction_summary(
         [
             _file_pin(
                 descriptor_dataset,
-                logical_path="bindings/atlas/3.0/tests/registry-descriptors.nq",
+                logical_path="bindings/atlas/3.1/tests/registry-descriptors.nq",
                 role="registryDescriptors",
-                source_iri="urn:ref:atlas:registry-descriptors:3.0",
+                source_iri="urn:ref:atlas:registry-descriptors:3.1",
             ),
             _file_pin(
                 descriptor_proof,
-                logical_path="bindings/atlas/3.0/tests/registry-descriptors.json",
+                logical_path="bindings/atlas/3.1/tests/registry-descriptors.json",
                 role="registryDescriptorProof",
-                source_iri="urn:ref:atlas:registry-descriptor-proof:3.0",
+                source_iri="urn:ref:atlas:registry-descriptor-proof:3.1",
             ),
         ],
         key=lambda pin: (pin["path"], pin["role"], pin["sha256"]),
@@ -2095,9 +1959,6 @@ def _construction_summary(
             "path": catalog_pack["path"],
         },
     }
-    compact_inventory = sorted(
-        (dict(pack) for pack in compact_packs), key=lambda pack: pack["path"]
-    )
     asserted_inventory = next(
         row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted"
     )
@@ -2105,11 +1966,6 @@ def _construction_summary(
         "assertedInventoryDigest": asserted_inventory,
         "bindingBundleDigest": binding["bindingBundleDigest"],
         "catalog": catalog,
-        "compactPackCount": len(compact_inventory),
-        "compactPackInventoryDigest": atlas_validate.canonical_sha256(
-            compact_inventory
-        ),
-        "compactPacks": compact_inventory,
         "distributionId": distribution_id,
         "profile": CONSTRUCTION_PROFILE,
         "recipeDigest": recipe_digest,
@@ -2118,7 +1974,7 @@ def _construction_summary(
         "releases": release_rows,
         "sourceAccountingDigest": accounting_digest,
         "type": "AtlasConstructionSummary",
-        "version": "3.0",
+        "version": "3.1",
     }
     summary["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
         summary, terminal_lf=False
@@ -2156,14 +2012,11 @@ def _write_case(
         partition_owner=fixture.rdf_partition_owner,
     )
     compact_rows = _compact_logical_rows(fixture, baseline_asserted, units)
-    if fixture.compact_rows_patch is not None:
-        fixture.compact_rows_patch(compact_rows)
-    compact_packs, compact_path_owners = _write_compact_packs(path, compact_rows)
     accounting_bytes = atlas_validate.canonical_json_bytes(fixture.accounting)
     accounting_digest = _sha256(accounting_bytes)
     binding = {
-        "validatorVersion": "3.0",
-        "version": "3.0",
+        "validatorVersion": "3.1",
+        "version": "3.1",
         **binding_digests,
     }
     counts = dict(fixture.manifest_patch.get("counts", _counts(fixture)))
@@ -2177,8 +2030,6 @@ def _write_case(
         graph_rows=graph_rows,
         rdf_packs=packs,
         rdf_by_unit=rdf_by_unit,
-        compact_packs=compact_packs,
-        compact_path_owners=compact_path_owners,
         compact_rows=compact_rows,
     )
     construction_bytes = atlas_validate.canonical_json_bytes(construction)
@@ -2189,10 +2040,7 @@ def _write_case(
     producer = {
         "assertedInventoryDigest": asserted_inventory,
         "binding": binding,
-        "checks": ["deterministic authenticated fixture construction"],
         "constructionSummary": {
-            "compactPackCount": construction["compactPackCount"],
-            "compactPackInventoryDigest": construction["compactPackInventoryDigest"],
             "digest": construction_digest,
             "path": "atlas-construction-summary.json",
             "profile": CONSTRUCTION_RECEIPT_PROFILE,
@@ -2201,15 +2049,12 @@ def _write_case(
         },
         "constructorProfile": CONSTRUCTOR_PROFILE,
         "counts": counts,
-        "implementationDigest": PRODUCER_IMPLEMENTATION_DIGEST,
         "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
-        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
-        "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": accounting_digest,
         "sourceReleaseCount": fixture.accounting["totals"]["sourceReleases"],
         "status": "passed",
         "type": "AtlasProducerValidation",
-        "version": "3.0",
+        "version": "3.1",
     }
     producer_bytes = atlas_validate.canonical_json_bytes(producer)
     producer_digest = _sha256(producer_bytes)
@@ -2219,7 +2064,7 @@ def _write_case(
         "producerValidationDigest": producer_digest,
         "sourceAccountingDigest": accounting_digest,
     }
-    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.0"}
+    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
     acceptance = {
         "distributionId": distribution_id,
         "evaluatedAt": CREATED_AT,
@@ -2240,7 +2085,7 @@ def _write_case(
         "type": "AtlasAcceptance",
         "validator": validator_identity,
         "verdict": "passed",
-        "version": "3.0",
+        "version": "3.1",
     }
     acceptance.update(fixture.acceptance)
     acceptance_bytes = atlas_validate.canonical_json_bytes(acceptance)
@@ -2249,7 +2094,7 @@ def _write_case(
         "counts": counts,
         "createdAt": CREATED_AT,
         "distributionId": distribution_id,
-        "format": "refspec-atlas-packed-nquads-3.0",
+        "format": "refspec-atlas-packed-nquads-3.1",
         "graphs": graph_rows,
         "members": [
             _json_member(
@@ -2274,7 +2119,7 @@ def _write_case(
             ),
         ],
         "packs": packs,
-        "schemaVersion": "3.0",
+        "schemaVersion": "3.1",
         "type": "AtlasManifest",
     }
     manifest.update(fixture.manifest_patch)
@@ -2314,15 +2159,8 @@ def _remove_subject_predicate(graph: Graph, subject: Any, predicate: Any) -> Non
         graph.remove(triple)
 
 
-def _refresh_node_digest(graph: Graph, node: URIRef) -> None:
-    _remove_subject_predicate(graph, node, ATLAS.contentDigest)
-    graph.add((node, ATLAS.contentDigest, Literal(atlas_validate.rdf_node_digest(graph, node))))
-
-
 def _refresh_evidence_for_source(graph: Graph, source_record: URIRef) -> None:
-    source_digest = graph.value(source_record, ATLAS.contentDigest)
-    if not isinstance(source_digest, Literal):
-        raise TypeError("source record has no contentDigest")
+    source_digest = Literal(atlas_validate.rdf_node_digest(graph, source_record))
     for evidence in list(graph.subjects(ATLAS.evidenceSourceRecord, source_record)):
         _remove_subject_predicate(graph, evidence, ATLAS.evidenceSourceDigest)
         _remove_subject_predicate(graph, evidence, ATLAS.contentDigest)
@@ -2446,7 +2284,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         fixture.asserted.add((event, release_predicate, release))
         fixture.asserted.add((event, ATLAS.sourceRecord, source_record))
-        _refresh_node_digest(fixture.asserted, event)
         return event
 
     def rescind_inert_cross_ring_assertion(fixture: Fixture) -> URIRef:
@@ -2509,9 +2346,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 Literal("sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()),
             )
         )
-        _refresh_node_digest(fixture.asserted, source_record)
         _refresh_evidence_for_source(fixture.asserted, source_record)
-        _refresh_node_digest(fixture.asserted, resource)
 
         for predicate, subject, obj, name in (
             (ATLAS.thesaurusUse, resource, parent, "thesaurus-use"),
@@ -2644,7 +2479,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         if (predecessor, None, None) in fixture.asserted:
             raise ValueError("the dangling predecessor fixture no longer dangles")
         fixture.asserted.add((assertion, RKAF.supersedesAssertion, predecessor))
-        _refresh_node_digest(fixture.asserted, assertion)
 
     def unknown_manifest_field(fixture: Fixture) -> None:
         fixture.manifest_patch["unexpected"] = "closed schema"
@@ -2676,7 +2510,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def label_missing_literal(fixture: Fixture) -> None:
         label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
         _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
-        _refresh_node_digest(fixture.asserted, label)
 
     def non_english_label(fixture: Fixture) -> None:
         label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
@@ -2684,7 +2517,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add(
             (label, SKOSXL.literalForm, Literal("Agence exemplaire", lang="fr"))
         )
-        _refresh_node_digest(fixture.asserted, label)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def duplicate_preferred_language(fixture: Fixture) -> None:
@@ -2697,8 +2529,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add((label, SKOSXL.literalForm, Literal("Duplicate", lang="en")))
         fixture.asserted.add((label, ATLAS.inRelease, release))
         fixture.asserted.add((label, ATLAS.sourceRecord, source))
-        _refresh_node_digest(fixture.asserted, label)
-        _refresh_node_digest(fixture.asserted, resource)
 
     def missing_evidence(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -2897,35 +2727,9 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def missing_acceptance_gate(fixture: Fixture) -> None:
         fixture.omitted_gate = "reasoning-isolation"
 
-    def explorer_record_unreachable(fixture: Fixture) -> None:
-        """Serve one label the graph never asserts in place of one it does.
-
-        Labels are the one compact role nothing else references, so retitling a
-        single row leaves replay order, every digest, and every count exactly as
-        a faithful build would seal them. The distribution now asserts a label
-        the search view, its filters, and both concept endpoints can never
-        reach, and serves one the distribution never asserted. Every count still
-        reconciles, which is the point: only comparing the two record
-        identities refuses it.
-        """
-
-        def patch(rows: dict[tuple[str, str], list[dict[str, Any]]]) -> None:
-            key = min(key for key in rows if key[1] == "Label" and rows[key])
-            retitled = dict(rows[key][0], id="urn:ref:atlas-fixture:label:unasserted")
-            retitled.pop("canonicalPayloadDigest", None)
-            rows[key][0] = atlas_validate._normalize_compact_record(
-                "Label",
-                retitled,
-                path="explorer-record-unreachable",
-            )
-            rows[key].sort(key=lambda row: row["id"])
-
-        fixture.compact_rows_patch = patch
-
     def identifier_missing_value(fixture: Fixture) -> None:
         identifier = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
         _remove_subject_predicate(fixture.asserted, identifier, ATLAS.identifierValue)
-        _refresh_node_digest(fixture.asserted, identifier)
 
     def _add_identifier(
         fixture: Fixture,
@@ -2955,7 +2759,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 next(fixture.asserted.objects(resource, ATLAS.sourceRecord)),
             )
         )
-        _refresh_node_digest(fixture.asserted, identifier)
         return identifier
 
     def _disagreeing_identifiers(fixture: Fixture) -> tuple[URIRef, URIRef]:
@@ -3091,7 +2894,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _remove_subject_predicate(fixture.asserted, assertion, RKAF.hasEffectivePeriod)
         for triple in list(fixture.asserted.triples((period, None, None))):
             fixture.asserted.remove(triple)
-        _refresh_node_digest(fixture.asserted, assertion)
         return period
 
     def mapping_undated_value_crosswalk(fixture: Fixture) -> None:
@@ -3115,7 +2917,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         subject_mapping = dated_mapping(fixture, ATLAS.subject)
         fixture.asserted.add((subject_mapping, RKAF.hasEffectivePeriod, period))
-        _refresh_node_digest(fixture.asserted, subject_mapping)
 
     def _replace_period_bound(
         fixture: Fixture,
@@ -3364,7 +3165,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 ),
             )
         )
-        _refresh_node_digest(fixture.asserted, policy)
 
     def source_accounting_swap(fixture: Fixture) -> None:
         dispositions = next(
@@ -3389,7 +3189,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             if (record, ATLAS.representsResource, candidate) not in fixture.asserted
         )
         fixture.asserted.add((record, ATLAS.representsResource, resource))
-        _refresh_node_digest(fixture.asserted, record)
         disposition = next(
             row
             for source in fixture.accounting["inputs"]
@@ -3601,7 +3400,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         _remove_subject_predicate(fixture.asserted, resource, SKOS.inScheme)
         fixture.asserted.add((resource, SKOS.inScheme, wrong_scheme))
-        _refresh_node_digest(fixture.asserted, resource)
 
     def noncanonical_native_payload(fixture: Fixture) -> None:
         record = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord))
@@ -3619,7 +3417,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 ),
             )
         )
-        _refresh_node_digest(fixture.asserted, record)
         _refresh_evidence_for_source(fixture.asserted, record)
 
     def zstd_packs(fixture: Fixture) -> None:
@@ -3652,14 +3449,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add(
             (event, RKAF.lifecycleEventKind, URIRef("urn:ref:atlas-event:admitted"))
         )
-        _refresh_node_digest(fixture.asserted, event)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def lifecycle_effective_date_not_datetime(fixture: Fixture) -> None:
         event = rescind_inert_cross_ring_assertion(fixture)
         _remove_subject_predicate(fixture.asserted, event, RKAF.effectiveDate)
         fixture.asserted.add((event, RKAF.effectiveDate, Literal(CREATED_AT)))
-        _refresh_node_digest(fixture.asserted, event)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def lifecycle_applies_to_nonassertion(fixture: Fixture) -> None:
@@ -3674,7 +3469,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 URIRef("urn:ref:atlas-fixture:resource:entity-agency"),
             )
         )
-        _refresh_node_digest(fixture.asserted, event)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def lifecycle_rescission_names_target_release(fixture: Fixture) -> None:
@@ -3685,7 +3479,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         release = next(fixture.asserted.objects(event, ATLAS.fromRelease))
         _remove_subject_predicate(fixture.asserted, event, ATLAS.fromRelease)
         fixture.asserted.add((event, ATLAS.toRelease, release))
-        _refresh_node_digest(fixture.asserted, event)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def skosxl_hidden_label(fixture: Fixture) -> None:
@@ -3704,8 +3497,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         fixture.asserted.add((label, ATLAS.inRelease, release))
         fixture.asserted.add((label, ATLAS.sourceRecord, source_record))
-        _refresh_node_digest(fixture.asserted, label)
-        _refresh_node_digest(fixture.asserted, resource)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def native_payload_digest_mismatch(fixture: Fixture) -> None:
@@ -3714,7 +3505,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add(
             (record, ATLAS.sourceDigest, Literal("sha256:" + "9" * 64))
         )
-        _refresh_node_digest(fixture.asserted, record)
         _refresh_evidence_for_source(fixture.asserted, record)
 
     # ---- machine adjudication -------------------------------------------
@@ -4250,12 +4040,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("source-accounting-missing-disposition", ["json", "dataset"], "source.accounting", missing_disposition),
         ("manifest-count-mismatch", ["dataset"], "dataset.counts", count_mismatch),
         ("acceptance-missing-gate", ["json", "dataset"], "acceptance.gates", missing_acceptance_gate),
-        (
-            "explorer-record-unreachable",
-            ["dataset"],
-            "construction.reachability",
-            explorer_record_unreachable,
-        ),
         ("identifier-missing-value", ["shacl"], "shacl.data", identifier_missing_value),
         (
             "identifier-pair-conflict",
@@ -4375,8 +4159,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("cross-role-identity", ["dataset", "reasoning"], "dataset.graph-placement", cross_role_identity),
         (
             "derived-asserted-scheme-collision",
-            ["dataset", "reasoning"],
-            "dataset.graph-placement",
+            ["shacl", "dataset", "reasoning"],
+            # Re-recorded with the 3.1 wire cut: a derived row carries
+            # atlas:contentDigest legitimately, and atlas:ResourceSchemeShape is
+            # closed without it, so the collision is now refused by the closed
+            # constraint before graph placement is reached. The placement rule
+            # keeps its own six cases, derived-extra-type among them.
+            "shacl.data",
             derived_asserted_scheme_collision,
         ),
         ("label-extra-skos-type", ["dataset", "rdf"], "dataset.graph-placement", label_extra_skos_type),
@@ -4771,7 +4560,7 @@ def _corpus_document(
     return {
         "cases": sorted(corpus_cases, key=lambda row: row["id"]),
         "type": "AtlasConformanceCorpus",
-        "version": "3.0",
+        "version": "3.1",
     }
 
 
@@ -4799,7 +4588,7 @@ def _derive_shacl_components(
     ]
     if not selected:
         return {}
-    probe_root = FIXTURE_ROOT.parent / ".atlas-3.0-fixtures.probe"
+    probe_root = FIXTURE_ROOT.parent / ".atlas-3.1-fixtures.probe"
     if probe_root.exists():
         shutil.rmtree(probe_root)
     (probe_root / "invalid").mkdir(parents=True)
@@ -4845,7 +4634,7 @@ def _derive_shacl_components(
 def build(*, check: bool) -> None:
     if check and _receipt_is_current():
         print(
-            f"Atlas 3.0 fixtures are current: receipt matches {len(_receipt_inputs())} "
+            f"Atlas 3.1 fixtures are current: receipt matches {len(_receipt_inputs())} "
             "inputs and the committed corpus"
         )
         return
@@ -4854,7 +4643,7 @@ def build(*, check: bool) -> None:
     # a cold checkout self-healing without a second entry point.
     materialized = any(root.is_dir() for root in GENERATED_ROOTS)
     output_root = FIXTURE_ROOT
-    temporary_root = output_root.parent / ".atlas-3.0-fixtures.tmp"
+    temporary_root = output_root.parent / ".atlas-3.1-fixtures.tmp"
     if temporary_root.exists():
         shutil.rmtree(temporary_root)
     (temporary_root / "valid").mkdir(parents=True)
@@ -4911,12 +4700,12 @@ def build(*, check: bool) -> None:
                 for path in expected_files.keys() & current_files.keys()
                 if expected_files[path] != current_files[path]
             )
-            raise SystemExit(f"Atlas 3.0 fixtures differ; missing={missing}, extra={extra}, changed={changed}")
+            raise SystemExit(f"Atlas 3.1 fixtures differ; missing={missing}, extra={extra}, changed={changed}")
         # The slow path just proved the on-disk tree is exactly what this
         # builder produces from these inputs. Record that so the next check can
         # answer from the receipt.
         RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
-        print(f"Atlas 3.0 fixtures rebuilt and compared: {len(expected_files)} files identical")
+        print(f"Atlas 3.1 fixtures rebuilt and compared: {len(expected_files)} files identical")
         return
 
     # Cold checkout: the case tree is generated and gitignored, so there is
@@ -4931,7 +4720,7 @@ def build(*, check: bool) -> None:
         if recorded_digest is not None and recorded_digest != built_digest:
             shutil.rmtree(temporary_root)
             raise SystemExit(
-                "Atlas 3.0 fixtures differ from the committed receipt: the rebuild produced "
+                "Atlas 3.1 fixtures differ from the committed receipt: the rebuild produced "
                 f"{built_digest} but fixtures-receipt.json records {recorded_digest}. "
                 "Run build_fixtures.py and commit the receipt."
             )
@@ -4955,12 +4744,12 @@ def build(*, check: bool) -> None:
         # alone: rewriting it here would dirty a checked-in file on every cold
         # build for no new information.
         print(
-            f"Atlas 3.0 fixtures materialized and matched the committed receipt: "
+            f"Atlas 3.1 fixtures materialized and matched the committed receipt: "
             f"{len(expected_files)} files"
         )
         return
     RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
-    print(f"Atlas 3.0 fixtures written: {len(expected_files)} files, receipt over {len(_receipt_inputs())} inputs")
+    print(f"Atlas 3.1 fixtures written: {len(expected_files)} files, receipt over {len(_receipt_inputs())} inputs")
 
 
 def _parser() -> argparse.ArgumentParser:

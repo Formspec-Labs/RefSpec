@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-acceptance.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/atlas-acceptance.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
@@ -87,7 +87,7 @@
           "const": "refspec-atlas-conformance"
         },
         "version": {
-          "const": "3.0"
+          "const": "3.1"
         }
       },
       "required": [
@@ -100,7 +100,7 @@
       "const": "passed"
     },
     "version": {
-      "const": "3.0"
+      "const": "3.1"
     }
   },
   "required": [
@@ -113,6 +113,6 @@
     "gates",
     "verdict"
   ],
-  "title": "RefSpec Atlas 3.0 acceptance",
+  "title": "RefSpec Atlas 3.1 acceptance",
   "type": "object"
 }

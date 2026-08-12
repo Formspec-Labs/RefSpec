@@ -17,12 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools" / "generate_atlas_v3_registry_descriptors.py"
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
 INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
-PROFILES = ROOT / "bindings" / "atlas" / "3.0" / "registry-resource-profiles.json"
-DATASET_PATH = ROOT / "bindings" / "atlas" / "3.0" / "tests" / "registry-descriptors.nq"
-PROOF_PATH = ROOT / "bindings" / "atlas" / "3.0" / "tests" / "registry-descriptors.json"
-ONTOLOGY_PATH = ROOT / "bindings" / "atlas" / "3.0" / "ontology" / "atlas.ttl"
-SHAPES_PATH = ROOT / "bindings" / "atlas" / "3.0" / "shapes" / "atlas.shacl.ttl"
-sys.path.insert(0, str(ROOT / "bindings" / "atlas" / "3.0" / "tools"))
+PROFILES = ROOT / "bindings" / "atlas" / "3.1" / "registry-resource-profiles.json"
+DATASET_PATH = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.nq"
+PROOF_PATH = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.json"
+ONTOLOGY_PATH = ROOT / "bindings" / "atlas" / "3.1" / "ontology" / "atlas.ttl"
+SHAPES_PATH = ROOT / "bindings" / "atlas" / "3.1" / "shapes" / "atlas.shacl.ttl"
+sys.path.insert(0, str(ROOT / "bindings" / "atlas" / "3.1" / "tools"))
 import validate as atlas_validate
 
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
@@ -79,8 +79,8 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
     assert PROOF_PATH.read_bytes() == _canonical_json_bytes(proof) + b"\n"
     proof_basis = {key: value for key, value in proof.items() if key != "proofDigest"}
     assert proof["proofDigest"] == _canonical_sha256(proof_basis)
-    assert proof["format"] == "refspec-atlas-registry-descriptors/3.0"
-    assert proof["schemaVersion"] == "3.0"
+    assert proof["format"] == "refspec-atlas-registry-descriptors/3.1"
+    assert proof["schemaVersion"] == "3.1"
     assert proof["graphIri"] == str(GRAPH_IRI)
 
     assert catalog["catalogDigest"] == _input_digest(catalog, "catalogDigest", "catalogId")
@@ -116,7 +116,7 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
             "resourceFamily": 1,
             "reviewWithheld": 1,
         },
-            "quadCount": 1171,
+            "quadCount": 994,
         "registrySourceCount": 89,
         "resourceSchemeCount": 88,
             "supportedRingStatementCount": 80,
@@ -229,9 +229,11 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
         assert str(payload).encode("utf-8") == _canonical_json_bytes(resource)
         assert json.loads(str(payload)) == resource
 
-        if node in scheme_nodes:
-            assert list(graph.objects(node, ATLAS.contentDigest)) == [Literal(_node_digest(graph, node))]
-        assert list(graph.objects(source, ATLAS.contentDigest)) == [Literal(_node_digest(graph, source))]
+        # `atlas:contentDigest` left the descriptor wire: neither a registry
+        # source nor a resource scheme derives identity from it, so neither
+        # publishes it and the closed shapes refuse it.
+        assert list(graph.objects(node, ATLAS.contentDigest)) == []
+        assert list(graph.objects(source, ATLAS.contentDigest)) == []
 
     assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 29
     assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 80
@@ -261,7 +263,7 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
     assert completed.returncode == 0, completed.stderr
     assert completed.stderr == ""
     assert completed.stdout == (
-        "Atlas 3.0 registry descriptors are current: 88 schemes, 89 index placements, 1171 quads\n"
+        "Atlas 3.1 registry descriptors are current: 88 schemes, 89 index placements, 994 quads\n"
     )
 
 

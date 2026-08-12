@@ -93,7 +93,7 @@ their evidence closure. A consumer that needs assignments also verifies its
 own emission and product-policy records.
 
 RefSpec owns the
-[Atlas 3.0 binding, closed schemas, and validator](../bindings/atlas/3.0/README.md).
+[Atlas 3.0 binding, closed schemas, and validator](../bindings/atlas/3.1/README.md).
 Reuse that versioned verifier boundary; do not restore sibling source-tree
 imports or create another release model.
 

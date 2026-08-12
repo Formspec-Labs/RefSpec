@@ -1,5 +1,5 @@
 {
-  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/registry-resource-profiles.schema.json",
+  "$id": "https://refspec.org/bindings/atlas/3.1/schemas/registry-resource-profiles.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "assertionPredicates": {
@@ -217,7 +217,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "refspec-atlas-registry-resource-profiles/3.0"
+      "const": "refspec-atlas-registry-resource-profiles/3.1"
     },
     "crossRingRelationPolicies": {
       "items": {
@@ -254,7 +254,7 @@
       "uniqueItems": true
     },
     "schemaVersion": {
-      "const": "3.0"
+      "const": "3.1"
     }
   },
   "required": [
@@ -266,6 +266,6 @@
     "relationPolicies",
     "schemaVersion"
   ],
-  "title": "RefSpec Atlas 3.0 registry resource profiles",
+  "title": "RefSpec Atlas 3.1 registry resource profiles",
   "type": "object"
 }

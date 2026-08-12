@@ -9,9 +9,9 @@
 
 <https://refspec.org/ns/atlas/v3>
   a owl:Ontology ;
-  rdfs:label "RefSpec Atlas vocabulary 3.0"@en ;
+  rdfs:label "RefSpec Atlas vocabulary 3.1"@en ;
   rdfs:comment "Authority-first vocabulary for immutable reference-resource releases, evidence-bearing assertions, reproducible projections, and explicitly non-authoritative derivations."@en ;
-  owl:versionInfo "3.0" .
+  owl:versionInfo "3.1" .
 
 # Classes
 
@@ -121,7 +121,7 @@ atlas:EditorialPolicy
 # atlas:inputContextDigest. Rulespec now owns every one of those semantics
 # (constraints/analysis/resolver-proof-record.cue, machine-adjudication.cue,
 # relation-comparison-context.cue, constraints/core/{ai-lineage,artifact}.cue),
-# so Atlas 3.0 publishes rkaf's records rather than a second name for them, and
+# so Atlas 3.1 publishes rkaf's records rather than a second name for them, and
 # mints nothing of its own here:
 #
 #   rkaf:ResolverProofRecord        one machine's sealed, reviewable answer to
@@ -205,7 +205,7 @@ atlas:EditorialPolicy
 # The cross-node rules -- at least one independent pair on five axes, one
 # sealed question per comparison, complete support retained, the verdict
 # lattice, the snapshot chain, and the resolution of every artifact and digest
-# to bundled bytes -- are in bindings/atlas/3.0/tools/validate.py, not here and
+# to bundled bytes -- are in bindings/atlas/3.1/tools/validate.py, not here and
 # not in the SHACL, for the reason rulespec gives: they relate several proof
 # records to one comparison, and per-property SHACL constrains one node.
 

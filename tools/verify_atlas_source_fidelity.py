@@ -1,4 +1,4 @@
-"""Independent source-fidelity verifier for a packed RefSpec Atlas 3.0 distribution.
+"""Independent source-fidelity verifier for a packed RefSpec Atlas 3.1 distribution.
 
 The eleven acceptance gates recorded in ``atlas-acceptance.json`` prove that a
 distribution is internally consistent: canonical JSON, schema conformance, SHACL
@@ -7561,7 +7561,7 @@ def render(results: Iterable[CheckResult]) -> str:
 
     model_findings = [finding for result in rows for finding in result.source_findings if finding.kind == "model"]
     if model_findings:
-        lines.extend(["", "MODEL FINDINGS (expressible-range limits of the Atlas 3.0 binding)", "-" * 78])
+        lines.extend(["", "MODEL FINDINGS (expressible-range limits of the Atlas 3.1 binding)", "-" * 78])
         for finding in model_findings:
             lines.append(f"  [{finding.source}] {finding.detail}")
     return "\n".join(lines)

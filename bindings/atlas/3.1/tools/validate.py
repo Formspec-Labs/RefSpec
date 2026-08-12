@@ -1,4 +1,4 @@
-"""Independent validator for the RefSpec Atlas 3.0 binding.
+"""Independent validator for the RefSpec Atlas 3.1 binding.
 
 The validator deliberately imports no RefSpec package code.  A consumer can
 copy this binding directory, install ``requirements.txt``, and verify an Atlas
@@ -138,7 +138,7 @@ RKAF = Namespace("https://rulespec.org/ns/v1#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 
 VALIDATOR_ID = "refspec-atlas-conformance"
-VALIDATOR_VERSION = "3.0"
+VALIDATOR_VERSION = "3.1"
 EXACT_MATCH_TRANSITIVITY_RULE = URIRef("urn:ref:rule:skos-exact-match-closure-path")
 DERIVATION_ENGINE = URIRef("https://pypi.org/project/owlrl/7.1.4/")
 DERIVATION_ENGINE_VERSION = "7.1.4"
@@ -162,9 +162,6 @@ CACHE_SECRET_BYTES = 32
 CACHE_RECEIPT_MAX_BYTES = 4 * 1024 * 1024
 SAFE_INTEGER = 9_007_199_254_740_991
 NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
-COMPACT_PACK_MAX_LINE_BYTES = 16 * 1024 * 1024
-COMPACT_PACK_MAX_TRANSPORT_BYTES = 1 * 1024 * 1024 * 1024
-COMPACT_PACK_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
 # RDF packs were bounded per line only, so a manifest could declare a pack
 # whose decompressed content was unbounded -- decompression-bomb shaped, on
 # the path an offline third-party consumer runs. They are the same class of
@@ -184,6 +181,7 @@ COMPACT_PACK_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
 # still refusing the 504 GiB that 126 unbounded packs would otherwise
 # authorize.
 NQUADS_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
+NQUADS_MAX_TRANSPORT_BYTES = 1 * 1024 * 1024 * 1024
 NQUADS_DATASET_MAX_CONTENT_BYTES = 32 * 1024 * 1024 * 1024
 COMPACT_RDF_SAMPLE_SIZE = 5
 # The smoke tier's sample. See `smoke_check`: up to three packs per pack kind,
@@ -195,12 +193,10 @@ SMOKE_SAMPLE_PACK_COUNT = 3
 SMOKE_SAMPLE_MAX_CONTENT_BYTES = 320 * 1024 * 1024
 HIERARCHY_REACHABILITY_BATCH_BITS = 2_048
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-COMPACT_PACK_ID_PREFIX = "urn:ref:atlas:compact-pack:"
 # The compact projection carries rkaf:lifecycleEventKind as a full IRI,
 # exactly like rkaf:attestorKind and rkaf:decision on an evidence binding, and
 # exactly like those it is closed by the sh:in on atlas:LifecycleEventShape
 # rather than by a second copy of the value set here.
-COMPACT_HEADER_TYPE = "AtlasCompactPackHeader"
 COMPACT_SCHEMA_VERSION = "1.0"
 COMPACT_ROLES = (
     "Resource",
@@ -283,35 +279,23 @@ COMPACT_RECORD_FIELDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset({"fromRelease", "toRelease"}),
     ),
 }
-COMPACT_SUMMARY_FIELDS = {
-    "Resource": "resourceOwnership",
-    "Label": "labelClaims",
-    "Statement": "statementEndpoints",
-    "EvidenceBinding": "evidenceLinks",
-    "SourceRecord": "sourceRecordLinks",
-    "Release": "releaseRecords",
-    "Identifier": "identifierClaims",
+# Which per-release count field each logical record role is tallied into. The
+# construction summary publishes these; `_check_construction_record_ownership`
+# recomputes them from the asserted graph.
+COMPACT_ROLE_COUNT_FIELDS = {
+    "Resource": "resources",
+    "Label": "labels",
+    "Statement": "statements",
+    "EvidenceBinding": "evidenceBindings",
+    "SourceRecord": "sourceRecords",
+    "Release": "releases",
+    "Identifier": "identifiers",
     "LifecycleEvent": "lifecycleEvents",
 }
 # Fields large enough (native payloads, notes/notations) or internal enough
 # (assertion-identity digests) that a lightweight summary row omits them even
 # though the full compact record carries them. Every other required-or-optional
 # field for a role is projected through.
-_COMPACT_SUMMARY_EXCLUDED_FIELDS = frozenset(
-    {
-        "assertedAt",
-        "assertionIdentityDigest",
-        "definition",
-        "nativePayload",
-        "notations",
-        "notes",
-        "recordStatus",
-    }
-)
-COMPACT_SUMMARY_PROJECTION_FIELDS: dict[str, tuple[str, ...]] = {
-    role: tuple(sorted((required | optional) - _COMPACT_SUMMARY_EXCLUDED_FIELDS))
-    for role, (required, optional) in COMPACT_RECORD_FIELDS.items()
-}
 # The IRI-typed fields for each role -- always a subset of that role's
 # *required* fields in this schema, never of its optional fields. Independent
 # metadata (field name alone does not say IRI-vs-literal), so it cannot be
@@ -340,37 +324,6 @@ assert COMPACT_IRI_FIELDS.keys() == COMPACT_RECORD_FIELDS.keys()
 assert all(
     set(COMPACT_IRI_FIELDS[role]) <= COMPACT_RECORD_FIELDS[role][0] for role in COMPACT_IRI_FIELDS
 ), "COMPACT_IRI_FIELDS must stay a subset of each role's required fields"
-# The direct logical-record-reference fields for each role, used to order
-# compact replay. Also independent metadata (only some IRI-shaped fields are
-# in fact links to other logical rows), verified below as a true subset of
-# COMPACT_RECORD_FIELDS rather than an unconstrained copy of its role names.
-COMPACT_REFERENCE_FIELDS: dict[str, tuple[str, ...]] = {
-    "Resource": ("release", "sourceRecord"),
-    "Label": ("resource", "release", "sourceRecord"),
-    "Statement": (
-        "subject",
-        "object",
-        "sourceRelease",
-        "targetRelease",
-        "supersedesAssertion",
-    ),
-    "EvidenceBinding": ("statement", "sourceRecord", "basedOnAttestation"),
-    # representsResource is a deliberate forward reference that avoids a
-    # SourceRecord <-> Resource dependency cycle.
-    "SourceRecord": (),
-    "Release": (),
-    "Identifier": ("identifies", "sourceRecord"),
-    "LifecycleEvent": (
-        "appliesTo",
-        "fromRelease",
-        "toRelease",
-    ),
-}
-assert COMPACT_REFERENCE_FIELDS.keys() == COMPACT_RECORD_FIELDS.keys()
-assert all(
-    set(COMPACT_REFERENCE_FIELDS[role]) <= COMPACT_RECORD_FIELDS[role][0] | COMPACT_RECORD_FIELDS[role][1]
-    for role in COMPACT_REFERENCE_FIELDS
-), "COMPACT_REFERENCE_FIELDS must stay a subset of each role's required or optional fields"
 
 
 class _StatusReporter:
@@ -806,7 +759,7 @@ REQUIRED_GATES = frozenset(
         "shacl-meta",
         "shacl-data",
         "dataset-closure",
-        "explorer-reachability",
+        "record-ownership",
         "machine-adjudication",
         "source-accounting",
         "projection-parity",
@@ -882,7 +835,6 @@ REQUIRED_CORPUS_CASES = frozenset(
         "evidence-retargeted",
         "evidence-reviewer-retargeted",
         "evidence-warrant-unsanctioned",
-        "explorer-record-unreachable",
         "identifier-conflict-recorded",
         "identifier-missing-value",
         "identifier-pair-conflict",
@@ -1007,13 +959,6 @@ class SemanticInventory:
         return sum(len(self.nodes(resource_type)) for resource_type in RESOURCE_TYPES)
 
 
-@dataclass(frozen=True, slots=True)
-class _CompactPackValidation:
-    """Authenticated logical rows reconstructed from one compact pack."""
-
-    descriptor: Mapping[str, Any]
-    rows: tuple[Mapping[str, Any], ...]
-    full_summary: Mapping[str, Any]
 
 
 AssertionTriple = tuple[URIRef, URIRef, URIRef]
@@ -2202,259 +2147,21 @@ def _normalize_compact_record(
     return value
 
 
-def _compact_full_summary(
-    role: str,
-    rows: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    return _compact_full_summary_from_parts(
-        role,
-        record_ids=[row["id"] for row in rows],
-        summary_rows=[
-            {
-                field: row[field]
-                for field in COMPACT_SUMMARY_PROJECTION_FIELDS[role]
-                if field in row
-            }
-            for row in rows
-        ],
-    )
 
 
-def _compact_full_summary_from_parts(
-    role: str,
-    *,
-    record_ids: Sequence[str],
-    summary_rows: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    """Build one summary without retaining the pack's full logical rows."""
-
-    if len(record_ids) != len(summary_rows):
-        _fail("construction.compact", "compact summary row counts differ")
-    summary: dict[str, Any] = {
-        "schemaVersion": COMPACT_SCHEMA_VERSION,
-        "recordRole": role,
-        "recordCount": len(record_ids),
-        "recordIds": list(record_ids),
-        "resourceOwnership": [],
-        "labelClaims": [],
-        "statementEndpoints": [],
-        "evidenceLinks": [],
-        "sourceRecordLinks": [],
-        "releaseRecords": [],
-        "identifierClaims": [],
-        "lifecycleEvents": [],
-    }
-    active_field = COMPACT_SUMMARY_FIELDS[role]
-    summary[active_field] = list(summary_rows)
-    summary["digest"] = "sha256:" + hashlib.sha256(
-        _compact_canonical_json_bytes(summary)
-    ).hexdigest()
-    return summary
 
 
-def _compact_direct_dependency_subjects(
-    role: str,
-    row: Mapping[str, Any],
-) -> set[str]:
-    """Return direct logical-record references used by compact replay order."""
-
-    dependencies = {
-        str(row[field])
-        for field in COMPACT_REFERENCE_FIELDS[role]
-        if field in row
-    }
-    if role == "LifecycleEvent":
-        dependencies.update(str(value) for value in row["sourceRecords"])
-    return dependencies
 
 
-def _compact_summary_receipt(summary: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "schemaVersion": COMPACT_SCHEMA_VERSION,
-        "recordRole": summary["recordRole"],
-        "recordCount": summary["recordCount"],
-        "fieldCounts": {
-            field: len(summary[field])
-            for field in sorted({"recordIds", *COMPACT_SUMMARY_FIELDS.values()})
-        },
-        "digest": summary["digest"],
-    }
 
 
-def _parse_compact_json_line(raw: bytes, *, path: str, line_number: int) -> dict[str, Any]:
-    try:
-        value = json.loads(
-            raw.decode("utf-8"),
-            object_pairs_hook=_reject_duplicate_keys,
-            parse_float=_reject_float,
-            parse_int=_parse_int,
-            parse_constant=_reject_constant,
-        )
-    except UnicodeDecodeError as exc:
-        _fail("construction.compact", f"{path} line {line_number} is not UTF-8: {exc}")
-    except json.JSONDecodeError as exc:
-        _fail("construction.compact", f"{path} line {line_number} is invalid JSON: {exc}")
-    if not isinstance(value, dict):
-        _fail("construction.compact", f"{path} line {line_number} is not an object")
-    if raw != _compact_canonical_json_bytes(value):
-        _fail("construction.compact", f"{path} line {line_number} is not canonical JSON")
-    return value
 
 
-def _read_compact_pack(
-    root: Path,
-    descriptor: Mapping[str, Any],
-    *,
-    retain_rows: bool = True,
-    row_consumer: Callable[[Mapping[str, Any]], None] | None = None,
-    row_indices: AbstractSet[int] | None = None,
-) -> _CompactPackValidation:
-    """Authenticate one compact transport and independently replay its receipts.
-
-    Production validation authenticates every normalized row while retaining
-    only summary fields. When ``row_indices`` is provided, the consumer sees
-    only those zero-based rows, which bounds RDF sampling work.
-    """
-
-    relative = descriptor["path"]
-    role = descriptor["role"]
-    expected_pack_id = COMPACT_PACK_ID_PREFIX + descriptor["content"]["digest"].removeprefix(
-        "sha256:"
-    )
-    if descriptor["packId"] != expected_pack_id:
-        _fail("construction.compact", f"{relative} packId does not derive from its content")
-    dependencies = descriptor["dependencies"]
-    if dependencies != sorted(dependencies):
-        _fail("construction.compact", f"{relative} dependencies are not sorted")
-    defaults = descriptor["defaults"]
-    required, optional = COMPACT_RECORD_FIELDS[role]
-    allowed_default_fields = required | optional | {"contentDigest"}
-    forbidden_defaults = {"id", "contentDigest", "canonicalPayloadDigest"} & defaults.keys()
-    unknown_defaults = defaults.keys() - allowed_default_fields
-    if forbidden_defaults or unknown_defaults:
-        _fail("construction.compact", f"{relative} defaults contain unsupported fields")
-    _compact_reject_non_native_nulls(defaults, f"{relative}.defaults")
-
-    expected_header: dict[str, Any] = {
-        "type": COMPACT_HEADER_TYPE,
-        "schemaVersion": COMPACT_SCHEMA_VERSION,
-        "role": role,
-        "dependencies": dependencies,
-        "defaults": defaults,
-        "recordSchemaVersion": COMPACT_SCHEMA_VERSION,
-        "globalInvariantSummaryDigest": descriptor["globalInvariantSummary"]["digest"],
-    }
-    if "partition" in descriptor:
-        expected_header["partition"] = descriptor["partition"]
-
-    content_receipt = descriptor["content"]
-    if descriptor["transport"]["byteLength"] > COMPACT_PACK_MAX_TRANSPORT_BYTES:
-        _fail("construction.compact", f"{relative} exceeds the compact transport limit")
-    if content_receipt["byteLength"] > COMPACT_PACK_MAX_CONTENT_BYTES:
-        _fail("construction.compact", f"{relative} exceeds the compact content limit")
-    content_digest = hashlib.sha256()
-    content_length = 0
-    logical_digest = hashlib.sha256()
-    rows: list[dict[str, Any]] | None = [] if retain_rows else None
-    record_ids: list[str] = []
-    summary_rows: list[dict[str, Any]] = []
-    path = _safe_distribution_path(root, relative)
-    with path.open("rb") as stored_stream:
-        transport_reader = _DigestingReader(stored_stream, label=relative)
-        try:
-            decoded_stream = zstd.open(transport_reader, "rb")
-            line_number = 0
-            previous_id: str | None = None
-            while raw := decoded_stream.readline(COMPACT_PACK_MAX_LINE_BYTES + 1):
-                line_number += 1
-                if len(raw) > COMPACT_PACK_MAX_LINE_BYTES:
-                    _fail(
-                        "construction.compact",
-                        f"{relative} line {line_number} exceeds {COMPACT_PACK_MAX_LINE_BYTES} bytes",
-                    )
-                content_digest.update(raw)
-                content_length += len(raw)
-                if content_length > content_receipt["byteLength"]:
-                    _fail("construction.compact", f"{relative} exceeds its declared content length")
-                value = _parse_compact_json_line(
-                    raw,
-                    path=relative,
-                    line_number=line_number,
-                )
-                if line_number == 1:
-                    _reject_nulls_and_numbers(value)
-                    if value != expected_header:
-                        _fail("construction.compact", f"{relative} header differs from its descriptor")
-                    continue
-                for field, default in defaults.items():
-                    if field in value and value[field] == default:
-                        _fail(
-                            "construction.compact",
-                            f"{relative} line {line_number} repeats default field {field}",
-                        )
-                logical = dict(defaults)
-                logical.update(value)
-                normalized = _normalize_compact_record(
-                    role,
-                    logical,
-                    path=f"{relative}[{line_number - 2}]",
-                )
-                identifier = normalized["id"]
-                if previous_id is not None and identifier <= previous_id:
-                    _fail(
-                        "construction.compact",
-                        f"{relative} logical row IDs are duplicate or out of order",
-                    )
-                previous_id = identifier
-                logical_digest.update(_compact_canonical_json_bytes(normalized))
-                record_ids.append(identifier)
-                summary_rows.append(
-                    {
-                        field: normalized[field]
-                        for field in COMPACT_SUMMARY_PROJECTION_FIELDS[role]
-                        if field in normalized
-                    }
-                )
-                record_index = len(record_ids) - 1
-                if row_consumer is not None and (
-                    row_indices is None or record_index in row_indices
-                ):
-                    row_consumer(normalized)
-                if rows is not None:
-                    rows.append(normalized)
-            decoded_stream.close()
-            transport_reader.finish(descriptor["transport"], require_consumed=True)
-        except AtlasValidationError:
-            raise
-        except Exception as exc:  # noqa: BLE001 - normalize compact decoder failures
-            _fail("construction.compact", f"cannot decode {relative}: {exc}")
-
-    if content_length != content_receipt["byteLength"]:
-        _fail("construction.compact", f"{relative} content byteLength differs")
-    if "sha256:" + content_digest.hexdigest() != content_receipt["digest"]:
-        _fail("construction.compact", f"{relative} content digest differs")
-    if len(record_ids) != content_receipt["recordCount"]:
-        _fail("construction.compact", f"{relative} record count differs")
-    if "sha256:" + logical_digest.hexdigest() != descriptor["logicalRowsDigest"]:
-        _fail("construction.compact", f"{relative} logical row digest differs")
-    full_summary = _compact_full_summary_from_parts(
-        role,
-        record_ids=record_ids,
-        summary_rows=summary_rows,
-    )
-    if _compact_summary_receipt(full_summary) != descriptor["globalInvariantSummary"]:
-        _fail("construction.compact", f"{relative} global-invariant summary differs")
-    return _CompactPackValidation(
-        descriptor=descriptor,
-        rows=tuple(rows or ()),
-        full_summary=full_summary,
-    )
 
 
 def _check_distribution_files(
     root: Path,
     manifest: Mapping[str, Any],
-    construction_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, str]:
     """Check closed membership and lengths; return digests for each required read to verify."""
 
@@ -2474,14 +2181,6 @@ def _check_distribution_files(
             _fail("distribution.members", f"duplicate distribution path {relative}")
         expected_lengths[relative] = pack["transport"]["byteLength"]
         member_digests[relative] = pack["transport"]["digest"]
-    if construction_summary is not None:
-        for pack in construction_summary["compactPacks"]:
-            relative = pack["path"]
-            if relative in expected_lengths:
-                _fail("distribution.members", f"duplicate distribution path {relative}")
-            expected_lengths[relative] = pack["transport"]["byteLength"]
-            member_digests[relative] = pack["transport"]["digest"]
-
     expected_directories = {
         parent.as_posix()
         for relative in expected_lengths
@@ -2562,7 +2261,7 @@ def _parse_pack_into_dataset(
     # streaming content reader already stops a pack whose real bytes exceed
     # what the manifest declared (`pack.content`), so bounding the declaration
     # bounds the decompressed bytes this call can be made to produce.
-    if pack["transport"]["byteLength"] > COMPACT_PACK_MAX_TRANSPORT_BYTES:
+    if pack["transport"]["byteLength"] > NQUADS_MAX_TRANSPORT_BYTES:
         _fail("rdf.resource-limit", f"{pack['path']} exceeds the RDF pack transport limit")
     if pack["content"]["byteLength"] > NQUADS_MAX_CONTENT_BYTES:
         _fail("rdf.resource-limit", f"{pack['path']} exceeds the RDF pack content limit")
@@ -3528,12 +3227,12 @@ def _profile_policy_document() -> Mapping[str, Any]:
     }
     if not isinstance(profile_map, Mapping) or set(profile_map) != expected_keys:
         _fail("profile.policy", "profile policy fields are incomplete or unknown")
-    if profile_map.get("format") != "refspec-atlas-registry-resource-profiles/3.0":
-        _fail("profile.policy", "profile policy format is not Atlas 3.0")
+    if profile_map.get("format") != "refspec-atlas-registry-resource-profiles/3.1":
+        _fail("profile.policy", "profile policy format is not Atlas 3.1")
     if profile_map.get("namespace") != str(ATLAS):
-        _fail("profile.policy", "profile policy namespace is not the Atlas 3.0 namespace")
-    if profile_map.get("schemaVersion") != "3.0":
-        _fail("profile.policy", "profile policy schemaVersion is not 3.0")
+        _fail("profile.policy", "profile policy namespace is not the Atlas 3.1 namespace")
+    if profile_map.get("schemaVersion") != "3.1":
+        _fail("profile.policy", "profile policy schemaVersion is not 3.1")
     expected_digest = canonical_sha256(
         {key: value for key, value in profile_map.items() if key != "profileDigest"},
         terminal_lf=False,
@@ -3740,7 +3439,7 @@ def _cross_ring_relation_policies() -> dict[tuple[URIRef, URIRef], frozenset[URI
     if policies != expected:
         _fail(
             "profile.policy",
-            "crossRingRelationPolicies differ from the closed Atlas 3.0 matrix",
+            "crossRingRelationPolicies differ from the closed Atlas 3.1 matrix",
         )
     return policies
 
@@ -3969,11 +3668,10 @@ def _assertion_basis(graph: Graph, assertion: URIRef) -> tuple[dict[str, Any], t
     )
     if (policy, RDF.type, ATLAS.EditorialPolicy) not in graph:
         _fail("dataset.assertion", f"{assertion} names unknown editorial policy {policy}")
-    policy_digest = _literal_text(
-        _one(graph, policy, ATLAS.contentDigest, code="dataset.assertion"),
-        code="dataset.assertion",
-        label="policy contentDigest",
-    )
+    # Recomputed, not read: the policy IRI is the digest, so a triple restating
+    # it would be the node saying its own name back, and the assertion identity
+    # this basis feeds must bind the policy's actual content either way.
+    policy_digest = rdf_node_digest(graph, policy)
     basis = {
         "object": str(obj),
         "policy": str(policy),
@@ -4042,14 +3740,6 @@ def _validate_assertions(
         expected_id = URIRef("urn:ref:atlas-assertion:" + identity_digest.removeprefix("sha256:"))
         if assertion != expected_id:
             _fail("dataset.assertion-identity", f"{assertion} is not its stable claim IRI")
-
-        stored_content_digest = _literal_text(
-            _one(asserted, assertion, ATLAS.contentDigest, code="dataset.assertion-identity"),
-            code="dataset.assertion-identity",
-            label="contentDigest",
-        )
-        if stored_content_digest != rdf_node_digest(asserted, assertion):
-            _fail("dataset.assertion-identity", f"{assertion} contentDigest differs")
 
         asserted_at = _date_time(
             _one(asserted, assertion, RKAF.assertedAt, code="dataset.assertion"),
@@ -4377,11 +4067,9 @@ def _check_evidence_bindings(
         )
         actual_source_digest = source_digests.get(source_record)
         if actual_source_digest is None:
-            actual_source_digest = _literal_text(
-                _one(asserted, source_record, ATLAS.contentDigest, code="dataset.evidence-identity"),
-                code="dataset.evidence-identity",
-                label="evidence SourceRecord contentDigest",
-            )
+            # The source record no longer publishes its own digest, so the
+            # comparand for the pin is recomputed from the record's facts.
+            actual_source_digest = rdf_node_digest(asserted, source_record)
             source_digests[source_record] = actual_source_digest
         if pinned_source_digest != actual_source_digest:
             _fail("dataset.evidence-identity", f"{binding} does not pin its exact SourceRecord")
@@ -4768,11 +4456,9 @@ def _check_machine_adjudication(
                     f"{artifact} does not identify {endpoint}, the endpoint "
                     f"{comparison} claims it captured",
                 )
-            recorded = _literal_text(
-                _one(asserted, endpoint, ATLAS.contentDigest, code="dataset.adjudication-input"),
-                code="dataset.adjudication-input",
-                label="endpoint contentDigest",
-            )
+            # The endpoint resource no longer publishes its digest, so what the
+            # artifact pins is checked against the endpoint's recomputed facts.
+            recorded = rdf_node_digest(asserted, endpoint)
             if artifact_facts[artifact]["digest"] != recorded:
                 _fail(
                     "dataset.adjudication-input",
@@ -5447,7 +5133,6 @@ def _expected_projection_triples(
         projection, facts = _projection_record_facts(asserted, triple, assertions)
         for fact_predicate, fact_object in facts:
             yield projection, fact_predicate, fact_object
-        yield projection, ATLAS.contentDigest, Literal(_outgoing_facts_digest(facts))
 
 
 def _expected_projection(
@@ -5506,9 +5191,6 @@ def _check_projection(
             return (predicate, obj) in _projection_ring_facts(asserted, relation, assertions)
         if predicate == ATLAS.supportingAssertion:
             return obj in assertions
-        if predicate == ATLAS.contentDigest:
-            _, facts = _projection_record_facts(asserted, relation, assertions)
-            return obj == Literal(_outgoing_facts_digest(facts))
         return False
 
     missing_count = 0
@@ -5651,52 +5333,6 @@ def _check_label_integrity(
                     )
 
 
-def _check_node_digests(
-    graphs: Mapping[str, Graph],
-    inventory: SemanticInventory | None = None,
-    precomputed: Mapping[tuple[str, URIRef], str] | None = None,
-) -> None:
-    """Recompute the general RDF-node digest for every non-assertion carrier."""
-
-    inventory = inventory or _semantic_inventory_from_graphs(graphs)
-    precomputed = precomputed or {}
-    asserted_classes = (
-        ATLAS.RegistrySource,
-        ATLAS.ResourceScheme,
-        ATLAS.AtlasRelease,
-        ATLAS.SourceRelease,
-        ATLAS.SubjectConcept,
-        ATLAS.EntityResource,
-        ATLAS.ValueResource,
-        ATLAS.LegalIdentityResource,
-        ATLAS.Identifier,
-        ATLAS.SourceRecord,
-        ATLAS.EditorialPolicy,
-        RKAF.LifecycleEvent,
-        SKOSXL.Label,
-    )
-    for role, graph, node_groups in (
-        (
-            "asserted",
-            graphs["asserted"],
-            (inventory.nodes(class_iri) for class_iri in asserted_classes),
-        ),
-        ("derived", graphs["derived"], (inventory.derived_nodes,)),
-    ):
-        for nodes in node_groups:
-            for node in nodes:
-                stored = _literal_text(
-                    _one(graph, node, ATLAS.contentDigest, code="dataset.node-identity"),
-                    code="dataset.node-identity",
-                    label="contentDigest",
-                )
-                expected = precomputed.get((role, node))
-                if expected is None:
-                    expected = rdf_node_digest(graph, node)
-                if stored != expected:
-                    _fail("dataset.node-identity", f"{node} contentDigest differs")
-
-
 def _check_rdf_json_payload(
     literal: Any,
     *,
@@ -5726,8 +5362,7 @@ def _check_rdf_json_payload(
 def _check_native_payloads(
     asserted: Graph,
     inventory: SemanticInventory | None = None,
-) -> dict[tuple[str, URIRef], str]:
-    precomputed_digests: dict[tuple[str, URIRef], str] = {}
+) -> None:
     for record in _carrier_nodes(asserted, ATLAS.SourceRecord, inventory):
         literal = _one(asserted, record, ATLAS.nativePayload, code="dataset.native-payload")
         _check_rdf_json_payload(
@@ -5774,11 +5409,9 @@ def _check_native_payloads(
         literal = _one(asserted, policy, ATLAS.policyPayload, code="dataset.native-payload")
         _check_rdf_json_payload(literal, node=policy, label="policyPayload")
         expected_digest = rdf_node_digest(asserted, policy)
-        precomputed_digests[("asserted", policy)] = expected_digest
         expected_id = URIRef("urn:ref:atlas-policy:" + expected_digest.removeprefix("sha256:"))
         if policy != expected_id:
             _fail("dataset.policy-identity", f"{policy} is not its content-derived IRI")
-    return precomputed_digests
 
 
 def _check_source_accounting(
@@ -5962,14 +5595,26 @@ def _check_counts(
 
 
 def derived_input_digest(asserted: Graph, inputs: Iterable[URIRef]) -> str:
+    """Pin the exact content of the assertions one derived row was drawn from.
+
+    The input assertions no longer publish their own digest, so it is
+    recomputed from each one's asserted facts; `rdf_node_digest` excludes the
+    self-digest predicates, so the value is what the removed triple carried.
+    """
+
     rows = []
     for assertion in sorted(set(inputs)):
-        digest = _literal_text(
-            _one(asserted, assertion, ATLAS.contentDigest, code="dataset.derived-input"),
-            code="dataset.derived-input",
-            label="input assertion contentDigest",
+        if (assertion, RDF.type, None) not in asserted:
+            _fail(
+                "dataset.derived-input",
+                f"derived input {assertion} is not an asserted node",
+            )
+        rows.append(
+            {
+                "assertion": str(assertion),
+                "contentDigest": rdf_node_digest(asserted, assertion),
+            }
         )
-        rows.append({"assertion": str(assertion), "contentDigest": digest})
     return canonical_sha256({"assertions": rows}, terminal_lf=False)
 
 
@@ -6301,43 +5946,9 @@ def _check_construction_summary_identity(
     )
     _check_adapter_recipe_input_path_identities(releases)
 
-    compact_packs = construction_summary["compactPacks"]
-    compact_paths = [pack["path"] for pack in compact_packs]
-    compact_ids = [pack["packId"] for pack in compact_packs]
-    if compact_paths != sorted(compact_paths) or len(compact_paths) != len(set(compact_paths)):
-        _fail("construction.compact", "compact packs must have unique sorted paths")
-    if len(compact_ids) != len(set(compact_ids)):
-        _fail("construction.compact", "compact pack IDs must be unique")
-    if construction_summary["compactPackCount"] != len(compact_packs):
-        _fail("construction.compact", "compact pack count differs")
-    if construction_summary["compactPackInventoryDigest"] != _construction_digest(compact_packs):
-        _fail("construction.compact", "compact pack inventory digest differs")
-    compact_by_path = {pack["path"]: pack for pack in compact_packs}
-    compact_id_set = set(compact_ids)
-    for pack in compact_packs:
-        dependencies = pack["dependencies"]
-        if dependencies != sorted(dependencies):
-            _fail("construction.compact", f"{pack['path']} dependencies are not sorted")
-        if pack["packId"] in dependencies or not set(dependencies) <= compact_id_set:
-            _fail(
-                "construction.compact",
-                f"{pack['path']} has a self or unknown compact dependency",
-            )
-
     releases_by_key = {row["key"]: row for row in releases}
     source_release_keys: dict[str, str] = {}
-    owned_compact_paths: list[str] = []
     owned_rdf_paths: list[str] = []
-    role_count_fields = {
-        "Resource": "resources",
-        "Label": "labels",
-        "Statement": "statements",
-        "EvidenceBinding": "evidenceBindings",
-        "SourceRecord": "sourceRecords",
-        "Release": "releases",
-        "Identifier": "identifiers",
-        "LifecycleEvent": "lifecycleEvents",
-    }
     aggregate_record_counts: Counter[str] = Counter()
     for release in releases:
         key = release["key"]
@@ -6430,35 +6041,11 @@ def _check_construction_summary_identity(
         if release["buildKey"] != expected_build_key:
             _fail("construction.release", f"{key} build key differs")
 
-        paths = release["compactPackPaths"]
-        if paths != sorted(paths):
-            _fail("construction.compact", f"{key} compact paths are not sorted")
-        logical_inventory: list[dict[str, Any]] = []
-        observed_counts: Counter[str] = Counter()
-        for path in paths:
-            pack = compact_by_path.get(path)
-            if pack is None:
-                _fail("construction.compact", f"{key} owns unknown compact pack {path}")
-            observed_counts[role_count_fields[pack["role"]]] += pack["content"]["recordCount"]
-            logical_inventory.append(
-                {
-                    "logicalRowsDigest": pack["logicalRowsDigest"],
-                    "packId": pack["packId"],
-                    "path": path,
-                    "recordCount": pack["content"]["recordCount"],
-                    "role": pack["role"],
-                }
-            )
-        if dict(observed_counts) != {
-            field: count
-            for field, count in release["recordCounts"].items()
-            if count
-        }:
-            _fail("construction.counts", f"{key} compact record counts differ")
-        if release["logicalRecordInventoryDigest"] != _construction_digest(logical_inventory):
-            _fail("construction.compact", f"{key} logical record inventory digest differs")
+        if set(release["recordCounts"]) != set(COMPACT_ROLE_COUNT_FIELDS.values()):
+            _fail("construction.counts", f"{key} record count fields differ")
+        if not any(release["recordCounts"].values()):
+            _fail("construction.counts", f"{key} owns no logical records")
         aggregate_record_counts.update(release["recordCounts"])
-        owned_compact_paths.extend(paths)
 
         expected_rdf_packs = sorted(
             (
@@ -6473,8 +6060,6 @@ def _check_construction_summary_identity(
             _fail("construction.rdf", f"{key} RDF pack ownership differs")
         owned_rdf_paths.extend(pack["path"] for pack in release["rdfPacks"])
 
-    if len(owned_compact_paths) != len(set(owned_compact_paths)) or set(owned_compact_paths) != set(compact_paths):
-        _fail("construction.compact", "compact pack ownership is not exact")
     if len(owned_rdf_paths) != len(set(owned_rdf_paths)):
         _fail("construction.rdf", "release RDF pack ownership overlaps")
     expected_owned_rdf_paths = {
@@ -6563,8 +6148,6 @@ def _check_construction_summary_identity(
             _fail("construction.counts", f"construction aggregate {field} count differs")
 
     expected_producer_receipt = {
-        "compactPackCount": construction_summary["compactPackCount"],
-        "compactPackInventoryDigest": construction_summary["compactPackInventoryDigest"],
         "digest": member_digests[CONSTRUCTION_SUMMARY_FILE],
         "path": CONSTRUCTION_SUMMARY_FILE,
         "profile": "atlas-3-authenticated-construction-summary-v1",
@@ -6731,16 +6314,14 @@ def _construction_record_from_rdf(
 ) -> dict[str, Any]:
     """Independently encode the RDF facts represented by one compact row."""
 
+    # `atlas:contentDigest` is off the wire for every carrier whose IRI is not
+    # derived from it, so the record's digest is recomputed from the node's own
+    # facts. `rdf_node_digest` excludes the self-digest predicates, so this is
+    # the same value the two IRI-bearing carriers still publish -- the retained
+    # Parquet column never becomes comparand-less.
     record: dict[str, Any] = {
         "id": str(subject),
-        "contentDigest": str(
-            _construction_rdf_one(
-                graph,
-                subject,
-                ATLAS.contentDigest,
-                term_type=Literal,
-            )
-        ),
+        "contentDigest": rdf_node_digest(graph, subject),
     }
     if role == "Resource":
         record.update(
@@ -7463,11 +7044,11 @@ def _construction_compact_owner(
             _construction_statement_source_record(asserted, subject),
             source_owner,
         )
-    _fail("construction.sample", f"unsupported compact ownership role {role}")
+    _fail("construction.record-ownership", f"unsupported logical record role {role}")
 
 
 def _compact_sample_indices(record_count: int) -> frozenset[int]:
-    """Select up to five stable positions spread across one compact pack."""
+    """Select up to five stable positions spread across one Parquet table."""
 
     if record_count <= 0:
         return frozenset()
@@ -7480,13 +7061,6 @@ def _compact_sample_indices(record_count: int) -> frozenset[int]:
     )
 
 
-def _compact_record_counts_by_role(
-    descriptors: Iterable[Mapping[str, Any]],
-) -> dict[str, int]:
-    counts = dict.fromkeys(COMPACT_RECORD_FIELDS, 0)
-    for descriptor in descriptors:
-        counts[descriptor["role"]] += descriptor["content"]["recordCount"]
-    return counts
 
 
 def _rdf_record_ids_by_role(asserted: Graph) -> dict[str, set[str]]:
@@ -7506,23 +7080,42 @@ def _rdf_record_ids_by_role(asserted: Graph) -> dict[str, set[str]]:
 
 
 def _check_explorer_reachability(
-    compact_ids_by_role: Mapping[str, Sequence[str]],
+    served_ids_by_role: Mapping[str, Sequence[str]],
     rdf_ids_by_role: Mapping[str, AbstractSet[str]],
 ) -> None:
     """Prove the served projection carries exactly the asserted records.
 
-    The compact packs are the substrate the Parquet search view, its DuckDB
-    session, and the explorer are all built from. A record missing from them is
-    one that no filter, no search, and neither concept endpoint can ever reach;
-    a record present only in them is one the distribution never asserted; a
-    record repeated across two packs is both at once. The role counts cannot
-    see any of the three -- each keeps every count equal -- and the row sample
-    reads a fixed few positions per pack, so at real pack sizes it reads none
-    of the rows involved. Comparing the two identities refuses all three.
+    The typed Parquet tables are the substrate the Parquet search view, its
+    DuckDB session, and the explorer are all built from. A record missing from
+    them is one that no filter, no search, and neither concept endpoint can
+    ever reach; a record present only in them is one the distribution never
+    asserted; a duplicated `id` is both at once. Role counts cannot see any of
+    the three -- each keeps every count equal -- and the row sample reads a
+    fixed few positions per table, so at real table sizes it reads none of the
+    rows involved. Comparing the two identities refuses all three.
+
+    The comparand lives here, and the caller is the builder: the tables are
+    Parquet, the binding validator carries no pyarrow, and a check whose
+    expected set came from the same projection that produced the observed set
+    would prove only that the projection agrees with itself. What the builder
+    supplies is the `id` column of each table; what this states is what the
+    asserted RDF says those ids must be, both directions, exhaustively.
     """
 
-    for role in sorted(compact_ids_by_role):
-        served = set(compact_ids_by_role[role])
+    if set(served_ids_by_role) != set(rdf_ids_by_role):
+        _fail(
+            "construction.reachability",
+            "served and asserted record roles differ; "
+            f"served={sorted(served_ids_by_role)}, asserted={sorted(rdf_ids_by_role)}",
+        )
+    for role in sorted(served_ids_by_role):
+        served_rows = list(served_ids_by_role[role])
+        served = set(served_rows)
+        if len(served_rows) != len(served):
+            _fail(
+                "construction.reachability",
+                f"the served {role} table repeats a record identity",
+            )
         asserted_ids = set(rdf_ids_by_role[role])
         if served == asserted_ids:
             continue
@@ -7535,121 +7128,74 @@ def _check_explorer_reachability(
         )
 
 
-def _check_compact_shape_size_and_rdf_sample(
+def _check_cached_pack_transports(
     root: Path,
+    manifest: Mapping[str, Any],
+) -> None:
+    """Stream-check every stored pack before trusting a cached semantic result."""
+
+    for pack in manifest["packs"]:
+        path = _safe_distribution_path(root, pack["path"])
+        if file_sha256(path) != pack["transport"]["digest"]:
+            _fail("pack.transport", f"{pack['path']} transport digest differs")
+
+
+def _check_construction_record_ownership(
     asserted: Graph,
     construction_summary: Mapping[str, Any],
 ) -> None:
-    """Authenticate all compact rows, reconcile sizes, and sample RDF facts."""
+    """Recompute each release's logical record counts from the asserted RDF.
 
-    path_owners: dict[str, str] = {}
+    The summary used to publish counts read back off the compact pack
+    inventory the same producer had just written -- the producer counting its
+    own output. With the packs gone the comparand is the graph: every carrier
+    is resolved to the construction unit that owns it and tallied, and the
+    published counts must equal that tally exactly, per release and per role.
+    """
+
     source_owner: dict[str, str] = {}
     atlas_owner: dict[str, str] = {}
     for release in construction_summary["releases"]:
-        key = release["key"]
-        source_owner[release["sourceRelease"]] = key
+        source_owner[release["sourceRelease"]] = release["key"]
         if "atlasRelease" in release:
-            atlas_owner[release["atlasRelease"]] = key
-        for path in release["compactPackPaths"]:
-            path_owners[path] = key
+            atlas_owner[release["atlasRelease"]] = release["key"]
 
-    descriptors = construction_summary["compactPacks"]
-    for descriptor in descriptors:
-        owner = path_owners.get(descriptor["path"])
-        if owner is None:
+    observed: dict[str, Counter[str]] = {
+        release["key"]: Counter() for release in construction_summary["releases"]
+    }
+    for role, ids in _rdf_record_ids_by_role(asserted).items():
+        count_field = COMPACT_ROLE_COUNT_FIELDS[role]
+        for identity in ids:
+            subject = URIRef(identity)
+            owner = _construction_compact_owner(
+                asserted,
+                subject,
+                role,
+                source_owner=source_owner,
+                atlas_owner=atlas_owner,
+            )
+            if owner is None:
+                _fail(
+                    "construction.record-ownership",
+                    f"{role} record {subject} belongs to no construction unit",
+                )
+            observed[owner][count_field] += 1
+
+    for release in construction_summary["releases"]:
+        key = release["key"]
+        published = {
+            field: count for field, count in release["recordCounts"].items() if count
+        }
+        if published != dict(observed[key]):
             _fail(
-                "construction.sample",
-                f"compact pack {descriptor['path']} has no construction owner",
+                "construction.counts",
+                f"{key} logical record counts differ from the asserted graph; "
+                f"published={published}, rdf={dict(observed[key])}",
             )
 
-    compact_counts = _compact_record_counts_by_role(descriptors)
-    rdf_ids = _rdf_record_ids_by_role(asserted)
-    rdf_counts = {role: len(ids) for role, ids in rdf_ids.items()}
-    if compact_counts != rdf_counts:
-        _fail(
-            "construction.compact",
-            f"compact and RDF logical record counts differ; compact={compact_counts}, "
-            f"rdf={rdf_counts}",
-        )
-
-    # Read every pack once: the record identity of all rows and the full rows
-    # of the sampled positions, so the reachability refusal is reached before
-    # any sampled row is reconciled against RDF.
-    compact_ids: dict[str, list[str]] = {role: [] for role in COMPACT_RECORD_FIELDS}
-    sampled: list[tuple[Mapping[str, Any], Mapping[str, Any]]] = []
-    for descriptor_position, descriptor in enumerate(descriptors, start=1):
-        validation = _read_compact_pack(
-            root,
-            descriptor,
-            retain_rows=False,
-            row_consumer=lambda row, descriptor=descriptor: sampled.append((descriptor, row)),
-            row_indices=_compact_sample_indices(descriptor["content"]["recordCount"]),
-        )
-        compact_ids[descriptor["role"]].extend(validation.full_summary["recordIds"])
-        _STATUS.progress(
-            "check-compact-shape-size-sample",
-            descriptor_position,
-            len(descriptors),
-            current=descriptor["path"],
-        )
-    _check_explorer_reachability(compact_ids, rdf_ids)
-
-    for descriptor, row in sampled:
-        _check_compact_row_against_rdf(
-            asserted,
-            descriptor,
-            row,
-            owner=path_owners[descriptor["path"]],
-            source_owner=source_owner,
-            atlas_owner=atlas_owner,
-        )
 
 
-def _check_compact_row_against_rdf(
-    asserted: Graph,
-    descriptor: Mapping[str, Any],
-    row: Mapping[str, Any],
-    *,
-    owner: str,
-    source_owner: Mapping[str, str],
-    atlas_owner: Mapping[str, str],
-) -> None:
-    """Reconcile one sampled compact row against the record RDF asserts."""
 
-    descriptor_role = descriptor["role"]
-    descriptor_path = descriptor["path"]
-    descriptor_partition = descriptor.get("partition")
-    subject = URIRef(row["id"])
-    if _construction_record_role(asserted, subject) != descriptor_role:
-        _fail(
-            "construction.sample",
-            f"{descriptor_path} sample {subject} compact and RDF roles differ",
-        )
-    rdf_row = _construction_record_from_rdf(asserted, subject, descriptor_role)
-    if row != rdf_row:
-        _fail(
-            "construction.sample",
-            f"{descriptor_path} sample {subject} compact and RDF rows differ",
-        )
-    record_owner = _construction_compact_owner(
-        asserted,
-        subject,
-        descriptor_role,
-        source_owner=source_owner,
-        atlas_owner=atlas_owner,
-    )
-    if record_owner != owner:
-        _fail(
-            "construction.sample",
-            f"{descriptor_path} sample {subject} release ownership differs",
-        )
-    if descriptor_partition is not None and not hashlib.sha256(
-        str(subject).encode("utf-8")
-    ).hexdigest().startswith(descriptor_partition["prefix"]):
-        _fail(
-            "construction.sample",
-            f"{descriptor_path} sample {subject} partition differs",
-        )
 
 
 def _check_producer_validation(
@@ -7660,7 +7206,15 @@ def _check_producer_validation(
     member_digests: Mapping[str, str],
     accounting: Mapping[str, Any],
 ) -> None:
-    """Bind the required producer proof without treating it as validation authority."""
+    """Bind the required producer receipt without treating it as validation authority.
+
+    It is a receipt, not a proof. The 3.0 wire also carried
+    ``shaclDataProof: compiledAgainstPinnedOntologyAndShapes``,
+    ``shaclMetaValidation``, an ``implementationDigest`` the producer compared
+    against its own constant, and an eight-line ``checks`` prose list. The
+    first passed while these shapes rejected 2,003 evidence bindings, and none
+    of the four were checkable from here. They left the wire with 3.1.
+    """
 
     producer_members = [
         member
@@ -7715,13 +7269,11 @@ def _check_producer_validation(
     ):
         _fail("producer.validation", "producer source release count differs")
     expected_identity = {
-        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1",
+        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-v1",
         "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
-        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
-        "shaclMetaValidation": "pySHACL",
         "status": "passed",
         "type": "AtlasProducerValidation",
-        "version": "3.0",
+        "version": "3.1",
     }
     if any(
         producer_validation[field] != value
@@ -7782,7 +7334,7 @@ def _validation_cache_identity(manifest: Mapping[str, Any]) -> dict[str, Any]:
     every ``dataset.*`` gate -- have run even once, so a validator that grew a
     refusal, or a pyshacl that changed a verdict, must not be able to answer
     from the receipt its predecessor wrote. ``VALIDATOR_VERSION`` alone cannot
-    carry this: it is the binding's version, "3.0", and it does not move when
+    carry this: it is the binding's version, "3.1", and it does not move when
     the program does.
     """
 
@@ -8023,24 +7575,6 @@ def _write_validation_receipt(
             temporary.unlink(missing_ok=True)
 
 
-def _check_cached_pack_transports(
-    root: Path,
-    manifest: Mapping[str, Any],
-    construction_summary: Mapping[str, Any],
-) -> None:
-    """Stream-check every stored pack before trusting a cached semantic result."""
-
-    for pack in manifest["packs"]:
-        path = _safe_distribution_path(root, pack["path"])
-        if file_sha256(path) != pack["transport"]["digest"]:
-            _fail("pack.transport", f"{pack['path']} transport digest differs")
-    for pack in construction_summary["compactPacks"]:
-        path = _safe_distribution_path(root, pack["path"])
-        if file_sha256(path) != pack["transport"]["digest"]:
-            _fail(
-                "construction.compact",
-                f"{pack['path']} transport digest differs",
-            )
 
 
 def _validate_semantic_graphs(
@@ -8092,12 +7626,7 @@ def _validate_semantic_graphs(
         inventory.derived_nodes,
     )
     _STATUS.phase("check-payload-and-node-digests")
-    precomputed_node_digests = _check_native_payloads(graphs["asserted"], inventory)
-    _check_node_digests(
-        graphs,
-        inventory,
-        precomputed=precomputed_node_digests,
-    )
+    _check_native_payloads(graphs["asserted"], inventory)
     _STATUS.phase("check-accounting-and-counts")
     _check_source_accounting(graphs["asserted"], accounting, inventory)
     _check_counts(manifest, graphs, inventory)
@@ -8179,8 +7708,7 @@ def validate_preparsed_distribution(
     )
 
 
-def _validate_semantics_then_compact_checks(
-    root: Path,
+def _validate_semantics_then_record_ownership(
     manifest: Mapping[str, Any],
     accounting: Mapping[str, Any],
     acceptance: Mapping[str, Any],
@@ -8189,7 +7717,7 @@ def _validate_semantics_then_compact_checks(
     *,
     member_digests: Mapping[str, str],
 ) -> dict[str, Any]:
-    """Preserve semantic first issues before checking the compact representation."""
+    """Preserve semantic first issues before reconciling record ownership."""
 
     result = _validate_semantic_graphs(
         manifest,
@@ -8198,12 +7726,8 @@ def _validate_semantics_then_compact_checks(
         graphs,
         member_digests=member_digests,
     )
-    _STATUS.phase("check-compact-shape-size-sample")
-    _check_compact_shape_size_and_rdf_sample(
-        root,
-        graphs["asserted"],
-        construction_summary,
-    )
+    _STATUS.phase("check-construction-record-ownership")
+    _check_construction_record_ownership(graphs["asserted"], construction_summary)
     return result
 
 
@@ -8212,7 +7736,7 @@ def validate_distribution(
     *,
     cache_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Validate one closed Atlas 3.0 distribution and return proof counts.
+    """Validate one closed Atlas 3.1 distribution and return proof counts.
 
     An optional private cache can reuse a complete semantic result only when
     the canonical manifest, binding, validator, JSON members, and exact stored
@@ -8250,7 +7774,7 @@ def validate_distribution(
         label="construction summary",
     )
     _STATUS.phase("check-closed-distribution")
-    member_digests = _check_distribution_files(root, manifest, construction_summary)
+    member_digests = _check_distribution_files(root, manifest)
 
     accounting_path = _safe_distribution_path(root, accounting_member["path"])
     acceptance = _load_json(
@@ -8284,7 +7808,7 @@ def validate_distribution(
         if cached_result is not None:
             if file_sha256(accounting_path) != member_digests[accounting_member["path"]]:
                 _fail("distribution.digest", f"{accounting_path.name} digest differs")
-            _check_cached_pack_transports(root, manifest, construction_summary)
+            _check_cached_pack_transports(root, manifest)
             _check_acceptance_metadata(manifest, acceptance, member_digests)
             _STATUS.phase("complete-from-cache")
             return cached_result
@@ -8313,8 +7837,7 @@ def validate_distribution(
     _STATUS.phase("parse-rdf-packs")
     dataset, graphs = _parse_packed_dataset(root, manifest, graph_ids)
     _STATUS.phase("validate-semantic-graphs")
-    result = _validate_semantics_then_compact_checks(
-        root,
+    result = _validate_semantics_then_record_ownership(
         manifest,
         accounting,
         acceptance,
@@ -8470,12 +7993,11 @@ def smoke_check(root: Path) -> dict[str, Any]:
                 "producer-validation",
                 "acceptance-record",
                 "graph-roles",
-                "node-identity",
                 "projection",
                 "derivation",
                 "skos-integrity",
                 "adjudication",
-                "compact-layer",
+                "record-ownership",
                 "unsampled-packs",
             ],
             "packCount": len(manifest["packs"]),
@@ -8523,8 +8045,8 @@ def _check_registry_descriptors(
     }
     if not isinstance(proof, Mapping) or set(proof) != expected_proof_keys:
         _fail("registry.descriptors", "registry descriptor proof fields are incomplete or unknown")
-    if proof.get("format") != "refspec-atlas-registry-descriptors/3.0" or proof.get("schemaVersion") != "3.0":
-        _fail("registry.descriptors", "registry descriptor proof is not Atlas 3.0")
+    if proof.get("format") != "refspec-atlas-registry-descriptors/3.1" or proof.get("schemaVersion") != "3.1":
+        _fail("registry.descriptors", "registry descriptor proof is not Atlas 3.1")
     expected_proof_digest = canonical_sha256(
         {key: value for key, value in proof.items() if key != "proofDigest"},
         terminal_lf=False,
@@ -8704,16 +8226,6 @@ def _check_registry_descriptors(
                 "registry.descriptors",
                 f"registry source {source} payload is not a lossless canonical row",
             )
-        source_digest = _literal_text(
-            _one(graph, source, ATLAS.contentDigest, code="registry.descriptors"),
-            code="registry.descriptors",
-            label="registry source contentDigest",
-        )
-        if source_digest != rdf_node_digest(graph, source):
-            _fail(
-                "registry.descriptors",
-                f"registry source {source} contentDigest differs",
-            )
         source_identities[source] = (source_identifier, source_title)
         resource_ids.append(source_identifier)
 
@@ -8760,13 +8272,6 @@ def _check_registry_descriptors(
         source_identifier, source_title = source_identities[source]
         if (source_identifier, source_title) != (identifier, title):
             _fail("registry.descriptors", f"registry descriptor {scheme} differs from its source")
-        stored_digest = _literal_text(
-            _one(graph, scheme, ATLAS.contentDigest, code="registry.descriptors"),
-            code="registry.descriptors",
-            label="registry descriptor contentDigest",
-        )
-        if stored_digest != rdf_node_digest(graph, scheme):
-            _fail("registry.descriptors", f"registry descriptor {scheme} contentDigest differs")
 
     actual_counts = {
         "conceptSchemeCount": concept_scheme_count,
@@ -8924,10 +8429,10 @@ def validate_binding() -> dict[str, Any]:
     }
     if set(coverage) != expected_coverage_keys:
         _fail("registry.coverage", "registry coverage fields are incomplete or unknown")
-    if profile_map.get("schemaVersion") != "3.0" or coverage.get("schemaVersion") != "3.0":
+    if profile_map.get("schemaVersion") != "3.1" or coverage.get("schemaVersion") != "3.1":
         _fail("registry.coverage", "registry proof uses another Atlas version")
-    if coverage.get("format") != "refspec-atlas-registry-coverage/3.0":
-        _fail("registry.coverage", "registry coverage format is not Atlas 3.0")
+    if coverage.get("format") != "refspec-atlas-registry-coverage/3.1":
+        _fail("registry.coverage", "registry coverage format is not Atlas 3.1")
     claimed_coverage_digest = coverage["coverageDigest"]
     expected_coverage_digest = canonical_sha256(
         {key: value for key, value in coverage.items() if key != "coverageDigest"},
