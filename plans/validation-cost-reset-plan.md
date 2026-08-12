@@ -643,10 +643,27 @@ measured under 60s; see the budget re-spec open item).
       long-lived-process mitigations) and gated on wire normalization
       (h)/(i) FIRST — on today's dual-form wire the two engines can
       legitimately disagree and parity would diff a term-identity bug.
-      Revised full ladder: ~12–13 min at 3–5 weeks (was 7–11). Also
-      found: `_check_explorer_reachability` is dead code at
-      validate.py:7414 (never called; its gate was replaced by
-      record-ownership in cb10a8e8) — delete at next validator pass.
+      Revised full ladder: ~12–13 min at 3–5 weeks (was 7–11). [The
+      spike's dead-code claim about `_check_explorer_reachability` was
+      FALSIFIED by the wire-hygiene wave: it is the live Parquet
+      reachability comparand, called from
+      `_check_parquet_view_against_graph` and pinned by test — retained.]
+      **Wire-hygiene wave LANDED (2026-08-12): (h) fixed at mint (7,770
+      IRIs percent-encoded at their two adapter sites; the class made
+      unmintable by refusal in ntriples_term + identifier_validation;
+      16,966 identities re-minted inside the two affected packs), (i)
+      normalized (1,519,235 typed literals across exactly 3 mint sites →
+      plain; emission guard refuses recurrence; evidence digests proven
+      byte-identical), (j) byte grammar replacing the render-and-compare
+      (27-class differential suite against a copied oracle — which
+      caught one silent divergence, escaped-UCHAR-in-IRI; parse −17.6%
+      at staging; parser stays lexical deliberately: rdflib
+      normalization would move rdf:JSON/dateTime digests). Corpus 127 →
+      129 (two rdf.canonical negatives). PROOF: pyoxigraph accepts the
+      rebuilt packs' published bytes with zero refusals and no ETL.
+      Deliberate residue: language-tag case not normalized (all 998,215
+      tags are @en already; W3C canonical mandates lowercase; zero
+      re-mints; unsanctioned — candidate follow-up).**
       **Jena spike COMPLETED (2026-08-12) — measured NO-GO today, door
       stays open, one flip condition promoted to blocker.** Parity PASSED
       (conforming + 4 injected defect classes + a SHACL-SPARQL shape,
