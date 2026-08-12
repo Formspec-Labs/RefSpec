@@ -1,0 +1,312 @@
+# The acceptance tier's real home (plans/validation-cost-reset-plan.md, "Order
+# of execution" step 6). ci.yml's own comments explain why it cannot host this
+# work: runners there never have `output/`, and its `timeout-minutes: 20`
+# budget is sized for lint/audit/packaged-suite gates, not a ~1h, memory-bound,
+# whole-graph validation pass. This file is that separate release workflow,
+# on a larger/self-hosted runner, that ci.yml names as the gap.
+#
+# Trigger is manual only. Tag triggers are deliberately NOT wired: per the
+# plan's Seal design section, releases are not automated until the
+# key-custody decision (docs/seal-design.md §2) lands. Until then this
+# workflow builds, gates, and independently validates a distribution --
+# the seal-minting step stays a documented stub (see below).
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      output_suffix:
+        description: >-
+          Suffix for this run's distribution root:
+          output/atlas-3.0-full-<suffix> (e.g. "2026-08-11"). Must name a
+          directory that does not already exist with files in it --
+          tools/generate_atlas_v3_full.py refuses to write into one that
+          does.
+        required: true
+        type: string
+  schedule:
+    # Feeds the reproducible-rebuild job below, which is `if: false` until a
+    # runner and an artifact store exist (Order of execution step 6), so
+    # today this fires and does nothing. Cadence is a free choice within
+    # "weekly" (Seal design §4); Monday 07:00 UTC has no other significance.
+    - cron: "0 7 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Build -> smoke gate -> full independent acceptance -> seal (stub) ->
+  # upload receipts, as one job with ordered steps rather than four+
+  # `jobs:` wired with `needs:`. Reason, since ci.yml is itself one job and
+  # this is the one deliberate structural deviation from that shape worth
+  # naming: the build writes a ~7.3 GB decompressed distribution (measured,
+  # 32M N-Quads) into `output/`, and step 5 below explicitly does not
+  # upload the packs (artifact-store decision pending). Splitting the
+  # phases into separate `jobs:` would need that same multi-GB tree handed
+  # between jobs -- either an artifact-store answer this plan hasn't made
+  # yet, or reliance on `actions/checkout`'s default `git clean -ffdx`
+  # NOT having wiped a prior job's gitignored `output/` on the same
+  # self-hosted box, which is not a safe assumption once more than one
+  # runner can pick up a job. One job with ordered steps makes the shared
+  # filesystem state explicit instead of implicit.
+  release:
+    name: Build, gate, and independently validate one distribution
+    if: github.event_name == 'workflow_dispatch'
+    # No such runner is registered yet -- this simply queues until one is.
+    # Runner spec, measured (plan "What the 2h instrumented run changes"
+    # item 3): >=32 GB RAM (18.3 GB RSS observed at parse alone, before the
+    # rest of the pipeline's working set), ~60 GB free disk for `output/`
+    # (7.3 GB decompressed per distribution, plus the packs and headroom
+    # for a second concurrent build), and a single fast core preferred over
+    # many small ones -- the pipeline is serial and memory-bound, and naive
+    # multiprocess parsing multiplies the 18 GB working set rather than
+    # dividing the wall-clock time.
+    runs-on: [self-hosted, atlas-release]
+    # Sum of the step budgets below (30 build + 30 smoke + 120 acceptance =
+    # 180) plus headroom for checkout/uv-setup/seal-stub/upload (~20). Each
+    # step below carries its own tighter timeout-minutes; this is the outer
+    # bound, not a budget in itself.
+    timeout-minutes: 200
+    env:
+      DISTRIBUTION_ROOT: output/atlas-3.0-full-${{ inputs.output_suffix }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.11.x"
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Job 1: build. Bare `uv run python`, not `--with-requirements
+      # bindings/atlas/3.0/requirements.txt` the way the Makefile's
+      # release-atlas-federal-register-thesaurus target invokes the same
+      # generator: this generator imports refspec package code directly
+      # (binding.canonical_sha256, ManagedReleaseGraphFactsView, etc, per
+      # the plan's kill-list item 1), so it runs inside the project's own
+      # environment. Checked: every package the binding's requirements.txt
+      # pins (rdflib, pyshacl, owlrl, jsonschema, backports-zstd) is already
+      # a project or dev dependency in pyproject.toml, at compatible or
+      # identical versions, so `uv sync --frozen` above already provides
+      # them -- no second environment needed for this step.
+      - name: Build the distribution
+        timeout-minutes: 30 # measured ~25 min full build; see the smoke gate step's note below
+        run: |
+          uv run python tools/generate_atlas_v3_full.py \
+            --output "$DISTRIBUTION_ROOT"
+
+      # Job 2: smoke gate, FIRST, for fast feedback. Measured at real scale
+      # (plan, Open items): 92s wall on a 32M-quad build (8/126 packs,
+      # kind-covering sample) -- it is what caught the warrant defect in the
+      # 2026-08-11 build without waiting on the full run below. `--no-project
+      # --with-requirements bindings/atlas/3.0/requirements.txt` matches
+      # `make test-atlas-v3` and validate.py's own docstring: the validator
+      # "deliberately imports no RefSpec package code" so a consumer can
+      # copy the binding directory and verify offline. Running it the same
+      # way here, rather than inside the project environment used for the
+      # build step above, is what actually exercises that independence
+      # claim instead of merely asserting it.
+      - name: Smoke gate (bounded sample, seconds -- not a verdict)
+        timeout-minutes: 30 # generous over the measured ~92s: cold self-hosted disk, not yet characterized
+        run: |
+          uv run --no-project \
+            --with-requirements bindings/atlas/3.0/requirements.txt \
+            python bindings/atlas/3.0/tools/validate.py \
+            --smoke "$DISTRIBUTION_ROOT"
+
+      # Job 3: full independent acceptance. This is deliberately a second,
+      # separate run from the build's own self-attested atlas-acceptance.json
+      # (job 1 writes that; create_seal() below only checks its verdict, it
+      # does not itself re-run SHACL). validate_distribution's own docstring
+      # says as much: the build's return value names
+      # "bindings/atlas/3.0/tools/validate.py:validate_distribution" as
+      # "requiredForIndependentConsumers" and NOT "performedByGenerator".
+      # REFSPEC_ATLAS_VALIDATION_MODE=audit restores the whole-graph
+      # normative SHACL engine instead of the default fast/focused red-path
+      # report: dev-mode default trusts the batched fast path as the sole
+      # arbiter of a rejection (the plan's recorded accepted risk, Open
+      # items: "in default mode the fast path is the sole arbiter of a
+      # rejection ... mitigations are the pinned fast-path/normative
+      # equivalence test ... and audit mode"). The release tier is exactly
+      # where that mitigation -- the whole-graph normative run -- belongs;
+      # cost stops being the objection once this only runs here, once per
+      # release, on the runner sized for it.
+      - name: Full independent acceptance (whole-graph normative run)
+        timeout-minutes: 120 # 2x the ~1h measured budget (plan item 3)
+        env:
+          REFSPEC_ATLAS_VALIDATION_MODE: audit
+        run: |
+          uv run --no-project \
+            --with-requirements bindings/atlas/3.0/requirements.txt \
+            python bindings/atlas/3.0/tools/validate.py \
+            --distribution "$DISTRIBUTION_ROOT"
+
+      # Job 4: seal minting. INTENTIONALLY A STUB -- `if: false`. Arms only
+      # once the key-custody decision (Seal design §2, docs/seal-design.md)
+      # provides a signing key as a secret: an offline/hardware-backed
+      # OpenSSH ed25519 key (v1) or, per that section's documented upgrade
+      # path, Sigstore keyless via GitHub OIDC. Seal design §2 requires that
+      # "signing happens only in the dedicated release workflow, never
+      # beside an ad-hoc build" and that "the private key never exists on a
+      # build runner" outside of it -- this step, gated behind the two steps
+      # above, is that dedicated place. Arming is:
+      #   1. mint the key per seal-design.md §2 and store it as repo secrets
+      #      ATLAS_SEAL_PRIVATE_KEY (the key material) and
+      #      ATLAS_SEAL_SIGNER_IDENTITY (the principal in `allowed_signers`);
+      #   2. flip `if: false` to `if: true` below.
+      # Nothing else changes: create_seal() (src/refspec/seal.py) already
+      # refuses to sign unless atlas-acceptance.json's verdict is "passed"
+      # and the distribution passes the same closed-membership walk
+      # verify_seal runs, so a bad build cannot reach a signature by
+      # construction, seal or no seal step.
+      - name: Mint the seal (STUB -- not armed)
+        if: false
+        env:
+          ATLAS_SEAL_PRIVATE_KEY: ${{ secrets.ATLAS_SEAL_PRIVATE_KEY }}
+          ATLAS_SEAL_SIGNER_IDENTITY: ${{ secrets.ATLAS_SEAL_SIGNER_IDENTITY }}
+        run: |
+          set -euo pipefail
+          key_path="$RUNNER_TEMP/atlas-seal-signing-key"
+          umask 077
+          printf '%s' "$ATLAS_SEAL_PRIVATE_KEY" > "$key_path"
+          # Exact invocation this step mints once armed -- create_seal's
+          # signature is `create_seal(root, private_key_path,
+          # signer_identity, *, seal_path=None)`; the default seal_path
+          # (beside the distribution root, never inside it) is correct here.
+          uv run python - "$DISTRIBUTION_ROOT" "$key_path" "$ATLAS_SEAL_SIGNER_IDENTITY" <<'PY'
+          import sys
+          from pathlib import Path
+
+          from refspec.seal import create_seal
+
+          root, private_key_path, signer_identity = sys.argv[1:4]
+          seal_path = create_seal(Path(root), Path(private_key_path), signer_identity)
+          print(f"sealed: {seal_path}")
+          PY
+          rm -f "$key_path"
+
+      # Job 5: upload the distribution's small receipts, not the ~1.1 GB
+      # packs. What ships in the artifact store, if anything, and how it is
+      # addressed by consumers, is exactly Order of execution step 6's
+      # pending "+ artifact store" decision -- until it lands, GitHub's
+      # own artifact storage is a holding pattern for the receipts alone,
+      # cheap enough (three small JSON files) not to wait on that decision.
+      # These three are precisely the files the seal's payload transitively
+      # covers (Seal design §1): the manifest, the self-attested acceptance
+      # receipt whose digest the manifest pins as a member, and the
+      # producer-validation receipt the acceptance receipt's own digest
+      # inputs reference.
+      - name: Upload the distribution's manifest, acceptance, and producer-validation receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-release-receipts-${{ inputs.output_suffix }}
+          path: |
+            ${{ env.DISTRIBUTION_ROOT }}/atlas-manifest.json
+            ${{ env.DISTRIBUTION_ROOT }}/atlas-acceptance.json
+            ${{ env.DISTRIBUTION_ROOT }}/atlas-producer-validation.json
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------
+  # Reproducible-rebuild control (Seal design §4; plan Check regime:
+  # "audit (scheduled) = fidelity auditor + reproducible rebuild + full
+  # validator on a shipped artifact"). In a single-maintainer topology the
+  # producer, validator author, signer, and consumer operator are one
+  # person, so no signature repairs independence; a scheduled
+  # clean-environment rebuild that a third party could check without
+  # trusting the signer is the real control, and running it on a schedule
+  # keeps re-derivation a practiced capability rather than a retired one.
+  #
+  # INTENTIONALLY A STUB -- `if: false`. It needs the same not-yet-registered
+  # runner as the `release` job above, AND a decided artifact store to name
+  # "a shipped artifact" from (Order of execution step 6, also pending).
+  # Everything below is otherwise a complete, correct job: rebuild, compare
+  # the canonical manifest digest, run the full validator against the
+  # shipped artifact. The one piece that cannot be finalized without the
+  # artifact-store decision is named where it lives, in the "Fetch the
+  # currently shipped artifact" step -- once that decision picks a concrete
+  # fetch mechanism, arming is filling in that step's `run:` block and
+  # flipping `if: false` to `if: true`.
+  reproducible-rebuild:
+    name: Reproducible rebuild (weekly control)
+    if: false
+    runs-on: [self-hosted, atlas-release]
+    timeout-minutes: 150 # ~30 rebuild + 120 full validator, same budgets as the release job's equivalents
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.11.x"
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Same command shape as the release job's build step. This trigger is
+      # `schedule`, which carries no `inputs`, so the output root is
+      # timestamped here rather than named by a dispatch input.
+      - name: Rebuild from pinned inputs
+        run: |
+          set -euo pipefail
+          suffix="reproducible-$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "REBUILD_ROOT=output/atlas-3.0-full-$suffix" >> "$GITHUB_ENV"
+          uv run python tools/generate_atlas_v3_full.py \
+            --output "output/atlas-3.0-full-$suffix"
+
+      # The one step whose concrete mechanics wait on the artifact-store
+      # decision: this workflow does not yet know where a shipped
+      # distribution's bytes live outside this runner, so it cannot name a
+      # real fetch command today. SHIPPED_ARTIFACT_ROOT and
+      # SHIPPED_MANIFEST_SHA256 are the two facts every step after this one
+      # needs; wiring the real fetch (object storage pull, a
+      # previously-uploaded artifact, etc) is the arming work, not a
+      # rewrite of the steps that follow.
+      - name: Fetch the currently shipped artifact
+        env:
+          SHIPPED_MANIFEST_SHA256: ${{ vars.ATLAS_SHIPPED_MANIFEST_SHA256 }}
+        run: |
+          set -euo pipefail
+          echo "SHIPPED_ARTIFACT_ROOT=output/atlas-shipped-current" >> "$GITHUB_ENV"
+          echo "comparing against shipped manifest digest: $SHIPPED_MANIFEST_SHA256"
+
+      # Compares bytes: the canonical manifest digest, against the digest of
+      # the distribution already shipped (Seal design §4: "compares the
+      # canonical manifest digest to the sealed one").
+      - name: Compare the canonical manifest digest
+        run: |
+          set -euo pipefail
+          rebuilt_digest="$(sha256sum "$REBUILD_ROOT/atlas-manifest.json" | cut -d' ' -f1)"
+          if [ "$rebuilt_digest" != "$SHIPPED_MANIFEST_SHA256" ]; then
+            echo "reproducible rebuild MISMATCH: rebuilt=$rebuilt_digest shipped=$SHIPPED_MANIFEST_SHA256" >&2
+            exit 1
+          fi
+          echo "reproducible rebuild matches the shipped manifest digest: $rebuilt_digest"
+
+      # Compares correctness, independent of the byte comparison above:
+      # re-derives the acceptance verdict itself over the shipped bytes, not
+      # just their digest, matching Seal design §4 ("re-runs the full
+      # validator against the shipped artifact") and using the same
+      # whole-graph normative mode as the release job's acceptance step,
+      # for the same reason.
+      - name: Run the full validator against the shipped artifact
+        env:
+          REFSPEC_ATLAS_VALIDATION_MODE: audit
+        run: |
+          uv run --no-project \
+            --with-requirements bindings/atlas/3.0/requirements.txt \
+            python bindings/atlas/3.0/tools/validate.py \
+            --distribution "$SHIPPED_ARTIFACT_ROOT"
