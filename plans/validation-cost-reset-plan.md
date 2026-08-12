@@ -1,5 +1,104 @@
 # Barebones reset — build, prove once, sign, serve
 
+## CONTINUATION — read this first (2026-08-12, session handoff)
+
+Written for a blind agent resuming with zero session context. The history
+below this section is the evidence record; THIS section is the state.
+
+**State of the tree.** HEAD `b9545930` on branch
+`atlas-v3-binding-and-relation-research` (nothing pushed; no upstream).
+The working tree is DIRTY with the in-flight "Wave 0+A" changes (an agent
+was mid-wave when the session ended; its uncommitted edits are:
+`.python-version` new; Makefile build-invocation unification;
+docs/seal-design.md negative-space + stale seal-1 schema fix;
+src/refspec/seal.py docstrings; bindings/atlas/3.1/README.md +
+ATLAS_US_EU_COMPARISON.md (11→13 gate count) + README.md + docs/decisions.md
+prose; tools/verify_atlas_source_fidelity.py stale default;
+ci.yml/release.yml touches). FIRST ACTION: `git diff` these against the
+Wave 0+A brief in "v3.8/v3.9" below; finish anything half-done (the brief:
+unify the two builder invocations into the project env — Makefile targets
+that run tools/generate_atlas_v3_full.py switch from
+--with-requirements to bare `uv run`; pin .python-version; add the missing
+`build_registry_source_manifest.py --write` line to `make generate`; the
+docs items are P3 as listed in v3.8; the auditor default fix is P1's
+1-line item). Gate with `make lint && make check-generated && make test`,
+then commit by explicit path per the repo's convention (every commit this
+program ends with the Co-Authored-By Claude trailer).
+
+**What is DONE and committed (27 commits, cd769d44..b9545930).** The
+entire reset through the 3.1 atomic wire replacement: seal (format 2,
+view-covered, proven end-to-end on the FR artifact with an ephemeral
+key), red-path fail-fast + 92s smoke tier, xone lift + gc.freeze +
+roles-fold (staging −42%), governance archive, RDF explorer deletion,
+fixture corpus un-commit, reuse-subsystem deletion, rulespec-as-package
+(vendored wheel), warrant model fixed (option a1), wire hygiene (RFC-3987
+IRIs, simple-form literals, byte-grammar canonicality — pyoxigraph
+accepts published bytes with zero refusals). Ledger: REF-026/027/028 +
+supersessions of REF-015/018/019/020/021. Artifact of record:
+`output/atlas-3.1-full-2026-08-12b` (built clean post-hygiene, 13 gates
+passed, smoked). FR pins in the Makefile verify today.
+
+**What is NEXT, in order (briefs in v3.8/v3.9 below):**
+1. Finish + commit Wave 0+A (above).
+2. **Wave B — ONE rebuild** (any corpus/binding change invalidates every
+   on-disk artifact via bindingBundleDigest, so cluster): delete
+   `recipeDigest` (verifierless self-agreement; validate.py:6543 compares
+   two producer-written copies; sole channel binding python/library
+   versions into the seal), delete `EVIDENCE_WARRANTS` (the shapes-parsed
+   `_evidence_warrant_branch_table` becomes THE table; resolve
+   attestorKind toward SHACL — 1/6 branches pin it, Python's 6/6
+   over-constrains, zero verdict changes verified), delete
+   `declaredMemberCount` (builder writes len(dispositions), validator
+   asserts len==it — tautology in a signed wire), add the lowercase
+   langtag rule (one regex line in rdf_canonical.py `_LANGUAGE_TAG` +
+   mint guard + corpus case + the frozen differential-suite invariant at
+   test_atlas_v3_canonical_line_grammar.py ~:487/:559 must gain the
+   divergence entry), seal-design sentences naming pipeline legs 1-2 as
+   what the signature does NOT cover. Then rebuild
+   (`uv run python tools/generate_atlas_v3_full.py --output
+   output/atlas-3.1-full-<date> --quiet`, ~25 min), smoke it, update FR
+   pins, commit.
+3. **Wave C — auditor minimum set**: in tools/verify_atlas_source_fidelity.py
+   fix the rkaf-namespace blind spot (`atlas_classified_subjects` ~:6136
+   tests only startswith(ATLAS); ~5 lines; clears 96% of false-uncovered),
+   add an `--only` scope flag, author a SourceSpec for
+   federal-register-thesaurus-2025 (without it the FR artifact is
+   structurally unauditable). Then RUN the audit against Wave B's
+   artifact: `make audit-atlas-v3-source-fidelity
+   ATLAS_V3_AUDIT_ROOT=<artifact>` — expect multi-hour; the receipt is
+   the deliverable.
+4. Engine-neutral validator refactors (from the Jena spike, small):
+   derive violation components from the report graph's
+   sh:sourceConstraintComponent instead of the regex over pySHACL's text;
+   adopt report-canonicalization (sort focusNode/resultPath/component).
+
+**DECIDED — do not re-litigate** (owners' calls, recorded below with
+evidence): warrant = option a1 (landed); key custody = offline SSH,
+ceremony DEFERRED (mechanism proven; minting is one decision away);
+rulespec = package-only, no monorepo; 3.1 replaced 3.0 atomically;
+ordering freeze is permanent (golden-observation framing);
+Jena = measured no-go (re-open ONLY if sh:class scaling is solved or
+move 2 commits to SHACL-SPARQL, which IS the Jena decision, ~100×
+measured); oxigraph = only behind the Jena door; P2-as-convention and
+kill-7 = dropped from the path; fidelity coverage 23→110 units is the
+NAMED SUCCESSOR PROJECT (leg 2 of the pipeline is 21% verified — the
+product's weakest true claim).
+
+**PARKED (external owners):** SpicySearch: adopt seal-2 citing
+REF-026/028 + the finding-(g) 1.2 decision (both delivered to their
+session). Reader/seal admission waits on the owner's key ceremony.
+Release-workflow runner + artifact store: infrastructure, unblocks the
+weekly reproducible-rebuild job (whose remaining blockers after the
+recipeDigest deletion are exactly those two).
+
+**Stale-entry corrections for the sections below** (kept for history, do
+not act on them): the "Open items" REF-026 entry is DONE (cce6f0ce); the
+warrant BLOCKER is RESOLVED (a64eee58); "fresh full build" now means
+08-12b, not 08-11; kill-8's ordering-unfreeze clause is superseded by
+wire-wave decision 2.
+
+---
+
 2026-08-11, v3. v1 pulled punches; v2 cut to barebones; v3 incorporates an
 independent adversarial review (run with the repo's culture files quarantined,
 arguing from industry practice only) that verified the evidence, endorsed the
@@ -443,6 +542,65 @@ measured under 60s; see the budget re-spec open item).
 11. SSSOM: nothing, until the 546c4940 trigger fires (a named external
     consumer). Then: derived TSV view from the build, exporter lessons
     recovered from `5ed56db5^`. Drop the unused `sssom` dev dependency now.
+
+## Verification-gap proposals — validated verdicts (v3.8, 2026-08-12)
+
+Adversarial opus validation of the six P-proposals; full report in session.
+**P1 GO** (fidelity auditor RUNS on the 3.1 wire — proven differentially,
+zero parse failures over 1.07M quads; port cost = 1 stale default line;
+plus two real gaps: rkaf-namespace blind spot ~24k false-uncovered claims,
+and no SourceSpec owns the FR release; needs an --only scope flag).
+**P2 GO-REPRICED** (the convention is true for 1 of 80 modules;
+`declaredMemberCount` is a self-count masquerading as a publisher
+declaration — the honest rename rides the next wire rebuild; the
+per-module campaign is weeks and waits on a spec'd "publisher declares
+nothing" disposition). **P3 GO, stronger** (negative-space statements
+exist but are stale/wrong: ATLAS_US_EU says 11 gates where there are 13 —
+the drift class REF-026 declared dead, alive in mandated prose; seal-design's
+schema section still documents seal-1/4-field). **P4 NO-GO upstream /
+RESHAPED in-binding** (the table is 100% rkaf vocabulary but 6-of-1,800
+is Atlas policy; upstream's generator refuses shapes as sources; the fix
+is promoting the existing shapes-parsed branch table to BE the table,
+deleting EVIDENCE_WARRANTS as a copy, resolving attestorKind toward
+SHACL — verified 1/6 not 2/6, zero verdict changes). **P5a NO-GO new
+target / GO arm-the-existing-job**, gated on the FATAL determinism
+finding: the Makefile and release-workflow build invocations run
+different rdflib (7.6 vs 7.5) and recipeDigest hashes observed library
+versions + python patch + unidata — same tree, different entry point,
+different manifest digest (proven by digest reconstruction of both real
+artifacts). Fix: one invocation, .python-version, delete the runtime
+block from the recipe digest (uv.lock already pins declaratively).
+**P5b GO-RETARGETED** (C1-C3 + meta-test are ceremony ≈ −700 lines; C4's
+exception map, C5-C7's receipt correlation, and C9 — sole producer of the
+45 REFSPEC_*_PATH vars 31 test files consume — are load-bearing and
+STAY). **P6 GO** (zero re-mints proven over 1.02M tagged literals — all
+@en; one grammar line + mint guard + 7-file blast radius incl. one frozen
+differential-suite invariant; refuse-never-coerce).
+Misses adopted: corpus-case additions invalidate all on-disk
+distributions (cluster all wire changes into ONE rebuild); the audit tier
+has no running leg; `make generate` lacks the manifest-builder line; no
+seal minted yet so all seal-facing wording is free.
+**v3.9 — the pipeline frame (validator's third pass, self-corrected
+against code; supersedes the wave plan above).** Three legs: (1)
+publisher bytes → intermediate, proven by NOTHING (digests prove
+identity of the capture, not completeness); (2) intermediate → atlas,
+proven by the fidelity auditor at 23 of 110 units; (3) atlas → sealed,
+proven by the 13 gates + verify_seal — DONE, stop investing. P1 and P2
+consolidate: the auditor IS the capture-quality mechanism
+(check_count_reconciliation is publisher-derived, both directions, from
+bytes — verified at :5697-5723); P2-as-convention would rebuild it 53
+times weaker. DROPPED: P2 convention, kill-7 (neither moves A→B; kill-7
+stays scoped in REF-027 as deferred cleanup). Execution: Wave 0+A
+(running — hygiene + docs + the stale auditor default) → Wave B (ONE
+rebuild: delete recipeDigest / EVIDENCE_WARRANTS / declaredMemberCount,
+langtag rule + corpus case, seal sentences naming legs 1-2 as exactly
+what the signature does NOT cover) → Wave C (auditor minimum set: rkaf
+namespace fix ~5 lines clearing 96% of the false-uncovered gap, --only
+scope flag, a SourceSpec for federal-register-thesaurus-2025 — without
+which the artifact of record is structurally unauditable) → run the
+audit. THE SUCCESSOR PROJECT, named: fidelity coverage 23 → 110 units —
+leg 2 is 21% verified and that number, not the seal, is now the
+product's weakest true claim.
 
 ## Wire-wave decisions (v3.7 — fable+opus advisory consensus, unanimous, 2026-08-12)
 
