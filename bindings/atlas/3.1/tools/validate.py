@@ -70,6 +70,7 @@ from pyshacl.rdfutil import inoculate
 from rdf_canonical import (
     ABSOLUTE_IRI_RE,
     RdfCanonicalError,
+    canonical_line_issue,
 )
 from rdf_canonical import ntriples_term as _canonical_ntriples_term
 from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
@@ -840,7 +841,9 @@ REQUIRED_CORPUS_CASES = frozenset(
         "identifier-missing-value",
         "identifier-pair-conflict",
         "iri-credentials",
+        "iri-forbidden-character",
         "label-missing-literal",
+        "literal-explicit-string-datatype",
         "label-extra-skos-type",
         "manifest-count-mismatch",
         "manifest-unknown-field",
@@ -1202,6 +1205,14 @@ class _NQuadsProfileReader:
         if self.previous is not None and line <= self.previous:
             _fail("rdf.canonical", f"{self.label} lines must be sorted and unique")
         self.previous = line
+        # The canonical term form, proved on the bytes before any RDF term is
+        # built. This is the whole of the old per-term render-and-compare
+        # (`_LexicalNQuadsParser`) restated as a grammar, and it runs here
+        # because this layer already holds the line.
+        issue = canonical_line_issue(content)
+        if issue is not None:
+            code, reason = issue
+            _fail(code, f"{self.label} line {self.line_count} {reason}")
 
     def _consume(self, chunk: bytes) -> None:
         self.digest.update(chunk)
@@ -1413,7 +1424,19 @@ def _canonical_dataset_lines(
 
 
 class _LexicalNQuadsParser(NQuadsParser):
-    """Pinned parser that preserves lexemes and verifies canonical terms inline."""
+    """Pinned parser that preserves every literal's exact lexical form.
+
+    `normalize=False` is load-bearing, not a preference: rdflib's default
+    normalization rewrites `rdf:JSON` and `xsd:dateTime` lexemes, and every
+    node digest is taken over the rendered term, so a normalizing parse would
+    move digests the distribution publishes.
+
+    The canonical TERM form is no longer proved here. It is a property of the
+    bytes, and `_NQuadsProfileReader` -- which sees them first -- now proves it
+    with `canonical_line_issue`. The blank-node and term-kind guards below are
+    kept as cheap depth for any future caller that reaches this parser without
+    going through that reader.
+    """
 
     def __init__(
         self,
@@ -1444,10 +1467,9 @@ class _LexicalNQuadsParser(NQuadsParser):
         )
 
     def parseline(self, bnode_context: Any = None) -> None:
-        """Parse one statement and compare it with its canonical serialization."""
+        """Parse one statement into the sink, observing subjects and placement."""
 
-        original = self.line
-        if not isinstance(original, str):
+        if not isinstance(self.line, str):
             raise ParseError("N-Quads parser has no current line")
         self.eat(r_wspace)
         if not self.line or self.line.startswith("#"):
@@ -1469,8 +1491,6 @@ class _LexicalNQuadsParser(NQuadsParser):
             obj, (URIRef, Literal)
         ):
             _fail("rdf.term", "atlas.nq contains an unsupported RDF term")
-        if original != nquads_line(subject, predicate, obj, context):
-            _fail("rdf.canonical", "atlas.nq is not in the canonical N-Quads term form")
 
         if subject != self.observed_subject:
             self.observed_subject = subject
@@ -1518,6 +1538,7 @@ def _check_serialized_nquads_profile(path: Path, *, expected_digest: str | None 
     has_line_ending_error = False
     has_blank_or_padded_line = False
     has_ordering_error = False
+    noncanonical: tuple[str, str] | None = None
     try:
         with path.open("rb") as stream:
             while line := stream.readline(NQUADS_MAX_LINE_BYTES + 1):
@@ -1539,6 +1560,11 @@ def _check_serialized_nquads_profile(path: Path, *, expected_digest: str | None 
                 if previous is not None and line <= previous:
                     has_ordering_error = True
                 previous = line
+                if noncanonical is None:
+                    issue = canonical_line_issue(content)
+                    if issue is not None:
+                        code, reason = issue
+                        noncanonical = (code, f"atlas.nq line {line_count} {reason}")
     except OSError as exc:
         _fail("distribution.file", f"cannot read {path}: {exc}")
     if line_count == 0 or has_line_ending_error:
@@ -1547,6 +1573,8 @@ def _check_serialized_nquads_profile(path: Path, *, expected_digest: str | None 
         _fail("rdf.canonical", "atlas.nq contains a blank or padded line")
     if has_ordering_error:
         _fail("rdf.canonical", "atlas.nq lines must be sorted and unique")
+    if noncanonical is not None:
+        _fail(*noncanonical)
     if expected_digest is not None and "sha256:" + digest.hexdigest() != expected_digest:
         _fail("distribution.digest", "atlas.nq digest differs")
     return line_count

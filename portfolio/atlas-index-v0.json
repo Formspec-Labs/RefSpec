@@ -27,8 +27,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:84b5ab7359657973e462f4665a3637fff25957b2dfd9d3566da30bd00f80ca1a",
-  "indexId": "urn:ref:atlas-index:84b5ab7359657973e462f4665a3637fff25957b2dfd9d3566da30bd00f80ca1a",
+  "indexDigest": "sha256:d259db433a510e3fb91087b1fe4006aa1845f7cd550ad14d871e2b2d51c18af1",
+  "indexId": "urn:ref:atlas-index:d259db433a510e3fb91087b1fe4006aa1845f7cd550ad14d871e2b2d51c18af1",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -1843,13 +1843,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_nonemitters.py",
-          "sha256": "sha256:a768da3126e142cef072a3fe290440b6eaa4fee2dbbd107deaa68738b3acfc22"
+          "sha256": "sha256:de06a7425c98ca9a1fdcb57917e6edaea7e50f0caeb933098319bb92b5b02e96"
         }
       ],
       "release": null,
       "resourceId": "nrc-adams-identifiers",
-      "rowDigest": "sha256:84a3339adce870e3de9b65f342c9e85faec90afbe515adf8e0d1bc493b48f3b2",
-      "rowId": "urn:ref:atlas-index-row:84a3339adce870e3de9b65f342c9e85faec90afbe515adf8e0d1bc493b48f3b2",
+      "rowDigest": "sha256:617fdd1365c03d38689f1083c810842fbc9d05a12e1cd3a9da514225859baad5",
+      "rowId": "urn:ref:atlas-index-row:617fdd1365c03d38689f1083c810842fbc9d05a12e1cd3a9da514225859baad5",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_codes"
     },

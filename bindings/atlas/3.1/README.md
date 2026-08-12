@@ -170,14 +170,64 @@ line, joined with LF, and terminated by one LF. The value is
 `sha256:<64 lowercase hex>`. This digest detects semantic record drift without
 requiring publisher-assigned resource IRIs to be replaced.
 
-The binding supplies one shared term renderer for fixture construction,
-registry-descriptor generation, and validation. It escapes quotes, backslashes,
-tabs, line breaks, carriage returns, form feeds, and disallowed control
-characters according to N-Triples while preserving valid Unicode. Validation
-parses each pack and inspects RDF terms for blank nodes; text such as
-`_:not-a-node` inside a literal is not a blank node. It reconstructs every
-canonical N-Quads line and requires byte-for-byte equality with the uncompressed
-content.
+### The canonical line
+
+The binding supplies one shared term renderer (`tools/rdf_canonical.py`) for
+fixture construction, registry-descriptor generation, and validation, and one
+byte grammar that accepts exactly what that renderer emits. Emission and
+acceptance are the same profile stated twice, and
+`tests/test_atlas_v3_canonical_line_grammar.py` is the running check that they
+agree.
+
+A canonical line is four terms and a terminator, separated by one space each
+and ending in ` .`:
+
+- **IRIs** are absolute (`scheme:` followed by at least one character), carry
+  no embedded credentials, and contain **no escape sequence at all**. The
+  admitted character set is RFC 3987's, minus:
+  - `<`, `>`, `"`, `{`, `}`, `|`, `^`, `` ` ``, `\` — the ASCII characters
+    RFC 3987 already excludes;
+  - `[` and `]` — reserved by RFC 3986/3987 for an IP-literal host
+    (`http://[::1]/`) and illegal elsewhere. Atlas mints no IP-literal
+    authority, so the profile refuses them everywhere rather than tracking
+    which component it is in. A source path that contains them
+    (`results.ad_hoc[5345]`) is percent-encoded by the producer at the point
+    where it becomes an IRI;
+  - U+0000–U+0020, U+007F, and U+0080–U+009F — controls, DEL, and the C1
+    block, which RFC 3987's `ucschar` production does not contain.
+
+  Because no escape is admitted, a `\uXXXX` UCHAR standing for one of these is
+  refused too: a UCHAR that decodes to a character RFC 3987 excludes is still
+  not an IRI.
+- **Literals** use exactly seven short escapes (`\t`, `\b`, `\n`, `\r`, `\f`,
+  `\"`, `\\`) and `\u00XX` with **uppercase** hex for the remaining C0 and C1
+  controls. Every other character is written raw as UTF-8. A lowercase hex
+  escape, a `\U0001F600` long form, an escaped character that needs no escape,
+  or `\/` are all non-canonical spellings and are refused.
+- **A literal never carries an explicit `^^xsd:string` datatype.** RDF 1.1
+  gives `"x"` and `"x"^^xsd:string` the same term identity, so a wire that
+  admits both spells one term two ways: one set of facts gets two node digests,
+  and a SHACL `sh:in` list matches only the spelling its shapes file happens to
+  use. The simple form is the only admitted spelling, which is also what W3C
+  canonical N-Triples mandates. Other datatypes are written `^^<IRI>` as usual.
+- **Language tags** follow `@primary(-subtag)*`.
+- **Blank nodes are forbidden** in every position. Text such as
+  `_:not-a-node` inside a literal is not a blank node.
+
+The profile is proved on the raw bytes of each pack, before any RDF term is
+built, by `rdf_canonical.canonical_line_issue`. This replaced a per-term
+render-and-compare that ran inside the RDF parser and reconstructed each line
+to demand byte-for-byte equality; the grammar reaches the same verdicts (the
+differential suite above enumerates the three classes where the profile
+deliberately changed) at roughly a sixth of the cost.
+
+**Amendment, pre-publication (2026-08-12).** The two IRI rules above (`[`/`]`
+and the no-escape rule) and the `^^xsd:string` rule are amendments to Atlas
+3.1 made before any 3.1 artifact was published or sealed. They re-mint the
+identities of records whose facts they touch, and the conformance corpus gains
+`invalid/iri-forbidden-character` and
+`invalid/literal-explicit-string-datatype`. Nothing consumed 3.1 at the time,
+so the amendment is stated here plainly rather than carried as a version bump.
 
 ## Standards boundary
 

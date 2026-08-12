@@ -3446,10 +3446,12 @@ def test_the_binding_tools_import_nothing_from_the_refspec_package() -> None:
 
 
 def test_the_binding_and_the_package_reject_the_same_credentialed_iris() -> None:
-    """The inlined credentials refusal must stay term for term the package's.
+    """The inlined IRI refusals must stay term for term the package's.
 
     A copy with nothing checking that it still agrees is drift waiting to
-    happen; this is that check.
+    happen; this is that check. It covers both refusals the two copies share:
+    embedded credentials, and the RFC 3987 character class that 7,770
+    published `sourceLocator` IRIs walked straight through.
     """
 
     from refspec.registry.infrastructure.identifier_validation import absolute_uri_issue
@@ -3469,16 +3471,24 @@ def test_the_binding_and_the_package_reject_the_same_credentialed_iris() -> None
         "https://example.org/x#frag@ment",
         "https://[::1]/x",
         "https://user:pass@[::1]:9/x",
+        "https://www.federalregister.gov/api/v1/topics.json#results.ad_hoc[5345]",
+        "https://www.federalregister.gov/api/v1/topics.json#results.ad_hoc%5B5345%5D",
+        "https://example.org/a`b",
+        "https://example.org/a|b",
+        'https://example.org/a"b',
     )
-    package = {probe: absolute_uri_issue(probe) == "credentials" for probe in probes}
+    package = {probe: absolute_uri_issue(probe) for probe in probes}
     binding = {}
     for probe in probes:
         try:
             atlas_validate.ntriples_term(URIRef(probe))
         except atlas_validate.AtlasValidationError as exc:
-            binding[probe] = exc.code == "rdf.term" and "credentials" in exc.detail
+            assert exc.code == "rdf.term", probe
+            binding[probe] = (
+                "credentials" if "credentials" in exc.detail else "forbidden-character"
+            )
         else:
-            binding[probe] = False
+            binding[probe] = None
 
     assert binding == package
-    assert any(package.values()) and not all(package.values())
+    assert set(package.values()) == {None, "credentials", "forbidden-character"}

@@ -3241,12 +3241,13 @@ def test_build_graphs_emits_content_derived_registry_identifiers(
             "sourceRecord": str(source_record),
         },
     )
+    # The simple form, not `^^xsd:string`: RDF 1.1 makes the two the same term,
+    # so the wire admits only one spelling and the canonical renderer refuses
+    # the other outright. The identifier IRI above is derived from the value as
+    # a Python string, so this changes the bytes and nothing else.
     assert set(graphs.asserted.predicate_objects(identifier)) == {
         (RDF.type, generator.ATLAS.Identifier),
-        (
-            generator.ATLAS.identifierValue,
-            generator.Literal("ONE-001", datatype=generator.XSD.string),
-        ),
+        (generator.ATLAS.identifierValue, generator.Literal("ONE-001")),
         (generator.ATLAS.identifierScheme, identifier_scheme),
         (generator.ATLAS.identifies, resource),
         (generator.ATLAS.sourceRecord, source_record),

@@ -703,7 +703,16 @@ def _federal_register_release_from_snapshot(
     relations: list[RegistryRelation] = []
     predicates = (("see", ATLAS_THESAURUS_USE), ("see_also", SKOS_RELATED))
     for row in snapshot.records:
-        source_locator = federal_register.FEDERAL_REGISTER_TOPICS_API_URL + "#" + row.source_locator
+        # `row.source_locator` is a JSON-pointer-ish path (`results.ad_hoc[7]`)
+        # whose brackets RFC 3987 excludes from an IRI. Percent-encoding them
+        # here, where the string first becomes an IRI, is the fix: `quote`
+        # encodes `%` first, so the transform is exactly invertible and the
+        # source path is still readable in the locator.
+        source_locator = (
+            federal_register.FEDERAL_REGISTER_TOPICS_API_URL
+            + "#"
+            + quote(row.source_locator, safe="")
+        )
         native_payload = {
             "collection": row.collection,
             "identityStatus": "sourceLocalCaptureRow",

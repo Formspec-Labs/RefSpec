@@ -27,6 +27,14 @@ _ISO_DATETIME = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
     r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$"
 )
+# The characters RFC 3987 excludes from an IRI. `[` and `]` are gen-delims
+# reserved for an IP-literal host and illegal anywhere else; the rest are the
+# ASCII exclusions plus DEL and the C1 block. This mirrors the Atlas binding's
+# `rdf_canonical.FORBIDDEN_IRI_CHARACTERS` term for term -- the binding cannot
+# import this module (it is deliberately self-contained), so
+# `test_the_binding_and_the_package_reject_the_same_credentialed_iris` is the
+# running check that the two copies still agree.
+_FORBIDDEN_IRI_CHARACTER = re.compile(r'[\x00-\x20\x7f-\x9f<>"{}|^`\\\[\]]')
 
 
 def is_sha256_digest(value: object) -> bool:
@@ -36,10 +44,17 @@ def is_sha256_digest(value: object) -> bool:
 
 
 def absolute_uri_issue(value: str) -> str | None:
-    """Return a short issue code for a non-absolute or credentialed URI.
+    """Return a short issue code for a URI this repository may not mint.
 
-    Returns ``None`` when ``value`` is an absolute URI/IRI without credentials.
-    Issue codes are ``missing-scheme`` and ``credentials``.
+    Returns ``None`` when ``value`` is an absolute URI/IRI without credentials
+    and without a character RFC 3987 excludes. Issue codes are
+    ``missing-scheme``, ``credentials`` and ``forbidden-character``.
+
+    The character check is not decoration: 7,770 published ``sourceLocator``
+    IRIs carried raw ``[``/``]`` from JSON-pointer-ish source paths, which
+    rdflib accepted and every strict RDF parser refused. Adapters that build an
+    IRI from source text percent-encode it at the mint; this is the shared
+    check that says so once.
     """
 
     parsed = urllib.parse.urlsplit(value)
@@ -47,6 +62,8 @@ def absolute_uri_issue(value: str) -> str | None:
         return "missing-scheme"
     if parsed.username is not None or parsed.password is not None:
         return "credentials"
+    if _FORBIDDEN_IRI_CHARACTER.search(value):
+        return "forbidden-character"
     return None
 
 

@@ -173,7 +173,7 @@ _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
             "sha256:37b6c2e11c57b2ef8e1aba685bd9ffe7c6d044fce306a2f0a9897a92006f1847"
         ),
         "bindingBundleDigest": (
-            "sha256:88318f645383d7ac79d39101ec536f2806c05790622dd9a5000ba857c4021919"
+            "sha256:a6f0d496c1f905366a24b3eac15158ac5d35b10b289d6c389edcc5c869b5dbbb"
         ),
         "manifestSchemaDigest": (
             "sha256:aaabe8e229b283d79967813a12fade207b586f450dc1d8377a760740560c7ee2"
@@ -674,7 +674,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:afd0a0183ed98ff2a30957a3db06f5ad01e5c5e053baa07929379085e17869a6"
+    "sha256:2096baf4c098ba54b32f4079bb9d5112ad54ea01820388fc9b610f26e496d32f"
 )
 
 
@@ -2733,7 +2733,7 @@ def _add_identifier(
         (
             identifier,
             ATLAS.identifierValue,
-            Literal(identifier_row.value, datatype=XSD.string),
+            Literal(identifier_row.value),
         )
     )
     graph.add((identifier, ATLAS.identifierScheme, scheme))
@@ -4492,17 +4492,13 @@ def _build_graphs(
                 if note:
                     asserted.add((resource, ATLAS.note, Literal(note, lang="en")))
             for notation in resource_row.notations:
-                asserted.add(
-                    (resource, ATLAS.notation, Literal(notation, datatype=XSD.string))
-                )
+                # Simple form, never an explicit xsd:string datatype: RDF 1.1
+                # makes the two the same term, and the wire may spell a term
+                # only one way. `rdf_canonical.ntriples_term` refuses the
+                # typed form outright, so this is a rule, not a convention.
+                asserted.add((resource, ATLAS.notation, Literal(notation)))
             if resource_row.status is not None:
-                asserted.add(
-                    (
-                        resource,
-                        ATLAS.recordStatus,
-                        Literal(resource_row.status, datatype=XSD.string),
-                    )
-                )
+                asserted.add((resource, ATLAS.recordStatus, Literal(resource_row.status)))
             if release.spec.emit_source_assignments:
                 _add_evidenced_assertion(
                     asserted,

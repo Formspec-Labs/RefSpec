@@ -263,7 +263,12 @@ def _epa_vocabulary_releases(root: Path) -> tuple[RegistryRelease, ...]:
                     "publisherConceptIdentityAvailable": False,
                 }
             ),
-            source_locator=f"{sample.tier_browse_url}#{row.source_path}",
+            # `row.source_path` is `Row[1]/Row[0]`; the brackets RFC 3987
+            # excludes from an IRI are percent-encoded here, exactly as the
+            # row IRI above already does. `/` stays raw -- it is legal in a
+            # fragment and keeps the path readable -- and `quote` encodes `%`
+            # itself, so the transform is invertible.
+            source_locator=f"{sample.tier_browse_url}#{quote(row.source_path, safe='/')}",
             source_digest=pin.sha256,
             definition=(row.definitions_text or "").strip() or None,
             notes=tuple(value for value in ((row.scope_note_text or "").strip(),) if value and value != "\xa0"),

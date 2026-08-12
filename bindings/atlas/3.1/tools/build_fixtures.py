@@ -3045,7 +3045,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def evidence_attested_at_not_datetime(fixture: Fixture) -> None:
         _replace_evidence_fact(
-            fixture, RKAF.attestedAt, Literal("2026-08-09", datatype=XSD.string)
+            fixture, RKAF.attestedAt, Literal("2026-08-09")
         )
 
     def evidence_function_unknown(fixture: Fixture) -> None:
@@ -3067,7 +3067,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.RelationAssertion))
         _remove_subject_predicate(fixture.asserted, assertion, RKAF.assertedAt)
         fixture.asserted.add(
-            (assertion, RKAF.assertedAt, Literal("2026-08-09", datatype=XSD.string))
+            (assertion, RKAF.assertedAt, Literal("2026-08-09"))
         )
 
     def release_membership_mode_unknown(fixture: Fixture) -> None:
@@ -3960,6 +3960,49 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             (record, ATLAS.sourceLocator, URIRef("https://user:pass@example.org/x"))
         )
 
+    def iri_forbidden_character(fixture: Fixture) -> None:
+        """Mint the locator form that reached a published pack unrefused.
+
+        `results.ad_hoc[7]` is the shape of a JSON-pointer-ish source path, and
+        7,770 `atlas:sourceLocator` IRIs carried its brackets raw: legal to
+        rdflib, refused by every strict RDF parser, because RFC 3987 reserves
+        `[`/`]` for an IP-literal host and excludes them everywhere else. The
+        producer now percent-encodes them at the mint; this case is the
+        validator's own independent refusal, so the class cannot come back
+        through some other adapter.
+        """
+
+        record = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord))
+        _remove_subject_predicate(fixture.asserted, record, ATLAS.sourceLocator)
+        fixture.asserted.add(
+            (
+                record,
+                ATLAS.sourceLocator,
+                URIRef("https://example.org/api.json#results.ad_hoc[7]"),
+            )
+        )
+
+    def literal_explicit_string_datatype(fixture: Fixture) -> None:
+        """Spell one simple literal the second way RDF 1.1 calls the same term.
+
+        `"AGENCY-001"` and `"AGENCY-001"^^xsd:string` are one term with two
+        serializations, so a wire that admits both gives one set of facts two
+        node digests and makes a `sh:in` list match only the spelling its
+        shapes file happens to use. The value is unchanged, so nothing but the
+        bytes moves -- which is exactly the property under test.
+        """
+
+        identifier = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
+        value = next(fixture.asserted.objects(identifier, ATLAS.identifierValue))
+        _remove_subject_predicate(fixture.asserted, identifier, ATLAS.identifierValue)
+        fixture.asserted.add(
+            (
+                identifier,
+                ATLAS.identifierValue,
+                Literal(str(value), datatype=XSD.string),
+            )
+        )
+
     return [
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
         ("rdf-literal-escaping", ["rdf", "dataset"], "valid", rdf_literal_escaping),
@@ -4422,6 +4465,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             source_accounting_unaccounted_assertion,
         ),
         ("iri-credentials", ["rdf"], "rdf.term", iri_credentials),
+        ("iri-forbidden-character", ["rdf"], "rdf.canonical", iri_forbidden_character),
+        (
+            "literal-explicit-string-datatype",
+            ["rdf"],
+            "rdf.canonical",
+            literal_explicit_string_datatype,
+        ),
     ]
 
 
