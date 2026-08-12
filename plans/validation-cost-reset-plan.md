@@ -311,12 +311,19 @@ never re-grows a local copy of anything the package exports.
    parse alone), ~1h wall budget, single beefy core beats many small ones
    (the pipeline is serial and memory-bound; naive multiprocess parsing
    multiplies the 18 GB, it does not divide the wall).
-4. **The phase table is incomplete and should be finished on a conforming
-   build.** Every phase after SHACL — node digests, projection, SKOS,
-   adjudication, reasoning isolation — never ran; their costs remain
-   estimates. After the fresh build, re-run the instrumented pass once to
-   complete the split. Informational, not blocking: the wire-format kills
-   stand on no-consumer grounds, not on cost.
+4. **The phase table is COMPLETE (2026-08-12, conforming 08-12 build —
+   the first full multi-scheme distribution to pass HEAD's binding
+   independently; 32,011,869 quads, 4,539.8s ≈ 75.7 min, 23.6 GB peak).**
+   Split: SHACL fast-path green 1,957s (43.1%); parse 1,373s (30.2%);
+   graph-roles 570s (12.6%); compact sample 209s + node digests 131s +
+   evidence/assertions 145s + accounting 87s ≈ 12%; SKOS integrity 5.2s;
+   adjudication 9.5s; reasoning isolation/derived/projection ~0 (empty
+   layers). Verdict: the integrity phases the reset's diagnosis blamed are
+   ~7.5% of acceptance — the wall is the SHACL engine + rdflib parse,
+   which is where kill-5's engine contingency already points and which
+   runs once per release. The wire cuts stand on no-consumer grounds, as
+   stated. The hand-written SKOS bitset machinery is measured at 0.1% —
+   structure that earned its keep.
 
 ## Target architecture: minimum required, by industry standard
 
@@ -548,6 +555,13 @@ measured under 60s; see the budget re-spec open item).
       the production builder — both framings die in the version-gated
       wire wave (builder wave 2 / 3.1 bump), fixture side rides the
       fixtures-reframe wave only if wire-invisible.
+      (g) CROSS-REPO (stage-A finding, peer notified 2026-08-12): search
+      view 1.1's `graphFactsPreserved: True` drops the five warrant
+      fields without declaring them in `_OMITTED_FIELDS` — the sealed
+      false-claim class one layer out. Fix (declare or carry) moves the
+      search-view manifest → 1.2 bump → SpicySearch's exact-match
+      admission pin. SpicySearch's decision; RefSpec side ready either
+      way (full view 2.0 carries the columns).
 - [ ] Reconcile the ledger's five-axis "duplication in model.py" note with
       the code (one definition found; generator imports it).
 - [x] **Next campaign SCOPED (v3.6, 2026-08-12; full map in the session's
