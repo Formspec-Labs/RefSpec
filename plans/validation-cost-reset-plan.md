@@ -600,8 +600,10 @@ measured under 60s; see the budget re-spec open item).
       Interoperability bug in a distribution whose story is
       consumability. Builder-side fix (mint conformant IRIs) re-mints
       7,770 nodes; nothing 3.1 is published yet, so a pre-publication
-      amendment is free by the plan's own no-consumer logic. DECISION
-      HELD for the Jena spike's corroboration.
+      amendment is free by the plan's own no-consumer logic. DECIDED
+      (owner, 2026-08-12): fix now, builder-side, in the pre-publication
+      window — with strict-IRI refusal added to the canonical profile so
+      the class cannot recur, and its negative corpus case per the rule.
       (i) WIRE DEFECT (same spike): the node-digest scheme is not
       invariant under RDF 1.1 term equality — `"x"` vs `"x"^^xsd:string`
       (2.27M vs 1.52M occurrences, pack-correlated by adapter) are the
@@ -609,8 +611,11 @@ measured under 60s; see the budget re-spec open item).
       diverges from W3C canonical N-Triples (simple form mandated).
       Normalizing to the simple form fixes the digest scheme, aligns the
       profile with the standard, and is the precondition for any future
-      strict-substrate round-trip. Same pre-publication window as (h);
-      DECISION HELD with it.
+      strict-substrate round-trip. DECIDED (owner, 2026-08-12): normalize
+      the wire to the SIMPLE form (W3C canonical N-Triples direction) in
+      the same pre-publication amendment — builder mints plain literals,
+      the canonical profile refuses explicit `^^xsd:string`, negative
+      corpus case added. This is also the engine-parity precondition.
       (j) BANKED WIN (same spike, measured): the canonicality proof
       re-expressed on raw bytes = 49.07s full-scale vs ~287s in the
       parser subclass, zero rejections over 29.3M real lines, no new
@@ -642,6 +647,33 @@ measured under 60s; see the budget re-spec open item).
       found: `_check_explorer_reachability` is dead code at
       validate.py:7414 (never called; its gate was replaced by
       record-ownership in cb10a8e8) — delete at next validator pass.
+      **Jena spike COMPLETED (2026-08-12) — measured NO-GO today, door
+      stays open, one flip condition promoted to blocker.** Parity PASSED
+      (conforming + 4 injected defect classes + a SHACL-SPARQL shape,
+      identical verdicts after canonicalization; the sh:closed and
+      literal-identity suspects both tested clean). riot parses at
+      800–900k quads/s (43×) and warns-not-refuses the bracket IRIs. BUT:
+      full-scale Jena did not finish in 51 min against the 31 it would
+      replace — cost concentrates in sh:class over 590k-instance extents
+      (not memory, not parse; strong lead, cleanly isolating it was
+      interrupted) — and the honest post-xone-lift staging ratio is only
+      3.1×. Verdict: keep pySHACL; re-open only if sh:class scaling is
+      resolved on a dedicated runner OR boundary-collapse move 2 commits
+      to compiler-emitted SHACL-SPARQL — where Jena measured **~100×**
+      (3.3s vs 332s for one shape at staging), making that commitment a
+      PRE-COMMIT BLOCKER on move 2: emitting sh:sparql IS choosing Jena.
+      Engine-neutral improvements to land regardless (queued behind the
+      wire-hygiene wave; same validate.py region): derive violation
+      components from the report graph's sh:sourceConstraintComponent
+      instead of the regex over pySHACL's text rendering (a hidden engine
+      coupling), and adopt the report-canonicalization rules (sort by
+      focusNode/resultPath/component — never sourceShape, which Jena
+      leaves anonymous; drop resultMessage; never digest a report graph).
+      Integration notes preserved in the spike worktree
+      (agent-a7937c98dc15549c2/jena-spike/, reproducible end-to-end):
+      Jena exits 0 with violations (read sh:conforms), the assembled
+      union view is not byte-stable (digest packs + pins, never the
+      view), and an engine pin belongs inside bindingBundleDigest.
 - [ ] Reconcile the ledger's five-axis "duplication in model.py" note with
       the code (one definition found; generator imports it).
 - [x] **Next campaign SCOPED (v3.6, 2026-08-12; full map in the session's
