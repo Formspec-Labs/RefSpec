@@ -90,9 +90,10 @@ TYPE_REQUIREMENTS = {
 # rkaf's closed usage-eligibility lattice (usage-eligibility.cue), imported
 # from the packaged contract rather than re-declared here. Order is
 # normative -- it ascends from the lowest ceiling to the highest -- so this
-# tuple, not just the set it also defines, is the shared source both the
-# OutputProfile builder (vocabulary.py) and the accepted-output gate
-# (accepted_output.py) import rather than re-declaring.
+# tuple, not just the set it also defines, is the shared source the
+# OutputProfile builder (vocabulary.py) imports rather than re-declaring.
+# (The accepted-output gate that also imported it is archived; see the
+# governance-archive entry in docs/decisions.md.)
 USAGE_ELIGIBILITY_ORDER = USAGE_ELIGIBILITY
 USAGE_ELIGIBILITY_VALUES = frozenset(USAGE_ELIGIBILITY_ORDER)
 USAGE_ELIGIBILITY_RANK = {

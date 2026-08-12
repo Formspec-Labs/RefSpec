@@ -13,15 +13,12 @@ except PackageNotFoundError:  # pragma: no cover - direct source-tree import
 
 
 __all__ = [
-    "CANDIDATE_EXCLUDED_SOURCE_STATUSES",
     "CANONICAL_JSON_POLICY",
     "CONCEPT_EVENT_PARTICIPANT_COLUMNS",
     "CONCEPT_LABEL_COLUMNS",
     "CONCEPT_RELATION_COLUMNS",
     "MAPPING_IMPORT_REQUIRED_FEATURES",
     "REQUIRED_IMPORT_FEATURES",
-    "AcceptedOutputAuthorization",
-    "AcceptedOutputAuthorizationError",
     "ConceptEventParticipant",
     "ConceptLabel",
     "ConceptRelation",
@@ -34,7 +31,6 @@ __all__ = [
     "IndexedVocabularyExpression",
     "LegacyMigrationBatch",
     "ManagedReleaseAuthorizationError",
-    "ManagedReleaseCandidatePermission",
     "ManagedReleaseConceptMapping",
     "ManagedReleaseError",
     "ManagedReleaseExpression",
@@ -54,7 +50,6 @@ __all__ = [
     "__version__",
     "adapt_source_terms_for_migration",
     "assert_managed_vocabulary_row_integrity",
-    "authorize_accepted_assignment",
     "bind_ranked_candidates",
     "canonical_payload_digest",
     "canonical_text_digest",
@@ -75,26 +70,26 @@ __all__ = [
     "seal_payload",
 ]
 
-# Governance workflow modules (accepted_output, managed_release, vocabulary --
-# and, transitively, binding and release_graph) are heavy and unexercised by
+# Governance workflow modules (managed_release, vocabulary -- and,
+# transitively, binding and release_graph) are heavy and unexercised by
 # the build path; importing them eagerly here would defeat the point of
 # splitting refspec.release_model out from underneath them. Every name below
 # is resolved lazily, on first attribute access, per PEP 562. Object identity
 # is preserved: `refspec.X` is exactly `refspec.<owning module>.X`, the same
 # object, not a copy -- this module only defers *when* the owning module
 # loads, never *what* the attribute is.
-_ACCEPTED_OUTPUT_EXPORTS = frozenset(
+#
+# release_model is cheap to import, but it is listed here too so that every
+# public name resolves through one table. ManagedReleaseAuthorizationError
+# is owned by release_model and, since the candidate-use workflow was
+# archived, is no longer re-imported by managed_release.
+_RELEASE_MODEL_EXPORTS = frozenset(
     {
-        "AcceptedOutputAuthorization",
-        "AcceptedOutputAuthorizationError",
-        "authorize_accepted_assignment",
+        "ManagedReleaseAuthorizationError",
     }
 )
 _MANAGED_RELEASE_EXPORTS = frozenset(
     {
-        "CANDIDATE_EXCLUDED_SOURCE_STATUSES",
-        "ManagedReleaseAuthorizationError",
-        "ManagedReleaseCandidatePermission",
         "ManagedReleaseConceptMapping",
         "ManagedReleaseError",
         "ManagedReleaseExpression",
@@ -155,8 +150,8 @@ _VOCABULARY_EXPORTS = frozenset(
 )
 
 _LAZY_MODULE_BY_NAME: dict[str, str] = {}
-for _name in _ACCEPTED_OUTPUT_EXPORTS:
-    _LAZY_MODULE_BY_NAME[_name] = "refspec.accepted_output"
+for _name in _RELEASE_MODEL_EXPORTS:
+    _LAZY_MODULE_BY_NAME[_name] = "refspec.release_model"
 for _name in _MANAGED_RELEASE_EXPORTS:
     _LAZY_MODULE_BY_NAME[_name] = "refspec.managed_release"
 for _name in _VOCABULARY_EXPORTS:

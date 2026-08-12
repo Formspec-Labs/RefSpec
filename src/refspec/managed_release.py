@@ -80,8 +80,6 @@ from refspec.release_model import (
     CONCEPT_EVENT_PARTICIPANT_COLUMNS,
     CONCEPT_LABEL_COLUMNS,
     CONCEPT_RELATION_COLUMNS,
-    ManagedReleaseAuthorizationError,
-    ManagedReleaseCandidatePermission,
     ManagedReleaseConceptMapping,
     ManagedReleaseError,
     ManagedReleaseExpression,
@@ -175,28 +173,11 @@ _NATIVE_IDENTITY_PROPERTIES = {
     "dct:replaces": "http://purl.org/dc/terms/replaces",
     "http://purl.org/dc/terms/replaces": "http://purl.org/dc/terms/replaces",
 }
-CANDIDATE_EXCLUDED_SOURCE_STATUSES = frozenset(
-    {
-        "deprecated",
-        "inactive",
-        "withdrawn",
-    }
-)
-_CURRENT_ASSIGNMENT_RETIRING_OPERATIONS = frozenset(
-    {
-        "deprecation",
-        "withdrawal",
-        "replacement",
-        "split",
-        "merge",
-    }
-)
 _RELATION_PROPERTIES = {
     "http://www.w3.org/2004/02/skos/core#broader": "skos:broader",
     "http://www.w3.org/2004/02/skos/core#narrower": "skos:narrower",
     "http://www.w3.org/2004/02/skos/core#related": "skos:related",
 }
-_ELSST_NATIVE_SKOS_IMPORT_POLICY = "urn:ref:policy:elsst-native-skos-lossless:v1"
 
 
 def _freeze(value: Any) -> Any:
@@ -1213,8 +1194,8 @@ class ManagedReleaseGraphFactsView:
     artifact digest, the complete Rulespec graph and membership, linked REF
     records, embedded dependency, and combined gate receipt.  It deliberately
     stream-hashes but does not parse the indexed-expression corpus or normalized
-    tables.  Callers that need expressions, table rows, source bytes, or
-    candidate-use authorization must use :class:`ManagedReleaseView`.
+    tables.  Callers that need expressions, table rows, or source bytes must
+    use :class:`ManagedReleaseView`.
     """
 
     _release_id: str
@@ -1287,8 +1268,9 @@ class ManagedReleaseGraphFactsView:
 class ManagedReleaseView:
     """Read-only member, expression, relation, lifecycle, and mapping access.
 
-    Expressions retain raw evidence access separately from current-assignment
-    candidate access. Relations and lifecycle participants are byte-pinned
+    Expressions are returned as raw evidence; this reader draws no
+    current-assignment conclusion from them. Relations and lifecycle
+    participants are byte-pinned
     normalized rows that round-trip to the exact graph. Concept mappings come
     directly from that graph. Their Rulespec meaning is accepted only through
     the matching ``ReleaseGraphValidationReceipt``; this reader does not
@@ -2543,228 +2525,6 @@ class ManagedReleaseView:
                 f"managed release has no packaged source artifact {source_artifact_iri!r}"
             ) from error
 
-    def require_candidate_use(
-        self,
-        *,
-        facet_iri: str,
-        assignment_role_iri: str,
-        resource_route: str,
-    ) -> ManagedReleaseCandidatePermission:
-        """Resolve one complete candidate-use row from the selected release.
-
-        RefSpec owns this decision.  Consumers may request a tuple, but they
-        cannot assemble values from separate rows or relabel release members
-        with a caller-supplied facet.
-        """
-
-        for value, label in (
-            (facet_iri, "facet_iri"),
-            (assignment_role_iri, "assignment_role_iri"),
-        ):
-            if not isinstance(value, str) or not _ABSOLUTE_IRI.fullmatch(value):
-                raise ManagedReleaseAuthorizationError(
-                    f"{label} must be an absolute IRI"
-                )
-        if not isinstance(resource_route, str) or not resource_route:
-            raise ManagedReleaseAuthorizationError(
-                "resource_route must be non-empty text"
-            )
-
-        selected = [
-            record
-            for record in self._records_by_id.values()
-            if record.get("type") == "urn:ref:type:RegistryDeploymentDecision"
-            and record.get("selectionState") == "selected"
-        ]
-        if len(selected) != 1:
-            raise ManagedReleaseAuthorizationError(
-                "candidate use requires exactly one selected RegistryDeploymentDecision in the managed release"
-            )
-        deployment = selected[0]
-
-        def resolve(
-            reference: object,
-            *,
-            label: str,
-            record_type: str,
-        ) -> Mapping[str, Any]:
-            if not isinstance(reference, Mapping):
-                raise ManagedReleaseAuthorizationError(
-                    f"{label} is not an exact record reference"
-                )
-            identifier = reference.get("id")
-            record = (
-                self._records_by_id.get(identifier)
-                if isinstance(identifier, str)
-                else None
-            )
-            if (
-                record is None
-                or record.get("type") != record_type
-                or not binding.references_record(
-                    dict(reference),
-                    dict(record),
-                )
-            ):
-                raise ManagedReleaseAuthorizationError(
-                    f"{label} does not resolve to the exact selected {record_type}"
-                )
-            return record
-
-        output_profile = resolve(
-            deployment.get("outputProfile"),
-            label="RegistryDeploymentDecision.outputProfile",
-            record_type="urn:ref:type:OutputProfile",
-        )
-        enrichment_profile = resolve(
-            output_profile.get("enrichmentProfile"),
-            label="OutputProfile.enrichmentProfile",
-            record_type="urn:ref:type:EnrichmentProfile",
-        )
-        coverage_report = resolve(
-            deployment.get("coverageReport"),
-            label="RegistryDeploymentDecision.coverageReport",
-            record_type="urn:ref:type:RegistryImportCoverageReport",
-        )
-
-        facets = enrichment_profile.get("facets")
-        facet_rows = (
-            [
-                row
-                for row in facets
-                if isinstance(row, Mapping) and row.get("iri") == facet_iri
-            ]
-            if isinstance(facets, Sequence)
-            else []
-        )
-        if len(facet_rows) != 1:
-            raise ManagedReleaseAuthorizationError(
-                f"facet {facet_iri!r} is not defined exactly once by the selected EnrichmentProfile"
-            )
-        facet = facet_rows[0]
-        if assignment_role_iri not in facet.get(
-            "compatibleAssignmentPredicates",
-            (),
-        ):
-            raise ManagedReleaseAuthorizationError(
-                f"assignment role {assignment_role_iri!r} is incompatible with facet {facet_iri!r}"
-            )
-        if resource_route not in facet.get(
-            "compatibleResourceRoutes",
-            (),
-        ):
-            raise ManagedReleaseAuthorizationError(
-                f"resource route {resource_route!r} is incompatible with facet {facet_iri!r}"
-            )
-
-        release_reference = deployment.get("referenceResourceRelease")
-        import_reference = deployment.get("registryImportSnapshot")
-        import_snapshot = resolve(
-            import_reference,
-            label="RegistryDeploymentDecision.registryImportSnapshot",
-            record_type=_IMPORT_SNAPSHOT_TYPE,
-        )
-        if deployment.get("rightsAssessment") != import_snapshot.get(
-            "rightsAssessment"
-        ) or deployment.get("adoptedPolicyRefs") != import_snapshot.get(
-            "adoptedPolicyRefs"
-        ):
-            raise ManagedReleaseAuthorizationError(
-                "selected deployment rights and adopted policies differ from its exact import snapshot"
-            )
-        if import_snapshot.get("referenceResourceRelease") != release_reference:
-            raise ManagedReleaseAuthorizationError(
-                "selected import snapshot does not pin the deployment release"
-            )
-        permissions = output_profile.get("releasePermissions")
-        matches = (
-            [
-                row
-                for row in permissions
-                if isinstance(row, Mapping)
-                and row.get("facet") == facet_iri
-                and row.get("assignmentRole") == assignment_role_iri
-                and row.get("referenceResourceRelease") == release_reference
-                and row.get("registryImportSnapshot") == import_reference
-            ]
-            if isinstance(permissions, Sequence)
-            else []
-        )
-        if len(matches) != 1 or matches[0].get("candidateUse") is not True:
-            raise ManagedReleaseAuthorizationError(
-                "candidate authorization must match exactly one complete "
-                "selected OutputProfile releasePermissions row with "
-                "candidateUse=true"
-            )
-        permission = matches[0]
-
-        if (
-            coverage_report.get("reportStatus") != "pass"
-            or coverage_report.get("outputProfile") != deployment.get("outputProfile")
-            or coverage_report.get("referenceResourceRelease") != release_reference
-            or coverage_report.get("registryImportSnapshot") != import_reference
-        ):
-            raise ManagedReleaseAuthorizationError(
-                "candidate authorization requires the selected passing "
-                "coverage report for the exact profile, release, and import"
-            )
-        required = permission.get("requiredImportFeatures")
-        if (
-            not isinstance(required, Sequence)
-            or isinstance(required, (str, bytes))
-            or not required
-            or any(not isinstance(value, str) for value in required)
-        ):
-            raise ManagedReleaseAuthorizationError(
-                "candidate permission has invalid requiredImportFeatures"
-            )
-        feature_rows = coverage_report.get("features")
-        covered = (
-            {
-                row.get("feature"): row
-                for row in feature_rows
-                if isinstance(row, Mapping)
-            }
-            if isinstance(feature_rows, Sequence)
-            else {}
-        )
-        missing_or_failed = [
-            feature
-            for feature in required
-            if feature not in covered
-            or covered[feature].get("requiredForCandidateOrOutput") is not True
-            or covered[feature].get("failedCount") != 0
-            or covered[feature].get("indexedCount")
-            != covered[feature].get("parsedCount")
-        ]
-        if missing_or_failed:
-            raise ManagedReleaseAuthorizationError(
-                f"candidate permission lacks passing exact import coverage for {sorted(missing_or_failed)!r}"
-            )
-
-        return ManagedReleaseCandidatePermission(
-            facet_iri=facet_iri,
-            assignment_role_iri=assignment_role_iri,
-            resource_route=resource_route,
-            reference_resource_release=cast(
-                Mapping[str, Any],
-                _freeze(release_reference),
-            ),
-            registry_import_snapshot=cast(
-                Mapping[str, Any],
-                _freeze(import_reference),
-            ),
-            required_import_features=tuple(cast(Sequence[str], required)),
-            permission_row=cast(
-                Mapping[str, Any],
-                _freeze(permission),
-            ),
-            output_profile=output_profile,
-            enrichment_profile=enrichment_profile,
-            coverage_report=coverage_report,
-            registry_deployment=deployment,
-        )
-
     def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None:
         """Return one exact release member; no label or normalized lookup."""
 
@@ -2836,116 +2596,6 @@ class ManagedReleaseView:
 
         for expression in self._expressions:
             if member_iri is None or expression.member_iri == member_iri:
-                yield expression
-
-    def iter_candidate_expressions(
-        self,
-        *,
-        facet_iri: str,
-        assignment_role_iri: str,
-        resource_route: str,
-        member_iri: str | None = None,
-    ) -> Iterator[ManagedReleaseExpression]:
-        """Iterate current-assignment expressions after exact authorization.
-
-        Source status is opaque import data. The reference runtime applies only
-        a conservative exclusion rule: canonical ``deprecated``, ``inactive``,
-        and ``withdrawn`` tokens remove a concept from candidate iteration.
-        More than one normalized status token for one concept is ambiguous and
-        also removes that concept. An exact Rulespec lifecycle predecessor in a
-        deprecation, withdrawal, replacement, split, or merge is also excluded.
-        Promotion and demotion are not treated as retirement operations.
-        Neither an unrecognized token nor a non-excluded token grants access;
-        the exact selected candidate-use permission remains mandatory.
-        Only expressions whose release and import references exactly match
-        that permission are considered.
-        """
-
-        permission = self.require_candidate_use(
-            facet_iri=facet_iri,
-            assignment_role_iri=assignment_role_iri,
-            resource_route=resource_route,
-        )
-        permission_expressions: list[tuple[ManagedReleaseExpression, str]] = []
-        for expression in self._expressions:
-            release_reference = expression.record.get("referenceResourceRelease")
-            import_reference = expression.record.get("registryImportSnapshot")
-            if (
-                not isinstance(release_reference, Mapping)
-                or not isinstance(import_reference, Mapping)
-                or release_reference != permission.reference_resource_release
-                or import_reference != permission.registry_import_snapshot
-            ):
-                continue
-            release_iri = release_reference.get("id")
-            if isinstance(release_iri, str):
-                permission_expressions.append((expression, release_iri))
-        statuses_by_member_release: dict[tuple[str, str], set[str]] = {}
-        for expression, release_iri in permission_expressions:
-            if expression.source_status is None:
-                continue
-            statuses_by_member_release.setdefault(
-                (expression.member_iri, release_iri),
-                set(),
-            ).add(expression.source_status.strip().casefold())
-        excluded_member_releases = {
-            candidate_member_release
-            for candidate_member_release, statuses in statuses_by_member_release.items()
-            if (
-                len(statuses) != 1
-                or not statuses.isdisjoint(CANDIDATE_EXCLUDED_SOURCE_STATUSES)
-            )
-        }
-        excluded_member_releases.update(
-            (participant.member_iri, participant.release_iri)
-            for participant in self._lifecycle_participants
-            if (
-                participant.participant_role == "predecessor"
-                and participant.operation in _CURRENT_ASSIGNMENT_RETIRING_OPERATIONS
-            )
-        )
-        import_snapshot_record = self._records_by_id.get(
-            permission.registry_import_snapshot.get("id")
-        )
-        adopted_policy_refs = (
-            import_snapshot_record.get("adoptedPolicyRefs")
-            if isinstance(import_snapshot_record, Mapping)
-            else None
-        )
-        if (
-            isinstance(adopted_policy_refs, Sequence)
-            and not isinstance(adopted_policy_refs, (str, bytes))
-            and _ELSST_NATIVE_SKOS_IMPORT_POLICY in adopted_policy_refs
-        ):
-            selected_release_iri = permission.reference_resource_release.get("id")
-            for member in self._members.values():
-                if member.release_iri != selected_release_iri:
-                    continue
-                native_status = member.record.get(
-                    "owl:deprecated",
-                    member.record.get("http://www.w3.org/2002/07/owl#deprecated"),
-                )
-                status_values = (
-                    (native_status,)
-                    if isinstance(native_status, str)
-                    else (
-                        tuple(native_status)
-                        if isinstance(native_status, Sequence)
-                        and not isinstance(native_status, (str, bytes))
-                        else ()
-                    )
-                )
-                if any(value in {"true", "1"} for value in status_values):
-                    excluded_member_releases.add(
-                        (member.member_iri, member.release_iri)
-                    )
-        for expression, release_iri in permission_expressions:
-            if (
-                expression.member_iri,
-                release_iri,
-            ) not in excluded_member_releases and (
-                member_iri is None or expression.member_iri == member_iri
-            ):
                 yield expression
 
     def iter_relations(

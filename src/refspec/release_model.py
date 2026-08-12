@@ -1,8 +1,8 @@
 """The release data model the atlas build path pins against.
 
 RefSpec's governance workflow modules — :mod:`refspec.binding`,
-:mod:`refspec.release_graph`, :mod:`refspec.managed_release`,
-:mod:`refspec.vocabulary`, and :mod:`refspec.accepted_output` — grew around
+:mod:`refspec.release_graph`, :mod:`refspec.managed_release`, and
+:mod:`refspec.vocabulary` — grew around
 this model rather than the other way round, so the build path could not reach
 the model without importing the workflow. This module holds the model on its
 own: the canonical JSON primitives every digest is computed with, the
@@ -17,8 +17,8 @@ permission.
 That one-way source dependency is necessary but was not, by itself,
 sufficient for ``import refspec.release_model`` to skip loading the
 governance modules: importing a submodule first imports its parent package,
-and ``refspec/__init__.py`` used to import ``accepted_output``,
-``managed_release``, and ``vocabulary`` eagerly at module scope. Those three
+and ``refspec/__init__.py`` used to import ``managed_release`` and
+``vocabulary`` eagerly at module scope. Those two
 (and, transitively, ``binding`` and ``release_graph``) are now resolved
 lazily via a module-level ``__getattr__`` (PEP 562) on ``refspec/__init__.py``,
 so ``import refspec.release_model`` no longer pulls them into
@@ -294,25 +294,3 @@ class ManagedReleaseConceptMapping:
     source_release_iri: str
     target_release_iri: str
     record: Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedReleaseCandidatePermission:
-    """One exact candidate-use permission resolved by RefSpec.
-
-    This value is an immutable view of the selected registry deployment, its
-    OutputProfile row, and the matching EnrichmentProfile route.  It grants no
-    accepted-output authority.
-    """
-
-    facet_iri: str
-    assignment_role_iri: str
-    resource_route: str
-    reference_resource_release: Mapping[str, Any]
-    registry_import_snapshot: Mapping[str, Any]
-    required_import_features: tuple[str, ...]
-    permission_row: Mapping[str, Any]
-    output_profile: Mapping[str, Any]
-    enrichment_profile: Mapping[str, Any]
-    coverage_report: Mapping[str, Any]
-    registry_deployment: Mapping[str, Any]

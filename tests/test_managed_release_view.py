@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import FrozenInstanceError, replace
+from dataclasses import FrozenInstanceError
 from pathlib import Path
-from types import MappingProxyType
 
 import pyarrow.parquet as pq
 import pytest
@@ -14,7 +13,6 @@ import pytest
 import refspec.managed_release as managed_release_module
 import refspec.release_graph as release_graph_module
 from refspec import (
-    ManagedReleaseAuthorizationError,
     ManagedReleaseError,
     ManagedReleaseGraphFactsView,
     ManagedReleaseView,
@@ -63,8 +61,6 @@ CONFORMANCE_RESULT_ID = "urn:test:rulespec-conformance-result:subjects:v1"
 COMBINED_RECEIPT_ID = "urn:test:combined-validation-receipt:subjects:v1"
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
-GENERAL_SUBJECT_FACET_IRI = "urn:ref:facet:general-subject"
-ASSIGNMENT_PRIMARY_IRI = "https://rulespec.org/ns/v1#assignmentPrimary"
 RELEASE_DIGEST = (
     "sha256:999bb800008a7d517d4f0269304358d79a10925f21d13ea9376b0eee1feda431"
 )
@@ -105,118 +101,6 @@ def _open_graph_facts(path: Path) -> ManagedReleaseGraphFactsView:
     return ManagedReleaseGraphFactsView.open(
         path,
         expected_manifest_digest=_manifest_digest(path),
-    )
-
-
-def _with_selected_candidate_permission(
-    view: ManagedReleaseView,
-) -> ManagedReleaseView:
-    release_reference = {
-        "id": RELEASE_ID,
-        "version": "2026.07.28",
-        "digest": RELEASE_DIGEST,
-    }
-    import_snapshot = dict(view._records_by_id[IMPORT_ID])
-    import_reference = {
-        "id": IMPORT_ID,
-        "digest": import_snapshot["canonicalPayloadDigest"],
-    }
-    enrichment_profile = {
-        "id": "urn:test:enrichment-profile:subjects:v1",
-        "type": "urn:ref:type:EnrichmentProfile",
-        "contentDigest": DIGEST_A,
-        "facets": [
-            {
-                "iri": GENERAL_SUBJECT_FACET_IRI,
-                "compatibleAssignmentPredicates": [ASSIGNMENT_PRIMARY_IRI],
-                "compatibleResourceRoutes": ["document"],
-            }
-        ],
-    }
-    output_profile = {
-        "id": "urn:test:output-profile:subjects:v1",
-        "type": "urn:ref:type:OutputProfile",
-        "contentDigest": DIGEST_B,
-        "enrichmentProfile": {
-            "id": enrichment_profile["id"],
-            "digest": enrichment_profile["contentDigest"],
-        },
-        "releasePermissions": [
-            {
-                "facet": GENERAL_SUBJECT_FACET_IRI,
-                "assignmentRole": ASSIGNMENT_PRIMARY_IRI,
-                "referenceResourceRelease": release_reference,
-                "registryImportSnapshot": import_reference,
-                "candidateUse": True,
-                "acceptedOutputUse": False,
-                "requiredImportFeatures": ["labels", "status"],
-            }
-        ],
-    }
-    coverage_report = {
-        "id": "urn:test:coverage:subjects:v1",
-        "type": "urn:ref:type:RegistryImportCoverageReport",
-        "canonicalPayloadDigest": DIGEST_A,
-        "reportStatus": "pass",
-        "outputProfile": {
-            "id": output_profile["id"],
-            "digest": output_profile["contentDigest"],
-        },
-        "referenceResourceRelease": release_reference,
-        "registryImportSnapshot": import_reference,
-        "features": [
-            {
-                "feature": feature,
-                "requiredForCandidateOrOutput": True,
-                "parsedCount": 2,
-                "indexedCount": 2,
-                "failedCount": 0,
-            }
-            for feature in ("labels", "status")
-        ],
-    }
-    deployment = {
-        "id": "urn:test:registry-deployment:subjects:v1",
-        "type": "urn:ref:type:RegistryDeploymentDecision",
-        "canonicalPayloadDigest": DIGEST_B,
-        "selectionState": "selected",
-        "outputProfile": {
-            "id": output_profile["id"],
-            "digest": output_profile["contentDigest"],
-        },
-        "coverageReport": {
-            "id": coverage_report["id"],
-            "digest": coverage_report["canonicalPayloadDigest"],
-        },
-        "referenceResourceRelease": release_reference,
-        "registryImportSnapshot": import_reference,
-        "rightsAssessment": import_snapshot["rightsAssessment"],
-        "adoptedPolicyRefs": import_snapshot["adoptedPolicyRefs"],
-    }
-    return replace(
-        view,
-        _records_by_id=MappingProxyType(
-            {
-                str(record["id"]): MappingProxyType(record)
-                for record in (
-                    import_snapshot,
-                    enrichment_profile,
-                    output_profile,
-                    coverage_report,
-                    deployment,
-                )
-            }
-        ),
-    )
-
-
-def _candidate_expressions(
-    view: ManagedReleaseView,
-):
-    return view.iter_candidate_expressions(
-        facet_iri=GENERAL_SUBJECT_FACET_IRI,
-        assignment_role_iri=ASSIGNMENT_PRIMARY_IRI,
-        resource_route="document",
     )
 
 
@@ -812,33 +696,6 @@ def build_bundle(
     return manifest_path
 
 
-def _set_source_status(
-    manifest_path: Path,
-    *,
-    member_iri: str,
-    source_status: str,
-) -> None:
-    table_path = manifest_path.parent / "tables" / "concept_labels.parquet"
-    rows = pq.read_table(table_path).to_pylist()
-    matching_rows = [row for row in rows if row["concept_iri"] == member_iri]
-    assert matching_rows
-    for row in matching_rows:
-        row["status"] = source_status
-    write_parquet_rows(
-        table_path,
-        columns=CONCEPT_LABEL_COLUMNS,
-        rows=rows,
-    )
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    descriptor = next(
-        value
-        for value in manifest["normalizedTables"]
-        if value["name"] == "concept_labels"
-    )
-    descriptor.update(_descriptor(table_path, manifest_path.parent))
-    _write_json(manifest_path, manifest)
-
-
 def _replace_normalized_table(
     manifest_path: Path,
     *,
@@ -948,7 +805,6 @@ def test_graph_facts_view_matches_full_graph_and_members(tmp_path: Path) -> None
     assert facts.eligibility_scope == "graphFactsOnly"
     assert not hasattr(facts, "iter_expressions")
     assert not hasattr(facts, "source_artifact_bytes")
-    assert not hasattr(facts, "require_candidate_use")
 
 
 def test_graph_facts_never_constructs_expression_validator(
@@ -1153,204 +1009,6 @@ def test_graph_property_targets_are_indexed_once_per_node(
     assert index.iri_sequences[
         ("urn:test:b", "rkaf:predecessorConceptRelease")
     ] == ("urn:test:release",)
-
-
-def test_candidate_use_requires_selected_profile(tmp_path: Path) -> None:
-    manifest_path = build_bundle(tmp_path)
-    view = _open_view(manifest_path)
-
-    with pytest.raises(
-        ManagedReleaseAuthorizationError,
-        match="exactly one selected RegistryDeploymentDecision",
-    ):
-        view.require_candidate_use(
-            facet_iri=GENERAL_SUBJECT_FACET_IRI,
-            assignment_role_iri=ASSIGNMENT_PRIMARY_IRI,
-            resource_route="document",
-        )
-    with pytest.raises(
-        ManagedReleaseAuthorizationError,
-        match="exactly one selected RegistryDeploymentDecision",
-    ):
-        tuple(_candidate_expressions(view))
-
-
-@pytest.mark.parametrize(
-    ("field", "value"),
-    [
-        (
-            "rightsAssessment",
-            {
-                "id": "urn:test:rights-assessment:other:v1",
-                "digest": DIGEST_B,
-            },
-        ),
-        (
-            "adoptedPolicyRefs",
-            ["urn:test:policy:other-vocabulary-use:v1"],
-        ),
-    ],
-)
-def test_candidate_use_rejects_deployment_rights_that_differ_from_import(
-    tmp_path: Path,
-    field: str,
-    value: object,
-) -> None:
-    manifest_path = build_bundle(tmp_path)
-    view = _with_selected_candidate_permission(_open_view(manifest_path))
-    deployment = next(
-        record
-        for record in view._records_by_id.values()
-        if record.get("type") == "urn:ref:type:RegistryDeploymentDecision"
-    )
-    changed_deployment = dict(deployment)
-    changed_deployment[field] = value
-    records = dict(view._records_by_id)
-    records[str(deployment["id"])] = MappingProxyType(changed_deployment)
-    changed_view = replace(
-        view,
-        _records_by_id=MappingProxyType(records),
-    )
-
-    with pytest.raises(
-        ManagedReleaseAuthorizationError,
-        match="rights and adopted policies differ",
-    ):
-        tuple(_candidate_expressions(changed_view))
-
-
-def test_lifecycle_retirement_only_narrows_candidate_iteration(
-    tmp_path: Path,
-) -> None:
-    manifest_path = build_bundle(tmp_path)
-    view = _with_selected_candidate_permission(_open_view(manifest_path))
-
-    raw = tuple(view.iter_expressions(member_iri=MEMBER_ID))
-    candidates = tuple(_candidate_expressions(view))
-
-    assert raw[0].source_status == "current"
-    assert view.lookup_member(MEMBER_ID) is not None
-    assert MEMBER_ID not in {expression.member_iri for expression in candidates}
-    assert ELIGIBILITY_MEMBER_ID in {expression.member_iri for expression in candidates}
-
-
-@pytest.mark.parametrize(
-    "source_status",
-    ["deprecated", " InAcTiVe ", "WITHDRAWN"],
-)
-def test_source_status_excludes_only_from_candidate_iteration(
-    tmp_path: Path,
-    source_status: str,
-) -> None:
-    manifest_path = build_bundle(tmp_path)
-    _set_source_status(
-        manifest_path,
-        member_iri=ELIGIBILITY_MEMBER_ID,
-        source_status=source_status,
-    )
-    view = _with_selected_candidate_permission(_open_view(manifest_path))
-
-    raw = tuple(view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))
-    candidates = tuple(_candidate_expressions(view))
-
-    assert raw[0].label_role == "preferred"
-    assert raw[0].source_status == source_status
-    assert view.lookup_member(ELIGIBILITY_MEMBER_ID) is not None
-    assert ELIGIBILITY_MEMBER_ID not in {
-        expression.member_iri for expression in candidates
-    }
-
-
-def test_single_opaque_source_status_does_not_create_lifecycle_meaning(
-    tmp_path: Path,
-) -> None:
-    manifest_path = build_bundle(tmp_path)
-    _set_source_status(
-        manifest_path,
-        member_iri=ELIGIBILITY_MEMBER_ID,
-        source_status="publisher-status-7",
-    )
-    view = _with_selected_candidate_permission(_open_view(manifest_path))
-
-    candidates = tuple(_candidate_expressions(view))
-
-    eligibility = next(
-        expression
-        for expression in candidates
-        if expression.member_iri == ELIGIBILITY_MEMBER_ID
-    )
-    assert eligibility.source_status == "publisher-status-7"
-
-
-def test_candidate_iteration_uses_exact_permission_release_and_import(
-    tmp_path: Path,
-) -> None:
-    manifest_path = build_bundle(tmp_path)
-    view = _with_selected_candidate_permission(_open_view(manifest_path))
-    eligibility = next(view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))
-    other_release_record = dict(eligibility.record)
-    other_release_record["referenceResourceRelease"] = {
-        "id": "urn:test:release:subjects:v2",
-        "version": "2026.08.01",
-        "digest": DIGEST_B,
-    }
-    other_import_record = dict(eligibility.record)
-    other_import_record["registryImportSnapshot"] = {
-        "id": "urn:test:import:subjects:v2",
-        "digest": DIGEST_B,
-    }
-    extended_view = replace(
-        view,
-        _expressions=(
-            *tuple(view.iter_expressions()),
-            replace(
-                eligibility,
-                expression_id="urn:test:indexed-expression:other-release",
-                source_status="deprecated",
-                record=MappingProxyType(other_release_record),
-            ),
-            replace(
-                eligibility,
-                expression_id="urn:test:indexed-expression:other-import",
-                source_status="inactive",
-                record=MappingProxyType(other_import_record),
-            ),
-        ),
-    )
-
-    candidate_ids = {
-        expression.expression_id for expression in _candidate_expressions(extended_view)
-    }
-
-    assert ELIGIBILITY_EXPRESSION_ID in candidate_ids
-    assert "urn:test:indexed-expression:other-release" not in candidate_ids
-    assert "urn:test:indexed-expression:other-import" not in candidate_ids
-
-
-def test_mixed_source_statuses_fail_closed_for_one_concept(
-    tmp_path: Path,
-) -> None:
-    manifest_path = build_bundle(tmp_path)
-    view = _with_selected_candidate_permission(_open_view(manifest_path))
-    eligibility = next(view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))
-    mixed_view = replace(
-        view,
-        _expressions=(
-            *tuple(view.iter_expressions()),
-            replace(
-                eligibility,
-                expression_id="urn:test:indexed-expression:eligibility:alt",
-                source_status="publisher-status-7",
-            ),
-        ),
-    )
-
-    assert (
-        len(tuple(mixed_view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))) == 2
-    )
-    assert ELIGIBILITY_MEMBER_ID not in {
-        expression.member_iri for expression in _candidate_expressions(mixed_view)
-    }
 
 
 def test_indexed_expression_identity_includes_semantic_property() -> None:
