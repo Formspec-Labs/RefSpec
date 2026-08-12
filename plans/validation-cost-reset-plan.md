@@ -120,8 +120,13 @@ Release-workflow runner + artifact store: infrastructure, unblocks the
 weekly reproducible-rebuild job (whose remaining blockers after the
 recipeDigest deletion are exactly those two).
 
-**Spike worktrees (preserved evidence, reproducible; delete only after
-harvesting):**
+**Spike evidence — COMMITTED AS BRANCHES (2026-08-12):**
+`spike/oxigraph-substrate` (f81b3749) and `spike/jena-shacl` (028dd63b).
+The worktrees under .claude/worktrees/ hold the same branches checked out
+plus the gitignored heavy assets (pinned-binding copy; JDK/Jena
+downloads; regenerable data — bin/reproduce re-fetches by verified
+digest). The branches survive worktree cleanup; the notes below describe
+what each carries:
 - Oxigraph: `.claude/worktrees/agent-a9301012cdaa44814/spike/` —
   scripts q1_parse.py..q7_bytes_are_enough.py, the IRI-escape ETL,
   `measurements.jsonl` (all raw numbers), pinned venv (pyoxigraph 0.5.9,
