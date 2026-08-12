@@ -325,6 +325,31 @@ never re-grows a local copy of anything the package exports.
    stated. The hand-written SKOS bitset machinery is measured at 0.1% —
    structure that earned its keep.
 
+   **Inside-the-phases trace (fable, live-sampled + staging-profiled,
+   2026-08-12, 3.1 run ≈62 min):** ~67% of the SHACL phase (~21 min of the
+   hour) is the warrant `sh:xone` evaluated by engine trial — ~3.5M branch
+   validations, five of six failing by design, each minting a discarded
+   pretty-printed report. The guarantee is a six-entry frozenset; the lift
+   pattern exists in-code (`_can_lift_relation_ring_context`), A/B measured
+   151× at staging. Parse = 60% rdflib substrate + 28% canonicality proof
+   (KEEP — it carries the consumer's identity digests) + 12% bookkeeping.
+   graph-roles' 500s is CPU-bound store iteration; half folds into the
+   parse observer. Sanctioned optimizations (kill-5 pattern, no new
+   decision): xone lift (−~21 min), gc.freeze after parse (−1-2 min),
+   graph-roles sweep fold (−~4 min) → **62 → ~37 min**; the residual floor
+   is rdflib, and only the pre-approved kill-5 subprocess engine goes
+   below it — not needed at once-per-release frequency.
+   **IMPLEMENTED and measured at staging (2026-08-12): total 91→53s
+   (−42%), SHACL −68% (xone lifted by parsing the branch table off the
+   wire — semantics never restated; a drifted shape refuses the lift
+   loudly and falls back to the engine; the pinned signature must move
+   WITH any future warrant-model amendment), graph-roles −79% (parse
+   observer, same codes/messages, failure order now deterministic),
+   peak RSS −37%. Corpus byte-unchanged; all 47 shacl.data cases agree
+   across fail-fast/audit/published components. Projected full scale:
+   ~32–36 min. Engine-door spikes (oxigraph substrate, Jena SHACL) are
+   measuring the rungs below in parallel worktrees.**
+
 ## Target architecture: minimum required, by industry standard
 
 | Actual feature | Standard carrier | Bespoke remainder |
