@@ -1105,3 +1105,78 @@ own checks. Carrying `Label.id` on the wire removes the disagreement at its
 source rather than reconciling it afterward. This entry changes the day the
 search view stops carrying a canonical label identity; a consumer finding that
 identifier inconvenient is not that day.
+
+### REF-026: Build, prove once, sign, serve — the validation cost reset
+
+- **Date:** 2026-08-12
+- **Status:** Accepted; carried by
+  [plans/validation-cost-reset-plan.md](../plans/validation-cost-reset-plan.md)
+  (v3.5), which holds the measurements, review verdicts, and kill-list this
+  entry ratifies rather than restates.
+
+**The system is four verbs.** Build a vocabulary distribution; prove semantic
+conformance once, at build; sign the result; serve it (Parquet → SpicySearch).
+Structure not serving one of those verbs is guilty until a running consumer is
+named. The prior regime re-derived everything everywhere: measured on the
+32M-quad distribution, independent validation cost ~2h on one core (78% SHACL,
+21% rdflib parse, transport integrity 0.25s), a red build spent 94 minutes
+phrasing a report the fast path had already detected, and reader-side
+re-verification had already drifted (11 gates in the explorer against the
+validator's 13) — independent re-implementation reduces assurance over time.
+
+**The seal.** A distribution is sealed by a detached OpenSSH signature beside
+it whose payload binds the manifest digest and the acceptance-receipt digest,
+so verifying the seal transitively attests that acceptance ran, with which
+gates, on these bytes. `verify_seal` is normatively signature + strict
+structural read + manifest digest + acceptance digest + symlink/type sweep +
+pinned walk of every member, pack, and compact pack + closed-membership
+comparison — measured at 0.5s over 1.141 GB. Consumers verify the seal;
+they do not re-run the producer's gates. Key custody: offline ed25519 per
+docs/seal-design.md §2 (Sigstore is the documented upgrade path). The
+independent control in a single-maintainer topology is the scheduled
+reproducible rebuild plus one full-validator run against a shipped artifact.
+This entry is the identifier the SpicySearch plan cites to adopt
+`verify_seal` at its admission seam.
+
+**Frequency follows trust boundaries.** Full validation runs at build
+acceptance (release workflow; ≥32 GB runner), audit (scheduled), and contract
+change — not per read. Red builds fail fast from the batched path's own miss
+detection (focused re-validation, cross-mode-equivalent over all 115 negative
+cases; audit mode preserved by env var); a kind-covering `--smoke` sample
+(92s at full scale) precedes any full pass. The dev suite carries a
+wall-clock budget (warn >60s, runaway fail 240s; the 120s line arms when the
+suite is next under 60s).
+
+**The rulespec boundary is a package, not a checkout.** Decided package-only,
+no monorepo: `rulespec-conformance` ships the compiled schemas, SHACL,
+context, closed enums, and the 859-term rkaf registry as importable data;
+the eligibility-lattice copies became one import, the vocabulary currency
+test now scans against the packaged registry, and the checkout gate is
+deleted. An unknown rkaf term is an ImportError at build —
+fix-by-construction replacing detection. Guardrails: rulespec stays generic;
+rkaf remains the single ontology; RefSpec keeps no local copy of anything
+the package exports.
+
+**The operatorAdoption warrant carries an optional referent** (owner
+decision, 2026-08-11, after a read-only forensic packet). The obligation that
+an adoption name a prior Atlas attestation was introduced with fixtures but
+no producer able to satisfy it, tightened an upstream-optional rkaf field,
+and canonized as invalid the only thing the real EuroVoc↔LCSH import (2,003
+bindings, REF-016-mandated) can emit. `rkaf:basedOnAttestation` is now
+optional on that warrant in shapes and validator alike; the adopted artifact
+is named by the evidence source record and its digest — the granularity the
+shape itself declares addressable. A named referent must still resolve
+without cycles; the negative case was re-purposed to a dangling referent
+rather than deleted. REF-016 stands unamended. The root cause — a
+four-column producer/validator contract mirroring a five-condition shape —
+is the standing argument for compiler-emitted checks (boundary-collapse
+move 2).
+
+**Executed, each reviewed before landing:** hygiene (`cd769d44`), the
+release_model extraction and governance decoupling (`cc5adaaf`), the seal
+(`48c155c8`), red-path fail-fast + smoke (`f2ae02ac`), the release workflow
+(`ee89f513`), the plan record (`5741d5c2`); the warrant amendment, the
+rulespec package (rulespec `0710dcd`..`c584a1d`), and the consumer cutover
+land with this revision. Governance archive proceeds as a split, not
+whole files — the extraction proved `managed_release.py`, `binding.py`,
+`release_graph.py`, and `vocabulary.py` are majority build-path.

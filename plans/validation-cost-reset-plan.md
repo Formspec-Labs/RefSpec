@@ -372,8 +372,9 @@ Check regime: **build** = SHACL + sssom-py + manifest JSON Schema + semantic
 gates + canonicality/reproducibility pass + sign-with-receipt. **read** =
 verify seal. **audit** (scheduled) = fidelity auditor + reproducible rebuild
 + full validator on a shipped artifact. **dev loop** = lint + parquet
-preflight, with `make test` under a 60s budget **at 2× margin (fail >120s,
-warn >60s)** — a hard wall-clock assertion is flaky by construction.
+preflight, with `make test` under a 60s budget (warn >60s; hard FAIL at
+240s as a runaway guard — the 120s line re-arms once the suite is next
+measured under 60s; see the budget re-spec open item).
 
 ## Order of execution (v3 — dependencies corrected)
 
@@ -415,7 +416,20 @@ warn >60s)** — a hard wall-clock assertion is flaky by construction.
       disk validates at HEAD.
 - [ ] REF-026 in `docs/decisions.md`: four verbs, seal design, kill-list
       with engineering grounds, budget rule, and the rulespec boundary
-      collapse (package / compiler-emits-the-check / monorepo decision).
+      collapse. OWNER DECISION 2026-08-11: drafted AFTER the warrant-model
+      decision so the entry records it; the SpicySearch seam stays open
+      until then, knowingly.
+- [x] **Key custody DECIDED (owner, 2026-08-11): offline SSH key** per
+      docs/seal-design.md §2 (ed25519, `ssh-keygen -Y`, allowed_signers
+      with expiry, public key pinned in this repo + SpicySearch; Sigstore
+      remains the documented upgrade path). The release workflow's seal
+      step arms when the operator runs the doc's key ceremony and sets
+      `ATLAS_SEAL_PRIVATE_KEY` + `ATLAS_SEAL_SIGNER_IDENTITY` secrets.
+- [x] **Rulespec boundary DECIDED (owner, 2026-08-11): package-only
+      (move 1)** — no monorepo; rulespec ships as a versioned package,
+      RefSpec consumes via uv, checkout gate + currency tests + lattice
+      copies delete on cutover. Move 3 is answered; move 2 proceeds as
+      rulespec-side work.
 - [x] Fresh full build under HEAD's binding EXISTS
       (`output/atlas-3.0-full-2026-08-11`, 32M quads, producer validation
       "passed") — but see next item.
@@ -430,7 +444,10 @@ warn >60s)** — a hard wall-clock assertion is flaky by construction.
       drift class that boundary-collapse move 2 kills. Fix is either the
       builder's warrant emission or an amended sanctioned-branch table;
       that is a semantic decision on the in-flight evidence-model change,
-      not an orchestration call.
+      not an orchestration call. OWNER DECISION 2026-08-11: diagnose
+      first — a read-only branch-match matrix (under- vs over-match per
+      binding, each fix priced with blast radius incl. required negative
+      corpus cases) is being produced as the decision packet.
 - [x] Red-path fail-fast + smoke tier LANDED (2026-08-11): focused
       re-validation via pySHACL focus_nodes+use_shapes (unmodified shapes,
       full data graph, named focus nodes only); cross-mode equivalence 0
