@@ -506,6 +506,12 @@ measured under 60s; see the budget re-spec open item).
       remains the documented upgrade path). The release workflow's seal
       step arms when the operator runs the doc's key ceremony and sets
       `ATLAS_SEAL_PRIVATE_KEY` + `ATLAS_SEAL_SIGNER_IDENTITY` secrets.
+      **CEREMONY DEFERRED (owner decision, relayed via the reconciliation
+      session 2026-08-12): the first full seal waits; the bounded
+      ephemeral-key round-trip (seal-2 over the FR artifact, cb10a8e8)
+      stands as the mechanism proof. Nothing seal-shaped blocks on this —
+      the workflow stub, the format, and verify_seal are done; minting is
+      a decision away, whenever taken.**
 - [x] **Rulespec boundary DECIDED (owner, 2026-08-11): package-only
       (move 1)** — no monorepo; rulespec ships as a versioned package,
       RefSpec consumes via uv, checkout gate + currency tests + lattice
