@@ -1,175 +1,106 @@
 # RefSpec
 
-RefSpec manages controlled-vocabulary source packages, verified releases,
-crosswalk evidence, and static vocabulary atlas assets. It preserves exact
-source material and publishes digest-pinned files that other products can
-verify without importing this source tree or querying a RefSpec service.
+RefSpec turns public-sector vocabularies — EuroVoc, the Library of Congress
+Subject Headings, the Federal Register Thesaurus, and ~50 other government
+term lists — into **one verified, immutable data product** (the "Atlas") that
+other software can trust without trusting this repository.
 
-RefSpec is an unpublished editor's draft. The repository makes no W3C
-endorsement claim. No license has been selected, so publication does not grant
-permission beyond rights supplied by applicable law.
+The idea in four verbs:
 
-## Documents
+1. **Build** — adapters read each publisher's exact, digest-pinned source
+   bytes (SKOS, PDFs, APIs, spreadsheets) and construct one canonical RDF
+   distribution plus a Parquet view for serving.
+2. **Prove** — one independent validator checks the built artifact against
+   the published contract (SHACL shapes and the [rkaf](docs/decisions.md)
+   ontology): every label, identifier, cross-vocabulary mapping, and piece
+   of evidence, once, at build time.
+3. **Sign** — the release is sealed with a detached signature that binds the
+   manifest *and* the acceptance receipt, so verifying the seal proves the
+   checks actually ran on these exact bytes.
+4. **Serve** — consumers (chiefly SpicySearch) verify the seal in under a
+   second and read the Parquet view. Nobody re-derives anything, imports
+   this source tree, or queries a RefSpec service.
 
-- [Vocabulary Atlas Distribution 3.0 — normative consumer format](bindings/atlas/3.1/README.md)
-- [Atlas Parquet view and explorer](docs/atlas-parquet-view.md)
-- [Atlas source-fidelity issues and priorities](docs/atlas-source-fidelity-issues.md)
-- [Atlas in the United States and Europe — landscape comparison](ATLAS_US_EU_COMPARISON.md)
-- [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
-- [Rulespec application profile](profiles/rulespec-application-profile.md)
-- [Core enrichment profile](profiles/enrichment-profile.md)
-- [REF JSON Binding 1.0](bindings/json/1.0/README.md)
-- [Authoritative REF structural model](model/README.md)
-- [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
-- [Experimental resource catalog](portfolio/resource-catalog-v0.json)
-- [Non-authorizing atlas and sibling-publication index](portfolio/atlas-index-v0.json)
-- [Completed resource package inventory](portfolio/completed-resource-packages-v2.json)
-- [Deferred standards composition and graph extensibility plan](plans/standards-composition-and-graph-extensibility-plan.md)
-- [Implemented vocabulary management and lookup separation baseline](plans/vocabulary-management-lookup-separation-plan.md)
-- [Completed vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
-- [Historical conceptual implementation plan](plans/implementation-plan.md)
-- [Research-input register](docs/research-inputs.md)
-- [Decision ledger](docs/decisions.md)
-- [Reconciliation runbook](docs/reconciliation-runbook.md)
-- [Atlas crosswalk qualification pilot](docs/atlas-crosswalk-qualification-pilot.md)
-- [ICPSR at the atlas door](docs/icpsr-atlas-bridge.md)
-- [Current product boundary and API disposition](docs/product-boundary-and-api-disposition.md)
-- [Nested and standalone implementation comparison](plans/2026-07-31-nested-and-standalone-refspec-comparison.md)
-- [Product-boundary and atlas reconciliation plan](plans/2026-07-31-refspec-product-boundary-and-atlas-reconciliation-plan.md)
-- [Research archive](research/README.md)
+Everything else in the repo exists to make those four verbs trustworthy: a
+sealed conformance corpus (130 fixture cases), a source-fidelity auditor that
+compares the Atlas back to the publishers' own bytes, and a
+[decision ledger](docs/decisions.md) recording why each piece exists.
 
-## Planning status
+**Status:** unpublished editor's draft; no license selected; no W3C
+endorsement claimed.
 
-The product-boundary and atlas reconciliation plan controls current scope and
-delivery. The managed vocabulary experiment roadmap remains an internal
-research sequence within that boundary: it keeps daily research in a
-lightweight, candidate-only lane and applies the full RefSpec and Rulespec
-release process only when a result enters the promotion lane.
+## Quick start
 
-The former SpicyRegs profile portfolio is retained as dated research evidence.
-The current experimental catalog records RefSpec-owned resource facts and
-distinguishes verified repository-contained distributions from evidence-only
-and planning entries. The separately identified atlas index classifies every
-registry source by semantic ring and records subject-atlas participation
-plans. Both artifacts are evidence for planning; neither defines product
-permissions or search policy.
+```sh
+make test        # lint + generated-artifact checks + full suite (~2 min)
+make test-atlas-v3   # the sealed conformance corpus (~30 s)
 
-The vocabulary gap closure and management-separation plans record completed
-local baselines. The early implementation plan and broad editor's draft remain
-available as capability and migration inventories; they no longer control
-delivery sequence or product scope.
-The standards-composition plan records conditional work and does not change the
-active roadmap's order.
-
-## Ownership boundary
-
-RefSpec owns managed vocabulary acquisition, exact source packages, release
-validation, coverage, crosswalk evidence, and static atlas publication. Native
-publishers remain authoritative for their source distributions.
-
-SpicyRegs owns regulatory document capture, source observations, document
-identity, and evidence addresses. Rulespec Core owns reusable semantic records
-and their portable constraints. Rulespec Extrapolator owns derived assertions,
-evidence chains, and accepted-output decisions. SpicySearch owns query
-processing, indexes, ranking, retrieval, and serving.
-
-These are five owners across four products: Rulespec Core and Rulespec
-Extrapolator are two release units of one product, per
-[REF-008](docs/decisions.md#ref-008-count-four-products-and-five-ownership-rows).
-
-Published, digest-pinned files connect these products. Each consumer verifies
-the files and may build a disposable local index. It does not import another
-product's source tree or depend on that product's mutable database.
-
-Atlas 3.0 is the current, greenfield binding. It publishes exact source
-releases, normalized resources, labels, identifiers, evidence, and assertions
-in immutable, digest-pinned packs. The manifest keeps authoritative assertions,
-reproducible projections, and non-authoritative derived relations in distinct
-graph roles.
-
-The full-development generator reads pinned publisher distributions and
-versioned registry caches. It does not consume an Atlas 1.0 or 2.0 graph. See
-the [Atlas 3.0 binding](bindings/atlas/3.1/README.md) for the distribution,
-validation, and consumer requirements.
-
-### Atlas source-fidelity development audit
-
-`make audit-atlas-v3-source-fidelity` compares selected Atlas asserted packs
-directly with immutable snapshots of their exact, digest-pinned publisher bytes
-and writes a receipt beside the distribution. It uses stock RDF and Parquet
-readers, plus the shared byte-pin checker; it does not import the producer's
-semantic readers or builders. Narrow inverse rules convert recorded Atlas source
-evidence back into publisher-shaped claims before direct comparison. Every
-independent input and check that can still run continues after an error, so the
-receipt retains all recoverable findings.
-
-The audit compares only data attributable to publisher inputs: identifiers,
-literals in every language and datatype, source-native memberships and scheme
-claims, top-concept claims, relations, reified statements, provenance, and direct
-native-control values. It accounts in both directions: an unhandled publisher
-claim and an unowned source-shaped Atlas claim both fail. Atlas-owned release
-nodes, semantic rings, resource profiles, governed schemes, class assignments,
-and named-graph placement are outside its scope. Publisher defects are reported
-separately and do not fail fidelity when Atlas preserves them unchanged.
-
-The audit has no default artifact: `ATLAS_V3_AUDIT_ROOT` (or, invoking the tool
-directly, `--distribution`) names the build under audit, every time. The
-previous default was a retired 3.0 ring-audit tree that outlived its wire and
-stayed on disk, so a bare invocation reported a fidelity verdict about a
-distribution nobody ships. Point it at a 3.1 distribution that validates under
-HEAD, for example the Federal Register release
-`make release-atlas-federal-register-thesaurus` writes:
-
-```
-make audit-atlas-v3-source-fidelity \
-    ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01
+# Build, validate, and verify a real bounded release (~15 s):
+make release-atlas-federal-register-thesaurus
+make verify-atlas-federal-register-thesaurus
 ```
 
-Coverage is per-build and read from that build's receipt; the last figures
-published here (23 of 110 construction units covered, 14 native-control units
-exact, nine RDF units differing) describe the retired 3.0 candidate and are kept
-only as the shape of the finding. Uncovered units are explicit failures, not
-assumed matches. Do not claim full Atlas source fidelity until `uncoveredUnits`
-is empty, every construction unit has `"status": "exact"`, every check passes,
-and the receipt records `"passed": true`.
+Tests are offline and standalone — no sibling checkouts, no network, no
+mutable databases.
 
-Atlas 1.0 and 2.0 remain historical formats. New producers and consumers must
-target Atlas 3.0. The
-[U.S. and European landscape comparison](ATLAS_US_EU_COMPARISON.md) explains
-Atlas's intended public role and the systems it complements.
+## The artifact
 
-The dated research snapshots used to develop the editor's draft are archived
-under [`research/`](research/README.md). They are nonnormative except where the
-specification explicitly identifies a portfolio baseline.
+An Atlas distribution is a closed set of files: an `atlas-manifest.json`
+pinning every member by digest, zstd-compressed canonical N-Quads packs
+(sorted, byte-reproducible — two builds of the same inputs are
+byte-identical), an acceptance receipt, and a source-accounting ledger. A
+Parquet view (one table per record kind) is emitted from the same build and
+covered by the same seal. The
+[Atlas binding](bindings/atlas/3.1/README.md) is the normative consumer
+contract; its validator deliberately imports nothing from this package, so a
+consumer can copy that one directory and verify a distribution offline.
 
-## Dependency boundary
+## Who owns what
 
-RefSpec builds and verifies releases from pinned files. The checked
-[`RulespecCoreRelease`](profiles/rulespec-core-dependency.json) is a fixture,
-so it supports tests rather than a production conformance claim. Ordinary
-tests are standalone: they do not read a sibling Rulespec checkout, a sibling
-source tree, or a mutable external database.
+RefSpec owns vocabulary acquisition, release validation, crosswalk evidence,
+and Atlas publication. Publishers stay authoritative for their sources.
+Rulespec owns the shared semantic contract (the rkaf ontology and its
+constraints, consumed here as a versioned package). SpicySearch owns search
+and serving. Products exchange only published, digest-pinned files —
+never source trees or live databases
+([REF-024](docs/decisions.md)).
 
-## Executable package
+## Where things are
 
-RefSpec carries one JSON-compatible CUE source for REF-owned structures. It
-generates JSON Schema 2020-12 and Python record types and fails the test gate
-if either output drifts. The `refspec` package supplies canonical digest,
-binding-validation, immutable vocabulary-record, and combined
-RefSpec/Rulespec release-graph interfaces.
-The generated package embeds the exact REF schemas, conformance fixtures, and
-requirement-to-test manifest, so a wheel-installed `refspec-validate` can run
-the same no-argument conformance suite without a source checkout.
+| | |
+|---|---|
+| Consumer contract | [`bindings/atlas/3.1/`](bindings/atlas/3.1/README.md) |
+| Builder | `tools/generate_atlas_v3_full.py` |
+| Independent validator | `bindings/atlas/3.1/tools/validate.py` |
+| Seal | `src/refspec/seal.py` + [design](docs/seal-design.md) |
+| Source-fidelity auditor | `tools/verify_atlas_source_fidelity.py` |
+| Publisher adapters | `src/refspec/registry/` |
+| Decision ledger (why) | [`docs/decisions.md`](docs/decisions.md) |
+| Active plan (what's next) | [`plans/validation-cost-reset-plan.md`](plans/validation-cost-reset-plan.md) |
+| US/EU landscape context | [`ATLAS_US_EU_COMPARISON.md`](ATLAS_US_EU_COMPARISON.md) |
 
-Run `make test` from this repository to check generated artifacts, all valid
-and invalid REF fixtures, and the Python package. The gate is standalone and
-does not read a sibling Rulespec checkout.
+## What the seal does and does not prove
 
-The [Federal Register vocabulary policy](docs/federal-register-vocabulary-policy.md)
-packages the exact April 1, 2025 thesaurus as the default candidate vocabulary
-for Federal Register documents. The checked source extract and ordinary tests
-are offline. The real-data audit rebuilds them from the exact pinned 2025 PDF.
-The superseded 1995 reader, crosswalk, and historical gate have been removed.
-`make test` remains offline. Git contains the deterministic semantic extract
-for the current thesaurus; the native PDF remains in the managed release
-output.
+Verifying a seal proves the distribution's bytes are exactly what passed the
+independent validator's 13 acceptance gates. It does **not** prove the
+captures were complete (leg 1) or that the Atlas faithfully transcribes the
+publishers (leg 2) — leg 2 is the fidelity auditor's job, run on a schedule,
+not at read time:
+
+```sh
+make audit-atlas-v3-source-fidelity ATLAS_V3_AUDIT_ROOT=<distribution>
+```
+
+The auditor reads the publishers' pinned bytes with stock parsers, converts
+Atlas evidence back into publisher-shaped claims, and fails in both
+directions — an unhandled publisher claim and an unowned Atlas claim are
+each findings. Coverage is per-build, read from the receipt; uncovered units
+are explicit failures, never assumed matches.
+
+## History
+
+Atlas 1.0/2.0 and the earlier RefSpec editor's-draft machinery are retired;
+git history is the archive and the
+[decision ledger](docs/decisions.md) records each retirement
+(REF-015 through REF-028). Dated research lives under
+[`research/`](research/README.md), nonnormative.
