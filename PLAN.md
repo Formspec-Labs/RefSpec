@@ -330,6 +330,11 @@ The generator's self pin moved with the file, from
 (`:183`), written by `--repin`. Item 2's allowlist and scope segment moved it
 again, to
 `sha256:2cd5756ac1d8823ce949d14082670fb0fb13833aa7b10c5c859ec4bca4fd2a4c`.
+The release-model extraction (kill-list item 1 of
+plans/validation-cost-reset-plan.md, 2026-08-11) re-pointed the generator's
+imports to `refspec.release_model` and moved the pin again, to
+`sha256:952a4d87e5c56414cf802a9725db03840388370bdecaa300c7453691b522e544`,
+written by `--repin`.
 
 The change governs the next build. The four builds on disk keep the identifier
 they were written with; nothing rewrites them in place, and both reuse paths
