@@ -60,9 +60,6 @@
         "profile": {
           "const": "atlas-3-exact-input-whole-distribution-reuse-v1"
         },
-        "recipeDigest": {
-          "$ref": "common.schema.json#/$defs/digest"
-        },
         "reuseScope": {
           "const": "wholeDistributionExactInputsOnly"
         }
@@ -70,7 +67,6 @@
       "required": [
         "profile",
         "reuseScope",
-        "recipeDigest",
         "inputInventoryDigest",
         "inputFileCount"
       ],

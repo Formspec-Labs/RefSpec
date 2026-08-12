@@ -484,7 +484,13 @@ MUTATIONS: dict[str, tuple[object, str | None]] = {
     "raw-control-in-literal": (m_raw_control, None),
     "comment-line": (m_comment_line, None),
     "empty-line": (m_empty, None),
-    "uppercase-language-tag": (m_uppercase_language_tag, None),
+    "uppercase-language-tag": (
+        m_uppercase_language_tag,
+        (
+            "BCP 47 tags are case-insensitive, so the lowercase spelling is "
+            "the only one the profile admits"
+        ),
+    ),
     "typed-datetime-literal": (m_typed_dateime_literal, None),
 }
 
@@ -562,6 +568,7 @@ def test_the_deliberate_divergences_are_exactly_the_wave_decisions() -> None:
         "typed-string-literal",
         "escaped-angle-bracket-in-iri",
         "escaped-del-in-iri",
+        "uppercase-language-tag",
     }
 
 
@@ -596,6 +603,13 @@ def test_the_renderer_refuses_what_the_grammar_refuses() -> None:
         RDF_CANONICAL.ntriples_term(URIRef("https://example.org/a"))
     with pytest.raises(RDF_CANONICAL.RdfCanonicalError):
         RDF_CANONICAL.ntriples_term(URIRef("https://user:pass@example.org/x"))
+    # Refused, not lowercased: coercing here would rewrite a publisher's tag
+    # behind its back, and both spellings are one term.
+    with pytest.raises(RDF_CANONICAL.RdfCanonicalError, match="lowercase"):
+        RDF_CANONICAL.ntriples_term(Literal("x", lang="EN"))
+    with pytest.raises(RDF_CANONICAL.RdfCanonicalError, match="lowercase"):
+        RDF_CANONICAL.ntriples_term(Literal("x", lang="en-GB"))
+    assert RDF_CANONICAL.ntriples_term(Literal("x", lang="en-gb")) == '"x"@en-gb'
     assert RDF_CANONICAL.ntriples_term(Literal("x")) == '"x"'
     assert (
         RDF_CANONICAL.ntriples_term(URIRef("https://example.org/a%5B1%5D"))

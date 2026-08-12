@@ -43,6 +43,17 @@ ABSOLUTE_IRI_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:[^\s]+$")
 # only the simple form, which is also what W3C canonical N-Triples mandates.
 XSD_STRING_IRI = "http://www.w3.org/2001/XMLSchema#string"
 
+# The same argument, one axis over: BCP 47 language tags are case-insensitive,
+# so `@en` and `@EN` name one term and would carry two node digests. W3C
+# canonical N-Triples mandates the lowercase spelling, so the profile admits
+# only that one.
+#
+# Refuse, never coerce. Lowercasing at the mint would silently rewrite a
+# publisher's tag, and the whole point of the canonical profile is that the
+# bytes a producer wrote are the bytes it meant; a producer holding `en-GB`
+# spelled `en-GB` gets a refusal naming the tag, not a quiet `en-gb`.
+_MINTABLE_LANGUAGE_TAG_RE = re.compile(r"^[a-z]+(?:-[a-z0-9]+)*$")
+
 # The ASCII characters RFC 3987 excludes from an IRI, plus `[` and `]`.
 #
 # `[` and `]` are RFC 3986/3987 gen-delims reserved for an IP-literal host
@@ -127,6 +138,12 @@ def ntriples_term(term: Any) -> str:
         )
         rendered = f'"{lexical}"'
         if term.language:
+            if _MINTABLE_LANGUAGE_TAG_RE.fullmatch(term.language) is None:
+                raise RdfCanonicalError(
+                    "RDF literal language tag MUST be the lowercase BCP 47 "
+                    "spelling W3C canonical N-Triples mandates; "
+                    f"{term.language!r} names the same term a second way"
+                )
             return f"{rendered}@{term.language}"
         if term.datatype:
             return f"{rendered}^^{ntriples_term(URIRef(term.datatype))}"
@@ -178,7 +195,9 @@ _IRI = rb"<[A-Za-z][A-Za-z0-9+.\-]*:[^" + _IRI_EXCLUDED + rb"]+>"
 # non-canonical spellings the grammar must refuse.
 _ESCAPED_CONTROL = rb"\\u00(?:0[0-7]|0B|0[EF]|1[0-9A-F]|7F|[89][0-9A-F])"
 _LITERAL_BODY = rb'(?:[^\x00-\x1f"\\\x7f]|\\[tbnrf"\\]|' + _ESCAPED_CONTROL + rb")*"
-_LANGUAGE_TAG = rb"@[A-Za-z]+(?:-[A-Za-z0-9]+)*"
+# Lowercase only, matching `_MINTABLE_LANGUAGE_TAG_RE` and the renderer's
+# refusal above: `@en` and `@EN` are one term, and the profile spells it once.
+_LANGUAGE_TAG = rb"@[a-z]+(?:-[a-z0-9]+)*"
 # The datatype IRI, minus the one datatype the simple form already spells.
 _DATATYPE = rb"\^\^(?!<http://www\.w3\.org/2001/XMLSchema\#string>)" + _IRI
 _LITERAL = rb'"' + _LITERAL_BODY + rb'"(?:' + _LANGUAGE_TAG + rb"|" + _DATATYPE + rb")?"
@@ -222,20 +241,28 @@ _BLANK_NODE_LINE_RE = re.compile(
 )
 
 
-def canonical_line_issue(content: bytes) -> tuple[str, str] | None:
-    """Return ``(code, reason)`` when ``content`` is not one canonical quad.
+def canonical_line_issue_and_terms(
+    content: bytes,
+) -> tuple[tuple[str, str] | None, tuple[bytes, bytes, bytes, bytes] | None]:
+    """Read one line: its refusal if any, and its four terms if it is canonical.
 
     ``content`` is one serialized statement WITHOUT its terminating LF. The
     codes are the validator's own: ``rdf.blank-node`` for a line whose only
     fault is a blank-node term, ``rdf.term`` for a credential-bearing IRI, and
     ``rdf.canonical`` for every other departure from the profile.
+
+    The terms come back from the same match that decided the verdict, so a
+    caller that needs both -- the node-digest pass, which reads subject,
+    predicate and object off the bytes -- pays for one regex, and can only ever
+    be handed terms of a line already proved canonical. Splitting a canonical
+    line by hand is exactly the ambiguity this grammar exists to remove.
     """
 
     match = CANONICAL_LINE_RE.match(content)
     if match is None or _RAW_C1_RE.search(content) is not None:
         if match is None and _BLANK_NODE_LINE_RE.match(content) is not None:
-            return ("rdf.blank-node", "contains a blank node term")
-        return ("rdf.canonical", "is not in the canonical N-Quads term form")
+            return (("rdf.blank-node", "contains a blank node term"), None)
+        return (("rdf.canonical", "is not in the canonical N-Quads term form"), None)
     # An `@` outside a language tag can only be in an IRI, and the only IRI
     # form the grammar admits but the profile refuses is one with userinfo.
     if b"@" in content:
@@ -247,10 +274,16 @@ def canonical_line_issue(content: bytes) -> tuple[str, str] | None:
                 text = content[start + 1 : end - 1].decode("utf-8")
                 parsed = urllib.parse.urlsplit(text)
             except (UnicodeDecodeError, ValueError):
-                return ("rdf.canonical", "contains an unparseable IRI")
+                return (("rdf.canonical", "contains an unparseable IRI"), None)
             if parsed.username is not None or parsed.password is not None:
-                return ("rdf.term", f"IRI carries embedded credentials: {text!r}")
-    return None
+                return (("rdf.term", f"IRI carries embedded credentials: {text!r}"), None)
+    return (None, match.groups())  # type: ignore[return-value]
+
+
+def canonical_line_issue(content: bytes) -> tuple[str, str] | None:
+    """Return ``(code, reason)`` when ``content`` is not one canonical quad."""
+
+    return canonical_line_issue_and_terms(content)[0]
 
 
 __all__ = [
@@ -260,6 +293,7 @@ __all__ = [
     "XSD_STRING_IRI",
     "RdfCanonicalError",
     "canonical_line_issue",
+    "canonical_line_issue_and_terms",
     "nquads_line",
     "ntriples_term",
 ]

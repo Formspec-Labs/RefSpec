@@ -226,7 +226,6 @@ def test_source_accounting_duplicate_disposition_keeps_json_schema_error() -> No
         "distributionId": "urn:ref:atlas-test:distribution",
         "inputs": [
             {
-                "declaredMemberCount": 2,
                 "dispositions": [disposition, dict(disposition)],
                 "membershipMode": "complete",
                 "sourceRelease": "urn:ref:atlas-test:source-release",
@@ -321,7 +320,6 @@ def test_source_accounting_disposition_targets_are_status_specific(
         "distributionId": "urn:ref:atlas-test:distribution",
         "inputs": [
             {
-                "declaredMemberCount": 1,
                 "dispositions": [disposition],
                 "membershipMode": "complete",
                 "sourceRelease": "urn:ref:atlas-test:source-release",
@@ -1961,9 +1959,14 @@ def test_focus_sample_names_one_node_per_violated_constraint() -> None:
     groups = atlas_validate._root_shape_focus_groups(view, shapes, samples)
     assert groups is not None
     assert set(groups) == {ATLAS.EvidenceBindingShape}
-    assert "InConstraintComponent" in (
-        atlas_validate._focused_shacl_report(view, shapes, samples) or ""
-    )
+    focused = atlas_validate._focused_shacl_report(view, shapes, samples)
+    assert focused is not None
+    text, violations = focused
+    assert "InConstraintComponent" in text
+    # The components come off the report GRAPH, not the text, and arrive in
+    # the canonical `(focusNode, resultPath, component)` order.
+    assert violations == sorted(violations)
+    assert "InConstraintComponent" in {component for _f, _p, component in violations}
 
 
 def test_smoke_check_is_a_sample_that_can_never_reach_the_receipt_cache(

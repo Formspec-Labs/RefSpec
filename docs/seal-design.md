@@ -59,15 +59,26 @@ It does not attest that the gate set was the right gate set, or that the
 validator was correct. Those are claims about the producer, and no signature
 can make them; see point 4.
 
-Nor does it reach the source side at all. The seal attests that acceptance ran
-on **these bytes**; it does **not** attest that the artifact faithfully
-transcribes its publisher sources — that is the fidelity auditor's scheduled
-job (`tools/verify_atlas_source_fidelity.py`), which reads the publisher
-captures and the distribution independently and writes its own receipt — nor
-that those captures were complete. A perfectly sealed distribution built from a
-half-captured or mistranscribed source is a real and unsignalled outcome. The
-acceptance gates are artifact-internal; nothing inside the artifact can prove
-what was left outside it.
+**Nor does it reach the source side at all — and the pipeline has three legs,
+of which the signature covers exactly one.**
+
+| Leg | Claim | Proved by |
+| --- | --- | --- |
+| 1. publisher bytes → capture | the capture is everything the publisher published | **nothing.** A digest proves the identity of what was captured, never its completeness |
+| 2. capture → atlas | the distribution faithfully transcribes the capture | the fidelity auditor (`tools/verify_atlas_source_fidelity.py`), on its own schedule, over 23 of 110 units |
+| 3. atlas → sealed | these bytes passed these gates and are unaltered | this seal, and `verify_seal` |
+
+Legs 1 and 2 are what the signature does **not** cover. Nothing in the payload,
+and nothing `verify_seal` recomputes, says anything about either: a
+distribution built from a half-captured source, or one that mistranscribed a
+capture it holds in full, seals exactly as cleanly as a correct one. Leg 1 has
+no running check at all, and leg 2's is a separate artifact — an auditor
+receipt, written beside the distribution and not signed here — covering a
+fifth of the units. A consumer that reads a valid seal as evidence about the
+publisher's vocabulary has read two legs it does not cover.
+
+The acceptance gates are artifact-internal; nothing inside the artifact can
+prove what was left outside it.
 
 **Normative: `verify_seal` is not a signature check.** It performs, in order:
 

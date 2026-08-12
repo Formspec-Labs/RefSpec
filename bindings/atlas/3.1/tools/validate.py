@@ -59,6 +59,7 @@ from decimal import Decimal
 from functools import lru_cache
 from itertools import chain, combinations
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, NoReturn, TextIO
 
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
@@ -71,6 +72,7 @@ from rdf_canonical import (
     ABSOLUTE_IRI_RE,
     RdfCanonicalError,
     canonical_line_issue,
+    canonical_line_issue_and_terms,
 )
 from rdf_canonical import ntriples_term as _canonical_ntriples_term
 from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
@@ -420,6 +422,14 @@ SKOS_NATIVE_RELATION_PREDICATES = frozenset({SKOS.broader, SKOS.narrower, SKOS.r
 # record Rulespec already names it rkaf:proofRecordDigest, so the rkaf term is
 # what rides on the wire and both are excluded by the one digest algorithm.
 _SELF_DIGEST_PREDICATES = frozenset({ATLAS.contentDigest, RKAF.proofRecordDigest})
+# The same three terms as canonical bytes, for the node-digest pass that reads
+# quads before any RDF term is built (`_AssertedNodeDigests`). A retained node
+# is one whose digest a distribution-scale gate compares: an IRI-bearing
+# carrier publishes its own, and an atlas:SourceRecord's is what every evidence
+# binding pins. Everything else falls back to the graph.
+_SELF_DIGEST_TERMS = frozenset(f"<{term}>".encode() for term in _SELF_DIGEST_PREDICATES)
+_RDF_TYPE_TERM = f"<{RDF.type}>".encode()
+_NODE_DIGEST_RETAINED_TYPE_TERMS = frozenset({f"<{ATLAS.SourceRecord}>".encode()})
 # rkaf's #MachineAdjudicationVerdict, five closed values. v1's seven-value
 # atlas:verdictRelation lost "unrelated" and "insufficient_evidence" on the way
 # here: a verdict names a RELATION, and those two name a refusal, which is a
@@ -474,62 +484,48 @@ MACHINE_ADJUDICATION_INDEPENDENCE_AXES = (
 # rkaf:assertionOrigin, which records what CONSTRUCTED the record".
 #
 # Splitting a closed enum into independent axes would ordinarily lose the
-# closure, so the admissible COMBINATIONS are enumerated here and mirrored by
-# the sh:xone on atlas:EvidenceBindingShape. The key is the atlas:ReviewMethod
-# individual each combination replaced; it is a name for the combination, not a
-# term on the wire.
+# closure, so the admissible COMBINATIONS are closed by the `sh:xone` on
+# atlas:EvidenceBindingShape -- and that shape is the ONLY statement of them.
+# `evidence_warrant_axis_values` reads it; nothing below restates it.
 EVIDENCE_WARRANT_AXES = (
     RKAF.assertionOrigin,
     RKAF.epistemicBasis,
     RKAF.evidenceRole,
     RKAF.attestorKind,
 )
-EVIDENCE_WARRANTS: dict[str, tuple[URIRef, ...]] = {
-    "publisherAssertion": (
-        RKAF.imported,
-        RKAF.sourceExplicit,
-        RKAF.officialSourceMetadata,
-        RKAF.automatedParser,
-    ),
-    "deterministicTransformation": (
-        RKAF.deterministicExtraction,
-        RKAF.deterministicDerivation,
-        RKAF.structuralEvidence,
-        RKAF.automatedParser,
-    ),
-    "humanReview": (
-        RKAF.humanAsserted,
-        RKAF.editorialAssertion,
-        RKAF.textualEvidence,
-        RKAF.humanUser,
-    ),
-    "operatorAdoption": (
-        RKAF.imported,
-        RKAF.editorialAssertion,
-        RKAF.formalAdoptionEvent,
-        RKAF.organization,
-    ),
-    "twoMachineAdjudication": (
-        RKAF.aiSuggested,
-        RKAF.statisticalInference,
-        RKAF.reviewedAuthorityChain,
-        RKAF.aiModel,
-    ),
-    "trustedPipelineReview": (
-        RKAF.imported,
-        RKAF.deterministicDerivation,
-        RKAF.authorityCitation,
-        RKAF.automatedParser,
-    ),
+# The warrant NAME each `sh:xone` branch replaced -- the atlas:ReviewMethod
+# individual it stands for -- keyed by the `rkaf:evidenceRole` that
+# discriminates it. A name is a label for a combination, never a term on the
+# wire, and the branches carry no identifier of their own, so this map is the
+# one thing tying a name to a branch. `rkaf:evidenceRole` can carry that anchor
+# because it alone separates the six branches; `evidence_warrant_axis_values`
+# asserts that it still does, so an amended table that made two branches share
+# a role fails loudly instead of silently aliasing them.
+EVIDENCE_WARRANT_NAMES: dict[URIRef, str] = {
+    RKAF.officialSourceMetadata: "publisherAssertion",
+    RKAF.structuralEvidence: "deterministicTransformation",
+    RKAF.textualEvidence: "humanReview",
+    RKAF.formalAdoptionEvent: "operatorAdoption",
+    RKAF.reviewedAuthorityChain: "twoMachineAdjudication",
+    RKAF.authorityCitation: "trustedPipelineReview",
 }
-# rkaf:evidenceRole alone discriminates all six combinations, which is what
-# lets the sh:xone resolve to exactly one branch. Asserted here so a future
-# edit that makes two combinations share a role fails loudly instead of
-# silently making the shape unsatisfiable.
-assert len({warrant[2] for warrant in EVIDENCE_WARRANTS.values()}) == len(
-    EVIDENCE_WARRANTS
-), "each evidence warrant must carry a distinct rkaf:evidenceRole"
-EVIDENCE_WARRANT_COMBINATIONS = frozenset(EVIDENCE_WARRANTS.values())
+# The `rkaf:attestorKind` this producer mints per warrant.
+#
+# Not a copy of the shapes: exactly one branch (humanReview) pins the axis, and
+# the shape otherwise admits all nine #AttestorKind values, so what kind of
+# party attested is a producer choice the binding deliberately leaves open.
+# Stating it once here keeps every minting site -- the full builder and the
+# fixture builder -- emitting the same kind per warrant instead of each
+# choosing, and `evidence_warrant_facts` proves the one value the shapes DO pin
+# still agrees with what this table mints.
+EVIDENCE_WARRANT_ATTESTOR_KINDS: dict[str, URIRef] = {
+    "publisherAssertion": RKAF.automatedParser,
+    "deterministicTransformation": RKAF.automatedParser,
+    "humanReview": RKAF.humanUser,
+    "operatorAdoption": RKAF.organization,
+    "twoMachineAdjudication": RKAF.aiModel,
+    "trustedPipelineReview": RKAF.automatedParser,
+}
 # How the bound evidence bears on the assertion. Atlas only ever supports, but
 # the axis is constrained to the upstream enum rather than pinned to one value,
 # so a producer that means "qualifies" has somewhere to put it.
@@ -542,12 +538,6 @@ EVIDENTIARY_FUNCTIONS = frozenset(
         RKAF.providesContext,
     }
 )
-
-
-def evidence_warrant(binding_facts: Mapping[URIRef, object]) -> tuple[URIRef, ...]:
-    """The four-axis warrant tuple a set of evidence facts declares."""
-
-    return tuple(binding_facts[axis] for axis in EVIDENCE_WARRANT_AXES)  # type: ignore[misc]
 EXPECTED_PROFILE_NAMES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )
@@ -844,6 +834,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "iri-forbidden-character",
         "label-missing-literal",
         "literal-explicit-string-datatype",
+        "literal-uppercase-language-tag",
         "label-extra-skos-type",
         "manifest-count-mismatch",
         "manifest-unknown-field",
@@ -1130,6 +1121,93 @@ class _AssertedPlacementObservation:
         return observation
 
 
+class _AssertedNodeDigests:
+    """Node digests taken off the canonical pack bytes, in the pass that reads them.
+
+    `rdf_node_digest` renders a node's outgoing facts back into N-Triples and
+    hashes the sorted lines. On a full distribution that is ~1.15M nodes
+    re-rendered from an rdflib store that was itself built by parsing the
+    exact lines the render reproduces -- measured at ~150s of a 75-minute
+    acceptance run, spent turning bytes into terms and back into the same
+    bytes.
+
+    The canonical packs are already the index that makes the render
+    unnecessary: lines are sorted, so one subject's quads are contiguous, and
+    `pack.co-location` proves a subject's outgoing facts in one graph role live
+    in exactly one pack. So the digest can be accumulated line by line as the
+    profile reader validates them, with no store and no term model. Proven at
+    parity against `rdf_node_digest` node for node
+    (`tests/test_atlas_v3_node_digest_byte_pass.py`, and 104,898/104,898 in the
+    substrate spike this ports).
+
+    This is an ACCELERATOR, never an authority: every consumer reads it through
+    `_node_digest`, which recomputes from the graph for any node the pass did
+    not retain. Retention is deliberately narrow -- a node carrying a
+    self-digest predicate (which is what an IRI-bearing carrier publishes) or
+    an atlas:SourceRecord (whose digest is what an evidence binding pins) --
+    because those are the two checks that run at distribution scale, and
+    keeping every node's digest would hold ~1 GB to serve a handful more.
+
+    The terms are the ones `canonical_line_issue_and_terms` matched, so this
+    never re-splits a line, and it only ever sees lines already proved
+    canonical.
+    """
+
+    __slots__ = ("_digests", "_graph_term", "_retain", "_rows", "_subject")
+
+    def __init__(self, asserted_graph_id: URIRef) -> None:
+        self._graph_term = f"<{asserted_graph_id}>".encode()
+        self._digests: dict[str, str] = {}
+        self._subject: bytes | None = None
+        self._rows: list[bytes] = []
+        self._retain = False
+
+    def observe(self, terms: tuple[bytes, bytes, bytes, bytes]) -> None:
+        subject, predicate, obj, graph = terms
+        if graph != self._graph_term:
+            return
+        if subject != self._subject:
+            self.finish()
+            self._subject = subject
+        if predicate in _SELF_DIGEST_TERMS:
+            self._retain = True
+            return
+        if predicate == _RDF_TYPE_TERM and obj in _NODE_DIGEST_RETAINED_TYPE_TERMS:
+            self._retain = True
+        self._rows.append(predicate + b" " + obj + b" .")
+
+    def finish(self) -> None:
+        """Close the open subject. Called between packs and at end of stream."""
+
+        if self._subject is not None and self._rows and self._retain:
+            self._rows.sort()
+            digest = hashlib.sha256(b"\n".join(self._rows) + b"\n").hexdigest()
+            self._digests[self._subject[1:-1].decode("utf-8")] = "sha256:" + digest
+        self._subject = None
+        self._rows = []
+        self._retain = False
+
+    def get(self, node: URIRef) -> str | None:
+        return self._digests.get(str(node))
+
+    def __len__(self) -> int:
+        return len(self._digests)
+
+
+def _node_digest(
+    graph: Graph,
+    node: URIRef,
+    digests: _AssertedNodeDigests | None = None,
+) -> str:
+    """One node's digest, from the byte pass when it has it, else the graph."""
+
+    if digests is not None:
+        precomputed = digests.get(node)
+        if precomputed is not None:
+            return precomputed
+    return rdf_node_digest(graph, node)
+
+
 class _DigestingReader:
     """Hash and count transport bytes as a downstream reader consumes them."""
 
@@ -1173,7 +1251,14 @@ class _DigestingReader:
 class _NQuadsProfileReader:
     """Validate and receipt canonical uncompressed N-Quads during parsing."""
 
-    def __init__(self, stream: Any, *, label: str, expected: Mapping[str, Any]) -> None:
+    def __init__(
+        self,
+        stream: Any,
+        *,
+        label: str,
+        expected: Mapping[str, Any],
+        node_digests: _AssertedNodeDigests | None = None,
+    ) -> None:
         self.stream = stream
         self.label = label
         self.expected = expected
@@ -1183,6 +1268,7 @@ class _NQuadsProfileReader:
         self.previous: bytes | None = None
         self.pending = bytearray()
         self.finished = False
+        self.node_digests = node_digests
 
     def _accept_line(self, line: bytes) -> None:
         self.line_count += 1
@@ -1209,10 +1295,14 @@ class _NQuadsProfileReader:
         # built. This is the whole of the old per-term render-and-compare
         # (`_LexicalNQuadsParser`) restated as a grammar, and it runs here
         # because this layer already holds the line.
-        issue = canonical_line_issue(content)
+        issue, terms = canonical_line_issue_and_terms(content)
         if issue is not None:
             code, reason = issue
             _fail(code, f"{self.label} line {self.line_count} {reason}")
+        # Node digests ride the same line, off the terms the grammar just
+        # matched. See `_AssertedNodeDigests`.
+        if self.node_digests is not None and terms is not None:
+            self.node_digests.observe(terms)
 
     def _consume(self, chunk: bytes) -> None:
         self.digest.update(chunk)
@@ -2392,6 +2482,7 @@ def _parse_pack_into_dataset(
     subject_owners: Mapping[str, dict[URIRef, str]],
     *,
     asserted_placement: _AssertedPlacementObservation | None = None,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> Counter[URIRef]:
     """Stream, receipt, and parse one independently addressable pack."""
 
@@ -2437,6 +2528,7 @@ def _parse_pack_into_dataset(
             decoded_stream,
             label=pack["path"],
             expected=pack["content"],
+            node_digests=node_digests,
         )
         try:
             counts = _parse_nquads_preserving_lexical_forms(
@@ -2476,12 +2568,14 @@ def _parse_packed_dataset(
     graph_ids: Mapping[str, URIRef],
     *,
     asserted_placement: _AssertedPlacementObservation | None = None,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> tuple[Dataset, dict[str, Graph]]:
     """Parse verified packs into one graph store for global Atlas invariants.
 
     An optional `asserted_placement` accumulates the graph-role facts
     `_check_graph_roles` would otherwise re-derive by walking the whole store
-    again; see that observation's own docstring.
+    again, and an optional `node_digests` accumulates per-node content digests
+    off the same bytes; see each observation's own docstring.
     """
 
     dataset = Dataset()
@@ -2507,7 +2601,13 @@ def _parse_packed_dataset(
             graph_ids,
             subject_owners,
             asserted_placement=asserted_placement,
+            node_digests=node_digests,
         )
+        # A pack is an independently addressable stream, so no subject
+        # continues into the next one: close the open node here rather than
+        # let two packs' rows meet.
+        if node_digests is not None:
+            node_digests.finish()
         aggregate_counts.update(counts)
         _STATUS.progress(
             "parse-rdf-packs",
@@ -2911,6 +3011,85 @@ def _evidence_warrant_branch_table(
     return tuple(branches)  # type: ignore[arg-type]
 
 
+@lru_cache(maxsize=1)
+def evidence_warrant_axis_values() -> Mapping[str, Mapping[URIRef, URIRef]]:
+    """Warrant name -> the evidence axes that warrant's `sh:xone` branch pins.
+
+    THE warrant table. It is read off atlas:EvidenceBindingShape rather than
+    restated in Python, because a second statement of it is a second thing to
+    drift: the Python copy this replaced pinned `rkaf:attestorKind` on all six
+    warrants while the shapes pinned it on one, and nothing failed.
+
+    What comes back is only what the shapes PIN. Five of the six branches say
+    nothing about `rkaf:attestorKind`, so five entries carry three axes and
+    humanReview carries four -- and the axis is still closed, by that shape's
+    own `sh:in` over the nine #AttestorKind values. `evidence_warrant_facts`
+    adds the kind a producer mints; enforcement uses this table alone, so the
+    validator constrains exactly what the binding constrains.
+
+    The binding files are immutable for the life of a process, so this is
+    derived once. A shapes graph that no longer carries the sanctioned branch
+    table, or whose branches are not one per named warrant, fails here rather
+    than silently admitting a combination no warrant sanctions.
+    """
+
+    branches = _evidence_warrant_branch_table(_parse_binding_graphs()[1])
+    if branches is None:
+        _fail(
+            "shacl.meta",
+            "atlas:EvidenceBindingShape does not carry the sanctioned warrant sh:xone",
+        )
+    table: dict[str, Mapping[URIRef, URIRef]] = {}
+    for branch in branches:
+        pinned = {
+            path: value
+            for path, value, _minimum, _maximum in branch
+            if value is not None and path in EVIDENCE_WARRANT_AXES
+        }
+        name = EVIDENCE_WARRANT_NAMES.get(pinned.get(RKAF.evidenceRole))  # type: ignore[arg-type]
+        if name is None or name in table:
+            _fail(
+                "shacl.meta",
+                "the warrant sh:xone branches are not one per named review warrant",
+            )
+        table[name] = MappingProxyType(pinned)
+    if set(table) != set(EVIDENCE_WARRANT_ATTESTOR_KINDS):
+        _fail("shacl.meta", "the warrant sh:xone does not carry every named review warrant")
+    return MappingProxyType(table)
+
+
+def evidence_warrant_facts(warrant: str) -> tuple[tuple[URIRef, URIRef], ...]:
+    """The four axis facts one evidence binding minted under `warrant` carries.
+
+    The shapes' pinned axes plus the `rkaf:attestorKind` this producer mints
+    for the axis they leave open. When the shapes DO pin the kind -- they do,
+    for humanReview -- the two must agree, and disagreeing fails here rather
+    than at the engine after a build.
+    """
+
+    pinned = evidence_warrant_axis_values()[warrant]
+    kind = EVIDENCE_WARRANT_ATTESTOR_KINDS[warrant]
+    if pinned.get(RKAF.attestorKind, kind) != kind:
+        _fail("shacl.meta", f"{warrant} pins an attestorKind this producer does not mint")
+    facts = {**pinned, RKAF.attestorKind: kind}
+    return tuple((axis, facts[axis]) for axis in EVIDENCE_WARRANT_AXES)
+
+
+def declared_evidence_warrants(values: Mapping[URIRef, Any]) -> list[str]:
+    """Every sanctioned warrant whose pinned axes one binding's values satisfy.
+
+    Exactly one, for a binding the shapes admit: every branch pins a distinct
+    `rkaf:evidenceRole` and the shape allows one value for it, so the roles
+    partition the table. An empty list is a combination no warrant sanctions.
+    """
+
+    return sorted(
+        name
+        for name, pinned in evidence_warrant_axis_values().items()
+        if all(values.get(axis) == value for axis, value in pinned.items())
+    )
+
+
 def _warrant_branch_holds(
     values: Mapping[Any, AbstractSet[Any]],
     branch: AbstractSet[tuple[Any, Any, int | None, int | None]],
@@ -3143,24 +3322,43 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[UR
 
     sampled: list[Any] = list(precheck_misses)
     if isinstance(report, Graph):
-        by_signature: dict[tuple[str, str, str], Any] = {}
+        by_signature: dict[tuple[str, str], Any] = {}
         for result in report.subjects(RDF.type, SH.ValidationResult):
             focus = next(report.objects(result, SH.focusNode), None)
             component = next(report.objects(result, SH.sourceConstraintComponent), None)
             if focus is None or component is None:
                 return None
             signature = (
-                str(next(report.objects(result, SH.sourceShape), "")),
-                str(component),
                 str(next(report.objects(result, SH.resultPath), "")),
+                str(component),
             )
             # Keep the lexicographically least focus node per signature so
-            # the red-path report is run-stable (graph iteration order is
-            # not) -- the plan's report-canonicalization rule.
+            # the red-path sample is run-stable (graph iteration order is
+            # not). The signature is `(resultPath, component)` and NOT
+            # `sh:sourceShape`: an engine may leave the source shape an
+            # anonymous node -- Jena does -- and a sample keyed on a blank
+            # node id would be stable for one processor only. Nothing is lost
+            # by dropping it, because the component the sample exists to
+            # reproduce is still part of the key; `_root_shape_focus_groups`
+            # then re-derives every shape that targets the sampled node from
+            # the shapes graph, not from the report.
             previous = by_signature.get(signature)
             if previous is None or str(focus) < str(previous):
                 by_signature[signature] = focus
-        sampled.extend(by_signature[signature] for signature in sorted(by_signature))
+        # Emitted in the canonical report order, `(focusNode, resultPath,
+        # component)`. The focus node is carried as the term the report named,
+        # never re-minted from its string: a non-IRI focus must stay non-IRI so
+        # the guard below still sends it back to the whole-graph run.
+        sampled.extend(
+            focus
+            for _key, focus in sorted(
+                (
+                    ((str(focus), path, component), focus)
+                    for (path, component), focus in by_signature.items()
+                ),
+                key=lambda row: row[0],
+            )
+        )
 
     if not sampled or len(sampled) > SHACL_FOCUS_SAMPLE_LIMIT:
         return None
@@ -3175,6 +3373,40 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[UR
             seen.add(focus)
             unique.append(focus)
     return unique
+
+
+def _report_violations(report: Any) -> list[tuple[str, str, str]]:
+    """Every violation a SHACL report graph carries, canonically ordered.
+
+    `(focusNode, resultPath, sourceConstraintComponent)`, sorted -- the
+    report-canonicalization rule from the engine comparison
+    (`plans/validation-cost-reset-plan.md`), and the reason this reads the
+    report GRAPH pySHACL already returns rather than regexing its text
+    rendering. The text rendering is one processor's presentation choice;
+    `sh:sourceConstraintComponent` is the SHACL specification's own answer to
+    "which constraint failed", so it is what an engine swap can be held to.
+
+    `sh:sourceShape` is deliberately not in the key: Jena leaves it an
+    anonymous node, so ordering by it is only stable for one engine. Nothing
+    here digests the report -- a report graph is a diagnosis, never an
+    identity.
+    """
+
+    if not isinstance(report, Graph):
+        return []
+    violations: set[tuple[str, str, str]] = set()
+    for result in report.subjects(RDF.type, SH.ValidationResult):
+        component = next(report.objects(result, SH.sourceConstraintComponent), None)
+        if component is None:
+            continue
+        violations.add(
+            (
+                str(next(report.objects(result, SH.focusNode), "")),
+                str(next(report.objects(result, SH.resultPath), "")),
+                str(component).rpartition("#")[2] or str(component),
+            )
+        )
+    return sorted(violations)
 
 
 def _root_shape_focus_groups(
@@ -3232,7 +3464,7 @@ def _focused_shacl_report(
     data_graph: Graph,
     shapes: Graph,
     focus_nodes: Sequence[URIRef],
-) -> str | None:
+) -> tuple[str, list[tuple[str, str, str]]] | None:
     """Report the sampled focus nodes under the unmodified normative shapes.
 
     pySHACL's `use_shapes` plus `focus_nodes` skips target resolution
@@ -3241,15 +3473,22 @@ def _focused_shacl_report(
     (`sh:class`, sequence paths, inverse paths) still sees the whole
     distribution and the components are the engine's own. Returns None when
     nothing was reproduced, which sends the caller back to the whole-graph run.
+
+    One report is assembled from several runs, so the assembly needs an order.
+    It is the canonical one -- each run's least
+    `(focusNode, resultPath, component)` -- rather than the shape IRI it used
+    to be. The shape IRIs here are the binding's own and would have been
+    stable, but ordering a report by a shape identity is the habit the engine
+    comparison ruled out, and this is the only place the validator had one.
     """
 
     groups = _root_shape_focus_groups(data_graph, shapes, focus_nodes)
     if not groups:
         return None
-    reports: list[str] = []
+    reports: list[tuple[tuple[str, str, str], str, list[tuple[str, str, str]]]] = []
     for shape in sorted(groups, key=str):
         try:
-            conforms, _, report = shacl_validate(
+            conforms, results, report = shacl_validate(
                 data_graph,
                 shacl_graph=shapes,
                 use_shapes=[shape],
@@ -3264,9 +3503,19 @@ def _focused_shacl_report(
             )
         except Exception:  # noqa: BLE001 - fall back to the whole-graph report
             return None
-        if not conforms:
-            reports.append(" ".join(str(report).split()))
-    return " ".join(reports) if reports else None
+        if conforms:
+            continue
+        violations = _report_violations(results)
+        if not violations:
+            return None
+        reports.append((violations[0], " ".join(str(report).split()), violations))
+    if not reports:
+        return None
+    reports.sort(key=lambda row: row[0])
+    return (
+        " ".join(row[1] for row in reports),
+        sorted({violation for row in reports for violation in row[2]}),
+    )
 
 
 @lru_cache(maxsize=1)
@@ -3374,26 +3623,29 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
         if conforms:
             continue
 
-        compact = _focused_shacl_report(validation_view, shapes, focus_samples) if focus_samples else None
-        if compact is None:
+        focused = _focused_shacl_report(validation_view, shapes, focus_samples) if focus_samples else None
+        if focused is None:
             # Keep the normative processor's exact report and error behavior
             # for audit mode, for every unsupported fast-path condition, and
             # for any sample the focused run could not reproduce.
             try:
-                conforms, _, report = _validate_shacl_data(validation_view, shapes)
+                conforms, results, report = _validate_shacl_data(validation_view, shapes)
             except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
                 _fail("shacl.data", f"SHACL processor failed for {role}: {exc}")
             if conforms:
                 continue
             compact = " ".join(str(report).split())
+            violations = _report_violations(results)
+        else:
+            compact, violations = focused
         # Name every violated constraint component before the detail. A
         # multi-violation report runs past the length cap below, so which
         # constraint actually fired used to depend on graph iteration order
         # -- unreadable for an operator and unpinnable for a regression
-        # test. The component list is short, complete, and order-stable.
-        components = ", ".join(
-            sorted(set(re.findall(r"Constraint Violation in (\w+)", compact)))
-        )
+        # test. The component list is short, complete, and order-stable, and
+        # it is read off the report GRAPH's `sh:sourceConstraintComponent`
+        # rather than scraped from one processor's text rendering.
+        components = ", ".join(sorted({component for _focus, _path, component in violations}))
         hint = (
             ""
             if audit
@@ -4295,6 +4547,8 @@ def _validate_assertions(
 def _check_evidence_bindings(
     asserted: Graph,
     inventory: SemanticInventory | None = None,
+    *,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> None:
     assertions = (
         None
@@ -4321,12 +4575,10 @@ def _check_evidence_bindings(
     # is resolved before any content-identity check below: a cycle or a dangling
     # reference is diagnosed on its own terms rather than masked by an unrelated
     # stale-digest failure on one of the bindings it touches.
-    adoption_warrant = EVIDENCE_WARRANTS["operatorAdoption"]
     adopted_evidence_by_binding: dict[URIRef, URIRef] = {}
     for binding in sorted(bindings):
-        declares_adoption = (
-            tuple(asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES)
-            == adoption_warrant
+        declares_adoption = "operatorAdoption" in declared_evidence_warrants(
+            {axis: asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES}
         )
         adopted_values = list(asserted.objects(binding, RKAF.basedOnAttestation))
         if len(adopted_values) > 1:
@@ -4401,11 +4653,11 @@ def _check_evidence_bindings(
         )
         if _one(asserted, binding, RKAF.decision, code="dataset.evidence") != RKAF.approved:
             _fail("dataset.evidence", f"{binding} is not an approved editorial decision")
-        warrant = tuple(
-            _one(asserted, binding, axis, code="dataset.evidence")
+        warrant = {
+            axis: _one(asserted, binding, axis, code="dataset.evidence")
             for axis in EVIDENCE_WARRANT_AXES
-        )
-        if warrant not in EVIDENCE_WARRANT_COMBINATIONS:
+        }
+        if len(declared_evidence_warrants(warrant)) != 1:
             _fail(
                 "dataset.evidence",
                 f"{binding} combines evidence axes no review warrant sanctions",
@@ -4429,7 +4681,7 @@ def _check_evidence_bindings(
         if actual_source_digest is None:
             # The source record no longer publishes its own digest, so the
             # comparand for the pin is recomputed from the record's facts.
-            actual_source_digest = rdf_node_digest(asserted, source_record)
+            actual_source_digest = _node_digest(asserted, source_record, node_digests)
             source_digests[source_record] = actual_source_digest
         if pinned_source_digest != actual_source_digest:
             _fail("dataset.evidence-identity", f"{binding} does not pin its exact SourceRecord")
@@ -4438,7 +4690,7 @@ def _check_evidence_bindings(
             code="dataset.evidence-identity",
             label="contentDigest",
         )
-        expected = rdf_node_digest(asserted, binding)
+        expected = _node_digest(asserted, binding, node_digests)
         if stored != expected:
             _fail("dataset.evidence-identity", f"{binding} contentDigest differs")
         expected_id = URIRef("urn:ref:atlas-evidence:" + expected.removeprefix("sha256:"))
@@ -4701,11 +4953,9 @@ def _check_machine_adjudication(
     # reviewedAuthorityChain is claiming two machines adjudicated the mapping,
     # and until this gate existed nothing made that claim mean anything.
     adjudicated: set[URIRef] = set()
-    machine_warrant = EVIDENCE_WARRANTS["twoMachineAdjudication"]
     for binding in bindings:
-        if (
-            tuple(asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES)
-            == machine_warrant
+        if "twoMachineAdjudication" in declared_evidence_warrants(
+            {axis: asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES}
         ):
             adjudicated.update(asserted.objects(binding, RKAF.bindsAssertion))
 
@@ -5699,7 +5949,15 @@ def _check_rdf_json_payload(
     node: URIRef,
     label: str,
     source_native: bool = False,
-) -> None:
+) -> bytes:
+    """Prove one rdf:JSON literal canonical, and hand back the canonical bytes.
+
+    Returning them is not a convenience. The proof already parsed the literal
+    and re-encoded it; the caller that then needs a digest OVER those bytes
+    would otherwise parse and re-encode the identical literal a second time,
+    which at 590,561 source records is the whole check run twice.
+    """
+
     if not isinstance(literal, Literal) or literal.datatype != RDF.JSON:
         _fail("dataset.native-payload", f"{node} {label} is not rdf:JSON")
     try:
@@ -5717,15 +5975,18 @@ def _check_rdf_json_payload(
         _fail("dataset.native-payload", f"{node} {label} is invalid: {exc}")
     if str(literal).encode("utf-8") != expected:
         _fail("dataset.native-payload", f"{node} {label} is not canonical REF JSON")
+    return expected
 
 
 def _check_native_payloads(
     asserted: Graph,
     inventory: SemanticInventory | None = None,
+    *,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> None:
     for record in _carrier_nodes(asserted, ATLAS.SourceRecord, inventory):
         literal = _one(asserted, record, ATLAS.nativePayload, code="dataset.native-payload")
-        _check_rdf_json_payload(
+        canonical_payload = _check_rdf_json_payload(
             literal,
             node=record,
             label="nativePayload",
@@ -5735,16 +5996,11 @@ def _check_native_payloads(
         # claims to represent: it must equal sha256 over this record's own
         # canonical nativePayload. Without this check, a record could carry a
         # payload copied from a different source record while still passing
-        # every other gate.
-        native_value = json.loads(
-            str(literal),
-            object_pairs_hook=_reject_duplicate_keys,
-            parse_float=_reject_float,
-            parse_int=_parse_int,
-            parse_constant=_reject_constant,
-        )
+        # every other gate. The canonical bytes are the ones the line above
+        # just proved -- the digest is taken over the proof's own output, not
+        # over a second encoding of the same literal.
         expected_source_digest = (
-            "sha256:" + hashlib.sha256(canonical_native_json_bytes(native_value)).hexdigest()
+            "sha256:" + hashlib.sha256(canonical_payload).hexdigest()
         )
         stored_source_digest = _literal_text(
             _one(asserted, record, ATLAS.sourceDigest, code="dataset.native-payload"),
@@ -5768,7 +6024,7 @@ def _check_native_payloads(
     for policy in _carrier_nodes(asserted, ATLAS.EditorialPolicy, inventory):
         literal = _one(asserted, policy, ATLAS.policyPayload, code="dataset.native-payload")
         _check_rdf_json_payload(literal, node=policy, label="policyPayload")
-        expected_digest = rdf_node_digest(asserted, policy)
+        expected_digest = _node_digest(asserted, policy, node_digests)
         expected_id = URIRef("urn:ref:atlas-policy:" + expected_digest.removeprefix("sha256:"))
         if policy != expected_id:
             _fail("dataset.policy-identity", f"{policy} is not its content-derived IRI")
@@ -5878,11 +6134,6 @@ def _check_source_accounting(
                         "source.accounting",
                         f"{record} names unknown Atlas assertion {assertion}",
                     )
-        if (
-            source["membershipMode"] in {"complete", "partial"}
-            and len(source["dispositions"]) != source["declaredMemberCount"]
-        ):
-            _fail("source.accounting", f"{source['sourceRelease']} declaredMemberCount differs")
     disposition_records = inverse_balance.keys()
     if disposition_records != graph_records:
         missing = sorted(map(str, graph_records - disposition_records))
@@ -5954,7 +6205,11 @@ def _check_counts(
         _fail("dataset.counts", f"manifest counts differ; expected={expected}, actual={manifest['counts']}")
 
 
-def derived_input_digest(asserted: Graph, inputs: Iterable[URIRef]) -> str:
+def derived_input_digest(
+    asserted: Graph,
+    inputs: Iterable[URIRef],
+    node_digests: _AssertedNodeDigests | None = None,
+) -> str:
     """Pin the exact content of the assertions one derived row was drawn from.
 
     The input assertions no longer publish their own digest, so it is
@@ -5972,7 +6227,7 @@ def derived_input_digest(asserted: Graph, inputs: Iterable[URIRef]) -> str:
         rows.append(
             {
                 "assertion": str(assertion),
-                "contentDigest": rdf_node_digest(asserted, assertion),
+                "contentDigest": _node_digest(asserted, assertion, node_digests),
             }
         )
     return canonical_sha256({"assertions": rows}, terminal_lf=False)
@@ -5984,6 +6239,8 @@ def _check_derived(
     derived: Graph,
     current: Mapping[AssertionTriple, AssertionSupport],
     derived_nodes: AbstractSet[URIRef] | None = None,
+    *,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> None:
     if derived_nodes is None:
         derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
@@ -6008,7 +6265,7 @@ def _check_derived(
             code="dataset.derived-input",
             label="inputDigest",
         )
-        expected_input_digest = derived_input_digest(asserted, inputs)
+        expected_input_digest = derived_input_digest(asserted, inputs, node_digests)
         if stored_input_digest != expected_input_digest:
             _fail("dataset.derived-input", f"{node} inputDigest differs from its assertion inputs")
         subject = _iri(
@@ -6343,7 +6600,6 @@ def _check_construction_summary_identity(
                 "constructionProfile": construction_summary["profile"],
                 "inputs": adapter_recipe_inputs,
                 "kind": release["kind"],
-                "sharedRecipeDigest": construction_summary["recipeDigest"],
             }
         )
         if release["adapterRecipeDigest"] != expected_adapter_recipe:
@@ -6481,7 +6737,6 @@ def _check_construction_summary_identity(
             "catalogInputInventoryDigest": catalog_input_digest,
             "constructionProfile": construction_summary["profile"],
             "releaseSchemeInventoryDigest": release_scheme_inventory_digest,
-            "recipeDigest": construction_summary["recipeDigest"],
         }
     )
     if catalog["buildKey"] != expected_catalog_key:
@@ -6517,31 +6772,15 @@ def _check_construction_summary_identity(
     if producer_validation["constructionSummary"] != expected_producer_receipt:
         _fail("construction.identity", "producer construction-summary receipt differs")
     semantic_construction = producer_validation.get("semanticConstruction")
-    if semantic_construction is not None:
-        if (
-            semantic_construction["inputFileCount"] != len(semantic_input_pins)
-            or semantic_construction["inputInventoryDigest"]
-            != _construction_digest(semantic_input_pins)
-        ):
-            _fail(
-                "construction.identity",
-                "producer construction input inventory differs",
-            )
-        expected_semantic_recipe = _construction_digest(
-            {
-                "adapterRecipes": [
-                    {
-                        "adapterRecipeDigest": release["adapterRecipeDigest"],
-                        "key": release["key"],
-                    }
-                    for release in releases
-                ],
-                "profile": semantic_construction["profile"],
-                "sharedRecipeDigest": construction_summary["recipeDigest"],
-            }
+    if semantic_construction is not None and (
+        semantic_construction["inputFileCount"] != len(semantic_input_pins)
+        or semantic_construction["inputInventoryDigest"]
+        != _construction_digest(semantic_input_pins)
+    ):
+        _fail(
+            "construction.identity",
+            "producer construction input inventory differs",
         )
-        if semantic_construction["recipeDigest"] != expected_semantic_recipe:
-            _fail("construction.identity", "producer construction recipe digest differs")
 
 
 def _check_construction_accounting(
@@ -7945,6 +8184,7 @@ def _validate_semantic_graphs(
     *,
     member_digests: Mapping[str, str],
     asserted_placement: _AssertedPlacementObservation | None = None,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> dict[str, Any]:
     """Run every graph-level semantic gate against three parsed graph roles."""
 
@@ -7966,7 +8206,7 @@ def _validate_semantic_graphs(
     _check_release_membership(graphs["asserted"], inventory)
     _check_label_integrity(graphs["asserted"], inventory)
     _STATUS.phase("check-evidence-and-assertions")
-    _check_evidence_bindings(graphs["asserted"], inventory)
+    _check_evidence_bindings(graphs["asserted"], inventory, node_digests=node_digests)
     current_assertions = _validate_assertions(graphs["asserted"], inventory)
     _STATUS.phase("check-machine-adjudication")
     _check_machine_adjudication(graphs["asserted"], inventory)
@@ -7985,9 +8225,10 @@ def _validate_semantic_graphs(
         graphs["derived"],
         current_assertions,
         inventory.derived_nodes,
+        node_digests=node_digests,
     )
     _STATUS.phase("check-payload-and-node-digests")
-    _check_native_payloads(graphs["asserted"], inventory)
+    _check_native_payloads(graphs["asserted"], inventory, node_digests=node_digests)
     _STATUS.phase("check-accounting-and-counts")
     _check_source_accounting(graphs["asserted"], accounting, inventory)
     _check_counts(manifest, graphs, inventory)
@@ -8078,6 +8319,7 @@ def _validate_semantics_then_record_ownership(
     *,
     member_digests: Mapping[str, str],
     asserted_placement: _AssertedPlacementObservation | None = None,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> dict[str, Any]:
     """Preserve semantic first issues before reconciling record ownership."""
 
@@ -8088,6 +8330,7 @@ def _validate_semantics_then_record_ownership(
         graphs,
         member_digests=member_digests,
         asserted_placement=asserted_placement,
+        node_digests=node_digests,
     )
     _STATUS.phase("check-construction-record-ownership")
     _check_construction_record_ownership(graphs["asserted"], construction_summary)
@@ -8202,11 +8445,13 @@ def validate_distribution(
         graph_id=graph_ids["asserted"],
         projection_only_predicates=_projection_only_predicates(),
     )
+    node_digests = _AssertedNodeDigests(graph_ids["asserted"])
     dataset, graphs = _parse_packed_dataset(
         root,
         manifest,
         graph_ids,
         asserted_placement=placement,
+        node_digests=node_digests,
     )
     # The packs are parsed and the three role graphs are final. Nothing after
     # this point adds to the store, so what it holds -- tens of millions of
@@ -8238,6 +8483,7 @@ def validate_distribution(
             construction_summary,
             member_digests=member_digests,
             asserted_placement=placement,
+            node_digests=node_digests,
         )
     finally:
         gc.unfreeze()

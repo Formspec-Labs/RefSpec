@@ -305,7 +305,7 @@ def _add_assertion(
             )
     elif ring is None or source_ring is not None or target_ring is not None:
         raise ValueError("same-ring assertions require ring only")
-    if review_warrant not in atlas_validate.EVIDENCE_WARRANTS:
+    if review_warrant not in atlas_validate.evidence_warrant_axis_values():
         raise ValueError(f"unsupported review warrant: {review_warrant!r}")
     if review_warrant == "operatorAdoption" and adopted_evidence is None:
         raise ValueError("operatorAdoption warrant requires adopted_evidence")
@@ -379,11 +379,7 @@ def _add_assertion(
     graph.add((evidence, ATLAS.evidenceSourceRecord, evidence_record))
     graph.add((evidence, RKAF.attestor, REVIEWER))
     graph.add((evidence, RKAF.decision, RKAF.approved))
-    for axis, value in zip(
-        atlas_validate.EVIDENCE_WARRANT_AXES,
-        atlas_validate.EVIDENCE_WARRANTS[review_warrant],
-        strict=True,
-    ):
+    for axis, value in atlas_validate.evidence_warrant_facts(review_warrant):
         graph.add((evidence, axis, value))
     graph.add((evidence, RKAF.evidentiaryFunction, RKAF.supports))
     if adopted_evidence is not None:
@@ -1187,7 +1183,6 @@ def _base_fixture() -> Fixture:
         dispositions = [_disposition(record) for record in sorted(release_records)]
         accounting_inputs.append(
             {
-                "declaredMemberCount": len(dispositions),
                 "dispositions": dispositions,
                 "membershipMode": "complete",
                 "sourceRelease": source_release,
@@ -1787,13 +1782,6 @@ def _construction_summary(
     compact_rows: Mapping[tuple[str, str], Sequence[Mapping[str, Any]]],
 ) -> dict[str, Any]:
     del counts
-    builder_path = Path(__file__).resolve()
-    recipe_digest = atlas_validate.canonical_sha256(
-        {
-            "builderDigest": _sha256(builder_path.read_bytes()),
-            "constructionProfile": CONSTRUCTION_PROFILE,
-        }
-    )
     adapter_path = atlas_validate.REPOSITORY_ROOT / "src/refspec/atlas/v3_source_data.py"
     adapter_pin = {
         "byteLength": adapter_path.stat().st_size,
@@ -1822,7 +1810,6 @@ def _construction_summary(
                 "constructionProfile": CONSTRUCTION_PROFILE,
                 "inputs": adapter_inputs,
                 "kind": "sourceRelease",
-                "sharedRecipeDigest": recipe_digest,
             }
         )
         base_payload = {
@@ -1947,7 +1934,6 @@ def _construction_summary(
                 "catalogInputInventoryDigest": catalog_input_digest,
                 "constructionProfile": CONSTRUCTION_PROFILE,
                 "releaseSchemeInventoryDigest": scheme_digest,
-                "recipeDigest": recipe_digest,
             }
         ),
         "inputInventoryDigest": catalog_input_digest,
@@ -1968,7 +1954,6 @@ def _construction_summary(
         "catalog": catalog,
         "distributionId": distribution_id,
         "profile": CONSTRUCTION_PROFILE,
-        "recipeDigest": recipe_digest,
         "releaseCount": len(release_rows),
         "releaseInventoryDigest": atlas_validate.canonical_sha256(release_rows),
         "releases": release_rows,
@@ -2713,7 +2698,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def missing_disposition(fixture: Fixture) -> None:
         source = fixture.accounting["inputs"][0]
         source["dispositions"].pop()
-        source["declaredMemberCount"] -= 1
         fixture.accounting["totals"]["sourceRecords"] -= 1
         fixture.accounting["totals"]["represented"] -= 1
 
@@ -3078,12 +3062,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
 
     def _declares_adoption(fixture: Fixture, binding: URIRef) -> bool:
-        return (
-            tuple(
-                fixture.asserted.value(binding, axis)
+        return "operatorAdoption" in atlas_validate.declared_evidence_warrants(
+            {
+                axis: fixture.asserted.value(binding, axis)
                 for axis in atlas_validate.EVIDENCE_WARRANT_AXES
-            )
-            == atlas_validate.EVIDENCE_WARRANTS["operatorAdoption"]
+            }
         )
 
     def _operator_adopted_evidence(fixture: Fixture) -> URIRef:
@@ -3135,11 +3118,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         earlier_evidence = next(
             fixture.asserted.objects(later_evidence, RKAF.basedOnAttestation)
         )
-        for axis, value in zip(
-            atlas_validate.EVIDENCE_WARRANT_AXES,
-            atlas_validate.EVIDENCE_WARRANTS["operatorAdoption"],
-            strict=True,
-        ):
+        for axis, value in atlas_validate.evidence_warrant_facts("operatorAdoption"):
             _remove_subject_predicate(fixture.asserted, earlier_evidence, axis)
             fixture.asserted.add((earlier_evidence, axis, value))
         fixture.asserted.add((earlier_evidence, RKAF.basedOnAttestation, later_evidence))
@@ -4003,6 +3982,29 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             )
         )
 
+    def literal_uppercase_language_tag(fixture: Fixture) -> None:
+        """Spell one language tag the second way BCP 47 calls the same tag.
+
+        `"Example Agency"@en` and `"Example Agency"@EN` are one RDF term --
+        language tags are case-insensitive -- so a wire admitting both gives
+        one label two node digests, exactly as the explicit `xsd:string`
+        spelling did. W3C canonical N-Triples mandates the lowercase form, and
+        the producer now refuses anything else at the mint rather than
+        lowercasing behind a publisher's back; this case is the validator's
+        own independent refusal.
+        """
+
+        label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
+        form = next(fixture.asserted.objects(label, SKOSXL.literalForm))
+        _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
+        fixture.asserted.add(
+            (
+                label,
+                SKOSXL.literalForm,
+                Literal(str(form), lang=str(form.language).upper()),
+            )
+        )
+
     return [
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
         ("rdf-literal-escaping", ["rdf", "dataset"], "valid", rdf_literal_escaping),
@@ -4471,6 +4473,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["rdf"],
             "rdf.canonical",
             literal_explicit_string_datatype,
+        ),
+        (
+            "literal-uppercase-language-tag",
+            ["rdf"],
+            "rdf.canonical",
+            literal_uppercase_language_tag,
         ),
     ]
 

@@ -640,13 +640,26 @@ then proves exact regeneration from the current registry inputs.
 An Atlas acceptance proves that the distribution conforms to this binding. It
 does not authorize search expansion, entity linking, assignment, publication,
 or another product use. Such permission remains in a separately pinned product
-policy. It also proves nothing about the source side: every gate here is
-artifact-internal, so an acceptance says the bytes are well-formed and
-internally consistent, **not** that they faithfully transcribe the publisher
-sources they claim to carry, and not that the captures behind them were
-complete. Source fidelity is a separate, scheduled audit
-(`tools/verify_atlas_source_fidelity.py` in the producing repository) that
-reads both ends and writes its own receipt beside the distribution.
+policy.
+
+It also proves nothing about the source side. The pipeline that produces a
+distribution has three legs, and everything here — every gate, the acceptance
+receipt, and the seal that binds it — covers only the third:
+
+1. **publisher bytes → capture.** That the capture is everything the publisher
+   published. Proved by **nothing**: a source digest pins the identity of what
+   was captured, never its completeness.
+2. **capture → atlas.** That the distribution faithfully transcribes the
+   capture it holds. Proved by a separate, scheduled audit
+   (`tools/verify_atlas_source_fidelity.py` in the producing repository), which
+   reads both ends and writes its own receipt beside the distribution — not by
+   anything in this binding, and not over every unit.
+3. **atlas → sealed.** That the bytes are well-formed, internally consistent,
+   and unaltered since acceptance. This binding, and the seal.
+
+Legs 1 and 2 are the negative space of an Atlas acceptance and of the signature
+over it. A distribution built from a half-captured source, or one that
+mistranscribed a capture it holds in full, passes every gate below.
 
 ## Validation order
 

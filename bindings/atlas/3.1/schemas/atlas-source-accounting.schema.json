@@ -9,51 +9,7 @@
     "inputs": {
       "items": {
         "additionalProperties": false,
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "membershipMode": {
-                  "enum": [
-                    "complete",
-                    "partial"
-                  ]
-                }
-              },
-              "required": [
-                "membershipMode"
-              ]
-            },
-            "then": {
-              "required": [
-                "declaredMemberCount"
-              ]
-            }
-          },
-          {
-            "if": {
-              "properties": {
-                "membershipMode": {
-                  "const": "notEnumerated"
-                }
-              },
-              "required": [
-                "membershipMode"
-              ]
-            },
-            "then": {
-              "not": {
-                "required": [
-                  "declaredMemberCount"
-                ]
-              }
-            }
-          }
-        ],
         "properties": {
-          "declaredMemberCount": {
-            "$ref": "common.schema.json#/$defs/nonnegativeInteger"
-          },
           "dispositions": {
             "items": {
               "additionalProperties": false,

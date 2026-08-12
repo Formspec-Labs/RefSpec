@@ -25,19 +25,15 @@ import hashlib
 import heapq
 import importlib.util
 import json
-import platform
 import re
 import sys
 import tempfile
 import time
-import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import date
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as package_version
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TextIO
@@ -152,10 +148,6 @@ _COMPILED_PRODUCER_PROFILE = (
 _COMPILED_PRODUCER_MODE = (
     "compiledSourceAndEvidenceBackedMappingProducerValidation"
 )
-# Named for what it is: the digest basis over the producer helpers and runtime
-# every construction unit shares. The old name promised whole-distribution
-# reuse, which no code has done since the reuse subsystem was deleted.
-_SEMANTIC_RECIPE_PROFILE = "atlas-3-shared-semantic-construction-recipe-v1"
 _CONSTRUCTION_SUMMARY_PROFILE = "atlas-3-release-local-construction-v1"
 _CONSTRUCTION_SUMMARY_RECEIPT_PROFILE = (
     "atlas-3-authenticated-construction-summary-v1"
@@ -173,7 +165,7 @@ _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
             "sha256:37b6c2e11c57b2ef8e1aba685bd9ffe7c6d044fce306a2f0a9897a92006f1847"
         ),
         "bindingBundleDigest": (
-            "sha256:a6f0d496c1f905366a24b3eac15158ac5d35b10b289d6c389edcc5c869b5dbbb"
+            "sha256:f7769ecb69e44bfa2852648991588b66d0514166d77cc2a336b5dd71e9883100"
         ),
         "manifestSchemaDigest": (
             "sha256:aaabe8e229b283d79967813a12fade207b586f450dc1d8377a760740560c7ee2"
@@ -185,7 +177,7 @@ _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
             "sha256:724aefcf349c51b74af75387c638365502db2f4638e27aa16e5f241090c8d48c"
         ),
         "sourceAccountingSchemaDigest": (
-            "sha256:7b0cfe51f2a5e041cd2f14092cd85a69f628a644d28e639055d0e83182d110d8"
+            "sha256:b2d5e0b40e27c081d66dcae382ff2a0e387254acb540b4b90a88eb6b569f4f36"
         ),
     }
 )
@@ -950,77 +942,6 @@ def _distribution_instant(releases: Iterable[LoadedRelease]) -> str:
     return max(instants)
 
 
-def _shared_semantic_recipe_files() -> tuple[Path, ...]:
-    """Return producer helpers whose changes invalidate every release unit."""
-
-    source_root = ROOT / "src" / "refspec"
-    files = {
-        source_root / "atlas" / "compact_pack.py",
-        source_root / "atlas" / "registry_claim_input.py",
-        source_root / "atlas" / "v3_registry_selection.py",
-        source_root / "atlas" / "v3_source_data.py",
-        source_root / "binding.py",
-        source_root / "immutable.py",
-        source_root / "managed_release.py",
-        source_root / "registry" / "infrastructure" / "source_identity.py",
-        source_root
-        / "registry"
-        / "infrastructure"
-        / "registry_claim_release.py",
-        source_root / "storage.py",
-        source_root / "vocabulary.py",
-    }
-    missing = sorted(path for path in files if not path.is_file() or path.is_symlink())
-    if missing:
-        raise FileNotFoundError(
-            "shared semantic construction recipe contains missing or unsafe modules: "
-            + ", ".join(str(path) for path in missing)
-        )
-    return tuple(sorted(files, key=lambda path: path.relative_to(ROOT).as_posix()))
-
-
-def _shared_semantic_recipe_digest() -> str:
-    """Pin runtime and producer helpers shared by every construction unit."""
-
-    libraries: dict[str, str] = {}
-    for distribution in (
-        "backports.zstd",
-        "jsonschema",
-        "openpyxl",
-        "owlrl",
-        "pyarrow",
-        "pymarc",
-        "pypdf",
-        "pyshacl",
-        "rdflib",
-        "referencing",
-        "typing_extensions",
-    ):
-        try:
-            libraries[distribution] = package_version(distribution)
-        except PackageNotFoundError:
-            libraries[distribution] = "not-installed"
-    return _canonical_digest(
-        {
-            "files": [
-                {
-                    "path": path.relative_to(ROOT).as_posix(),
-                    "sha256": _sha256_file(path),
-                }
-                for path in _shared_semantic_recipe_files()
-            ],
-            "profile": _SEMANTIC_RECIPE_PROFILE,
-            "runtime": {
-                "implementation": platform.python_implementation(),
-                "libraries": libraries,
-                "python": platform.python_version(),
-                "unicodeDatabase": unicodedata.unidata_version,
-                "zstdModule": zstd.__name__,
-            },
-        }
-    )
-
-
 def _project_module_path(module_name: str) -> Path | None:
     """Resolve one project-owned Python module without importing it."""
 
@@ -1153,14 +1074,22 @@ def _adapter_recipe_digest(
     *,
     kind: str,
     inputs: Sequence[Mapping[str, Any]],
-    shared_recipe_digest: str,
 ) -> str:
+    """Pin the adapter sources one construction unit was built from.
+
+    Paths and their content digests, nothing observed. The runtime block this
+    used to fold in -- interpreter version, installed library versions, the
+    Unicode database -- made two builds of the same tree from two entry points
+    produce two manifest digests; `uv.lock` and `.python-version` pin that
+    declaratively, and the release workflow is the one place a build is
+    signed.
+    """
+
     return _canonical_digest(
         {
             "constructionProfile": _CONSTRUCTION_SUMMARY_PROFILE,
             "inputs": [_plain(row) for row in inputs],
             "kind": kind,
-            "sharedRecipeDigest": shared_recipe_digest,
         }
     )
 
@@ -3008,11 +2937,7 @@ def _add_evidence_binding(
         (ATLAS.evidenceSourceDigest, evidence_source_digest),
         (RKAF.attestor, reviewer),
         (RKAF.decision, RKAF.approved),
-        *zip(
-            ATLAS_VALIDATE.EVIDENCE_WARRANT_AXES,
-            ATLAS_VALIDATE.EVIDENCE_WARRANTS[review_warrant],
-            strict=True,
-        ),
+        *ATLAS_VALIDATE.evidence_warrant_facts(review_warrant),
         (RKAF.evidentiaryFunction, RKAF.supports),
         (
             RKAF.attestedAt,
@@ -4024,7 +3949,6 @@ def _validate_compiled_source_accounting(
     rows_by_release: dict[str, Mapping[str, Any]] = {}
     for row in inputs:
         if not isinstance(row, Mapping) or set(row) != {
-            "declaredMemberCount",
             "dispositions",
             "membershipMode",
             "sourceRelease",
@@ -4054,12 +3978,9 @@ def _validate_compiled_source_accounting(
                 f"{release.spec.key} source accounting membership mode differs"
             )
         dispositions = row["dispositions"]
-        if (
-            not isinstance(dispositions, list)
-            or row["declaredMemberCount"] != len(dispositions)
-        ):
+        if not isinstance(dispositions, list):
             raise ValueError(
-                f"{release.spec.key} source accounting member count differs"
+                f"{release.spec.key} source accounting dispositions are not a list"
             )
         expected_resources = {resource.iri for resource in release.resources}
         represented_resources: set[str] = set()
@@ -4155,11 +4076,9 @@ def _validate_compiled_source_accounting(
                 f"{mapping_release.key} mapping source accounting membership mode differs"
             )
         dispositions = row["dispositions"]
-        if not isinstance(dispositions, list) or row[
-            "declaredMemberCount"
-        ] != len(dispositions):
+        if not isinstance(dispositions, list):
             raise ValueError(
-                f"{mapping_release.key} mapping source accounting count differs"
+                f"{mapping_release.key} mapping source accounting dispositions are not a list"
             )
         expected_records = mapping_expectations.get(
             mapping_release.source_release_iri,
@@ -4282,7 +4201,6 @@ def _finalize_source_accounting_inputs(
             row["dispositions"],
             key=lambda disposition: disposition["sourceRecord"],
         )
-        row["declaredMemberCount"] = len(row["dispositions"])
     accounting_inputs.sort(key=lambda row: row["sourceRelease"])
 
 
@@ -4556,7 +4474,6 @@ def _build_graphs(
                 }
             )
         accounting_row = {
-            "declaredMemberCount": len(dispositions),
             "dispositions": dispositions,
             "membershipMode": _accounting_membership_mode(release.spec.scope),
             "sourceRelease": str(source_release),
@@ -4586,7 +4503,6 @@ def _build_graphs(
         )
         source_release_nodes[mapping_release.source_release_iri] = source_release
         accounting_row = {
-            "declaredMemberCount": 0,
             "dispositions": [],
             "membershipMode": _accounting_membership_mode(mapping_release.scope),
             "sourceRelease": str(source_release),
@@ -6371,7 +6287,6 @@ def _construction_base_build_keys(
     seeds: Sequence[ReleaseConstructionSeed],
     *,
     binding_bundle_digest: str,
-    recipe_digest: str,
 ) -> dict[str, dict[str, Any]]:
     """Derive deterministic pre-parse keys for every release-local unit."""
 
@@ -6389,7 +6304,6 @@ def _construction_base_build_keys(
         adapter_recipe_digest = _adapter_recipe_digest(
             kind=seed.kind,
             inputs=adapter_recipe_inputs,
-            shared_recipe_digest=recipe_digest,
         )
         basis = _omit_absent_fields(
             {
@@ -6428,7 +6342,6 @@ def _construction_summary(
     graph_descriptors: Sequence[Mapping[str, Any]],
     packs: Sequence[Mapping[str, Any]],
     plans: Sequence[ReleasePackPlan],
-    recipe_digest: str,
     record_counts: Mapping[str, Mapping[str, int]],
     seeds: Sequence[ReleaseConstructionSeed],
     source_accounting_digest: str,
@@ -6449,7 +6362,6 @@ def _construction_summary(
     base_keys = _construction_base_build_keys(
         seeds,
         binding_bundle_digest=binding_bundle_digest,
-        recipe_digest=recipe_digest,
     )
     accounting_rows = {
         row["sourceRelease"]: row for row in accounting.get("inputs", ())
@@ -6622,7 +6534,6 @@ def _construction_summary(
                 "catalogInputInventoryDigest": catalog_input_digest,
                 "constructionProfile": _CONSTRUCTION_SUMMARY_PROFILE,
                 "releaseSchemeInventoryDigest": release_scheme_inventory_digest,
-                "recipeDigest": recipe_digest,
             }
         ),
         "inputInventoryDigest": catalog_input_digest,
@@ -6645,7 +6556,6 @@ def _construction_summary(
         "catalog": catalog,
         "distributionId": _distribution_id(accounting),
         "profile": _CONSTRUCTION_SUMMARY_PROFILE,
-        "recipeDigest": recipe_digest,
         "releaseCount": len(releases),
         "releaseInventoryDigest": _canonical_digest(releases),
         "releases": releases,
@@ -6884,19 +6794,12 @@ def _write_candidate_distribution(
         "version": "3.1",
         **binding_digests,
     }
-    recipe_digest = _shared_semantic_recipe_digest()
-    if (
-        not isinstance(recipe_digest, str)
-        or ATLAS_VALIDATE.DIGEST_RE.fullmatch(recipe_digest) is None
-    ):
-        raise ValueError("candidate construction recipe digest is missing")
     construction_summary = _construction_summary(
         accounting=graphs.accounting,
         binding=binding,
         graph_descriptors=graph_descriptors,
         packs=packs,
         plans=releases,
-        recipe_digest=recipe_digest,
         record_counts=record_counts,
         seeds=construction_seeds,
         source_accounting_digest=_sha256_file(accounting_path),

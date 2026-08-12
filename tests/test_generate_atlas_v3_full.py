@@ -82,7 +82,6 @@ def _compiled_test_accounting() -> dict[str, object]:
         {
             "inputs": [
                 {
-                    "declaredMemberCount": 0,
                     "dispositions": [],
                     "membershipMode": "complete",
                     "sourceRelease": "urn:test:source-release",
@@ -1441,7 +1440,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
             for row in graphs.accounting["inputs"]
             if row["sourceRelease"] == mapping_release.source_release_iri
         )
-        assert accounting_row["declaredMemberCount"] == 1
+        assert len(accounting_row["dispositions"]) == 1
         assert accounting_row["membershipMode"] == "complete"
         assert accounting_row["dispositions"] == [
             {
@@ -1566,7 +1565,7 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
             for row in expanded_graphs.accounting["inputs"]
             if row["sourceRelease"] == expanded_release.source_release_iri
         )
-        assert accounting_row["declaredMemberCount"] == 2
+        assert len(accounting_row["dispositions"]) == 2
         assert all(
             disposition["atlasAssertions"] == [str(assertion)]
             for disposition in accounting_row["dispositions"]
@@ -2246,10 +2245,15 @@ def test_compiled_producer_rejects_projection_and_accounting_mutations(
     # Reseal the ledger around the mutation. An accounting names the digest of
     # its own content, so tampering is caught by the identity above; resealing
     # is what reaches the membership reconciliation underneath it.
+    #
+    # What refuses the dropped disposition is that reconciliation -- the
+    # represented resources the ledger names against the resources the release
+    # actually carries. The `declaredMemberCount` self-count that used to fire
+    # first said only that the producer could count its own list.
     graphs.accounting["distributionId"] = generator.distribution_identity(
         graphs.accounting
     )
-    with pytest.raises(ValueError, match="member count differs"):
+    with pytest.raises(ValueError, match="resource membership differs"):
         generator._validate_compiled_producer_output(
             (release,),
             graphs,
@@ -3032,13 +3036,11 @@ def test_source_accounting_recounts_all_22_icpsr_remap_evidence_records() -> Non
         for index in reversed(range(22))
     ]
     icpsr = {
-        "declaredMemberCount": len(represented),
         "dispositions": [*represented, *remap_evidence],
         "membershipMode": "complete",
         "sourceRelease": "urn:test:release:icpsr",
     }
     other = {
-        "declaredMemberCount": 0,
         "dispositions": [],
         "membershipMode": "complete",
         "sourceRelease": "urn:test:release:aaa",
@@ -3048,7 +3050,6 @@ def test_source_accounting_recounts_all_22_icpsr_remap_evidence_records() -> Non
     generator._finalize_source_accounting_inputs(accounting_inputs)
 
     assert accounting_inputs == [other, icpsr]
-    assert icpsr["declaredMemberCount"] == 3_832
     assert len(icpsr["dispositions"]) == 3_832
     assert [row["sourceRecord"] for row in icpsr["dispositions"]] == sorted(
         row["sourceRecord"] for row in icpsr["dispositions"]

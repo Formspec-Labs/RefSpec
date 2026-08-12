@@ -75,8 +75,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 129,
-        "invalidCount": 116,
+        "caseCount": 130,
+        "invalidCount": 117,
         "registryDescriptorCount": 88,
         "registryDescriptorQuadCount": 994,
         "schemaCount": 10,
@@ -252,7 +252,7 @@ def test_review_warrants_describe_basis_without_product_permission() -> None:
 
     graph = Graph().parse(BINDING_ROOT / "ontology" / "atlas.ttl", format="turtle")
 
-    assert set(atlas_validate.EVIDENCE_WARRANTS) == {
+    assert set(atlas_validate.evidence_warrant_axis_values()) == {
         "deterministicTransformation",
         "humanReview",
         "operatorAdoption",
@@ -265,7 +265,8 @@ def test_review_warrants_describe_basis_without_product_permission() -> None:
     # removed.
     assert not any(
         str(term).startswith(str(ATLAS))
-        and str(term).removeprefix(str(ATLAS)) in atlas_validate.EVIDENCE_WARRANTS
+        and str(term).removeprefix(str(ATLAS))
+        in atlas_validate.evidence_warrant_axis_values()
         for term in graph.all_nodes()
     )
     assert not any(
