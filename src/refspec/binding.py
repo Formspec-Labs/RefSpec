@@ -15,6 +15,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
+from rulespec_conformance.contract import USAGE_ELIGIBILITY
 
 # The canonical-JSON primitives and CORE_FACETS moved to ``refspec.release_model``
 # so the atlas build path can reach them without importing this module. Every
@@ -86,20 +87,13 @@ TYPE_REQUIREMENTS = {
     "urn:ref:type:SourceIdentifierSet": "REF-VOC-040",
 }
 
-# rkaf's closed usage-eligibility lattice (usage-eligibility.cue). Order is
+# rkaf's closed usage-eligibility lattice (usage-eligibility.cue), imported
+# from the packaged contract rather than re-declared here. Order is
 # normative -- it ascends from the lowest ceiling to the highest -- so this
 # tuple, not just the set it also defines, is the shared source both the
 # OutputProfile builder (vocabulary.py) and the accepted-output gate
 # (accepted_output.py) import rather than re-declaring.
-USAGE_ELIGIBILITY_ORDER = (
-    "rkaf:notEligible",
-    "rkaf:searchOnly",
-    "rkaf:reviewQueueOnly",
-    "rkaf:draftGenerationAllowed",
-    "rkaf:localOperationalUse",
-    "rkaf:publicationAllowed",
-    "rkaf:officialUse",
-)
+USAGE_ELIGIBILITY_ORDER = USAGE_ELIGIBILITY
 USAGE_ELIGIBILITY_VALUES = frozenset(USAGE_ELIGIBILITY_ORDER)
 USAGE_ELIGIBILITY_RANK = {
     value: rank for rank, value in enumerate(USAGE_ELIGIBILITY_ORDER)

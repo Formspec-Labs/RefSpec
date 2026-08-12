@@ -59,6 +59,7 @@ from typing import Any, cast
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from rulespec_conformance.contract import USAGE_ELIGIBILITY
 
 import refspec.release_graph as release_graph_module
 from refspec import binding
@@ -132,11 +133,11 @@ _RESOLVED_RECONCILIATION_OUTCOMES = {
     "selectedInput",
     "reconciledReleaseAuthorized",
 }
-_AUTHORIZED_USAGE_LEVELS = {
-    "rkaf:localOperationalUse",
-    "rkaf:publicationAllowed",
-    "rkaf:officialUse",
-}
+# The same top-of-lattice band release_graph.AUTHORIZED_LEVELS names, bound
+# independently from the packaged order rather than imported cross-module --
+# both are slices of the same immutable USAGE_ELIGIBILITY tuple, so they
+# cannot drift relative to each other or upstream.
+_AUTHORIZED_USAGE_LEVELS = frozenset(USAGE_ELIGIBILITY[-3:])
 _RELEASE_TYPES = {
     "rkaf:ReferenceResourceRelease",
     "https://rulespec.org/ns/v1#ReferenceResourceRelease",

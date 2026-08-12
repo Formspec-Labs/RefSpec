@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 from string import Template
-from typing import Any, BinaryIO, TypeVar, cast
+from typing import Any, BinaryIO, cast
 
 try:  # Python 3.14+
     from compression import zstd
@@ -373,8 +373,6 @@ class Atlas3ExplorerError(ValueError):
 
 
 AtlasExplorerError = Atlas3ExplorerError
-
-_LimitedRow = TypeVar("_LimitedRow")
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -4933,7 +4931,7 @@ def _release_view(
     return result
 
 
-def _limit(rows: list[_LimitedRow], limit: int | None, label: str) -> list[_LimitedRow]:
+def _limit[LimitedRow](rows: list[LimitedRow], limit: int | None, label: str) -> list[LimitedRow]:
     if limit is None:
         return rows
     if not isinstance(limit, int) or isinstance(limit, bool) or limit < 0:

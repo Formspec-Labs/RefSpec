@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable
-from typing import Protocol, TypeVar
+from typing import Protocol
 
 
 class _KeyedRelease(Protocol):
     @property
     def key(self) -> str: ...
-
-
-_ReleaseT = TypeVar("_ReleaseT", bound=_KeyedRelease)
 
 
 def normalize_only_keys(
@@ -44,13 +41,13 @@ def wants_group(
     return requested_keys is None or bool(requested_keys.intersection(group_keys))
 
 
-def select_declared_group(
-    releases: Iterable[_ReleaseT],
+def select_declared_group[ReleaseT: _KeyedRelease](
+    releases: Iterable[ReleaseT],
     *,
     declared_keys: Collection[str],
     requested_keys: frozenset[str] | None,
     loader_name: str,
-) -> tuple[_ReleaseT, ...]:
+) -> tuple[ReleaseT, ...]:
     """Check a loader group's topology and retain only requested releases."""
 
     loaded = tuple(releases)

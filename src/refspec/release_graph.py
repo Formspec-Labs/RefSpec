@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from rulespec_conformance.contract import USAGE_ELIGIBILITY
+
 from refspec import binding
 from refspec.generated_rulespec_dependency import (
     RULESPEC_DEPENDENCY_BYTES,
@@ -91,12 +93,13 @@ ASSERTION_TYPES = frozenset(
         RULESPEC_CONCEPT_ASSIGNMENT,
     }
 )
-AUTHORIZATION_MINIMUM = "rkaf:localOperationalUse"
-AUTHORIZED_LEVELS = (
-    "rkaf:localOperationalUse",
-    "rkaf:publicationAllowed",
-    "rkaf:officialUse",
-)
+# The top three ranks of rkaf's closed usage-eligibility lattice
+# (USAGE_ELIGIBILITY, imported above) -- the only levels this gate accepts as
+# an authorized deployment outcome. Sliced from the packaged order rather
+# than named again, so an upstream reorder is reflected here automatically
+# instead of relying on a currency test to catch drift.
+AUTHORIZED_LEVELS = USAGE_ELIGIBILITY[-3:]
+AUTHORIZATION_MINIMUM = AUTHORIZED_LEVELS[0]
 APPROVING_ATTESTATION_DECISIONS = frozenset({"rkaf:approved"})
 SELECTED_DEPLOYMENT_TYPES = frozenset(
     {

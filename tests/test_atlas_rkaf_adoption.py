@@ -41,14 +41,12 @@ import json
 import re
 from pathlib import Path
 
-import pytest
 from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import RDF
 
-from tests.test_rulespec_vocabulary_currency import (
+from tests.test_rkaf_term_currency import (
     _extract_rkaf_terms,
-    discover_rulespec_checkout,
-    rulespec_vocabulary_terms,
+    rulespec_defined_local_names,
 )
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
@@ -61,7 +59,7 @@ CORPUS = BINDING_ROOT / "fixtures" / "corpus.json"
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 RKAF = Namespace("https://rulespec.org/ns/v1#")
 
-# Same shape as the rkaf extractor in test_rulespec_vocabulary_currency: the
+# Same shape as the rkaf extractor in test_rkaf_term_currency: the
 # ``(?<!urn:)`` guard keeps RefSpec's own ``urn:...:atlas:...`` identifiers out.
 _ATLAS_COMPACT_IRI = re.compile(r"(?<!urn:)\batlas:([A-Za-z][A-Za-z0-9_-]*)")
 _ATLAS_FULL_IRI = re.compile(
@@ -377,23 +375,11 @@ def _atlas_owned_taxonomy_names() -> set[str]:
     }
 
 
-def _require_rulespec() -> Path:
-    rulespec_dir = discover_rulespec_checkout()
-    if rulespec_dir is None:
-        pytest.skip(
-            "no Rulespec checkout found (set REFSPEC_RULESPEC_CHECKOUT or "
-            "clone Rulespec to ~/Work/rulespec) -- skipping the Atlas/rkaf "
-            "term-collision gate"
-        )
-    return rulespec_dir
-
-
 def test_no_atlas_term_duplicates_an_rkaf_term_outside_atlas_taxonomy() -> None:
     """The collision gate. Scoped by predicate, not by an exception list."""
 
-    rulespec_dir = _require_rulespec()
-    defined_upstream = rulespec_vocabulary_terms(rulespec_dir)
-    assert defined_upstream, f"{rulespec_dir} looks empty"
+    defined_upstream = rulespec_defined_local_names()
+    assert defined_upstream, "rulespec_conformance.contract.terms.TERMS looks empty"
 
     published_atlas = _published_atlas_local_names()
     assert published_atlas, "the atlas: extraction regex is broken"
@@ -423,8 +409,7 @@ def test_the_gate_stays_scoped_and_keeps_the_ring_homograph_legal() -> None:
     collision gate silently changed meaning.
     """
 
-    rulespec_dir = _require_rulespec()
-    defined_upstream = rulespec_vocabulary_terms(rulespec_dir)
+    defined_upstream = rulespec_defined_local_names()
     owned_taxonomy = _atlas_owned_taxonomy_names()
 
     homographs = sorted(

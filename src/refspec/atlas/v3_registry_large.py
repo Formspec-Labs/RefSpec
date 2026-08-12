@@ -12,7 +12,6 @@ from collections.abc import Callable, Collection, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from itertools import islice
 from pathlib import Path
-from typing import TypeVar
 from urllib.parse import quote
 
 from refspec.atlas.v3_registry_selection import (
@@ -52,8 +51,6 @@ OPM_EHRI_SHA256 = "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca1
 OPM_EHRI_BYTE_LENGTH = 1_154_183
 OPM_PLUM_SHA256 = "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f"
 OPM_PLUM_BYTE_LENGTH = 2_737_270
-
-_Item = TypeVar("_Item")
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,11 +121,11 @@ LARGE_REGISTRY_BINDINGS = {
 }
 
 
-def _sequence_item(
-    values: Iterator[_Item],
+def _sequence_item[Item](
+    values: Iterator[Item],
     length: int,
     index: int | slice,
-) -> _Item | tuple[_Item, ...]:
+) -> Item | tuple[Item, ...]:
     """Implement the small random-access surface required by ``Sequence``."""
 
     if isinstance(index, slice):

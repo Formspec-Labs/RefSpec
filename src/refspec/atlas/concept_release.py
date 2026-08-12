@@ -17,7 +17,7 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Self, TypeAlias, cast
+from typing import Any, Self, cast
 
 from refspec.immutable import deep_freeze_json
 from refspec.managed_release import ManagedReleaseGraphFactsView
@@ -626,10 +626,10 @@ class PinnedManagedConceptRelease:
             )
 
 
-ConceptReleaseSource: TypeAlias = (
+type ConceptReleaseSource = (
     PinnedSourceConceptRelease | PinnedManagedConceptRelease
 )
-SubjectConceptRelease: TypeAlias = (
+type SubjectConceptRelease = (
     SourceConceptReleaseBundle
     | PinnedSourceConceptRelease
     | PinnedManagedConceptRelease
