@@ -8588,6 +8588,17 @@ def validate_binding() -> dict[str, Any]:
             f"corpus cases differ; missing={sorted(REQUIRED_CORPUS_CASES - case_ids)}, extra={sorted(case_ids - REQUIRED_CORPUS_CASES)}",
         )
     declared_paths = {case["path"] for case in corpus["cases"]}
+    # The case tree is generated and not committed, so in a fresh checkout it
+    # is legitimately absent. Say so instead of raising FileNotFoundError out
+    # of the directory walk below: the fix is one command, and the validator
+    # stays a validator -- it never builds anything itself.
+    for role in ("valid", "invalid"):
+        if not (FIXTURE_ROOT / role).is_dir():
+            _fail(
+                "corpus.coverage",
+                f"fixture case tree is missing at {FIXTURE_ROOT / role}; it is generated, "
+                "not committed -- run tools/build_fixtures.py (or make check-generated)",
+            )
     fixture_paths = {
         f"{role}/{path.name}"
         for role in ("valid", "invalid")

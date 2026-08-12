@@ -1,4 +1,5 @@
 .PHONY: generate check-generated lint test test-package test-json-binding test-atlas-v3 \
+	atlas-v3-fixtures \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 
@@ -23,6 +24,12 @@ generate:
 	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
 		python bindings/atlas/3.0/tools/build_fixtures.py
 
+# The last step here also MATERIALIZES the Atlas 3.0 case tree. Those 8,339
+# files are generated and gitignored, so on a cold checkout that rebuild writes
+# them and proves them against the committed `fixtures-receipt.json`; on a warm
+# one the receipt answers in ~1.5s. `test` lists this target before
+# `test-package` for exactly that reason -- four test modules read case
+# directories directly.
 check-generated:
 	python3 tools/generate_model.py --check
 	uv run python tools/generate_crs_source_concept_releases.py --check
@@ -41,7 +48,23 @@ check-generated:
 # bare target only exit-codes. Listing both ran the 110-case corpus twice for
 # ~205s each -- a third of the whole suite spent proving the same thing twice.
 # Keep the standalone target for binding work; do not re-add it here.
+# Order matters here beyond taste: `check-generated` materializes the
+# gitignored Atlas 3.0 case tree (see that rule), and `test-package` reads it.
+# Make runs these left to right, so a cold checkout is healed before pytest
+# collects. The targets that can be run on their own take `atlas-v3-fixtures`
+# as a prerequisite so they do not depend on that ordering.
 test: lint check-generated audit-registry-inventory test-json-binding test-package
+
+# Build the Atlas 3.0 case tree if, and only if, it is not there. `--check`
+# both builds and proves (against `fixtures-receipt.json`), so the cold path
+# gets its ~9s build and the warm path pays one directory test. Anything that
+# reads `bindings/atlas/3.0/fixtures/valid|invalid` should depend on this.
+atlas-v3-fixtures:
+	@if [ ! -d bindings/atlas/3.0/fixtures/valid ]; then \
+		echo "Atlas 3.0 fixtures absent (generated, gitignored); building once"; \
+		uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
+			python bindings/atlas/3.0/tools/build_fixtures.py --check; \
+	fi
 
 # First, because it is the cheapest gate in the pipeline (~1s against ~1.7min).
 # The rule set is stated in pyproject.toml and the ruff version is pinned there.
@@ -77,7 +100,7 @@ audit-registry-real-data:
 # a runaway guard, not a margin on the target. The 120s FAIL line re-arms
 # once the suite is next measured under 60s (expected after the plan's
 # deletion campaign shrinks it); until then 240s is what actually gates.
-test-package:
+test-package: atlas-v3-fixtures
 	@start=$$(date +%s); \
 	uv run pytest -q -n auto; \
 	status=$$?; \
@@ -95,7 +118,7 @@ test-json-binding:
 	uv run --no-project --with-requirements bindings/json/1.0/requirements.txt \
 		python bindings/json/1.0/tools/validate.py
 
-test-atlas-v3:
+test-atlas-v3: atlas-v3-fixtures
 	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
 		python bindings/atlas/3.0/tools/validate.py
 

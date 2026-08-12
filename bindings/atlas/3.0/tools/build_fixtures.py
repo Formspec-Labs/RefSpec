@@ -1318,6 +1318,23 @@ def _sha256(payload: bytes) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
+# Fixture receipts do not seal generator bytes. This used to be
+# `_sha256(Path(__file__).read_bytes())` -- the builder hashing its own source
+# into every case -- which made any one-character edit here, a comment
+# included, rewrite all 128 cases and cascade into ~512 changed files that no
+# reviewer could read. It bought nothing: what a fixture corpus has to prove is
+# that these exact bytes still fall out of these inputs, and
+# `fixtures-receipt.json` proves that over the whole tree, with this file's
+# digest already among its recorded inputs. A per-case copy of the same digest
+# is a second, louder inventory of the same fact.
+#
+# Production receipts are untouched and keep their real self-pin:
+# `tools/generate_atlas_v3_full.py` seals its own implementation digest,
+# because a released distribution genuinely does have to say which program
+# produced it.
+PRODUCER_IMPLEMENTATION_DIGEST = _sha256(b"atlas-3-fixture-producer")
+
+
 def _atlas_name(value: URIRef) -> str:
     iri = str(value)
     namespace = str(ATLAS)
@@ -2184,7 +2201,7 @@ def _write_case(
         },
         "constructorProfile": CONSTRUCTOR_PROFILE,
         "counts": counts,
-        "implementationDigest": _sha256(Path(__file__).resolve().read_bytes()),
+        "implementationDigest": PRODUCER_IMPLEMENTATION_DIGEST,
         "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
@@ -4623,7 +4640,15 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 # corpus: record what the output was made from, and skip remaking it when
 # nothing that determines it has moved.
 #
-# Beside the corpus, never inside it. `build()` compares the committed
+# This receipt is also the *only* committed evidence that the case tree is
+# reproducible. `fixtures/valid/` and `fixtures/invalid/` are generated and
+# gitignored -- 8,339 files that no review ever read -- so what git carries is
+# `fixtures/corpus.json` (a sealed bundle member) plus these two lines of
+# digests. A cold checkout rebuilds the tree in ~9s and must reproduce
+# `fixturesDigest` exactly; a warm tree is a build cache the check compares
+# against file by file.
+#
+# Beside the corpus, never inside it. `build()` compares the on-disk
 # `fixtures/` tree against a freshly built one as a whole-directory equality,
 # so a receipt written into that tree would report itself as an unexpected
 # extra file and fail the very check it exists to speed up.
@@ -4686,13 +4711,27 @@ def _current_receipt() -> dict[str, Any]:
     }
 
 
-def _receipt_is_current() -> bool:
-    """Fail closed: any doubt at all returns False and the full rebuild runs."""
+def _recorded_receipt() -> dict[str, Any] | None:
+    """The committed receipt, or None when it is absent or unreadable."""
 
     try:
         recorded = json.loads(RECEIPT_PATH.read_bytes())
+        if not isinstance(recorded, dict):
+            return None
         if recorded.get("type") != RECEIPT_TYPE or recorded.get("version") != RECEIPT_VERSION:
-            return False
+            return None
+        return recorded
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _receipt_is_current() -> bool:
+    """Fail closed: any doubt at all returns False and the full rebuild runs."""
+
+    recorded = _recorded_receipt()
+    if recorded is None:
+        return False
+    try:
         if recorded.get("inputs") != _receipt_inputs():
             return False
         if recorded.get("runtime") != atlas_validate.binding_runtime():
@@ -4709,6 +4748,10 @@ def build(*, check: bool) -> None:
             "inputs and the committed corpus"
         )
         return
+    # Has anyone built the case tree here yet? `--check` compares against it
+    # when it exists and materializes it when it does not, which is what makes
+    # a cold checkout self-healing without a second entry point.
+    materialized = any(root.is_dir() for root in GENERATED_ROOTS)
     output_root = FIXTURE_ROOT
     temporary_root = output_root.parent / ".atlas-3.0-fixtures.tmp"
     if temporary_root.exists():
@@ -4784,7 +4827,7 @@ def build(*, check: bool) -> None:
         for path in output_root.rglob("*")
         if path.is_file()
     } if output_root.exists() else {}
-    if check:
+    if check and materialized:
         shutil.rmtree(temporary_root)
         if current_files != expected_files:
             missing = sorted(str(path) for path in expected_files.keys() - current_files.keys())
@@ -4795,12 +4838,29 @@ def build(*, check: bool) -> None:
                 if expected_files[path] != current_files[path]
             )
             raise SystemExit(f"Atlas 3.0 fixtures differ; missing={missing}, extra={extra}, changed={changed}")
-        # The slow path just proved the committed tree is exactly what this
+        # The slow path just proved the on-disk tree is exactly what this
         # builder produces from these inputs. Record that so the next check can
         # answer from the receipt.
         RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
         print(f"Atlas 3.0 fixtures rebuilt and compared: {len(expected_files)} files identical")
         return
+
+    # Cold checkout: the case tree is generated and gitignored, so there is
+    # nothing on disk to compare against. The committed receipt is the
+    # comparand instead -- the rebuild must reproduce its `fixturesDigest`
+    # before the tree is materialized for the validator and the suite to read.
+    recorded_digest = None
+    if check:
+        recorded = _recorded_receipt()
+        recorded_digest = recorded.get("fixturesDigest") if recorded else None
+        built_digest = _fixtures_tree_digest(temporary_root)
+        if recorded_digest is not None and recorded_digest != built_digest:
+            shutil.rmtree(temporary_root)
+            raise SystemExit(
+                "Atlas 3.0 fixtures differ from the committed receipt: the rebuild produced "
+                f"{built_digest} but fixtures-receipt.json records {recorded_digest}. "
+                "Run build_fixtures.py and commit the receipt."
+            )
 
     output_root.mkdir(parents=True, exist_ok=True)
     for generated_root in GENERATED_ROOTS:
@@ -4816,6 +4876,15 @@ def build(*, check: bool) -> None:
         else:
             target.write_bytes(source.read_bytes())
     shutil.rmtree(temporary_root)
+    if check and recorded_digest is not None:
+        # The committed receipt already pins exactly these bytes, so leave it
+        # alone: rewriting it here would dirty a checked-in file on every cold
+        # build for no new information.
+        print(
+            f"Atlas 3.0 fixtures materialized and matched the committed receipt: "
+            f"{len(expected_files)} files"
+        )
+        return
     RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
     print(f"Atlas 3.0 fixtures written: {len(expected_files)} files, receipt over {len(_receipt_inputs())} inputs")
 

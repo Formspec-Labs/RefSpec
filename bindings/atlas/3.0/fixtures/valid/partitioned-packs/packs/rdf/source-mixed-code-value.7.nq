@@ -1,5 +1,0 @@
-<urn:ref:atlas-fixture:label:mixed-code-value:en> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2008/05/skos-xl#Label> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
-<urn:ref:atlas-fixture:label:mixed-code-value:en> <http://www.w3.org/2008/05/skos-xl#literalForm> "Mixed code value"@en <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
-<urn:ref:atlas-fixture:label:mixed-code-value:en> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:98c307e9046c15fc555a513955b0106a623e742654774d5b9996571380eeea0b" <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
-<urn:ref:atlas-fixture:label:mixed-code-value:en> <https://refspec.org/ns/atlas/v3#inRelease> <urn:ref:atlas-fixture:release:mixed-code-value:2026> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
-<urn:ref:atlas-fixture:label:mixed-code-value:en> <https://refspec.org/ns/atlas/v3#sourceRecord> <urn:ref:atlas-fixture:source-record:mixed-code-value> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
