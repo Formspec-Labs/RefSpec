@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -8,7 +9,13 @@ import pyarrow.parquet as pq
 import pytest
 from rdflib import Namespace
 
-from refspec.atlas.compact_pack import CompactPackHeader, CompactRecordRole, write_compact_record_pack
+from refspec.atlas.compact_pack import (
+    CompactPackHeader,
+    CompactRecordRole,
+    compact_record_fields,
+    read_compact_record_pack,
+    write_compact_record_pack,
+)
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
 from refspec.atlas.explorer import (
     atlas_explorer_facets,
@@ -36,9 +43,20 @@ from refspec.atlas.parquet_search_view import (
     build_atlas_parquet_search_view,
     verify_atlas_parquet_search_view,
 )
+from refspec.atlas.parquet_tables import (
+    TABLE_NAMES,
+    TABLE_SCHEMAS,
+    AtlasParquetTableWriter,
+    column_name,
+    logical_records_preserved,
+    unpreserved_record_fields,
+)
 from refspec.atlas.parquet_view import (
+    BUILDER_SOURCE_REPRESENTATION,
+    VIEW_SCHEMA_VERSION,
     AtlasParquetViewError,
     build_atlas_parquet_view,
+    seal_atlas_parquet_view,
     verify_atlas_parquet_view,
 )
 from refspec.atlas.registry_claim_input import (
@@ -52,6 +70,7 @@ from refspec.registry.infrastructure.registry_claim_release import (
     RegistryRawInput,
     build_registry_claim_release,
 )
+from refspec.release_model import canonical_native_json_bytes
 
 _D1 = "sha256:" + "1" * 64
 _D2 = "sha256:" + "2" * 64
@@ -358,6 +377,123 @@ def test_registry_claim_bundle_round_trips_through_atlas_parquet(
     assert manifest["counts"]["SourceRecord"] == 1
     assert report.passed is True
     assert report.exact_count == 1
+
+
+def test_warrant_columns_carry_every_axis_and_the_optional_referent(
+    tmp_path: Path,
+) -> None:
+    """All five warrant fields are columns, so a bad warrant is visible here.
+
+    The defect that shipped in 2026-08 was a combination of axis values
+    matching no sanctioned branch. A view that carried only `evidence_role`
+    could not express the combination, let alone refuse it -- which is also
+    why `logicalRecordsPreserved` was a false claim until now.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    output = tmp_path / "view"
+    manifest = build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+
+    schema = pq.read_schema(output / "tables/evidence-bindings.parquet")
+    warrant_columns = (
+        "attestor_kind",
+        "assertion_origin",
+        "epistemic_basis",
+        "evidence_role",
+        "evidentiary_function",
+        "based_on_attestation",
+    )
+    assert set(warrant_columns) <= set(schema.names)
+    for column in warrant_columns[:-1]:
+        assert schema.field(column).nullable is False
+    assert schema.field("based_on_attestation").nullable is True
+
+    row = pq.read_table(output / "tables/evidence-bindings.parquet").to_pylist()[0]
+    assert row["attestor_kind"] == "urn:test:attestor-kind"
+    assert row["assertion_origin"] == "urn:test:origin"
+    assert row["epistemic_basis"] == "urn:test:basis"
+    assert row["evidence_role"] == "urn:test:role"
+    assert row["evidentiary_function"] == "urn:test:function"
+    assert row["based_on_attestation"] is None
+    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "2.0"
+
+
+def test_logical_records_preserved_is_computed_from_the_compact_contract() -> None:
+    """The manifest claim is derived, so it cannot outlive its truth.
+
+    Every field a compact record can carry must have a column. Drop one and
+    the derivation names it, the status claim goes False, and the manifest
+    publishes the gap instead of asserting the opposite.
+    """
+
+    assert unpreserved_record_fields() == {}
+    assert logical_records_preserved() is True
+    for role in CompactRecordRole:
+        columns = set(TABLE_SCHEMAS[role].names)
+        assert {column_name(field) for field in compact_record_fields(role)} == columns
+
+
+def test_native_payload_column_is_the_literal_lexical_bytes(tmp_path: Path) -> None:
+    """One encoder, and the column is exactly what the RDF literal holds.
+
+    The duplicate canonicalizer this replaces dropped publisher nulls, so the
+    Parquet payload could not round-trip a source record that had any -- and
+    its sha256 could not match the `sourceDigest` the record publishes.
+    """
+
+    payload = {"b": None, "a": [1, {"z": None}], "unicode": "café"}
+    source = tmp_path / "atlas"
+    source.mkdir()
+    expected = canonical_native_json_bytes(payload)
+    source_pin = _fixture_distribution(
+        source,
+        source_native_payload=payload,
+        source_digest=sha256_digest(expected),
+    )
+    output = tmp_path / "view"
+    build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+
+    row = pq.read_table(output / "tables/source-records.parquet").to_pylist()[0]
+    assert row["native_payload"] == expected
+    assert expected == b'{"a":[1,{"z":null}],"b":null,"unicode":"caf\xc3\xa9"}'
+    assert hashlib.sha256(row["native_payload"]).digest() == row["source_digest"]
+
+
+def test_the_builder_and_the_compact_path_write_the_same_tables(tmp_path: Path) -> None:
+    """The staged-table seal is the same view the compact derivation makes.
+
+    Stage B deletes the compact JSONL wire and with it
+    `build_atlas_parquet_view`'s record source. This is what makes that
+    deletion safe to take: the writer both producers share turns the same
+    logical records into the same bytes, so the builder's tables are not a
+    second implementation to re-prove.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    derived = tmp_path / "derived"
+    build_atlas_parquet_view(source, derived, expected_manifest_digest=source_pin)
+
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    writer = AtlasParquetTableWriter(staged)
+    for descriptor in json.loads((source / "atlas-construction-summary.json").read_bytes())["compactPacks"]:
+        role = CompactRecordRole(descriptor["role"])
+        writer.extend(role, read_compact_record_pack(source, descriptor).rows)
+    writer.close()
+    sealed = tmp_path / "sealed"
+    manifest = seal_atlas_parquet_view(source, staged, sealed, expected_manifest_digest=source_pin)
+
+    for role in CompactRecordRole:
+        name = f"tables/{role.value.casefold()}"  # only used for the failure message
+        assert (sealed / f"tables/{TABLE_NAMES[role]}").read_bytes() == (
+            derived / f"tables/{TABLE_NAMES[role]}"
+        ).read_bytes(), name
+    assert manifest["construction"]["sourceRepresentation"] == BUILDER_SOURCE_REPRESENTATION
+    assert manifest["counts"] == json.loads((derived / "view-manifest.json").read_bytes())["counts"]
 
 
 def test_rebuild_is_byte_stable(tmp_path: Path) -> None:

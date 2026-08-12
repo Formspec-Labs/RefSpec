@@ -4,6 +4,15 @@ The canonical Atlas remains the asserted RDF distribution.  This module turns
 its authenticated compact logical-record packs into typed, queryable Parquet
 tables.  It preserves every logical record and its canonical RDF content
 digest, but does not duplicate the 30-million-row N-Quads serialization.
+
+The schema, the row projection, and the writer live in
+:mod:`refspec.atlas.parquet_tables`, because the Atlas builder now emits these
+same tables directly from its in-memory graph as it walks it for the RDF and
+compact packs.  This module is the path for a distribution whose builder did
+not: it re-derives the tables from authenticated compact packs.  It retires
+with the compact JSONL wire, not before -- until then both producers must
+write byte-comparable tables, which one shared writer is the only way to
+guarantee.
 """
 
 from __future__ import annotations
@@ -15,12 +24,11 @@ import re
 import shutil
 import tempfile
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-import pyarrow as pa
 import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import (
@@ -36,20 +44,33 @@ from refspec.atlas.parquet_artifact import (
     file_sha256,
     normalize_sha256_prefix,
 )
+from refspec.atlas.parquet_tables import (
+    COMPRESSION,
+    COMPRESSION_LEVEL,
+    PARQUET_VERSION,
+    ROW_GROUP_SIZE,
+    TABLE_MEDIA_TYPE,
+    TABLE_SCHEMAS,
+    AtlasParquetTableError,
+    AtlasParquetTableWriter,
+    logical_records_preserved,
+    table_relative_path,
+    unpreserved_record_fields,
+)
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
 )
 
-VIEW_SCHEMA_VERSION = "1.0"
+# 2.0: the five warrant columns landed (four rkaf axes plus the optional
+# basedOnAttestation referent), so the projection is lossless per logical
+# record and `logicalRecordsPreserved` is computed rather than declared.
+VIEW_SCHEMA_VERSION = "2.0"
 VIEW_RECORD_TYPE = "AtlasParquetViewManifest"
 VIEW_IMPLEMENTATION = "refspec.atlas.parquet_view"
-VIEW_IMPLEMENTATION_VERSION = "1.0"
+VIEW_IMPLEMENTATION_VERSION = "2.0"
 VIEW_ID_PREFIX = "urn:ref:atlas-parquet-view:"
 MANIFEST_FILE = "view-manifest.json"
-ROW_GROUP_SIZE = 50_000
-COMPRESSION = "zstd"
-COMPRESSION_LEVEL = 9
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _ROOT_MANIFEST_FIELDS = frozenset(
@@ -84,14 +105,6 @@ _VIEW_MANIFEST_FIELDS = frozenset(
 
 class AtlasParquetViewError(ValueError):
     """The Atlas input or derived Parquet view is unsafe or inconsistent."""
-
-
-def _digest_bytes(value: object, label: str) -> bytes | None:
-    if value is None:
-        return None
-    if not isinstance(value, str) or _DIGEST.fullmatch(value) is None:
-        raise AtlasParquetViewError(f"{label} must be a lowercase SHA-256 digest")
-    return bytes.fromhex(value.removeprefix("sha256:"))
 
 
 def _digest_text(value: object, label: str) -> str:
@@ -136,233 +149,6 @@ def _safe_path(root: Path, relative: object) -> Path:
     if path.is_symlink():
         raise AtlasParquetViewError(f"artifact path cannot be a symlink: {relative}")
     return path
-
-
-def _binary_digest_field(name: str, *, nullable: bool = True) -> pa.Field:
-    return pa.field(name, pa.binary(32), nullable=nullable)
-
-
-_SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
-    CompactRecordRole.RESOURCE: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("release", pa.string(), nullable=False),
-            pa.field("scheme", pa.string(), nullable=False),
-            pa.field("semantic_ring", pa.string(), nullable=False),
-            pa.field("resource_profile", pa.string(), nullable=False),
-            pa.field("source_record", pa.string(), nullable=False),
-            pa.field("definition", pa.string()),
-            pa.field("notes", pa.list_(pa.string())),
-            pa.field("notations", pa.list_(pa.string())),
-            pa.field("record_status", pa.string()),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.LABEL: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("resource", pa.string(), nullable=False),
-            pa.field("label_role", pa.string(), nullable=False),
-            pa.field("value", pa.string(), nullable=False),
-            pa.field("language", pa.string(), nullable=False),
-            pa.field("release", pa.string(), nullable=False),
-            pa.field("source_record", pa.string(), nullable=False),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.STATEMENT: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("statement_type", pa.string(), nullable=False),
-            pa.field("subject", pa.string(), nullable=False),
-            pa.field("predicate", pa.string(), nullable=False),
-            pa.field("object", pa.string(), nullable=False),
-            pa.field("source_release", pa.string(), nullable=False),
-            pa.field("target_release", pa.string(), nullable=False),
-            pa.field("policy", pa.string(), nullable=False),
-            pa.field("asserted_at", pa.string(), nullable=False),
-            _binary_digest_field("assertion_identity_digest", nullable=False),
-            pa.field("semantic_ring", pa.string()),
-            pa.field("source_ring", pa.string()),
-            pa.field("target_ring", pa.string()),
-            pa.field("supersedes_assertion", pa.string()),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.EVIDENCE_BINDING: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("statement", pa.string(), nullable=False),
-            pa.field("source_record", pa.string(), nullable=False),
-            _binary_digest_field("evidence_source_digest", nullable=False),
-            pa.field("attestor", pa.string(), nullable=False),
-            pa.field("evidence_role", pa.string(), nullable=False),
-            pa.field("decision", pa.string(), nullable=False),
-            pa.field("attested_at", pa.string(), nullable=False),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.SOURCE_RECORD: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("source_release", pa.string(), nullable=False),
-            _binary_digest_field("source_digest", nullable=False),
-            pa.field("source_locator", pa.string(), nullable=False),
-            pa.field("native_payload", pa.large_binary(), nullable=False),
-            pa.field("represents_resource", pa.string()),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.RELEASE: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("release_type", pa.string(), nullable=False),
-            pa.field("identifier", pa.string(), nullable=False),
-            pa.field("issued", pa.string(), nullable=False),
-            _binary_digest_field("source_digest"),
-            pa.field("source_locator", pa.string()),
-            pa.field("resource_profile", pa.string()),
-            pa.field("semantic_ring", pa.string()),
-            pa.field("scheme", pa.string()),
-            pa.field("membership_mode", pa.string()),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.IDENTIFIER: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("identifier_value", pa.string(), nullable=False),
-            pa.field("identifier_scheme", pa.string(), nullable=False),
-            pa.field("identifies", pa.string(), nullable=False),
-            pa.field("source_record", pa.string(), nullable=False),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-    CompactRecordRole.LIFECYCLE_EVENT: pa.schema(
-        [
-            pa.field("id", pa.string(), nullable=False),
-            pa.field("applies_to", pa.string(), nullable=False),
-            pa.field("lifecycle_event_kind", pa.string(), nullable=False),
-            pa.field("effective_date", pa.string(), nullable=False),
-            pa.field("source_records", pa.list_(pa.string()), nullable=False),
-            pa.field("from_release", pa.string()),
-            pa.field("to_release", pa.string()),
-            _binary_digest_field("content_digest"),
-        ]
-    ),
-}
-
-_TABLE_NAMES = {
-    CompactRecordRole.RESOURCE: "resources.parquet",
-    CompactRecordRole.LABEL: "labels.parquet",
-    CompactRecordRole.STATEMENT: "statements.parquet",
-    CompactRecordRole.EVIDENCE_BINDING: "evidence-bindings.parquet",
-    CompactRecordRole.SOURCE_RECORD: "source-records.parquet",
-    CompactRecordRole.RELEASE: "releases.parquet",
-    CompactRecordRole.IDENTIFIER: "identifiers.parquet",
-    CompactRecordRole.LIFECYCLE_EVENT: "lifecycle-events.parquet",
-}
-
-
-def _record_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any]:
-    common = {"id": row["id"], "content_digest": _digest_bytes(row.get("contentDigest"), "contentDigest")}
-    if role is CompactRecordRole.RESOURCE:
-        return {
-            **common,
-            "release": row["release"],
-            "scheme": row["scheme"],
-            "semantic_ring": row["semanticRing"],
-            "resource_profile": row["resourceProfile"],
-            "source_record": row["sourceRecord"],
-            "definition": row.get("definition"),
-            "notes": row.get("notes"),
-            "notations": row.get("notations"),
-            "record_status": row.get("recordStatus"),
-        }
-    if role is CompactRecordRole.LABEL:
-        return {
-            **common,
-            "resource": row["resource"],
-            "label_role": row["labelRole"],
-            "value": row["value"],
-            "language": row["language"],
-            "release": row["release"],
-            "source_record": row["sourceRecord"],
-        }
-    if role is CompactRecordRole.STATEMENT:
-        return {
-            **common,
-            "statement_type": row["statementType"],
-            "subject": row["subject"],
-            "predicate": row["predicate"],
-            "object": row["object"],
-            "source_release": row["sourceRelease"],
-            "target_release": row["targetRelease"],
-            "policy": row["policy"],
-            "asserted_at": row["assertedAt"],
-            "assertion_identity_digest": _digest_bytes(row["assertionIdentityDigest"], "assertionIdentityDigest"),
-            "semantic_ring": row.get("semanticRing"),
-            "source_ring": row.get("sourceRing"),
-            "target_ring": row.get("targetRing"),
-            "supersedes_assertion": row.get("supersedesAssertion"),
-        }
-    if role is CompactRecordRole.EVIDENCE_BINDING:
-        return {
-            **common,
-            "statement": row["statement"],
-            "source_record": row["sourceRecord"],
-            "evidence_source_digest": _digest_bytes(row["evidenceSourceDigest"], "evidenceSourceDigest"),
-            "attestor": row["attestor"],
-            "evidence_role": row["evidenceRole"],
-            "decision": row["decision"],
-            "attested_at": row["attestedAt"],
-        }
-    if role is CompactRecordRole.SOURCE_RECORD:
-        return {
-            **common,
-            "source_release": row["sourceRelease"],
-            "source_digest": _digest_bytes(row["sourceDigest"], "sourceDigest"),
-            "source_locator": row["sourceLocator"],
-            "native_payload": canonical_json_bytes(row["nativePayload"])[:-1],
-            "represents_resource": row.get("representsResource"),
-        }
-    if role is CompactRecordRole.RELEASE:
-        return {
-            **common,
-            "release_type": row["releaseType"],
-            "identifier": row["identifier"],
-            "issued": row["issued"],
-            "source_digest": _digest_bytes(row.get("sourceDigest"), "sourceDigest"),
-            "source_locator": row.get("sourceLocator"),
-            "resource_profile": row.get("resourceProfile"),
-            "semantic_ring": row.get("semanticRing"),
-            "scheme": row.get("scheme"),
-            "membership_mode": row.get("membershipMode"),
-        }
-    if role is CompactRecordRole.IDENTIFIER:
-        return {
-            **common,
-            "identifier_value": row["identifierValue"],
-            "identifier_scheme": row["identifierScheme"],
-            "identifies": row["identifies"],
-            "source_record": row["sourceRecord"],
-        }
-    if role is CompactRecordRole.LIFECYCLE_EVENT:
-        return {
-            **common,
-            "applies_to": row["appliesTo"],
-            "lifecycle_event_kind": row["lifecycleEventKind"],
-            "effective_date": row["effectiveDate"],
-            "source_records": row["sourceRecords"],
-            "from_release": row.get("fromRelease"),
-            "to_release": row.get("toRelease"),
-        }
-    raise AssertionError(f"unsupported compact record role {role}")
-
-
-def _chunks(rows: Sequence[Mapping[str, Any]], size: int = ROW_GROUP_SIZE) -> Iterable[Sequence[Mapping[str, Any]]]:
-    for start in range(0, len(rows), size):
-        yield rows[start : start + size]
 
 
 @dataclass(frozen=True, slots=True)
@@ -534,6 +320,14 @@ def verify_atlas_parquet_source_metadata(
     )
 
 
+#: What the builder writes when it emits the tables from its own graph, and
+#: what this module writes when it re-derives them from the compact packs.
+#: The value is part of the view identity, so a consumer can tell which
+#: producer wrote the tables it is reading.
+BUILDER_SOURCE_REPRESENTATION = "atlasBuilderAssertedGraph"
+COMPACT_SOURCE_REPRESENTATION = "authenticatedAtlasCompactLogicalRecords"
+
+
 def _write_tables(
     input_: VerifiedAtlasParquetSourceMetadata,
     output: Path,
@@ -546,57 +340,79 @@ def _write_tables(
             raise AtlasParquetViewError(f"unsupported compact record role {descriptor.get('role')!r}") from error
         descriptors_by_role[role].append(descriptor)
 
-    members: list[dict[str, Any]] = []
-    counts: Counter[str] = Counter()
-    for role in CompactRecordRole:
-        schema = _SCHEMAS[role]
-        relative = "tables/" + _TABLE_NAMES[role]
-        target = _safe_path(output, relative)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        writer = pq.ParquetWriter(
-            target,
-            schema,
-            compression=COMPRESSION,
-            compression_level=COMPRESSION_LEVEL,
-            use_dictionary=True,
-            write_statistics=True,
-            version="2.6",
-            data_page_version="2.0",
-        )
-        try:
-            wrote = False
+    writer = AtlasParquetTableWriter(output)
+    try:
+        for role in CompactRecordRole:
             for descriptor in descriptors_by_role[role]:
-                artifact = read_compact_record_pack(input_.root, descriptor)
-                for chunk in _chunks(artifact.rows):
-                    rows = [_record_row(role, row) for row in chunk]
-                    writer.write_table(pa.Table.from_pylist(rows, schema=schema), row_group_size=ROW_GROUP_SIZE)
-                    counts[role.value] += len(rows)
-                    wrote = True
-            if not wrote:
-                writer.write_table(schema.empty_table())
-        finally:
-            writer.close()
-        members.append(
-            {
-                "byteLength": target.stat().st_size,
-                "mediaType": "application/vnd.apache.parquet",
-                "path": relative,
-                "role": role.value,
-                "rowCount": counts[role.value],
-                # Pin the schema as serialized by Parquet. PyArrow restores the
-                # same logical schema but may normalize nested-field metadata.
-                "schemaDigest": arrow_schema_sha256(pq.ParquetFile(target).schema_arrow),
-                "sha256": file_sha256(target),
-            }
-        )
+                writer.extend(role, read_compact_record_pack(input_.root, descriptor).rows)
+        members, counts = writer.close()
+    except AtlasParquetTableError as error:
+        writer.__exit__()
+        raise AtlasParquetViewError(str(error)) from error
+    except BaseException:
+        writer.__exit__()
+        raise
     expected_counts = Counter()
     for descriptor in input_.compact_packs:
         expected_counts[str(descriptor["role"])] += int(descriptor["content"]["recordCount"])
-    if counts != expected_counts:
+    if Counter({role: count for role, count in counts.items() if count}) != expected_counts:
         raise AtlasParquetViewError(
-            f"Parquet row counts differ from compact pack inventory: expected={dict(expected_counts)}, actual={dict(counts)}"
+            f"Parquet row counts differ from compact pack inventory: expected={dict(expected_counts)}, actual={counts}"
         )
-    return members, {role.value: counts[role.value] for role in CompactRecordRole}
+    return members, counts
+
+
+def atlas_parquet_view_manifest(
+    input_: VerifiedAtlasParquetSourceMetadata,
+    members: Sequence[Mapping[str, Any]],
+    counts: Mapping[str, int],
+    *,
+    source_representation: str,
+) -> dict[str, Any]:
+    """Assemble the view manifest for tables that are already written.
+
+    Both producers end here, so the manifest, its identity, and the status
+    block have exactly one definition.  ``logicalRecordsPreserved`` is
+    computed from the schema against the compact record contract -- the claim
+    was hard-coded ``True`` while four warrant axes had no column, which is
+    what made it false.
+    """
+
+    gaps = unpreserved_record_fields()
+    construction = {
+        "compression": COMPRESSION,
+        "compressionLevel": COMPRESSION_LEVEL,
+        "implementation": VIEW_IMPLEMENTATION,
+        "implementationVersion": VIEW_IMPLEMENTATION_VERSION,
+        "parquetVersion": PARQUET_VERSION,
+        "pyarrowVersion": importlib.metadata.version("pyarrow"),
+        "rowGroupSize": ROW_GROUP_SIZE,
+        "sourceRepresentation": source_representation,
+    }
+    input_pin = input_.view_input_pin
+    identity = canonical_payload_sha256({"construction": construction, "input": input_pin})
+    manifest: dict[str, Any] = {
+        "construction": construction,
+        "counts": dict(counts),
+        "input": input_pin,
+        "members": [dict(member) for member in members],
+        "recordType": VIEW_RECORD_TYPE,
+        "schemaVersion": VIEW_SCHEMA_VERSION,
+        "status": {
+            "canonicalAtlas": False,
+            "containsExactRdfTable": False,
+            "derivedView": True,
+            "expansion": "not_used",
+            "logicalRecordsPreserved": logical_records_preserved(),
+        },
+        "viewId": VIEW_ID_PREFIX + identity.removeprefix("sha256:"),
+    }
+    if gaps:
+        # Never silently narrow: an unprojected compact field is named in the
+        # artifact rather than left for a reader to discover by its absence.
+        manifest["status"]["unpreservedRecordFields"] = {role: list(fields) for role, fields in sorted(gaps.items())}
+    manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
+    return manifest
 
 
 def build_atlas_parquet_view(
@@ -614,35 +430,12 @@ def build_atlas_parquet_view(
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
         members, counts = _write_tables(input_, temporary)
-        construction = {
-            "compression": COMPRESSION,
-            "compressionLevel": COMPRESSION_LEVEL,
-            "implementation": VIEW_IMPLEMENTATION,
-            "implementationVersion": VIEW_IMPLEMENTATION_VERSION,
-            "parquetVersion": "2.6",
-            "pyarrowVersion": importlib.metadata.version("pyarrow"),
-            "rowGroupSize": ROW_GROUP_SIZE,
-            "sourceRepresentation": "authenticatedAtlasCompactLogicalRecords",
-        }
-        input_pin = input_.view_input_pin
-        identity = canonical_payload_sha256({"construction": construction, "input": input_pin})
-        manifest: dict[str, Any] = {
-            "construction": construction,
-            "counts": counts,
-            "input": input_pin,
-            "members": members,
-            "recordType": VIEW_RECORD_TYPE,
-            "schemaVersion": VIEW_SCHEMA_VERSION,
-            "status": {
-                "canonicalAtlas": False,
-                "containsExactRdfTable": False,
-                "derivedView": True,
-                "expansion": "not_used",
-                "logicalRecordsPreserved": True,
-            },
-            "viewId": VIEW_ID_PREFIX + identity.removeprefix("sha256:"),
-        }
-        manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
+        manifest = atlas_parquet_view_manifest(
+            input_,
+            members,
+            counts,
+            source_representation=COMPACT_SOURCE_REPRESENTATION,
+        )
         (temporary / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
         verify_atlas_parquet_view(temporary, expected_manifest_digest=file_sha256(temporary / MANIFEST_FILE))
         os.rename(temporary, output)
@@ -650,6 +443,72 @@ def build_atlas_parquet_view(
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
+
+
+def seal_atlas_parquet_view(
+    distribution: Path,
+    staged_tables: Path,
+    output: Path,
+    *,
+    expected_manifest_digest: str,
+) -> dict[str, Any]:
+    """Close a view over tables the Atlas builder already wrote.
+
+    The builder streams the tables out of the graph it is already walking, so
+    by the time the distribution manifest exists the tables are on disk and
+    only their authenticated identity is missing.  This verifies that manifest,
+    writes the view manifest against it, re-verifies the closed result, and
+    promotes it -- the same three steps :func:`build_atlas_parquet_view` takes,
+    minus the re-read of the compact packs.
+    """
+
+    if output.is_symlink() or output.exists():
+        raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
+    if staged_tables.is_symlink() or not staged_tables.is_dir():
+        raise AtlasParquetViewError(f"staged Parquet tables are missing or unsafe: {staged_tables}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    input_ = verify_atlas_parquet_source_metadata(distribution, expected_manifest_digest)
+    members, counts = _staged_table_members(staged_tables)
+    manifest = atlas_parquet_view_manifest(
+        input_,
+        members,
+        counts,
+        source_representation=BUILDER_SOURCE_REPRESENTATION,
+    )
+    (staged_tables / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
+    verify_atlas_parquet_view(staged_tables, expected_manifest_digest=file_sha256(staged_tables / MANIFEST_FILE))
+    os.rename(staged_tables, output)
+    return manifest
+
+
+def _staged_table_members(staged: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Re-read the staged tables so the manifest describes the bytes on disk."""
+
+    members: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for role in CompactRecordRole:
+        relative = table_relative_path(role)
+        target = _safe_path(staged, relative)
+        if target.is_symlink() or not target.is_file():
+            raise AtlasParquetViewError(f"staged Parquet table is missing or unsafe: {relative}")
+        parquet = pq.ParquetFile(target)
+        if parquet.schema_arrow != TABLE_SCHEMAS[role]:
+            raise AtlasParquetViewError(f"staged Parquet schema differs: {relative}")
+        counts[role.value] = parquet.metadata.num_rows
+        members.append(
+            {
+                "byteLength": target.stat().st_size,
+                "mediaType": TABLE_MEDIA_TYPE,
+                "path": relative,
+                "role": role.value,
+                "rowCount": counts[role.value],
+                "schemaDigest": arrow_schema_sha256(parquet.schema_arrow),
+                "sha256": file_sha256(target),
+            }
+        )
+    if artifact_file_paths(staged) != {member["path"] for member in members}:
+        raise AtlasParquetViewError("staged Parquet table directory is not closed")
+    return members, counts
 
 
 def verify_atlas_parquet_view(
@@ -673,13 +532,16 @@ def verify_atlas_parquet_view(
     if canonical_payload_sha256(payload) != actual_payload_digest:
         raise AtlasParquetViewError("Atlas Parquet view canonicalPayloadDigest differs")
     status = manifest["status"]
-    if status != {
+    expected_status: dict[str, Any] = {
         "canonicalAtlas": False,
         "containsExactRdfTable": False,
         "derivedView": True,
         "expansion": "not_used",
-        "logicalRecordsPreserved": True,
-    }:
+        "logicalRecordsPreserved": logical_records_preserved(),
+    }
+    if gaps := unpreserved_record_fields():
+        expected_status["unpreservedRecordFields"] = {role: list(fields) for role, fields in sorted(gaps.items())}
+    if status != expected_status:
         raise AtlasParquetViewError("Atlas Parquet view status is unsupported")
     expected_files = {MANIFEST_FILE}
     counts: dict[str, int] = {}
@@ -699,7 +561,7 @@ def verify_atlas_parquet_view(
         if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetViewError(f"Parquet member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
-        if parquet.schema_arrow != _SCHEMAS[role]:
+        if parquet.schema_arrow != TABLE_SCHEMAS[role]:
             raise AtlasParquetViewError(f"Parquet schema differs: {member['path']}")
         if arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]:
             raise AtlasParquetViewError(f"Parquet schema digest differs: {member['path']}")
@@ -715,9 +577,13 @@ def verify_atlas_parquet_view(
 
 
 __all__ = [
+    "BUILDER_SOURCE_REPRESENTATION",
+    "COMPACT_SOURCE_REPRESENTATION",
     "AtlasParquetViewError",
     "VerifiedAtlasParquetSourceMetadata",
+    "atlas_parquet_view_manifest",
     "build_atlas_parquet_view",
+    "seal_atlas_parquet_view",
     "verify_atlas_parquet_source_metadata",
     "verify_atlas_parquet_view",
 ]

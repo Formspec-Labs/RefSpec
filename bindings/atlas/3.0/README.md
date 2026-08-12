@@ -592,7 +592,17 @@ policy.
 
 ## Validation order
 
-A conforming validator MUST fail closed in this order:
+**This order is a golden observation of the reference validator, not a contract
+a consumer may rely on.** What this binding promises is that a non-conforming
+distribution is rejected and that the rejection carries the *code* named below
+and, for `shacl.data`, the constraint-component list the corpus records. Which
+check happens to fire *first* when a distribution violates several at once is a
+property of one implementation walking its gates in one arrangement; nothing
+downstream may branch on it, and an author may re-arrange these gates and
+re-record the observation in the same reviewed commit. A consumer that keys
+behaviour off the *first* code has coupled itself to an implementation detail.
+
+The reference validator's gates, in the order it runs them:
 
 1. reject unsafe paths, symlinks, missing or extra files, and digest or length
    mismatches;
@@ -662,10 +672,26 @@ files, runs normative SHACL and the global semantic checks, and recomputes every
 receipt. The conformance tests compare representative output from every current
 assertion constructor with that normative verdict.
 
-The conformance corpus declares its expected result and first issue code. Its
-required case inventory is closed in the independent validator, and its paths
-must equal the fixture directories. Each invalid case MUST fail for that named
-reason. The synthetic fixtures cover every canonical resource and graph role,
+The conformance corpus declares, per case, its expected result, its recorded
+`firstIssue`, and -- wherever that issue is `shacl.data` -- the sorted
+`shaclComponents` the rejection names. Its required case inventory is closed in
+the independent validator, and its paths must equal the fixture directories.
+Each invalid case MUST be rejected, and MUST be rejected with the recorded code
+and component list.
+
+Read `firstIssue` as a **golden observation**, in the sense the "Validation
+order" section states: it records what this validator reports today for a case
+that violates exactly one thing on purpose, and it exists so that a change in
+what a fixture provokes cannot pass unnoticed. It is not a promise about
+precedence between gates. `shaclComponents` is different in kind and is
+contractual: it is what an operator reads to know *which* constraint refused,
+it must be identical under the fail-fast red path and under
+`REFSPEC_ATLAS_VALIDATION_MODE=audit` (the release tier re-validates every
+`shacl.data` case in both modes to prove it), and a case that reported a
+different set of components would be a different rejection, not a reordered
+one.
+
+The synthetic fixtures cover every canonical resource and graph role,
 all five registry profiles, the four semantic rings, SKOS and SKOS-XL
 integrity, native-payload preservation, source accounting, immutable evidence,
 graph-role isolation, projection parity, and inference isolation. The separate

@@ -7,9 +7,12 @@ import io
 import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
@@ -1961,6 +1964,116 @@ def test_asserted_pack_writer_rejects_oversized_nquads_line(
 
     with pytest.raises(ValueError, match="exceeds the binding limit"):
         generator._write_asserted_packs(tmp_path, asserted, ())
+
+
+def test_builder_emits_parquet_from_the_graph_it_already_walks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One walk, two serializations, and the tables prove against the RDF.
+
+    The Parquet rows come off the same normalized records the compact packs
+    are written from, so the tables cost the graph walk that was already
+    happening rather than a re-read of everything that walk just wrote. The
+    comparand for the proof is the binding validator's, never the builder's
+    own projection.
+    """
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    release = _compiled_source_release(tmp_path)
+    graphs = generator._build_graphs((release,), include_projection=False)
+    try:
+        pack_root = tmp_path / "packed"
+        pack_root.mkdir()
+        tables = tmp_path / "parquet-tables"
+        writer = generator.AtlasParquetTableWriter(tables)
+        compact_inventories: list[dict] = []
+        compact_owners: dict[str, str] = {}
+        generator._write_asserted_packs(
+            pack_root,
+            graphs.asserted,
+            generator._release_pack_plans((release,), ()),
+            compact_inventories=compact_inventories,
+            compact_path_owners=compact_owners,
+            parquet=writer,
+        )
+        members, counts = writer.close()
+
+        # Every compact record reached a Parquet row, role for role.
+        expected = Counter()
+        for inventory in compact_inventories:
+            expected[inventory["role"]] += inventory["content"]["recordCount"]
+        assert {role: count for role, count in counts.items() if count} == dict(expected)
+        assert {member["role"] for member in members} == {
+            role.value for role in generator.CompactRecordRole
+        }
+
+        receipt = generator._check_parquet_view_against_graph(tables, graphs.asserted)
+        assert receipt["status"] == "passed"
+        assert receipt["sampledRowsAgainstRdf"] > 0
+        assert receipt["sourceRecordPayloadRows"] == counts["SourceRecord"]
+        assert receipt["comparand"].endswith("validate.py:parquet_row_from_rdf")
+    finally:
+        graphs.release()
+
+
+def test_parquet_parity_refuses_a_table_the_graph_does_not_say(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A check nothing can fail is not a check.
+
+    The tables are rewritten with one warrant axis changed -- exactly the
+    column class the 2026-08 defect lived in -- and the parity gate must
+    refuse them.
+    """
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    release = _compiled_source_release(tmp_path)
+    graphs = generator._build_graphs((release,), include_projection=False)
+    try:
+        pack_root = tmp_path / "packed"
+        pack_root.mkdir()
+        tables = tmp_path / "parquet-tables"
+        writer = generator.AtlasParquetTableWriter(tables)
+        generator._write_asserted_packs(
+            pack_root,
+            graphs.asserted,
+            generator._release_pack_plans((release,), ()),
+            compact_inventories=[],
+            compact_path_owners={},
+            parquet=writer,
+        )
+        writer.close()
+        generator._check_parquet_view_against_graph(tables, graphs.asserted)
+
+        role = generator.CompactRecordRole.EVIDENCE_BINDING
+        table_path = tables / generator.TABLE_DIRECTORY / generator.TABLE_NAMES[role]
+        table = pq.read_table(table_path)
+        assert table.num_rows > 0
+        rows = table.to_pylist()
+        rows[0]["epistemic_basis"] = "urn:test:not-what-the-graph-says"
+        table_path.unlink()
+        pq.write_table(
+            pa.Table.from_pylist(rows, schema=table.schema),
+            table_path,
+            compression="zstd",
+        )
+
+        with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as error:
+            generator._check_parquet_view_against_graph(tables, graphs.asserted)
+        assert error.value.code == "construction.parquet"
+        assert "epistemic_basis" in error.value.detail
+    finally:
+        graphs.release()
 
 
 def test_candidate_rejects_asserted_mutation_after_compiled_validation(

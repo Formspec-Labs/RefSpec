@@ -31,7 +31,7 @@ import hashlib
 import json
 import math
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -157,6 +157,66 @@ def canonical_json_bytes(value: Any) -> bytes:
     writer appends it after this function and a digest never sees it.
     """
 
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+
+
+def _reject_native_numbers(value: Any, path: str = "$") -> None:
+    """Refuse what canonical native JSON cannot round-trip. Nulls survive."""
+
+    if value is None or isinstance(value, bool):
+        return
+    if isinstance(value, int):
+        if abs(value) > SAFE_INTEGER:
+            raise ValueError(f"{path}: integer exceeds the interoperable JSON range")
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError(f"{path}: non-finite number is forbidden")
+        raise TypeError(
+            f"{path}: JSON floating-point numbers are forbidden; use a canonical decimal string"
+        )
+    if isinstance(value, str):
+        return
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                raise TypeError(f"{path}: object keys must be strings")
+            _reject_native_numbers(child, f"{path}.{key}")
+        return
+    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
+        for index, child in enumerate(value):
+            _reject_native_numbers(child, f"{path}[{index}]")
+        return
+    raise ValueError(f"{path}: unsupported JSON value {type(value).__name__}")
+
+
+def canonical_native_json_bytes(value: Any) -> bytes:
+    """Return the one canonical encoding of a publisher's native JSON payload.
+
+    Identical to :func:`canonical_json_bytes` in every respect a byte can
+    observe -- code-point key ordering, no separators, no ASCII escaping, no
+    trailing newline -- except that a publisher's explicit ``null`` survives.
+    A null the source record published is part of what that record says, so
+    the native encoder keeps it where the platform encoder forbids it, and the
+    interoperable-integer bound is checked here rather than left to a writer.
+
+    This is the single producer-side definition: it is what the Atlas builder
+    stores in the ``atlas:nativePayload`` literal, what ``atlas:sourceDigest``
+    hashes, and what the Parquet ``native_payload`` column carries, so the
+    column is the literal's exact lexical bytes and parity is a byte
+    comparison rather than a re-encoding.  The Atlas 3.0 binding validator
+    holds its own copy deliberately -- it imports no RefSpec package code, and
+    the RDF<->Parquet comparand has to be independent of the emitter to prove
+    anything (plans/validation-cost-reset-plan.md, wire-wave decision 1).
+    """
+
+    _reject_native_numbers(value)
     return json.dumps(
         value,
         ensure_ascii=False,

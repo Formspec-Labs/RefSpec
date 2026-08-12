@@ -363,6 +363,22 @@ _RECORD_SCHEMAS = {
     ),
 }
 
+#: Fields a pack line carries for transport, not fields of the record itself.
+COMPACT_RECORD_TRANSPORT_FIELDS = frozenset({_CANONICAL_DIGEST_FIELD})
+
+
+def compact_record_fields(role: CompactRecordRole) -> frozenset[str]:
+    """Return every field one normalized compact logical record can carry.
+
+    Required and optional together, minus the transport-only digest. This is
+    the register a lossless projection of the compact layer -- the Parquet
+    tables -- is measured against, so that adding a compact field without a
+    column breaks a check instead of quietly narrowing the view.
+    """
+
+    return _RECORD_SCHEMAS[role].fields - COMPACT_RECORD_TRANSPORT_FIELDS
+
+
 _RESOURCE_PROFILES = frozenset(
     {"conceptScheme", "codeScheme", "identifierScheme", "structureScheme", "resourceCollection"}
 )
@@ -1874,6 +1890,7 @@ def _validate_compression_level(value: int) -> None:
 
 
 __all__ = [
+    "COMPACT_RECORD_TRANSPORT_FIELDS",
     "CompactLogicalRecord",
     "CompactPackArtifact",
     "CompactPackError",
@@ -1889,6 +1906,7 @@ __all__ = [
     "StatementRecord",
     "build_compact_pack",
     "build_compact_record_pack",
+    "compact_record_fields",
     "normalize_compact_record",
     "read_compact_pack",
     "read_compact_record_pack",

@@ -6701,6 +6701,29 @@ def _construction_record_role(graph: Graph, subject: URIRef) -> str:
     return role
 
 
+_SHACL_COMPONENTS_RE = re.compile(r"does not conform \[([^\]]*)\]")
+
+
+def shacl_constraint_components(error: AtlasValidationError) -> list[str]:
+    """Return the sorted constraint components one `shacl.data` verdict names.
+
+    The component list is the contractual part of a SHACL rejection message:
+    the corpus pins the code, this pins what an operator reads under it, and
+    both validation modes must produce the same list (the release-tier
+    cross-mode sweep is what proves that). Extracting it here rather than in a
+    test keeps one definition of where the list lives in the message.
+    """
+
+    match = _SHACL_COMPONENTS_RE.search(error.detail)
+    if match is None:
+        _fail(
+            "corpus.shacl-components",
+            f"a {error.code} verdict named no constraint components: {error.detail[:200]}",
+        )
+    body = match.group(1)
+    return body.split(", ") if body else []
+
+
 def _construction_record_from_rdf(
     graph: Graph,
     subject: URIRef,
@@ -7129,6 +7152,215 @@ def _construction_record_from_rdf(
     else:
         _fail("construction.sample", f"unsupported RDF sample role {role}")
     return _normalize_compact_record(role, record, path=f"rdf:{subject}")
+
+
+# The derived Parquet view's column contract, restated here rather than
+# imported. A parity check whose expected row comes from the same projection
+# that wrote the row proves the projection is self-consistent and nothing
+# else; the point of this list is that it is a second, independent statement
+# of what each table must contain, next to a second, independent re-encoding
+# of the RDF (`_construction_record_from_rdf`). If the emitter drops a column
+# or renames one, this refuses; if this list drifts from the real schema, the
+# caller's schema check refuses. The four `rkaf` warrant axes and
+# `basedOnAttestation` are here for the reason the view carries them at all:
+# the warrant defect that shipped in 2026-08 was a combination of axis values
+# matching no sanctioned branch, and a comparison blind to four of the five
+# axes cannot see it.
+PARQUET_VIEW_COLUMNS: Mapping[str, tuple[str, ...]] = {
+    "Resource": (
+        "id",
+        "release",
+        "scheme",
+        "semantic_ring",
+        "resource_profile",
+        "source_record",
+        "definition",
+        "notes",
+        "notations",
+        "record_status",
+        "content_digest",
+    ),
+    "Label": (
+        "id",
+        "resource",
+        "label_role",
+        "value",
+        "language",
+        "release",
+        "source_record",
+        "content_digest",
+    ),
+    "Statement": (
+        "id",
+        "statement_type",
+        "subject",
+        "predicate",
+        "object",
+        "source_release",
+        "target_release",
+        "policy",
+        "asserted_at",
+        "assertion_identity_digest",
+        "semantic_ring",
+        "source_ring",
+        "target_ring",
+        "supersedes_assertion",
+        "content_digest",
+    ),
+    "EvidenceBinding": (
+        "id",
+        "statement",
+        "source_record",
+        "evidence_source_digest",
+        "attestor",
+        "attestor_kind",
+        "assertion_origin",
+        "epistemic_basis",
+        "evidence_role",
+        "evidentiary_function",
+        "based_on_attestation",
+        "decision",
+        "attested_at",
+        "content_digest",
+    ),
+    "SourceRecord": (
+        "id",
+        "source_release",
+        "source_digest",
+        "source_locator",
+        "native_payload",
+        "represents_resource",
+        "content_digest",
+    ),
+    "Release": (
+        "id",
+        "release_type",
+        "identifier",
+        "issued",
+        "source_digest",
+        "source_locator",
+        "resource_profile",
+        "semantic_ring",
+        "scheme",
+        "membership_mode",
+        "content_digest",
+    ),
+    "Identifier": (
+        "id",
+        "identifier_value",
+        "identifier_scheme",
+        "identifies",
+        "source_record",
+        "content_digest",
+    ),
+    "LifecycleEvent": (
+        "id",
+        "applies_to",
+        "lifecycle_event_kind",
+        "effective_date",
+        "source_records",
+        "from_release",
+        "to_release",
+        "content_digest",
+    ),
+}
+#: Columns carried as the digest's 32 raw bytes rather than its `sha256:` text.
+PARQUET_VIEW_DIGEST_COLUMNS = frozenset(
+    {
+        "assertion_identity_digest",
+        "content_digest",
+        "evidence_source_digest",
+        "source_digest",
+    }
+)
+
+
+def parquet_view_column(field: str) -> str:
+    """Return the Parquet column one compact record field is carried in."""
+
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", field).lower()
+
+
+def parquet_row_from_rdf(
+    graph: Graph,
+    subject: URIRef,
+    role: str,
+) -> dict[str, Any]:
+    """Independently re-encode one RDF record as its derived Parquet row.
+
+    The comparand for the RDF<->Parquet parity check, and deliberately on this
+    side of the boundary: the producer writes the tables, and nothing the
+    producer computed is allowed to stand on both sides of the comparison.
+
+    ``native_payload`` is taken as the ``atlas:nativePayload`` literal's exact
+    lexical bytes rather than re-encoded from the parsed value, so the column
+    is proven against the RDF by byte equality instead of by two encoders
+    agreeing -- two encoders that could agree by sharing a bug.
+    """
+
+    columns = PARQUET_VIEW_COLUMNS.get(role)
+    if columns is None:
+        _fail("construction.parquet", f"unsupported Parquet view role {role!r}")
+    record = _construction_record_from_rdf(graph, subject, role)
+    row: dict[str, Any] = dict.fromkeys(columns)
+    for field, value in record.items():
+        if field == "canonicalPayloadDigest":
+            continue
+        column = parquet_view_column(field)
+        if column not in row:
+            _fail(
+                "construction.parquet",
+                f"{subject} carries {field} but the {role} table has no {column} column",
+            )
+        row[column] = value
+    for column in columns:
+        if column in PARQUET_VIEW_DIGEST_COLUMNS and row[column] is not None:
+            row[column] = bytes.fromhex(_digest_text_value(row[column], column))
+    if role == "SourceRecord":
+        row["native_payload"] = str(
+            _construction_rdf_one(graph, subject, ATLAS.nativePayload, term_type=Literal)
+        ).encode("utf-8")
+    return row
+
+
+def _digest_text_value(value: Any, label: str) -> str:
+    if not isinstance(value, str) or DIGEST_RE.fullmatch(value) is None:
+        _fail("construction.parquet", f"{label} is not a lowercase sha256 digest")
+    return value.removeprefix("sha256:")
+
+
+def check_parquet_row_against_rdf(
+    graph: Graph,
+    subject: URIRef,
+    role: str,
+    row: Mapping[str, Any],
+) -> None:
+    """Refuse one Parquet row that the asserted RDF does not say.
+
+    Two byte comparisons carry the source-record payload: the column against
+    the literal, and its SHA-256 against the ``source_digest`` column the same
+    row publishes.  ``atlas:sourceDigest`` is what a citation resolves
+    through, so a payload column that drifted from it would be a silent
+    mis-citation rather than a loud failure.
+    """
+
+    expected = parquet_row_from_rdf(graph, subject, role)
+    observed = dict(row)
+    if observed != expected:
+        differing = sorted(
+            column
+            for column in set(expected) | set(observed)
+            if expected.get(column) != observed.get(column)
+        )
+        _fail(
+            "construction.parquet",
+            f"{subject} Parquet row differs from its RDF facts in {differing}",
+        )
+    if role == "SourceRecord" and hashlib.sha256(observed["native_payload"]).digest() != observed["source_digest"]:
+        _fail(
+            "construction.parquet",
+            f"{subject} Parquet native_payload does not hash to its source_digest column",
+        )
 
 
 def _construction_source_record_owner(
@@ -8633,6 +8865,28 @@ def validate_binding() -> dict[str, Any]:
                     "corpus.first-issue",
                     f"case {case['id']} expected {expected_issue}, observed {exc.code}: {exc.detail}",
                 )
+            # `firstIssue` is a golden observation of a fail-closed order the
+            # binding does not promise; the constraint components are not.
+            # They are what the operator acts on, so the 46 `shacl.data` cases
+            # that used to pin nothing but the code now pin the component list
+            # as well. Checked in whichever mode is running -- the extraction
+            # is a regex over a verdict already raised, so there is no cost to
+            # gate behind a tier, and the release-tier cross-mode sweep is what
+            # proves the two modes cannot name different components.
+            expected_components = case.get("shaclComponents")
+            if expected_components is not None:
+                observed_components = shacl_constraint_components(exc)
+                if observed_components != list(expected_components):
+                    _fail(
+                        "corpus.shacl-components",
+                        f"case {case['id']} expected components {list(expected_components)}, "
+                        f"observed {observed_components}",
+                    )
+                if observed_components != sorted(set(observed_components)):
+                    _fail(
+                        "corpus.shacl-components",
+                        f"case {case['id']} components are not sorted and unique: {observed_components}",
+                    )
             results.append({"id": case["id"], "result": "rejected", "issue": exc.code})
         else:
             if case["expected"] == "invalid":

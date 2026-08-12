@@ -49,6 +49,7 @@ try:  # Python 3.14+
 except ImportError:  # pragma: no cover - exercised on supported Python 3.10-3.13
     from backports import zstd
 
+import pyarrow.parquet as pq
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
 
@@ -56,8 +57,11 @@ from refspec.atlas.compact_pack import (
     CompactPackHeader,
     CompactPackInventory,
     CompactRecordRole,
+    normalize_compact_record,
     write_compact_record_pack,
 )
+from refspec.atlas.parquet_tables import TABLE_DIRECTORY, TABLE_NAMES, AtlasParquetTableWriter
+from refspec.atlas.parquet_view import seal_atlas_parquet_view
 from refspec.atlas.registry_claim_input import (
     ATLAS_CLAIM_RECORD_TYPE,
     ATLAS_CLAIM_RECORD_VERSION,
@@ -169,14 +173,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:3f4437404f921f2828a98d9f5aecc867500fb03955419f03cecd8cae99aa0d27"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:ce586873a846c6521ad4e52583a8b4f6d3ec6801a22eefc129faea790e025536"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:29302b2823d43ac130a11ff295a9f3babbd9969aa7290766de234ffb55d92eb3"
+            "sha256:0b4e421c386b974928a51bc486905a012d435868ed8905e5d182343d4b306ac3"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -6180,8 +6184,18 @@ def _write_compact_release_packs(
     *,
     pack_owners: Mapping[URIRef, tuple[str, str | None]],
     releases_by_key: Mapping[str, ReleasePackPlan],
+    parquet: AtlasParquetTableWriter | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    """Write deterministic release-local logical records beside the RDF packs."""
+    """Write deterministic release-local logical records beside the RDF packs.
+
+    When ``parquet`` is supplied the same records feed the typed Parquet
+    tables on their way to the compact packs: one walk of the graph, one
+    projection of each record, two serializations.  The records are normalized
+    here rather than inside the pack writer so both consumers see the exact
+    same bytes -- the pack writer re-derives each row digest from what it is
+    handed and refuses a record that normalizes differently, so the tee cannot
+    silently diverge from the wire.
+    """
 
     inventories: list[dict[str, Any]] = []
     path_owners: dict[str, str] = {}
@@ -6274,11 +6288,17 @@ def _write_compact_release_packs(
                 with path.open("r", encoding="utf-8", newline="") as stream:
                     for raw_subject in stream:
                         subject = URIRef(raw_subject.rstrip("\n"))
-                        yield _compact_record_from_graph(
-                            asserted,
-                            subject,
+                        record = normalize_compact_record(
                             record_role,
+                            _compact_record_from_graph(
+                                asserted,
+                                subject,
+                                record_role,
+                            ),
                         )
+                        if parquet is not None:
+                            parquet.add(record_role, record)
+                        yield record
 
             dependency_keys: set[
                 tuple[str, str | None, CompactRecordRole]
@@ -6348,6 +6368,7 @@ def _write_asserted_packs(
     incremental: IncrementalPackMaterialization | None = None,
     compact_inventories: list[dict[str, Any]] | None = None,
     compact_path_owners: dict[str, str] | None = None,
+    parquet: AtlasParquetTableWriter | None = None,
 ) -> list[dict[str, Any]]:
     """Write source-release-owned asserted packs and one shared catalog pack."""
 
@@ -6482,6 +6503,7 @@ def _write_asserted_packs(
                 asserted,
                 pack_owners=pack_owners,
                 releases_by_key=releases_by_key,
+                parquet=parquet,
             )
             compact_inventories.extend(emitted_inventories)
             compact_path_owners.update(emitted_owners)
@@ -6572,6 +6594,7 @@ def _write_graph_packs(
     incremental: IncrementalPackMaterialization | None = None,
     compact_inventories: list[dict[str, Any]] | None = None,
     compact_path_owners: dict[str, str] | None = None,
+    parquet: AtlasParquetTableWriter | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if releases:
         asserted_packs = _write_asserted_packs(
@@ -6581,6 +6604,7 @@ def _write_graph_packs(
             incremental=incremental,
             compact_inventories=compact_inventories,
             compact_path_owners=compact_path_owners,
+            parquet=parquet,
         )
     else:
         relative = Path("packs") / "atlas.nq.zst"
@@ -7341,8 +7365,15 @@ def _write_candidate_distribution(
     compiled_validation: Mapping[str, Any] | None = None,
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
     semantic_construction: Mapping[str, Any] | None = None,
+    parquet_tables: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Write and producer-validate a candidate that is not yet publishable."""
+    """Write and producer-validate a candidate that is not yet publishable.
+
+    ``parquet_tables`` names a directory outside the distribution where the
+    typed Parquet tables are staged as the graph is walked. They are not
+    distribution members -- the wire is unchanged -- and the caller closes the
+    view over them once the manifest they are pinned to exists.
+    """
 
     if compiled_validation is None:
         raise ValueError("candidate writing requires compiled producer validation")
@@ -7374,16 +7405,34 @@ def _write_candidate_distribution(
     compact_inventories: list[dict[str, Any]] = []
     compact_path_owners: dict[str, str] = {}
     _STATUS.phase("write-rdf-and-compact-packs")
-    packs, graph_descriptors = _write_graph_packs(
-        output,
-        graphs,
-        releases,
-        incremental=incremental,
-        compact_inventories=compact_inventories,
-        compact_path_owners=compact_path_owners,
-    )
+    parquet = None if parquet_tables is None else AtlasParquetTableWriter(parquet_tables)
+    parquet_parity: dict[str, Any] | None = None
+    try:
+        packs, graph_descriptors = _write_graph_packs(
+            output,
+            graphs,
+            releases,
+            incremental=incremental,
+            compact_inventories=compact_inventories,
+            compact_path_owners=compact_path_owners,
+            parquet=parquet,
+        )
+        if parquet is not None:
+            parquet.close()
+    except BaseException:
+        if parquet is not None:
+            parquet.__exit__()
+        raise
     if graphs.asserted.revision != graphs.sealed_asserted_revision:
         raise ValueError("asserted graph changed while writing Atlas packs")
+    if parquet_tables is not None:
+        # Here, and not after the manifest: `graphs.release()` empties the
+        # asserted graph at the end of this function, and the comparand needs
+        # the graph the rows were emitted from, not a re-parse of the packs.
+        _STATUS.phase("check-parquet-view-against-rdf")
+        parquet_parity = _check_parquet_view_against_graph(parquet_tables, graphs.asserted)
+        if graphs.asserted.revision != graphs.sealed_asserted_revision:
+            raise ValueError("asserted graph changed while checking the Parquet view")
     _STATUS.phase("write-receipts-and-manifest")
     accounting_path.write_bytes(
         ATLAS_VALIDATE.canonical_json_bytes(graphs.accounting)
@@ -7560,22 +7609,22 @@ def _write_candidate_distribution(
         construction_summary_path=construction_summary_path,
     )
     graphs.release()
-    return (
-        {
-            "independentFileConsumerValidation": {
-                "performedByGenerator": False,
-                "requiredForIndependentConsumers": True,
-                "validator": (
-                    "bindings/atlas/3.0/tools/validate.py:validate_distribution"
-                ),
-            },
-            "compiledProducerValidation": producer_validation,
-            "packMaterialization": incremental.report(),
-            "status": "passed",
-            "trustedWriterReceiptChecks": writer_receipts,
+    result: dict[str, Any] = {
+        "independentFileConsumerValidation": {
+            "performedByGenerator": False,
+            "requiredForIndependentConsumers": True,
+            "validator": (
+                "bindings/atlas/3.0/tools/validate.py:validate_distribution"
+            ),
         },
-        manifest,
-    )
+        "compiledProducerValidation": producer_validation,
+        "packMaterialization": incremental.report(),
+        "status": "passed",
+        "trustedWriterReceiptChecks": writer_receipts,
+    }
+    if parquet_parity is not None:
+        result["parquetViewParity"] = parquet_parity
+    return result, manifest
 
 
 def _generation_report_path(output: Path) -> Path:
@@ -7621,6 +7670,7 @@ def _write_distribution(
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
     generation_report: Mapping[str, Any],
     compiled_validation: Mapping[str, Any],
+    parquet_view: Path | None = None,
 ) -> dict[str, Any]:
     """Validate in a sibling temporary directory, then promote the result."""
 
@@ -7643,6 +7693,7 @@ def _write_distribution(
     ) as raw_temporary_root:
         temporary_root = Path(raw_temporary_root)
         candidate = temporary_root / "distribution"
+        staged_tables = None if parquet_view is None else temporary_root / "parquet-view"
         result, manifest = _write_candidate_distribution(
             candidate,
             graphs,
@@ -7651,7 +7702,20 @@ def _write_distribution(
             compiled_validation=compiled_validation,
             construction_seeds=construction_seeds,
             semantic_construction=semantic_construction,
+            parquet_tables=staged_tables,
         )
+        if staged_tables is not None:
+            # The tables were streamed out of the graph while the packs were
+            # written; only their authenticated identity was missing, and the
+            # manifest they pin now exists.
+            _STATUS.phase("seal-parquet-view")
+            sealed_view = temporary_root / "sealed-parquet-view"
+            seal_atlas_parquet_view(
+                candidate,
+                staged_tables,
+                sealed_view,
+                expected_manifest_digest=_sha256_file(candidate / "atlas-manifest.json"),
+            )
         report = {
             **_plain(generation_report),
             "distribution": {
@@ -7679,6 +7743,14 @@ def _write_distribution(
             output,
             temporary_root=temporary_root,
         )
+        if parquet_view is not None:
+            previous_view_root = temporary_root / "previous-parquet-view"
+            previous_view_root.mkdir()
+            _promote_validated_distribution(
+                sealed_view,
+                parquet_view,
+                temporary_root=previous_view_root,
+            )
         try:
             candidate_report.replace(report_path)
         except BaseException:
@@ -8043,11 +8115,87 @@ def _direct_source_counts(
     return counts
 
 
+def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, Any]:
+    """Prove the emitted Parquet tables against the graph they were built from.
+
+    The comparand is the binding validator's, not this file's: the producer
+    wrote these tables, so nothing the producer computed is allowed to stand
+    on both sides.  Two tiers, priced separately:
+
+    * every source-record row, exhaustively -- ``sha256(native_payload)``
+      against the ``source_digest`` column that row publishes.  This is a
+      column scan, so breadth is nearly free, and ``atlas:sourceDigest`` is
+      what a record-level citation resolves through.
+    * up to five stable positions per table -- the whole row against
+      ``ATLAS_VALIDATE.parquet_row_from_rdf``, which re-derives every column,
+      including all five warrant columns, from the asserted RDF.
+    """
+
+    sampled_rows = 0
+    payload_rows = 0
+    for role in CompactRecordRole:
+        parquet = pq.ParquetFile(view / TABLE_DIRECTORY / TABLE_NAMES[role])
+        row_count = parquet.metadata.num_rows
+        if role is CompactRecordRole.SOURCE_RECORD:
+            for batch in parquet.iter_batches(columns=["id", "native_payload", "source_digest"]):
+                for identity, payload, digest in zip(
+                    batch.column("id").to_pylist(),
+                    batch.column("native_payload").to_pylist(),
+                    batch.column("source_digest").to_pylist(),
+                    strict=True,
+                ):
+                    if hashlib.sha256(payload).digest() != digest:
+                        raise ValueError(
+                            f"Parquet native_payload does not hash to source_digest: {identity}"
+                        )
+                    payload_rows += 1
+        wanted = ATLAS_VALIDATE._compact_sample_indices(row_count)
+        if not wanted:
+            continue
+        last = max(wanted)
+        position = 0
+        for batch in parquet.iter_batches():
+            if position > last:
+                break
+            length = batch.num_rows
+            hits = sorted(index for index in wanted if position <= index < position + length)
+            if hits:
+                rows = batch.to_pylist()
+                for index in hits:
+                    row = rows[index - position]
+                    ATLAS_VALIDATE.check_parquet_row_against_rdf(
+                        asserted,
+                        URIRef(row["id"]),
+                        role.value,
+                        row,
+                    )
+                    sampled_rows += 1
+            position += length
+    return {
+        "comparand": "bindings/atlas/3.0/tools/validate.py:parquet_row_from_rdf",
+        "sampledRowsAgainstRdf": sampled_rows,
+        "sourceRecordPayloadRows": payload_rows,
+        "status": "passed",
+    }
+
+
+def _parquet_view_path(output: Path) -> Path:
+    """Name the Parquet view beside its distribution, never inside it.
+
+    A distribution validates its own membership as a closed set, so a derived
+    view written into that directory would make the artifact fail its own
+    walk. The generation report already sits here for the same reason.
+    """
+
+    return output.parent / "parquet-view"
+
+
 def build_distribution(
     output: Path,
     *,
     registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
     include_keys: frozenset[str] | None = None,
+    parquet_view: bool = True,
 ) -> None:
     """Build, validate, and atomically promote the Atlas 3 distribution.
 
@@ -8057,6 +8205,11 @@ def build_distribution(
     content-derived distribution identity all read the loaded releases -- so
     bounding the load bounds the distribution, including the scope segment its
     identity carries.
+
+    ``parquet_view`` emits the typed Parquet view beside the distribution,
+    straight from the in-memory graph, during the single walk that already
+    writes the RDF and compact packs. Re-deriving it afterwards would mean
+    re-reading everything that walk just wrote.
     """
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -8177,6 +8330,7 @@ def build_distribution(
         construction_seeds=construction_seeds,
         generation_report=generation_report,
         compiled_validation=compiled_validation,
+        parquet_view=_parquet_view_path(output) if parquet_view else None,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 
@@ -8268,6 +8422,14 @@ def main() -> int:
             "keys"
         ),
     )
+    parser.add_argument(
+        "--no-parquet-view",
+        action="store_true",
+        help=(
+            "skip the typed Parquet view emitted beside the distribution "
+            "during the build's single graph walk"
+        ),
+    )
     args = parser.parse_args()
     if args.repin:
         return _repin_compiled_producer()
@@ -8312,6 +8474,7 @@ def main() -> int:
             args.output.resolve(),
             registry_claim_inputs=registry_claim_inputs,
             include_keys=include_keys,
+            parquet_view=not args.no_parquet_view,
         )
     except BaseException as error:
         _STATUS.phase("failed", current=type(error).__name__)

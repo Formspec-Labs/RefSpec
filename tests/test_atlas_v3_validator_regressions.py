@@ -2020,8 +2020,8 @@ def test_fail_fast_and_audit_name_the_same_constraint_components(
     assert _shacl_components(fast) == sorted(set(_shacl_components(fast)))
 
 
-def _shacl_data_corpus_case_ids() -> tuple[str, ...]:
-    """Name every invalid corpus case whose first issue is `shacl.data`.
+def _shacl_data_corpus_cases() -> dict[str, list[str]]:
+    """Map every `shacl.data` corpus case to the components it records.
 
     Derived, never listed: the corpus is the register of what the binding
     rejects, so a case added there joins this sweep without a second edit.
@@ -2030,13 +2030,15 @@ def _shacl_data_corpus_case_ids() -> tuple[str, ...]:
     corpus = json.loads(
         (BINDING_ROOT / "fixtures" / "corpus.json").read_text(encoding="utf-8")
     )
-    return tuple(
-        sorted(
-            case["id"]
-            for case in corpus["cases"]
-            if case["expected"] == "invalid" and case["firstIssue"] == "shacl.data"
-        )
-    )
+    return {
+        case["id"]: case["shaclComponents"]
+        for case in sorted(corpus["cases"], key=lambda case: case["id"])
+        if case["expected"] == "invalid" and case["firstIssue"] == "shacl.data"
+    }
+
+
+def _shacl_data_corpus_case_ids() -> tuple[str, ...]:
+    return tuple(_shacl_data_corpus_cases())
 
 
 # Release tier, not the dev budget. This re-validates every shacl.data corpus
@@ -2067,6 +2069,12 @@ def test_corpus_wide_cross_mode_shacl_parity(
     the sorted constraint-component list an operator reads. A mode that
     reported a different component set would make the default path a different
     validator, which is the risk the plan accepts only because this holds.
+
+    Since the corpus records each case's components, this also closes the
+    third side of the triangle: both modes must equal each other *and* equal
+    what the corpus published. That is what makes the recorded array a pin
+    rather than a note -- and what converts 46 cases that pinned only the
+    string `shacl.data` into cases that pin which constraint refused.
     """
 
     distribution = BINDING_ROOT / "fixtures" / "invalid" / case
@@ -2082,9 +2090,97 @@ def test_corpus_wide_cross_mode_shacl_parity(
 
     fast = verdicts[None]
     audit = verdicts[atlas_validate.AUDIT_VALIDATION_MODE]
+    recorded = _shacl_data_corpus_cases()[case]
     assert fast.code == audit.code == "shacl.data"
     assert _shacl_components(fast) == _shacl_components(audit)
     assert _shacl_components(fast) == sorted(set(_shacl_components(fast)))
+    assert _shacl_components(fast) == recorded
+    assert _shacl_components(audit) == recorded
+    assert atlas_validate.shacl_constraint_components(fast) == _shacl_components(fast)
+
+
+def test_the_single_native_encoder_agrees_with_the_binding_validators_copy() -> None:
+    """kill-10 across the one boundary that keeps a second copy on purpose.
+
+    `validate.py` imports no RefSpec package code, so it holds its own
+    `canonical_native_json_bytes`; that independence is exactly what makes it
+    a usable comparand for the emitter's output. What must never diverge is
+    the bytes, so this pins them against `refspec.release_model`, which is now
+    the single producer-side definition.
+    """
+
+    from refspec.release_model import canonical_native_json_bytes
+
+    for payload in (
+        {"b": None, "a": [1, {"z": None}], "unicode": "café"},
+        {"nested": {"list": [None, True, False, "x"], "n": 9007199254740991}},
+        {"empty": {}, "list": []},
+        [],
+        "plain",
+    ):
+        assert canonical_native_json_bytes(payload) == atlas_validate.canonical_native_json_bytes(payload)
+
+
+def test_parquet_comparand_re_encodes_every_column_from_the_rdf() -> None:
+    """The RDF<->Parquet comparand lives here, and covers the whole row.
+
+    The emitter's projection is never allowed on both sides, so this list of
+    columns and this re-encoding are the binding's own. The warrant axes are
+    the reason the check exists at all: the defect it is built to catch was a
+    combination of four axis values, and any comparison that projected them
+    away would have passed the distribution that carried it.
+    """
+
+    _, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    binding = next(asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+    row = atlas_validate.parquet_row_from_rdf(asserted, binding, "EvidenceBinding")
+
+    assert set(row) == set(atlas_validate.PARQUET_VIEW_COLUMNS["EvidenceBinding"])
+    for column, predicate in (
+        ("attestor_kind", RKAF.attestorKind),
+        ("assertion_origin", RKAF.assertionOrigin),
+        ("epistemic_basis", RKAF.epistemicBasis),
+        ("evidence_role", RKAF.evidenceRole),
+        ("evidentiary_function", RKAF.evidentiaryFunction),
+    ):
+        assert row[column] == str(next(asserted.objects(binding, predicate)))
+        assert atlas_validate.parquet_view_column(str(predicate).rsplit("#", 1)[1]) == column
+    assert isinstance(row["content_digest"], bytes)
+    assert len(row["content_digest"]) == 32
+    atlas_validate.check_parquet_row_against_rdf(asserted, binding, "EvidenceBinding", row)
+
+    tampered = dict(row)
+    tampered["epistemic_basis"] = "urn:test:not-what-the-graph-says"
+    with pytest.raises(atlas_validate.AtlasValidationError) as error:
+        atlas_validate.check_parquet_row_against_rdf(asserted, binding, "EvidenceBinding", tampered)
+    assert error.value.code == "construction.parquet"
+    assert "epistemic_basis" in error.value.detail
+
+
+def test_parquet_comparand_reads_the_source_payload_as_literal_bytes() -> None:
+    """Two byte comparisons, not two encoders agreeing.
+
+    `native_payload` is proven against the `atlas:nativePayload` literal and
+    against the `source_digest` the same row publishes -- the digest a
+    record-level citation resolves through.
+    """
+
+    _, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    record = next(asserted.subjects(RDF.type, ATLAS.SourceRecord))
+    row = atlas_validate.parquet_row_from_rdf(asserted, record, "SourceRecord")
+
+    literal = next(asserted.objects(record, ATLAS.nativePayload))
+    assert row["native_payload"] == str(literal).encode("utf-8")
+    assert hashlib.sha256(row["native_payload"]).digest() == row["source_digest"]
+    atlas_validate.check_parquet_row_against_rdf(asserted, record, "SourceRecord", row)
+
+    reordered = dict(row)
+    reordered["native_payload"] = b"{}"
+    with pytest.raises(atlas_validate.AtlasValidationError) as error:
+        atlas_validate.check_parquet_row_against_rdf(asserted, record, "SourceRecord", reordered)
+    assert error.value.code == "construction.parquet"
 
 
 def test_focus_sample_names_one_node_per_violated_constraint() -> None:

@@ -4741,6 +4741,107 @@ def _receipt_is_current() -> bool:
         return False
 
 
+def _corpus_document(
+    mutations: Sequence[tuple[str, list[str], str, Any]],
+    components: Mapping[str, list[str]],
+) -> dict[str, Any]:
+    """Assemble the conformance corpus, components included where earned."""
+
+    corpus_cases: list[dict[str, Any]] = [
+        {
+            "expected": "valid",
+            "id": "all-resource-profiles",
+            "layers": ["json", "rdf", "shacl", "dataset", "reasoning", "registry"],
+            "path": "valid/all-resource-profiles",
+        }
+    ]
+    for name, layers, expected_or_issue, _ in mutations:
+        expected = "valid" if expected_or_issue == "valid" else "invalid"
+        row: dict[str, Any] = {
+            "expected": expected,
+            "id": name,
+            "layers": layers,
+            "path": f"{expected}/{name}",
+        }
+        if expected == "invalid":
+            row["firstIssue"] = expected_or_issue
+        if name in components:
+            row["shaclComponents"] = components[name]
+        corpus_cases.append(row)
+    return {
+        "cases": sorted(corpus_cases, key=lambda row: row["id"]),
+        "type": "AtlasConformanceCorpus",
+        "version": "3.0",
+    }
+
+
+def _derive_shacl_components(
+    mutations: Sequence[tuple[str, list[str], str, Any]],
+    base: Any,
+) -> dict[str, list[str]]:
+    """Record what each `shacl.data` case really reports, by running it.
+
+    Chicken and egg, resolved by a probe. ``fixtures/corpus.json`` is a sealed
+    binding member, so its bytes are inside every case's binding digests: a
+    case cannot be written until the corpus is final, and the corpus is not
+    final until the cases have been validated. So the `shacl.data` cases are
+    built once against a components-free corpus, asked what they report, and
+    thrown away. The component list names the shapes a mutation violates, not
+    any digest, so it survives the rebuild the real corpus forces -- and the
+    corpus runner re-checks every recorded list on every run, which is what
+    turns that reasoning into a proof rather than an assumption.
+    """
+
+    selected = [
+        (name, mutation)
+        for name, _, expected_or_issue, mutation in mutations
+        if expected_or_issue == "shacl.data"
+    ]
+    if not selected:
+        return {}
+    probe_root = FIXTURE_ROOT.parent / ".atlas-3.0-fixtures.probe"
+    if probe_root.exists():
+        shutil.rmtree(probe_root)
+    (probe_root / "invalid").mkdir(parents=True)
+    try:
+        # Pinned to the binding assets exactly as they sit on disk, with no
+        # corpus override: a probe case is thrown away, so it only has to get
+        # past the digest gate to reach SHACL, and pinning what
+        # `validate_distribution` will itself recompute is the one way to be
+        # sure it does -- whatever `fixtures/corpus.json` currently says.
+        probe_digests = atlas_validate._binding_digests()
+        components: dict[str, list[str]] = {}
+        for name, mutation in selected:
+            fixture = copy.deepcopy(base)
+            mutation(fixture)
+            if fixture.reseal_adjudication:
+                _reseal_adjudication(fixture.asserted)
+            case_root = probe_root / "invalid" / name
+            _write_case(
+                case_root,
+                fixture,
+                baseline_asserted=base.asserted,
+                binding_digests=probe_digests,
+                distribution_id=f"urn:ref:atlas-fixture:distribution:{name}",
+            )
+            try:
+                atlas_validate.validate_distribution(case_root)
+            except atlas_validate.AtlasValidationError as exc:
+                if exc.code != "shacl.data":
+                    raise SystemExit(
+                        f"corpus case {name} declares shacl.data but reported {exc.code}: {exc.detail}"
+                    ) from exc
+                observed = atlas_validate.shacl_constraint_components(exc)
+                if not observed:
+                    raise SystemExit(f"corpus case {name} named no SHACL constraint components") from exc
+                components[name] = sorted(set(observed))
+            else:
+                raise SystemExit(f"corpus case {name} declares shacl.data but passed validation")
+        return components
+    finally:
+        shutil.rmtree(probe_root, ignore_errors=True)
+
+
 def build(*, check: bool) -> None:
     if check and _receipt_is_current():
         print(
@@ -4760,37 +4861,14 @@ def build(*, check: bool) -> None:
     (temporary_root / "invalid").mkdir(parents=True)
 
     mutations = _mutations()
-    corpus_cases: list[dict[str, Any]] = [
-        {
-            "expected": "valid",
-            "id": "all-resource-profiles",
-            "layers": ["json", "rdf", "shacl", "dataset", "reasoning", "registry"],
-            "path": "valid/all-resource-profiles",
-        }
-    ]
-    for name, layers, expected_or_issue, _ in mutations:
-        expected = "valid" if expected_or_issue == "valid" else "invalid"
-        row: dict[str, Any] = {
-            "expected": expected,
-            "id": name,
-            "layers": layers,
-            "path": f"{expected}/{name}",
-        }
-        if expected == "invalid":
-            row["firstIssue"] = expected_or_issue
-        corpus_cases.append(row)
-    corpus = {
-        "cases": sorted(corpus_cases, key=lambda row: row["id"]),
-        "type": "AtlasConformanceCorpus",
-        "version": "3.0",
-    }
+    base = _base_fixture()
+    corpus = _corpus_document(mutations, _derive_shacl_components(mutations, base))
     corpus_bytes = atlas_validate.canonical_json_bytes(corpus)
     (temporary_root / "corpus.json").write_bytes(corpus_bytes)
     binding_digests = atlas_validate._binding_digests(
         content_overrides={Path("fixtures/corpus.json"): corpus_bytes}
     )
 
-    base = _base_fixture()
     _write_case(
         temporary_root / "valid" / "all-resource-profiles",
         copy.deepcopy(base),
@@ -4803,12 +4881,8 @@ def build(*, check: bool) -> None:
         mutation(fixture)
         if fixture.reseal_adjudication:
             _reseal_adjudication(fixture.asserted)
-        if expected_or_issue == "valid":
-            case_root = temporary_root / "valid" / name
-            expected = "valid"
-        else:
-            case_root = temporary_root / "invalid" / name
-            expected = "invalid"
+        role = "valid" if expected_or_issue == "valid" else "invalid"
+        case_root = temporary_root / role / name
         _write_case(
             case_root,
             fixture,
