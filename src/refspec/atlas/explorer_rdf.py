@@ -54,6 +54,10 @@ _SOURCE_ACCOUNTING_MEMBER = "atlas-source-accounting.json"
 _ACCEPTANCE_MEMBER = "atlas-acceptance.json"
 _PRODUCER_VALIDATION_MEMBER = "atlas-producer-validation.json"
 _CONSTRUCTION_SUMMARY_MEMBER = "atlas-construction-summary.json"
+# Stopgap copy of bindings/atlas/3.0/tools/validate.py's REQUIRED_GATES
+# (~line 764), kept verbatim by hand. Deleted when readers cut over to
+# verify_seal (plans/validation-cost-reset-plan.md, step 5) instead of
+# re-deriving gate membership here.
 REQUIRED_ACCEPTANCE_GATES = frozenset(
     {
         "canonical-json",
@@ -63,6 +67,8 @@ REQUIRED_ACCEPTANCE_GATES = frozenset(
         "shacl-meta",
         "shacl-data",
         "dataset-closure",
+        "explorer-reachability",
+        "machine-adjudication",
         "source-accounting",
         "projection-parity",
         "reasoning-isolation",

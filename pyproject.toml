@@ -33,7 +33,6 @@ dev = [
     # rule would otherwise fail the build with no change to this repository.
     # Moving the pin is how new rules get adopted: deliberately, in one commit.
     "ruff==0.16.0",
-    "sssom>=0.4,<1",
     # Six test modules import the Atlas 3.0 binding validator directly. It needs
     # these, and they are pinned to the exact versions in
     # bindings/atlas/3.0/requirements.txt so the validator behaves identically

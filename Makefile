@@ -2,7 +2,11 @@
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 
-ATLAS_V3_AUDIT_ROOT ?= output/atlas-3.0-full-2026-08-07-ring-audit
+# No default. The prior default (output/atlas-3.0-full-2026-08-07-ring-audit)
+# is retired: HEAD's binding refuses that distribution's constructorProfile
+# (see plans/validation-cost-reset-plan.md). Callers must name a distribution
+# that validates under HEAD.
+ATLAS_V3_AUDIT_ROOT ?=
 ATLAS_V3_AUDIT_SOURCE_ROOT ?= output/registry-real-data-sources
 # Beside the distribution, never inside it. A distribution validates its own
 # membership as a closed set, so a receipt written into that directory makes
@@ -66,8 +70,26 @@ audit-registry-real-data:
 # same pass/fail/skip set as a serial run, test id for test id; no test needed
 # a serial exemption. Drop the flag to debug -- bare `uv run pytest -q` still
 # works and is easier to read when something breaks.
+# Wall-clock budget (plans/validation-cost-reset-plan.md check regime and its
+# "Budget gate re-spec" open item): target is 60s, warn past 60s. The old
+# 120s (2x margin) FAIL line was re-measured at 112-140s on identical trees
+# and flipped red nondeterministically, so the hard FAIL threshold is 240s --
+# a runaway guard, not a margin on the target. The 120s FAIL line re-arms
+# once the suite is next measured under 60s (expected after the plan's
+# deletion campaign shrinks it); until then 240s is what actually gates.
 test-package:
-	uv run pytest -q -n auto
+	@start=$$(date +%s); \
+	uv run pytest -q -n auto; \
+	status=$$?; \
+	end=$$(date +%s); \
+	elapsed=$$((end - start)); \
+	if [ "$$status" -ne 0 ]; then exit "$$status"; fi; \
+	if [ "$$elapsed" -gt 240 ]; then \
+		echo "test-package budget FAIL: took $${elapsed}s, exceeds the 240s runaway-guard budget" >&2; \
+		exit 1; \
+	elif [ "$$elapsed" -gt 60 ]; then \
+		echo "test-package budget WARN: took $${elapsed}s, over the 60s target (within the 240s fail budget)" >&2; \
+	fi
 
 test-json-binding:
 	uv run --no-project --with-requirements bindings/json/1.0/requirements.txt \
@@ -78,6 +100,15 @@ test-atlas-v3:
 		python bindings/atlas/3.0/tools/validate.py
 
 audit-atlas-v3-source-fidelity:
+	@if [ -z "$(ATLAS_V3_AUDIT_ROOT)" ]; then \
+		echo "error: ATLAS_V3_AUDIT_ROOT is unset. The old default" >&2; \
+		echo "(output/atlas-3.0-full-2026-08-07-ring-audit) was retired:" >&2; \
+		echo "HEAD's binding refuses that distribution's constructorProfile" >&2; \
+		echo "(see plans/validation-cost-reset-plan.md). Set" >&2; \
+		echo "ATLAS_V3_AUDIT_ROOT explicitly to a distribution that" >&2; \
+		echo "validates under HEAD before running this audit." >&2; \
+		exit 1; \
+	fi
 	@audit_distribution="$(ATLAS_V3_AUDIT_ROOT)"; \
 	if [ ! -f "$$audit_distribution/atlas-manifest.json" ]; then \
 		audit_distribution="$$audit_distribution/distribution"; \
