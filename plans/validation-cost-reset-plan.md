@@ -593,6 +593,37 @@ measured under 60s; see the budget re-spec open item).
       search-view manifest → 1.2 bump → SpicySearch's exact-match
       admission pin. SpicySearch's decision; RefSpec side ready either
       way (full view 2.0 carries the columns).
+      (h) WIRE DEFECT (oxigraph spike, measured 2026-08-12): 7,770 quads
+      in 2 packs carry `sourceLocator` IRIs with raw `[`/`]` — RFC 3987
+      violations rdflib and `ABSOLUTE_IRI_RE` both accept but every
+      strict parser (oxigraph, Jena, most Java/Rust tooling) refuses.
+      Interoperability bug in a distribution whose story is
+      consumability. Builder-side fix (mint conformant IRIs) re-mints
+      7,770 nodes; nothing 3.1 is published yet, so a pre-publication
+      amendment is free by the plan's own no-consumer logic. DECISION
+      HELD for the Jena spike's corroboration.
+      (i) WIRE DEFECT (same spike): the node-digest scheme is not
+      invariant under RDF 1.1 term equality — `"x"` vs `"x"^^xsd:string`
+      (2.27M vs 1.52M occurrences, pack-correlated by adapter) are the
+      same term with different digests, and the canonical profile
+      diverges from W3C canonical N-Triples (simple form mandated).
+      Normalizing to the simple form fixes the digest scheme, aligns the
+      profile with the standard, and is the precondition for any future
+      strict-substrate round-trip. Same pre-publication window as (h);
+      DECISION HELD with it.
+      (j) BANKED WIN (same spike, measured): the canonicality proof
+      re-expressed on raw bytes = 49.07s full-scale vs ~287s in the
+      parser subclass, zero rejections over 29.3M real lines, no new
+      dependency — and it moves the enforcement to where kill-6 says it
+      belongs. Implementation waits only on (h)/(i)'s resolution, since
+      the byte grammar encodes the profile.
+      **Oxigraph verdict (measured, no-go):** the substrate rung alone
+      does not exist — pySHACL requires rdflib, the oxrdflib shim is
+      4.2× slower on iteration and silently rewrites literals (99% of
+      node digests change; 89 spurious SHACL violations; never finishes
+      at 61k+ quads). Oxigraph pays only behind the Jena door, priced at
+      7–11 weeks for ~20 min once per release. Kill-5's sentence is
+      confirmed by measurement: the engine door is the only door.
 - [ ] Reconcile the ledger's five-axis "duplication in model.py" note with
       the code (one definition found; generator imports it).
 - [x] **Next campaign SCOPED (v3.6, 2026-08-12; full map in the session's
