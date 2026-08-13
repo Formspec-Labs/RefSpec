@@ -970,7 +970,7 @@ class PatternRowPattern:
     expected_input_count: int
     expected_region_count: int
     expected_row_count: int
-    constants: tuple[tuple[str, str], ...] = ()
+    constants: tuple[tuple[str, Any], ...] = ()
     normalizers: tuple[PatternFieldNormalizer, ...] = ()
     row_filters: tuple[PatternRowFilter, ...] = ()
 
@@ -8497,6 +8497,173 @@ REGULATIONS_GOV_PATTERN_ROW_SOURCES = tuple(
 )
 
 
+_SAM_ASSISTANCE_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/sam_assistance_listing_codes/"
+        "sam-assistance-listings-api-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:6ea76d040e2190b02cad8192f50dbe00d39f01f5366f893cd24b6491dfdeeffd"
+    ),
+    byte_length=210_611,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://open.gsa.gov/api/assistance-listings-api/",
+)
+_SAM_ASSISTANCE_TABLE_ROW_PATTERN = (
+    r"<tr>\s*<td>(?P<code>.*?)</td>\s*"
+    r"<td>(?P<label>.*?)</td>\s*</tr>"
+)
+
+
+def _sam_assistance_region_pattern(heading_id: str) -> str:
+    return (
+        r'<h[1-6][^>]*id="'
+        + re.escape(heading_id)
+        + r'"[^>]*>(?P<region>.*?)(?=<h[1-6][^>]*id=")'
+    )
+
+
+def _sam_assistance_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    identifier_kind: str,
+    identifier_source_iri: str,
+    patterns: tuple[tuple[str, int, str | None], ...],
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:28:13Z"
+    native_payload_template = {
+        "category": "{category}",
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://open.gsa.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": identifier_source_iri,
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {
+                "language": "en",
+                "role": "preferred",
+                "value": "{label}",
+            }
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            PatternRowPattern(
+                input_pattern=re.escape(_SAM_ASSISTANCE_PATTERN_PIN.path),
+                region_pattern=_sam_assistance_region_pattern(heading_id),
+                row_pattern=_SAM_ASSISTANCE_TABLE_ROW_PATTERN,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=count,
+                constants=(
+                    ("category", category),
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", name),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            )
+            for heading_id, count, category in patterns
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedReferenceTables",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}.{code}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": "{resource_name}",
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:sam-assistance-listings:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_SAM_ASSISTANCE_PATTERN_PIN,), selector)
+
+
+SAM_ASSISTANCE_PATTERN_ROW_SOURCES = (
+    _sam_assistance_pattern_source(
+        name="sam-assistance-assistance-types",
+        resource_name="assistanceTypes",
+        identifier_kind="assistanceTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/assistance-listings-api/"
+            "#assistance-types-by-code"
+        ),
+        patterns=(
+            ("financial-assistance", 10, "financial"),
+            ("non-financial-assistance", 7, "nonFinancial"),
+        ),
+        expected_count=17,
+    ),
+    _sam_assistance_pattern_source(
+        name="sam-assistance-eligible-applicant-types",
+        resource_name="eligibleApplicantTypes",
+        identifier_kind="applicantEntityTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/assistance-listings-api/"
+            "#eligible-award-applicant-types"
+        ),
+        patterns=(("eligible-award-applicant-types", 44, None),),
+        expected_count=44,
+    ),
+    _sam_assistance_pattern_source(
+        name="sam-assistance-eligible-beneficiary-types",
+        resource_name="eligibleBeneficiaryTypes",
+        identifier_kind="beneficiaryEntityTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/assistance-listings-api/"
+            "#eligible-beneficiary-types"
+        ),
+        patterns=(("eligible-beneficiary-types", 73, None),),
+        expected_count=73,
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -8569,6 +8736,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *BILLSTATUS_PATTERN_ROW_SOURCES,
     *FEC_PATTERN_ROW_SOURCES,
     *REGULATIONS_GOV_PATTERN_ROW_SOURCES,
+    *SAM_ASSISTANCE_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
