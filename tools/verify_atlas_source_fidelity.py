@@ -105,6 +105,12 @@ DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 VERIFIER_VERSION = "atlas-source-fidelity/11"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
+ENGLISH_LANGUAGE_SCOPE = {
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+    "unselectedPublisherContent": "notRepresented",
+    "wireLanguageTag": "en",
+}
 
 RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 SKOS = "http://www.w3.org/2004/02/skos/core#"
@@ -423,6 +429,26 @@ class Quad:
 
 
 _LITERAL_BODY = re.compile(r'^"((?:[^"\\]|\\.)*)"(?:@([A-Za-z0-9-]+)|\^\^<([^>]*)>)?\s*$')
+_BCP47 = re.compile(
+    r"^(?:(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4}|"
+    r"[A-Za-z]{5,8})(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?"
+    r"(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*"
+    r"(?:-[0-9A-WY-Za-wy-z](?:-[A-Za-z0-9]{2,8})+)*"
+    r"(?:-[xX](?:-[A-Za-z0-9]{1,8})+)?|"
+    r"[xX](?:-[A-Za-z0-9]{1,8})+|[eE][nN]-[gG][bB]-[oO][eE][dD]|"
+    r"[iI]-(?:[aA][mM][iI]|[bB][nN][nN]|[dD][eE][fF][aA][uU][lL][tT]|"
+    r"[eE][nN][oO][cC][hH][iI][aA][nN]|[hH][aA][kK]|"
+    r"[kK][lL][iI][nN][gG][oO][nN]|[lL][uU][xX]|"
+    r"[mM][iI][nN][gG][oO]|[nN][aA][vV][aA][jJ][oO]|"
+    r"[pP][wW][nN]|[tT][aA][oO]|[tT][aA][yY]|[tT][sS][uU])|"
+    r"[sS][gG][nN]-(?:[bB][eE]-[fF][rR]|[bB][eE]-[nN][lL]|"
+    r"[cC][hH]-[dD][eE])|[aA][rR][tT]-[lL][oO][jJ][bB][aA][nN]|"
+    r"[cC][eE][lL]-[gG][aA][uU][lL][iI][sS][hH]|"
+    r"[nN][oO]-(?:[bB][oO][kK]|[nN][yY][nN])|"
+    r"[zZ][hH]-(?:[gG][uU][oO][yY][uU]|[hH][aA][kK][kK][aA]|"
+    r"[mM][iI][nN]|[mM][iI][nN]-[nN][aA][nN]|"
+    r"[xX][iI][aA][nN][gG]))$"
+)
 
 
 def parse_nquads_line(line: str) -> Quad | None:
@@ -628,6 +654,7 @@ class PublisherView:
     declared_out_of_scope_subjects: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict
     )
+    language_exclusion_evidence: LanguageExclusionEvidence | None = None
 
 
 @dataclass(frozen=True)
@@ -813,6 +840,50 @@ class DeclaredClaimExclusion:
 
 
 @dataclass(frozen=True)
+class DeclaredLanguageExclusion:
+    """One exact claim-level declaration of Atlas's English product scope.
+
+    Unlike ``DeclaredClaimExclusion``, this declaration never selects a subject.
+    It selects only explicitly tagged semantic literal claims whose valid BCP 47
+    primary language subtag is not ``en``. The authenticated payload fixes the
+    source, language, and predicate-family counts that must be observed.
+    """
+
+    name: str
+    reason: str
+    payload_json: str
+    payload_sha256: str
+
+    def __post_init__(self) -> None:
+        observed = "sha256:" + hashlib.sha256(
+            self.payload_json.encode("utf-8")
+        ).hexdigest()
+        if observed != self.payload_sha256:
+            raise ValueError(
+                f"declared language exclusion {self.name!r} payload digest differs: "
+                f"expected {self.payload_sha256}, observed {observed}"
+            )
+
+    def payload(self) -> Mapping[str, Any]:
+        """Return the immutable declaration payload after structural checks."""
+        value = json.loads(self.payload_json)
+        if not isinstance(value, dict):
+            raise ValueError("language exclusion payload must be an object")
+        return value
+
+
+@dataclass(frozen=True)
+class LanguageExclusionEvidence:
+    """Measured claim cells and exact selected-claim identity for one source."""
+
+    actual_counts_by_language: Mapping[str, Mapping[str, int]]
+    excluded_claim_count: int
+    excluded_claims_digest: str
+    invalid_language_claims: tuple[str, ...] = ()
+    undeclared_predicate_claims: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -825,6 +896,7 @@ class SourceSpec:
     included_concept_iris: frozenset[str] = frozenset()
     excluded_resource_predicates: frozenset[str] = frozenset()
     declared_claim_exclusions: tuple[DeclaredClaimExclusion, ...] = ()
+    declared_language_exclusion: DeclaredLanguageExclusion | None = None
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
@@ -927,11 +999,13 @@ class Context:
     expectations: Expectations
     units: tuple[DistributionUnit, ...]
     construction_summary_digest: str | None
+    construction_language_scope: Any
     manifest_digest: str | None
     pack_pins: Mapping[str, PackPin]
     verified_pins: frozenset[SourcePin]
     pin_failures: tuple[str, ...]
     load_failures: tuple[str, ...]
+    atlas_language_scope_failures: tuple[str, ...] = ()
     source_extract_pairs: tuple[SourceExtractPair, ...] = ()
     # Specs this run deliberately did not evaluate. They stay visible so the
     # coverage arithmetic can report their construction units as scoped out
