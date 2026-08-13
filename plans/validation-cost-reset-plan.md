@@ -365,6 +365,18 @@ restart from scratch.
 | research/coverage-json | MERGED fa7839f4 | all 18 JSON/API-capture units; resolved the memory refactor across 11 conflict regions without weakening a comparison |
 | research/coverage-{csv-pdf,html-misc} | wip, NOT resumed | ~2,000 lines each, committed; both need the same integration-first resume |
 
+**WORKTREES ARE DISPOSABLE; THE BRANCHES ARE THE RECORD.** `.claude/worktrees/`
+holds ~13 GB across ~18 checkouts. Every one is safe to `git worktree remove` —
+each branch, its commits, its REPORT.md and its committed measurements survive
+independently, and the ledger above says what each branch holds. Verified
+2026-08-13: the merged coverage/substrate worktrees are clean and main is ahead
+of all of them. Two are expensive to recreate but still regenerable by
+digest-verified download rather than irreplaceable:
+`agent-a7937c98dc15549c2` (2.0 GB, vendored Temurin JDK + Jena; `bin/clean-data`
+drops its intermediates) and `agent-a9301012cdaa44814` (795 MB, pinned
+pyoxigraph venv). Left in place deliberately — disk is not scarce (268 GB free)
+and deleting them buys nothing the ledger does not already record.
+
 **ORCHESTRATION LESSONS (recorded so they are not relearned):** never
 SIGSTOP a codex agent — its harness wrapper exits and the agent dies;
 size the fleet to the machine (six xhigh agents plus a 14 GB validation
