@@ -390,14 +390,19 @@ four are not one problem; they are four different ones, in increasing severity:
    Deficiency Letter/Data Response" — space-joined with no delimiters, so the
    Library / Classification / Type Description boundaries are UNRECOVERABLE. Its
    sibling unit parses its columns properly; these two disagree.
-3. `unified-agenda-legal-authority-citation-types` — EDITORIAL INFERENCE FROM
-   PROSE. The source is the RISC Preamble, whose Section V lists TWELVE
-   abbreviations (ANPRM, CFR, E.O., FR, FY, NPRM, Legal Authority, Pub. L., RFA,
-   RIN, Seq. No., U.S.C.). Atlas carries THREE — E.O., Pub. L., U.S.C. — and
-   asserts `kind: "legalAuthorityCitationType"` for each. THE SOURCE NEVER MAKES
-   THAT CLASSIFICATION; it is Atlas's own judgment, and the selection criterion
-   is nowhere declared. The PDF supplies a rich definition for every
-   abbreviation; Atlas carries NONE (zero atlas:definition or atlas:note quads).
+3. `unified-agenda-legal-authority-citation-types` — SELECTION IS SOUND; THE
+   DEFINITIONS ARE MISSING. **A first pass of this review claimed the source
+   never classifies these three and was WRONG** — recorded because the mistake
+   is instructive. The RISC Preamble has TWO "Legal Authority" entries: the
+   Section V glossary one is vague, but the Section IV one states verbatim
+   "Legal Authority -- the section(s) of the United States Code (U.S.C.) or
+   Public Law (Pub. L.) or the Executive order (EO) that authorize(s) the
+   regulatory action." The three Atlas carries are exactly those, the module's
+   own comment cites that sentence, and reading one section then generalising
+   produced a false finding. VERIFY THE CITED JUSTIFICATION BEFORE CONTRADICTING
+   IT. What does stand: Section V defines U.S.C., Pub. L. and E.O. individually,
+   and Atlas carries NONE of those definitions (zero atlas:definition or
+   atlas:note quads) — available publisher text, discarded.
 4. `usgs-gnis-identifiers` — MIXED, AND THE MOST SERIOUS. Three identifier
    fields taken from a 21+ field format table. `feature_id` IS transcribed —
    with the source's ligature normalized (so this unit normalizes what unit 1
