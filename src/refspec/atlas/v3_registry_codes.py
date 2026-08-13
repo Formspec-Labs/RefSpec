@@ -1728,11 +1728,18 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
             label=value,
             source_path=f"$.legalAuthorityCitationTypes[{ordinal}]",
             notations=(identifier.value,),
-            native_payload={
-                "sourceArtifact": evidence.source_url,
-                "value": value,
-                "identifier": _json_value(identifier),
-            },
+            # The Preamble's own glossary sentence for this citation type. Without
+            # it these records ship as bare tokens ("U.S.C.") while the pinned
+            # source defines each one; the registry verifies the wording is still
+            # in the PDF before we publish it.
+            definition=source.UA_LEGAL_AUTHORITY_CITATION_TYPE_DEFINITIONS[value],
+            native_payload=_stamp_source_artifact(
+                {
+                    "value": value,
+                    "identifier": _json_value(identifier),
+                },
+                evidence.source_url,
+            ),
         )
         for ordinal, (value, identifier) in enumerate(
             zip(
