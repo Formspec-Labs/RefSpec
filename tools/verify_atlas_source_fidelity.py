@@ -8664,6 +8664,201 @@ SAM_ASSISTANCE_PATTERN_ROW_SOURCES = (
 )
 
 
+_SAM_OPPORTUNITIES_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/sam_opportunities_codes/"
+        "sam-get-opportunities-public-api-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:448b85ab4a22e33d139295cb1d6a3a6384b685a936d8c645dd12e69ed938fa62"
+    ),
+    byte_length=46_217,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://open.gsa.gov/api/get-opportunities-public-api/",
+)
+_SAM_OPPORTUNITIES_CODE_ROW = (
+    r"(?:^|<br\s*/?>)\s*(?P<code>[a-z])\s*=\s*"
+    r"(?P<label>.*?)(?=<br\s*/?>|$)"
+)
+
+
+def _sam_opportunities_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    identifier_kind: str,
+    identifier_source_iri: str,
+    patterns: tuple[tuple[str, str, int, bool], ...],
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:18:48Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://open.gsa.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": identifier_source_iri,
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {
+                "language": "en",
+                "role": "preferred",
+                "value": "{label}",
+            }
+        ],
+        "retired": "{retired}",
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            PatternRowPattern(
+                input_pattern=re.escape(_SAM_OPPORTUNITIES_PATTERN_PIN.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("retired", retired),
+                    ("source_token", name),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            )
+            for region_pattern, row_pattern, count, retired in patterns
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedControlRows",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}.{code}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": "{resource_name}",
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:sam-opportunities:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_SAM_OPPORTUNITIES_PATTERN_PIN,), selector)
+
+
+SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES = (
+    _sam_opportunities_pattern_source(
+        name="sam-opportunities-notice-types",
+        resource_name="noticeTypes",
+        identifier_kind="noticeTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/get-opportunities-public-api/"
+            "#get-opportunities-request-parameters"
+        ),
+        patterns=(
+            (
+                (
+                    r"<td>ptype</td>\s*<td>Procurement Type\..*?<br\s*/?>\s*"
+                    r"(?P<region>.*?)(?=<br\s*/?>\s*Note: Below services are now retired)"
+                ),
+                _SAM_OPPORTUNITIES_CODE_ROW,
+                9,
+                False,
+            ),
+            (
+                (
+                    r"Note: Below services are now retired:\s*<br\s*/?>\s*"
+                    r"(?P<region>.*?)(?=<br\s*/?>\s*<br\s*/?>\s*Use Justification)"
+                ),
+                _SAM_OPPORTUNITIES_CODE_ROW,
+                2,
+                True,
+            ),
+        ),
+        expected_count=11,
+    ),
+    _sam_opportunities_pattern_source(
+        name="sam-opportunities-opportunity-statuses",
+        resource_name="opportunityStatuses",
+        identifier_kind="opportunityStatusCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/get-opportunities-public-api/"
+            "#get-opportunities-request-parameters"
+        ),
+        patterns=(
+            (
+                (
+                    r"<td>status \(Coming Soon\)</td>\s*<td>.*?Accepts following:\s*"
+                    r"(?P<region>.*?)</td>"
+                ),
+                r"(?:^|,\s*)(?P<label>(?P<code>[a-z]+))(?=,|$)",
+                5,
+                False,
+            ),
+        ),
+        expected_count=5,
+    ),
+    _sam_opportunities_pattern_source(
+        name="sam-opportunities-set-aside-codes",
+        resource_name="setAsideCodes",
+        identifier_kind="setAsideCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/get-opportunities-public-api/"
+            "#set-aside-values"
+        ),
+        patterns=(
+            (
+                r'<h3 id="set-aside-values">.*?<table>(?P<region>.*?)</table>',
+                (
+                    r"<tr>\s*<td>(?P<code>[A-Za-z0-9]+)</td>\s*"
+                    r"<td>(?P<label>.*?)</td>\s*</tr>"
+                ),
+                18,
+                False,
+            ),
+        ),
+        expected_count=18,
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -8737,6 +8932,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *FEC_PATTERN_ROW_SOURCES,
     *REGULATIONS_GOV_PATTERN_ROW_SOURCES,
     *SAM_ASSISTANCE_PATTERN_ROW_SOURCES,
+    *SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
