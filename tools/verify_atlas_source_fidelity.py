@@ -4806,6 +4806,7 @@ class _StockVocabularyRecord:
     source_locator: str
     source_digest: str
     native_payload: Mapping[str, Any]
+    is_skos_concept: bool = True
 
 
 def _stock_vocabulary_view(
@@ -4821,6 +4822,7 @@ def _stock_vocabulary_view(
     retain_expected_native_payloads: bool = True,
     compact_resource_digests: bool = False,
     expected_relation_payloads: Mapping[str, Mapping[str, Any]] | None = None,
+    source_digest_is_native_payload_digest: bool = True,
 ) -> PublisherView:
     """Build the comparison view shared by stock XML, RDF, MARC, and JSON readers."""
     concepts: set[str] = set()
@@ -4855,9 +4857,11 @@ def _stock_vocabulary_view(
         pref_labels[record.resource] = preferred
         alt_labels[record.resource] = alternate
         notations[record.resource] = notation_values
-        # The member-IRI comparison treats the publisher's explicit Concept
-        # type as evidence distinct from concept-set identity.
-        iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
+        # The member-IRI comparison treats an explicit Concept type as evidence
+        # distinct from concept-set identity. Entity-ring managed records do
+        # not make that SKOS assertion.
+        if record.is_skos_concept:
+            iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
         for predicate, values in (
             (SKOS_PREF_LABEL, preferred),
             (SKOS_ALT_LABEL, alternate),
@@ -4877,7 +4881,8 @@ def _stock_vocabulary_view(
         if retain_claim_sets:
             literal_claims.update(record_annotations)
         if retain_predicate_counts:
-            predicate_counts[(record.resource, RDF_TYPE)] = 1
+            if record.is_skos_concept:
+                predicate_counts[(record.resource, RDF_TYPE)] = 1
             for _, predicate, _ in record_annotations:
                 predicate_counts[(record.resource, predicate)] += 1
         if compact_resource_digests:
@@ -4936,7 +4941,9 @@ def _stock_vocabulary_view(
         expected_native_payloads=expected_native_payloads,
         expected_relation_payloads=dict(expected_relation_payloads or {}),
         resource_input_digest_values=resource_input_digest_values,
-        source_digest_is_native_payload_digest=True,
+        source_digest_is_native_payload_digest=(
+            source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -5702,6 +5709,7 @@ def _read_fast_topical_native(
     )
 
 
+CRS_SOURCE_CONCEPT_RELEASE_READER = "crs-source-concept-release-json-v1"
 ICPSR_MANAGED_RELEASE_READER = "icpsr-managed-release-json-v1"
 
 
@@ -5720,6 +5728,477 @@ def _json_without_duplicates(payload: bytes, label: str) -> Any:
         return json.loads(payload, object_pairs_hook=object_pairs)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError(f"{label} is not UTF-8 JSON: {error}") from error
+
+
+def _canonical_json_line(value: Any) -> bytes:
+    """Return the newline-terminated canonical JSON used by CRS bundles."""
+    return _canonical_json_bytes(value) + b"\n"
+
+
+def _read_canonical_json_lines(payload: bytes, label: str) -> list[Mapping[str, Any]]:
+    """Read one CRS JSONL artifact without importing its production reader."""
+    rows: list[Mapping[str, Any]] = []
+    rebuilt = bytearray()
+    for line_number, line in enumerate(payload.splitlines(), start=1):
+        if not line:
+            raise ValueError(f"{label} line {line_number} is blank")
+        row = _json_without_duplicates(line, f"{label} line {line_number}")
+        if not isinstance(row, Mapping):
+            raise ValueError(f"{label} line {line_number} is not an object")
+        rebuilt.extend(_canonical_json_line(row))
+        rows.append(row)
+    if bytes(rebuilt) != payload:
+        raise ValueError(f"{label} bytes are not canonical newline-terminated JSONL")
+    return rows
+
+
+def _crs_artifact_path(root: Path, relative_path: Any, label: str) -> Path:
+    if not isinstance(relative_path, str) or not relative_path:
+        raise ValueError(f"{label} has no path")
+    relative = Path(relative_path)
+    if (
+        relative.is_absolute()
+        or "\\" in relative_path
+        or "://" in relative_path
+        or any(part in {"", ".", ".."} for part in relative.parts)
+    ):
+        raise ValueError(f"{label} path is unsafe: {relative_path!r}")
+    return root.joinpath(*relative.parts)
+
+
+def _read_crs_source_concept_release(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Authenticate a CRS managed JSON bundle and reverse its selected records."""
+    if len(spec.inputs) != 1:
+        raise ValueError("CRS source-concept release reader requires one manifest input")
+    pin = spec.inputs[0]
+    manifest_payload = authenticated_payloads[pin]
+    manifest = _json_without_duplicates(manifest_payload, pin.path)
+    if not isinstance(manifest, Mapping):
+        raise ValueError("CRS source-concept bundle manifest must be an object")
+    if manifest_payload != _canonical_json_line(manifest):
+        raise ValueError("CRS source-concept bundle manifest is not canonical")
+    if set(manifest) != {
+        "artifacts",
+        "logicalDigest",
+        "packageKind",
+        "releaseDigest",
+        "releaseId",
+        "schemaVersion",
+    }:
+        raise ValueError("CRS source-concept bundle manifest shape differs")
+    if (
+        manifest.get("schemaVersion") != "1.0"
+        or manifest.get("packageKind") != "sourceConceptRelease"
+    ):
+        raise ValueError("CRS source-concept bundle version differs")
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("CRS source-concept bundle artifacts must be an array")
+
+    root = Path(pin.path).parent
+    retained_paths = {
+        "concepts.jsonl",
+        "lifecycle.jsonl",
+        "reconciliation.json",
+        "release-manifest.json",
+        "rights.jsonl",
+        "source/bundle-manifest.json",
+        "source/observations.jsonl",
+        "source/resource-manifest.json",
+    }
+    retained: dict[str, bytes] = {}
+    roles: dict[str, str] = {}
+    expected_paths = {"bundle-manifest.json"}
+    descriptor_digests: dict[str, str] = {}
+    descriptor_lengths: dict[str, int] = {}
+    for index, descriptor in enumerate(artifacts):
+        label = f"CRS artifact {index}"
+        if not isinstance(descriptor, Mapping) or set(descriptor) != {
+            "byteLength",
+            "path",
+            "role",
+            "sha256",
+        }:
+            raise ValueError(
+                f"{label} must contain byteLength, path, role, and sha256"
+            )
+        relative_path = descriptor.get("path")
+        artifact_path = _crs_artifact_path(root, relative_path, label)
+        relative_text = str(relative_path)
+        if relative_text in expected_paths:
+            raise ValueError(f"CRS bundle repeats artifact path {relative_text!r}")
+        expected_paths.add(relative_text)
+        if artifact_path.is_symlink() or not artifact_path.is_file():
+            raise ValueError(f"CRS artifact is not a regular file: {relative_text}")
+        payload = artifact_path.read_bytes()
+        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if (
+            descriptor.get("byteLength") != len(payload)
+            or descriptor.get("sha256") != digest
+        ):
+            raise ValueError(f"CRS artifact pin differs for {relative_text}")
+        role = descriptor.get("role")
+        if not isinstance(role, str) or not role:
+            raise ValueError(f"{label} has no role")
+        roles[relative_text] = role
+        descriptor_digests[relative_text] = digest
+        descriptor_lengths[relative_text] = len(payload)
+        if relative_text in retained_paths:
+            retained[relative_text] = payload
+
+    actual_paths: set[str] = set()
+    for item in root.rglob("*"):
+        if item.is_symlink():
+            raise ValueError(f"CRS source-concept bundle contains a symlink: {item}")
+        if item.is_file():
+            actual_paths.add(item.relative_to(root).as_posix())
+    if actual_paths != expected_paths:
+        raise ValueError("CRS source-concept bundle file set differs from its manifest")
+    missing = sorted(retained_paths - retained.keys())
+    if missing:
+        raise ValueError(f"CRS source-concept bundle lacks required artifacts: {missing}")
+    expected_roles = {
+        "concepts.jsonl": "concepts",
+        "lifecycle.jsonl": "lifecycle",
+        "reconciliation.json": "reconciliation",
+        "release-manifest.json": "releaseManifest",
+        "rights.jsonl": "rights",
+        "source/bundle-manifest.json": "sourceCaptureArtifact",
+        "source/observations.jsonl": "sourceCaptureArtifact",
+        "source/resource-manifest.json": "sourceCaptureArtifact",
+    }
+    if any(roles.get(path) != role for path, role in expected_roles.items()):
+        raise ValueError("CRS source-concept bundle core artifact roles differ")
+    if any(
+        role
+        not in {
+            "concepts",
+            "lifecycle",
+            "reconciliation",
+            "releaseManifest",
+            "rights",
+            "sourceCaptureArtifact",
+        }
+        for role in roles.values()
+    ):
+        raise ValueError("CRS source-concept bundle contains an unsupported artifact role")
+
+    release = _json_without_duplicates(
+        retained["release-manifest.json"],
+        "CRS source-concept release manifest",
+    )
+    resource_manifest = _json_without_duplicates(
+        retained["source/resource-manifest.json"],
+        "CRS source resource manifest",
+    )
+    source_bundle_manifest = _json_without_duplicates(
+        retained["source/bundle-manifest.json"],
+        "CRS nested source bundle manifest",
+    )
+    reconciliation = _json_without_duplicates(
+        retained["reconciliation.json"],
+        "CRS source-concept reconciliation",
+    )
+    if not all(
+        isinstance(value, Mapping)
+        for value in (release, resource_manifest, source_bundle_manifest, reconciliation)
+    ):
+        raise ValueError("CRS release, resource, or reconciliation manifest is not an object")
+    for value, payload, label in (
+        (release, retained["release-manifest.json"], "CRS release manifest"),
+        (
+            resource_manifest,
+            retained["source/resource-manifest.json"],
+            "CRS source resource manifest",
+        ),
+        (
+            source_bundle_manifest,
+            retained["source/bundle-manifest.json"],
+            "CRS nested source bundle manifest",
+        ),
+        (
+            reconciliation,
+            retained["reconciliation.json"],
+            "CRS reconciliation",
+        ),
+    ):
+        if payload != _canonical_json_line(value):
+            raise ValueError(f"{label} is not canonical")
+
+    concepts = _read_canonical_json_lines(
+        retained["concepts.jsonl"],
+        "CRS concepts",
+    )
+    observations = _read_canonical_json_lines(
+        retained["source/observations.jsonl"],
+        "CRS observations",
+    )
+    rights = _read_canonical_json_lines(retained["rights.jsonl"], "CRS rights")
+    lifecycle = _read_canonical_json_lines(
+        retained["lifecycle.jsonl"],
+        "CRS lifecycle",
+    )
+    if release.get("conceptCount") != len(concepts):
+        raise ValueError("CRS release conceptCount differs from concepts.jsonl")
+    if release.get("rightsRecordCount") != len(rights):
+        raise ValueError("CRS release rightsRecordCount differs from rights.jsonl")
+    if release.get("lifecycleRecordCount") != len(lifecycle):
+        raise ValueError("CRS release lifecycleRecordCount differs from lifecycle.jsonl")
+    for field_name, path in (
+        ("conceptSetDigest", "concepts.jsonl"),
+        ("rightsSetDigest", "rights.jsonl"),
+        ("lifecycleSetDigest", "lifecycle.jsonl"),
+    ):
+        if release.get(field_name) != descriptor_digests[path]:
+            raise ValueError(f"CRS release {field_name} differs from sealed artifact")
+    source_capture = release.get("sourceCapture")
+    if not isinstance(source_capture, Mapping):
+        raise ValueError("CRS release sourceCapture must be an object")
+    if source_capture.get("observationSetDigest") != descriptor_digests[
+        "source/observations.jsonl"
+    ]:
+        raise ValueError("CRS release observationSetDigest differs from sealed observations")
+    if source_capture.get("reconciliationDigest") != descriptor_digests[
+        "reconciliation.json"
+    ]:
+        raise ValueError("CRS release reconciliationDigest differs from sealed record")
+    nested_artifacts = source_bundle_manifest.get("artifacts")
+    if not isinstance(nested_artifacts, list):
+        raise ValueError("CRS nested source bundle artifacts must be an array")
+    nested_paths: set[str] = set()
+    for index, descriptor in enumerate(nested_artifacts):
+        if not isinstance(descriptor, Mapping):
+            raise ValueError(f"CRS nested source artifact {index} is not an object")
+        relative_path = descriptor.get("path")
+        _crs_artifact_path(root / "source", relative_path, f"CRS nested artifact {index}")
+        outer_path = f"source/{relative_path}"
+        if not isinstance(relative_path, str) or relative_path in nested_paths:
+            raise ValueError("CRS nested source artifact path repeats or is missing")
+        nested_paths.add(relative_path)
+        if (
+            descriptor.get("sha256") != descriptor_digests.get(outer_path)
+            or descriptor.get("byteLength") != descriptor_lengths.get(outer_path)
+            or roles.get(outer_path) != "sourceCaptureArtifact"
+        ):
+            raise ValueError(
+                f"CRS nested source artifact differs from outer pin: {relative_path}"
+            )
+    outer_source_paths = {
+        path.removeprefix("source/")
+        for path in roles
+        if path.startswith("source/") and path != "source/bundle-manifest.json"
+    }
+    if nested_paths != outer_source_paths:
+        raise ValueError("CRS nested and outer source artifact sets differ")
+    if (
+        source_bundle_manifest.get("packageKind") != "sourceControlledResource"
+        or source_bundle_manifest.get("schemaVersion") != "2.0"
+        or source_capture.get("logicalDigest")
+        != source_bundle_manifest.get("logicalDigest")
+        or source_capture.get("resourceManifest") != resource_manifest.get("id")
+        or source_bundle_manifest.get("resourceManifest")
+        != resource_manifest.get("id")
+    ):
+        raise ValueError("CRS nested source bundle identity differs")
+    if release.get("sourceScheme") != resource_manifest.get("sourceScheme"):
+        raise ValueError("CRS release sourceScheme differs from its source capture")
+
+    release_basis = dict(release)
+    release_id = release_basis.pop("id", None)
+    release_digest = release_basis.pop("releaseDigest", None)
+    expected_release_digest = "sha256:" + hashlib.sha256(
+        _canonical_json_line(release_basis)
+    ).hexdigest()
+    semantic_ring = release.get("semanticRing")
+    expected_release_id = (
+        f"urn:ref:source-concept-release:{semantic_ring}:"
+        f"{expected_release_digest.removeprefix('sha256:')}"
+    )
+    if release_digest != expected_release_digest or release_id != expected_release_id:
+        raise ValueError("CRS release identity differs from its canonical facts")
+    if (
+        manifest.get("releaseDigest") != release_digest
+        or manifest.get("releaseId") != release_id
+    ):
+        raise ValueError("CRS bundle and release identities differ")
+
+    observation_by_id: dict[str, Mapping[str, Any]] = {}
+    for observation in observations:
+        observation_id = observation.get("id")
+        if not isinstance(observation_id, str) or not observation_id:
+            raise ValueError("CRS observation has no id")
+        if observation_id in observation_by_id:
+            raise ValueError(f"CRS observations repeat id {observation_id!r}")
+        observation_by_id[observation_id] = observation
+    selected_ids = sorted(str(concept.get("sourceObservation")) for concept in concepts)
+    selected_digest = "sha256:" + hashlib.sha256(
+        _canonical_json_line(selected_ids)
+    ).hexdigest()
+    if release.get("selectedObservationSetDigest") != selected_digest:
+        raise ValueError("CRS selectedObservationSetDigest differs from concept bindings")
+
+    source_scheme = release.get("sourceScheme")
+    scheme_iri = source_scheme.get("id") if isinstance(source_scheme, Mapping) else None
+    namespace_tokens = {
+        "http://id.loc.gov/vocabulary/subjectSchemes/lst": "loc-lst",
+        "http://id.loc.gov/vocabulary/subjectSchemes/cgpa": "loc-cgpa",
+    }
+    namespace_token = namespace_tokens.get(scheme_iri)
+    if namespace_token is None:
+        raise ValueError(f"CRS source scheme is unsupported: {scheme_iri!r}")
+    namespace_digest = hashlib.sha256(str(scheme_iri).encode("utf-8")).hexdigest()
+    if [str(concept.get("id")) for concept in concepts] != sorted(
+        str(concept.get("id")) for concept in concepts
+    ):
+        raise ValueError("CRS concepts are not sorted by id")
+
+    def records() -> Iterator[_StockVocabularyRecord]:
+        for concept in concepts:
+            required_concept_fields = {
+                "id",
+                "identityKind",
+                "issuer",
+                "localRecordId",
+                "semanticRing",
+                "sourceObservation",
+                "sourceObservationDigest",
+                "sourceScheme",
+                "type",
+            }
+            if set(concept) != required_concept_fields:
+                raise ValueError("CRS source-scoped concept fields differ")
+            observation_id = concept.get("sourceObservation")
+            observation = observation_by_id.get(str(observation_id))
+            if observation is None:
+                raise ValueError(
+                    f"CRS concept names unavailable observation {observation_id!r}"
+                )
+            observation_digest = "sha256:" + hashlib.sha256(
+                _canonical_json_line(observation)
+            ).hexdigest()
+            if concept.get("sourceObservationDigest") != observation_digest:
+                raise ValueError("CRS concept sourceObservationDigest differs")
+            local_record_id = concept.get("localRecordId")
+            if (
+                not isinstance(local_record_id, str)
+                or not local_record_id.startswith("urn:uuid:")
+            ):
+                raise ValueError("CRS concept localRecordId is not a UUID URN")
+            try:
+                local_uuid = uuid.UUID(local_record_id.removeprefix("urn:uuid:"))
+            except ValueError as error:
+                raise ValueError("CRS concept localRecordId is invalid") from error
+            if local_uuid.version != 7 or str(local_uuid) != local_record_id.removeprefix(
+                "urn:uuid:"
+            ):
+                raise ValueError("CRS concept localRecordId is not canonical UUIDv7")
+            expected_prior_iri = (
+                f"urn:ref:source-concept:v1:{namespace_digest}:{local_uuid}"
+            )
+            if (
+                concept.get("id") != expected_prior_iri
+                or concept.get("identityKind") != "refspecSourceScoped"
+                or concept.get("issuer") != "https://refspec.org/"
+                or concept.get("semanticRing") != semantic_ring
+                or concept.get("sourceScheme") != scheme_iri
+                or concept.get("type") != "SourceScopedConcept"
+                or observation.get("localRecordId") != local_record_id
+            ):
+                raise ValueError("CRS concept identity or source binding differs")
+            labels = observation.get("labels")
+            if not isinstance(labels, list) or not labels:
+                raise ValueError("CRS selected observation has no labels")
+            preferred: list[LiteralValue] = []
+            alternate: list[LiteralValue] = []
+            for label in labels:
+                if not isinstance(label, Mapping) or set(label) != {
+                    "language",
+                    "role",
+                    "value",
+                }:
+                    raise ValueError("CRS selected observation label shape differs")
+                value = label.get("value")
+                language = label.get("language")
+                role = label.get("role")
+                if not isinstance(value, str) or not value or language != "en":
+                    raise ValueError(
+                        "CRS reader supports only the sealed English observation profile"
+                    )
+                literal = _literal_value(value, "en", None)
+                if role == "preferred":
+                    preferred.append(literal)
+                elif role == "alternate":
+                    alternate.append(literal)
+                else:
+                    raise ValueError(f"CRS selected label role is unsupported: {role!r}")
+            definition = observation.get("definition")
+            if definition is not None and not isinstance(definition, str):
+                raise ValueError("CRS selected observation definition is not text")
+            resource = (
+                f"urn:ref:source-concept:v2:{namespace_token}:"
+                f"{local_record_id.removeprefix('urn:uuid:')}"
+            )
+            native_payload = {
+                "englishOnlyObservation": dict(observation),
+                "sourceEvidence": {
+                    "droppedLanguageContentDigest": _canonical_json_digest([]),
+                    "droppedLanguageValueCount": 0,
+                    "languageNormalizationAlgorithm": (
+                        "recursiveLanguageMapsAndTaggedValuesV1"
+                    ),
+                    "originalObservationDigest": _canonical_json_digest(observation),
+                    "sourceTextLanguage": "en",
+                },
+                "sourceIdentity": {
+                    "identityKind": "refspecSourceScoped",
+                    "localRecordId": local_record_id,
+                    "namespaceToken": namespace_token,
+                    "priorSourceConceptIri": expected_prior_iri,
+                    "sourceScheme": scheme_iri,
+                },
+            }
+            annotations = (
+                (
+                    (SKOS_DEFINITION, _literal_value(definition, "en", None)),
+                )
+                if definition
+                else ()
+            )
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=tuple(preferred),
+                alternate_labels=tuple(alternate),
+                notations=(),
+                annotations=annotations,
+                source_locator=str(observation_id),
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+                is_skos_concept=semantic_ring == "subject",
+            )
+
+    unselected_count = len(observations) - len(concepts)
+    unevaluated = (
+        *(
+            (
+                f"CRS managed release contains {unselected_count} authenticated source observations outside its selected concept set",
+            )
+            if unselected_count
+            else ()
+        ),
+        "CRS sourceObservationDigest values are independently verified against the selected observations; Atlas sourceDigest instead seals the reconstructed native payload",
+        "CRS raw Congress.gov captures are authenticated transitively through the closed bundle but are not reparsed by this managed-release reader",
+        "CRS rights, lifecycle, reconciliation, and source-capture logicalDigest claims are authenticated but are not Atlas member claims",
+    )
+    return _stock_vocabulary_view(
+        records(),
+        (),
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+    )
 
 
 def _verify_canonical_json_seal(value: Mapping[str, Any], label: str) -> None:
@@ -6053,6 +6532,7 @@ _PUBLISHER_READERS: Mapping[
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
     API_CAPTURE_JSON_READER: _read_api_capture,
+    CRS_SOURCE_CONCEPT_RELEASE_READER: _read_crs_source_concept_release,
     EPA_ENTERPRISE_VOCABULARY_XML_READER: _read_epa_enterprise_vocabulary_xml,
     FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
@@ -6673,6 +7153,117 @@ SOURCES: tuple[SourceSpec, ...] = (
                 }
             ),
             additional_relation_predicates=(f"{ATLAS}relatedEntity",),
+        ),
+    ),
+    SourceSpec(
+        name="crs-legislative-entities",
+        kind="vocabulary",
+        release_keys=("crs-legislative-entities",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "research/evidence/crs-source-concept-releases-2026-08-04/"
+                    "legislative-entities/bundle-manifest.json"
+                ),
+                construction_path=(
+                    "refspec/research/evidence/"
+                    "crs-source-concept-releases-2026-08-04/"
+                    "legislative-entities/bundle-manifest.json"
+                ),
+                sha256=(
+                    "sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f00462618"
+                    "53293521544959fd"
+                ),
+                byte_length=2_744,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd"
+                ),
+            ),
+        ),
+        reader=CRS_SOURCE_CONCEPT_RELEASE_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"englishOnlyObservation", "sourceEvidence", "sourceIdentity"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="crs-legislative-subjects",
+        kind="vocabulary",
+        release_keys=("crs-legislative-subjects",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "research/evidence/crs-source-concept-releases-2026-08-04/"
+                    "legislative-subjects/bundle-manifest.json"
+                ),
+                construction_path=(
+                    "refspec/research/evidence/"
+                    "crs-source-concept-releases-2026-08-04/"
+                    "legislative-subjects/bundle-manifest.json"
+                ),
+                sha256=(
+                    "sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df6"
+                    "6708be27b55b12e7"
+                ),
+                byte_length=2_745,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7"
+                ),
+            ),
+        ),
+        reader=CRS_SOURCE_CONCEPT_RELEASE_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"englishOnlyObservation", "sourceEvidence", "sourceIdentity"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="crs-policy-areas",
+        kind="vocabulary",
+        release_keys=("crs-policy-areas",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "research/evidence/crs-source-concept-releases-2026-08-04/"
+                    "policy-areas/bundle-manifest.json"
+                ),
+                construction_path=(
+                    "refspec/research/evidence/"
+                    "crs-source-concept-releases-2026-08-04/"
+                    "policy-areas/bundle-manifest.json"
+                ),
+                sha256=(
+                    "sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f6638"
+                    "5170b56954dabeb8"
+                ),
+                byte_length=2_271,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8"
+                ),
+            ),
+        ),
+        reader=CRS_SOURCE_CONCEPT_RELEASE_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"englishOnlyObservation", "sourceEvidence", "sourceIdentity"}
+            )
         ),
     ),
     SourceSpec(
@@ -10246,10 +10837,14 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     Atlas-owned resources, rings, profiles, and governed schemes are deliberately
     absent from this view. The binding validator owns those claims.
     """
-    if pair.spec.reader == API_CAPTURE_JSON_READER:
-        # JSON/API captures also describe value, structure, entity, and legal-
-        # identity resources. Their source records are the exact independent
-        # join; requiring skos:Concept here would discard every non-subject row.
+    if pair.spec.reader in {
+        API_CAPTURE_JSON_READER,
+        CRS_SOURCE_CONCEPT_RELEASE_READER,
+    }:
+        # Structured JSON captures also describe value, structure, entity, and
+        # legal-identity resources. Their source records are the exact
+        # independent join; requiring skos:Concept here would discard every
+        # non-subject row.
         return _atlas_source_targets(pair)
     return frozenset(
         {
