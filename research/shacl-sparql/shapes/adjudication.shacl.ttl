@@ -1,0 +1,164 @@
+@prefix proto: <urn:ref:research:shacl-sparql#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rkaf:  <https://rulespec.org/ns/v1#> .
+
+# Prototype compiler output for the four cross-record rules in
+# bindings/atlas/3.1/tools/validate.py::_check_machine_adjudication.
+# Every query uses only SPARQL 1.1 and SHACL-SPARQL pre-bound $this.
+
+proto:FiveAxisIndependenceShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:RelationComparisonContext ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "A satisfied comparison must cite a proof pair that differs by actor, independence group, provider, model ID, and response artifact." ;
+    sh:select """
+      PREFIX rkaf: <https://rulespec.org/ns/v1#>
+
+      SELECT $this
+      WHERE {
+        $this rkaf:comparisonOutcome rkaf:comparisonSatisfied .
+        FILTER NOT EXISTS {
+          $this rkaf:comparisonProofRecord ?leftProof, ?rightProof .
+          FILTER(?leftProof != ?rightProof)
+
+          ?leftProof
+            rkaf:proofIssuer ?leftIssuer ;
+            rkaf:independenceGroup ?leftGroup ;
+            rkaf:hasAILineage ?leftLineage ;
+            rkaf:sealedResponseArtifact ?leftResponse .
+          ?rightProof
+            rkaf:proofIssuer ?rightIssuer ;
+            rkaf:independenceGroup ?rightGroup ;
+            rkaf:hasAILineage ?rightLineage ;
+            rkaf:sealedResponseArtifact ?rightResponse .
+          ?leftIssuer rkaf:proofResolver ?leftProvider .
+          ?rightIssuer rkaf:proofResolver ?rightProvider .
+          ?leftLineage rkaf:modelId ?leftModel .
+          ?rightLineage rkaf:modelId ?rightModel .
+
+          FILTER(
+            ?leftIssuer != ?rightIssuer &&
+            ?leftGroup != ?rightGroup &&
+            ?leftProvider != ?rightProvider &&
+            STR(?leftModel) != STR(?rightModel) &&
+            ?leftResponse != ?rightResponse
+          )
+        }
+      }
+      """
+  ] .
+
+proto:CompleteSupportShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:ResolverProofRecord ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "The comparison for which a proof was issued must cite that proof." ;
+    sh:select """
+      PREFIX rkaf: <https://rulespec.org/ns/v1#>
+
+      SELECT $this
+      WHERE {
+        $this rkaf:proofComparisonContext ?comparison .
+        FILTER NOT EXISTS {
+          ?comparison rkaf:comparisonProofRecord $this .
+        }
+      }
+      """
+  ] .
+
+proto:VerdictLatticeFoldShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:RelationComparisonContext ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "The complete cited verdict set must fold onto the mapping relation stated by the expected assertion." ;
+    sh:select """
+      PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+      PREFIX rkaf: <https://rulespec.org/ns/v1#>
+
+      SELECT DISTINCT $this
+      WHERE {
+        $this
+          rkaf:comparisonOutcome rkaf:comparisonSatisfied ;
+          rkaf:comparisonExpectedAssertion ?assertion ;
+          rkaf:comparisonProofRecord ?proof .
+        ?assertion rdf:predicate ?statedRelation .
+        ?proof rkaf:adjudicationVerdict ?verdict .
+
+        FILTER(
+          !(
+            (
+              ?statedRelation = skos:exactMatch &&
+              NOT EXISTS {
+                $this rkaf:comparisonProofRecord ?badExactProof .
+                ?badExactProof rkaf:adjudicationVerdict ?badExactVerdict .
+                FILTER(?badExactVerdict != rkaf:verdictSame)
+              }
+            ) ||
+            (
+              ?statedRelation = skos:closeMatch &&
+              EXISTS {
+                $this rkaf:comparisonProofRecord ?nearProof .
+                ?nearProof rkaf:adjudicationVerdict rkaf:verdictNearSame .
+              } &&
+              NOT EXISTS {
+                $this rkaf:comparisonProofRecord ?badCloseProof .
+                ?badCloseProof rkaf:adjudicationVerdict ?badCloseVerdict .
+                FILTER(?badCloseVerdict NOT IN (
+                  rkaf:verdictSame,
+                  rkaf:verdictNearSame
+                ))
+              }
+            ) ||
+            (
+              ?statedRelation = skos:broadMatch &&
+              NOT EXISTS {
+                $this rkaf:comparisonProofRecord ?badBroadProof .
+                ?badBroadProof rkaf:adjudicationVerdict ?badBroadVerdict .
+                FILTER(?badBroadVerdict != rkaf:verdictTargetBroader)
+              }
+            ) ||
+            (
+              ?statedRelation = skos:narrowMatch &&
+              NOT EXISTS {
+                $this rkaf:comparisonProofRecord ?badNarrowProof .
+                ?badNarrowProof rkaf:adjudicationVerdict ?badNarrowVerdict .
+                FILTER(?badNarrowVerdict != rkaf:verdictTargetNarrower)
+              }
+            ) ||
+            (
+              ?statedRelation = skos:relatedMatch &&
+              NOT EXISTS {
+                $this rkaf:comparisonProofRecord ?badRelatedProof .
+                ?badRelatedProof rkaf:adjudicationVerdict ?badRelatedVerdict .
+                FILTER(?badRelatedVerdict != rkaf:verdictRelated)
+              }
+            )
+          )
+        )
+      }
+      """
+  ] .
+
+proto:ProofReplayRefusalShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:ResolverProofRecord ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "A proof record may be cited by only one comparison." ;
+    sh:select """
+      PREFIX rkaf: <https://rulespec.org/ns/v1#>
+
+      SELECT DISTINCT $this
+      WHERE {
+        ?firstComparison rkaf:comparisonProofRecord $this .
+        ?secondComparison rkaf:comparisonProofRecord $this .
+        FILTER(?firstComparison != ?secondComparison)
+      }
+      """
+  ] .

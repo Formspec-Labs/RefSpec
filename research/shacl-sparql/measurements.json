@@ -1,0 +1,257 @@
+{
+  "artifactProvenance": {
+    "baseFlatViewBytes": 198000163,
+    "baseFlatViewSha256": "08336c44b2945621b11f8dc999f6efdf331d64708104afc795186e8b1d4387c2",
+    "baseTriples": 1013723,
+    "distributionIdCapturedBeforeSourceRemoval": "urn:ref:atlas:distribution:3.1-bounded-development:198a41c398de4a8f2240430ef648ecafe2519537d1739b3d6f52123c66386a56",
+    "mappingAssertions": 2003,
+    "relationComparisonContexts": 0,
+    "resolverProofRecords": 0,
+    "sourcePathAtStart": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution",
+    "sourcePathStatusAtMeasurement": "removed by another process after live inspection",
+    "sourceViewUsed": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/agent-a7937c98dc15549c2/jena-spike/data/staging/data-triples.nt"
+  },
+  "correctness": {
+    "engines": [
+      "pySHACL 0.31.0 advanced=True",
+      "Apache Jena SHACL 6.2.0"
+    ],
+    "invalidCases": {
+      "CompleteSupportShape": [
+        "adjudication-discarded-support"
+      ],
+      "FiveAxisIndependenceShape": [
+        "adjudication-single-proof",
+        "adjudication-same-validator-actor",
+        "adjudication-same-independence-group",
+        "adjudication-same-provider",
+        "adjudication-same-provider-model",
+        "adjudication-same-response-artifact"
+      ],
+      "ProofReplayRefusalShape": [
+        "adjudication-foreign-comparison"
+      ],
+      "VerdictLatticeFoldShape": [
+        "adjudication-relation-not-licensed",
+        "adjudication-verdicts-disagree"
+      ]
+    },
+    "kind": "measured",
+    "matrixChecks": 26,
+    "matrixFailures": 0,
+    "validCasesRunForEveryShape": [
+      "all-resource-profiles",
+      "qualified-three-machine-support",
+      "qualified-lattice-branches",
+      "adjudication-refused-comparison-record"
+    ]
+  },
+  "environment": {
+    "architecture": "arm64",
+    "cpu": "Apple M4 Pro, 14 cores",
+    "date": "2026-08-13",
+    "java": "Temurin 21.0.12+8",
+    "jena": "6.2.0",
+    "jvmArgs": "-Xmx4g",
+    "memoryGb": 48,
+    "operatingSystem": "macOS 26.6",
+    "pyshacl": "0.31.0",
+    "python": "3.12.9",
+    "rdflib": "7.5.0",
+    "repositoryCommit": "dae346da46706083b695cf232901b24e2d87cad5",
+    "repositoryWorktree": "research/shacl-sparql"
+  },
+  "jenaEmptyProcessRuns": {
+    "kind": "measured",
+    "medianWallSeconds": 0.360018583,
+    "runs": [
+      {
+        "insideProcessSeconds": 0.332696125,
+        "wallSeconds": 0.365195333
+      },
+      {
+        "insideProcessSeconds": 0.341702,
+        "wallSeconds": 0.375108583
+      },
+      {
+        "insideProcessSeconds": 0.327023125,
+        "wallSeconds": 0.360018583
+      },
+      {
+        "insideProcessSeconds": 0.325788042,
+        "wallSeconds": 0.35806975
+      },
+      {
+        "insideProcessSeconds": 0.317391,
+        "wallSeconds": 0.347195833
+      }
+    ]
+  },
+  "prototype": {
+    "physicalLines": 164,
+    "queryLines": 115,
+    "sha256": "26efe53d27a98ea887c423af78ddc90c428fee4a4a0eb9408fa39e0dab35bcf1",
+    "shapeCount": 4
+  },
+  "targetLoadedView": {
+    "addedTriples": 46069,
+    "bytes": 204815161,
+    "comparisonContexts": 2003,
+    "kind": "deterministic derived benchmark input",
+    "mappingAssertions": 2003,
+    "proofRecords": 4006,
+    "sha256": "a3fc6d669301ee37fd5bc1661ad4559e6d3405b1535ef27b33b756b4a6b394ba",
+    "totalTriples": 1059792
+  },
+  "targetLoadedViewPerShape": {
+    "kind": "measured single run",
+    "rows": [
+      {
+        "jenaPeakRssBytes": 656113664,
+        "jenaValidationSeconds": 0.310984958,
+        "jenaWallSeconds": 1.989812708,
+        "pyshaclPeakRssBytes": 1667760128,
+        "pyshaclValidationSeconds": 27.345298583,
+        "pyshaclWallSeconds": 41.226088292,
+        "shape": "FiveAxisIndependenceShape"
+      },
+      {
+        "jenaPeakRssBytes": 616267776,
+        "jenaValidationSeconds": 0.245228375,
+        "jenaWallSeconds": 1.9894225,
+        "pyshaclPeakRssBytes": 1487405056,
+        "pyshaclValidationSeconds": 9.201247791,
+        "pyshaclWallSeconds": 23.273727125,
+        "shape": "CompleteSupportShape"
+      },
+      {
+        "jenaPeakRssBytes": 678281216,
+        "jenaValidationSeconds": 0.26790225,
+        "jenaWallSeconds": 1.925048333,
+        "pyshaclPeakRssBytes": 1769422848,
+        "pyshaclValidationSeconds": 61.22424575,
+        "pyshaclWallSeconds": 75.05377925,
+        "shape": "VerdictLatticeFoldShape"
+      },
+      {
+        "jenaPeakRssBytes": 678117376,
+        "jenaValidationSeconds": 0.274900667,
+        "jenaWallSeconds": 1.922350625,
+        "pyshaclPeakRssBytes": 1491337216,
+        "pyshaclValidationSeconds": 11.15315825,
+        "pyshaclWallSeconds": 25.043388583,
+        "shape": "ProofReplayRefusalShape"
+      }
+    ]
+  },
+  "targetLoadedViewTotal": {
+    "jena": {
+      "kind": "measured five runs",
+      "medianInsideProcessSeconds": 2.333996458,
+      "medianPeakRssBytes": 692322304,
+      "medianValidationSeconds": 0.66898725,
+      "medianWallSeconds": 2.382512875,
+      "runs": [
+        {
+          "insideProcessSeconds": 2.22761625,
+          "peakRssBytes": 692322304,
+          "validationSeconds": 0.636326458,
+          "wallSeconds": 2.274224834
+        },
+        {
+          "insideProcessSeconds": 2.296093625,
+          "peakRssBytes": 749912064,
+          "validationSeconds": 0.66898725,
+          "wallSeconds": 2.3435205
+        },
+        {
+          "insideProcessSeconds": 2.333996458,
+          "peakRssBytes": 699662336,
+          "validationSeconds": 0.684655291,
+          "wallSeconds": 2.382512875
+        },
+        {
+          "insideProcessSeconds": 2.36457225,
+          "peakRssBytes": 660422656,
+          "validationSeconds": 0.665522208,
+          "wallSeconds": 2.414513334
+        },
+        {
+          "insideProcessSeconds": 2.371734292,
+          "peakRssBytes": 690438144,
+          "validationSeconds": 0.680959292,
+          "wallSeconds": 2.418561
+        }
+      ]
+    },
+    "pyshacl": {
+      "kind": "measured three runs",
+      "medianInsideProcessSeconds": 192.654560917,
+      "medianPeakRssBytes": 1769619456,
+      "medianValidationSeconds": 167.5152165,
+      "medianWallSeconds": 194.31237475,
+      "runs": [
+        {
+          "insideProcessSeconds": 128.698194208,
+          "peakRssBytes": 1769619456,
+          "validationSeconds": 113.299302,
+          "wallSeconds": 130.151808416
+        },
+        {
+          "insideProcessSeconds": 192.879299833,
+          "peakRssBytes": 1775108096,
+          "validationSeconds": 180.580968583,
+          "wallSeconds": 195.136115167
+        },
+        {
+          "insideProcessSeconds": 192.654560917,
+          "peakRssBytes": 1709670400,
+          "validationSeconds": 167.5152165,
+          "wallSeconds": 194.31237475
+        }
+      ]
+    }
+  },
+  "untouchedStagingView": {
+    "kind": "measured single run",
+    "rows": [
+      {
+        "jenaValidationSeconds": 0.002190833,
+        "jenaWallSeconds": 1.696408916,
+        "pyshaclValidationSeconds": 0.000400167,
+        "pyshaclWallSeconds": 12.848593375,
+        "shape": "FiveAxisIndependenceShape"
+      },
+      {
+        "jenaValidationSeconds": 0.002132083,
+        "jenaWallSeconds": 1.621411,
+        "pyshaclValidationSeconds": 0.00038025,
+        "pyshaclWallSeconds": 12.843030792,
+        "shape": "CompleteSupportShape"
+      },
+      {
+        "jenaValidationSeconds": 0.002302,
+        "jenaWallSeconds": 1.618463041,
+        "pyshaclValidationSeconds": 0.000420375,
+        "pyshaclWallSeconds": 13.01415175,
+        "shape": "VerdictLatticeFoldShape"
+      },
+      {
+        "jenaValidationSeconds": 0.00203375,
+        "jenaWallSeconds": 1.644978375,
+        "pyshaclValidationSeconds": 0.000383209,
+        "pyshaclWallSeconds": 12.933286042,
+        "shape": "ProofReplayRefusalShape"
+      },
+      {
+        "jenaPeakRssBytes": 547340288,
+        "jenaValidationSeconds": 0.002608,
+        "jenaWallSeconds": 1.647565583,
+        "pyshaclPeakRssBytes": 1371766784,
+        "pyshaclValidationSeconds": 0.000391791,
+        "pyshaclWallSeconds": 12.961324292,
+        "shape": "all"
+      }
+    ]
+  }
+}
