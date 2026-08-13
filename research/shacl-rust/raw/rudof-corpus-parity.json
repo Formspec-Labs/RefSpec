@@ -1,0 +1,3835 @@
+{
+  "agreementCount": 45,
+  "caseCount": 48,
+  "corpusSha256": "b2d3363173d87214bb81ad49d1eab273f426153cb3baf656cecd4c70ef00b730",
+  "divergenceCount": 3,
+  "divergenceIds": [
+    "mapping-period-start-not-datetime",
+    "non-english-definition",
+    "registry-conflict-detected-at-not-datetime"
+  ],
+  "elapsedSeconds": 4.225031,
+  "graphConstruction": {
+    "description": "Each case is split by the manifest's named graph IDs. Rudof validates asserted, then derived, each unioned with pyshacl.rdfutil.inoculate(Graph(), ontology). Projection is excluded; validation stops at the first nonconforming role.",
+    "ontologyInputTripleCount": 376,
+    "ontologyViewTripleCount": 367,
+    "roleOrder": [
+      "asserted",
+      "derived"
+    ]
+  },
+  "ontologySha256": "cf56542bbc7455f22ffcbd94d574f216ebb27d1d6ec08c934d56f5f23cfd0c28",
+  "results": [
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-artifact-scheme-unknown:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-artifact-scheme-unknown:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-artifact-scheme-unknown:projection"
+      },
+      "id": "adjudication-artifact-scheme-unknown",
+      "path": "invalid/adjudication-artifact-scheme-unknown",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-artifact-scheme-unknown-jbrl5vhw/asserted.nt"
+          ],
+          "components": [
+            "InConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03238,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:result _:2 ;\n\tsh:conforms false .\n_:2 sh:resultPath <https://rulespec.org/ns/v1#artifactIdentifierScheme> ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-fixture:artifact:request:exact-ab> ;\n\tsh:value <https://rulespec.org/ns/v1#doi> ;\n\tsh:sourceShape _:cffc46e17288cae2b57959c77d87d8ab ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:InConstraintComponent ;\n\tsh:resultMessage \"In constraint not satisfied. Expected one of [Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#partner-defined\\\" } }}]\" .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-comparison-incomplete:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-comparison-incomplete:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-comparison-incomplete:projection"
+      },
+      "id": "adjudication-comparison-incomplete",
+      "path": "invalid/adjudication-comparison-incomplete",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-comparison-incomplete-r8nqfo6p/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032681,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 835,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 .\n_:2 sh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-fixture:comparison:exact-ab> ;\n\tsh:resultPath <https://rulespec.org/ns/v1#comparisonDetectorVersion> ;\n\tsh:sourceShape _:fce00c8056462929778fae0fd36ab25a ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent .\n",
+          "validationViewTripleCount": 1202
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-evaluated-at-not-datetime:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-evaluated-at-not-datetime:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-evaluated-at-not-datetime:projection"
+      },
+      "id": "adjudication-evaluated-at-not-datetime",
+      "path": "invalid/adjudication-evaluated-at-not-datetime",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-evaluated-at-not-datetime-cpvip3ni/asserted.nt"
+          ],
+          "components": [
+            "DatatypeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032522,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 a sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-fixture:proof:exact-ab:alpha> ;\n\tsh:sourceShape _:f5f23c6494dddad9a100145f95c2c87b ;\n\tsh:sourceConstraintComponent sh:DatatypeConstraintComponent ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:resultPath <https://rulespec.org/ns/v1#proofEvaluatedAt> ;\n\tsh:resultMessage \"Expected Datatype: xsd:dateTime\" ;\n\tsh:value \"2026-08-05T12:00:00+00:00\" .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-issuer-incomplete:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-issuer-incomplete:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-issuer-incomplete:projection"
+      },
+      "id": "adjudication-issuer-incomplete",
+      "path": "invalid/adjudication-issuer-incomplete",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-issuer-incomplete-xja8cbms/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032523,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 835,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:sourceShape _:bd4e9a67a3a48ff86135338ffa6d7574 ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-fixture:proof-issuer:beta> ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultPath <https://rulespec.org/ns/v1#proofPolicyVersion> .\n",
+          "validationViewTripleCount": 1202
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-lineage-incomplete:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-lineage-incomplete:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-lineage-incomplete:projection"
+      },
+      "id": "adjudication-lineage-incomplete",
+      "path": "invalid/adjudication-lineage-incomplete",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-lineage-incomplete-og6eht5_/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033323,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 835,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:focusNode <urn:ref:atlas-fixture:ai-lineage:exact-ab:beta> ;\n\ta sh:ValidationResult ;\n\tsh:resultPath <https://rulespec.org/ns/v1#promptTemplateRef> ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:sourceShape _:af361336ed2415801c39e5ec6504f9cc .\n",
+          "validationViewTripleCount": 1202
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinLengthConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinLengthConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-proof-rationale-empty:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-proof-rationale-empty:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-proof-rationale-empty:projection"
+      },
+      "id": "adjudication-proof-rationale-empty",
+      "path": "invalid/adjudication-proof-rationale-empty",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-proof-rationale-empty-14keuad1/asserted.nt"
+          ],
+          "components": [
+            "MinLengthConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033242,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:sourceConstraintComponent sh:MinLengthConstraintComponent ;\n\tsh:sourceShape _:fed1621ecfc805117cf9ff9661802853 ;\n\tsh:value \"\" ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinLength(1) not satisfied\" ;\n\tsh:focusNode <urn:ref:atlas-fixture:proof:exact-ab:alpha> ;\n\tsh:resultPath <https://rulespec.org/ns/v1#proofRationale> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "HasValueConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "HasValueConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-proof-type-not-machine:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-proof-type-not-machine:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-proof-type-not-machine:projection"
+      },
+      "id": "adjudication-proof-type-not-machine",
+      "path": "invalid/adjudication-proof-type-not-machine",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-proof-type-not-machine-4847alrr/asserted.nt"
+          ],
+          "components": [
+            "HasValueConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.034683,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:sourceConstraintComponent sh:HasValueConstraintComponent ;\n\ta sh:ValidationResult ;\n\tsh:resultPath <https://rulespec.org/ns/v1#proofType> ;\n\tsh:focusNode <urn:ref:atlas-fixture:proof:exact-ab:alpha> ;\n\tsh:resultMessage \"HasValue(https://rulespec.org/ns/v1#machineAdjudicationProof) not satisfied\" ;\n\tsh:sourceShape _:c774dea5699520d71d59a595c8d8dd40 ;\n\tsh:resultSeverity sh:Violation .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MaxCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MaxCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-response-artifact-cardinality:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-response-artifact-cardinality:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-response-artifact-cardinality:projection"
+      },
+      "id": "adjudication-response-artifact-cardinality",
+      "path": "invalid/adjudication-response-artifact-cardinality",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-response-artifact-cardinality-0b55r6lt/asserted.nt"
+          ],
+          "components": [
+            "MaxCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033895,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:sourceShape _:a13e8b9589199f6b91e7cc9404eb3ae6 ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:resultMessage \"MaxCount(1) not satisfied\" ;\n\ta sh:ValidationResult ;\n\tsh:resultPath <https://rulespec.org/ns/v1#sealedResponseArtifact> ;\n\tsh:sourceConstraintComponent sh:MaxCountConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-fixture:proof:exact-ab:alpha> .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adoption-without-referent:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adoption-without-referent:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adoption-without-referent:projection"
+      },
+      "id": "adoption-without-referent",
+      "path": "invalid/adoption-without-referent",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adoption-without-referent-hfcozuyr/asserted.nt"
+          ],
+          "components": [
+            "ClassConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033541,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:resultPath <https://rulespec.org/ns/v1#basedOnAttestation> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"Class constraint not satisfied for class https://rulespec.org/ns/v1#EvidenceBinding\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:value <urn:ref:atlas-evidence:0000000000000000000000000000000000000000000000000000000000000000> ;\n\tsh:sourceConstraintComponent sh:ClassConstraintComponent ;\n\tsh:sourceShape _:e1aa4ccf994d4c5d6ca11b9b324df83 ;\n\tsh:focusNode <urn:ref:atlas-evidence:855665125759eddf01d5c1ef4bad55fb431b8b3e0a223cbf43da8329b7976b6e> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:asserted-naked-mapping:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:asserted-naked-mapping:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:asserted-naked-mapping:projection"
+      },
+      "id": "asserted-naked-mapping",
+      "path": "invalid/asserted-naked-mapping",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-asserted-naked-mapping-0dibnk5z/asserted.nt"
+          ],
+          "components": [
+            "ClosedConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032143,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 .\n_:2 sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:value <urn:ref:atlas-fixture:resource:mixed-code-subject> ;\n\tsh:focusNode <urn:ref:atlas-fixture:resource:subject-a> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#AtlasResourceShape> ;\n\tsh:resultPath <http://www.w3.org/2004/02/skos/core#closeMatch> ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:assertion-asserted-at-not-datetime:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:assertion-asserted-at-not-datetime:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:assertion-asserted-at-not-datetime:projection"
+      },
+      "id": "assertion-asserted-at-not-datetime",
+      "path": "invalid/assertion-asserted-at-not-datetime",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-assertion-asserted-at-not-datetime-05tscfuu/asserted.nt"
+          ],
+          "components": [
+            "DatatypeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032463,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:value \"2026-08-09\" ;\n\tsh:focusNode <urn:ref:atlas-assertion:49d751096302c19f09fbb8ac5b6289f3da33fb54bdf895e06c3d3c19e4cc55b7> ;\n\tsh:resultMessage \"Expected Datatype: xsd:dateTime\" ;\n\ta sh:ValidationResult ;\n\tsh:sourceShape _:cb3cef82277780228286347bc98d9727 ;\n\tsh:resultPath <https://rulespec.org/ns/v1#assertedAt> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:DatatypeConstraintComponent .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:assertion-extra-property:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:assertion-extra-property:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:assertion-extra-property:projection"
+      },
+      "id": "assertion-extra-property",
+      "path": "invalid/assertion-extra-property",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-assertion-extra-property-faa35ydn/asserted.nt"
+          ],
+          "components": [
+            "ClosedConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.031936,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 a sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\tsh:value \"mutable annotation\" ;\n\tsh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <http://purl.org/dc/terms/description> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "EqualsConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "EqualsConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:cross-ring-endpoint-ring-reversal:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:cross-ring-endpoint-ring-reversal:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:cross-ring-endpoint-ring-reversal:projection"
+      },
+      "id": "cross-ring-endpoint-ring-reversal",
+      "path": "invalid/cross-ring-endpoint-ring-reversal",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-cross-ring-endpoint-ring-reversal-vq3s1c6s/asserted.nt"
+          ],
+          "components": [
+            "EqualsConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032833,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 , _:5 , _:8 , _:b .\n_:2 a sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-assertion:b407187d491f450ac3978ec620825004e818c8514c39183f958976a2cb87d3c4> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:sourceShape _:d2b2909dfba18162e2f78f5c1a3a9101 ;\n\tsh:resultPath _:4 ;\n\tsh:value <https://refspec.org/ns/atlas/v3#subject> .\n_:3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#semanticRing> .\n_:4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:3 ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> .\n_:5 a sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-assertion:b407187d491f450ac3978ec620825004e818c8514c39183f958976a2cb87d3c4> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:sourceShape _:d2b2909dfba18162e2f78f5c1a3a9101 ;\n\tsh:resultPath _:7 ;\n\tsh:value <https://refspec.org/ns/atlas/v3#entity> .\n_:6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#semanticRing> .\n_:7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:6 ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> .\n_:8 a sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-assertion:b407187d491f450ac3978ec620825004e818c8514c39183f958976a2cb87d3c4> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:sourceShape _:a978968c2dfdf8a9af6ebc234511c83c ;\n\tsh:resultPath _:a ;\n\tsh:value <https://refspec.org/ns/atlas/v3#entity> .\n_:9 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#semanticRing> .\n_:a <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:9 ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> .\n_:b a sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-assertion:b407187d491f450ac3978ec620825004e818c8514c39183f958976a2cb87d3c4> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:sourceShape _:a978968c2dfdf8a9af6ebc234511c83c ;\n\tsh:resultPath _:d ;\n\tsh:value <https://refspec.org/ns/atlas/v3#subject> .\n_:c <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#semanticRing> .\n_:d <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:c ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:cross-ring-missing-evidence:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:cross-ring-missing-evidence:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:cross-ring-missing-evidence:projection"
+      },
+      "id": "cross-ring-missing-evidence",
+      "path": "invalid/cross-ring-missing-evidence",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-cross-ring-missing-evidence-mkcxt1nt/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032676,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 823,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:sourceShape _:d450d8fbc9d5e7f61251fe111ddcd531 ;\n\ta sh:ValidationResult ;\n\tsh:resultPath _:3 ;\n\tsh:focusNode <urn:ref:atlas-assertion:b407187d491f450ac3978ec620825004e818c8514c39183f958976a2cb87d3c4> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" .\n_:3 sh:inversePath <https://rulespec.org/ns/v1#bindsAssertion> .\n",
+          "validationViewTripleCount": 1190
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:derived-asserted-scheme-collision:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:derived-asserted-scheme-collision:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:derived-asserted-scheme-collision:projection"
+      },
+      "id": "derived-asserted-scheme-collision",
+      "path": "invalid/derived-asserted-scheme-collision",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-derived-asserted-scheme-collision-v1zuvl3g/asserted.nt"
+          ],
+          "components": [
+            "ClosedConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032395,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 840,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:value \"sha256:17e148a12c6183d731b39e03b4670f36c30802f8e20194a0c299a81649f63855\" ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#contentDigest> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#ResourceSchemeShape> ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:ClosedConstraintComponent .\n",
+          "validationViewTripleCount": 1207
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent",
+          "EqualsConstraintComponent",
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent",
+          "EqualsConstraintComponent",
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:derived-is-authoritative:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:derived-is-authoritative:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:derived-is-authoritative:projection"
+      },
+      "id": "derived-is-authoritative",
+      "path": "invalid/derived-is-authoritative",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-derived-is-authoritative-sim0cs7u/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.031939,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1203
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-derived-is-authoritative-sim0cs7u/derived.nt"
+          ],
+          "components": [
+            "ClosedConstraintComponent",
+            "EqualsConstraintComponent",
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.028359,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 14,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 , _:5 , _:8 , _:9 , _:a , _:b , _:c , _:d , _:e , _:f , _:10 , _:11 , _:12 , _:13 , _:14 , _:15 , _:17 , _:18 , _:19 , _:1a , _:1b , _:1c ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:resultPath _:4 ;\n\ta sh:ValidationResult ;\n\tsh:value <https://refspec.org/ns/atlas/v3#subject> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:e5071ade78cca3c8b3258a800dc91740 .\n_:3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#semanticRing> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n_:4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:3 .\n_:5 sh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:resultPath _:7 ;\n\ta sh:ValidationResult ;\n\tsh:value <https://refspec.org/ns/atlas/v3#subject> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:a9c6417ee705f80aeb9c456987fd4513 .\n_:6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#semanticRing> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n_:7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:6 .\n_:8 sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#derivedFromAssertion> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:atlas-assertion:978981a092a5c2dc323b534653ba051d76331ba1c77d6bfc49ddf32a9e02a96f> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:9 sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#derivedFromAssertion> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:a sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#derivationRule> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:rule:skos-exact-match-closure-path> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:b sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#generatedAt> ;\n\ta sh:ValidationResult ;\n\tsh:value \"2026-08-05T12:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:c sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#relationSubject> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:atlas-fixture:resource:subject-a> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:d sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#contentDigest> ;\n\ta sh:ValidationResult ;\n\tsh:value \"sha256:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:e sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#engine> ;\n\ta sh:ValidationResult ;\n\tsh:value <https://pypi.org/project/owlrl/7.1.4/> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:f sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://rulespec.org/ns/v1#inputDigest> ;\n\ta sh:ValidationResult ;\n\tsh:value \"sha256:79e434c4401ba9807bb44a6123e790a3541a0c8f5887d74446d99dfcb788028e\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:10 sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#relationPredicate> ;\n\ta sh:ValidationResult ;\n\tsh:value <http://www.w3.org/2004/02/skos/core#exactMatch> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:11 sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#engineVersion> ;\n\ta sh:ValidationResult ;\n\tsh:value \"7.1.4\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:12 sh:sourceConstraintComponent sh:ClosedConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#relationObject> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:atlas-fixture:resource:subject-c> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#RelationAssertionShape> .\n_:13 sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:db76416f7e7a3ae2d1ddca9e4a0a1220 .\n_:14 sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#assertionIdentityDigest> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:bde38c7c309df47a04bbcd5f7635f1bd .\n_:15 sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath _:16 ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:dc3b84b10dfbf8a78724d43f50ab820c .\n_:16 sh:inversePath <https://rulespec.org/ns/v1#bindsAssertion> .\n_:17 sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#governedByPolicy> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:a1b4c618ed86d833d0d075c64380a74d .\n_:18 sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:b18d6c4cd76b88df47a36863d40ee1fc .\n_:19 sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#sourceRelease> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:fc0e79215427a23c27cc98f4b4df1fa .\n_:1a sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <https://rulespec.org/ns/v1#assertedAt> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:bcc4b03798b2ea01dd92b4d57d281e9a .\n_:1b sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:a5094dc49c0b2c32b642740942331bb2 .\n_:1c sh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#targetRelease> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-derived:0c967d2a14a2550fdae4e20ebb51df77378aff4d43a1eb4d0ec651805efabaa7> ;\n\tsh:sourceShape _:a95e5a7f53df0385276488f5e5e70f88 .\n",
+          "validationViewTripleCount": 381
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MaxCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MaxCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:duplicate-preferred-language:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:duplicate-preferred-language:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:duplicate-preferred-language:projection"
+      },
+      "id": "duplicate-preferred-language",
+      "path": "invalid/duplicate-preferred-language",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-duplicate-preferred-language-td2b3e4m/asserted.nt"
+          ],
+          "components": [
+            "MaxCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032898,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 841,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:resultMessage \"MaxCount(1) not satisfied\" ;\n\tsh:sourceConstraintComponent sh:MaxCountConstraintComponent ;\n\tsh:sourceShape _:efbfc1b7d5df3963ea1cf3c58b93ca5a ;\n\tsh:resultPath <http://www.w3.org/2008/05/skos-xl#prefLabel> ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-fixture:resource:subject-a> .\n",
+          "validationViewTripleCount": 1208
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:evidence-attested-at-not-datetime:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:evidence-attested-at-not-datetime:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:evidence-attested-at-not-datetime:projection"
+      },
+      "id": "evidence-attested-at-not-datetime",
+      "path": "invalid/evidence-attested-at-not-datetime",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-evidence-attested-at-not-datetime-98a_jdjs/asserted.nt"
+          ],
+          "components": [
+            "DatatypeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032406,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:result _:2 ;\n\tsh:conforms false .\n_:2 sh:value \"2026-08-09\" ;\n\ta sh:ValidationResult ;\n\tsh:sourceShape _:d1fe39d9014714041e5f986186a96197 ;\n\tsh:sourceConstraintComponent sh:DatatypeConstraintComponent ;\n\tsh:resultMessage \"Expected Datatype: xsd:dateTime\" ;\n\tsh:focusNode <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525> ;\n\tsh:resultPath <https://rulespec.org/ns/v1#attestedAt> ;\n\tsh:resultSeverity sh:Violation .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:evidence-attestor-kind-unknown:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:evidence-attestor-kind-unknown:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:evidence-attestor-kind-unknown:projection"
+      },
+      "id": "evidence-attestor-kind-unknown",
+      "path": "invalid/evidence-attestor-kind-unknown",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-evidence-attestor-kind-unknown-tt42g6kr/asserted.nt"
+          ],
+          "components": [
+            "InConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033057,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:resultSeverity sh:Violation ;\n\tsh:resultPath <https://rulespec.org/ns/v1#attestorKind> ;\n\tsh:value <urn:ref:attestor-kind:invented> ;\n\tsh:sourceShape _:aecf68309fbf2e4f7a876cb3bf0e2672 ;\n\tsh:resultMessage \"In constraint not satisfied. Expected one of [Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#humanUser\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#aiModel\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#aiAgent\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#automatedParser\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#team\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#organization\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#community\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#formalReviewer\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#conceptMintingAuthority\\\" } }}]\" ;\n\tsh:sourceConstraintComponent sh:InConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525> ;\n\ta sh:ValidationResult .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "HasValueConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "HasValueConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:evidence-decision-not-approved:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:evidence-decision-not-approved:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:evidence-decision-not-approved:projection"
+      },
+      "id": "evidence-decision-not-approved",
+      "path": "invalid/evidence-decision-not-approved",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-evidence-decision-not-approved-t49aks39/asserted.nt"
+          ],
+          "components": [
+            "HasValueConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032244,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:resultSeverity sh:Violation ;\n\tsh:resultMessage \"HasValue(https://rulespec.org/ns/v1#approved) not satisfied\" ;\n\tsh:resultPath <https://rulespec.org/ns/v1#decision> ;\n\tsh:sourceShape _:e5441a706cb73da6f47b52a9c848c08d ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:HasValueConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:evidence-function-unknown:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:evidence-function-unknown:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:evidence-function-unknown:projection"
+      },
+      "id": "evidence-function-unknown",
+      "path": "invalid/evidence-function-unknown",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-evidence-function-unknown-oulchjw5/asserted.nt"
+          ],
+          "components": [
+            "InConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03287,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:value <urn:ref:evidentiary-function:invented> ;\n\tsh:resultPath <https://rulespec.org/ns/v1#evidentiaryFunction> ;\n\tsh:sourceShape _:db4921ed6e55470efd936569df670473 ;\n\tsh:sourceConstraintComponent sh:InConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525> ;\n\tsh:resultMessage \"In constraint not satisfied. Expected one of [Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#supports\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#qualifies\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#contradicts\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#definesScope\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#providesContext\\\" } }}]\" ;\n\ta sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:evidence-warrant-unsanctioned:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:evidence-warrant-unsanctioned:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:evidence-warrant-unsanctioned:projection"
+      },
+      "id": "evidence-warrant-unsanctioned",
+      "path": "invalid/evidence-warrant-unsanctioned",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-evidence-warrant-unsanctioned-cluqk2db/asserted.nt"
+          ],
+          "components": [
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033005,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#EvidenceBindingShape> ;\n\ta sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#EvidenceBindingShape: Xone constraint not satisfied for node <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525>. Number of conforming shapes: 0\" ;\n\tsh:value <urn:ref:atlas-evidence:56002ca51d6c35be9ad93f4643a29b8ade6868a116a0db201e36935ffd37c525> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:identifier-missing-value:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:identifier-missing-value:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:identifier-missing-value:projection"
+      },
+      "id": "identifier-missing-value",
+      "path": "invalid/identifier-missing-value",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-identifier-missing-value-vioq0adv/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032888,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 835,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 a sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceShape _:fc3c42a864c995d2725aa67a5001de17 ;\n\tsh:focusNode <urn:ref:atlas-fixture:identifier:agency> ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#identifierValue> .\n",
+          "validationViewTripleCount": 1202
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:label-missing-literal:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:label-missing-literal:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:label-missing-literal:projection"
+      },
+      "id": "label-missing-literal",
+      "path": "invalid/label-missing-literal",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-label-missing-literal-b5czy_u4/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03286,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 835,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:resultSeverity sh:Violation ;\n\tsh:sourceShape _:dc4b8d617fb848f7a35d4e6f714990a0 ;\n\tsh:resultPath <http://www.w3.org/2008/05/skos-xl#literalForm> ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-fixture:label:subject-a:en> ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:resultMessage \"Atlas 3.1 label literals MUST use the English language tag @en.\" .\n",
+          "validationViewTripleCount": 1202
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:lifecycle-applies-to-nonassertion:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:lifecycle-applies-to-nonassertion:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:lifecycle-applies-to-nonassertion:projection"
+      },
+      "id": "lifecycle-applies-to-nonassertion",
+      "path": "invalid/lifecycle-applies-to-nonassertion",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-lifecycle-applies-to-nonassertion-o6n6liwk/asserted.nt"
+          ],
+          "components": [
+            "ClassConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032945,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 842,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:result _:2 ;\n\tsh:conforms false .\n_:2 a sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded> ;\n\tsh:sourceConstraintComponent sh:ClassConstraintComponent ;\n\tsh:resultMessage \"Class constraint not satisfied for class https://refspec.org/ns/atlas/v3#RelationAssertion\" ;\n\tsh:resultPath <https://rulespec.org/ns/v1#appliesTo> ;\n\tsh:sourceShape _:d8cd805301ed3296b6fffbdc2ade226d ;\n\tsh:value <urn:ref:atlas-fixture:resource:entity-agency> .\n",
+          "validationViewTripleCount": 1209
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:lifecycle-effective-date-not-datetime:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:lifecycle-effective-date-not-datetime:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:lifecycle-effective-date-not-datetime:projection"
+      },
+      "id": "lifecycle-effective-date-not-datetime",
+      "path": "invalid/lifecycle-effective-date-not-datetime",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-lifecycle-effective-date-not-datetime-su5pn3pf/asserted.nt"
+          ],
+          "components": [
+            "DatatypeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.031786,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 842,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:result _:2 ;\n\tsh:conforms false .\n_:2 sh:sourceShape _:b61e4a9bf0a4b847410c9f3237e3251c ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:DatatypeConstraintComponent ;\n\tsh:value \"2026-08-05T12:00:00+00:00\" ;\n\tsh:resultMessage \"Expected Datatype: xsd:dateTime\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:resultPath <https://rulespec.org/ns/v1#effectiveDate> ;\n\tsh:focusNode <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded> .\n",
+          "validationViewTripleCount": 1209
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:lifecycle-event-kind-unknown:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:lifecycle-event-kind-unknown:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:lifecycle-event-kind-unknown:projection"
+      },
+      "id": "lifecycle-event-kind-unknown",
+      "path": "invalid/lifecycle-event-kind-unknown",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-lifecycle-event-kind-unknown-0tfa1ymo/asserted.nt"
+          ],
+          "components": [
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033088,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 842,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\tsh:result _:2 ;\n\ta sh:ValidationReport .\n_:2 sh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded> ;\n\tsh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#LifecycleEventShape: Xone constraint not satisfied for node <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded>. Number of conforming shapes: 0\" ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#LifecycleEventShape> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:value <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded> ;\n\ta sh:ValidationResult .\n",
+          "validationViewTripleCount": 1209
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:lifecycle-rescission-names-target-release:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:lifecycle-rescission-names-target-release:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:lifecycle-rescission-names-target-release:projection"
+      },
+      "id": "lifecycle-rescission-names-target-release",
+      "path": "invalid/lifecycle-rescission-names-target-release",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-lifecycle-rescission-names-target-release-7p4cwx9r/asserted.nt"
+          ],
+          "components": [
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032292,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 842,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\tsh:result _:2 ;\n\ta sh:ValidationReport .\n_:2 sh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#LifecycleEventShape> ;\n\tsh:value <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded> ;\n\tsh:focusNode <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#LifecycleEventShape: Xone constraint not satisfied for node <urn:ref:atlas-fixture:lifecycle:entity-references-legal-rescinded>. Number of conforming shapes: 0\" .\n",
+          "validationViewTripleCount": 1209
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent",
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent",
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-missing-evidence:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-missing-evidence:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-missing-evidence:projection"
+      },
+      "id": "mapping-missing-evidence",
+      "path": "invalid/mapping-missing-evidence",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-missing-evidence-fln4o6rw/asserted.nt"
+          ],
+          "components": [
+            "ClassConstraintComponent",
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03335,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 823,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 , _:3 .\n_:2 sh:resultPath <https://rulespec.org/ns/v1#basedOnAttestation> ;\n\tsh:focusNode <urn:ref:atlas-evidence:ed188d451405c759454f29bfae4c8f5b761a81cbd9df24f0f3e3b08cff7e90d5> ;\n\tsh:sourceConstraintComponent sh:ClassConstraintComponent ;\n\tsh:value <urn:ref:atlas-evidence:8339908141d7b80dd489b592935bc5412190437b49eb19d11f06a188b7911a65> ;\n\tsh:sourceShape _:b541bb2b45e14a08dcb5223f4ce216ec ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"Class constraint not satisfied for class https://rulespec.org/ns/v1#EvidenceBinding\" .\n_:3 sh:resultPath _:4 ;\n\tsh:focusNode <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent ;\n\tsh:sourceShape _:c28e81ef2433fd0b9385cb154d4061ae ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"MinCount(1) not satisfied\" .\n_:4 sh:inversePath <https://rulespec.org/ns/v1#bindsAssertion> .\n",
+          "validationViewTripleCount": 1190
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "LessThanOrEqualsConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "LessThanOrEqualsConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-period-end-before-start:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-period-end-before-start:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-period-end-before-start:projection"
+      },
+      "id": "mapping-period-end-before-start",
+      "path": "invalid/mapping-period-end-before-start",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-period-end-before-start-xscw5rmt/asserted.nt"
+          ],
+          "components": [
+            "LessThanOrEqualsConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033331,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:resultMessage \"LessThanOrEquals constraint violated: 2025-06-30T23:59:59Z is not less or equals than 2026-01-01T00:00:00Z\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:LessThanOrEqualsConstraintComponent ;\n\tsh:sourceShape _:cc7bc60470045dd9a6fccf23c0c0c190 ;\n\tsh:resultPath <https://rulespec.org/ns/v1#effectivePeriodStart> ;\n\tsh:value \"2026-01-01T00:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;\n\tsh:focusNode <urn:ref:atlas-effective-period:2412ffb45a3842505ca5a5986dc14b9bb312e0b082c52403a10b4e0a7078c276> ;\n\ta sh:ValidationResult .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "PatternConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "PatternConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-period-end-not-utc-day-end:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-period-end-not-utc-day-end:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-period-end-not-utc-day-end:projection"
+      },
+      "id": "mapping-period-end-not-utc-day-end",
+      "path": "invalid/mapping-period-end-not-utc-day-end",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-period-end-not-utc-day-end-61xlxwd4/asserted.nt"
+          ],
+          "components": [
+            "PatternConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032499,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:value \"2027-01-01T00:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-effective-period:2412ffb45a3842505ca5a5986dc14b9bb312e0b082c52403a10b4e0a7078c276> ;\n\tsh:resultMessage \"Pattern(^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T23:59:59[+]00:00$) not satisfied\" ;\n\tsh:resultPath <https://rulespec.org/ns/v1#effectivePeriodEnd> ;\n\tsh:sourceConstraintComponent sh:PatternConstraintComponent ;\n\tsh:sourceShape _:ee9707dbcd156e167ce58248d16ae9e2 .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "NodeConstraintComponent"
+        ]
+      },
+      "agreement": false,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent",
+          "NodeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-period-start-not-datetime:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-period-start-not-datetime:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-period-start-not-datetime:projection"
+      },
+      "id": "mapping-period-start-not-datetime",
+      "path": "invalid/mapping-period-start-not-datetime",
+      "projectionExcluded": true,
+      "referenceReportStructure": {
+        "allResultComponents": [
+          "DatatypeConstraintComponent",
+          "NodeConstraintComponent"
+        ],
+        "allResultCount": 2,
+        "conforms": false,
+        "detailLinks": [
+          {
+            "detailComponents": [
+              "DatatypeConstraintComponent"
+            ],
+            "parentComponents": [
+              "NodeConstraintComponent"
+            ]
+          }
+        ],
+        "reportTurtle": "@prefix atlas: <https://refspec.org/ns/atlas/v3#> .\n@prefix rkaf: <https://rulespec.org/ns/v1#> .\n@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n[] a sh:ValidationReport ;\n    sh:conforms false ;\n    sh:result [ a sh:ValidationResult ;\n            sh:detail [ a sh:ValidationResult ;\n                    sh:focusNode \"2026-07-01T00:00:00+00:00\" ;\n                    sh:resultMessage \"Value is not Literal with datatype xsd:dateTime\" ;\n                    sh:resultSeverity sh:Violation ;\n                    sh:sourceConstraintComponent sh:DatatypeConstraintComponent ;\n                    sh:sourceShape atlas:DateTimeValueShape ;\n                    sh:value \"2026-07-01T00:00:00+00:00\" ] ;\n            sh:focusNode <urn:ref:atlas-effective-period:cba76d2264b14f0a39628cecca86908044d06bba64a4ad00cedc27ad8106dd5d> ;\n            sh:resultMessage \"Value does not conform to Shape atlas:DateTimeValueShape. See details for more information.\" ;\n            sh:resultPath rkaf:effectivePeriodStart ;\n            sh:resultSeverity sh:Violation ;\n            sh:sourceConstraintComponent sh:NodeConstraintComponent ;\n            sh:sourceShape [ sh:lessThanOrEquals rkaf:effectivePeriodEnd ;\n                    sh:maxCount 1 ;\n                    sh:minCount 1 ;\n                    sh:node atlas:DateTimeValueShape ;\n                    sh:path rkaf:effectivePeriodStart ;\n                    sh:pattern \"^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T00:00:00[+]00:00$\" ] ;\n            sh:value \"2026-07-01T00:00:00+00:00\" ] .\n\n",
+        "topLevelComponents": [
+          "NodeConstraintComponent"
+        ],
+        "topLevelResultCount": 1
+      },
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-period-start-not-datetime-z_1vgfpk/asserted.nt"
+          ],
+          "components": [
+            "NodeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032721,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 .\n_:2 sh:value \"2026-07-01T00:00:00+00:00\" ;\n\tsh:resultPath <https://rulespec.org/ns/v1#effectivePeriodStart> ;\n\tsh:focusNode <urn:ref:atlas-effective-period:cba76d2264b14f0a39628cecca86908044d06bba64a4ad00cedc27ad8106dd5d> ;\n\tsh:resultMessage \"Shape _:cd8c3469dab4f59b8288f0e48fc42e47: Node(NodeShape\\nComponents:\\n -  NodeKind: Lit\\n -  Datatype: http://www.w3.org/2001/XMLSchema#dateTime\\n) constraint not satisfied for \\\"2026-07-01T00:00:00+00:00\\\"\" ;\n\tsh:sourceShape _:cd8c3469dab4f59b8288f0e48fc42e47 ;\n\tsh:sourceConstraintComponent sh:NodeConstraintComponent ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "PatternConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "PatternConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-period-start-not-utc-midnight:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-period-start-not-utc-midnight:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-period-start-not-utc-midnight:projection"
+      },
+      "id": "mapping-period-start-not-utc-midnight",
+      "path": "invalid/mapping-period-start-not-utc-midnight",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-period-start-not-utc-midnight-yts9lki2/asserted.nt"
+          ],
+          "components": [
+            "PatternConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033035,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:result _:2 ;\n\tsh:conforms false .\n_:2 a sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-effective-period:2412ffb45a3842505ca5a5986dc14b9bb312e0b082c52403a10b4e0a7078c276> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceShape _:cb7fcb9d461512618c7d4425304c97f1 ;\n\tsh:resultMessage \"Pattern(^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T00:00:00[+]00:00$) not satisfied\" ;\n\tsh:sourceConstraintComponent sh:PatternConstraintComponent ;\n\tsh:value \"2026-01-01T00:00:00-05:00\"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;\n\tsh:resultPath <https://rulespec.org/ns/v1#effectivePeriodStart> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-subject-ring-dated:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-subject-ring-dated:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-subject-ring-dated:projection"
+      },
+      "id": "mapping-subject-ring-dated",
+      "path": "invalid/mapping-subject-ring-dated",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-subject-ring-dated-bzlmjxx8/asserted.nt"
+          ],
+          "components": [
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032337,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 .\n_:2 sh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#MappingAssertionShape: Xone constraint not satisfied for node <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7>. Number of conforming shapes: 0\" ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#MappingAssertionShape> ;\n\tsh:value <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\tsh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:resultSeverity sh:Violation .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-undated-legal-identity:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-undated-legal-identity:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-undated-legal-identity:projection"
+      },
+      "id": "mapping-undated-legal-identity",
+      "path": "invalid/mapping-undated-legal-identity",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-undated-legal-identity-4kg0y68q/asserted.nt"
+          ],
+          "components": [
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032119,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 833,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:value <urn:ref:atlas-assertion:13adc7cada0c2ebb46a637402a0c7a13d4930a0787e728240281ce5cf5d90ae0> ;\n\ta sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#MappingAssertionShape> ;\n\tsh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#MappingAssertionShape: Xone constraint not satisfied for node <urn:ref:atlas-assertion:13adc7cada0c2ebb46a637402a0c7a13d4930a0787e728240281ce5cf5d90ae0>. Number of conforming shapes: 0\" ;\n\tsh:focusNode <urn:ref:atlas-assertion:13adc7cada0c2ebb46a637402a0c7a13d4930a0787e728240281ce5cf5d90ae0> .\n",
+          "validationViewTripleCount": 1200
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-undated-value-crosswalk:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-undated-value-crosswalk:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-undated-value-crosswalk:projection"
+      },
+      "id": "mapping-undated-value-crosswalk",
+      "path": "invalid/mapping-undated-value-crosswalk",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-undated-value-crosswalk-m97_79jw/asserted.nt"
+          ],
+          "components": [
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032698,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 832,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#MappingAssertionShape: Xone constraint not satisfied for node <urn:ref:atlas-assertion:0b1e7211ab031b1d89f3d2045ee605b0a7caa4d16b8ccdf6217e4b9e0116d034>. Number of conforming shapes: 0\" ;\n\tsh:value <urn:ref:atlas-assertion:0b1e7211ab031b1d89f3d2045ee605b0a7caa4d16b8ccdf6217e4b9e0116d034> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#MappingAssertionShape> ;\n\tsh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-assertion:0b1e7211ab031b1d89f3d2045ee605b0a7caa4d16b8ccdf6217e4b9e0116d034> ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult .\n",
+          "validationViewTripleCount": 1199
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "EqualsConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "EqualsConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:mapping-wrong-endpoint-release:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:mapping-wrong-endpoint-release:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:mapping-wrong-endpoint-release:projection"
+      },
+      "id": "mapping-wrong-endpoint-release",
+      "path": "invalid/mapping-wrong-endpoint-release",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-mapping-wrong-endpoint-release-hv8oaeup/asserted.nt"
+          ],
+          "components": [
+            "EqualsConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.031871,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 , _:5 .\n_:2 sh:resultSeverity sh:Violation ;\n\tsh:resultPath _:4 ;\n\tsh:focusNode <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:atlas-fixture:release:subject-a:2026> ;\n\tsh:sourceShape _:d6993e171316795f7b91e17fc9189103 ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent .\n_:3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#inRelease> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n_:4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:3 .\n_:5 sh:resultSeverity sh:Violation ;\n\tsh:resultPath _:7 ;\n\tsh:focusNode <urn:ref:atlas-assertion:36a8acd8b8b7cc3b689d85adca07d7d5e29d962926b5d424bd42e8e0b9b6d1c7> ;\n\ta sh:ValidationResult ;\n\tsh:value <urn:ref:atlas-fixture:release:subject-b:2026> ;\n\tsh:sourceShape _:d6993e171316795f7b91e17fc9189103 ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent .\n_:6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <https://refspec.org/ns/atlas/v3#inRelease> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n_:7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ;\n\t<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:6 .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "NodeConstraintComponent"
+        ]
+      },
+      "agreement": false,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "LanguageInConstraintComponent",
+          "NodeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:non-english-definition:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:non-english-definition:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:non-english-definition:projection"
+      },
+      "id": "non-english-definition",
+      "path": "invalid/non-english-definition",
+      "projectionExcluded": true,
+      "referenceReportStructure": {
+        "allResultComponents": [
+          "LanguageInConstraintComponent",
+          "NodeConstraintComponent"
+        ],
+        "allResultCount": 2,
+        "conforms": false,
+        "detailLinks": [
+          {
+            "detailComponents": [
+              "LanguageInConstraintComponent"
+            ],
+            "parentComponents": [
+              "NodeConstraintComponent"
+            ]
+          }
+        ],
+        "reportTurtle": "@prefix atlas: <https://refspec.org/ns/atlas/v3#> .\n@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n[] a sh:ValidationReport ;\n    sh:conforms false ;\n    sh:result [ a sh:ValidationResult ;\n            sh:detail [ a sh:ValidationResult ;\n                    sh:focusNode \"Administrative agency law\"@fr ;\n                    sh:resultMessage \"String language is not in ( Literal(\\\"en\\\") )\" ;\n                    sh:resultSeverity sh:Violation ;\n                    sh:sourceConstraintComponent sh:LanguageInConstraintComponent ;\n                    sh:sourceShape atlas:EnglishTextLiteralValueShape ;\n                    sh:value \"Administrative agency law\"@fr ] ;\n            sh:focusNode <urn:ref:atlas-fixture:resource:subject-a> ;\n            sh:resultMessage \"Value does not conform to Shape atlas:EnglishTextLiteralValueShape. See details for more information.\" ;\n            sh:resultPath atlas:definition ;\n            sh:resultSeverity sh:Violation ;\n            sh:sourceConstraintComponent sh:NodeConstraintComponent ;\n            sh:sourceShape [ sh:node atlas:EnglishTextLiteralValueShape ;\n                    sh:path atlas:definition ] ;\n            sh:value \"Administrative agency law\"@fr ] .\n\n",
+        "topLevelComponents": [
+          "NodeConstraintComponent"
+        ],
+        "topLevelResultCount": 1
+      },
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-non-english-definition-yhdyvu0h/asserted.nt"
+          ],
+          "components": [
+            "NodeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032034,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:focusNode <urn:ref:atlas-fixture:resource:subject-a> ;\n\tsh:value \"Administrative agency law\"@fr ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:NodeConstraintComponent ;\n\tsh:resultMessage \"Shape _:e5291a0547ac7521efb2e1634fd1968b: Node(NodeShape\\nComponents:\\n -  NodeKind: Lit\\n -  Datatype: http://www.w3.org/1999/02/22-rdf-syntax-ns#langString\\n -  LanguageIn: [en]\\n) constraint not satisfied for \\\"Administrative agency law\\\"@fr\" ;\n\ta sh:ValidationResult ;\n\tsh:sourceShape _:e5291a0547ac7521efb2e1634fd1968b ;\n\tsh:resultPath <https://refspec.org/ns/atlas/v3#definition> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "LanguageInConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "LanguageInConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:non-english-label:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:non-english-label:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:non-english-label:projection"
+      },
+      "id": "non-english-label",
+      "path": "invalid/non-english-label",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-non-english-label-0o5940x0/asserted.nt"
+          ],
+          "components": [
+            "LanguageInConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03259,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:resultMessage \"Atlas 3.1 label literals MUST use the English language tag @en.\" ;\n\tsh:resultPath <http://www.w3.org/2008/05/skos-xl#literalForm> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:value \"Agence exemplaire\"@fr ;\n\tsh:focusNode <urn:ref:atlas-fixture:label:subject-a:en> ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:LanguageInConstraintComponent ;\n\tsh:sourceShape _:a67bd4a42e7e7b9d445c95ccbe6434a9 .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "NodeConstraintComponent"
+        ]
+      },
+      "agreement": false,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DatatypeConstraintComponent",
+          "NodeConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:registry-conflict-detected-at-not-datetime:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:registry-conflict-detected-at-not-datetime:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:registry-conflict-detected-at-not-datetime:projection"
+      },
+      "id": "registry-conflict-detected-at-not-datetime",
+      "path": "invalid/registry-conflict-detected-at-not-datetime",
+      "projectionExcluded": true,
+      "referenceReportStructure": {
+        "allResultComponents": [
+          "DatatypeConstraintComponent",
+          "NodeConstraintComponent"
+        ],
+        "allResultCount": 2,
+        "conforms": false,
+        "detailLinks": [
+          {
+            "detailComponents": [
+              "DatatypeConstraintComponent"
+            ],
+            "parentComponents": [
+              "NodeConstraintComponent"
+            ]
+          }
+        ],
+        "reportTurtle": "@prefix atlas: <https://refspec.org/ns/atlas/v3#> .\n@prefix rkaf: <https://rulespec.org/ns/v1#> .\n@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n[] a sh:ValidationReport ;\n    sh:conforms false ;\n    sh:result [ a sh:ValidationResult ;\n            sh:detail [ a sh:ValidationResult ;\n                    sh:focusNode \"2026-08-05\" ;\n                    sh:resultMessage \"Value is not Literal with datatype xsd:dateTime\" ;\n                    sh:resultSeverity sh:Violation ;\n                    sh:sourceConstraintComponent sh:DatatypeConstraintComponent ;\n                    sh:sourceShape atlas:DateTimeValueShape ;\n                    sh:value \"2026-08-05\" ] ;\n            sh:focusNode <urn:ref:atlas-fixture:registry-conflict:agency-001> ;\n            sh:resultMessage \"Value does not conform to Shape atlas:DateTimeValueShape. See details for more information.\" ;\n            sh:resultPath rkaf:detectedAt ;\n            sh:resultSeverity sh:Violation ;\n            sh:sourceConstraintComponent sh:NodeConstraintComponent ;\n            sh:sourceShape [ sh:maxCount 1 ;\n                    sh:minCount 1 ;\n                    sh:node atlas:DateTimeValueShape ;\n                    sh:path rkaf:detectedAt ] ;\n            sh:value \"2026-08-05\" ] .\n\n",
+        "topLevelComponents": [
+          "NodeConstraintComponent"
+        ],
+        "topLevelResultCount": 1
+      },
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-registry-conflict-detected-at-not-datetime-105br3wa/asserted.nt"
+          ],
+          "components": [
+            "NodeConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03246,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 846,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:resultSeverity sh:Violation ;\n\tsh:value \"2026-08-05\" ;\n\tsh:sourceShape _:d28795c58144dc5405d79a2b0b8479ce ;\n\ta sh:ValidationResult ;\n\tsh:focusNode <urn:ref:atlas-fixture:registry-conflict:agency-001> ;\n\tsh:sourceConstraintComponent sh:NodeConstraintComponent ;\n\tsh:resultPath <https://rulespec.org/ns/v1#detectedAt> ;\n\tsh:resultMessage \"Shape _:d28795c58144dc5405d79a2b0b8479ce: Node(NodeShape\\nComponents:\\n -  NodeKind: Lit\\n -  Datatype: http://www.w3.org/2001/XMLSchema#dateTime\\n) constraint not satisfied for \\\"2026-08-05\\\"\" .\n",
+          "validationViewTripleCount": 1213
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:registry-conflict-publication-blocking:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:registry-conflict-publication-blocking:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:registry-conflict-publication-blocking:projection"
+      },
+      "id": "registry-conflict-publication-blocking",
+      "path": "invalid/registry-conflict-publication-blocking",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-registry-conflict-publication-blocking-lwft97lw/asserted.nt"
+          ],
+          "components": [
+            "InConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032288,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 846,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:resultPath <https://rulespec.org/ns/v1#severity> ;\n\tsh:sourceConstraintComponent sh:InConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-fixture:registry-conflict:agency-001> ;\n\tsh:value <https://rulespec.org/ns/v1#publicationBlocking> ;\n\tsh:resultMessage \"In constraint not satisfied. Expected one of [Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#informational\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#operationalConflict\\\" } }}]\" ;\n\ta sh:ValidationResult ;\n\tsh:sourceShape _:b3208b26c348dfec5ece71f4ee264ee3 ;\n\tsh:resultSeverity sh:Violation .\n",
+          "validationViewTripleCount": 1213
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:registry-conflict-severity-unknown:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:registry-conflict-severity-unknown:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:registry-conflict-severity-unknown:projection"
+      },
+      "id": "registry-conflict-severity-unknown",
+      "path": "invalid/registry-conflict-severity-unknown",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-registry-conflict-severity-unknown-vyg2y13t/asserted.nt"
+          ],
+          "components": [
+            "InConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032266,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 846,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\tsh:conforms false ;\n\ta sh:ValidationReport .\n_:2 sh:focusNode <urn:ref:atlas-fixture:registry-conflict:agency-001> ;\n\tsh:value <urn:ref:conflict-severity:invented> ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:InConstraintComponent ;\n\tsh:resultMessage \"In constraint not satisfied. Expected one of [Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#informational\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#operationalConflict\\\" } }}]\" ;\n\tsh:sourceShape _:b2f09d8abbda134fdcb2d385abb20461 ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:resultPath <https://rulespec.org/ns/v1#severity> .\n",
+          "validationViewTripleCount": 1213
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "MinCountConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:registry-conflict-single-entry:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:registry-conflict-single-entry:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:registry-conflict-single-entry:projection"
+      },
+      "id": "registry-conflict-single-entry",
+      "path": "invalid/registry-conflict-single-entry",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-registry-conflict-single-entry-hemsefyp/asserted.nt"
+          ],
+          "components": [
+            "MinCountConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032389,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 845,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:result _:2 ;\n\ta sh:ValidationReport ;\n\tsh:conforms false .\n_:2 sh:focusNode <urn:ref:atlas-fixture:registry-conflict:agency-001> ;\n\ta sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceShape _:a2559849d3471f0d3dcab684ee3222a0 ;\n\tsh:resultPath <https://rulespec.org/ns/v1#conflictingEntries> ;\n\tsh:resultMessage \"MinCount(2) not satisfied\" ;\n\tsh:sourceConstraintComponent sh:MinCountConstraintComponent .\n",
+          "validationViewTripleCount": 1212
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent",
+          "XoneConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "InConstraintComponent",
+          "XoneConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:release-membership-mode-unknown:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:release-membership-mode-unknown:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:release-membership-mode-unknown:projection"
+      },
+      "id": "release-membership-mode-unknown",
+      "path": "invalid/release-membership-mode-unknown",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-release-membership-mode-unknown-7vhfy3pc/asserted.nt"
+          ],
+          "components": [
+            "InConstraintComponent",
+            "XoneConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.031946,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\tsh:result _:2 , _:3 ;\n\ta sh:ValidationReport .\n_:2 sh:resultSeverity sh:Violation ;\n\tsh:value <urn:ref:atlas-fixture:release:subject-a:2026> ;\n\tsh:focusNode <urn:ref:atlas-fixture:release:subject-a:2026> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#AtlasReleaseShape> ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:XoneConstraintComponent ;\n\tsh:resultMessage \"Shape https://refspec.org/ns/atlas/v3#AtlasReleaseShape: Xone constraint not satisfied for node <urn:ref:atlas-fixture:release:subject-a:2026>. Number of conforming shapes: 0\" .\n_:3 sh:resultSeverity sh:Violation ;\n\tsh:value <urn:ref:membership-mode:invented> ;\n\tsh:focusNode <urn:ref:atlas-fixture:release:subject-a:2026> ;\n\tsh:sourceShape _:daff0532d3756c76a1dfa48aec5ec7ff ;\n\tsh:resultPath <https://rulespec.org/ns/v1#membershipMode> ;\n\ta sh:ValidationResult ;\n\tsh:sourceConstraintComponent sh:InConstraintComponent ;\n\tsh:resultMessage \"In constraint not satisfied. Expected one of [Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#completeMembership\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#partialMembership\\\" } }}, Iri {IriS { iri: NamedNode { iri: \\\"https://rulespec.org/ns/v1#membershipNotEnumerated\\\" } }}]\" .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClosedConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:scheme-assertion-property:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:scheme-assertion-property:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:scheme-assertion-property:projection"
+      },
+      "id": "scheme-assertion-property",
+      "path": "invalid/scheme-assertion-property",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-scheme-assertion-property-qxbcahqt/asserted.nt"
+          ],
+          "components": [
+            "ClosedConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.032576,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 sh:value <http://www.w3.org/2004/02/skos/core#exactMatch> ;\n\tsh:focusNode <urn:ref:atlas-fixture:scheme:subject-a> ;\n\tsh:resultSeverity sh:Violation ;\n\ta sh:ValidationResult ;\n\tsh:resultPath <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ;\n\tsh:sourceShape <https://refspec.org/ns/atlas/v3#ResourceSchemeShape> ;\n\tsh:sourceConstraintComponent sh:ClosedConstraintComponent .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DisjointConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "DisjointConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:skosxl-label-role-overlap:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:skosxl-label-role-overlap:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:skosxl-label-role-overlap:projection"
+      },
+      "id": "skosxl-label-role-overlap",
+      "path": "invalid/skosxl-label-role-overlap",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-skosxl-label-role-overlap-zu0vt_zy/asserted.nt"
+          ],
+          "components": [
+            "DisjointConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033342,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms false ;\n\ta sh:ValidationReport ;\n\tsh:result _:2 .\n_:2 sh:sourceConstraintComponent sh:DisjointConstraintComponent ;\n\tsh:resultPath <http://www.w3.org/2008/05/skos-xl#prefLabel> ;\n\ta sh:ValidationResult ;\n\tsh:resultMessage \"Disjoint failed. Property http://www.w3.org/2008/05/skos-xl#altLabel\" ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:value <urn:ref:atlas-fixture:label:subject-a:en> ;\n\tsh:focusNode <urn:ref:atlas-fixture:resource:subject-a> ;\n\tsh:sourceShape _:a1cc3d1d35b14cf559908ad2f2c0478a .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "EqualsConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "EqualsConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:subject-scheme-disagreement:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:subject-scheme-disagreement:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:subject-scheme-disagreement:projection"
+      },
+      "id": "subject-scheme-disagreement",
+      "path": "invalid/subject-scheme-disagreement",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-subject-scheme-disagreement-27ufrmm0/asserted.nt"
+          ],
+          "components": [
+            "EqualsConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.03237,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 , _:3 .\n_:2 sh:value <urn:ref:atlas-fixture:scheme:subject-a> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-fixture:resource:subject-a> ;\n\ta sh:ValidationResult ;\n\tsh:sourceShape _:d0b352828ffc178e12848a09d602b90b ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:resultPath <http://www.w3.org/2004/02/skos/core#inScheme> .\n_:3 sh:value <urn:ref:atlas-fixture:scheme:subject-b> ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:focusNode <urn:ref:atlas-fixture:resource:subject-a> ;\n\ta sh:ValidationResult ;\n\tsh:sourceShape _:d0b352828ffc178e12848a09d602b90b ;\n\tsh:sourceConstraintComponent sh:EqualsConstraintComponent ;\n\tsh:resultPath <http://www.w3.org/2004/02/skos/core#inScheme> .\n",
+          "validationViewTripleCount": 1203
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent"
+        ]
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "invalid",
+        "firstIssue": "shacl.data",
+        "shaclComponents": [
+          "ClassConstraintComponent"
+        ]
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:supersession-dangling-predecessor:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:supersession-dangling-predecessor:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:supersession-dangling-predecessor:projection"
+      },
+      "id": "supersession-dangling-predecessor",
+      "path": "invalid/supersession-dangling-predecessor",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-supersession-dangling-predecessor-5zhk9qlx/asserted.nt"
+          ],
+          "components": [
+            "ClassConstraintComponent"
+          ],
+          "conforms": false,
+          "elapsedSeconds": 0.033158,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 837,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms false ;\n\tsh:result _:2 .\n_:2 a sh:ValidationResult ;\n\tsh:resultSeverity sh:Violation ;\n\tsh:sourceConstraintComponent sh:ClassConstraintComponent ;\n\tsh:focusNode <urn:ref:atlas-assertion:13adc7cada0c2ebb46a637402a0c7a13d4930a0787e728240281ce5cf5d90ae0> ;\n\tsh:value <urn:ref:atlas-assertion:0000000000000000000000000000000000000000000000000000000000000000> ;\n\tsh:sourceShape _:cd31e5e6e21e383abb00838e34e2d80d ;\n\tsh:resultMessage \"Class constraint not satisfied for class https://refspec.org/ns/atlas/v3#RelationAssertion\" ;\n\tsh:resultPath <https://rulespec.org/ns/v1#supersedesAssertion> .\n",
+          "validationViewTripleCount": 1204
+        }
+      ]
+    }
+  ],
+  "rudof": {
+    "byteLength": 36393184,
+    "path": "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+    "sha256": "a1ebe0120fd7b270e4cb452678394fbfa69f0ed8c8be50e7872599875ae6d3be"
+  },
+  "shapesSha256": "af85315e9f6918d166ed24a0cef6d98820c4430c936178842382a3a1279c1abf",
+  "validControlCount": 13,
+  "validControlFailureCount": 0,
+  "validControlFailureIds": [],
+  "validControls": [
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:adjudication-refused-comparison-record:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:adjudication-refused-comparison-record:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:adjudication-refused-comparison-record:projection"
+      },
+      "id": "adjudication-refused-comparison-record",
+      "path": "valid/adjudication-refused-comparison-record",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-refused-comparison-record-gkgwbvzn/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.033401,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 918,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1285
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-adjudication-refused-comparison-record-gkgwbvzn/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.026962,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:all-resource-profiles:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:all-resource-profiles:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:all-resource-profiles:projection"
+      },
+      "id": "all-resource-profiles",
+      "path": "valid/all-resource-profiles",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-all-resource-profiles-md5856x0/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032924,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1203
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-all-resource-profiles-md5856x0/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.02752,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:identifier-conflict-recorded:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:identifier-conflict-recorded:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:identifier-conflict-recorded:projection"
+      },
+      "id": "identifier-conflict-recorded",
+      "path": "valid/identifier-conflict-recorded",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-identifier-conflict-recorded-5lavne_0/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032165,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 846,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1213
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-identifier-conflict-recorded-5lavne_0/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027117,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:no-derived:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:no-derived:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:no-derived:projection"
+      },
+      "id": "no-derived",
+      "path": "valid/no-derived",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-no-derived-7xaftb6l/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.033216,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1203
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-no-derived-7xaftb6l/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.026503,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 0,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 367
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:partitioned-packs:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:partitioned-packs:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:partitioned-packs:projection"
+      },
+      "id": "partitioned-packs",
+      "path": "valid/partitioned-packs",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-partitioned-packs-fw5t3an2/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032541,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1203
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-partitioned-packs-fw5t3an2/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027014,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:qualified-lattice-branches:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:qualified-lattice-branches:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:qualified-lattice-branches:projection"
+      },
+      "id": "qualified-lattice-branches",
+      "path": "valid/qualified-lattice-branches",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-qualified-lattice-branches-vobxdok9/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.034348,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 1157,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1524
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-qualified-lattice-branches-vobxdok9/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027555,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:qualified-three-machine-support:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:qualified-three-machine-support:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:qualified-three-machine-support:projection"
+      },
+      "id": "qualified-three-machine-support",
+      "path": "valid/qualified-three-machine-support",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-qualified-three-machine-support-h2m1q4kp/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032056,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 872,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1239
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-qualified-three-machine-support-h2m1q4kp/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027326,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:rdf-literal-escaping:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:rdf-literal-escaping:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:rdf-literal-escaping:projection"
+      },
+      "id": "rdf-literal-escaping",
+      "path": "valid/rdf-literal-escaping",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-rdf-literal-escaping-fxlbd2qu/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032428,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1203
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-rdf-literal-escaping-fxlbd2qu/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027345,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:rescission-lifecycle:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:rescission-lifecycle:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:rescission-lifecycle:projection"
+      },
+      "id": "rescission-lifecycle",
+      "path": "valid/rescission-lifecycle",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-rescission-lifecycle-14w04f_a/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032946,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 842,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1209
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-rescission-lifecycle-14w04f_a/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027179,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:skosxl-hidden-label:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:skosxl-hidden-label:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:skosxl-hidden-label:projection"
+      },
+      "id": "skosxl-hidden-label",
+      "path": "valid/skosxl-hidden-label",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-skosxl-hidden-label-8_4t3j9t/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032671,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 841,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1208
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-skosxl-hidden-label-8_4t3j9t/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027291,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:source-native-thesaurus:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:source-native-thesaurus:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:source-native-thesaurus:projection"
+      },
+      "id": "source-native-thesaurus",
+      "path": "valid/source-native-thesaurus",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-source-native-thesaurus-61qi9fhf/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.033335,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 908,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1275
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-source-native-thesaurus-61qi9fhf/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027718,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:superseded-policy-revision:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:superseded-policy-revision:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:superseded-policy-revision:projection"
+      },
+      "id": "superseded-policy-revision",
+      "path": "valid/superseded-policy-revision",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-superseded-policy-revision-14zni82x/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.032718,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 870,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 1237
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-superseded-policy-revision-14zni82x/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027232,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 0,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 sh:conforms true ;\n\ta sh:ValidationReport .\n",
+          "validationViewTripleCount": 367
+        }
+      ]
+    },
+    {
+      "actual": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "agreement": true,
+      "expected": {
+        "expected": "valid",
+        "firstIssue": null,
+        "shaclComponents": []
+      },
+      "graphIds": {
+        "asserted": "urn:ref:atlas-fixture:distribution:zstd-packs:asserted",
+        "derived": "urn:ref:atlas-fixture:distribution:zstd-packs:derived",
+        "projection": "urn:ref:atlas-fixture:distribution:zstd-packs:projection"
+      },
+      "id": "zstd-packs",
+      "path": "valid/zstd-packs",
+      "projectionExcluded": true,
+      "roleResults": [
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-zstd-packs-x_csrm5g/asserted.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.033018,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "asserted",
+          "roleGraphTripleCount": 836,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 1203
+        },
+        {
+          "command": [
+            "/private/tmp/claude-501/-Users-mikewolfd-Work-spicy-regs-RefSpec/945a06dc-2461-4e02-bbcd-5b3dd6db603d/scratchpad/rudof/bin/rudof",
+            "shacl-validate",
+            "-t",
+            "ntriples",
+            "-s",
+            "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+            "-f",
+            "turtle",
+            "-r",
+            "turtle",
+            "--sort_by",
+            "component",
+            "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/rudof-corpus-zstd-packs-x_csrm5g/derived.nt"
+          ],
+          "components": [],
+          "conforms": true,
+          "elapsedSeconds": 0.027211,
+          "ontologyViewTripleCount": 367,
+          "returnCode": 0,
+          "role": "derived",
+          "roleGraphTripleCount": 13,
+          "stderr": "",
+          "stdout": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n_:1 a sh:ValidationReport ;\n\tsh:conforms true .\n",
+          "validationViewTripleCount": 380
+        }
+      ]
+    }
+  ]
+}
