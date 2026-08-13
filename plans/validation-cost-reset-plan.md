@@ -132,6 +132,21 @@ passed, smoked). FR pins in the Makefile verify today.
    sh:sourceConstraintComponent instead of the regex over pySHACL's text;
    adopt report-canonicalization (sort focusNode/resultPath/component).
 
+**OWNER DECISIONS 2026-08-13 (the four closing questions):** (1) FIRST
+SEAL MINTED — key ceremony done (offline ed25519, public key pinned at
+docs/seal-allowed-signers, both workflow secrets set — the release
+workflow's seal step is ARMED pending only its `if:` flip and a runner);
+`output/atlas-3.1-full-2026-08-12c-seal.json` verifies: 4 members, 126
+packs, 8 tables, 941,467,636 bytes, signer atlas-release@refspec. Reader
+cutover / SpicySearch admission UNBLOCKED. (2) Runner + artifact store:
+DEFERRED until release cadence binds (workflow ready; arming is
+one line). (3) Fidelity campaign: STARTED with the bulk-SKOS batch
+(covered-but-differing units toward exact + specs for the biggest
+uncovered; long tail deferred). (4) Standing practices: the four
+adopted (strict-parser lint + FR determinism gate in CI now; shapes
+scale benchmark + differential-oracle policy at release tier,
+armed-idle until the runner).
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
