@@ -52,6 +52,15 @@ dev = [
     # under `make test-package` and under `make test-atlas-v3`.
     "owlrl==7.1.4",
     "pyshacl==0.31.0",
+    # A SECOND, INDEPENDENT RDF parser, for `make lint-rdf-strict` only. Nothing
+    # this repository publishes may depend on it: the published bytes are
+    # written and read by rdflib, and pyoxigraph is here to disagree with rdflib
+    # about what those bytes mean. That is the whole value -- the oxigraph spike
+    # found two wire defects (over-escaped IRIs, non-simple literal forms) that
+    # rdflib round-tripped happily. Pinned exactly for the same reason ruff is:
+    # this is a gate, so a parser release that tightens a rule arrives as a
+    # deliberate bump rather than as a red build nobody asked for.
+    "pyoxigraph==0.5.9",
 ]
 
 [build-system]

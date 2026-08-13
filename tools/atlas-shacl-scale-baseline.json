@@ -1,0 +1,31 @@
+{
+  "about": "Measured SHACL-phase seconds per distribution scale class and validation mode, read and written by tools/benchmark_atlas_shacl_scale.py. A run over toleranceRatio times its baseline fails; a run whose quad count is outside quadCountToleranceRatio of the baseline's is a different distribution, not a comparison. Baselines are machine-bound: re-record on new hardware, and re-record in the same commit as any shapes change whose new cost is accepted.",
+  "measurements": {
+    "3.1-bounded-development/audit": {
+      "distributionId": "urn:ref:atlas:distribution:3.1-bounded-development:3e2b2cb29377acf674ba3389454fdce97e6cdb766402eaacb55b68b0c67f67de",
+      "machine": "Darwin-arm64-py3.12.9",
+      "mode": "audit",
+      "note": "bounded Federal Register thesaurus artifact of record, post xone-lift/gc.freeze/roles-fold; MacBook, single core",
+      "packCount": 2,
+      "parseSeconds": 1.044,
+      "quadCount": 53507,
+      "recordedAt": "2026-08-13",
+      "scaleClass": "3.1-bounded-development",
+      "shaclSeconds": 2.523
+    },
+    "3.1-bounded-development/default": {
+      "distributionId": "urn:ref:atlas:distribution:3.1-bounded-development:3e2b2cb29377acf674ba3389454fdce97e6cdb766402eaacb55b68b0c67f67de",
+      "machine": "Darwin-arm64-py3.12.9",
+      "mode": "default",
+      "note": "same artifact, default (fast/focused red path) mode -- what the dev loop pays",
+      "packCount": 2,
+      "parseSeconds": 1.039,
+      "quadCount": 53507,
+      "recordedAt": "2026-08-13",
+      "scaleClass": "3.1-bounded-development",
+      "shaclSeconds": 2.502
+    }
+  },
+  "quadCountToleranceRatio": 1.25,
+  "toleranceRatio": 3.0
+}

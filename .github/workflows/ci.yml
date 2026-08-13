@@ -45,6 +45,19 @@ jobs:
       - name: Check generated files against their generators
         run: make check-generated
 
+      # A second RDF parser, with no code in common with the producer, reading
+      # the bytes rdflib wrote. Every other RDF gate here is rdflib checking
+      # itself, which cannot catch what rdflib is willing to round-trip -- the
+      # oxigraph spike found two such classes (over-escaped IRIs, non-simple
+      # literal forms) in bytes that had already passed acceptance. On this
+      # runner the only RDF artifact in reach is the committed
+      # bindings/atlas/3.1/tests/registry-descriptors.nq, which is exactly the
+      # wire grammar's sentinel: a sealed bundle member and a digest-pinned
+      # build input. Distributions are gitignored and never present here; the
+      # same target sweeps their packs locally via ATLAS_RDF_STRICT_ROOTS.
+      - name: Parse the committed RDF with a second, independent parser
+        run: make lint-rdf-strict
+
       - name: Audit the registry manifest against the code
         run: make audit-registry-inventory
 
@@ -59,3 +72,26 @@ jobs:
 
       - name: Assert the skip budget
         run: uv run python tools/check_skip_budget.py "$RUNNER_TEMP/pytest.xml" --budget 101
+
+      # The reproducible-rebuild control in its ~6s miniature: build the bounded
+      # Federal Register release twice into scratch roots and require the two
+      # trees to be byte-identical. It does not run on this runner and the step
+      # name says so rather than reporting a green that proves nothing -- the
+      # build reads two gitignored inputs, the pinned 2025-04-01 publisher PDF
+      # under output/ (never present here, per the note above) and the portfolio
+      # managed release in the sibling spicy-regs checkout. This is a presence
+      # check, not a gate, until this job runs somewhere those captures live;
+      # arming it is deleting the check. Until then the control runs on a
+      # developer machine as `make determinism-atlas-federal-register-thesaurus`,
+      # which is also where the whole release section of the Makefile runs.
+      - name: "FR double-build determinism gate (skipped: no captures on hosted runners)"
+        run: |
+          set -euo pipefail
+          pdf="output/registry-real-data-sources/federal-register-thesaurus-2025.pdf"
+          portfolio="../output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025"
+          portfolio="$portfolio/managed-release/managed-release.json"
+          if [ ! -f "$pdf" ] || [ ! -f "$portfolio" ]; then
+            echo "::notice title=FR determinism gate skipped::pinned publisher captures absent on this runner ($pdf, $portfolio); the control runs as 'make determinism-atlas-federal-register-thesaurus' where they live"
+            exit 0
+          fi
+          make determinism-atlas-federal-register-thesaurus

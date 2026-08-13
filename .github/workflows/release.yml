@@ -64,11 +64,13 @@ jobs:
     # multiprocess parsing multiplies the 18 GB working set rather than
     # dividing the wall-clock time.
     runs-on: [self-hosted, atlas-release]
-    # Sum of the step budgets below (30 build + 30 smoke + 120 acceptance =
-    # 180) plus headroom for checkout/uv-setup/seal-stub/upload (~20). Each
-    # step below carries its own tighter timeout-minutes; this is the outer
-    # bound, not a budget in itself.
-    timeout-minutes: 200
+    # Sum of the step budgets below (30 build + 30 smoke + 120 acceptance +
+    # 120 shapes benchmark = 300) plus headroom for
+    # checkout/uv-setup/seal-stub/upload (~20). Each step below carries its own
+    # tighter timeout-minutes; this is the outer bound, not a budget in itself.
+    # The benchmark's 120 mirrors acceptance because it re-parses the same packs
+    # (steps are separate processes) before timing the SHACL phase.
+    timeout-minutes: 320
     env:
       DISTRIBUTION_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/distribution
       PARQUET_VIEW_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/parquet-view
@@ -160,6 +162,43 @@ jobs:
           uv run --no-sync pytest \
             tests/test_atlas_v3_validator_regressions.py \
             -q -k "corpus_wide"
+
+      # Job 3b: shapes scale gate. Constraint cost is emergent, not
+      # compositional: the Jena spike measured every constraint in one node
+      # shape individually fast at 29.3M quads (literalForm-only 42.3s, +closed
+      # 42.5s, sh:class over 590k instances 44.0s) and that shape whole at over
+      # 1,829s, and pySHACL has the same exposure. So no reading of a shapes
+      # diff predicts what it costs at release scale -- only a clock on real
+      # data does, and this is the only place a release-scale clock exists.
+      #
+      # It re-parses the packs rather than reusing the step above, because
+      # steps are separate processes; only the SHACL phase is timed, the parse
+      # is reported and not gated. Budget is the acceptance step's, less the
+      # semantic gates it does not run.
+      #
+      # tools/atlas-shacl-scale-baseline.json carries the recorded numbers,
+      # keyed by scale class and validation mode. Today it holds the bounded
+      # Federal Register measurements (2.5s SHACL over 53,507 quads, audit and
+      # default, 2026-08-13); it holds NO `3.1-full-development` entry, because
+      # no post-optimization full-scale run has been measured -- so on the
+      # first release-scale run this step prints its measurement, says it is
+      # not a verdict, and exits 0. Recording that first number is one command,
+      # printed by the step itself and run against the distribution this job
+      # just built:
+      #   REFSPEC_ATLAS_VALIDATION_MODE=audit uv run python \
+      #     tools/benchmark_atlas_shacl_scale.py --distribution <root> \
+      #     --write-baseline --note "..."
+      # committed in the same change. From then on the step fails past 3x, and
+      # a shapes change that is worth its new cost moves the baseline in the
+      # same commit that raises it. Baselines are machine-bound, so the first
+      # measurement on this runner supersedes any laptop number for its class.
+      - name: Shapes scale benchmark (3x regression gate on the SHACL phase)
+        timeout-minutes: 120
+        env:
+          REFSPEC_ATLAS_VALIDATION_MODE: audit
+        run: |
+          uv run python tools/benchmark_atlas_shacl_scale.py \
+            --distribution "$DISTRIBUTION_ROOT"
 
       # Job 4: seal minting. INTENTIONALLY A STUB -- `if: false`. Arms only
       # once the key-custody decision (Seal design §2, docs/seal-design.md)

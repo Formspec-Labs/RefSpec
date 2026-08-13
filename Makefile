@@ -1,7 +1,8 @@
-.PHONY: generate check-generated lint test test-package test-json-binding test-atlas-v3 \
+.PHONY: generate check-generated lint lint-rdf-strict test test-package test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
+	determinism-atlas-federal-register-thesaurus benchmark-atlas-shacl-scale \
 	stage-atlas-mapping-topology
 
 # No default. The prior default (output/atlas-3.0-full-2026-08-07-ring-audit)
@@ -61,7 +62,7 @@ check-generated:
 # Make runs these left to right, so a cold checkout is healed before pytest
 # collects. The targets that can be run on their own take `atlas-v3-fixtures`
 # as a prerequisite so they do not depend on that ordering.
-test: lint check-generated audit-registry-inventory test-json-binding test-package
+test: lint lint-rdf-strict check-generated audit-registry-inventory test-json-binding test-package
 
 # Build the Atlas 3.0 case tree if, and only if, it is not there. `--check`
 # both builds and proves (against `fixtures-receipt.json`), so the cold path
@@ -83,6 +84,16 @@ atlas-v3-fixtures:
 # one-shot reformat commit plus one line here, not a decision to defer forever.
 lint:
 	uv run ruff check .
+
+# The wire's second reader. Every other RDF gate in this repository is rdflib
+# reading what rdflib wrote, which cannot catch a defect rdflib is willing to
+# round-trip -- and the oxigraph spike found two such classes in shipped bytes.
+# This parses the one RDF artifact in git with pyoxigraph in strict mode, and
+# sweeps any distribution named by ATLAS_RDF_STRICT_ROOTS (os.pathsep-separated
+# roots, absent by default: distributions are gitignored). Kept beside `lint`
+# rather than inside it so `lint` stays the ~1s ruff gate; both run in CI.
+lint-rdf-strict:
+	uv run python tools/lint_rdf_strict.py
 
 # Fast drift check: does the committed registry manifest still describe the code?
 # This is the failure class that silently accumulates as registry modules are added.
@@ -193,6 +204,32 @@ release-atlas-federal-register-thesaurus:
 		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
 		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
 
+# The determinism gate, in the miniature that runs in 6.4s measured (both
+# builds plus the comparison, 2026-08-13): build the same bounded release twice,
+# into two scratch roots, and require the two trees to be byte-identical. It is the weekly reproducible-rebuild control
+# (docs/seal-design.md section 4) shrunk to a size that can run beside a commit
+# instead of beside a release, and it fails on the failure it is built for --
+# a builder that leaks wall-clock time, a set iteration order, an absolute path
+# or a dict ordering into the bytes it signs. Whole trees, not just the manifest
+# digest: the manifest covers its declared members, not the served Parquet view
+# or the generation report beside it.
+#
+# Reads the pinned publisher captures ($(ATLAS_FR_RELEASE_SOURCE_ROOT), the
+# 2025-04-01 thesaurus PDF) and the portfolio managed release beside this
+# repository, so it belongs in this release section and NOT in `make test`:
+# hosted CI runners have neither. ci.yml carries the same target behind a
+# presence check that skips with a notice.
+ATLAS_FR_DETERMINISM_ROOT ?= output/atlas-3.1-federal-register-thesaurus-determinism
+
+determinism-atlas-federal-register-thesaurus:
+	rm -rf "$(ATLAS_FR_DETERMINISM_ROOT)-a" "$(ATLAS_FR_DETERMINISM_ROOT)-b"
+	$(MAKE) release-atlas-federal-register-thesaurus \
+		ATLAS_FR_RELEASE_ROOT="$(ATLAS_FR_DETERMINISM_ROOT)-a"
+	$(MAKE) release-atlas-federal-register-thesaurus \
+		ATLAS_FR_RELEASE_ROOT="$(ATLAS_FR_DETERMINISM_ROOT)-b"
+	uv run python tools/compare_build_trees.py \
+		"$(ATLAS_FR_DETERMINISM_ROOT)-a" "$(ATLAS_FR_DETERMINISM_ROOT)-b"
+
 # The staging gate to run BEFORE any full build. The Federal Register release is
 # one source unit whose key is already a valid pack-path token, so a build
 # bounded to it exercises neither cross-release ownership nor the unit-key /
@@ -214,6 +251,20 @@ stage-atlas-mapping-topology:
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/validate.py \
 		--distribution "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
+
+# The shapes-change scale gate. Times the SHACL phase alone against a built
+# distribution and fails past 3x the recorded baseline
+# (tools/atlas-shacl-scale-baseline.json). It exists because constraint cost is
+# emergent: the Jena spike measured each of one node shape's constraints fast at
+# 29.3M quads and the shape whole at 40x that, so no reading of a shapes diff
+# predicts its cost. Release tier by weight, not by principle -- the number that
+# matters is measured at release scale, and the runner sized for it is where it
+# belongs (release.yml's acceptance job runs it there).
+ATLAS_SHACL_BENCH_ROOT ?= $(ATLAS_FR_RELEASE_ROOT)
+
+benchmark-atlas-shacl-scale:
+	REFSPEC_ATLAS_VALIDATION_MODE=audit uv run python tools/benchmark_atlas_shacl_scale.py \
+		--distribution "$(ATLAS_SHACL_BENCH_ROOT)"
 
 # Reads both ends and compares them: the exact publisher PDF, whose occurrence
 # ledger is the only place the source-side count exists, and the published
