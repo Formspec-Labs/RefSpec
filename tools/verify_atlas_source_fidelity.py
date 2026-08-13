@@ -6898,7 +6898,13 @@ def check_identifier_retention(ctx: Context) -> CheckResult:
                 for resource in atlas_concepts
                 if resource.startswith("urn:ref:")
             )
-        elif pair.spec.identity_policy in {
+            for resource in unexpected:
+                failures.append(
+                    f"{pair.spec.name}: Atlas concept <{resource}> carries a minted "
+                    "RefSpec identifier where the publisher supplies its own IRI"
+                )
+            continue
+        if pair.spec.identity_policy in {
             "source-local-record",
             "source-scoped-identifier",
         }:
