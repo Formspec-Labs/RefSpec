@@ -2411,6 +2411,22 @@ def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
         return None if value == sentinel else value
     if operation == "presence-boolean":
         return value is not None
+    if operation.startswith("boolean-values:"):
+        try:
+            true_value, false_value = operation.removeprefix(
+                "boolean-values:"
+            ).split(":", 1)
+        except ValueError as error:
+            raise ValueError(
+                f"{label} boolean-values normalization requires true and false text"
+            ) from error
+        if value == true_value:
+            return True
+        if value == false_value:
+            return False
+        raise ValueError(
+            f"{label} expected {true_value!r} or {false_value!r}, observed {value!r}"
+        )
     if not isinstance(value, str):
         raise ValueError(
             f"{label} normalization {operation!r} requires text, observed "
@@ -2733,6 +2749,24 @@ def _read_pattern_rows(
                             fields[derived.field] = derived.prefix + _source_uuid7(
                                 rendered["recordedAt"],
                                 rendered["seed"],
+                            )
+                        elif derived.operation == "source-local-resource-iri":
+                            if (
+                                not isinstance(rendered, Mapping)
+                                or set(rendered)
+                                != {"namespace", "recordedAt", "sourceIri", "sourceKey"}
+                                or not all(isinstance(value, str) for value in rendered.values())
+                            ):
+                                raise ValueError(
+                                    f"{spec.name} source-local identity field "
+                                    f"{derived.field!r} requires namespace, recordedAt, "
+                                    "sourceIri, and sourceKey text"
+                                )
+                            fields[derived.field] = derived.prefix + _source_local_resource_iri(
+                                rendered["namespace"],
+                                rendered["recordedAt"],
+                                rendered["sourceIri"],
+                                rendered["sourceKey"],
                             )
                         else:
                             raise ValueError(
@@ -11461,6 +11495,221 @@ GAO_PATTERN_ROW_SOURCES = (
 )
 
 
+_COURTLISTENER_PATTERN_PIN = _registry_source_pin(
+    "courtlistener-jurisdictions-zyte.html",
+    "sha256:883446028b029078c032bfe7c3545f9e109bb328c79ec486fbbbdbf35580b292",
+    3_156_029,
+    "https://www.courtlistener.com/help/api/jurisdictions/",
+    fmt="html",
+)
+_COURTLISTENER_ROW_PATTERN = (
+    r"<tr>\s*"
+    r"<td>(?P<name>.*?)</td>\s*"
+    r"<td>(?P<count>.*?)</td>\s*"
+    r"<td>(?P<jurisdiction_type>.*?)</td>\s*"
+    r"<td(?P<homepage_attributes>[^>]*)>(?P<homepage>.*?)</td>\s*"
+    r"<td>(?P<court_id>.*?)</td>\s*"
+    r"<td>(?P<citation_abbreviation>.*?)</td>\s*"
+    r"<td>(?P<start_date>.*?)</td>\s*"
+    r"<td>(?P<end_date>.*?)</td>\s*"
+    r"<td>(?P<in_use>.*?)</td>\s*"
+    r"<td>(?P<modified>.*?)</td>\s*"
+    r"</tr>"
+)
+_COURTLISTENER_NORMALIZERS = (
+    *(
+        PatternFieldNormalizer(field, ("html-visible-text",))
+        for field in (
+            "name",
+            "count",
+            "jurisdiction_type",
+            "homepage",
+            "court_id",
+            "citation_abbreviation",
+            "start_date",
+            "end_date",
+            "in_use",
+            "modified",
+        )
+    ),
+    PatternFieldNormalizer("in_use", ("boolean-values:Yes:No",)),
+)
+
+
+def _courtlistener_identifier(kind: str, value: str) -> Mapping[str, Any]:
+    return {
+        "authorityUri": "https://www.courtlistener.com/",
+        "effectiveAt": None,
+        "kind": kind,
+        "observedAt": "2026-08-03T00:00:00Z",
+        "sourceDigest": "{source_digest}",
+        "sourceUri": "{source_iri}",
+        "value": value,
+    }
+
+
+_COURTLISTENER_COURT_ID = _courtlistener_identifier(
+    "courtlistenerCourtId", "{court_id}"
+)
+_COURTLISTENER_JURISDICTION_ID = _courtlistener_identifier(
+    "courtlistenerJurisdictionType", "{jurisdiction_type}"
+)
+_COURTLISTENER_CITATION_ID = _courtlistener_identifier(
+    "courtlistenerCitationAbbreviation", "{citation_abbreviation}"
+)
+
+
+def _courtlistener_payload(
+    identifiers: Sequence[Mapping[str, Any]],
+    *,
+    jurisdiction_type: str | None,
+    citation_abbreviation: str | None,
+) -> Mapping[str, Any]:
+    return {
+        "citationAbbreviation": citation_abbreviation,
+        "endDate": "{end_date}",
+        "identifiers": list(identifiers),
+        "identityStatus": "publisherPlatformIdentifier",
+        "inUse": "{in_use}",
+        "jurisdictionType": jurisdiction_type,
+        "modified": "{modified}",
+        "name": "{name}",
+        "sourceOrdinal": "{match_ordinal}",
+        "startDate": "{start_date}",
+    }
+
+
+def _courtlistener_pattern(
+    *,
+    row_filters: tuple[PatternRowFilter, ...],
+    expected_count: int,
+    native_payload: Mapping[str, Any],
+) -> PatternRowPattern:
+    return PatternRowPattern(
+        input_pattern=re.escape(_COURTLISTENER_PATTERN_PIN.path),
+        region_pattern=(
+            r'<table class="settings-table table">.*?'
+            r"<tbody>(?P<region>.*?)</tbody>"
+        ),
+        row_pattern=_COURTLISTENER_ROW_PATTERN,
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=expected_count,
+        normalizers=_COURTLISTENER_NORMALIZERS,
+        row_filters=row_filters,
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+    )
+
+
+def _courtlistener_pattern_source() -> SourceSpec:
+    complete_payload = _courtlistener_payload(
+        (
+            _COURTLISTENER_COURT_ID,
+            _COURTLISTENER_JURISDICTION_ID,
+            _COURTLISTENER_CITATION_ID,
+        ),
+        jurisdiction_type="{jurisdiction_type}",
+        citation_abbreviation="{citation_abbreviation}",
+    )
+    missing_citation_payload = _courtlistener_payload(
+        (_COURTLISTENER_COURT_ID, _COURTLISTENER_JURISDICTION_ID),
+        jurisdiction_type="{jurisdiction_type}",
+        citation_abbreviation=None,
+    )
+    missing_both_payload = _courtlistener_payload(
+        (_COURTLISTENER_COURT_ID,),
+        jurisdiction_type=None,
+        citation_abbreviation=None,
+    )
+    present = PatternRowFilter(field="jurisdiction_type", pattern=r".+")
+    citation_present = PatternRowFilter(
+        field="citation_abbreviation", pattern=r".+"
+    )
+    selector = PatternRowSelector(
+        patterns=(
+            _courtlistener_pattern(
+                row_filters=(present, citation_present),
+                expected_count=2_061,
+                native_payload=complete_payload,
+            ),
+            _courtlistener_pattern(
+                row_filters=(
+                    present,
+                    PatternRowFilter(
+                        field="citation_abbreviation",
+                        pattern=r".+",
+                        include=False,
+                    ),
+                ),
+                expected_count=1_297,
+                native_payload=missing_citation_payload,
+            ),
+            _courtlistener_pattern(
+                row_filters=(
+                    PatternRowFilter(
+                        field="jurisdiction_type", pattern=r".+", include=False
+                    ),
+                    PatternRowFilter(
+                        field="citation_abbreviation", pattern=r".+", include=False
+                    ),
+                ),
+                expected_count=1,
+                native_payload=missing_both_payload,
+            ),
+        ),
+        row_key="{court_id}",
+        identity_mode="source-key-derived",
+        identity_template="{resource_iri}",
+        source_locator_template="{source_iri}#abbreviation={encoded_court_id}",
+        claim_map=(
+            ("preferred_label", "{name}"),
+            ("notation", "{court_id}"),
+            ("notation", "{citation_abbreviation}"),
+            ("source_path", "{source_iri}#abbreviation={encoded_court_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(complete_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(complete_payload)),
+        expected_count=3_359,
+        declared_unevaluated_fields=(
+            "count",
+            "homepage",
+            "homepage_attributes",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="encoded_court_id",
+                operation="uri-component",
+                template_json=json.dumps("{court_id}"),
+            ),
+            PatternDerivedField(
+                field="resource_iri",
+                operation="source-local-resource-iri",
+                template_json=_canonical_json_bytes(
+                    {
+                        "namespace": "courtlistener",
+                        "recordedAt": "2026-08-03T00:00:00Z",
+                        "sourceIri": "{source_iri}",
+                        "sourceKey": "{court_id}",
+                    }
+                ).decode("utf-8"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "courtlistener-jurisdictions-2026-08-03",
+        (_COURTLISTENER_PATTERN_PIN,),
+        selector,
+    )
+
+
+COURTLISTENER_PATTERN_ROW_SOURCES = (_courtlistener_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -11549,6 +11798,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *FAC_PATTERN_ROW_SOURCES,
     *CENSUS_GEO_PATTERN_ROW_SOURCES,
     *GAO_PATTERN_ROW_SOURCES,
+    *COURTLISTENER_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
