@@ -748,6 +748,7 @@ class SourceExtractSelector:
     source_release_iri: str
     label_language: str
     relation_predicate: str
+    comparison_mode: str = "federal-register-thesaurus"
 
 
 @dataclass(frozen=True)
@@ -888,6 +889,24 @@ class SourceExtractPublisherView:
     declared_publisher_artifact: Mapping[str, Any]
     extract_digest: str
     failures: tuple[str, ...]
+    checked_records: Mapping[str, CheckedExtractRecord] = field(default_factory=dict)
+    declared_publisher_artifacts: tuple[Mapping[str, Any], ...] = ()
+
+
+@dataclass(frozen=True)
+class CheckedExtractRecord:
+    """One frozen semantic restatement of a publisher document row."""
+
+    resource: str
+    pref_labels: frozenset[LiteralValue]
+    alt_labels: frozenset[LiteralValue]
+    hidden_labels: frozenset[LiteralValue]
+    notations: frozenset[LiteralValue]
+    definitions: frozenset[LiteralValue]
+    notes: frozenset[LiteralValue]
+    source_locator: str
+    source_digest: str
+    native_payload: Mapping[str, Any]
 
 
 @dataclass(frozen=True)
@@ -1861,6 +1880,7 @@ class _StockSourceRecord:
     notations: tuple[str, ...]
     source_locator: str
     native_payload: Mapping[str, Any]
+    definitions: tuple[str, ...] = ()
 
 
 def _stock_source_view(
@@ -1875,6 +1895,7 @@ def _stock_source_view(
     pref_labels: dict[str, frozenset[LiteralValue]] = {}
     alt_labels: dict[str, frozenset[LiteralValue]] = {}
     notations: dict[str, frozenset[LiteralValue]] = {}
+    annotations: set[tuple[str, str, LiteralValue]] = set()
     iri_claims: set[tuple[str, str, str]] = set(relations)
     literal_claims: set[tuple[str, str, LiteralValue]] = set()
     predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
@@ -1888,15 +1909,19 @@ def _stock_source_view(
         preferred = _literal_value(record.preferred_label, "en", None)
         alternate = frozenset(_literal_value(value, "en", None) for value in record.alternate_labels)
         notation_values = frozenset(_literal_value(value, None, None) for value in record.notations)
+        definition_values = frozenset(_literal_value(value, "en", None) for value in record.definitions)
         pref_labels[record.resource] = frozenset({preferred})
         alt_labels[record.resource] = alternate
         notations[record.resource] = notation_values
         literal_claims.add((record.resource, SKOS_PREF_LABEL, preferred))
         literal_claims.update((record.resource, SKOS_ALT_LABEL, literal) for literal in alternate)
         literal_claims.update((record.resource, SKOS_NOTATION, literal) for literal in notation_values)
+        literal_claims.update((record.resource, SKOS_DEFINITION, literal) for literal in definition_values)
+        annotations.update((record.resource, SKOS_DEFINITION, literal) for literal in definition_values)
         predicate_counts[(record.resource, SKOS_PREF_LABEL)] = 1
         predicate_counts[(record.resource, SKOS_ALT_LABEL)] = len(alternate)
         predicate_counts[(record.resource, SKOS_NOTATION)] = len(notation_values)
+        predicate_counts[(record.resource, SKOS_DEFINITION)] = len(definition_values)
         resource_input_digests[record.resource] = frozenset({_canonical_json_digest(record.native_payload)})
         resource_locators[record.resource] = record.source_locator
         expected_native_payloads[record.resource] = record.native_payload
@@ -1914,7 +1939,7 @@ def _stock_source_view(
         alt_labels=alt_labels,
         hidden_labels={},
         notations=notations,
-        annotations=frozenset(),
+        annotations=frozenset(annotations),
         resource_annotations=frozenset(),
         resource_annotation_target_claim_counts={},
         literal_claims=frozenset(literal_claims),
@@ -1973,6 +1998,7 @@ OPM_PLUM_CSV_READER = "opm-plum-controlled-values-csv-v1"
 NAICS_PSC_XLSX_READER = "naics-psc-workbook-v1"
 TREASURY_FAST_BOOK_XLSX_READER = "treasury-fast-book-parts-ii-iii-xlsx-v1"
 NPPES_CSV_READER = "nppes-layout-and-provider-sample-csv-v1"
+GSDM_DATA_DICTIONARY_JSON_READER = "gsdm-data-dictionary-json-v1"
 
 _OPM_EHRI_EXPECTED_COUNTS = (534, 17_263, 16_425)
 _OPM_PLUM_EXPECTED_ROW_COUNT = 15_777
@@ -1988,6 +2014,9 @@ _FAST_BOOK_EXPECTED_PART_COUNTS = {"II": 3_442, "III": 140}
 _FAST_BOOK_EXPECTED_ACCOUNT_COUNT = 3_581
 _NPPES_EXPECTED_LAYOUT_COLUMN_COUNT = 330
 _NPPES_EXPECTED_PROVIDER_COUNT = 3
+_GSDM_EXPECTED_ROW_COUNT = 457
+_GSDM_EXPECTED_HEADER_COUNT = 17
+_GSDM_EXPECTED_ROW_WIDTH = 18
 
 
 def _load_xlsx(payload: bytes, source: str) -> Any:
@@ -2673,6 +2702,99 @@ def _read_nppes_csv(
     return _stock_source_view(records, frozenset(), spec.inputs)
 
 
+def _read_gsdm_data_dictionary_json(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read every GSDM data-dictionary row with the stock JSON parser."""
+    pins_by_role = {pin.role: pin for pin in spec.inputs}
+    dictionary_pin = pins_by_role.get("completeOnlineDataDictionary")
+    if dictionary_pin is None:
+        raise ValueError("GSDM reader requires the complete online dictionary pin")
+    data = _json_without_duplicate_keys(
+        authenticated_payloads[dictionary_pin],
+        "GSDM data dictionary",
+    )
+    if not isinstance(data, Mapping) or set(data) != {"document"}:
+        raise ValueError("GSDM data dictionary root shape drifted")
+    document = data["document"]
+    if not isinstance(document, Mapping) or set(document) != {
+        "headers",
+        "metadata",
+        "rows",
+        "sections",
+    }:
+        raise ValueError("GSDM data dictionary document shape drifted")
+    raw_headers = document["headers"]
+    if not isinstance(raw_headers, list) or len(raw_headers) != _GSDM_EXPECTED_HEADER_COUNT:
+        raise ValueError("GSDM data dictionary header count drifted")
+    header_keys: list[str] = []
+    for ordinal, header in enumerate(raw_headers):
+        if (
+            not isinstance(header, Mapping)
+            or set(header) != {"display", "raw"}
+            or not isinstance(header.get("display"), str)
+            or not header["display"]
+            or not isinstance(header.get("raw"), str)
+            or not header["raw"]
+        ):
+            raise ValueError(f"GSDM data dictionary header {ordinal} shape drifted")
+        header_keys.append(str(header["raw"]))
+    metadata = document["metadata"]
+    if not isinstance(metadata, Mapping) or metadata.get("total_rows") != _GSDM_EXPECTED_ROW_COUNT:
+        raise ValueError("GSDM data dictionary metadata row count drifted")
+    sections = document["sections"]
+    if not isinstance(sections, list) or any(not isinstance(row, Mapping) for row in sections):
+        raise ValueError("GSDM data dictionary sections shape drifted")
+    rows = document["rows"]
+    if not isinstance(rows, list) or len(rows) != _GSDM_EXPECTED_ROW_COUNT:
+        raise ValueError("GSDM data dictionary row count drifted")
+
+    records: list[_StockSourceRecord] = []
+    seen_elements: set[str] = set()
+    for ordinal, row in enumerate(rows):
+        if not isinstance(row, list) or len(row) != _GSDM_EXPECTED_ROW_WIDTH:
+            raise ValueError(f"GSDM data dictionary row {ordinal} width drifted")
+        if any(
+            cell is not None and not isinstance(cell, (str, int, float, bool))
+            for cell in row
+        ):
+            raise ValueError(f"GSDM data dictionary row {ordinal} contains a non-scalar cell")
+        element = row[0]
+        if (
+            not isinstance(element, str)
+            or not element.strip()
+            or element != element.strip()
+            or element in seen_elements
+        ):
+            raise ValueError(f"GSDM data dictionary row {ordinal} has a malformed or repeated element")
+        seen_elements.add(element)
+        cells = {key: row[position] for position, key in enumerate(header_keys)}
+        cells["R:unlabeled_publisher_cell"] = row[-1]
+        native_payload = {
+            "ordinal": ordinal,
+            "cells": cells,
+            "publisherHeaderCount": len(header_keys),
+            "publisherRowWidth": len(row),
+        }
+        definition = row[1] if isinstance(row[1], str) else None
+        records.append(
+            _StockSourceRecord(
+                resource=(
+                    "urn:ref:gsdm:data-element:"
+                    + urllib.parse.quote(element, safe="")
+                ),
+                preferred_label=element,
+                alternate_labels=(),
+                notations=(),
+                source_locator=str(dictionary_pin.source_iri),
+                native_payload=native_payload,
+                definitions=(definition,) if definition is not None else (),
+            )
+        )
+    return _stock_source_view(records, frozenset(), spec.inputs)
+
+
 _PUBLISHER_READERS: Mapping[
     str,
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
@@ -2682,12 +2804,14 @@ _PUBLISHER_READERS: Mapping[
     NAICS_PSC_XLSX_READER: _read_naics_psc_xlsx,
     TREASURY_FAST_BOOK_XLSX_READER: _read_treasury_fast_book_xlsx,
     NPPES_CSV_READER: _read_nppes_csv,
+    GSDM_DATA_DICTIONARY_JSON_READER: _read_gsdm_data_dictionary_json,
 }
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
     "federal-register-thesaurus-2025-styled-pdf-v1/1.0"
 )
+PDF_CHECKED_SEMANTIC_EXTRACT_READER = "refspec-pdf-checked-semantic-extract-v1/1.0"
 
 
 def _source_extract_failure_view(
@@ -2896,6 +3020,181 @@ def _read_federal_register_thesaurus_2025_extract(
     )
 
 
+def _read_checked_pdf_semantic_extract(
+    payload: bytes,
+    selector: SourceExtractSelector,
+) -> SourceExtractPublisherView:
+    """Read a frozen PDF semantic restatement with the stock JSON parser."""
+    failures: list[str] = []
+    extract_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+    try:
+        data = _json_without_duplicate_keys(payload, "PDF checked semantic extract")
+    except (UnicodeError, ValueError) as error:
+        return _source_extract_failure_view(
+            extract_digest,
+            [f"PDF checked semantic extract is not valid JSON: {error}"],
+        )
+    if not isinstance(data, Mapping):
+        return _source_extract_failure_view(
+            extract_digest,
+            ["PDF checked semantic extract must be a JSON object"],
+        )
+    expected_fields = {
+        "schemaVersion",
+        "reader",
+        "sourceReleaseIri",
+        "sourceArtifacts",
+        "records",
+        "relations",
+    }
+    if set(data) != expected_fields:
+        failures.append(
+            "PDF checked semantic extract top-level fields differ -- expected "
+            f"{sorted(expected_fields)}, observed {sorted(data)}"
+        )
+    if f"{data.get('reader')}/{data.get('schemaVersion')}" != PDF_CHECKED_SEMANTIC_EXTRACT_READER:
+        failures.append(
+            "PDF checked semantic extract version differs -- expected "
+            f"{PDF_CHECKED_SEMANTIC_EXTRACT_READER!r}"
+        )
+    if data.get("sourceReleaseIri") != selector.source_release_iri:
+        failures.append(
+            "PDF checked semantic extract source release differs -- expected "
+            f"{selector.source_release_iri!r}, observed {data.get('sourceReleaseIri')!r}"
+        )
+
+    raw_artifacts = data.get("sourceArtifacts")
+    artifacts: list[Mapping[str, Any]] = []
+    if not isinstance(raw_artifacts, list):
+        failures.append("PDF checked semantic extract sourceArtifacts must be an array")
+    else:
+        for index, artifact in enumerate(raw_artifacts):
+            if not isinstance(artifact, Mapping) or set(artifact) != {
+                "byteLength",
+                "id",
+                "path",
+                "role",
+                "sha256",
+            }:
+                failures.append(
+                    f"PDF checked semantic extract sourceArtifacts[{index}] is malformed"
+                )
+                continue
+            artifacts.append(dict(artifact))
+
+    def literal_set(value: Any, label: str) -> frozenset[LiteralValue]:
+        if not isinstance(value, list):
+            failures.append(f"{label} must be an array")
+            return frozenset()
+        result: set[LiteralValue] = set()
+        for index, row in enumerate(value):
+            if (
+                not isinstance(row, Mapping)
+                or set(row) != {"datatype", "language", "value"}
+                or not isinstance(row.get("value"), str)
+                or (row.get("language") is not None and not isinstance(row.get("language"), str))
+                or (row.get("datatype") is not None and not isinstance(row.get("datatype"), str))
+                or (row.get("language") is not None and row.get("datatype") is not None)
+            ):
+                failures.append(f"{label}[{index}] is not an exact RDF literal")
+                continue
+            result.add(
+                _literal_value(
+                    str(row["value"]),
+                    row.get("language"),
+                    row.get("datatype"),
+                )
+            )
+        return frozenset(result)
+
+    raw_records = data.get("records")
+    records: dict[str, CheckedExtractRecord] = {}
+    record_fields = {
+        "alternateLabels",
+        "definitions",
+        "hiddenLabels",
+        "nativePayload",
+        "notations",
+        "notes",
+        "preferredLabels",
+        "resourceIri",
+        "sourceDigest",
+        "sourceLocator",
+    }
+    if not isinstance(raw_records, list):
+        failures.append("PDF checked semantic extract records must be an array")
+        raw_records = []
+    for index, row in enumerate(raw_records):
+        label = f"PDF checked semantic extract records[{index}]"
+        if not isinstance(row, Mapping) or set(row) != record_fields:
+            failures.append(f"{label} fields are malformed")
+            continue
+        resource = row.get("resourceIri")
+        locator = row.get("sourceLocator")
+        digest = row.get("sourceDigest")
+        native = row.get("nativePayload")
+        if (
+            not isinstance(resource, str)
+            or ":" not in resource
+            or resource in records
+            or not isinstance(locator, str)
+            or ":" not in locator
+            or not isinstance(digest, str)
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None
+            or not isinstance(native, Mapping)
+        ):
+            failures.append(f"{label} identity, provenance, or native payload is malformed")
+            continue
+        expected_digest = _canonical_json_digest(native)
+        if digest != expected_digest:
+            failures.append(
+                f"{label} sourceDigest differs from its canonical nativePayload -- "
+                f"expected {expected_digest}, observed {digest}"
+            )
+        records[resource] = CheckedExtractRecord(
+            resource=resource,
+            pref_labels=literal_set(row.get("preferredLabels"), f"{label}.preferredLabels"),
+            alt_labels=literal_set(row.get("alternateLabels"), f"{label}.alternateLabels"),
+            hidden_labels=literal_set(row.get("hiddenLabels"), f"{label}.hiddenLabels"),
+            notations=literal_set(row.get("notations"), f"{label}.notations"),
+            definitions=literal_set(row.get("definitions"), f"{label}.definitions"),
+            notes=literal_set(row.get("notes"), f"{label}.notes"),
+            source_locator=locator,
+            source_digest=digest,
+            native_payload=dict(native),
+        )
+
+    raw_relations = data.get("relations")
+    relations: set[tuple[str, str, str]] = set()
+    if not isinstance(raw_relations, list):
+        failures.append("PDF checked semantic extract relations must be an array")
+        raw_relations = []
+    for index, row in enumerate(raw_relations):
+        if not isinstance(row, Mapping) or set(row) != {"object", "predicate", "subject"}:
+            failures.append(f"PDF checked semantic extract relations[{index}] is malformed")
+            continue
+        relation = (row.get("subject"), row.get("predicate"), row.get("object"))
+        if not all(isinstance(value, str) and ":" in value for value in relation):
+            failures.append(f"PDF checked semantic extract relations[{index}] is malformed")
+            continue
+        relations.add(relation)  # type: ignore[arg-type]
+
+    return SourceExtractPublisherView(
+        concept_labels={},
+        concept_entry_ids={},
+        concept_locators={},
+        alternate_labels={},
+        alternate_label_occurrence_count=0,
+        relations=frozenset(relations),
+        unrepresented_rows={},
+        declared_publisher_artifact={},
+        extract_digest=extract_digest,
+        failures=tuple(failures),
+        checked_records=dict(sorted(records.items())),
+        declared_publisher_artifacts=tuple(artifacts),
+    )
+
+
 _SOURCE_EXTRACT_READERS: Mapping[
     str,
     Callable[[bytes, SourceExtractSelector], SourceExtractPublisherView],
@@ -2903,6 +3202,7 @@ _SOURCE_EXTRACT_READERS: Mapping[
     FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER: (
         _read_federal_register_thesaurus_2025_extract
     ),
+    PDF_CHECKED_SEMANTIC_EXTRACT_READER: _read_checked_pdf_semantic_extract,
 }
 
 
@@ -3799,6 +4099,42 @@ def _registry_source_pin(
         role=role,
         source_iri=source_iri,
         construction_path=f"refspec/output/registry-real-data-sources/{filename}",
+    )
+
+
+def _checked_pdf_source_spec(
+    *,
+    key: str,
+    inputs: tuple[SourcePin, ...],
+    source_release_iri: str,
+    extract_sha256: str,
+    extract_byte_length: int,
+) -> SourceSpec:
+    """Declare one PDF comparison through a pinned semantic restatement."""
+    extract_path = (
+        "research/evidence/atlas-source-fidelity-pdf-extracts-2026-08-13/"
+        f"{key}.json"
+    )
+    return SourceSpec(
+        name=key,
+        kind="source-extract",
+        release_keys=(key,),
+        inputs=inputs,
+        source_extract=SourceExtractSelector(
+            reader=PDF_CHECKED_SEMANTIC_EXTRACT_READER,
+            extract=SourcePin(
+                path=extract_path,
+                sha256=extract_sha256,
+                byte_length=extract_byte_length,
+                fmt="json",
+                role="repositoryCheckedSourceExtract",
+                source_iri=source_release_iri,
+            ),
+            source_release_iri=source_release_iri,
+            label_language="en",
+            relation_predicate=f"{SKOS}related",
+            comparison_mode="checked-pdf-semantic-extract",
+        ),
     )
 
 
@@ -4723,6 +5059,203 @@ SOURCES: tuple[SourceSpec, ...] = (
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(frozenset({"entityTypeCode", "identifier", "publisherLabel", "fields"})),
+    ),
+    SourceSpec(
+        name="gsdm-online-data-dictionary-2026-08-03",
+        kind="vocabulary",
+        release_keys=("gsdm-online-data-dictionary-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path="gsdm-data-dictionary-2026-08-03.json",
+                sha256="sha256:3d0f2e3a952297050db5c2a4addf40765460a49d499427da1b57ef3c7edea3c3",
+                byte_length=358_054,
+                fmt="json",
+                role="completeOnlineDataDictionary",
+                source_iri="https://api.usaspending.gov/api/v2/references/data_dictionary/",
+                construction_path="output/registry-real-data-sources/gsdm-data-dictionary-2026-08-03.json",
+            ),
+            SourcePin(
+                path="gsdm-architecture-v1.0.1.pdf",
+                sha256="sha256:6901ce4004e3338e54a69abb59d81205680d63f25e8dca0f9a92815dff6ced9d",
+                byte_length=363_340,
+                fmt="pdf",
+                role="architectureDocument",
+                source_iri="https://fiscal.treasury.gov/files/data-transparency/gsdm-architecture-v1.0.1.pdf",
+                construction_path="output/registry-real-data-sources/gsdm-architecture-v1.0.1.pdf",
+            ),
+        ),
+        reader=GSDM_DATA_DICTIONARY_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"ordinal", "cells", "publisherHeaderCount", "publisherRowWidth"})
+        ),
+    ),
+    _checked_pdf_source_spec(
+        key="ferc-document-class-types",
+        inputs=(
+            SourcePin(
+                path="ferc-class-types-january-2025.pdf",
+                sha256="sha256:af632c9c6adbf0e7919d17e018b3a65078d0746bd1ab69a8d9fa65043720d688",
+                byte_length=193_934,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://www.ferc.gov/sites/default/files/2025-06/Document%20Class%20Types%20January%202025.pdf",
+                construction_path="output/registry-real-data-sources/ferc-class-types-january-2025.pdf",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:ferc-document-class-types:af632c9c6adbf0e7919d17e018b3a65078d0746bd1ab69a8d9fa65043720d688",
+        extract_sha256="sha256:1b54d276cfe5a703ed0d1b521b1bb7d7c8f716933eb4ed6b71c617725c858a02",
+        extract_byte_length=179_189,
+    ),
+    _checked_pdf_source_spec(
+        key="ferc-docket-prefixes",
+        inputs=(
+            SourcePin(
+                path="ferc-docket-prefix-june-2025.pdf",
+                sha256="sha256:c32efae9f51a70b6f955821d2fb3d3025995ef0e17e57bf2d32dfa16c2508dcb",
+                byte_length=282_729,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://elibrary.ferc.gov/eLibrary/assets/docket-prefix.pdf",
+                construction_path="output/registry-real-data-sources/ferc-docket-prefix-june-2025.pdf",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:ferc-docket-prefixes:c32efae9f51a70b6f955821d2fb3d3025995ef0e17e57bf2d32dfa16c2508dcb",
+        extract_sha256="sha256:0ce47ac414af6d282ddee50d509cf74fe7e51c850b536db1eba74e65e06aa87a",
+        extract_byte_length=79_739,
+    ),
+    _checked_pdf_source_spec(
+        key="omb-a11-functional-classification",
+        inputs=(
+            SourcePin(
+                path="omb-a11-2025-wayback.pdf",
+                sha256="sha256:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+                byte_length=15_124_998,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://www.whitehouse.gov/wp-content/uploads/2025/08/a11.pdf",
+                construction_path="output/registry-real-data-sources/omb-a11-2025-wayback.pdf",
+            ),
+            SourcePin(
+                path="tests/fixtures/omb_a11_budget_codes/exhibit-79a-functional-classification-2025.txt",
+                sha256="sha256:0a8f141ffbbd83b4d9de7e099249ff6eb4eed53c688b14afbde3e9a2f0e496bb",
+                byte_length=3_635,
+                fmt="text",
+                role="publisherPdfTextExtraction",
+                source_iri="urn:ref:derived-artifact:0a8f141ffbbd83b4d9de7e099249ff6eb4eed53c688b14afbde3e9a2f0e496bb",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:omb-a11-functional-classification:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+        extract_sha256="sha256:af7633c94c618b687e087613a2483121b718ddc02cd7f7273fafed21b7482b0d",
+        extract_byte_length=124_044,
+    ),
+    _checked_pdf_source_spec(
+        key="omb-a11-object-classification",
+        inputs=(
+            SourcePin(
+                path="omb-a11-2025-wayback.pdf",
+                sha256="sha256:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+                byte_length=15_124_998,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://www.whitehouse.gov/wp-content/uploads/2025/08/a11.pdf",
+                construction_path="output/registry-real-data-sources/omb-a11-2025-wayback.pdf",
+            ),
+            SourcePin(
+                path="tests/fixtures/omb_a11_budget_codes/exhibit-83a-object-classification-2025.txt",
+                sha256="sha256:3714b8b88982f87dc491061d316bc89dbc2151a97b3aa7b3add1726738b4b325",
+                byte_length=1_886,
+                fmt="text",
+                role="publisherPdfTextExtraction",
+                source_iri="urn:ref:derived-artifact:3714b8b88982f87dc491061d316bc89dbc2151a97b3aa7b3add1726738b4b325",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:omb-a11-object-classification:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+        extract_sha256="sha256:793e7c64773afdcdc7dad55e7ce994b4faa1fa96853f069c1a3910217e4678ea",
+        extract_byte_length=62_560,
+    ),
+    _checked_pdf_source_spec(
+        key="omb-a11-apportionment-categories",
+        inputs=(
+            SourcePin(
+                path="omb-a11-2025-wayback.pdf",
+                sha256="sha256:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+                byte_length=15_124_998,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://www.whitehouse.gov/wp-content/uploads/2025/08/a11.pdf",
+                construction_path="output/registry-real-data-sources/omb-a11-2025-wayback.pdf",
+            ),
+            SourcePin(
+                path="tests/fixtures/omb_a11_budget_codes/section-120-13-apportionment-categories-2025.txt",
+                sha256="sha256:e0e4f4d718add1b21d5106f454e45e3c30a0a5896a964032b3dc249b1aeb871a",
+                byte_length=3_377,
+                fmt="text",
+                role="publisherPdfTextExtraction",
+                source_iri="urn:ref:derived-artifact:e0e4f4d718add1b21d5106f454e45e3c30a0a5896a964032b3dc249b1aeb871a",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:omb-a11-apportionment-categories:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+        extract_sha256="sha256:3e22f8be49173b375b57bce16b6d10f185a2af5c84024c0675a23f6ada7bcdbe",
+        extract_byte_length=13_417,
+    ),
+    _checked_pdf_source_spec(
+        key="uscourts-nature-of-suit",
+        inputs=(
+            SourcePin(
+                path="js_044_code_descriptions.pdf",
+                sha256="sha256:aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95",
+                byte_length=316_187,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://www.uscourts.gov/sites/default/files/js_044_code_descriptions.pdf",
+                construction_path="output/registry-real-data-sources/js_044_code_descriptions.pdf",
+            ),
+            SourcePin(
+                path="tests/fixtures/nature_of_suit_codes/js_044_code_descriptions.layout.txt",
+                sha256="sha256:dcb5ac0d1da85ad597d1e7ae07e91b6b8193e6eb19ae6403a050607eebfde1f2",
+                byte_length=32_211,
+                fmt="text",
+                role="publisherPdfTextExtraction",
+                source_iri="urn:ref:derived-artifact:dcb5ac0d1da85ad597d1e7ae07e91b6b8193e6eb19ae6403a050607eebfde1f2",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:uscourts-nature-of-suit:aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95",
+        extract_sha256="sha256:191d8077898bdce3d0a7ab8bb3d179fda24c6321a23a64d4f64388519700d13e",
+        extract_byte_length=161_963,
+    ),
+    _checked_pdf_source_spec(
+        key="unified-agenda-legal-authority-citation-types",
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/unified_agenda_codes/risc-preamble-202210.pdf",
+                sha256="sha256:b7372fec456cf0c346bd23528ae227913e37f546bb1c03689da19ee6a44cb2a5",
+                byte_length=148_467,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://www.reginfo.gov/public/jsp/eAgenda/StaticContent/202210/RiscPreamble.pdf",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:unified-agenda-legal-authority:b7372fec456cf0c346bd23528ae227913e37f546bb1c03689da19ee6a44cb2a5",
+        extract_sha256="sha256:245a183fba0d5c44941e525e81007ebf90c89fccb9bcbcad2f319d1548e36f42",
+        extract_byte_length=3_524,
+    ),
+    _checked_pdf_source_spec(
+        key="usgs-gnis-identifiers",
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/census_geo_codes/gnis-file-format-2026-08-03.pdf",
+                sha256="sha256:cd9dad49f8584f60ab4a68ab43cb416d06513688329463846cc1156b78cd0eea",
+                byte_length=283_712,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri="https://prd-tnm.s3.amazonaws.com/StagedProducts/GeographicNames/GNIS_file_format.pdf",
+            ),
+        ),
+        source_release_iri="urn:ref:registry-release:usgs-gnis-identifiers:e2ccac509190eba8d9093f022195efaa5328031e83fe0681c00d07bbdb5cd7fd",
+        extract_sha256="sha256:aa793f2db1ec6469e5e4f52c010d2e36dfea7d5b58b632090b1019046e6aaff7",
+        extract_byte_length=5_622,
     ),
     SourceSpec(
         name="federal-register-thesaurus-2025",
@@ -6199,6 +6732,131 @@ def _source_extract_atlas_view(pair: SourceExtractPair) -> KeyedAtlasExtractView
     )
 
 
+def _checked_pdf_extract_failures(
+    pair: SourceExtractPair,
+    selector: SourceExtractSelector,
+) -> tuple[list[str], int]:
+    """Compare one frozen PDF restatement with every represented Atlas claim."""
+    source = pair.spec.name
+    failures: list[str] = []
+    expected_artifacts = sorted(
+        (
+            {
+                "path": pin.construction_path or pin.path,
+                "sha256": pin.sha256,
+                "byteLength": pin.byte_length,
+                "role": pin.role,
+                "id": pin.source_iri,
+            }
+            for pin in pair.spec.inputs
+        ),
+        key=lambda row: (str(row["path"]), str(row["role"])),
+    )
+    observed_artifacts = sorted(
+        (dict(row) for row in pair.publisher.declared_publisher_artifacts),
+        key=lambda row: (str(row.get("path")), str(row.get("role"))),
+    )
+    if observed_artifacts != expected_artifacts:
+        failures.append(
+            f"{source}: checked semantic extract publisher artifact bindings differ -- "
+            f"expected {expected_artifacts!r}, observed {observed_artifacts!r}"
+        )
+    publisher_pin = next(
+        (pin for pin in pair.spec.inputs if pin.role == "publisherSource"),
+        None,
+    )
+    if publisher_pin is None:
+        failures.append(f"{source}: comparison declares no publisher artifact pin")
+    else:
+        release_digest = next(
+            (
+                literal.value
+                for subject, predicate, literal in pair.atlas.all_raw_literal_claims
+                if subject == selector.source_release_iri
+                and predicate == ATLAS_SOURCE_DIGEST
+            ),
+            None,
+        )
+        if release_digest != publisher_pin.sha256:
+            failures.append(
+                f"{source}: Atlas source release <{selector.source_release_iri}> declares "
+                f"digest {release_digest!r}, not the authenticated publisher bytes "
+                f"{publisher_pin.sha256!r}"
+            )
+
+    record_by_target: dict[str, str] = {}
+    for record, target in pair.atlas.record_targets.items():
+        if target in record_by_target:
+            failures.append(
+                f"{source}: Atlas has more than one source record for <{target}>"
+            )
+        record_by_target[target] = record
+    publisher_resources = set(pair.publisher.checked_records)
+    atlas_resources = set(record_by_target)
+    for resource in sorted(publisher_resources - atlas_resources):
+        failures.append(
+            f"{source}: checked semantic extract resource <{resource}> is not asserted by Atlas"
+        )
+    for resource in sorted(atlas_resources - publisher_resources):
+        failures.append(
+            f"{source}: Atlas asserts <{resource}>, which the checked semantic extract does not contain"
+        )
+
+    compared = 0
+    literal_roles = (
+        ("preferred labels", "pref_labels", pair.atlas.pref_labels),
+        ("alternate labels", "alt_labels", pair.atlas.alt_labels),
+        ("hidden labels", "hidden_labels", pair.atlas.hidden_labels),
+        ("notations", "notations", pair.atlas.notations),
+        ("definitions", "definitions", pair.atlas.definitions),
+        ("notes", "notes", pair.atlas.notes),
+    )
+    for resource in sorted(publisher_resources & atlas_resources):
+        compared += 1
+        expected_record = pair.publisher.checked_records[resource]
+        for role, field_name, atlas_values in literal_roles:
+            expected_values = getattr(expected_record, field_name)
+            observed_values = atlas_values.get(resource, frozenset())
+            if observed_values != expected_values:
+                failures.append(
+                    f"{source}: <{resource}> {role} differ -- expected "
+                    f"{sorted(_literal_repr(item) for item in expected_values)}, observed "
+                    f"{sorted(_literal_repr(item) for item in observed_values)}"
+                )
+        record = record_by_target[resource]
+        observed_locator = pair.atlas.record_source_locators.get(record)
+        if observed_locator != expected_record.source_locator:
+            failures.append(
+                f"{source}: <{resource}> source locator differs -- expected "
+                f"{expected_record.source_locator!r}, observed {observed_locator!r}"
+            )
+        observed_digest = pair.atlas.record_source_digests.get(record)
+        if observed_digest != expected_record.source_digest:
+            failures.append(
+                f"{source}: <{resource}> source digest differs -- expected "
+                f"{expected_record.source_digest!r}, observed {observed_digest!r}"
+            )
+        observed_native = pair.atlas.native_payloads.get(record)
+        if observed_native != expected_record.native_payload:
+            failures.append(
+                f"{source}: <{resource}> native payload differs from the checked semantic extract"
+            )
+
+    missing_relations = pair.publisher.relations - pair.atlas.relations
+    added_relations = pair.atlas.relations - pair.publisher.relations
+    for subject, predicate, obj in sorted(missing_relations):
+        failures.append(
+            f"{source}: checked semantic extract relation <{subject}> {_short(predicate)} "
+            f"<{obj}> is not asserted by Atlas"
+        )
+    for subject, predicate, obj in sorted(added_relations):
+        failures.append(
+            f"{source}: Atlas asserts relation <{subject}> {_short(predicate)} <{obj}>, "
+            "which the checked semantic extract does not contain"
+        )
+    return failures, compared
+
+
 def check_source_extract_fidelity(ctx: Context) -> CheckResult:
     """Compare Atlas packs with the checked-in extract of a non-RDF publisher artifact."""
     failures = _incomplete_evaluation_failure(
@@ -6214,6 +6872,14 @@ def check_source_extract_fidelity(ctx: Context) -> CheckResult:
             failures.append(f"{source}: source-extract selector is missing")
             continue
         failures.extend(f"{source}: {detail}" for detail in pair.publisher.failures)
+        if selector.comparison_mode == "checked-pdf-semantic-extract":
+            pair_failures, pair_compared = _checked_pdf_extract_failures(
+                pair,
+                selector,
+            )
+            failures.extend(pair_failures)
+            compared_concepts += pair_compared
+            continue
 
         publisher_pin = next(
             (pin for pin in pair.spec.inputs if pin.role == "publisherSource"),
@@ -9816,6 +10482,153 @@ def _source_extract_claim_scope(
 
     selector = spec.source_extract
     publisher = pair.publisher
+    if selector.comparison_mode == "checked-pdf-semantic-extract":
+        record_by_target = {
+            target: record for record, target in pair.atlas.record_targets.items()
+        }
+
+        def source_literals(field_name: str) -> set[tuple[str, LiteralValue]]:
+            return {
+                (resource, literal)
+                for resource, record in publisher.checked_records.items()
+                for literal in getattr(record, field_name)
+            }
+
+        def atlas_literals(
+            values: Mapping[str, frozenset[LiteralValue]],
+        ) -> set[tuple[str, LiteralValue]]:
+            return {
+                (resource, literal)
+                for resource, literals in values.items()
+                if resource in record_by_target
+                for literal in literals
+            }
+
+        source_provenance = {
+            (
+                resource,
+                record.source_locator,
+                record.source_digest,
+                json.dumps(record.native_payload, sort_keys=True, separators=(",", ":")),
+            )
+            for resource, record in publisher.checked_records.items()
+        }
+        atlas_provenance = {
+            (
+                target,
+                pair.atlas.record_source_locators.get(record),
+                pair.atlas.record_source_digests.get(record),
+                json.dumps(
+                    pair.atlas.native_payloads.get(record),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            )
+            for target, record in record_by_target.items()
+        }
+        literal_families = (
+            ("preferredLabels", "pref_labels", pair.atlas.pref_labels, (SKOSXL_PREF_LABEL, SKOSXL_LITERAL_FORM)),
+            ("alternateLabels", "alt_labels", pair.atlas.alt_labels, (SKOSXL_ALT_LABEL, SKOSXL_LITERAL_FORM)),
+            ("hiddenLabels", "hidden_labels", pair.atlas.hidden_labels, (SKOSXL_HIDDEN_LABEL, SKOSXL_LITERAL_FORM)),
+            ("notations", "notations", pair.atlas.notations, (ATLAS_NOTATION,)),
+            ("definitions", "definitions", pair.atlas.definitions, (ATLAS_DEFINITION,)),
+            ("notes", "notes", pair.atlas.notes, (ATLAS_NOTE,)),
+        )
+        families = [
+            _claim_family(
+                name="resourceIdentities",
+                source_predicates=(),
+                atlas_predicates=(ATLAS_REPRESENTS_RESOURCE,),
+                source_claims=set(publisher.checked_records),
+                atlas_claims=set(record_by_target),
+                checked_by="source-extract-fidelity",
+                joinedOn="resourceIri",
+            ),
+            *(
+                _claim_family(
+                    name=name,
+                    source_predicates=(),
+                    atlas_predicates=atlas_predicates,
+                    source_claims=source_literals(field_name),
+                    atlas_claims=atlas_literals(atlas_values),
+                    checked_by="source-extract-fidelity",
+                    languageAndDatatypeCompared=True,
+                    lexicalFormRetained=True,
+                )
+                for name, field_name, atlas_values, atlas_predicates in literal_families
+            ),
+            _claim_family(
+                name="relations",
+                source_predicates=(),
+                atlas_predicates=(RDF_SUBJECT, RDF_PREDICATE, RDF_OBJECT),
+                source_claims=set(publisher.relations),
+                atlas_claims=set(pair.atlas.relations),
+                checked_by="source-extract-fidelity",
+                sourceDirectionRetained=True,
+            ),
+            _claim_family(
+                name="sourceRecordProvenanceAndNativePayload",
+                source_predicates=(),
+                atlas_predicates=(
+                    ATLAS_SOURCE_LOCATOR,
+                    ATLAS_SOURCE_DIGEST,
+                    ATLAS_NATIVE_PAYLOAD,
+                ),
+                source_claims=source_provenance,
+                atlas_claims=atlas_provenance,
+                checked_by="source-extract-fidelity",
+            ),
+            _claim_family(
+                name="completeSourceEvaluation",
+                source_predicates=(),
+                atlas_predicates=(ATLAS_REPRESENTS_RESOURCE,),
+                source_claims=set(),
+                atlas_claims=set(),
+                checked_by="source-extract-fidelity",
+                status=("differences-found" if evaluation_failures else "exact"),
+                evaluationFailureCount=len(evaluation_failures),
+                evaluatedClaims=(
+                    "publisher artifact bindings, resource identities, every label role, "
+                    "notations, definitions, notes, relations, source locators, source "
+                    "digests, and complete native payloads"
+                ),
+            ),
+        ]
+        statuses = {family["status"] for family in families}
+        return {
+            "status": (
+                "differences-found"
+                if statuses & {"differences-found", "unrepresented"}
+                or publisher.failures
+                or evaluation_failures
+                else "exact"
+            ),
+            "claimFamilies": families,
+            "intentionallyExcludedFamilies": [
+                {
+                    "name": "atlasRepresentationStructure",
+                    "reason": (
+                        "classes, rings, profiles, releases, schemes, source records, "
+                        "relation assertions, identifiers, lifecycle fields, and rkaf "
+                        "evidence bindings are Atlas-minted and are not publisher claims"
+                    ),
+                }
+            ],
+            "unexpectedPublisherPredicates": [],
+            "comparisonBasis": {
+                "reader": selector.reader,
+                "extractPath": selector.extract.path,
+                "extractSha256": selector.extract.sha256,
+                "extractByteLength": selector.extract.byte_length,
+                "observedExtractDigest": publisher.extract_digest,
+                "independentReparseOfPublisherBytes": False,
+                "note": (
+                    "the comparison basis is a repository-checked semantic restatement "
+                    "of authenticated PDF source material; it is frozen evidence, not "
+                    "an independent re-parse of the publisher bytes"
+                ),
+            },
+        }
     keyed = _source_extract_atlas_view(pair)
     source_concepts = set(publisher.concept_labels)
     source_pref = {
