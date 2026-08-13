@@ -798,6 +798,20 @@ class GNISFieldDefinition:
     description: str
     standard_citation: str
     source_ordinal: int
+    # Whether ``description`` is the publisher's own wording or ours.
+    #
+    # Two of the three fields below cannot quote the source: the PDF's
+    # description cells for state_numeric and county_numeric are merged with
+    # state_name and county_name and describe the NAME fields ("The name of the
+    # state containing the primary coordinates"), so there is no publisher
+    # sentence about the numeric code to transcribe. The descriptions we publish
+    # for them are accurate -- they restate Appendix 3's "unique two-number
+    # state code" and "unique three-number county code" against the table's Type
+    # and Length columns -- but they are OUR sentences, published under the
+    # source document's digest. A consumer reading them as publisher wording
+    # would be wrong, so each field says which it is instead of leaving the
+    # distinction to whoever last read the PDF.
+    description_is_publisher_wording: bool = True
 
 
 # Field order and content transcribed from, and checked against, the pinned
@@ -823,6 +837,7 @@ GNIS_NATIONAL_FILE_FIELDS = (
         description="Two-digit code for the state containing the feature's primary coordinates.",
         standard_citation="ANSI INCITS 38-2009, replacing FIPS 5-2 (Appendix 3, number 2).",
         source_ordinal=4,
+        description_is_publisher_wording=False,
     ),
     GNISFieldDefinition(
         field_name="county_numeric",
@@ -831,6 +846,7 @@ GNIS_NATIONAL_FILE_FIELDS = (
         description="Three-digit code for the county containing the feature's primary coordinates.",
         standard_citation="ANSI INCITS 31-2009, replacing FIPS 6-4 (Appendix 3, number 3).",
         source_ordinal=6,
+        description_is_publisher_wording=False,
     ),
 )
 # Every other field name published in the same National File table

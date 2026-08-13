@@ -651,7 +651,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:4053faba5b70806b131d65ada983a8632990c8fab38ebaeb335a204338422698"
+    "sha256:cbf32e7e21a1fcd9ae8957105bdab0d0bc5e64cc131939f992a3f582f1f91314"
 )
 
 

@@ -29,6 +29,7 @@ this module never opens a network connection.
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import re
 import tempfile
@@ -36,6 +37,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
@@ -72,6 +74,39 @@ UA_TIMETABLE_ACTION_EXPECTED_RAW_COUNT = 35
 # Executive order (EO) that authorize(s) the regulatory action") and its
 # abbreviations glossary. Not machine-extracted from the PDF.
 UA_LEGAL_AUTHORITY_CITATION_TYPES: tuple[str, ...] = ("U.S.C.", "Pub. L.", "E.O.")
+
+# The publisher's own definition of each citation type, transcribed verbatim
+# from the same Preamble's Section V abbreviations glossary. These were
+# available all along and were simply not carried, so the three records reached
+# consumers as bare tokens ("U.S.C.") with no statement of what they mean --
+# while the pinned source defined each one. Verbatim, not paraphrased: this is
+# publisher wording and a consumer may quote it as such. `_verify_citation_type
+# _definitions` re-reads them out of the pinned PDF at parse time, so a source
+# revision that rewrites a definition fails loudly instead of leaving Atlas
+# publishing text the document no longer contains.
+UA_LEGAL_AUTHORITY_CITATION_TYPE_DEFINITIONS: Mapping[str, str] = MappingProxyType(
+    {
+        "U.S.C.": (
+            "The United States Code is a consolidation and codification of all general "
+            "and permanent laws of the United States. The USC is divided into 50 titles, "
+            "each title covering a broad area of Federal law."
+        ),
+        "Pub. L.": (
+            "A public law is a law passed by Congress and signed by the President or "
+            "enacted over his veto. It has general applicability, unlike a private law "
+            "that applies only to those persons or entities specifically designated. "
+            "Public laws are numbered in sequence throughout the 2-year life of each "
+            "Congress; for example, Public Law 112-4 is the fourth public law of the "
+            "112th Congress."
+        ),
+        "E.O.": (
+            "An Executive order is a directive from the President to Executive agencies, "
+            "issued under constitutional or statutory authority. Executive orders are "
+            "published in the Federal Register and in title 3 of the Code of Federal "
+            "Regulations."
+        ),
+    }
+)
 
 UA_PORTFOLIO_GAPS: tuple[str, ...] = (
     (
@@ -609,6 +644,34 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
     )
 
 
+def _verify_citation_type_definitions(payload: bytes) -> None:
+    """Fail if the pinned Preamble no longer states each definition we publish.
+
+    Transcribed text is only trustworthy while the document still says it. This
+    re-reads the PDF and requires every published definition to appear verbatim
+    after whitespace normalization, so a revision that rewrites a glossary entry
+    breaks the build instead of leaving Atlas serving wording the cited source
+    no longer contains.
+    """
+
+    try:
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise UnifiedAgendaSourceDriftError(
+            "pypdf is required to verify the RISC Preamble citation-type definitions"
+        ) from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+        text = " ".join(" ".join((page.extract_text() or "").split()) for page in reader.pages)
+    except Exception as error:  # pragma: no cover - unreadable pinned source
+        raise UnifiedAgendaSourceDriftError("pinned RISC Preamble is unreadable") from error
+    for citation_type, definition in UA_LEGAL_AUTHORITY_CITATION_TYPE_DEFINITIONS.items():
+        if definition not in text:
+            raise UnifiedAgendaSourceDriftError(
+                f"RISC Preamble no longer states the published definition for {citation_type!r}"
+            )
+
+
 def pin_risc_preamble_evidence(acquired: AcquiredUADocument) -> UARiscPreambleEvidence:
     """Verify the pinned RISC Preamble bytes and attach the transcribed
     legal-authority citation types. The PDF's prose is never machine-parsed."""
@@ -620,6 +683,7 @@ def pin_risc_preamble_evidence(acquired: AcquiredUADocument) -> UARiscPreambleEv
     if payload[:5] != b"%PDF-":
         raise UnifiedAgendaSourceDriftError("pinned RISC Preamble no longer starts with a PDF header")
 
+    _verify_citation_type_definitions(payload)
     identifiers = tuple(
         ControlledIdentifier(
             value=citation_type,
