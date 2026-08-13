@@ -1,0 +1,11 @@
+TopBraid SHACL release: v1.5.0
+Git commit: 8811f78129a3f3fe0f586610324b60d834944f16
+Source files fetched through the GitHub API: 279
+Git blob SHA-1 mismatches: 0
+Compile substrate: Apache Jena 6.2.0, Temurin 21.0.12+8
+
+The fetched text files acquired one final LF while being reconstructed with
+apply_patch. Verification removed only that final byte before computing each
+Git blob ID. The compiled validation sources are otherwise byte-identical to
+the release tag. The optional tools package was excluded because its Jelly
+dependency was not present in the locally vendored Jena distribution.
