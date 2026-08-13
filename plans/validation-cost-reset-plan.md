@@ -132,6 +132,21 @@ passed, smoked). FR pins in the Makefile verify today.
    sh:sourceConstraintComponent instead of the regex over pySHACL's text;
    adopt report-canonicalization (sort focusNode/resultPath/component).
 
+**CONTRACT-VELOCITY WAVE LANDED (521ed20c) + REF-029 ratified:** the
+repin tax is deleted (derived-and-recorded binding digests), contract
+identity (contractDigest, rules only, checked) split from proof identity
+(corpusDigest in the receipt, recorded) — test growth no longer
+invalidates artifacts; `make contract-dev` = 39.8s inner loop;
+determinism PASS on derived pins. **NEW ARTIFACT OF RECORD:
+`output/atlas-3.1-full-2026-08-13` + its seal (941,467,710 bytes
+verified). The 08-12c seal is superseded — its parquet view was
+overwritten by the 08-13 build; the old seal file no longer fully
+verifies and the 08-13 seal is the live one.** Fidelity batch-1 landed
+at dae346da (uncovered 32,648→140, receipt −99.7%); batch 2 (the
+679k-label diagnosis + honest release-metadata comparison) in flight.
+Three codex research tracks (parse substrate, residual SHACL,
+SHACL-SPARQL evidence) running in research/* worktree branches.
+
 **OWNER DECISIONS 2026-08-13 (the four closing questions):** (1) FIRST
 SEAL MINTED — key ceremony done (offline ed25519, public key pinned at
 docs/seal-allowed-signers, both workflow secrets set — the release
