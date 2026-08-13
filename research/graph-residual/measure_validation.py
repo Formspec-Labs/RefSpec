@@ -139,6 +139,8 @@ def _parse_measurement(distribution: Path, index_mode: str) -> dict[str, Any]:
     if index_mode == "none":
         atlas_validate._INDEXED_ASSERTED_PREDICATES = frozenset()
         atlas_validate._INDEXED_ASSERTED_TYPES = frozenset()
+    elif index_mode == "read-fold":
+        atlas_validate._INDEXED_ASSERTED_PREDICATES -= atlas_validate._MACHINE_ADJUDICATION_INDEXED_PREDICATES
 
     placement = atlas_validate._AssertedPlacementObservation(
         graph_id=graph_ids["asserted"],
@@ -172,11 +174,63 @@ def _parse_measurement(distribution: Path, index_mode: str) -> dict[str, Any]:
     return result
 
 
+def _source_record_order_measurement(distribution: Path) -> dict[str, Any]:
+    manifest = json.loads((distribution / atlas_validate.MANIFEST_FILE).read_text(encoding="utf-8"))
+    graph_ids = atlas_validate._check_pack_manifest(manifest)
+    placement = atlas_validate._AssertedPlacementObservation(
+        graph_id=graph_ids["asserted"],
+        projection_only_predicates=atlas_validate._projection_only_predicates(),
+    )
+    dataset, graphs = atlas_validate._parse_packed_dataset(
+        distribution,
+        manifest,
+        graph_ids,
+        asserted_placement=placement,
+    )
+    asserted = graphs["asserted"]
+    store_pairs = list(asserted.subject_objects(atlas_validate.ATLAS.sourceRecord))
+    indexed_pairs = list(placement.facts.subject_objects(atlas_validate.ATLAS.sourceRecord))
+    mismatch = next(
+        (
+            index
+            for index, (store_pair, indexed_pair) in enumerate(zip(store_pairs, indexed_pairs, strict=True))
+            if store_pair != indexed_pair
+        ),
+        None,
+    )
+
+    def pair_json(pair: tuple[Any, Any]) -> dict[str, str]:
+        return {"resource": str(pair[0]), "sourceRecord": str(pair[1])}
+
+    result = {
+        "mode": "source-order",
+        "distribution": str(distribution),
+        "rdfStore": os.environ.get(atlas_validate.RDF_STORE_ENV, atlas_validate.TWO_INDEX_STORE),
+        "sample": _sample_counts(manifest),
+        "pairCount": len(store_pairs),
+        "sameMembers": set(store_pairs) == set(indexed_pairs),
+        "sameOrder": store_pairs == indexed_pairs,
+        "firstMismatchIndex": mismatch,
+        "storeFirst": pair_json(store_pairs[0]),
+        "indexFirst": pair_json(indexed_pairs[0]),
+    }
+    del dataset, graphs
+    return result
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("distribution", type=Path)
-    parser.add_argument("--mode", choices=("full", "parse"), default="full")
-    parser.add_argument("--index-mode", choices=("normal", "none"), default="normal")
+    parser.add_argument(
+        "--mode",
+        choices=("full", "parse", "source-order"),
+        default="full",
+    )
+    parser.add_argument(
+        "--index-mode",
+        choices=("normal", "read-fold", "none"),
+        default="normal",
+    )
     parser.add_argument(
         "--store",
         choices=(atlas_validate.TWO_INDEX_STORE, atlas_validate.MEMORY_STORE),
@@ -192,6 +246,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         _full_measurement(args.distribution)
         if args.mode == "full"
         else _parse_measurement(args.distribution, args.index_mode)
+        if args.mode == "parse"
+        else _source_record_order_measurement(args.distribution)
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
