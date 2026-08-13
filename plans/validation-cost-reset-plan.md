@@ -162,6 +162,29 @@ adopted (strict-parser lint + FR determinism gate in CI now; shapes
 scale benchmark + differential-oracle policy at release tier,
 armed-idle until the runner).
 
+**PERFORMANCE CAMPAIGN — WHERE IT ACTUALLY LANDED (2026-08-13).**
+Acceptance went from **75.7 min / 23.6 GB to 18.5 min / 14.31 GiB
+measured** at full scale (29,283,283 quads), on the four owner-visible
+moves: the xone lift + gc.freeze + roles-fold, the byte-pass node
+digests, the two-index store with pooled terms (ae34392c — the −57% RSS
+that took the ">=32 GB self-hosted" runner spec off the release
+workflow), and the parse-observer read-folds, whose last two phases
+landed at 15b468c8 (310,282 `Graph.triples` calls → 16, artifact-invisible:
+`contract-dev` reproduces the pinned manifest and Parquet-view digests).
+**The store-query campaign is CLOSED and its residue is named:** the
+largest remaining non-SHACL cost is computation, not an undiscovered
+query loop, and the `atlas:sourceRecord` sweep stays on the graph by
+decision (the index holds the same 34,476 pairs in a different order,
+and the gate names the first unreconciled pair — folding it would move a
+contractual `firstIssue` to save 0.17s and one call). What remains is
+SHACL itself, ~78% of the run: `research/residual-shacl` proved the
+generic lift pattern exhausted (lifting more made it WORSE, 17.38s →
+17.72s), and `research/shacl-floor` is testing whether the named
+remainder — the `sh:xone` on `atlas:MappingAssertionShape`, the four
+sequence-path `sh:equals` shapes, and the focus-node discovery feeding
+them — is a real floor or a discovery problem the fact index can already
+answer.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
@@ -217,7 +240,9 @@ restart from scratch.
 | research/fidelity-coverage | complete | 24→27 units, the inventory + payoff order |
 | research/fidelity-definitions | complete | the carry/declare decision package |
 | research/fidelity-langbugs | complete | b079de13: one BCP-47 predicate + definitions carried |
-| feat/parse-substrate | INTEGRATED, gate-green | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
+| feat/parse-substrate | MERGED ae34392c | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
+| research/graph-residual | MERGED 15b468c8 | the observer campaign's last two folds; 310,282 store calls → 16 |
+| research/shacl-floor | running | attacks the named SHACL floor (xone + four sequence-path sh:equals + discovery) |
 | research/auditor-language-scope | wip | NASA double-count FIXED (5e833c18); language mechanism unfinished |
 | research/coverage-{bulk,json,csv-pdf,html-misc} | wip | first SourceSpecs authored + committed per batch |
 
