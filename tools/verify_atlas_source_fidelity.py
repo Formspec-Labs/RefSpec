@@ -975,6 +975,7 @@ class PatternRowPattern:
     row_filters: tuple[PatternRowFilter, ...] = ()
     native_payload_template_json: str | None = None
     native_payload_fields: tuple[str, ...] = ()
+    derived_fields: tuple[PatternDerivedField, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2538,7 +2539,10 @@ def _read_pattern_rows(
                 f"{spec.name} pattern {pattern_index} native payload template",
             )
         )
-    for derived in selector.derived_fields:
+    for derived in (
+        *selector.derived_fields,
+        *(derived for pattern in selector.patterns for derived in pattern.derived_fields),
+    ):
         declared_template_fields.update(
             _pattern_json_template_fields(
                 derived.template_json,
@@ -2668,7 +2672,10 @@ def _read_pattern_rows(
                             keep = False
                     if not keep:
                         continue
-                    for derived in selector.derived_fields:
+                    for derived in (
+                        *selector.derived_fields,
+                        *declaration.derived_fields,
+                    ):
                         if derived.field in fields:
                             raise ValueError(
                                 f"{spec.name} derived field repeats {derived.field!r}"
@@ -10243,6 +10250,290 @@ def _nasbo_pattern_source() -> SourceSpec:
 NASBO_PATTERN_ROW_SOURCES = (_nasbo_pattern_source(),)
 
 
+_PRA_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/pra_icr_codes/pra-search-2026-08-03.html",
+    sha256=(
+        "sha256:7f1e24bbe278c67171a71c9e85d50bf7c886646ae25c835194bda5a6e9d4fa4e"
+    ),
+    byte_length=174_551,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.reginfo.gov/public/do/PRASearch",
+)
+
+
+def _pra_identifier_payload(
+    value: str,
+    kind: str,
+    source_path: str,
+) -> dict[str, str]:
+    return {
+        "authorityUri": "https://www.reginfo.gov/",
+        "kind": kind,
+        "observedAt": "2026-08-03T19:13:39Z",
+        "sourceDigest": "{source_digest}",
+        "sourcePath": source_path,
+        "sourceUri": "{source_iri}",
+        "value": value,
+    }
+
+
+def _pra_observation_id_field(
+    resource_id: str,
+    identifiers: list[dict[str, str]],
+) -> PatternDerivedField:
+    identity_identifiers = [
+        {
+            "authorityUri": identifier["authorityUri"],
+            "kind": identifier["kind"],
+            "value": identifier["value"],
+        }
+        for identifier in identifiers
+    ]
+    return PatternDerivedField(
+        field="observation_id",
+        operation="canonical-json-sha256",
+        template_json=_canonical_json_bytes(
+            {
+                "identifiers": identity_identifiers,
+                "resourceId": resource_id,
+                "sourceArtifact": "{source_iri}",
+                "sourcePath": "{source_path}",
+            }
+        ).decode("utf-8"),
+        prefix=f"urn:ref:source-observation:{resource_id}:",
+    )
+
+
+def _pra_native_payload(
+    identifiers: list[dict[str, str]],
+) -> tuple[str, tuple[str, ...]]:
+    payload = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": identifiers,
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    return _canonical_json_bytes(payload).decode("utf-8"), tuple(sorted(payload))
+
+
+def _pra_pattern_source() -> SourceSpec:
+    resource_id = "pra-icr-search-controlled-values-2026-08-03"
+    authority = "https://www.reginfo.gov/"
+    observed_at = "2026-08-03T19:13:39Z"
+
+    single_identifier = _pra_identifier_payload(
+        "{identifier_1}", "{identifier_1_kind}", "{source_path}/@value"
+    )
+    paired_identifiers = [
+        _pra_identifier_payload(
+            "{identifier_1}", "{identifier_1_kind}", "{identifier_1_path}"
+        ),
+        _pra_identifier_payload(
+            "{identifier_2}", "{identifier_2_kind}", "{identifier_2_path}"
+        ),
+    ]
+    single_payload, payload_fields = _pra_native_payload([single_identifier])
+    paired_payload, paired_payload_fields = _pra_native_payload(paired_identifiers)
+
+    def source_path(template: str) -> PatternDerivedField:
+        return PatternDerivedField(
+            field="source_path",
+            operation="template",
+            template_json=json.dumps(template),
+        )
+
+    def identity_identifier(value: str, kind: str) -> dict[str, str]:
+        return {"authorityUri": authority, "kind": kind, "value": value}
+
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r'<input id="ombControlNumber"'
+                    r'(?=[^>]*\bname="(?P<identifier_1>[^"]*)")'
+                    r'(?=[^>]*\bmaxlength="(?P<identifier_2>\d+)")[^>]*>'
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+                constants=(
+                    ("label", "OMB Control Number"),
+                    ("identifier_1_kind", "ombControlNumberFieldId"),
+                    ("identifier_1_path", 'input[@id="ombControlNumber"]/@name'),
+                    ("identifier_2_kind", "ombControlNumberMaxLength"),
+                    (
+                        "identifier_2_path",
+                        'input[@id="ombControlNumber"]/@maxlength',
+                    ),
+                ),
+                native_payload_template_json=paired_payload,
+                native_payload_fields=paired_payload_fields,
+                derived_fields=(
+                    source_path('input[@id="ombControlNumber"]'),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier(
+                                "{identifier_1}", "ombControlNumberFieldId"
+                            ),
+                            identity_identifier(
+                                "{identifier_2}", "ombControlNumberMaxLength"
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<select id="requestType"[^>]*>(?P<region>.*?)</select>'
+                ),
+                row_pattern=(
+                    r'<option value="(?P<identifier_1>[^"]*)">'
+                    r"(?P<label>[^<]*)</option>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=10,
+                constants=(
+                    ("identifier_1_kind", "requestTypeCode"),
+                    ("identifier_2", ""),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
+                ),
+                row_filters=(PatternRowFilter("identifier_1", r"[A-Z]{2}"),),
+                native_payload_template_json=single_payload,
+                native_payload_fields=payload_fields,
+                derived_fields=(
+                    source_path(
+                        'select[@id="requestType"]/option[@value="{identifier_1}"]'
+                    ),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier(
+                                "{identifier_1}", "requestTypeCode"
+                            )
+                        ],
+                    ),
+                ),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<select id="icrStatus"[^>]*>(?P<region>.*?)</select>'
+                ),
+                row_pattern=(
+                    r'<option value="(?P<identifier_1>[^"]*)"[^>]*>'
+                    r"(?P<label>[^<]*)</option>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=5,
+                constants=(
+                    ("identifier_1_kind", "icrStatusCode"),
+                    ("identifier_2", ""),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
+                ),
+                row_filters=(PatternRowFilter("identifier_1", r"[A-Z]{2}"),),
+                native_payload_template_json=single_payload,
+                native_payload_fields=payload_fields,
+                derived_fields=(
+                    source_path(
+                        'select[@id="icrStatus"]/option[@value="{identifier_1}"]'
+                    ),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier("{identifier_1}", "icrStatusCode")
+                        ],
+                    ),
+                ),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r'<td[^>]*style="font-weight:600;">\s*'
+                    r"(?P<label>[^<]+?)\s*</td>\s*<td[^>]*>\s*Between\s*"
+                    r'<input id="(?P<identifier_1>low\w+)"[^>]*/>.*?'
+                    r'<input id="(?P<identifier_2>high\w+)"[^>]*/>'
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=5,
+                constants=(
+                    ("identifier_1_kind", "burdenMeasureLowFieldId"),
+                    ("identifier_2_kind", "burdenMeasureHighFieldId"),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
+                ),
+                native_payload_template_json=paired_payload,
+                native_payload_fields=paired_payload_fields,
+                derived_fields=(
+                    source_path(
+                        'input[@id="{identifier_1}"]|input[@id="{identifier_2}"]'
+                    ),
+                    PatternDerivedField(
+                        field="identifier_1_path",
+                        operation="template",
+                        template_json=json.dumps("{source_path}/@id"),
+                    ),
+                    PatternDerivedField(
+                        field="identifier_2_path",
+                        operation="template",
+                        template_json=json.dumps("{source_path}/@id"),
+                    ),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier(
+                                "{identifier_1}", "burdenMeasureLowFieldId"
+                            ),
+                            identity_identifier(
+                                "{identifier_2}", "burdenMeasureHighFieldId"
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+        ),
+        row_key="{source_path}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:pra-icr-controls:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_1}"),
+            ("notation", "{identifier_2}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=single_payload,
+        native_payload_fields=payload_fields,
+        expected_count=21,
+        declared_unevaluated_fields=("htmlOutsideSelectedControls",),
+    )
+    return _pattern_row_source_spec("pra-icr-controls", (_PRA_PATTERN_PIN,), selector)
+
+
+PRA_PATTERN_ROW_SOURCES = (_pra_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -10326,6 +10617,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *SCOTUS_PATTERN_ROW_SOURCES,
     *CENSUS_FINANCE_PATTERN_ROW_SOURCES,
     *NASBO_PATTERN_ROW_SOURCES,
+    *PRA_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
