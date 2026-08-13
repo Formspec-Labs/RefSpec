@@ -333,17 +333,30 @@ extrapolation.
 **DEFECT FOUND BY MANUAL PDF REVIEW — TYPOGRAPHIC LIGATURES ON THE WIRE
 (2026-08-13, owner-requested visual check).** The four PDF-pinned units are
 blocked for the auditor — an authenticated PDF pin compares no publisher rows —
-so they were reviewed BY EYE against the source document, and that found what
-the automated campaign structurally could not. `ferc-docket-prefixes` carries
+so they were reviewed against the source document by a HYBRID method whose
+halves must not be confused: the pages were rendered and read visually, which
+is how the three-table structure, the four-column layout, the repeated
+mid-table headers and the source's own truncations were seen; every DEFECT
+below came instead from byte inspection of Atlas's output, because a ligature
+and a U+2010 hyphen render identically to their ASCII forms and are invisible
+to the eye by construction. Neither channel alone would have produced this
+result. `ferc-docket-prefixes` carries
 **54 Unicode presentation-form ligatures** copied out of the PDF's text layer:
 U+FB01 (ﬁ) ×30, U+FB00 (ﬀ) ×21, U+FB03 (ﬃ) ×3. A full sweep of all 126 packs
 (29,286,753 quads) finds exactly 54 — every one in this pack, none anywhere
 else, so the blast radius is one source. Live examples: "Staﬀ Adjustments under
 Section 502 of NGPA", "Certiﬁcates for Interstate Natural Gas Pipeline
 Companies", "Exemption Notiﬁcation", "Audits other than ﬁnancial audits".
-WHY IT MATTERS: these are valid Unicode and therefore pass the canonical byte
-grammar and the strict-parser lint — nothing in the pipeline is wrong, the text
-is just semantically incorrect. A consumer searching "Certificates" or "Staff"
+ATTRIBUTION, CORRECTED — this is NOT Atlas corrupting text. The PDF's OWN text
+layer carries the ligatures: an independent pypdf extraction finds U+FB01 x11,
+U+FB00 x7, U+FB03 x1 (e.g. "General Tariﬀ Changes for Inters..."), and the ~19
+source occurrences become 54 on the wire because each string is emitted three
+times — label literalForm, atlas:definition, and nativePayload. Atlas is
+byte-faithful to its source. So the item is a NORMALIZATION DECISION, not a
+fidelity defect.
+WHY IT STILL MATTERS: these are valid Unicode and therefore pass the canonical
+byte grammar and the strict-parser lint — nothing in the pipeline is broken, but
+a consumer searching "Staff" or "Certificates" does not match. A consumer searching "Certificates" or "Staff"
 does not match, which for a vocabulary product is the failure that matters.
 FIX: fold presentation forms on the PDF-extraction path (NFKC on that path, or
 a targeted ligature map — NFKC applied globally is more aggressive than this
