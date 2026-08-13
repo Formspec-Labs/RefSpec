@@ -104,7 +104,21 @@ passed, smoked). FR pins in the Makefile verify today.
    (`uv run python tools/generate_atlas_v3_full.py --output
    output/atlas-3.1-full-<date> --quiet`, ~25 min), smoke it, update FR
    pins, commit.
-3. **Wave C — auditor minimum set**: in tools/verify_atlas_source_fidelity.py
+3. [DONE b08fda84, 2026-08-13] **Wave C LANDED — the program's last
+   executable wave.** The rkaf blind spot was two orders larger than
+   estimated (4,119,672 falsely-uncovered rows, not ~24,892 — that
+   figure was one pack's share); post-fix 32,648 genuine gaps (−99.21%).
+   --only flag with honest not-evaluated arithmetic; the FR SourceSpec
+   makes the artifact of record the FIRST EXACT unit (six exact-set
+   families over 705 concepts, honestly flagged as a frozen restatement,
+   not an independent PDF re-parse); plus a latent catalog-exemption
+   prefix bug fixed. **LEG 2's MEASURED BASELINE (receipt against the
+   seal-ready candidate, 10m22s not multi-hour): 24/110 units covered,
+   1 exact, 23 differing, 86 uncovered, 9/24 checks passing.** That is
+   the successor project's true starting line. Follow-up flags in the
+   register: the 231 MB unbounded receipt; 10,985 atlas:recordStatus
+   literals dominating the Atlas-side residue (Atlas-minted, belongs in
+   the structure set). ORIGINAL BRIEF (for reference): in tools/verify_atlas_source_fidelity.py
    fix the rkaf-namespace blind spot (`atlas_classified_subjects` ~:6136
    tests only startswith(ATLAS); ~5 lines; clears 96% of false-uncovered),
    add an `--only` scope flag, author a SourceSpec for
