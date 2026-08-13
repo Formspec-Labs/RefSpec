@@ -208,8 +208,12 @@ command** (c4871635 — previously it meant hand-writing a snippet against
     make seal-distribution SEAL_ROOT=output/atlas-3.1-full-2026-08-13b SEAL_KEY=<offline key>
     make verify-distribution-seal SEAL_ROOT=output/atlas-3.1-full-2026-08-13b
 
-Both paths were proven end-to-end on 13b with an ephemeral key that was then
-destroyed: mint bound all three digests; verify walked 4 members, 126 packs, 8
+**All four verbs are now proven on 13b**: BUILD (110 releases, 126 packs),
+PROVE (acceptance, 18.3 min / 13.83 GiB, all gates), SIGN (below), SERVE (8
+Parquet tables readable by stock pyarrow; `evidence-bindings.parquet` carries
+560,429 rows, matching acceptance's relation-assertion count exactly, and
+verify_seal independently walked the same 8 tables). Both seal paths were
+proven end-to-end on 13b with an ephemeral key that was then destroyed: mint bound all three digests; verify walked 4 members, 126 packs, 8
 Parquet tables, 941,856,313 bytes. Minting refuses a distribution with no
 acceptance receipt. `docs/seal-allowed-signers` already pins
 atlas-release@refspec, and that key is NOT on this machine — checked; no local
