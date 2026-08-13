@@ -9807,6 +9807,155 @@ def _sec_pattern_source() -> SourceSpec:
 SEC_PATTERN_ROW_SOURCES = (_sec_pattern_source(),)
 
 
+_SCOTUS_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/scotus_opinion_types/"
+        "scotus-opinions-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:26d9c70afb7ee7b66678eea7eb32851c74a10ee8e60249ffc5433a45a82b2bd5"
+    ),
+    byte_length=42_237,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.supremecourt.gov/opinions/opinions.aspx",
+)
+
+
+def _scotus_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:15:13Z"
+    source_digest_hex = _SCOTUS_PATTERN_PIN.sha256.removeprefix("sha256:")
+    common_native_payload = {
+        "conceptIdentityClaimed": False,
+        "facet": "{facet}",
+        "id": "{record_id}",
+        "identifiers": [],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{source_ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    navigation_payload = {
+        **common_native_payload,
+        "navigationHref": "{navigation_href}",
+    }
+    stage_payload = {**common_native_payload, "stageOrder": "{stage_order}"}
+    navigation_declarations = (
+        ("hypOpinion", "opinionType", 0),
+        ("hypRelating", "opinionType", 1),
+        ("hypInChamber", "opinionType", 2),
+        ("hypusreports", "reporterSeries", 3),
+    )
+    stage_declarations = (
+        ("slip opinion format", "Slip opinion", 1, 0, 4),
+        ("preliminary prints", "Preliminary print", 2, 1, 5),
+        ("bound volumes", "Bound volume", 3, 2, 6),
+    )
+    patterns = tuple(
+        PatternRowPattern(
+            input_pattern=re.escape(_SCOTUS_PATTERN_PIN.path),
+            region_pattern=(
+                r'<ul class="sidenav-list">(?P<region>.*?)</ul>'
+            ),
+            row_pattern=(
+                r'<a id="[^"]*_' + re.escape(suffix) + r'" '
+                r'href="(?P<navigation_href>[^"]+)">(?P<label>.*?)</a>'
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=1,
+            constants=(
+                ("facet", facet),
+                (
+                    "record_id",
+                    "urn:ref:scotus-opinion-type:"
+                    + source_digest_hex
+                    + f":{facet}:{source_ordinal}",
+                ),
+                ("source_ordinal", source_ordinal),
+                ("source_path", f"sidenav.categories[{source_ordinal}]"),
+            ),
+            normalizers=(
+                PatternFieldNormalizer("label", ("html-visible-text",)),
+                PatternFieldNormalizer(
+                    "navigation_href", ("html-unescape",)
+                ),
+            ),
+            native_payload_template_json=_canonical_json_bytes(
+                navigation_payload
+            ).decode("utf-8"),
+            native_payload_fields=tuple(sorted(navigation_payload)),
+        )
+        for suffix, facet, source_ordinal in navigation_declarations
+    ) + tuple(
+        PatternRowPattern(
+            input_pattern=re.escape(_SCOTUS_PATTERN_PIN.path),
+            region_pattern=(
+                r'<div id="ctl00_ctl00_MainEditable_mainContent_RadEditor1">'
+                r"(?P<region>.*?)</div>"
+            ),
+            row_pattern=re.escape(phrase),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=1,
+            constants=(
+                ("facet", "packageVersionStage"),
+                ("label", label),
+                (
+                    "record_id",
+                    "urn:ref:scotus-opinion-type:"
+                    + source_digest_hex
+                    + f":packageVersionStage:{record_ordinal}",
+                ),
+                ("source_ordinal", source_ordinal),
+                ("source_path", "content.paragraphs[5]"),
+                ("stage_order", stage_order),
+            ),
+            native_payload_template_json=_canonical_json_bytes(
+                stage_payload
+            ).decode("utf-8"),
+            native_payload_fields=tuple(sorted(stage_payload)),
+        )
+        for (
+            phrase,
+            label,
+            stage_order,
+            record_ordinal,
+            source_ordinal,
+        ) in stage_declarations
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{record_id}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:scotus-opinion-types:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{record_id}"),
+        ),
+        native_payload_template_json="{}",
+        native_payload_fields=(),
+        expected_count=7,
+        declared_unevaluated_fields=(
+            "htmlOutsideSelectedNavigationAndVersionPhrases",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "scotus-opinion-types", (_SCOTUS_PATTERN_PIN,), selector
+    )
+
+
+SCOTUS_PATTERN_ROW_SOURCES = (_scotus_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -9887,6 +10036,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *OVERSIGHT_PATTERN_ROW_SOURCES,
     *UNIFIED_AGENDA_PATTERN_ROW_SOURCES,
     *SEC_PATTERN_ROW_SOURCES,
+    *SCOTUS_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
