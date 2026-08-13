@@ -32,6 +32,9 @@ import pytest
 
 from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
+    FEDERAL_REGISTER_TOPICS_JSON_READER,
+    GCMD_SCIENCE_KEYWORDS_CSV_READER,
+    MESH_DESCRIPTOR_XML_READER,
     CheckResult,
     DeclaredClaimExclusion,
     Expectations,
@@ -601,6 +604,394 @@ def _repin_native_capture(suite: Fixture, spec: SourceSpec) -> SourceSpec:
     return replace(spec, inputs=new_inputs)
 
 
+def _add_mesh_xml_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "Calcimycin",
+) -> SourceSpec:
+    """Add one tiny MeSH XML/Atlas pair without using the registry parser."""
+    source_iri = "https://publisher.example/mesh/desc.xml"
+    resource = "https://id.nlm.nih.gov/mesh/D000001"
+    source_path = suite.source_root / "mesh.xml"
+    source_path.write_text(
+        """<?xml version="1.0"?>
+<DescriptorRecordSet LanguageCode="eng">
+  <DescriptorRecord DescriptorClass="1">
+    <DescriptorUI>D000001</DescriptorUI>
+    <DescriptorName><String>Calcimycin</String></DescriptorName>
+    <TreeNumberList><TreeNumber>D03.633.100</TreeNumber></TreeNumberList>
+    <ConceptList><Concept><TermList>
+      <Term IsPermutedTermYN="N"><String>A-23187</String></Term>
+    </TermList></Concept></ConceptList>
+  </DescriptorRecord>
+</DescriptorRecordSet>
+""",
+        encoding="utf-8",
+    )
+    source_payload = source_path.read_bytes()
+    source_pin = SourcePin(
+        path=source_path.name,
+        sha256="sha256:" + hashlib.sha256(source_payload).hexdigest(),
+        byte_length=len(source_payload),
+        fmt="xml",
+        role="publisherSource",
+        source_iri=source_iri,
+    )
+    native_payload = {
+        "descriptorClass": "1",
+        "descriptorUi": "D000001",
+        "publisherConceptIri": resource,
+        "treeNumbers": ["D03.633.100"],
+    }
+    spec = SourceSpec(
+        name="tiny-mesh-xml",
+        kind="vocabulary",
+        release_keys=("tiny-mesh-xml",),
+        inputs=(source_pin,),
+        reader=MESH_DESCRIPTOR_XML_READER,
+        policies=frozenset(
+            {
+                "english-label-selection",
+                "english-annotation-selection",
+                "skos-note-to-atlas-note",
+                "top-concept-source-shape-inverse",
+            }
+        ),
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=frozenset(native_payload),
+        ),
+    )
+
+    record = "urn:example:source-record:mesh"
+    pref_label = "urn:example:label:mesh-pref"
+    alt_label = "urn:example:label:mesh-alt"
+    scheme = "urn:ref:atlas-resource-scheme:mesh"
+    lines = [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(resource, f"{SKOS}inScheme", scheme),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", resource),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_pin.sha256),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps(native_payload, separators=(",", ":")),
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", pref_label),
+        _quad(pref_label, f"{SKOSXL}literalForm", atlas_label, literal=True),
+        _quad(resource, f"{SKOSXL}altLabel", alt_label),
+        _quad(alt_label, f"{SKOSXL}literalForm", "A-23187", literal=True),
+        _plain_literal_quad(resource, f"{ATLAS}notation", "D03.633.100"),
+    ]
+    pack_relative = "sources/tiny-mesh-xml/all.nq.zst"
+    pack_path = suite.distribution / "packs" / pack_relative
+    pack_path.parent.mkdir(parents=True)
+    transport = zstd.compress(("\n".join(lines) + "\n").encode("utf-8"))
+    pack_path.write_bytes(transport)
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["releases"].append(
+        {
+            "key": "tiny-mesh-xml",
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": source_pin.path,
+                    "sha256": source_pin.sha256,
+                    "byteLength": source_pin.byte_length,
+                    "role": source_pin.role,
+                    "sourceIri": source_pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{pack_relative}"}],
+            "recordCounts": {"resources": 1, "labels": 2},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{pack_relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return spec
+
+
+def _add_single_record_stock_source(
+    suite: Fixture,
+    *,
+    name: str,
+    filename: str,
+    fmt: str,
+    source_iri: str,
+    source_bytes: bytes,
+    reader: str,
+    identity_policy: str,
+    resource: str,
+    source_locator: str,
+    source_digest: str,
+    native_payload: dict[str, object],
+    evaluated_native_fields: frozenset[str],
+    atlas_only_native_fields: frozenset[str],
+    atlas_label: str,
+    notation: str,
+    role: str = "publisherSource",
+) -> SourceSpec:
+    """Add one stock-reader pair whose expected Atlas values are explicit."""
+    source_path = suite.source_root / filename
+    source_path.write_bytes(source_bytes)
+    source_pin = SourcePin(
+        path=filename,
+        sha256="sha256:" + hashlib.sha256(source_bytes).hexdigest(),
+        byte_length=len(source_bytes),
+        fmt=fmt,
+        role=role,
+        source_iri=source_iri,
+    )
+    spec = SourceSpec(
+        name=name,
+        kind="vocabulary",
+        release_keys=(name,),
+        inputs=(source_pin,),
+        reader=reader,
+        identity_policy=identity_policy,
+        policies=frozenset(
+            {
+                "english-label-selection",
+                "english-annotation-selection",
+                "skos-note-to-atlas-note",
+                "top-concept-source-shape-inverse",
+            }
+        ),
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=evaluated_native_fields,
+            atlas_only_native_payload_fields=atlas_only_native_fields,
+        ),
+    )
+    record = f"urn:example:source-record:{name}"
+    label = f"urn:example:label:{name}"
+    lines = [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(
+            resource,
+            f"{SKOS}inScheme",
+            f"urn:ref:atlas-resource-scheme:{name}",
+        ),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", source_locator),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps(native_payload, separators=(",", ":")),
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", label),
+        _quad(label, f"{SKOSXL}literalForm", atlas_label, literal=True),
+        _plain_literal_quad(resource, f"{ATLAS}notation", notation),
+    ]
+    pack_relative = f"sources/{name}/all.nq.zst"
+    pack_path = suite.distribution / "packs" / pack_relative
+    pack_path.parent.mkdir(parents=True)
+    transport = zstd.compress(("\n".join(lines) + "\n").encode("utf-8"))
+    pack_path.write_bytes(transport)
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["releases"].append(
+        {
+            "key": name,
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": source_pin.path,
+                    "sha256": source_pin.sha256,
+                    "byteLength": source_pin.byte_length,
+                    "role": source_pin.role,
+                    "sourceIri": source_pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{pack_relative}"}],
+            "recordCounts": {"resources": 1, "labels": 1},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{pack_relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return spec
+
+
+def _add_federal_register_json_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "Agriculture",
+) -> SourceSpec:
+    source_iri = "https://www.federalregister.gov/api/v1/topics.json"
+    source_bytes = json.dumps(
+        {
+            "meta": {"count": {"thesaurus": 1, "ad_hoc": 0, "total": 1}},
+            "results": {
+                "thesaurus": [
+                    {
+                        "cfr_references": [],
+                        "name": "Agriculture",
+                        "see": [],
+                        "see_also": [],
+                        "slug": "agriculture",
+                    }
+                ],
+                "ad_hoc": [],
+            },
+        },
+        separators=(",", ":"),
+    ).encode()
+    row_digest = (
+        "sha256:c738ce75de29d72b6f927c05c2e42701e784a1b3f9c6df5f9fd51057dbe456cc"
+    )
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-federal-register-json",
+        filename="federal-register-topics.json",
+        fmt="json",
+        source_iri=source_iri,
+        source_bytes=source_bytes,
+        reader=FEDERAL_REGISTER_TOPICS_JSON_READER,
+        identity_policy="source-local-record",
+        resource=(
+            "urn:ref:source-concept:v2:federal-register-api:"
+            "019fc4eb-9000-715b-b0d0-6dfc94b25f1a"
+        ),
+        source_locator=(
+            source_iri + "#results.thesaurus%5B0%5D"
+        ),
+        source_digest=row_digest,
+        native_payload={
+            "collection": "thesaurus",
+            "identityStatus": "sourceLocalCaptureRow",
+            "record": {
+                "cfr_references": [],
+                "name": "Agriculture",
+                "see": [],
+                "see_also": [],
+                "slug": "agriculture",
+            },
+            "sourceOrdinal": 0,
+            "sourceRecordDigest": row_digest,
+        },
+        evaluated_native_fields=frozenset(
+            {"collection", "record", "sourceOrdinal", "sourceRecordDigest"}
+        ),
+        atlas_only_native_fields=frozenset({"identityStatus"}),
+        atlas_label=atlas_label,
+        notation="agriculture",
+        role="publisherApiCapture",
+    )
+
+
+def _add_gcmd_csv_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "AEROSOLS",
+) -> SourceSpec:
+    source_iri = (
+        "https://gcmd.earthdata.nasa.gov/kms/concepts/"
+        "concept_scheme/sciencekeywords?format=csv"
+    )
+    concept_uuid = "11111111-1111-4111-8111-111111111111"
+    source_bytes = (
+        "Keyword Version: 24.4,Revision: 2026-07-22T11:07:16.739Z\n"
+        "Category,Topic,Term,Variable_Level_1,Variable_Level_2,"
+        "Variable_Level_3,Detailed_Variable,UUID\n"
+        f"EARTH SCIENCE,ATMOSPHERE,AEROSOLS,,,,,{concept_uuid}\n"
+    ).encode()
+    resource = (
+        "urn:ref:source-concept:v2:gcmd-science-keywords:"
+        "019fc902-aa98-7051-ab80-744873a9f923"
+    )
+    source_pin_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-gcmd-csv",
+        filename="gcmd.csv",
+        fmt="csv",
+        source_iri=source_iri,
+        source_bytes=source_bytes,
+        reader=GCMD_SCIENCE_KEYWORDS_CSV_READER,
+        identity_policy="source-scoped-identifier",
+        resource=resource,
+        source_locator=(
+            "urn:ref:source-observation:gcmd-science-keywords-24-4:"
+            "5464a6c178f3ef57911d3e0811754bf0b53ab781300b810d20bf260372211d20"
+        ),
+        source_digest=source_pin_digest,
+        native_payload={
+            "sourceIdentity": {
+                "identityKind": "refspecSourceScoped",
+                "localRecordId": (
+                    "urn:uuid:019fc902-aa98-7051-ab80-744873a9f923"
+                ),
+                "namespaceToken": "gcmd-science-keywords",
+                "sourceKey": concept_uuid,
+                "sourceScheme": (
+                    "https://gcmd.earthdata.nasa.gov/KeywordViewer/scheme/"
+                    "sciencekeywords/27478148-b4b6-4c89-8829-08d2ee7bfe10/"
+                ),
+            },
+            "publisherIdentifier": {
+                "value": concept_uuid,
+                "kind": "gcmdConceptUUID",
+                "authorityUri": "https://gcmd.earthdata.nasa.gov/kms/",
+            },
+            "category": "EARTH SCIENCE",
+            "topic": "ATMOSPHERE",
+            "term": "AEROSOLS",
+            "variableLevel1": None,
+            "variableLevel2": None,
+            "variableLevel3": None,
+            "detailedVariable": None,
+            "hierarchyIsDescriptiveNotInferred": True,
+        },
+        evaluated_native_fields=frozenset(
+            {
+                "sourceIdentity",
+                "publisherIdentifier",
+                "category",
+                "topic",
+                "term",
+                "variableLevel1",
+                "variableLevel2",
+                "variableLevel3",
+                "detailedVariable",
+            }
+        ),
+        atlas_only_native_fields=frozenset(
+            {"hierarchyIsDescriptiveNotInferred"}
+        ),
+        atlas_label=atlas_label,
+        notation=concept_uuid,
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Baseline
 # --------------------------------------------------------------------------------------
@@ -610,6 +1001,111 @@ def test_faithful_pair_passes_every_check(suite: Fixture) -> None:
     results = suite.run()
     assert len(results) == len(CHECK_NAMES)
     assert failed(results) == set(), [item.failures for item in results if not item.passed]
+
+
+def test_mesh_xml_reader_faithful_pair_passes_every_check(suite: Fixture) -> None:
+    mesh_spec = _add_mesh_xml_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, mesh_spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_mesh_xml_reader_catches_rewritten_preferred_label(suite: Fixture) -> None:
+    mesh_spec = _add_mesh_xml_source(suite, atlas_label="Rewritten")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, mesh_spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any(
+        "Atlas prefLabel" in failure and "'Rewritten'" in failure
+        for failure in label_check.failures
+    )
+
+
+def test_federal_register_json_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+) -> None:
+    spec = _add_federal_register_json_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_federal_register_json_reader_catches_rewritten_label(
+    suite: Fixture,
+) -> None:
+    spec = _add_federal_register_json_source(suite, atlas_label="Farming")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any("'Farming'" in failure for failure in label_check.failures)
+
+
+def test_gcmd_csv_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+) -> None:
+    spec = _add_gcmd_csv_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_gcmd_csv_reader_catches_rewritten_label(suite: Fixture) -> None:
+    spec = _add_gcmd_csv_source(suite, atlas_label="PARTICULATES")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any("'PARTICULATES'" in failure for failure in label_check.failures)
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
