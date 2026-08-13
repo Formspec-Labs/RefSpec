@@ -37,12 +37,14 @@ from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
     FEDERAL_REGISTER_TOPICS_JSON_READER,
     GCMD_SCIENCE_KEYWORDS_CSV_READER,
+    HTML_CODE_LIST_READER,
     MESH_DESCRIPTOR_XML_READER,
     CheckResult,
     DeclaredClaimExclusion,
     DeclaredLanguageExclusion,
     Expectations,
     Finding,
+    HtmlCodeListSelector,
     LiteralValue,
     NativeControlSelector,
     RdfSourcePolicy,
@@ -875,6 +877,8 @@ def _add_single_record_stock_source(
     atlas_label: str,
     notation: str,
     role: str = "publisherSource",
+    html_code_list: HtmlCodeListSelector | None = None,
+    definition: str | None = None,
 ) -> SourceSpec:
     """Add one stock-reader pair whose expected Atlas values are explicit."""
     source_path = suite.source_root / filename
@@ -893,6 +897,7 @@ def _add_single_record_stock_source(
         release_keys=(name,),
         inputs=(source_pin,),
         reader=reader,
+        html_code_list=html_code_list,
         identity_policy=identity_policy,
         policies=frozenset(
             {
@@ -929,6 +934,8 @@ def _add_single_record_stock_source(
         _quad(label, f"{SKOSXL}literalForm", atlas_label, literal=True),
         _plain_literal_quad(resource, f"{ATLAS}notation", notation),
     ]
+    if definition is not None:
+        lines.append(_quad(resource, f"{ATLAS}definition", definition, literal=True))
     pack_relative = f"sources/{name}/all.nq.zst"
     pack_path = suite.distribution / "packs" / pack_relative
     pack_path.parent.mkdir(parents=True)
@@ -1118,6 +1125,91 @@ def _add_gcmd_csv_source(
     )
 
 
+def _add_html_code_list_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "Communication cost",
+) -> SourceSpec:
+    """Add one configured HTML table without using the FEC registry parser."""
+    source_iri = "https://publisher.example/fec-codes/"
+    source_bytes = (
+        b"<table><tr><td>Code</td><td>Label</td><td>Description</td></tr>"
+        b"<tr><td>C</td><td>Communication cost</td>"
+        b"<td>Publisher definition</td></tr></table>"
+    )
+    native_payload = {
+        "id": (
+            "urn:ref:source-observation:fec-test:"
+            "2a1ebe17ebb7e3fd3bf5a00d9bb6c9889534a24caa299be1fe3cd03eea5b9110"
+        ),
+        "sourceArtifact": source_iri,
+        "sourcePath": "$.committeeType.C",
+        "sourceOrdinal": 0,
+        "labels": [
+            {
+                "value": "Communication cost",
+                "language": "en",
+                "role": "preferred",
+            }
+        ],
+        "identifiers": [
+            {
+                "value": "C",
+                "kind": "committeeTypeCode",
+                "authorityUri": "https://www.fec.gov/",
+                "sourceUri": source_iri,
+                "sourcePath": "$.committeeType.C",
+                "observedAt": "2026-08-03T19:24:00Z",
+                "sourceDigest": (
+                    "sha256:8a476cc04732ef521b2d8255f960ad9690bd8d2fb448d2fd9b4de43e65c683cb"
+                ),
+            }
+        ],
+        "uses": ["deterministicMetadata"],
+        "conceptIdentityClaimed": False,
+        "description": "Publisher definition",
+    }
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-fec-html",
+        filename="fec-codes.html",
+        fmt="html",
+        source_iri=source_iri,
+        source_bytes=source_bytes,
+        reader=HTML_CODE_LIST_READER,
+        identity_policy="source-local-record",
+        resource=(
+            "urn:ref:source-concept:v2:tiny-fec-html:"
+            "019fc915-3c80-7e2d-993c-37d7192fb3a4"
+        ),
+        source_locator=source_iri,
+        source_digest=(
+            "sha256:a4c88fbef590a8a5ada1db0802c86ab346e59c893a40ced63fb06356eafad644"
+        ),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="C",
+        html_code_list=HtmlCodeListSelector(
+            section_pattern=r"<table[^>]*>(?P<section>.*?)</table>",
+            row_pattern=(
+                r"<tr>\s*<td>\s*(?P<code>[A-Z])\s*</td>\s*"
+                r"<td>(?P<label>.*?)</td>\s*"
+                r"<td>(?P<description>.*?)</td>\s*</tr>"
+            ),
+            resource_name="committeeType",
+            source_token="tiny-fec-html",
+            identifier_kind="committeeTypeCode",
+            authority_iri="https://www.fec.gov/",
+            observed_at="2026-08-03T19:24:00Z",
+            observation_namespace="fec-test",
+            expected_count=1,
+        ),
+        definition="Publisher definition",
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Baseline
 # --------------------------------------------------------------------------------------
@@ -1266,6 +1358,40 @@ def test_api_capture_json_reader_catches_rewritten_label(suite: Fixture) -> None
 
     assert not label_check.passed
     assert any("'Farming'" in failure for failure in label_check.failures)
+
+
+def test_html_code_list_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+) -> None:
+    spec = _add_html_code_list_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_html_code_list_reader_catches_rewritten_label(suite: Fixture) -> None:
+    spec = _add_html_code_list_source(suite, atlas_label="Rewritten")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any("'Rewritten'" in failure for failure in label_check.failures)
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
