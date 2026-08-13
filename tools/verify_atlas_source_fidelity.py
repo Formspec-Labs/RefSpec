@@ -83,7 +83,7 @@ import uuid
 import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from itertools import chain
 from pathlib import Path
@@ -110,6 +110,13 @@ DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 VERIFIER_VERSION = "atlas-source-fidelity/13"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
+LANGUAGE_SCOPE_EXCLUSIONS = REPOSITORY_ROOT / "language-scope-exclusions.json"
+ENGLISH_LANGUAGE_SCOPE = {
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+    "unselectedPublisherContent": "notRepresented",
+    "wireLanguageTag": "en",
+}
 
 RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 SKOS = "http://www.w3.org/2004/02/skos/core#"
@@ -428,6 +435,26 @@ class Quad:
 
 
 _LITERAL_BODY = re.compile(r'^"((?:[^"\\]|\\.)*)"(?:@([A-Za-z0-9-]+)|\^\^<([^>]*)>)?\s*$')
+_BCP47 = re.compile(
+    r"^(?:(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4}|"
+    r"[A-Za-z]{5,8})(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?"
+    r"(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*"
+    r"(?:-[0-9A-WY-Za-wy-z](?:-[A-Za-z0-9]{2,8})+)*"
+    r"(?:-[xX](?:-[A-Za-z0-9]{1,8})+)?|"
+    r"[xX](?:-[A-Za-z0-9]{1,8})+|[eE][nN]-[gG][bB]-[oO][eE][dD]|"
+    r"[iI]-(?:[aA][mM][iI]|[bB][nN][nN]|[dD][eE][fF][aA][uU][lL][tT]|"
+    r"[eE][nN][oO][cC][hH][iI][aA][nN]|[hH][aA][kK]|"
+    r"[kK][lL][iI][nN][gG][oO][nN]|[lL][uU][xX]|"
+    r"[mM][iI][nN][gG][oO]|[nN][aA][vV][aA][jJ][oO]|"
+    r"[pP][wW][nN]|[tT][aA][oO]|[tT][aA][yY]|[tT][sS][uU])|"
+    r"[sS][gG][nN]-(?:[bB][eE]-[fF][rR]|[bB][eE]-[nN][lL]|"
+    r"[cC][hH]-[dD][eE])|[aA][rR][tT]-[lL][oO][jJ][bB][aA][nN]|"
+    r"[cC][eE][lL]-[gG][aA][uU][lL][iI][sS][hH]|"
+    r"[nN][oO]-(?:[bB][oO][kK]|[nN][yY][nN])|"
+    r"[zZ][hH]-(?:[gG][uU][oO][yY][uU]|[hH][aA][kK][kK][aA]|"
+    r"[mM][iI][nN]|[mM][iI][nN]-[nN][aA][nN]|"
+    r"[xX][iI][aA][nN][gG]))$"
+)
 
 
 def parse_nquads_line(line: str) -> Quad | None:
@@ -633,6 +660,7 @@ class PublisherView:
     declared_out_of_scope_subjects: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict
     )
+    language_exclusion_evidence: LanguageExclusionEvidence | None = None
     # Stock non-RDF readers derive the source-record evidence address and the
     # exact native payload independently from publisher bytes. RDF readers use
     # the source IRI and the existing field-level inverse by default.
@@ -843,6 +871,66 @@ class DeclaredClaimExclusion:
 
 
 @dataclass(frozen=True)
+class DeclaredLanguageExclusion:
+    """One exact claim-level declaration of Atlas's English product scope.
+
+    Unlike ``DeclaredClaimExclusion``, this declaration never selects a subject.
+    It selects only explicitly tagged semantic literal claims whose valid BCP 47
+    primary language subtag is not ``en``. The authenticated payload fixes the
+    source, language, and predicate-family counts that must be observed.
+    """
+
+    name: str
+    reason: str
+    payload_json: str
+    payload_sha256: str
+
+    def __post_init__(self) -> None:
+        observed = "sha256:" + hashlib.sha256(
+            self.payload_json.encode("utf-8")
+        ).hexdigest()
+        if observed != self.payload_sha256:
+            raise ValueError(
+                f"declared language exclusion {self.name!r} payload digest differs: "
+                f"expected {self.payload_sha256}, observed {observed}"
+            )
+
+    def payload(self) -> Mapping[str, Any]:
+        """Return the immutable declaration payload after structural checks."""
+        value = json.loads(self.payload_json)
+        if not isinstance(value, dict):
+            raise ValueError("language exclusion payload must be an object")
+        return value
+
+
+@dataclass(frozen=True)
+class LanguageExclusionEvidence:
+    """Measured claim cells and exact selected-claim identity for one source."""
+
+    expected_counts_by_language: Mapping[str, Mapping[str, int]]
+    actual_counts_by_language: Mapping[str, Mapping[str, int]]
+    excluded_claim_count: int
+    excluded_claims_digest: str
+    applied: bool
+    failures: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class AtlasLanguageScopeEvidence:
+    """Whole-distribution evidence that the Atlas side obeys its language scope."""
+
+    non_english_literal_count: int = 0
+    non_english_literals_digest: str = "sha256:" + hashlib.sha256(b"[]").hexdigest()
+    non_english_literal_examples: tuple[str, ...] = ()
+    noncanonical_semantic_literal_count: int = 0
+    noncanonical_semantic_literals_digest: str = (
+        "sha256:" + hashlib.sha256(b"[]").hexdigest()
+    )
+    noncanonical_semantic_literal_examples: tuple[str, ...] = ()
+    scan_failures: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -855,6 +943,7 @@ class SourceSpec:
     included_concept_iris: frozenset[str] = frozenset()
     excluded_resource_predicates: frozenset[str] = frozenset()
     declared_claim_exclusions: tuple[DeclaredClaimExclusion, ...] = ()
+    declared_language_exclusion: DeclaredLanguageExclusion | None = None
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
@@ -863,6 +952,36 @@ class SourceSpec:
 
     def has_policy(self, name: str) -> bool:
         return name in self.policies
+
+
+_ENGLISH_LANGUAGE_EXCLUSION_PAYLOAD = LANGUAGE_SCOPE_EXCLUSIONS.read_text(
+    encoding="utf-8"
+)
+_ENGLISH_LANGUAGE_EXCLUSION = DeclaredLanguageExclusion(
+    name="nonEnglishPublisherLiteralClaims",
+    reason=(
+        "Atlas carries the BCP 47 English language family; explicitly tagged "
+        "publisher literals outside that family are deliberately not represented"
+    ),
+    payload_json=_ENGLISH_LANGUAGE_EXCLUSION_PAYLOAD,
+    payload_sha256=(
+        "sha256:8c7ffd458cef9b182d86b1b3e9626cc0d38d5db6eb0d8ba1ef59e63e024082bb"
+    ),
+)
+_ENGLISH_LANGUAGE_EXCLUSION_SOURCE_NAMES = frozenset(
+    _ENGLISH_LANGUAGE_EXCLUSION.payload().get("countsBySourceAndLanguage", {})
+)
+
+
+def _language_exclusion_for_spec(
+    spec: SourceSpec,
+) -> DeclaredLanguageExclusion | None:
+    """Resolve an explicit test declaration or the registry-wide owner decision."""
+    if spec.declared_language_exclusion is not None:
+        return spec.declared_language_exclusion
+    if spec.name in _ENGLISH_LANGUAGE_EXCLUSION_SOURCE_NAMES:
+        return _ENGLISH_LANGUAGE_EXCLUSION
+    return None
 
 
 @dataclass(frozen=True)
@@ -959,11 +1078,15 @@ class Context:
     expectations: Expectations
     units: tuple[DistributionUnit, ...]
     construction_summary_digest: str | None
+    construction_language_scope: Any
     manifest_digest: str | None
     pack_pins: Mapping[str, PackPin]
     verified_pins: frozenset[SourcePin]
     pin_failures: tuple[str, ...]
     load_failures: tuple[str, ...]
+    atlas_language_scope_evidence: AtlasLanguageScopeEvidence = field(
+        default_factory=AtlasLanguageScopeEvidence
+    )
     source_extract_pairs: tuple[SourceExtractPair, ...] = ()
     # Specs this run deliberately did not evaluate. They stay visible so the
     # coverage arithmetic can report their construction units as scoped out
@@ -4504,6 +4627,89 @@ def read_atlas_source(
     )
 
 
+def _audit_atlas_language_scope(
+    distribution: Path,
+    packs: Collection[str],
+) -> AtlasLanguageScopeEvidence:
+    """Inspect every declared pack and prove the Atlas has no out-of-scope text."""
+    non_english: set[tuple[str, str, LiteralValue]] = set()
+    noncanonical_semantic: set[tuple[str, str, LiteralValue]] = set()
+    scan_failures: list[str] = []
+    semantic_predicates = frozenset(
+        {
+            SKOS_PREF_LABEL,
+            SKOS_ALT_LABEL,
+            SKOS_HIDDEN_LABEL,
+            SKOSXL_LITERAL_FORM,
+            ATLAS_DEFINITION,
+            ATLAS_NOTE,
+        }
+    )
+    for pack in sorted(set(packs)):
+        try:
+            quads = read_pack(distribution / "packs" / pack, scan_failures)
+            for quad in quads:
+                if not quad.is_literal:
+                    continue
+                literal = _literal_value(quad.obj, quad.language, quad.datatype)
+                row = (quad.subject, quad.predicate, literal)
+                if quad.language is not None:
+                    normalized = quad.language.casefold()
+                    if (
+                        _BCP47.fullmatch(quad.language) is None
+                        or normalized != "en"
+                    ):
+                        non_english.add(row)
+                if quad.predicate in semantic_predicates and quad.language != "en":
+                    noncanonical_semantic.add(row)
+        except OSError as error:
+            scan_failures.append(f"{pack}: {type(error).__name__}: {error}")
+
+    def evidence(
+        rows: Collection[tuple[str, str, LiteralValue]],
+    ) -> tuple[int, str, tuple[str, ...]]:
+        ordered = sorted(rows, key=_literal_claim_sort_key)
+        serialized = [
+            {
+                "datatype": literal.datatype,
+                "language": literal.language,
+                "predicate": predicate,
+                "subject": subject,
+                "value": literal.value,
+            }
+            for subject, predicate, literal in ordered
+        ]
+        digest = "sha256:" + hashlib.sha256(
+            json.dumps(
+                serialized,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        examples = tuple(
+            f"<{subject}> <{predicate}> {_literal_repr(literal)}"
+            for subject, predicate, literal in ordered[:5]
+        )
+        return len(ordered), digest, examples
+
+    non_english_count, non_english_digest, non_english_examples = evidence(
+        non_english
+    )
+    semantic_count, semantic_digest, semantic_examples = evidence(
+        noncanonical_semantic
+    )
+    return AtlasLanguageScopeEvidence(
+        non_english_literal_count=non_english_count,
+        non_english_literals_digest=non_english_digest,
+        non_english_literal_examples=non_english_examples,
+        noncanonical_semantic_literal_count=semantic_count,
+        noncanonical_semantic_literals_digest=semantic_digest,
+        noncanonical_semantic_literal_examples=semantic_examples,
+        scan_failures=tuple(scan_failures),
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Source registry
 # --------------------------------------------------------------------------------------
@@ -7847,9 +8053,6 @@ SOURCES: tuple[SourceSpec, ...] = (
             atlas_only_native_payload_fields=frozenset(
                 {"detachedAnnotationsNotJoined"}
             ),
-            additional_annotation_predicates=(
-                "http://synaptica.net/zthes/termNote",
-            ),
             additional_relation_predicates=(
                 "http://synaptica.net/skm/UF",
                 "http://synaptica.net/skm/Use",
@@ -7961,6 +8164,7 @@ def build_context(
     summary_path = distribution / CONSTRUCTION_SUMMARY
     units: list[DistributionUnit] = []
     summary_digest: str | None = None
+    construction_language_scope: Any = None
     manifest_digest: str | None = None
     pack_pins: dict[str, PackPin] = {}
     load_failures: list[str] = []
@@ -8025,6 +8229,9 @@ def build_context(
         except (OSError, TypeError, ValueError) as error:
             load_failures.append(f"cannot read {CONSTRUCTION_SUMMARY}: {error}")
         else:
+            construction_language_scope = (
+                payload.get("languageScope") if isinstance(payload, dict) else None
+            )
             releases = payload.get("releases") if isinstance(payload, dict) else None
             if not isinstance(releases, list):
                 load_failures.append(f"{CONSTRUCTION_SUMMARY}: releases must be an array")
@@ -8252,7 +8459,33 @@ def build_context(
                     )
                 )
         elif publisher is not None:
-            pairs.append(SourcePair(spec=spec, publisher=publisher, atlas=atlas))
+            pair = SourcePair(spec=spec, publisher=publisher, atlas=atlas)
+            language_exclusion = _language_exclusion_for_spec(spec)
+            if language_exclusion is not None:
+                pair = replace(
+                    pair,
+                    publisher=_apply_declared_language_exclusion(
+                        pair,
+                        language_exclusion,
+                    ),
+                )
+            pairs.append(pair)
+    language_scope_active = any(
+        _language_exclusion_for_spec(spec) is not None for spec in specs
+    )
+    if language_scope_active and pack_pins:
+        atlas_language_scope_evidence = _audit_atlas_language_scope(
+            distribution,
+            pack_pins,
+        )
+    elif language_scope_active:
+        atlas_language_scope_evidence = AtlasLanguageScopeEvidence(
+            scan_failures=(
+                "atlas-manifest.json declares no authenticated packs to inspect",
+            )
+        )
+    else:
+        atlas_language_scope_evidence = AtlasLanguageScopeEvidence()
     return Context(
         distribution=distribution,
         source_root=source_root,
@@ -8263,11 +8496,13 @@ def build_context(
         expectations=expectations,
         units=tuple(units),
         construction_summary_digest=summary_digest,
+        construction_language_scope=construction_language_scope,
         manifest_digest=manifest_digest,
         pack_pins=dict(sorted(pack_pins.items())),
         verified_pins=frozenset(verified_pins),
         pin_failures=tuple(pin_failures),
         load_failures=tuple(load_failures),
+        atlas_language_scope_evidence=atlas_language_scope_evidence,
         source_extract_pairs=tuple(source_extract_pairs),
         scoped_out_specs=scoped_out_specs,
     )
@@ -8313,6 +8548,71 @@ def check_load_errors(ctx: Context) -> CheckResult:
         "load-errors",
         f"{len(ctx.load_failures)} source, inventory, or pack loading errors collected",
         ctx.load_failures,
+    )
+
+
+def check_language_scope(ctx: Context) -> CheckResult:
+    """Prove the declared English scope against source cells and every Atlas pack."""
+    declared_specs = tuple(
+        spec
+        for spec in ctx.specs
+        if _language_exclusion_for_spec(spec) is not None
+    )
+    if not declared_specs:
+        return _result(
+            "language-scope",
+            "no language-scope declaration applies to this run",
+            [],
+        )
+
+    failures: list[str] = []
+    if ctx.construction_language_scope != ENGLISH_LANGUAGE_SCOPE:
+        failures.append(
+            f"{CONSTRUCTION_SUMMARY}: languageScope differs -- expected "
+            f"{ENGLISH_LANGUAGE_SCOPE}, observed {ctx.construction_language_scope!r}"
+        )
+    pairs_by_spec = {pair.spec: pair for pair in ctx.pairs}
+    excluded = 0
+    for spec in declared_specs:
+        pair = pairs_by_spec.get(spec)
+        if pair is None:
+            failures.append(
+                f"{spec.name}: language-scope declaration could not be evaluated because the publisher comparison did not load"
+            )
+            continue
+        evidence = pair.publisher.language_exclusion_evidence
+        if evidence is None:
+            failures.append(
+                f"{spec.name}: language-scope declaration produced no source evidence"
+            )
+            continue
+        excluded += evidence.excluded_claim_count if evidence.applied else 0
+        failures.extend(
+            f"{spec.name}: {failure}" for failure in evidence.failures
+        )
+
+    atlas = ctx.atlas_language_scope_evidence
+    failures.extend(
+        f"Atlas language-scope scan failed: {failure}"
+        for failure in atlas.scan_failures
+    )
+    if atlas.non_english_literal_count:
+        failures.append(
+            "Atlas asserts "
+            f"{atlas.non_english_literal_count} explicitly tagged non-English or invalid-language literal claim(s) across the distribution; "
+            f"examples {list(atlas.non_english_literal_examples)}"
+        )
+    if atlas.noncanonical_semantic_literal_count:
+        failures.append(
+            "Atlas asserts "
+            f"{atlas.noncanonical_semantic_literal_count} label, definition, or note literal claim(s) without exact @en; "
+            f"examples {list(atlas.noncanonical_semantic_literal_examples)}"
+        )
+    return _result(
+        "language-scope",
+        f"{excluded} non-English publisher semantic literal claims declared and itemised; "
+        f"{atlas.non_english_literal_count} non-English Atlas literal claims observed",
+        failures,
     )
 
 
@@ -10838,6 +11138,394 @@ def _atlas_source_wide_literals(
     )
 
 
+_LANGUAGE_EXCLUSION_FIELDS = frozenset(
+    {
+        "schemaVersion",
+        "exclusionType",
+        "selection",
+        "predicateFamilies",
+        "countsBySourceAndLanguage",
+        "totalExcludedClaims",
+    }
+)
+_LANGUAGE_EXCLUSION_SELECTION = {
+    "countUnit": (
+        "unique auditor semantic literal claim after SourceSpec subset selection"
+    ),
+    "excludedClaimRule": (
+        "language tag is present and primary language subtag is not en"
+    ),
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+}
+
+
+def _language_exclusion_payload_parts(
+    declaration: DeclaredLanguageExclusion,
+    source: str,
+) -> tuple[
+    Mapping[str, tuple[str, ...]],
+    Mapping[str, Mapping[str, int]],
+    tuple[str, ...],
+]:
+    """Validate one authenticated count declaration without accepting drift."""
+    failures: list[str] = []
+    try:
+        payload = declaration.payload()
+    except (TypeError, ValueError) as error:
+        return {}, {}, (f"declaration payload is not valid JSON: {error}",)
+    if set(payload) != _LANGUAGE_EXCLUSION_FIELDS:
+        failures.append(
+            "declaration fields differ -- expected "
+            f"{sorted(_LANGUAGE_EXCLUSION_FIELDS)}, observed {sorted(payload)}"
+        )
+    if payload.get("schemaVersion") != "1.0":
+        failures.append("declaration schemaVersion must be '1.0'")
+    if payload.get("exclusionType") != "languageFamily":
+        failures.append("declaration exclusionType must be 'languageFamily'")
+    if payload.get("selection") != _LANGUAGE_EXCLUSION_SELECTION:
+        failures.append(
+            "declaration selection differs from the executable BCP 47 rule"
+        )
+
+    raw_families = payload.get("predicateFamilies")
+    predicate_families: dict[str, tuple[str, ...]] = {}
+    if not isinstance(raw_families, dict):
+        failures.append("declaration predicateFamilies must be an object")
+    else:
+        for family, predicates in raw_families.items():
+            if (
+                not isinstance(family, str)
+                or not family
+                or not isinstance(predicates, list)
+                or not predicates
+                or not all(isinstance(predicate, str) and predicate for predicate in predicates)
+                or len(set(predicates)) != len(predicates)
+            ):
+                failures.append(
+                    f"declaration predicate family {family!r} must contain unique IRI strings"
+                )
+                continue
+            predicate_families[family] = tuple(predicates)
+
+    raw_counts = payload.get("countsBySourceAndLanguage")
+    counts_by_source: dict[str, dict[str, dict[str, int]]] = {}
+    declared_total = 0
+    if not isinstance(raw_counts, dict):
+        failures.append("declaration countsBySourceAndLanguage must be an object")
+    else:
+        for source_name, language_rows in raw_counts.items():
+            if not isinstance(source_name, str) or not isinstance(language_rows, dict):
+                failures.append("declaration source count rows must be objects")
+                continue
+            parsed_languages: dict[str, dict[str, int]] = {}
+            for language, family_rows in language_rows.items():
+                if (
+                    not isinstance(language, str)
+                    or _BCP47.fullmatch(language) is None
+                    or language.casefold() == "en"
+                    or language.casefold().startswith("en-")
+                ):
+                    failures.append(
+                        f"declaration language {language!r} is not a valid non-English BCP 47 tag"
+                    )
+                    continue
+                if not isinstance(family_rows, dict) or not family_rows:
+                    failures.append(
+                        f"declaration count cell {source_name}/{language} must be a non-empty object"
+                    )
+                    continue
+                parsed_families: dict[str, int] = {}
+                for family, count in family_rows.items():
+                    if family not in predicate_families:
+                        failures.append(
+                            f"declaration count cell {source_name}/{language} uses unknown family {family!r}"
+                        )
+                    if (
+                        not isinstance(count, int)
+                        or isinstance(count, bool)
+                        or count <= 0
+                    ):
+                        failures.append(
+                            f"declaration count cell {source_name}/{language}/{family} must be a positive integer"
+                        )
+                        continue
+                    parsed_families[family] = count
+                    declared_total += count
+                parsed_languages[language] = parsed_families
+            counts_by_source[source_name] = parsed_languages
+    expected_total = payload.get("totalExcludedClaims")
+    if (
+        not isinstance(expected_total, int)
+        or isinstance(expected_total, bool)
+        or expected_total != declared_total
+    ):
+        failures.append(
+            "declaration totalExcludedClaims does not equal its source/language/family cells: "
+            f"expected {expected_total!r}, summed {declared_total}"
+        )
+    if source not in counts_by_source:
+        failures.append(f"declaration has no count row for source {source!r}")
+    return (
+        predicate_families,
+        counts_by_source.get(source, {}),
+        tuple(failures),
+    )
+
+
+def _language_semantic_literal_claims(
+    pair: SourcePair,
+) -> frozenset[tuple[str, str, str, LiteralValue]]:
+    """Resolve literal claims to the exact semantic families in the declaration."""
+    publisher = pair.publisher
+    rows: set[tuple[str, str, str, LiteralValue]] = set()
+    for family, predicate, values_by_subject in (
+        ("preferredLabels", SKOS_PREF_LABEL, publisher.pref_labels),
+        ("alternateLabels", SKOS_ALT_LABEL, publisher.alt_labels),
+        ("hiddenLabels", SKOS_HIDDEN_LABEL, publisher.hidden_labels),
+        ("notations", SKOS_NOTATION, publisher.notations),
+    ):
+        rows.update(
+            (family, subject, predicate, literal)
+            for subject, values in values_by_subject.items()
+            if subject in publisher.concepts
+            for literal in values
+        )
+    note_predicates = _source_note_predicates(pair)
+    rows.update(
+        (
+            "definitions" if predicate == SKOS_DEFINITION else "notes",
+            subject,
+            predicate,
+            literal,
+        )
+        for subject, predicate, literal in publisher.annotations
+        if subject in publisher.concepts
+        and (predicate == SKOS_DEFINITION or predicate in note_predicates)
+    )
+    rows.update(
+        ("memberMetadataLiterals", subject, predicate, literal)
+        for subject, predicate, literal in _publisher_member_metadata_literals(pair)
+    )
+    rows.update(
+        ("sourceSchemeLiterals", subject, predicate, literal)
+        for subject, predicate, literal in _publisher_source_scheme_literal_claims(pair)
+    )
+    rows.update(
+        ("sourceWideLiterals", subject, predicate, literal)
+        for subject, predicate, literal in _publisher_source_wide_literals(pair)
+    )
+    return frozenset(rows)
+
+
+def _normalized_language_counts(
+    counts: Mapping[str, Mapping[str, int]],
+) -> dict[str, dict[str, int]]:
+    """Compare BCP 47 tags case-insensitively while retaining receipt spellings."""
+    normalized: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for language, families in counts.items():
+        for family, count in families.items():
+            normalized[language.casefold()][family] += count
+    return {
+        language: dict(sorted(families.items()))
+        for language, families in sorted(normalized.items())
+    }
+
+
+def _apply_declared_language_exclusion(
+    pair: SourcePair,
+    declaration: DeclaredLanguageExclusion,
+) -> PublisherView:
+    """Set aside only exactly declared non-English semantic literal claims."""
+    predicate_families, expected_counts, payload_failures = (
+        _language_exclusion_payload_parts(declaration, pair.spec.name)
+    )
+    failures = list(payload_failures)
+    candidates = _language_semantic_literal_claims(pair)
+    selected: set[tuple[str, str, str, LiteralValue]] = set()
+    actual_counter: Counter[tuple[str, str]] = Counter()
+    declared_predicates = frozenset(
+        predicate
+        for predicates in predicate_families.values()
+        for predicate in predicates
+    )
+    invalid: list[str] = []
+    undeclared: list[str] = []
+    for family, subject, predicate, literal in sorted(
+        candidates,
+        key=lambda row: (
+            row[0],
+            row[1],
+            row[2],
+            row[3].language or "",
+            row[3].value,
+            row[3].datatype or "",
+        ),
+    ):
+        language = literal.language
+        if language is None:
+            continue
+        if _BCP47.fullmatch(language) is None:
+            invalid.append(
+                f"<{subject}> <{predicate}> {_literal_repr(literal)}"
+            )
+            continue
+        normalized = language.casefold()
+        if normalized == "en" or normalized.startswith("en-"):
+            continue
+        # The family is the existing auditor comparison that owns this claim.
+        # The payload's predicate families also form one closed predicate
+        # inventory. A publisher claim may be reached through two comparison
+        # roles (for example, a label on an explicit source scheme), so require
+        # both a declared role and a globally declared predicate without
+        # pretending the role/predicate lists are disjoint.
+        if family not in predicate_families or predicate not in declared_predicates:
+            undeclared.append(
+                f"{family}: <{subject}> <{predicate}> {_literal_repr(literal)}"
+            )
+            continue
+        selected.add((family, subject, predicate, literal))
+        actual_counter[(language, family)] += 1
+
+    if invalid:
+        failures.append(
+            f"{len(invalid)} explicitly tagged semantic literal claim(s) have invalid BCP 47 tags; examples {invalid[:5]}"
+        )
+    if undeclared:
+        failures.append(
+            f"{len(undeclared)} non-English semantic literal claim(s) use an undeclared predicate family; examples {undeclared[:5]}"
+        )
+    actual_counts: dict[str, dict[str, int]] = defaultdict(dict)
+    for (language, family), count in sorted(actual_counter.items()):
+        actual_counts[language][family] = count
+    expected_normalized = _normalized_language_counts(expected_counts)
+    actual_normalized = _normalized_language_counts(actual_counts)
+    if expected_normalized != actual_normalized:
+        failures.append(
+            "declared source/language/predicate-family cells differ from authenticated publisher bytes: "
+            f"expected {expected_normalized}, observed {actual_normalized}"
+        )
+
+    identity_rows = [
+        {
+            "datatype": literal.datatype,
+            "family": family,
+            "language": literal.language,
+            "predicate": predicate,
+            "subject": subject,
+            "value": literal.value,
+        }
+        for family, subject, predicate, literal in sorted(
+            selected,
+            key=lambda row: (
+                row[0],
+                row[1],
+                row[2],
+                row[3].language or "",
+                row[3].value,
+                row[3].datatype or "",
+            ),
+        )
+    ]
+    identity_digest = "sha256:" + hashlib.sha256(
+        json.dumps(
+            identity_rows,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    evidence = LanguageExclusionEvidence(
+        expected_counts_by_language={
+            language: dict(sorted(families.items()))
+            for language, families in sorted(expected_counts.items())
+        },
+        actual_counts_by_language={
+            language: dict(sorted(families.items()))
+            for language, families in sorted(actual_counts.items())
+        },
+        excluded_claim_count=len(selected),
+        excluded_claims_digest=identity_digest,
+        applied=not failures,
+        failures=tuple(failures),
+    )
+    if failures:
+        return replace(pair.publisher, language_exclusion_evidence=evidence)
+
+    excluded_labels: dict[str, set[tuple[str, LiteralValue]]] = defaultdict(set)
+    excluded_annotations: set[tuple[str, str, LiteralValue]] = set()
+    excluded_direct_literals: set[tuple[str, str, LiteralValue]] = set()
+    for family, subject, predicate, literal in selected:
+        if family in {"preferredLabels", "alternateLabels", "hiddenLabels"}:
+            excluded_labels[family].add((subject, literal))
+        elif family in {"definitions", "notes"}:
+            excluded_annotations.add((subject, predicate, literal))
+        excluded_direct_literals.add((subject, predicate, literal))
+
+    def filtered_values(
+        family: str,
+        values: Mapping[str, frozenset[LiteralValue]],
+    ) -> dict[str, frozenset[LiteralValue]]:
+        result: dict[str, frozenset[LiteralValue]] = {}
+        excluded = excluded_labels[family]
+        for subject, literals in values.items():
+            retained = frozenset(
+                literal
+                for literal in literals
+                if (subject, literal) not in excluded
+            )
+            if retained:
+                result[subject] = retained
+        return result
+
+    pref = filtered_values("preferredLabels", pair.publisher.pref_labels)
+    alt = filtered_values("alternateLabels", pair.publisher.alt_labels)
+    hidden = filtered_values("hiddenLabels", pair.publisher.hidden_labels)
+    # Source-scheme display literals use the same maps but a different semantic
+    # family, so remove their exact rows without touching English concept labels.
+    scheme_selected = {
+        (subject, predicate, literal)
+        for family, subject, predicate, literal in selected
+        if family == "sourceSchemeLiterals"
+    }
+    for values, predicate in (
+        (pref, SKOS_PREF_LABEL),
+        (alt, SKOS_ALT_LABEL),
+        (hidden, SKOS_HIDDEN_LABEL),
+    ):
+        for subject in tuple(values):
+            retained = frozenset(
+                literal
+                for literal in values[subject]
+                if (subject, predicate, literal) not in scheme_selected
+            )
+            if retained:
+                values[subject] = retained
+            else:
+                del values[subject]
+
+    return replace(
+        pair.publisher,
+        pref_labels=pref,
+        alt_labels=alt,
+        hidden_labels=hidden,
+        annotations=frozenset(
+            row
+            for row in pair.publisher.annotations
+            if row not in excluded_annotations
+        ),
+        literal_claims=frozenset(
+            row
+            for row in pair.publisher.literal_claims
+            if row not in excluded_direct_literals
+        ),
+        pref_label_count_all_languages=sum(len(values) for values in pref.values()),
+        alt_label_count_all_languages=sum(len(values) for values in alt.values()),
+        hidden_label_count_all_languages=sum(len(values) for values in hidden.values()),
+        language_exclusion_evidence=evidence,
+    )
+
+
 def _atlas_source_targets(pair: SourcePair) -> frozenset[str]:
     """Resources explicitly linked to publisher evidence by a source record."""
     return frozenset(pair.atlas.record_targets.values())
@@ -11746,6 +12434,57 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
     return rows
 
 
+def _declared_language_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
+    """Itemise one claim-level language declaration and its paired Atlas proof."""
+    declaration = _language_exclusion_for_spec(pair.spec)
+    evidence = pair.publisher.language_exclusion_evidence
+    if declaration is None or evidence is None:
+        return []
+    payload = declaration.payload()
+    atlas_claims = sorted(
+        (
+            row
+            for row in pair.atlas.all_raw_literal_claims
+            if row[2].language is not None
+            and (
+                _BCP47.fullmatch(row[2].language) is None
+                or row[2].language.casefold() != "en"
+            )
+        ),
+        key=_literal_claim_sort_key,
+    )
+    holds = evidence.applied and not atlas_claims
+    return [
+        {
+            "name": declaration.name,
+            "reason": declaration.reason,
+            "exclusionType": payload.get("exclusionType"),
+            "schemaVersion": payload.get("schemaVersion"),
+            "payloadDigest": declaration.payload_sha256,
+            "selection": payload.get("selection"),
+            "predicateFamilies": payload.get("predicateFamilies"),
+            "expectedCountsByLanguage": evidence.expected_counts_by_language,
+            "actualCountsByLanguage": evidence.actual_counts_by_language,
+            "publisherClaimCount": evidence.excluded_claim_count,
+            "publisherClaimsDigest": evidence.excluded_claims_digest,
+            "atlasClaimCount": len(atlas_claims),
+            "atlasClaimExamples": [
+                [subject, predicate, _literal_repr(literal)]
+                for subject, predicate, literal in atlas_claims[:5]
+            ],
+            "failures": list(evidence.failures),
+            "status": "declared-out-of-scope" if holds else "violated",
+            "meaning": (
+                "only explicitly tagged publisher semantic literal claims outside "
+                "the BCP 47 English family; the authenticated source bytes, exact "
+                "source/language/predicate-family cells, and claim digest make the "
+                "set reconstructable, while every untagged, IRI, and English claim "
+                "stays in its normal comparison"
+            ),
+        }
+    ]
+
+
 def _publisher_claims_outside_comparison(
     pair: SourcePair,
 ) -> tuple[
@@ -12030,6 +12769,9 @@ def check_source_claim_coverage(ctx: Context) -> CheckResult:
                 )
             )
         )
+        language_evidence = pair.publisher.language_exclusion_evidence
+        if language_evidence is not None and language_evidence.applied:
+            declared_out_of_scope += language_evidence.excluded_claim_count
         for detail in pair.publisher.unevaluated_claims:
             failures.append(
                 f"{pair.spec.name}: publisher claim could not enter an exact comparison: {detail}"
@@ -12155,6 +12897,7 @@ def check_claim_scope(ctx: Context) -> CheckResult:
 _CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_load_errors,
     check_configuration,
+    check_language_scope,
     check_claim_scope,
     check_distribution_coverage,
     check_publisher_input_pins,
@@ -12978,6 +13721,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
             ),
         },
         *_declared_claim_exclusion_report(pair),
+        *_declared_language_exclusion_report(pair),
     ]
     family_statuses = {family["status"] for family in families}
     violated_exclusions = [
@@ -13335,13 +14079,25 @@ def _evaluate_claim_scope(ctx: Context) -> CheckResult:
             if family.get("status", "declared-out-of-scope") == "declared-out-of-scope":
                 continue
             if family["atlasClaimCount"]:
-                failures.append(
-                    f"{pair.spec.name}: declared exclusion {family['name']} does not "
-                    f"hold -- Atlas asserts {family['atlasClaimCount']} claim(s) about "
-                    f"subjects it declares out of scope; examples "
-                    f"{family['atlasClaimExamples'][:5]}"
+                if family.get("exclusionType") == "languageFamily":
+                    failures.append(
+                        f"{pair.spec.name}: declared language exclusion {family['name']} does not "
+                        f"hold -- Atlas asserts {family['atlasClaimCount']} non-English literal claim(s); examples "
+                        f"{family['atlasClaimExamples'][:5]}"
+                    )
+                else:
+                    failures.append(
+                        f"{pair.spec.name}: declared exclusion {family['name']} does not "
+                        f"hold -- Atlas asserts {family['atlasClaimCount']} claim(s) about "
+                        f"subjects it declares out of scope; examples "
+                        f"{family['atlasClaimExamples'][:5]}"
+                    )
+            if family.get("failures"):
+                failures.extend(
+                    f"{pair.spec.name}: declared language exclusion {family['name']} does not hold -- {failure}"
+                    for failure in family["failures"]
                 )
-            if family["comparedSubjectOverlapCount"]:
+            if family.get("comparedSubjectOverlapCount", 0):
                 failures.append(
                     f"{pair.spec.name}: declared exclusion {family['name']} covers "
                     f"{family['comparedSubjectOverlapCount']} subject(s) this "
@@ -13629,6 +14385,44 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
         "passed": all(result.passed for result in results),
         "manifestDigest": ctx.manifest_digest,
         "constructionSummaryDigest": ctx.construction_summary_digest,
+        "languageScope": {
+            "expectedConstructionStatement": ENGLISH_LANGUAGE_SCOPE,
+            "observedConstructionStatement": ctx.construction_language_scope,
+            "sourceDeclarationCount": sum(
+                _language_exclusion_for_spec(spec) is not None
+                for spec in ctx.specs
+            ),
+            "declaredPublisherClaimCount": sum(
+                (
+                    pair.publisher.language_exclusion_evidence.excluded_claim_count
+                    if pair.publisher.language_exclusion_evidence is not None
+                    and pair.publisher.language_exclusion_evidence.applied
+                    else 0
+                )
+                for pair in ctx.pairs
+            ),
+            "atlasNonEnglishLiteralClaimCount": (
+                ctx.atlas_language_scope_evidence.non_english_literal_count
+            ),
+            "atlasNonEnglishLiteralClaimsDigest": (
+                ctx.atlas_language_scope_evidence.non_english_literals_digest
+            ),
+            "atlasNonEnglishLiteralClaimExamples": list(
+                ctx.atlas_language_scope_evidence.non_english_literal_examples
+            ),
+            "atlasNoncanonicalSemanticLiteralClaimCount": (
+                ctx.atlas_language_scope_evidence.noncanonical_semantic_literal_count
+            ),
+            "atlasNoncanonicalSemanticLiteralClaimsDigest": (
+                ctx.atlas_language_scope_evidence.noncanonical_semantic_literals_digest
+            ),
+            "atlasNoncanonicalSemanticLiteralClaimExamples": list(
+                ctx.atlas_language_scope_evidence.noncanonical_semantic_literal_examples
+            ),
+            "atlasScanFailures": list(
+                ctx.atlas_language_scope_evidence.scan_failures
+            ),
+        },
         "expectations": {
             "minimumLabelSample": max(1, ctx.expectations.minimum_label_sample),
             "requestedMinimumLabelSample": ctx.expectations.minimum_label_sample,
