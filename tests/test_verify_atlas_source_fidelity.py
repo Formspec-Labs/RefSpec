@@ -33,19 +33,34 @@ from pathlib import Path
 import pytest
 
 from tools.verify_atlas_source_fidelity import (
-    API_CAPTURE_JSON_READER,
     CHECK_NAMES,
+    CSV_RECORD_SELECTOR_READER,
     FEDERAL_REGISTER_TOPICS_JSON_READER,
     GCMD_SCIENCE_KEYWORDS_CSV_READER,
+    JSON_RECORD_SELECTOR_READER,
+    LDA_GENERAL_ISSUE_JSON_READER,
     MESH_DESCRIPTOR_XML_READER,
+    NRC_ADAMS_MULTI_ARTIFACT_READER,
+    OOXML_RELATIONAL_READER,
     PATTERN_ROW_READER,
+    XML_RECORD_SELECTOR_READER,
     CheckResult,
+    CsvProjection,
+    CsvRecordSelector,
     DeclaredClaimExclusion,
     DeclaredLanguageExclusion,
     Expectations,
     Finding,
+    JsonRecordField,
+    JsonRecordSelector,
     LiteralValue,
     NativeControlSelector,
+    NrcAdamsInput,
+    NrcAdamsMultiArtifactSelector,
+    NrcAdamsPattern,
+    OoxmlRelationalSelector,
+    OoxmlTable,
+    OoxmlTableField,
     PatternDerivedField,
     PatternFieldNormalizer,
     PatternRowPattern,
@@ -53,6 +68,8 @@ from tools.verify_atlas_source_fidelity import (
     RdfSourcePolicy,
     SourcePin,
     SourceSpec,
+    XmlRecordField,
+    XmlRecordSelector,
     _fixed_width_layout_column,
     check_source_defects,
     main,
@@ -615,7 +632,7 @@ def _repin_native_capture(suite: Fixture, spec: SourceSpec) -> SourceSpec:
     return replace(spec, inputs=new_inputs)
 
 
-def _add_api_capture_json_source(
+def _add_lda_general_issue_json_source(
     suite: Fixture,
     *,
     atlas_label: str = "Agriculture",
@@ -667,7 +684,7 @@ def _add_api_capture_json_source(
         kind="vocabulary",
         release_keys=("lda-general-issue-codes",),
         inputs=(pin,),
-        reader=API_CAPTURE_JSON_READER,
+        reader=LDA_GENERAL_ISSUE_JSON_READER,
         identity_policy="source-local-record",
         policies=frozenset(
             {
@@ -882,6 +899,11 @@ def _add_single_record_stock_source(
     notation: str,
     role: str = "publisherSource",
     pattern_row: PatternRowSelector | None = None,
+    xml_record: XmlRecordSelector | None = None,
+    json_record: JsonRecordSelector | None = None,
+    csv_record: CsvRecordSelector | None = None,
+    ooxml_relational: OoxmlRelationalSelector | None = None,
+    nrc_adams: NrcAdamsMultiArtifactSelector | None = None,
     definition: str | None = None,
 ) -> SourceSpec:
     """Add one stock-reader pair whose expected Atlas values are explicit."""
@@ -902,6 +924,11 @@ def _add_single_record_stock_source(
         inputs=(source_pin,),
         reader=reader,
         pattern_row=pattern_row,
+        xml_record=xml_record,
+        json_record=json_record,
+        csv_record=csv_record,
+        ooxml_relational=ooxml_relational,
+        nrc_adams=nrc_adams,
         identity_policy=identity_policy,
         policies=frozenset(
             {
@@ -1298,6 +1325,387 @@ def _add_pattern_row_source(
     )
 
 
+def _native_payload_digest(value: dict[str, object]) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def _add_xml_record_selector_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    source_iri = "https://publisher.example/records.xml"
+    native_payload = {"key": "A", "label": "Alpha"}
+    template = json.dumps(
+        {"key": "{key}", "label": "{label}"},
+        separators=(",", ":"),
+    )
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-xml-record-selector",
+        filename="records.xml",
+        fmt="xml",
+        source_iri=source_iri,
+        source_bytes=b'<root><item key="A"><label>Alpha</label></item></root>',
+        reader=XML_RECORD_SELECTOR_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:xml-record:A",
+        source_locator=source_iri + "#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        xml_record=XmlRecordSelector(
+            input_role="publisherSource",
+            namespaces=(),
+            record_xpath="./item",
+            fields=(
+                XmlRecordField("key", attribute="key"),
+                XmlRecordField("label", xpath="label"),
+            ),
+            row_key="key",
+            identity_mode="publisher-key",
+            identity_template="urn:example:xml-record:{key}",
+            source_path_template="item[{ordinal}]",
+            source_locator_template="{input_source_iri}#{key}",
+            claim_map=(
+                ("preferred_label", "label"),
+                ("notation", "key"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=template,
+            native_payload_fields=("key", "label"),
+            expected_count=1,
+            declared_unevaluated_fields=(),
+            expected_record_tags=("label",),
+        ),
+    )
+
+
+def _add_json_record_selector_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    source_iri = "https://publisher.example/records.json"
+    native_payload = {"key": "A", "label": "Alpha"}
+    template = json.dumps(
+        {"key": "{key}", "label": "{label}"},
+        separators=(",", ":"),
+    )
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-json-record-selector",
+        filename="records.json",
+        fmt="json",
+        source_iri=source_iri,
+        source_bytes=b'{"document":{"rows":[["A","Alpha"]],"total":1}}',
+        reader=JSON_RECORD_SELECTOR_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:json-record:A",
+        source_locator=source_iri + "#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        json_record=JsonRecordSelector(
+            input_role="publisherSource",
+            record_path=("document", "rows"),
+            fields=(JsonRecordField("key", 0), JsonRecordField("label", 1)),
+            row_key="key",
+            identity_mode="publisher-key",
+            identity_template="urn:example:json-record:{key}",
+            source_path_template="document.rows[{ordinal}]",
+            source_locator_template="{input_source_iri}#{key}",
+            claim_map=(
+                ("preferred_label", "label"),
+                ("notation", "key"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=template,
+            native_payload_fields=("key", "label"),
+            expected_count=1,
+            expected_row_width=2,
+            declared_unevaluated_fields=(),
+            expected_root_fields=("document",),
+            expected_parent_fields=("rows", "total"),
+            count_path=("document", "total"),
+        ),
+    )
+
+
+def _add_csv_record_selector_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    source_iri = "https://publisher.example/records.csv"
+    native_payload = {"key": "A", "label": "Alpha"}
+    template = json.dumps(
+        {"key": "{code}", "label": "{label}"},
+        separators=(",", ":"),
+    )
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-csv-record-selector",
+        filename="records.csv",
+        fmt="csv",
+        source_iri=source_iri,
+        source_bytes=b"code,label\nA,Alpha\n",
+        reader=CSV_RECORD_SELECTOR_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:csv-record:A",
+        source_locator=source_iri + "#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        csv_record=CsvRecordSelector(
+            input_role="publisherSource",
+            encoding="utf-8",
+            delimiter=",",
+            quotechar='"',
+            projections=(CsvProjection("rows", 1),),
+            row_key="code",
+            identity_mode="publisher-key",
+            identity_template="urn:example:csv-record:{code}",
+            source_path_template="rows[{ordinal}]",
+            source_locator_template="{input_source_iri}#{code}",
+            claim_map=(
+                ("preferred_label", "label"),
+                ("notation", "code"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=template,
+            native_payload_fields=("key", "label"),
+            expected_count=1,
+            expected_header=("code", "label"),
+            expected_data_rows=1,
+            declared_unevaluated_fields=(),
+        ),
+    )
+
+
+def _tiny_ooxml_workbook() -> bytes:
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "xl/workbook.xml",
+            (
+                '<workbook xmlns="http://schemas.openxmlformats.org/'
+                'spreadsheetml/2006/main" xmlns:r="http://schemas.'
+                'openxmlformats.org/officeDocument/2006/relationships">'
+                '<sheets><sheet name="Codes" sheetId="1" r:id="rId1"/>'
+                "</sheets></workbook>"
+            ),
+        )
+        archive.writestr(
+            "xl/_rels/workbook.xml.rels",
+            (
+                '<Relationships xmlns="http://schemas.openxmlformats.org/'
+                'package/2006/relationships"><Relationship Id="rId1" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/'
+                '2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+                "</Relationships>"
+            ),
+        )
+        archive.writestr(
+            "xl/worksheets/sheet1.xml",
+            (
+                '<worksheet xmlns="http://schemas.openxmlformats.org/'
+                'spreadsheetml/2006/main"><sheetData>'
+                '<row r="1"><c r="A1" t="inlineStr"><is><t>Code</t></is></c>'
+                '<c r="B1" t="inlineStr"><is><t>Label</t></is></c></row>'
+                '<row r="2"><c r="A2" t="inlineStr"><is><t>A</t></is></c>'
+                '<c r="B2" t="inlineStr"><is><t>Alpha</t></is></c></row>'
+                "</sheetData></worksheet>"
+            ),
+        )
+    return payload.getvalue()
+
+
+def _add_nrc_multi_artifact_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    """Add one record selected from six independently authenticated inputs."""
+    input_names = tuple(f"input-{index}" for index in range(6))
+    input_paths = tuple(f"nrc-input-{index}.txt" for index in range(6))
+    selector = NrcAdamsMultiArtifactSelector(
+        inputs=tuple(
+            NrcAdamsInput(
+                name=name,
+                path=path,
+                official_source_url=f"https://publisher.example/{path}",
+                observed_at="2026-08-03T00:00:00Z",
+            )
+            for name, path in zip(input_names, input_paths, strict=True)
+        ),
+        patterns=(
+            NrcAdamsPattern(
+                input_name=input_names[0],
+                row_pattern=r"(?P<key>[A-Z])\|(?P<label>[A-Za-z]+)",
+                expected_matches=1,
+                coverage="whole",
+                projection="each",
+                constants=(),
+                aggregate_templates=(),
+                derived_fields=(),
+                row_key="key",
+                identity_template="urn:example:nrc-record:{key}",
+                source_path_template="row[{ordinal}]",
+                source_locator_template="{input_source_iri}#{key}",
+                claim_map=(
+                    ("preferred_label", "label"),
+                    ("notation", "key"),
+                    ("source_path", "source_path"),
+                ),
+                native_payload_template_json='{"key":"{key}","label":"{label}"}',
+                native_payload_fields=("key", "label"),
+            ),
+        ),
+        expected_count=1,
+        declared_unevaluated_fields=(),
+    )
+    native_payload = {"key": "A", "label": "Alpha"}
+    spec = _add_single_record_stock_source(
+        suite,
+        name="tiny-nrc-multi-artifact",
+        filename=input_paths[0],
+        fmt="text",
+        source_iri="urn:example:nrc-input:0",
+        source_bytes=b"A|Alpha",
+        reader=NRC_ADAMS_MULTI_ARTIFACT_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:nrc-record:A",
+        source_locator="urn:example:nrc-input:0#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        role="nrcRole0",
+        nrc_adams=selector,
+    )
+    pins = [spec.inputs[0]]
+    for index, path in enumerate(input_paths[1:], start=1):
+        payload = f"unused-{index}".encode()
+        (suite.source_root / path).write_bytes(payload)
+        pins.append(
+            SourcePin(
+                path=path,
+                sha256="sha256:" + hashlib.sha256(payload).hexdigest(),
+                byte_length=len(payload),
+                fmt="text",
+                role=f"nrcRole{index}",
+                source_iri=f"urn:example:nrc-input:{index}",
+            )
+        )
+    spec = replace(spec, inputs=tuple(pins))
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    release = next(
+        row for row in summary["releases"] if row["key"] == spec.name
+    )
+    release["inputs"] = [
+        {
+            "path": pin.path,
+            "sha256": pin.sha256,
+            "byteLength": pin.byte_length,
+            "role": pin.role,
+            "sourceIri": pin.source_iri,
+        }
+        for pin in pins
+    ]
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    return spec
+
+
+def _add_ooxml_relational_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    source_iri = "https://publisher.example/codes.xlsx"
+    native_payload = {"key": "A", "label": "Alpha"}
+    template = json.dumps(
+        {"key": "{code}", "label": "{label}"},
+        separators=(",", ":"),
+    )
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-ooxml-relational",
+        filename="codes.xlsx",
+        fmt="xlsx",
+        source_iri=source_iri,
+        source_bytes=_tiny_ooxml_workbook(),
+        reader=OOXML_RELATIONAL_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:ooxml-record:A",
+        source_locator=source_iri + "#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        ooxml_relational=OoxmlRelationalSelector(
+            input_role="publisherSource",
+            expected_sheets=("Codes",),
+            tables=(
+                OoxmlTable(
+                    name="codes",
+                    sheet="Codes",
+                    header_row=1,
+                    expected_header=("Code", "Label"),
+                    fields=(
+                        OoxmlTableField("code", 0, "code-text"),
+                        OoxmlTableField("label", 1, "stripped-text"),
+                    ),
+                    expected_rows=1,
+                ),
+            ),
+            primary_table="codes",
+            union_tables=(),
+            filters=(),
+            sort_by=(),
+            group_by=(),
+            joins=(),
+            aggregates=(),
+            derived_fields=(),
+            row_key="code",
+            identity_mode="publisher-key",
+            identity_template="urn:example:ooxml-record:{code}",
+            source_path_template="rows[{ordinal}]",
+            source_locator_template="{input_source_iri}#{code}",
+            claim_map=(
+                ("preferred_label", "label"),
+                ("notation", "code"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=template,
+            native_payload_fields=("key", "label"),
+            expected_count=1,
+            declared_unevaluated_fields=(),
+        ),
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Baseline
 # --------------------------------------------------------------------------------------
@@ -1414,10 +1822,10 @@ def test_gcmd_csv_reader_catches_rewritten_label(suite: Fixture) -> None:
     assert any("'PARTICULATES'" in failure for failure in label_check.failures)
 
 
-def test_api_capture_json_reader_faithful_pair_passes_every_check(
+def test_lda_general_issue_json_reader_faithful_pair_passes_every_check(
     suite: Fixture,
 ) -> None:
-    spec = _add_api_capture_json_source(suite)
+    spec = _add_lda_general_issue_json_source(suite)
 
     results = verify(
         suite.distribution,
@@ -1431,8 +1839,10 @@ def test_api_capture_json_reader_faithful_pair_passes_every_check(
     ]
 
 
-def test_api_capture_json_reader_catches_rewritten_label(suite: Fixture) -> None:
-    spec = _add_api_capture_json_source(suite, atlas_label="Farming")
+def test_lda_general_issue_json_reader_catches_rewritten_label(
+    suite: Fixture,
+) -> None:
+    spec = _add_lda_general_issue_json_source(suite, atlas_label="Farming")
 
     label_check = result(
         verify(
@@ -1480,6 +1890,116 @@ def test_pattern_row_reader_catches_rewritten_label(suite: Fixture) -> None:
 
     assert not label_check.passed
     assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_xml_record_selector_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_xml_record_selector_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_json_record_selector_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_json_record_selector_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_csv_record_selector_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_csv_record_selector_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_ooxml_relational_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_ooxml_relational_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_nrc_multi_artifact_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_nrc_multi_artifact_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
 
 
 def test_pattern_row_fixed_width_column_accepts_wrap_and_rejects_bad_indent() -> None:

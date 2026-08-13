@@ -77,6 +77,7 @@ import html
 import io
 import json
 import logging
+import posixpath
 import re
 import string
 import sys
@@ -87,7 +88,7 @@ import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -996,6 +997,313 @@ class PatternRowSelector:
 
 
 @dataclass(frozen=True)
+class XmlRecordField:
+    """One text, attribute, capture, or constant field from an XML record."""
+
+    field: str
+    xpath: str | None = None
+    attribute: str | None = None
+    constant: Any = None
+    required: bool = True
+    capture_pattern: str | None = None
+    normalizers: tuple[str, ...] = ("strip",)
+
+
+@dataclass(frozen=True)
+class XmlRecordSelector:
+    """Declarative ElementTree record selection and claim reconstruction."""
+
+    input_role: str
+    namespaces: tuple[tuple[str, str], ...]
+    record_xpath: str
+    fields: tuple[XmlRecordField, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+    expected_record_tags: tuple[str, ...] = ()
+    expansion_field: str | None = None
+    expansion_pattern: str | None = None
+    expansion_group: str = "value"
+    expected_raw_count: int | None = None
+    deduplicate_expansion: bool = False
+    identity_token: str | None = None
+    recorded_at: str | None = None
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
+class JsonRecordField:
+    """One positional field copied from a JSON record array."""
+
+    field: str
+    index: int
+
+
+@dataclass(frozen=True)
+class JsonRecordSelector:
+    """Declarative JSON path, row field, identity, claim, and residue rules."""
+
+    input_role: str
+    record_path: tuple[str, ...]
+    fields: tuple[JsonRecordField, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    expected_row_width: int
+    declared_unevaluated_fields: tuple[str, ...]
+    expected_root_fields: tuple[str, ...] = ()
+    expected_parent_fields: tuple[str, ...] = ()
+    header_path: tuple[str, ...] = ()
+    header_value_field: str | None = None
+    expected_header_fields: tuple[str, ...] = ()
+    count_path: tuple[str, ...] = ()
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
+class CsvProjection:
+    """One direct, header-field, or distinct-value CSV row selection."""
+
+    mode: str
+    expected_count: int
+    source_field: str | None = None
+    constants: tuple[tuple[str, Any], ...] = ()
+    nonempty: bool = False
+
+
+@dataclass(frozen=True)
+class CsvLabelRule:
+    """Join a declared set of non-empty columns for one discriminator value."""
+
+    discriminator_value: str
+    fields: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CsvFieldValidator:
+    """Apply one stock validation rule to a selected CSV field."""
+
+    field: str
+    validation: str
+    allowed_values: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CsvRecordSelector:
+    """Declarative CSV dialect, projection, identity, claim, and residue rules."""
+
+    input_role: str
+    encoding: str
+    delimiter: str
+    quotechar: str
+    projections: tuple[CsvProjection, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+    header_role: str | None = None
+    expected_header: tuple[str, ...] = ()
+    max_data_rows: int | None = None
+    expected_data_rows: int | None = None
+    label_discriminator_field: str | None = None
+    label_rules: tuple[CsvLabelRule, ...] = ()
+    validators: tuple[CsvFieldValidator, ...] = ()
+    identity_token: str | None = None
+    recorded_at: str | None = None
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
+class OoxmlDerivedField:
+    """One stock derived-field operation in an OOXML table or result row."""
+
+    field: str
+    operation: str
+    inputs: tuple[str, ...] = ()
+    template: str | None = None
+    pattern: str | None = None
+    group: str | None = None
+    cases: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class OoxmlTableField:
+    """One typed worksheet column projected into a relational row."""
+
+    field: str
+    column: int
+    cell_type: str
+
+
+@dataclass(frozen=True)
+class OoxmlRowValidator:
+    """One stock validation rule for every row in a declared table."""
+
+    field: str
+    validation: str
+
+
+@dataclass(frozen=True)
+class OoxmlTable:
+    """A pinned worksheet header and typed row projection."""
+
+    name: str
+    sheet: str
+    header_row: int
+    expected_header: tuple[Any, ...]
+    fields: tuple[OoxmlTableField, ...]
+    expected_rows: int
+    constants: tuple[tuple[str, Any], ...] = ()
+    derived_fields: tuple[OoxmlDerivedField, ...] = ()
+    validators: tuple[OoxmlRowValidator, ...] = ()
+    collapse_header_whitespace: bool = False
+
+
+@dataclass(frozen=True)
+class OoxmlRowFilter:
+    """A generic equality, emptiness, or regex filter."""
+
+    field: str
+    operation: str
+    value: str | None = None
+
+
+@dataclass(frozen=True)
+class OoxmlJoin:
+    """A declared lookup from primary rows to another worksheet table."""
+
+    alias: str
+    table: str
+    left_fields: tuple[str, ...]
+    right_fields: tuple[str, ...]
+    cardinality: str
+    require_all_right: bool = False
+
+
+@dataclass(frozen=True)
+class OoxmlAggregate:
+    """A declared group or joined-row aggregate."""
+
+    field: str
+    operation: str
+    source: str
+    value_field: str | None = None
+    key_field: str | None = None
+    offset: int = 0
+    template_json: str | None = None
+
+
+@dataclass(frozen=True)
+class OoxmlRelationalSelector:
+    """Declarative workbook pins, tables, joins, grouping, identity, and claims."""
+
+    input_role: str
+    expected_sheets: tuple[str, ...]
+    tables: tuple[OoxmlTable, ...]
+    primary_table: str
+    union_tables: tuple[str, ...]
+    filters: tuple[OoxmlRowFilter, ...]
+    sort_by: tuple[str, ...]
+    group_by: tuple[str, ...]
+    joins: tuple[OoxmlJoin, ...]
+    aggregates: tuple[OoxmlAggregate, ...]
+    derived_fields: tuple[OoxmlDerivedField, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+    identity_token: str | None = None
+    recorded_at: str | None = None
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
+class NrcAdamsInput:
+    """One of the six authenticated NRC pages or JavaScript excerpts."""
+
+    name: str
+    path: str
+    official_source_url: str
+    observed_at: str
+
+
+@dataclass(frozen=True)
+class NrcAggregateTemplate:
+    """Render structured row data or collect one value from every match."""
+
+    field: str
+    template_json: str
+    mode: str
+
+
+@dataclass(frozen=True)
+class NrcDerivedField:
+    """A template or SHA-256 field derived after one pattern projection."""
+
+    field: str
+    operation: str
+    inputs: tuple[str, ...] = ()
+    template: str | None = None
+
+
+@dataclass(frozen=True)
+class NrcAdamsPattern:
+    """One ordered pattern and its source-independent record projection."""
+
+    input_name: str
+    row_pattern: str
+    expected_matches: int
+    coverage: str
+    projection: str
+    constants: tuple[tuple[str, Any], ...]
+    aggregate_templates: tuple[NrcAggregateTemplate, ...]
+    derived_fields: tuple[NrcDerivedField, ...]
+    row_key: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    region_pattern: str | None = None
+
+
+@dataclass(frozen=True)
+class NrcAdamsMultiArtifactSelector:
+    """The six-input ordered semantic union shared by both NRC units."""
+
+    inputs: tuple[NrcAdamsInput, ...]
+    patterns: tuple[NrcAdamsPattern, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -1013,6 +1321,11 @@ class SourceSpec:
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
     pattern_row: PatternRowSelector | None = None
+    xml_record: XmlRecordSelector | None = None
+    json_record: JsonRecordSelector | None = None
+    csv_record: CsvRecordSelector | None = None
+    ooxml_relational: OoxmlRelationalSelector | None = None
+    nrc_adams: NrcAdamsMultiArtifactSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2089,8 +2402,52 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
     return json.loads(payload, object_pairs_hook=reject_duplicates)
 
 
-API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
 PATTERN_ROW_READER = "pattern-row-v2/2.0"
+XML_RECORD_SELECTOR_READER = "xml-record-selector-v1/1.0"
+JSON_RECORD_SELECTOR_READER = "json-record-selector-v2/2.0"
+CSV_RECORD_SELECTOR_READER = "csv-record-selector-v2/2.0"
+OOXML_RELATIONAL_READER = "ooxml-relational-v1/1.0"
+NRC_ADAMS_MULTI_ARTIFACT_READER = "nrc-adams-multi-artifact-v1/1.0"
+LDA_GENERAL_ISSUE_JSON_READER = "lda-general-issue-json-v1/1.0"
+LDA_FILING_TYPE_JSON_READER = "lda-filing-type-json-v1/1.0"
+ECFR_TITLES_JSON_READER = "ecfr-titles-json-v1/1.0"
+GOVINFO_COLLECTIONS_JSON_READER = "govinfo-collections-json-v1/1.0"
+USASPENDING_AWARD_TYPES_JSON_READER = "usaspending-award-types-json-v1/1.0"
+GSDM_REVIEWED_DOMAIN_JSON_READER = "gsdm-reviewed-domain-json-v1/1.0"
+NASA_TAXONOMY_JSON_READER = "nasa-taxonomy-json-v1/1.0"
+FCC_FILING_TYPES_JSON_READER = "fcc-filing-types-json-v1/1.0"
+FCC_ACCESS_STATUSES_JSON_READER = "fcc-access-statuses-json-v1/1.0"
+FCC_BUREAUS_JSON_READER = "fcc-bureaus-json-v1/1.0"
+FCC_PROCEEDINGS_JSON_READER = "fcc-proceedings-json-v1/1.0"
+FEDERAL_HIERARCHY_JSON_READER = "federal-hierarchy-json-v1/1.0"
+GOVINFO_PACKAGE_JSON_READER = "govinfo-package-json-v1/1.0"
+SAM_UEI_JSON_READER = "sam-uei-json-v1/1.0"
+SAM_CAGE_JSON_READER = "sam-cage-json-v1/1.0"
+SPEC_SCOPED_RECORD_READERS = frozenset(
+    {
+        CSV_RECORD_SELECTOR_READER,
+        ECFR_TITLES_JSON_READER,
+        FCC_ACCESS_STATUSES_JSON_READER,
+        FCC_BUREAUS_JSON_READER,
+        FCC_FILING_TYPES_JSON_READER,
+        FCC_PROCEEDINGS_JSON_READER,
+        FEDERAL_HIERARCHY_JSON_READER,
+        GOVINFO_COLLECTIONS_JSON_READER,
+        GOVINFO_PACKAGE_JSON_READER,
+        GSDM_REVIEWED_DOMAIN_JSON_READER,
+        JSON_RECORD_SELECTOR_READER,
+        LDA_FILING_TYPE_JSON_READER,
+        LDA_GENERAL_ISSUE_JSON_READER,
+        NASA_TAXONOMY_JSON_READER,
+        NRC_ADAMS_MULTI_ARTIFACT_READER,
+        OOXML_RELATIONAL_READER,
+        PATTERN_ROW_READER,
+        SAM_CAGE_JSON_READER,
+        SAM_UEI_JSON_READER,
+        USASPENDING_AWARD_TYPES_JSON_READER,
+        XML_RECORD_SELECTOR_READER,
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -2991,6 +3348,1456 @@ def _read_pattern_rows(
     )
 
 
+def _selector_claims(
+    claim_map: Sequence[tuple[str, str]],
+    fields: Mapping[str, Any],
+    label: str,
+) -> tuple[str, tuple[str, ...], str | None, str]:
+    """Resolve the common label, notation, definition, and source-path claims."""
+    claims: dict[str, list[Any]] = defaultdict(list)
+    for claim, field_name in claim_map:
+        if field_name not in fields:
+            raise ValueError(f"{label} claim {claim!r} names unknown field {field_name!r}")
+        value = fields[field_name]
+        if value is not None and value != "":
+            claims[claim].append(value)
+    if len(claims["preferred_label"]) != 1:
+        raise ValueError(f"{label} requires exactly one preferred_label claim")
+    if len(claims["source_path"]) != 1:
+        raise ValueError(f"{label} requires exactly one source_path claim")
+    definitions = claims["definition"]
+    if len(definitions) > 1:
+        raise ValueError(f"{label} declares multiple definitions")
+    preferred = _required_text(claims["preferred_label"][0], f"{label} label")
+    source_path = _required_text(claims["source_path"][0], f"{label} source path")
+    notations = tuple(
+        _required_text(value, f"{label} notation") for value in claims["notation"]
+    )
+    definition = (
+        _required_text(definitions[0], f"{label} definition")
+        if definitions
+        else None
+    )
+    unknown = sorted(
+        set(claims)
+        - {"preferred_label", "notation", "definition", "source_path"}
+    )
+    if unknown:
+        raise ValueError(f"{label} declares unsupported claims {unknown}")
+    return preferred, notations, definition, source_path
+
+
+def _selector_resource(
+    *,
+    identity_mode: str,
+    identity_template: str,
+    identity_token: str | None,
+    recorded_at: str | None,
+    fields: Mapping[str, Any],
+    row_key: str,
+    preferred_label: str,
+    notations: Sequence[str],
+    source_locator: str,
+    source_path: str,
+    label: str,
+) -> str:
+    """Apply one fixed identity rule without dispatching on a construction unit."""
+    if row_key not in fields:
+        raise ValueError(f"{label} identity names unknown row key {row_key!r}")
+    key = _required_text(fields[row_key], f"{label} row key")
+    render_fields = {**fields, "quoted_key": urllib.parse.quote(key, safe="")}
+    if identity_mode in {"publisher-iri", "publisher-key"}:
+        resource = _render_pattern_text(identity_template, render_fields)
+        return _required_text(resource, f"{label} resource identity")
+    if identity_mode == "registry-source-key":
+        if identity_token is None or recorded_at is None:
+            raise ValueError(
+                f"{label} registry-source-key identity requires identity_token "
+                "and recorded_at"
+            )
+        source_iri = _required_text(
+            fields.get("identity_source_iri", fields.get("input_source_iri")),
+            f"{label} identity source IRI",
+        )
+        source_key = _required_text(
+            _render_pattern_text(identity_template, render_fields),
+            f"{label} identity source key",
+        )
+        return _source_local_resource_iri(
+            identity_token,
+            recorded_at,
+            source_iri,
+            source_key,
+        )
+    if identity_mode == "source-local-record":
+        if identity_token is None or recorded_at is None:
+            raise ValueError(
+                f"{label} source-local identity requires identity_token and recorded_at"
+            )
+        return _source_concept_iri(
+            token=identity_token,
+            recorded_at=recorded_at,
+            source_locator=source_locator,
+            source_path=source_path,
+            notations=notations,
+            identity_hint=preferred_label,
+        )
+    raise ValueError(f"{label} has unsupported identity mode {identity_mode!r}")
+
+
+def _selector_record(
+    *,
+    spec: SourceSpec,
+    fields: Mapping[str, Any],
+    row_key: str,
+    identity_mode: str,
+    identity_template: str,
+    identity_token: str | None,
+    recorded_at: str | None,
+    source_locator_template: str,
+    claim_map: Sequence[tuple[str, str]],
+    native_payload_template_json: str,
+    native_payload_fields: Collection[str],
+    is_skos_concept: bool,
+) -> _ApiCaptureRecord:
+    """Render one configured source row into the verifier's common record form."""
+    preferred, notations, definition, source_path = _selector_claims(
+        claim_map,
+        fields,
+        spec.name,
+    )
+    source_locator = _required_text(
+        _render_pattern_text(source_locator_template, fields),
+        f"{spec.name} source locator",
+    )
+    resource = _selector_resource(
+        identity_mode=identity_mode,
+        identity_template=identity_template,
+        identity_token=identity_token,
+        recorded_at=recorded_at,
+        fields=fields,
+        row_key=row_key,
+        preferred_label=preferred,
+        notations=notations,
+        source_locator=source_locator,
+        source_path=source_path,
+        label=spec.name,
+    )
+    try:
+        template = _json_without_duplicate_keys(
+            native_payload_template_json.encode("utf-8"),
+            f"{spec.name} native payload template",
+        )
+    except (UnicodeError, ValueError) as error:
+        raise ValueError(f"{spec.name} native payload template is invalid: {error}") from error
+    native_payload = _render_pattern_value(template, fields)
+    if not isinstance(native_payload, Mapping):
+        raise ValueError(f"{spec.name} native payload template must render an object")
+    if set(native_payload) != set(native_payload_fields):
+        raise ValueError(
+            f"{spec.name} native payload field declaration differs from its template -- "
+            f"declared={sorted(native_payload_fields)}, rendered={sorted(native_payload)}"
+        )
+    return _ApiCaptureRecord(
+        resource=resource,
+        preferred_label=preferred,
+        notations=notations,
+        source_locator=source_locator,
+        source_digest=_canonical_json_digest(native_payload),
+        native_payload=native_payload,
+        is_skos_concept=is_skos_concept,
+        definition=definition,
+    )
+
+
+def _xml_field_value(
+    record: Any,
+    declaration: XmlRecordField,
+    namespaces: Mapping[str, str],
+    label: str,
+) -> Any:
+    """Read one declared XML field without importing a registry parser."""
+    if declaration.xpath is None and declaration.attribute is None:
+        value = declaration.constant
+    elif declaration.attribute is not None:
+        target = record if declaration.xpath in (None, ".") else record.find(
+            declaration.xpath,
+            namespaces,
+        )
+        value = None if target is None else target.attrib.get(declaration.attribute)
+    else:
+        target = record.find(declaration.xpath or ".", namespaces)
+        value = None if target is None else "".join(target.itertext())
+    if value is None:
+        if declaration.required:
+            raise ValueError(f"{label} required XML field {declaration.field!r} is absent")
+        return None
+    if declaration.capture_pattern is not None:
+        match = re.search(declaration.capture_pattern, str(value), re.DOTALL)
+        if match is None:
+            raise ValueError(f"{label} field {declaration.field!r} did not match its capture")
+        value = match.groupdict().get("value") or (
+            match.group(1) if match.groups() else match.group(0)
+        )
+    for operation in declaration.normalizers:
+        value = _normalize_pattern_field(value, operation, f"{label}.{declaration.field}")
+    if declaration.required and value in (None, ""):
+        raise ValueError(f"{label} required XML field {declaration.field!r} is empty")
+    return value
+
+
+def _read_xml_record_selector(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read one XML record family from XPath and capture declarations."""
+    selector = spec.xml_record
+    if selector is None:
+        raise ValueError(f"{spec.name} has no XML record selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError(f"{spec.name} XML must not declare custom entities")
+    try:
+        root = ElementTree.fromstring(payload)
+    except ElementTree.ParseError as error:
+        raise ValueError(f"{spec.name} input is not well-formed XML") from error
+    namespaces = dict(selector.namespaces)
+    selected = root.findall(selector.record_xpath, namespaces)
+    if not selected:
+        raise ValueError(f"{spec.name} XML record XPath selected no rows")
+    records: list[_ApiCaptureRecord] = []
+    raw_expansion_count = 0
+    seen_expansions: set[str] = set()
+    for ordinal, node in enumerate(selected):
+        if selector.expected_record_tags and tuple(child.tag for child in node) != (
+            selector.expected_record_tags
+        ):
+            raise ValueError(f"{spec.name} XML record {ordinal} child tags changed")
+        base_fields = {
+            declaration.field: _xml_field_value(
+                node,
+                declaration,
+                namespaces,
+                f"{spec.name}[{ordinal}]",
+            )
+            for declaration in selector.fields
+        }
+        row_fields: list[dict[str, Any]] = []
+        if selector.expansion_field is None:
+            row_fields.append(dict(base_fields))
+        else:
+            if selector.expansion_pattern is None:
+                raise ValueError(f"{spec.name} XML expansion has no capture pattern")
+            source = base_fields.get(selector.expansion_field)
+            if not isinstance(source, str):
+                raise ValueError(f"{spec.name} XML expansion source must be text")
+            try:
+                matches = list(re.finditer(selector.expansion_pattern, source, re.DOTALL))
+            except re.error as error:
+                raise ValueError(f"{spec.name} XML expansion pattern is invalid") from error
+            raw_expansion_count += len(matches)
+            for match in matches:
+                value = match.groupdict().get(selector.expansion_group)
+                if value is None:
+                    raise ValueError(
+                        f"{spec.name} XML expansion lacks group {selector.expansion_group!r}"
+                    )
+                value = value.strip()
+                if not value:
+                    raise ValueError(f"{spec.name} XML expansion produced an empty value")
+                if selector.deduplicate_expansion and value in seen_expansions:
+                    continue
+                seen_expansions.add(value)
+                row_fields.append(
+                    {**base_fields, selector.expansion_group: value}
+                )
+        for fields in row_fields:
+            row_ordinal = len(records)
+            rendered_fields = {
+                **fields,
+                "ordinal": row_ordinal,
+                "input_source_iri": pin.source_iri or "",
+                "input_sha256": pin.sha256,
+            }
+            rendered_fields["source_path"] = _render_pattern_text(
+                selector.source_path_template,
+                rendered_fields,
+            )
+            records.append(
+                _selector_record(
+                    spec=spec,
+                    fields=rendered_fields,
+                    row_key=selector.row_key,
+                    identity_mode=selector.identity_mode,
+                    identity_template=selector.identity_template,
+                    identity_token=selector.identity_token,
+                    recorded_at=selector.recorded_at,
+                    source_locator_template=selector.source_locator_template,
+                    claim_map=selector.claim_map,
+                    native_payload_template_json=selector.native_payload_template_json,
+                    native_payload_fields=selector.native_payload_fields,
+                    is_skos_concept=selector.is_skos_concept,
+                )
+            )
+    if selector.expected_raw_count is not None and raw_expansion_count != selector.expected_raw_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_raw_count} raw XML captures, "
+            f"found {raw_expansion_count}"
+        )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} XML records, found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher XML field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+def _json_path(value: Any, path: Sequence[str], label: str) -> Any:
+    """Traverse one declared object-only JSON path."""
+    current = value
+    for part in path:
+        if not isinstance(current, Mapping) or part not in current:
+            raise ValueError(f"{label} JSON path {'.'.join(path)!r} is absent")
+        current = current[part]
+    return current
+
+
+def _read_json_record_selector(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read one array-shaped JSON record family from declarative paths and fields."""
+    selector = spec.json_record
+    if selector is None:
+        raise ValueError(f"{spec.name} has no JSON record selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    document = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(document, Mapping):
+        raise ValueError(f"{spec.name} JSON root must be an object")
+    if selector.expected_root_fields and set(document) != set(selector.expected_root_fields):
+        raise ValueError(f"{spec.name} JSON root fields changed")
+    parent = _json_path(document, selector.record_path[:-1], spec.name)
+    if selector.expected_parent_fields and (
+        not isinstance(parent, Mapping)
+        or set(parent) != set(selector.expected_parent_fields)
+    ):
+        raise ValueError(f"{spec.name} JSON record parent fields changed")
+    rows = _json_path(document, selector.record_path, spec.name)
+    if not isinstance(rows, list):
+        raise ValueError(f"{spec.name} JSON record path must select an array")
+    if selector.count_path:
+        declared_count = _json_path(document, selector.count_path, spec.name)
+        if declared_count != selector.expected_count:
+            raise ValueError(
+                f"{spec.name} JSON declared count differs: {declared_count!r}"
+            )
+    if selector.header_path:
+        headers = _json_path(document, selector.header_path, spec.name)
+        if not isinstance(headers, list) or selector.header_value_field is None:
+            raise ValueError(f"{spec.name} JSON headers have an invalid declaration")
+        observed_headers = tuple(
+            header.get(selector.header_value_field)
+            if isinstance(header, Mapping)
+            else None
+            for header in headers
+        )
+        if observed_headers != selector.expected_header_fields:
+            raise ValueError(f"{spec.name} JSON header fields changed")
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    for ordinal, row in enumerate(rows):
+        if not isinstance(row, list) or len(row) != selector.expected_row_width:
+            raise ValueError(f"{spec.name} JSON row {ordinal} width changed")
+        if any(
+            value is not None and not isinstance(value, (str, int, float, bool))
+            for value in row
+        ):
+            raise ValueError(f"{spec.name} JSON row {ordinal} contains a non-scalar cell")
+        fields = {declaration.field: row[declaration.index] for declaration in selector.fields}
+        if selector.row_key not in fields:
+            raise ValueError(f"{spec.name} JSON selector has no row key field")
+        key_value = fields[selector.row_key]
+        key = _required_text(key_value, f"{spec.name}[{ordinal}] row key")
+        if key != key.strip() or key in seen_keys:
+            raise ValueError(f"{spec.name} JSON row {ordinal} has a malformed or repeated key")
+        seen_keys.add(key)
+        rendered_fields = {
+            **fields,
+            "ordinal": ordinal,
+            "input_source_iri": pin.source_iri or "",
+            "input_sha256": pin.sha256,
+            "publisher_header_count": len(selector.expected_header_fields),
+            "publisher_row_width": len(row),
+        }
+        rendered_fields["source_path"] = _render_pattern_text(
+            selector.source_path_template,
+            rendered_fields,
+        )
+        records.append(
+            _selector_record(
+                spec=spec,
+                fields=rendered_fields,
+                row_key=selector.row_key,
+                identity_mode=selector.identity_mode,
+                identity_template=selector.identity_template,
+                identity_token=None,
+                recorded_at=None,
+                source_locator_template=selector.source_locator_template,
+                claim_map=selector.claim_map,
+                native_payload_template_json=selector.native_payload_template_json,
+                native_payload_fields=selector.native_payload_fields,
+                is_skos_concept=selector.is_skos_concept,
+            )
+        )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} JSON records, found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher JSON field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+def _csv_decoded_rows(
+    payload: bytes,
+    selector: CsvRecordSelector,
+    label: str,
+) -> list[list[str]]:
+    """Decode one declared CSV dialect and reject malformed or blank records."""
+    try:
+        text = payload.decode(selector.encoding)
+    except (LookupError, UnicodeDecodeError) as error:
+        raise ValueError(
+            f"{label} is not valid {selector.encoding} CSV"
+        ) from error
+    try:
+        rows = list(
+            csv.reader(
+                io.StringIO(text, newline=""),
+                delimiter=selector.delimiter,
+                quotechar=selector.quotechar,
+                strict=True,
+            )
+        )
+    except csv.Error as error:
+        raise ValueError(f"{label} is not valid CSV") from error
+    if not rows or any(not row for row in rows):
+        raise ValueError(f"{label} contains no rows or contains a blank CSV row")
+    return rows
+
+
+def _npi_luhn_valid(value: str) -> bool:
+    """Validate the CMS NPI check digit with its published 80840 prefix."""
+    if re.fullmatch(r"[1-9][0-9]{9}", value) is None:
+        return False
+    digits = [int(character) for character in "80840" + value]
+    total = 0
+    parity = len(digits) % 2
+    for index, digit in enumerate(digits):
+        if index % 2 == parity:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        total += digit
+    return total % 10 == 0
+
+
+def _validate_csv_field(
+    declaration: CsvFieldValidator,
+    fields: Mapping[str, Any],
+    label: str,
+) -> None:
+    """Apply a selector-declared validation without construction-unit code."""
+    if declaration.field not in fields:
+        raise ValueError(
+            f"{label} validator names unknown field {declaration.field!r}"
+        )
+    value = fields[declaration.field]
+    if not isinstance(value, str):
+        raise ValueError(f"{label} validated CSV field must be text")
+    if declaration.validation == "allowed-values":
+        valid = value in declaration.allowed_values
+    elif declaration.validation == "npi-luhn":
+        valid = _npi_luhn_valid(value)
+    elif declaration.validation.startswith("regex:"):
+        valid = re.fullmatch(
+            declaration.validation.removeprefix("regex:"),
+            value,
+        ) is not None
+    else:
+        raise ValueError(
+            f"{label} has unsupported CSV validation "
+            f"{declaration.validation!r}"
+        )
+    if not valid:
+        raise ValueError(
+            f"{label} field {declaration.field!r} failed "
+            f"{declaration.validation} validation"
+        )
+
+
+def _read_csv_record_selector(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read direct, header-field, or distinct CSV rows from selector data."""
+    selector = spec.csv_record
+    if selector is None:
+        raise ValueError(f"{spec.name} has no CSV record selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    rows = _csv_decoded_rows(payload, selector, spec.name)
+
+    declared_header: tuple[str, ...] | None = None
+    if selector.header_role is not None:
+        _, header_payload = _pin_with_role(
+            spec,
+            payloads,
+            selector.header_role,
+        )
+        header_rows = _csv_decoded_rows(
+            header_payload,
+            selector,
+            f"{spec.name} header",
+        )
+        if len(header_rows) != 1:
+            raise ValueError(f"{spec.name} header input must contain one CSV row")
+        declared_header = tuple(header_rows[0])
+
+    selected_rows: list[dict[str, Any]] = []
+    for projection in selector.projections:
+        projection_start = len(selected_rows)
+        if projection.mode == "header-fields":
+            if len(rows) != 1:
+                raise ValueError(
+                    f"{spec.name} header-fields mode requires one CSV row"
+                )
+            if projection.source_field is not None:
+                raise ValueError(
+                    f"{spec.name} header-fields mode cannot name a source field"
+                )
+            selected_rows.extend(
+                {
+                    "column_name": column,
+                    "ordinal": ordinal,
+                    **dict(projection.constants),
+                }
+                for ordinal, column in enumerate(rows[0])
+            )
+        else:
+            header = tuple(rows[0])
+            if len(header) != len(set(header)) or any(not value for value in header):
+                raise ValueError(f"{spec.name} CSV header is empty or repeated")
+            expected = declared_header or selector.expected_header
+            if expected and header != expected:
+                raise ValueError(f"{spec.name} CSV header differs from its declaration")
+            data_rows = rows[1:]
+            if (
+                selector.expected_data_rows is not None
+                and len(data_rows) != selector.expected_data_rows
+            ):
+                raise ValueError(
+                    f"{spec.name} expected {selector.expected_data_rows} CSV data "
+                    f"rows, found {len(data_rows)}"
+                )
+            if selector.max_data_rows is not None and len(data_rows) > selector.max_data_rows:
+                raise ValueError(
+                    f"{spec.name} has {len(data_rows)} data rows, above its "
+                    f"declared ceiling {selector.max_data_rows}"
+                )
+            mappings: list[dict[str, str]] = []
+            for ordinal, row in enumerate(data_rows):
+                if len(row) != len(header):
+                    raise ValueError(
+                        f"{spec.name} CSV row {ordinal} has {len(row)} fields, "
+                        f"expected {len(header)}"
+                    )
+                mappings.append(dict(zip(header, row, strict=True)))
+            if projection.mode == "rows":
+                selected_rows.extend(
+                    {
+                        **row,
+                        "row_fields": row,
+                        "ordinal": ordinal,
+                        **dict(projection.constants),
+                    }
+                    for ordinal, row in enumerate(mappings)
+                )
+            elif projection.mode == "distinct-values":
+                if projection.source_field not in header:
+                    raise ValueError(
+                        f"{spec.name} distinct projection names unknown field "
+                        f"{projection.source_field!r}"
+                    )
+                values = {
+                    row[projection.source_field]
+                    for row in mappings
+                    if not projection.nonempty or row[projection.source_field]
+                }
+                selected_rows.extend(
+                    {
+                        "value": value,
+                        "source_column": projection.source_field,
+                        **dict(projection.constants),
+                    }
+                    for value in sorted(values)
+                )
+            else:
+                raise ValueError(
+                    f"{spec.name} has unsupported CSV projection mode "
+                    f"{projection.mode!r}"
+                )
+        observed = len(selected_rows) - projection_start
+        if observed != projection.expected_count:
+            raise ValueError(
+                f"{spec.name} expected {projection.expected_count} rows from "
+                f"{projection.mode}, found {observed}"
+            )
+
+    if len(selected_rows) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} selected CSV rows, "
+            f"found {len(selected_rows)}"
+        )
+    projection_total = sum(item.expected_count for item in selector.projections)
+    if projection_total != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} CSV projection counts do not total the family count"
+        )
+
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    label_rules = {
+        rule.discriminator_value: rule.fields for rule in selector.label_rules
+    }
+    for ordinal, base_fields in enumerate(selected_rows):
+        fields = dict(base_fields)
+        if label_rules:
+            discriminator_field = selector.label_discriminator_field
+            if discriminator_field is None:
+                raise ValueError(f"{spec.name} CSV label rules lack a discriminator")
+            discriminator = fields.get(discriminator_field)
+            label_fields = label_rules.get(str(discriminator))
+            if label_fields is None:
+                raise ValueError(
+                    f"{spec.name} CSV row {ordinal} has unsupported label discriminator"
+                )
+            fields["preferred_label"] = " ".join(
+                str(fields.get(name, "")).strip()
+                for name in label_fields
+                if str(fields.get(name, "")).strip()
+            )
+        fields.update(
+            {
+                "ordinal": fields.get("ordinal", ordinal),
+                "input_source_iri": pin.source_iri or "",
+                "input_sha256": pin.sha256,
+                "quoted_value": urllib.parse.quote(
+                    str(fields.get("value", "")),
+                    safe="",
+                ),
+            }
+        )
+        fields["ordinal_text"] = str(fields["ordinal"])
+        fields["source_path"] = _render_pattern_text(
+            selector.source_path_template,
+            fields,
+        )
+        for validator in selector.validators:
+            _validate_csv_field(validator, fields, f"{spec.name}[{ordinal}]")
+        key = _required_text(fields.get(selector.row_key), f"{spec.name} row key")
+        if key in seen_keys:
+            raise ValueError(f"{spec.name} repeats CSV row key {key!r}")
+        seen_keys.add(key)
+        records.append(
+            _selector_record(
+                spec=spec,
+                fields=fields,
+                row_key=selector.row_key,
+                identity_mode=selector.identity_mode,
+                identity_template=selector.identity_template,
+                identity_token=selector.identity_token,
+                recorded_at=selector.recorded_at,
+                source_locator_template=selector.source_locator_template,
+                claim_map=selector.claim_map,
+                native_payload_template_json=selector.native_payload_template_json,
+                native_payload_fields=selector.native_payload_fields,
+                is_skos_concept=selector.is_skos_concept,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher CSV field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+_OOXML_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+_OOXML_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+_OOXML_PACKAGE_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+
+def _ooxml_member_path(base: str, target: str) -> str:
+    """Resolve an OOXML relationship target without permitting ZIP traversal."""
+    path = target.removeprefix("/")
+    if not target.startswith("/"):
+        path = posixpath.normpath(posixpath.join(posixpath.dirname(base), target))
+    if path.startswith("../") or path == ".." or not path.startswith("xl/"):
+        raise ValueError(f"OOXML relationship target escapes the workbook: {target!r}")
+    return path
+
+
+def _ooxml_shared_strings(archive: zipfile.ZipFile) -> tuple[str, ...]:
+    """Read the standard shared-string table, including rich-text runs."""
+    if "xl/sharedStrings.xml" not in archive.namelist():
+        return ()
+    root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+    return tuple(
+        "".join(node.text or "" for node in item.iter(f"{{{_OOXML_MAIN}}}t"))
+        for item in root.findall(f"{{{_OOXML_MAIN}}}si")
+    )
+
+
+def _ooxml_workbook_sheets(
+    archive: zipfile.ZipFile,
+) -> tuple[tuple[str, str], ...]:
+    """Return workbook sheet names and resolved worksheet members in order."""
+    workbook_path = "xl/workbook.xml"
+    relations_path = "xl/_rels/workbook.xml.rels"
+    workbook = ElementTree.fromstring(archive.read(workbook_path))
+    relations = ElementTree.fromstring(archive.read(relations_path))
+    targets = {
+        relation.attrib["Id"]: _ooxml_member_path(
+            workbook_path,
+            relation.attrib["Target"],
+        )
+        for relation in relations.findall(f"{{{_OOXML_PACKAGE_REL}}}Relationship")
+        if relation.attrib.get("TargetMode") != "External"
+        and relation.attrib.get("Type", "").endswith("/worksheet")
+    }
+    sheets: list[tuple[str, str]] = []
+    for sheet in workbook.findall(f".//{{{_OOXML_MAIN}}}sheet"):
+        relationship_id = sheet.attrib.get(f"{{{_OOXML_REL}}}id")
+        if relationship_id not in targets:
+            raise ValueError(f"OOXML worksheet {sheet.attrib.get('name')!r} has no target")
+        sheets.append((sheet.attrib["name"], targets[relationship_id]))
+    return tuple(sheets)
+
+
+def _ooxml_column_index(reference: str) -> int:
+    match = re.match(r"^([A-Z]+)[1-9][0-9]*$", reference)
+    if match is None:
+        raise ValueError(f"OOXML cell reference is malformed: {reference!r}")
+    value = 0
+    for character in match.group(1):
+        value = value * 26 + ord(character) - ord("A") + 1
+    return value - 1
+
+
+def _ooxml_cell_value(
+    cell: ElementTree.Element,
+    shared_strings: Sequence[str],
+) -> Any:
+    cell_type = cell.attrib.get("t", "n")
+    if cell_type == "inlineStr":
+        return "".join(
+            node.text or "" for node in cell.iter(f"{{{_OOXML_MAIN}}}t")
+        )
+    value_node = cell.find(f"{{{_OOXML_MAIN}}}v")
+    if value_node is None or value_node.text is None:
+        return None
+    value = value_node.text
+    if cell_type == "s":
+        try:
+            return shared_strings[int(value)]
+        except (IndexError, ValueError) as error:
+            raise ValueError("OOXML shared-string index is invalid") from error
+    if cell_type in {"str", "e", "d"}:
+        if cell_type == "e":
+            raise ValueError(f"OOXML formula cell contains error value {value!r}")
+        return value
+    if cell_type == "b":
+        if value not in {"0", "1"}:
+            raise ValueError(f"OOXML boolean cell is malformed: {value!r}")
+        return value == "1"
+    try:
+        number = float(value)
+    except ValueError as error:
+        raise ValueError(f"OOXML numeric cell is malformed: {value!r}") from error
+    return int(number) if number.is_integer() else number
+
+
+def _ooxml_sheet_rows(
+    archive: zipfile.ZipFile,
+    member: str,
+    shared_strings: Sequence[str],
+) -> Iterator[tuple[int, list[Any]]]:
+    """Stream worksheet rows and clear parsed XML nodes as they are consumed."""
+    with archive.open(member) as handle:
+        for _, element in ElementTree.iterparse(handle, events=("end",)):
+            if element.tag != f"{{{_OOXML_MAIN}}}row":
+                continue
+            row_number = int(element.attrib.get("r", "0"))
+            values: list[Any] = []
+            for cell in element.findall(f"{{{_OOXML_MAIN}}}c"):
+                reference = cell.attrib.get("r")
+                if reference is None:
+                    raise ValueError("OOXML cell has no coordinate")
+                column = _ooxml_column_index(reference)
+                if column >= len(values):
+                    values.extend([None] * (column + 1 - len(values)))
+                values[column] = _ooxml_cell_value(cell, shared_strings)
+            yield row_number, values
+            element.clear()
+
+
+def _ooxml_cell_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _ooxml_typed_value(value: Any, cell_type: str, label: str) -> Any:
+    """Apply a declared worksheet cell type without guessing from a source name."""
+    if cell_type == "raw":
+        return value
+    if cell_type == "cell-text":
+        return _ooxml_cell_text(value)
+    if cell_type == "text":
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"{label} must be non-empty text")
+        return value
+    if cell_type == "stripped-text":
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{label} must be non-empty text")
+        return value.strip()
+    if cell_type == "code-text":
+        text = _ooxml_cell_text(value).strip()
+        if not text:
+            raise ValueError(f"{label} must be a non-empty code")
+        return text
+    if cell_type == "optional-text":
+        if value is None:
+            return None
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{label} must be text or an empty cell")
+        return value.strip()
+    if cell_type == "optional-cell-text":
+        text = _ooxml_cell_text(value).strip()
+        return text or None
+    if cell_type == "optional-code3":
+        if value is None:
+            return None
+        text = _ooxml_cell_text(value).strip()
+        if not text.isdigit() or len(text) > 3:
+            raise ValueError(f"{label} must be an empty or three-digit code")
+        return text.zfill(3)
+    if cell_type in {"date", "optional-date"}:
+        if value is None and cell_type == "optional-date":
+            return None
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return (
+                datetime(1899, 12, 30, tzinfo=UTC)
+                + timedelta(days=float(value))
+            ).date().isoformat()
+        if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}(?:T.*)?", value):
+            return value[:10]
+        raise ValueError(f"{label} must be an Excel or ISO date")
+    raise ValueError(f"{label} has unsupported OOXML cell type {cell_type!r}")
+
+
+def _apply_ooxml_derived(
+    fields: dict[str, Any],
+    declaration: OoxmlDerivedField,
+    label: str,
+) -> None:
+    values = [fields.get(name) for name in declaration.inputs]
+    if declaration.operation == "template":
+        if declaration.template is None:
+            raise ValueError(f"{label} template-derived field lacks a template")
+        result: Any = _render_pattern_text(declaration.template, fields)
+    elif declaration.operation == "strip":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} strip-derived field requires one text input")
+        result = values[0].strip()
+    elif declaration.operation == "first-nonempty":
+        result = next((value for value in values if value not in (None, "")), None)
+        if result is None:
+            raise ValueError(f"{label} first-nonempty field found no value")
+    elif declaration.operation == "regex-capture":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} regex-capture requires one text input")
+        if declaration.pattern is None or declaration.group is None:
+            raise ValueError(f"{label} regex-capture lacks a pattern or group")
+        match = re.fullmatch(declaration.pattern, values[0])
+        if match is None:
+            raise ValueError(f"{label} input did not match its declared shape")
+        result = match.group(declaration.group)
+    elif declaration.operation == "regex-map":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} regex-map requires one text input")
+        matches = [mapped for pattern, mapped in declaration.cases if re.fullmatch(pattern, values[0])]
+        if len(matches) != 1:
+            raise ValueError(f"{label} regex-map selected {len(matches)} cases")
+        result = matches[0]
+    elif declaration.operation == "sha256":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} sha256 requires one text input")
+        result = hashlib.sha256(values[0].encode("utf-8")).hexdigest()
+    elif declaration.operation == "url-quote":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} url-quote requires one text input")
+        result = urllib.parse.quote(values[0], safe="")
+    elif declaration.operation == "excel-date":
+        if len(values) != 1:
+            raise ValueError(f"{label} excel-date requires one input")
+        result = _ooxml_typed_value(values[0], "date", label)
+    else:
+        raise ValueError(
+            f"{label} uses unsupported OOXML derived operation "
+            f"{declaration.operation!r}"
+        )
+    if declaration.field in fields:
+        raise ValueError(f"{label} derived field repeats {declaration.field!r}")
+    fields[declaration.field] = result
+
+
+def _validate_ooxml_row(
+    fields: Mapping[str, Any],
+    declaration: OoxmlRowValidator,
+    ordinal: int,
+    label: str,
+) -> None:
+    value = fields.get(declaration.field)
+    if declaration.validation == "sequence-one-based":
+        valid = str(value) == str(ordinal + 1)
+    elif declaration.validation.startswith("regex:"):
+        valid = isinstance(value, str) and re.fullmatch(
+            declaration.validation.removeprefix("regex:"), value
+        ) is not None
+    else:
+        raise ValueError(
+            f"{label} has unsupported OOXML row validation "
+            f"{declaration.validation!r}"
+        )
+    if not valid:
+        raise ValueError(
+            f"{label} field {declaration.field!r} failed "
+            f"{declaration.validation} validation"
+        )
+
+
+def _read_ooxml_table(
+    archive: zipfile.ZipFile,
+    sheet_members: Mapping[str, str],
+    shared_strings: Sequence[str],
+    table: OoxmlTable,
+    spec_name: str,
+) -> list[dict[str, Any]]:
+    member = sheet_members.get(table.sheet)
+    if member is None:
+        raise ValueError(f"{spec_name} table {table.name!r} names an unknown sheet")
+    header_seen = False
+    rows: list[dict[str, Any]] = []
+    for row_number, values in _ooxml_sheet_rows(archive, member, shared_strings):
+        if row_number == table.header_row:
+            observed = tuple(_ooxml_cell_text(value) for value in values)
+            if table.collapse_header_whitespace:
+                observed = tuple(" ".join(value.split()) for value in observed)
+            expected = tuple(str(value) for value in table.expected_header)
+            if observed[: len(expected)] != expected or any(observed[len(expected) :]):
+                raise ValueError(f"{spec_name} sheet {table.sheet!r} header changed")
+            header_seen = True
+            continue
+        if row_number <= table.header_row or not any(value is not None for value in values):
+            continue
+        fields = dict(table.constants)
+        for declaration in table.fields:
+            raw = values[declaration.column] if declaration.column < len(values) else None
+            fields[declaration.field] = _ooxml_typed_value(
+                raw,
+                declaration.cell_type,
+                f"{spec_name}.{table.name}[{row_number}].{declaration.field}",
+            )
+        for declaration in table.derived_fields:
+            _apply_ooxml_derived(
+                fields,
+                declaration,
+                f"{spec_name}.{table.name}[{row_number}]",
+            )
+        ordinal = len(rows)
+        for declaration in table.validators:
+            _validate_ooxml_row(
+                fields,
+                declaration,
+                ordinal,
+                f"{spec_name}.{table.name}[{row_number}]",
+            )
+        fields["worksheet_row"] = row_number
+        rows.append(fields)
+    if not header_seen:
+        raise ValueError(f"{spec_name} sheet {table.sheet!r} has no declared header row")
+    if len(rows) != table.expected_rows:
+        raise ValueError(
+            f"{spec_name} table {table.name!r} expected {table.expected_rows} "
+            f"rows, found {len(rows)}"
+        )
+    return rows
+
+
+def _ooxml_filter_matches(row: Mapping[str, Any], item: OoxmlRowFilter) -> bool:
+    value = row.get(item.field)
+    if item.operation == "equals":
+        return value == item.value
+    if item.operation == "not-equals":
+        return value != item.value
+    if item.operation == "is-empty":
+        return value in (None, "")
+    if item.operation == "is-not-empty":
+        return value not in (None, "")
+    if item.operation == "regex":
+        return isinstance(value, str) and item.value is not None and re.fullmatch(item.value, value) is not None
+    raise ValueError(f"unsupported OOXML row filter {item.operation!r}")
+
+
+def _render_ooxml_aggregate_rows(
+    rows: Sequence[Mapping[str, Any]],
+    template_json: str | None,
+    label: str,
+) -> list[Any]:
+    if template_json is None:
+        raise ValueError(f"{label} aggregate lacks a JSON template")
+    template = _json_without_duplicate_keys(template_json.encode(), label)
+    return [_render_pattern_value(template, row) for row in rows]
+
+
+def _read_ooxml_relational(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read OOXML with stock ZIP/XML and execute one declared relational plan."""
+    selector = spec.ooxml_relational
+    if selector is None:
+        raise ValueError(f"{spec.name} has no OOXML relational selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(payload))
+    except zipfile.BadZipFile as error:
+        raise ValueError(f"{spec.name} input is not an OOXML ZIP") from error
+    with archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)) or any(
+            name.startswith("/") or ".." in Path(name).parts for name in names
+        ):
+            raise ValueError(f"{spec.name} OOXML ZIP member names are unsafe")
+        sheets = _ooxml_workbook_sheets(archive)
+        if tuple(name for name, _ in sheets) != selector.expected_sheets:
+            raise ValueError(f"{spec.name} workbook sheets changed")
+        sheet_members = dict(sheets)
+        missing_members = sorted(set(sheet_members.values()) - set(names))
+        if missing_members:
+            raise ValueError(f"{spec.name} workbook omits worksheet members {missing_members}")
+        shared_strings = _ooxml_shared_strings(archive)
+        table_rows = {
+            table.name: _read_ooxml_table(
+                archive,
+                sheet_members,
+                shared_strings,
+                table,
+                spec.name,
+            )
+            for table in selector.tables
+        }
+
+    primary = table_rows.get(selector.primary_table)
+    if primary is None:
+        raise ValueError(f"{spec.name} names an unknown primary OOXML table")
+    primary = list(primary)
+    for table_name in selector.union_tables:
+        union_rows = table_rows.get(table_name)
+        if union_rows is None:
+            raise ValueError(f"{spec.name} names an unknown OOXML union table")
+        primary.extend(union_rows)
+    filtered = [
+        row
+        for row in primary
+        if all(_ooxml_filter_matches(row, item) for item in selector.filters)
+    ]
+    if selector.sort_by:
+        filtered.sort(key=lambda row: tuple(str(row.get(field, "")) for field in selector.sort_by))
+
+    if selector.group_by:
+        groups_by_key: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+        for row in filtered:
+            groups_by_key[tuple(row.get(field) for field in selector.group_by)].append(row)
+        groups = list(groups_by_key.values())
+    else:
+        groups = [[row] for row in filtered]
+
+    join_indexes: dict[str, dict[tuple[Any, ...], list[dict[str, Any]]]] = {}
+    for join in selector.joins:
+        rows = table_rows.get(join.table)
+        if rows is None:
+            raise ValueError(f"{spec.name} join {join.alias!r} names an unknown table")
+        index: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+        for row in rows:
+            index[tuple(row.get(field) for field in join.right_fields)].append(row)
+        join_indexes[join.alias] = index
+
+    records: list[_ApiCaptureRecord] = []
+    matched_join_keys: dict[str, set[tuple[Any, ...]]] = defaultdict(set)
+    for ordinal, group_rows in enumerate(groups):
+        fields = dict(group_rows[0])
+        joined: dict[str, list[dict[str, Any]]] = {}
+        for join in selector.joins:
+            left_keys = {
+                tuple(row.get(field) for field in join.left_fields)
+                for row in group_rows
+            }
+            if len(left_keys) != 1:
+                raise ValueError(f"{spec.name} grouped rows disagree on join {join.alias!r}")
+            key = next(iter(left_keys))
+            matches = join_indexes[join.alias].get(key, [])
+            if join.cardinality == "one" and len(matches) != 1:
+                raise ValueError(
+                    f"{spec.name} join {join.alias!r} expected one row, found {len(matches)}"
+                )
+            if join.cardinality not in {"one", "many"}:
+                raise ValueError(f"{spec.name} join cardinality is unsupported")
+            joined[join.alias] = matches
+            if matches:
+                matched_join_keys[join.alias].add(key)
+
+        for aggregate in selector.aggregates:
+            source_rows = (
+                group_rows if aggregate.source == "primary" else joined.get(aggregate.source)
+            )
+            if source_rows is None:
+                raise ValueError(f"{spec.name} aggregate names unknown source {aggregate.source!r}")
+            if aggregate.operation == "rows":
+                value: Any = _render_ooxml_aggregate_rows(
+                    source_rows,
+                    aggregate.template_json,
+                    f"{spec.name}.{aggregate.field}",
+                )
+            elif aggregate.operation == "count-offset":
+                value = len(source_rows) + aggregate.offset
+            elif aggregate.operation == "distinct-list":
+                if aggregate.value_field is None:
+                    raise ValueError(f"{spec.name} distinct-list aggregate has no field")
+                value = sorted({row.get(aggregate.value_field) for row in source_rows})
+            elif aggregate.operation == "count-by":
+                if aggregate.key_field is None:
+                    raise ValueError(f"{spec.name} count-by aggregate has no key field")
+                counts = Counter(str(row.get(aggregate.key_field)) for row in source_rows)
+                value = {key: counts[key] for key in sorted(counts)}
+            elif aggregate.operation == "one":
+                values = _render_ooxml_aggregate_rows(
+                    source_rows,
+                    aggregate.template_json,
+                    f"{spec.name}.{aggregate.field}",
+                )
+                if len(values) != 1:
+                    raise ValueError(f"{spec.name} one aggregate did not receive one row")
+                value = values[0]
+            else:
+                raise ValueError(
+                    f"{spec.name} aggregate operation is unsupported: "
+                    f"{aggregate.operation!r}"
+                )
+            fields[aggregate.field] = value
+
+        for declaration in selector.derived_fields:
+            _apply_ooxml_derived(fields, declaration, f"{spec.name}[{ordinal}]")
+        fields.update(
+            {
+                "ordinal": ordinal,
+                "input_source_iri": pin.source_iri or "",
+                "input_sha256": pin.sha256,
+            }
+        )
+        fields["source_path"] = _render_pattern_text(
+            selector.source_path_template,
+            fields,
+        )
+        records.append(
+            _selector_record(
+                spec=spec,
+                fields=fields,
+                row_key=selector.row_key,
+                identity_mode=selector.identity_mode,
+                identity_template=selector.identity_template,
+                identity_token=selector.identity_token,
+                recorded_at=selector.recorded_at,
+                source_locator_template=selector.source_locator_template,
+                claim_map=selector.claim_map,
+                native_payload_template_json=selector.native_payload_template_json,
+                native_payload_fields=selector.native_payload_fields,
+                is_skos_concept=selector.is_skos_concept,
+            )
+        )
+
+    for join in selector.joins:
+        if join.require_all_right:
+            unmatched = set(join_indexes[join.alias]) - matched_join_keys[join.alias]
+            if unmatched:
+                raise ValueError(
+                    f"{spec.name} join {join.alias!r} left {len(unmatched)} right-side keys unused"
+                )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} OOXML result rows, "
+            f"found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher OOXML field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+def _apply_nrc_derived(
+    fields: dict[str, Any],
+    declaration: NrcDerivedField,
+    label: str,
+) -> None:
+    if declaration.field in fields:
+        raise ValueError(f"{label} repeats NRC derived field {declaration.field!r}")
+    if declaration.operation == "template":
+        if declaration.template is None:
+            raise ValueError(f"{label} NRC template-derived field has no template")
+        value: Any = _render_pattern_text(declaration.template, fields)
+    elif declaration.operation == "sha256":
+        if len(declaration.inputs) != 1:
+            raise ValueError(f"{label} NRC sha256-derived field requires one input")
+        source = fields.get(declaration.inputs[0])
+        if not isinstance(source, str):
+            raise ValueError(f"{label} NRC sha256 input must be text")
+        value = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    else:
+        raise ValueError(
+            f"{label} uses unsupported NRC derived operation "
+            f"{declaration.operation!r}"
+        )
+    fields[declaration.field] = value
+
+
+def _read_nrc_adams_multi_artifact(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Reconstruct the two NRC unions from six pinned text inputs and patterns."""
+    selector = spec.nrc_adams
+    if selector is None:
+        raise ValueError(f"{spec.name} has no NRC ADAMS multi-artifact selector")
+    if len(selector.inputs) != 6 or len({item.name for item in selector.inputs}) != 6:
+        raise ValueError(f"{spec.name} NRC selector must name six distinct inputs")
+    by_path = {pin.path: (pin, payloads[pin]) for pin in spec.inputs}
+    if len(by_path) != len(spec.inputs):
+        raise ValueError(f"{spec.name} repeats an authenticated NRC input path")
+    declared_paths = {declaration.path for declaration in selector.inputs}
+    if declared_paths != set(by_path):
+        raise ValueError(
+            f"{spec.name} NRC selector paths differ from its authenticated inputs: "
+            f"declared={sorted(declared_paths)}, authenticated={sorted(by_path)}"
+        )
+    inputs: dict[str, tuple[NrcAdamsInput, SourcePin, str]] = {}
+    for declaration in selector.inputs:
+        matched = by_path.get(declaration.path)
+        if matched is None:
+            raise ValueError(
+                f"{spec.name} NRC input {declaration.name!r} is absent"
+            )
+        pin, payload = matched
+        try:
+            text = payload.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError(
+                f"{spec.name} NRC input {declaration.name!r} is not UTF-8"
+            ) from error
+        inputs[declaration.name] = (declaration, pin, text)
+
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    for pattern_index, pattern in enumerate(selector.patterns):
+        source = inputs.get(pattern.input_name)
+        if source is None:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} names an unknown input"
+            )
+        input_declaration, pin, text = source
+        region = text
+        if pattern.region_pattern is not None:
+            region_matches = list(
+                re.finditer(pattern.region_pattern, text, re.DOTALL)
+            )
+            if len(region_matches) != 1 or "region" not in region_matches[0].groupdict():
+                raise ValueError(
+                    f"{spec.name} NRC pattern {pattern_index} expected one named region"
+                )
+            region = region_matches[0].group("region")
+        try:
+            matches = list(re.finditer(pattern.row_pattern, region, re.DOTALL))
+        except re.error as error:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} is invalid"
+            ) from error
+        if len(matches) != pattern.expected_matches:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} expected "
+                f"{pattern.expected_matches} matches, found {len(matches)}"
+            )
+        covered = "".join(match.group(0) for match in matches)
+        if pattern.coverage == "comma-joined":
+            covered = ",".join(match.group(0) for match in matches)
+        if pattern.coverage in {"whole", "comma-joined"} and covered != region:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} leaves unparsed selected text"
+            )
+        if pattern.coverage not in {"whole", "comma-joined", "selected"}:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} has unsupported coverage"
+            )
+
+        captured = [match.groupdict() for match in matches]
+        if pattern.projection == "each":
+            projected = [dict(row) for row in captured]
+        elif pattern.projection == "single":
+            projected = [dict(captured[0]) if len(captured) == 1 else {}]
+            group_names = sorted(
+                {name for row in captured for name in row}
+            )
+            for name in group_names:
+                projected[0][f"{name}_values"] = [row[name] for row in captured]
+        else:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} has unsupported projection"
+            )
+
+        for projected_row in projected:
+            duplicate_constants = set(projected_row) & {
+                name for name, _ in pattern.constants
+            }
+            if duplicate_constants:
+                raise ValueError(
+                    f"{spec.name} NRC pattern {pattern_index} constants repeat "
+                    f"captures {sorted(duplicate_constants)}"
+                )
+            fields = {**projected_row, **dict(pattern.constants)}
+            fields.update(
+                {
+                    "input_sha256": pin.sha256,
+                    "input_source_iri": pin.source_iri or "",
+                    "official_source_url": input_declaration.official_source_url,
+                    "observed_at": input_declaration.observed_at,
+                    "ordinal": len(records),
+                }
+            )
+            for aggregate in pattern.aggregate_templates:
+                try:
+                    template = _json_without_duplicate_keys(
+                        aggregate.template_json.encode("utf-8"),
+                        f"{spec.name} NRC aggregate {aggregate.field}",
+                    )
+                except (UnicodeError, ValueError) as error:
+                    raise ValueError(
+                        f"{spec.name} NRC aggregate template is invalid: {error}"
+                    ) from error
+                if aggregate.mode == "row":
+                    fields[aggregate.field] = _render_pattern_value(
+                        template,
+                        fields,
+                    )
+                elif aggregate.mode == "collect" and pattern.projection == "single":
+                    fields[aggregate.field] = [
+                        _render_pattern_value(
+                            template,
+                            {**row, **dict(pattern.constants)},
+                        )
+                        for row in captured
+                    ]
+                else:
+                    raise ValueError(
+                        f"{spec.name} NRC aggregate {aggregate.field!r} has "
+                        f"unsupported mode {aggregate.mode!r}"
+                    )
+            for declaration in pattern.derived_fields:
+                _apply_nrc_derived(
+                    fields,
+                    declaration,
+                    f"{spec.name}.pattern[{pattern_index}]",
+                )
+            fields["source_path"] = _render_pattern_text(
+                pattern.source_path_template,
+                fields,
+            )
+            key = _required_text(
+                fields.get(pattern.row_key),
+                f"{spec.name} NRC row key",
+            )
+            if key in seen_keys:
+                raise ValueError(f"{spec.name} repeats NRC row key {key!r}")
+            seen_keys.add(key)
+            records.append(
+                _selector_record(
+                    spec=spec,
+                    fields=fields,
+                    row_key=pattern.row_key,
+                    identity_mode="publisher-key",
+                    identity_template=pattern.identity_template,
+                    identity_token=None,
+                    recorded_at=None,
+                    source_locator_template=pattern.source_locator_template,
+                    claim_map=pattern.claim_map,
+                    native_payload_template_json=(
+                        pattern.native_payload_template_json
+                    ),
+                    native_payload_fields=pattern.native_payload_fields,
+                    is_skos_concept=False,
+                )
+            )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} NRC union rows, "
+            f"found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated NRC artifact field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
 def _code_identifier(
     *,
     value: str,
@@ -3013,16 +4820,16 @@ def _code_identifier(
 def _read_lda_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
+    *,
+    token: str,
+    resource_name: str,
+    identifier_kind: str,
+    use: str,
+    is_skos_concept: bool,
 ) -> PublisherView:
     pin, payload = _single_pin(spec, payloads)
     data = _json_without_duplicate_keys(payload, spec.name)
     rows = _mapping_rows(data, spec.name)
-    if spec.name == "lda-general-issue-codes":
-        token, resource_name = "lda-general-issues", "generalIssueCodes"
-        identifier_kind, use = "generalIssueCode", "sourceAssignedEvidence"
-    else:
-        token, resource_name = "lda-filing-types", "filingTypes"
-        identifier_kind, use = "filingTypeCode", "deterministicMetadata"
     recorded_at = "2026-07-30T12:45:14Z"
     records: list[_ApiCaptureRecord] = []
     for ordinal, row in enumerate(rows):
@@ -3064,10 +4871,40 @@ def _read_lda_capture(
                 source_locator=pin.source_iri or "",
                 source_digest=pin.sha256,
                 native_payload=native,
-                is_skos_concept=(spec.name == "lda-general-issue-codes"),
+                is_skos_concept=is_skos_concept,
             )
         )
     return _api_capture_view(records, spec, payloads)
+
+
+def _read_lda_general_issue_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_lda_capture(
+        spec,
+        payloads,
+        token="lda-general-issues",
+        resource_name="generalIssueCodes",
+        identifier_kind="generalIssueCode",
+        use="sourceAssignedEvidence",
+        is_skos_concept=True,
+    )
+
+
+def _read_lda_filing_type_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_lda_capture(
+        spec,
+        payloads,
+        token="lda-filing-types",
+        resource_name="filingTypes",
+        identifier_kind="filingTypeCode",
+        use="deterministicMetadata",
+        is_skos_concept=False,
+    )
 
 
 def _read_ecfr_titles_capture(
@@ -3525,6 +5362,10 @@ def _fcc_identifier(
 def _read_fcc_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
+    *,
+    mode: str,
+    resource_id: str,
+    expected_count: int,
 ) -> PublisherView:
     pin, payload = _single_pin(spec, payloads)
     data = _json_without_duplicate_keys(payload, spec.name)
@@ -3550,7 +5391,7 @@ def _read_fcc_capture(
             raise ValueError(f"{spec.name} carries conflicting rows for {key!r}")
 
     for ordinal, filing in enumerate(filings):
-        if spec.name == "fcc-ecfs-filing-types":
+        if mode == "filing-types":
             row = filing.get("submissiontype")
             if not isinstance(row, Mapping):
                 raise ValueError(f"{spec.name}.filing[{ordinal}].submissiontype is invalid")
@@ -3568,7 +5409,7 @@ def _read_fcc_capture(
                     _fcc_identifier(row.get("id"), "publisherRecordId", pin, path),
                 ],
             )
-        elif spec.name == "fcc-ecfs-access-statuses":
+        elif mode == "access-statuses":
             row = filing.get("viewingstatus")
             if not isinstance(row, Mapping):
                 raise ValueError(f"{spec.name}.filing[{ordinal}].viewingstatus is invalid")
@@ -3584,7 +5425,7 @@ def _read_fcc_capture(
                 path = f"$.filing[{ordinal}].proceedings[{proceeding_ordinal}]"
                 source_ordinal = ordinal * 1000 + proceeding_ordinal
                 bureau_code = _required_text(row.get("bureau_code"), f"{path}.bureau_code")
-                if spec.name == "fcc-ecfs-bureaus":
+                if mode == "bureaus":
                     label = _required_text(row.get("bureau_name"), f"{path}.bureau_name")
                     retain(
                         bureau_code,
@@ -3607,13 +5448,6 @@ def _read_fcc_capture(
                             _fcc_identifier(bureau_code, "bureauCode", pin, path),
                         ],
                     )
-    config = {
-        "fcc-ecfs-filing-types": ("fcc-ecfs-filing-types-2026-08-03", 6),
-        "fcc-ecfs-access-statuses": ("fcc-ecfs-access-statuses-2026-08-03", 1),
-        "fcc-ecfs-bureaus": ("fcc-ecfs-bureaus-2026-08-03", 5),
-        "fcc-ecfs-proceedings": ("fcc-ecfs-proceedings-2026-08-03", 15),
-    }
-    resource_id, expected_count = config[spec.name]
     if len(distinct) != expected_count:
         raise ValueError(f"{spec.name} expected {expected_count} distinct rows, observed {len(distinct)}")
     records: list[_ApiCaptureRecord] = []
@@ -3661,6 +5495,58 @@ def _read_fcc_capture(
         unevaluated_claims=(
             "FCC filing fields outside submissiontype, viewingstatus, and proceedings are authenticated but not represented",
         ),
+    )
+
+
+def _read_fcc_filing_types_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="filing-types",
+        resource_id="fcc-ecfs-filing-types-2026-08-03",
+        expected_count=6,
+    )
+
+
+def _read_fcc_access_statuses_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="access-statuses",
+        resource_id="fcc-ecfs-access-statuses-2026-08-03",
+        expected_count=1,
+    )
+
+
+def _read_fcc_bureaus_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="bureaus",
+        resource_id="fcc-ecfs-bureaus-2026-08-03",
+        expected_count=5,
+    )
+
+
+def _read_fcc_proceedings_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="proceedings",
+        resource_id="fcc-ecfs-proceedings-2026-08-03",
+        expected_count=15,
     )
 
 
@@ -3940,6 +5826,8 @@ def _sam_identifier(
 def _read_sam_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
+    *,
+    identity_kind: str,
 ) -> PublisherView:
     pin, payload = _single_pin(spec, payloads)
     data = _json_without_duplicate_keys(payload, spec.name)
@@ -3954,7 +5842,7 @@ def _read_sam_capture(
     label = _required_text(
         registration.get("legalBusinessName"), f"{spec.name}.legalBusinessName"
     )
-    if spec.name.startswith("sam-uei-"):
+    if identity_kind == "uei":
         resource = f"urn:ref:sam-entity:uei:{uei}"
         native = {
             "identifier": _sam_identifier(
@@ -4007,36 +5895,18 @@ def _read_sam_capture(
     )
 
 
-def _read_api_capture(
+def _read_sam_uei_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    readers: Mapping[
-        str,
-        Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
-    ] = {
-        "lda-general-issue-codes": _read_lda_capture,
-        "lda-filing-types": _read_lda_capture,
-        "ecfr-cfr-titles": _read_ecfr_titles_capture,
-        "govinfo-collections": _read_govinfo_collections_capture,
-        "usaspending-award-types": _read_usaspending_capture,
-        "gsdm-reviewed-domain-values-2026-08-03": _read_gsdm_capture,
-        "nasa-technology-taxonomy-8817": _read_nasa_capture,
-        "fcc-ecfs-filing-types": _read_fcc_capture,
-        "fcc-ecfs-access-statuses": _read_fcc_capture,
-        "fcc-ecfs-bureaus": _read_fcc_capture,
-        "fcc-ecfs-proceedings": _read_fcc_capture,
-        "federal-hierarchy-orgs-bounded-2026-08-03": (
-            _read_federal_hierarchy_capture
-        ),
-        "govinfo-cfr-package-bounded-2026-08-03": _read_govinfo_package_capture,
-        "sam-uei-bounded-public-entity-2026-08-03": _read_sam_capture,
-        "sam-cage-bounded-public-facility-2026-08-03": _read_sam_capture,
-    }
-    reader = readers.get(spec.name)
-    if reader is None:
-        raise ValueError(f"{API_CAPTURE_JSON_READER} does not support {spec.name!r}")
-    return reader(spec, payloads)
+    return _read_sam_capture(spec, payloads, identity_kind="uei")
+
+
+def _read_sam_cage_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_sam_capture(spec, payloads, identity_kind="cage")
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
@@ -8090,13 +9960,32 @@ _PUBLISHER_READERS: Mapping[
     str,
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
-    API_CAPTURE_JSON_READER: _read_api_capture,
+    ECFR_TITLES_JSON_READER: _read_ecfr_titles_capture,
+    FCC_ACCESS_STATUSES_JSON_READER: _read_fcc_access_statuses_capture,
+    FCC_BUREAUS_JSON_READER: _read_fcc_bureaus_capture,
+    FCC_FILING_TYPES_JSON_READER: _read_fcc_filing_types_capture,
+    FCC_PROCEEDINGS_JSON_READER: _read_fcc_proceedings_capture,
+    FEDERAL_HIERARCHY_JSON_READER: _read_federal_hierarchy_capture,
+    GOVINFO_COLLECTIONS_JSON_READER: _read_govinfo_collections_capture,
+    GOVINFO_PACKAGE_JSON_READER: _read_govinfo_package_capture,
+    GSDM_REVIEWED_DOMAIN_JSON_READER: _read_gsdm_capture,
+    LDA_FILING_TYPE_JSON_READER: _read_lda_filing_type_capture,
+    LDA_GENERAL_ISSUE_JSON_READER: _read_lda_general_issue_capture,
+    NASA_TAXONOMY_JSON_READER: _read_nasa_capture,
+    NRC_ADAMS_MULTI_ARTIFACT_READER: _read_nrc_adams_multi_artifact,
+    OOXML_RELATIONAL_READER: _read_ooxml_relational,
+    SAM_CAGE_JSON_READER: _read_sam_cage_capture,
+    SAM_UEI_JSON_READER: _read_sam_uei_capture,
+    USASPENDING_AWARD_TYPES_JSON_READER: _read_usaspending_capture,
     CRS_SOURCE_CONCEPT_RELEASE_READER: _read_crs_source_concept_release,
     EPA_ENTERPRISE_VOCABULARY_XML_READER: _read_epa_enterprise_vocabulary_xml,
     FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
     FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
     GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
+    CSV_RECORD_SELECTOR_READER: _read_csv_record_selector,
+    JSON_RECORD_SELECTOR_READER: _read_json_record_selector,
     PATTERN_ROW_READER: _read_pattern_rows,
+    XML_RECORD_SELECTOR_READER: _read_xml_record_selector,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
     LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
     MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
@@ -12285,6 +14174,1870 @@ def _courtlistener_pattern_source() -> SourceSpec:
 COURTLISTENER_PATTERN_ROW_SOURCES = (_courtlistener_pattern_source(),)
 
 
+_CBO_PUBLICATION_XML_PIN = SourcePin(
+    path="tests/fixtures/cbo_topic_codes/cbo-119congress-cost-estimates-2026-08-04.xml",
+    sha256="sha256:edc957a1115320f1c0da4b02c33d1af146a3c508592ee20b4909e0a8db44d968",
+    byte_length=375_365,
+    fmt="xml",
+    role="publisherSource",
+    source_iri="https://www.cbo.gov/rss/119congress-cost-estimates.xml",
+)
+
+
+def _cbo_publication_xml_source() -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "billNumber": "{bill_number}",
+            "canonicalPublicationUrl": "{link}",
+            "date": "{date}",
+            "description": "{description}",
+            "feedItemKey": "{key}",
+            "publicationId": "{publication_id}",
+            "sourceArtifact": "{input_source_iri}",
+            "sourcePath": "{source_path}",
+            "title": "{title}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="cbo-119th-congress-publications",
+        kind="vocabulary",
+        release_keys=("cbo-119th-congress-publications",),
+        inputs=(_CBO_PUBLICATION_XML_PIN,),
+        reader=XML_RECORD_SELECTOR_READER,
+        xml_record=XmlRecordSelector(
+            input_role="publisherSource",
+            namespaces=(),
+            record_xpath="./item",
+            fields=(
+                XmlRecordField("key", attribute="key"),
+                XmlRecordField("title", xpath="Title"),
+                XmlRecordField("date", xpath="Date"),
+                XmlRecordField("link", xpath="Link"),
+                XmlRecordField("description", xpath="Description"),
+                XmlRecordField(
+                    "bill_number",
+                    xpath="Bill_Number",
+                    required=False,
+                    normalizers=("strip", "none-if-empty"),
+                ),
+                XmlRecordField(
+                    "publication_id",
+                    xpath="Link",
+                    capture_pattern=r"/publication/(?P<value>[1-9][0-9]*)$",
+                ),
+            ),
+            row_key="link",
+            identity_mode="publisher-iri",
+            identity_template="{link}",
+            source_path_template="response.item[{ordinal}]",
+            source_locator_template="{input_source_iri}#item={key}",
+            claim_map=(
+                ("preferred_label", "title"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=1_058,
+            expected_record_tags=(
+                "Title",
+                "Date",
+                "Link",
+                "Description",
+                "Bill_Number",
+            ),
+            declared_unevaluated_fields=(),
+        ),
+        identity_policy="publisher-iri",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(json.loads(native_template)),
+        ),
+    )
+
+
+_UNIFIED_AGENDA_XSD_PIN = SourcePin(
+    path="tests/fixtures/unified_agenda_codes/reginfo-rin-data-ver10262011.xsd",
+    sha256="sha256:94fdcf4b382830cc44b9956c00439dc20a9643de402c298cee71293a14153b24",
+    byte_length=22_730,
+    fmt="xml",
+    role="publisherSource",
+    source_iri="https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd",
+)
+
+
+def _unified_agenda_xml_source(
+    *,
+    name: str,
+    container: str,
+    element: str,
+    field_name: str,
+    identifier_kind: str,
+    expected_count: int,
+    expected_raw_count: int,
+    quoted: bool,
+) -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "fieldName": "{field_name}",
+            "identifier": {
+                "authority_uri": "https://www.reginfo.gov/",
+                "effective_at": None,
+                "kind": "{identifier_kind}",
+                "observed_at": "2026-08-03T19:15:15Z",
+                "source_digest": "{input_sha256}",
+                "source_uri": "{input_source_iri}",
+                "value": "{value}",
+            },
+            "sourceArtifact": "{input_source_iri}",
+            "value": "{value}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    documentation_capture = (
+        r"One of the following(?: options)?:\s*(?P<value>.*)"
+    )
+    expansion_pattern = (
+        r'"(?P<value>[^"]+)"'
+        if quoted
+        else r"(?:^|,\s*)(?P<value>[^,]+?)(?=,\s*|\.$)"
+    )
+    return SourceSpec(
+        name=name,
+        kind="vocabulary",
+        release_keys=(name,),
+        inputs=(_UNIFIED_AGENDA_XSD_PIN,),
+        reader=XML_RECORD_SELECTOR_READER,
+        xml_record=XmlRecordSelector(
+            input_role="publisherSource",
+            namespaces=(("xs", "http://www.w3.org/2001/XMLSchema"),),
+            record_xpath=(
+                f".//xs:complexType[@name='{container}']"
+                f"//xs:element[@name='{element}']"
+                "/xs:annotation/xs:documentation"
+            ),
+            fields=(
+                XmlRecordField(
+                    "documentation",
+                    xpath=".",
+                    capture_pattern=documentation_capture,
+                ),
+                XmlRecordField("field_name", constant=field_name),
+                XmlRecordField("identifier_kind", constant=identifier_kind),
+            ),
+            expansion_field="documentation",
+            expansion_pattern=expansion_pattern,
+            expected_raw_count=expected_raw_count,
+            deduplicate_expansion=True,
+            row_key="value",
+            identity_mode="source-local-record",
+            identity_template="",
+            identity_token=name,
+            recorded_at="2026-08-03T19:15:15Z",
+            source_path_template=f"$.{field_name}[{{ordinal}}]",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "value"),
+                ("notation", "value"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=expected_count,
+            declared_unevaluated_fields=(
+                "schema declarations outside the selected documented option list",
+            ),
+        ),
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(json.loads(native_template)),
+        ),
+    )
+
+
+XML_RECORD_SELECTOR_SOURCES = (
+    _cbo_publication_xml_source(),
+    _unified_agenda_xml_source(
+        name="unified-agenda-priority-category",
+        container="RIN_INFOType",
+        element="PRIORITY_CATEGORY",
+        field_name="priorityCategory",
+        identifier_kind="priorityCategoryValue",
+        expected_count=6,
+        expected_raw_count=7,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rule-stage",
+        container="RIN_INFOType",
+        element="RULE_STAGE",
+        field_name="ruleStage",
+        identifier_kind="ruleStageValue",
+        expected_count=6,
+        expected_raw_count=6,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-timetable-action",
+        container="TIMETABLEType",
+        element="TTBL_ACTION",
+        field_name="timetableAction",
+        identifier_kind="timetableActionValue",
+        expected_count=34,
+        expected_raw_count=35,
+        quoted=False,
+    ),
+)
+
+
+_GSDM_DICTIONARY_HEADERS = (
+    "A:element",
+    "B:definition",
+    "C:fpds_data_dictionary_element",
+    "D:grouping",
+    "E:domain_values",
+    "F:domain_values_code_description",
+    "G:award_file",
+    "H:award_element",
+    "I:subaward_file",
+    "J:subaward_element",
+    "K:account_file",
+    "L:account_element",
+    "M:table",
+    "N:element",
+    "O:award_file",
+    "P:award_element",
+    "Q:subaward_element",
+)
+_GSDM_DICTIONARY_FIELDS = (
+    *_GSDM_DICTIONARY_HEADERS,
+    "R:unlabeled_publisher_cell",
+)
+
+
+def _gsdm_json_record_source() -> SourceSpec:
+    field_names = tuple(f"cell_{index}" for index in range(18))
+    native_template = json.dumps(
+        {
+            "cells": dict(zip(_GSDM_DICTIONARY_FIELDS, (f"{{{field}}}" for field in field_names), strict=True)),
+            "ordinal": "{ordinal}",
+            "publisherHeaderCount": "{publisher_header_count}",
+            "publisherRowWidth": "{publisher_row_width}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="gsdm-online-data-dictionary-2026-08-03",
+        kind="vocabulary",
+        release_keys=("gsdm-online-data-dictionary-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "gsdm-data-dictionary-2026-08-03.json",
+                "sha256:3d0f2e3a952297050db5c2a4addf40765460a49d499427da1b57ef3c7edea3c3",
+                358_054,
+                "https://api.usaspending.gov/api/v2/references/data_dictionary/",
+                fmt="json",
+                role="completeOnlineDataDictionary",
+                construction_path="output/registry-real-data-sources/gsdm-data-dictionary-2026-08-03.json",
+            ),
+            _registry_source_pin(
+                "gsdm-architecture-v1.0.1.pdf",
+                "sha256:6901ce4004e3338e54a69abb59d81205680d63f25e8dca0f9a92815dff6ced9d",
+                363_340,
+                "https://fiscal.treasury.gov/files/data-transparency/gsdm-architecture-v1.0.1.pdf",
+                fmt="pdf",
+                role="architectureDocument",
+                construction_path="output/registry-real-data-sources/gsdm-architecture-v1.0.1.pdf",
+            ),
+        ),
+        reader=JSON_RECORD_SELECTOR_READER,
+        json_record=JsonRecordSelector(
+            input_role="completeOnlineDataDictionary",
+            record_path=("document", "rows"),
+            fields=tuple(
+                JsonRecordField(field, index)
+                for index, field in enumerate(field_names)
+            ),
+            row_key="cell_0",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:gsdm:data-element:{quoted_key}",
+            source_path_template="document.rows[{ordinal}]",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "cell_0"),
+                ("definition", "cell_1"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=457,
+            expected_row_width=18,
+            expected_root_fields=("document",),
+            expected_parent_fields=("headers", "metadata", "rows", "sections"),
+            header_path=("document", "headers"),
+            header_value_field="raw",
+            expected_header_fields=_GSDM_DICTIONARY_HEADERS,
+            count_path=("document", "metadata", "total_rows"),
+            declared_unevaluated_fields=(
+                "architectureDocument bytes are authenticated context, not parsed rows",
+                "document.sections",
+                "document.headers.display",
+                "document.metadata fields other than total_rows",
+            ),
+        ),
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(json.loads(native_template)),
+        ),
+    )
+
+
+JSON_RECORD_SELECTOR_SOURCES = (_gsdm_json_record_source(),)
+
+
+_NPPES_HEADER_CSV_PIN = SourcePin(
+    path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_fileheader_v2.csv",
+    sha256="sha256:1f781040d7dae44496be1729250e79114b6dd03f17c10d7d8965486052177679",
+    byte_length=12_267,
+    fmt="csv",
+    role="publisherFileHeader",
+    source_iri=(
+        "urn:ref:nppes:source:npi-file-header-v2:2026-07-27-2026-08-02"
+    ),
+)
+_NPPES_SAMPLE_CSV_PIN = SourcePin(
+    path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_sample_v2.csv",
+    sha256="sha256:3735061e873e5db7cfb422aeaa7eea5514d0a5e8089765c94b82f0d43450a87d",
+    byte_length=15_866,
+    fmt="csv",
+    role="publisherProviderSample",
+    source_iri=(
+        "https://download.cms.gov/nppes/"
+        "NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip"
+        "#bounded-provider-sample"
+    ),
+)
+_NPPES_WEEKLY_SOURCE_IRI = (
+    "https://download.cms.gov/nppes/"
+    "NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip"
+)
+
+
+def _nppes_layout_csv_source() -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "columnName": "{column_name}",
+            "layoutVersion": "2",
+            "licensedTaxonomyValuesIncluded": False,
+            "ordinal": "{ordinal}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="nppes-data-dissemination-layout-v2-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nppes-data-dissemination-layout-v2-2026-08-03",),
+        inputs=(_NPPES_HEADER_CSV_PIN,),
+        reader=CSV_RECORD_SELECTOR_READER,
+        csv_record=CsvRecordSelector(
+            input_role="publisherFileHeader",
+            encoding="utf-8",
+            delimiter=",",
+            quotechar='"',
+            projections=(CsvProjection("header-fields", 330),),
+            row_key="column_name",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:nppes-layout:v2:field-{ordinal:03d}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "column_name"),
+                ("notation", "ordinal_text"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=330,
+            declared_unevaluated_fields=(),
+        ),
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+def _nppes_provider_csv_source() -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "entityTypeCode": "{Entity Type Code}",
+            "fields": "{row_fields}",
+            "identifier": {
+                "authorityUri": "https://nppes.cms.hhs.gov/",
+                "effectiveAt": None,
+                "kind": "nationalProviderIdentifier",
+                "observedAt": "2026-08-03T19:22:12Z",
+                "sourceDigest": "{input_sha256}",
+                "sourceUri": _NPPES_WEEKLY_SOURCE_IRI,
+                "value": "{NPI}",
+            },
+            "publisherLabel": "{preferred_label}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="nppes-npi-provider-sample-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nppes-npi-provider-sample-2026-08-03",),
+        inputs=(_NPPES_HEADER_CSV_PIN, _NPPES_SAMPLE_CSV_PIN),
+        reader=CSV_RECORD_SELECTOR_READER,
+        csv_record=CsvRecordSelector(
+            input_role="publisherProviderSample",
+            header_role="publisherFileHeader",
+            encoding="utf-8",
+            delimiter=",",
+            quotechar='"',
+            projections=(CsvProjection("rows", 3),),
+            row_key="NPI",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:nppes-provider:{NPI}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "preferred_label"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=3,
+            expected_data_rows=3,
+            max_data_rows=10,
+            label_discriminator_field="Entity Type Code",
+            label_rules=(
+                CsvLabelRule(
+                    "1",
+                    (
+                        "Provider Name Prefix Text",
+                        "Provider First Name",
+                        "Provider Middle Name",
+                        "Provider Last Name (Legal Name)",
+                        "Provider Credential Text",
+                    ),
+                ),
+                CsvLabelRule(
+                    "2",
+                    ("Provider Organization Name (Legal Business Name)",),
+                ),
+            ),
+            validators=(
+                CsvFieldValidator(
+                    "Entity Type Code",
+                    "allowed-values",
+                    ("1", "2"),
+                ),
+                CsvFieldValidator("NPI", "npi-luhn"),
+            ),
+            declared_unevaluated_fields=(),
+        ),
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+_OPM_PLUM_HEADER = (
+    "AgencyName",
+    "OrganizationName",
+    "PositionTitle",
+    "PositionStatus",
+    "AppointmentTypeDescription",
+    "ExpirationDate",
+    "LevelGradePay",
+    "Location",
+    "IncumbentFirstName",
+    "IncumbentLastName",
+    "PaymentPlanDescription",
+    "Tenure",
+    "IncumbentBeginDate",
+    "IncumbentVacateDate",
+)
+
+
+def _opm_plum_csv_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "OPM-PLUM-all-data-20260804.csv",
+        "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f",
+        2_737_270,
+        "https://escs.opm.gov/escs-net/api/pbpub/download-data",
+        fmt="csv",
+    )
+    native_template = json.dumps(
+        {
+            "category": "{category}",
+            "identityScope": {
+                "category": "{category}",
+                "value": "{value}",
+            },
+            "identityStatus": "sourceObservedClosedValue",
+            "sourceColumn": "{source_column}",
+            "value": "{value}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="opm-plum-position-status-codes-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-plum-position-status-codes-2026-08-04",),
+        inputs=(pin,),
+        reader=CSV_RECORD_SELECTOR_READER,
+        csv_record=CsvRecordSelector(
+            input_role="publisherSource",
+            encoding="utf-8-sig",
+            delimiter=",",
+            quotechar='"',
+            expected_header=_OPM_PLUM_HEADER,
+            expected_data_rows=15_777,
+            projections=(
+                CsvProjection(
+                    "distinct-values",
+                    12,
+                    source_field="AppointmentTypeDescription",
+                    constants=(("category", "appointmentType"),),
+                    nonempty=True,
+                ),
+                CsvProjection(
+                    "distinct-values",
+                    2,
+                    source_field="PositionStatus",
+                    constants=(("category", "positionStatus"),),
+                    nonempty=True,
+                ),
+                CsvProjection(
+                    "distinct-values",
+                    13,
+                    source_field="PaymentPlanDescription",
+                    constants=(("category", "payPlan"),),
+                    nonempty=True,
+                ),
+            ),
+            row_key="source_path",
+            identity_mode="registry-source-key",
+            identity_template="{category}\u001f{value}",
+            identity_token="opm-plum",
+            recorded_at="2026-08-04T00:00:00Z",
+            source_path_template=(
+                "{input_source_iri}#{source_column}={quoted_value}"
+            ),
+            source_locator_template="{source_path}",
+            claim_map=(
+                ("preferred_label", "value"),
+                ("notation", "value"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=27,
+            declared_unevaluated_fields=(
+                "bulk position rows and columns outside the three selected closed-value fields",
+                "empty controlled-value cells",
+            ),
+        ),
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+CSV_RECORD_SELECTOR_SOURCES = (
+    _nppes_layout_csv_source(),
+    _nppes_provider_csv_source(),
+    _opm_plum_csv_source(),
+)
+
+
+_NAICS_HEADER = (
+    "Seq. No.",
+    "2022 NAICS US Code",
+    "2022 NAICS US Title",
+)
+_PSC_HEADER = (
+    "PSC CODE",
+    "PRODUCT AND SERVICE CODE NAME",
+    "START DATE",
+    "END DATE",
+    "PRODUCT AND SERVICE CODE FULL NAME (DESCRIPTION)",
+    "PRODUCT AND SERVICE CODE INCLUDES",
+    "PRODUCT AND SERVICE CODE EXCLUDES",
+    "PRODUCT AND SERVICE CODE NOTES",
+    "Parent PSC Code",
+    "PSC Category: Service (S)/Product (P)",
+    "Level 1 Category Code",
+    "Level 1 Category",
+    "Level 2 Category Code",
+    "Level 2 Category",
+)
+_NAICS_PSC_IDENTITY_CASES = (
+    (r"\d{2}-\d{2}", "sector"),
+    (r"\d{2}", "sector"),
+    (r"\d{3}", "subsector"),
+    (r"\d{4}", "industryGroup"),
+    (r"\d{5}", "naicsIndustry"),
+    (r"\d{6}", "nationalIndustry"),
+)
+
+
+def _naics_ooxml_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "2-6-digit_2022_Codes.xlsx",
+        "sha256:be12ba41002803359f49181c9bf33a03fbd08578f4f4a4c0bbad7aadaaea0316",
+        82_460,
+        "https://www.census.gov/naics/2022NAICS/2-6%20digit_2022_Codes.xlsx",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "facet": "{facet}",
+            "identifiers": [
+                {
+                    "authorityUri": "https://www.census.gov/naics/",
+                    "effectiveAt": None,
+                    "kind": "naicsCode",
+                    "observedAt": "2026-08-03T20:00:00Z",
+                    "sourceDigest": "{input_sha256}",
+                    "sourceUri": "{input_source_iri}",
+                    "value": "{code}",
+                }
+            ],
+            "identityStatus": "publisherCodeSourceLocalIri",
+            "publisherLabel": "{label}",
+            "resourceName": "naicsCodes",
+            "use": "deterministicMetadata",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=("tbl_2022_title_description_coun",),
+        tables=(
+            OoxmlTable(
+                name="codes",
+                sheet="tbl_2022_title_description_coun",
+                header_row=1,
+                expected_header=_NAICS_HEADER,
+                fields=(
+                    OoxmlTableField("sequence", 0, "code-text"),
+                    OoxmlTableField("code", 1, "code-text"),
+                    OoxmlTableField("label", 2, "stripped-text"),
+                ),
+                expected_rows=2_125,
+                validators=(
+                    OoxmlRowValidator("sequence", "sequence-one-based"),
+                ),
+                collapse_header_whitespace=True,
+            ),
+        ),
+        primary_table="codes",
+        union_tables=(),
+        filters=(),
+        sort_by=(),
+        group_by=(),
+        joins=(),
+        aggregates=(),
+        derived_fields=(
+            OoxmlDerivedField(
+                "facet",
+                "regex-map",
+                inputs=("code",),
+                cases=_NAICS_PSC_IDENTITY_CASES,
+            ),
+        ),
+        row_key="code",
+        identity_mode="registry-source-key",
+        identity_template="{code}",
+        identity_token="naics-2022",
+        recorded_at="2026-08-03T20:00:00Z",
+        source_path_template="{input_source_iri}#code={code}",
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=2_125,
+        declared_unevaluated_fields=(),
+    )
+    return SourceSpec(
+        name="naics-2022",
+        kind="vocabulary",
+        release_keys=("naics-2022",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+def _psc_ooxml_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "PSC-April-2025-wayback.xlsx",
+        "sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4",
+        462_762,
+        "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "facet": "{facet}",
+            "identifiers": [
+                {
+                    "authorityUri": "https://www.acquisition.gov/psc-manual/all",
+                    "effectiveAt": "{start_date}",
+                    "kind": "pscCode",
+                    "observedAt": "2026-08-04T01:17:18Z",
+                    "sourceDigest": "{input_sha256}",
+                    "sourceUri": "{input_source_iri}",
+                    "value": "{code}",
+                }
+            ],
+            "identityStatus": "publisherCodeSourceLocalIri",
+            "publisherLabel": "{label}",
+            "resourceName": "pscCodes",
+            "use": "deterministicMetadata",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=("PSC for 042025", "Category Managers"),
+        tables=(
+            OoxmlTable(
+                name="codes",
+                sheet="PSC for 042025",
+                header_row=1,
+                expected_header=_PSC_HEADER,
+                fields=(
+                    OoxmlTableField("code", 0, "code-text"),
+                    OoxmlTableField("label", 1, "optional-cell-text"),
+                    OoxmlTableField("start_date_raw", 2, "raw"),
+                    OoxmlTableField("end_date_raw", 3, "raw"),
+                    OoxmlTableField("parent_category", 8, "optional-cell-text"),
+                    OoxmlTableField("level_one_category", 11, "optional-cell-text"),
+                ),
+                expected_rows=6_108,
+            ),
+        ),
+        primary_table="codes",
+        union_tables=(),
+        filters=(
+            OoxmlRowFilter("code", "regex", r"[A-Z0-9]{4}"),
+            OoxmlRowFilter("end_date_raw", "is-empty"),
+        ),
+        sort_by=(),
+        group_by=(),
+        joins=(),
+        aggregates=(),
+        derived_fields=(
+            OoxmlDerivedField(
+                "facet",
+                "first-nonempty",
+                inputs=("level_one_category", "parent_category"),
+            ),
+            OoxmlDerivedField(
+                "start_date",
+                "excel-date",
+                inputs=("start_date_raw",),
+            ),
+        ),
+        row_key="code",
+        identity_mode="registry-source-key",
+        identity_template="{code}",
+        identity_token="psc-2025",
+        recorded_at="2026-08-04T01:17:18Z",
+        source_path_template="{input_source_iri}#code={code}",
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=2_344,
+        declared_unevaluated_fields=(
+            "inactive PSC rows with an end date",
+            "descriptions, includes, excludes, notes, and category codes outside the selected active-row payload",
+            "Category Managers worksheet",
+        ),
+    )
+    return SourceSpec(
+        name="psc-april-2025",
+        kind="vocabulary",
+        release_keys=("psc-april-2025",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+_FAST_BOOK_SHEETS = (
+    "Intro Part II",
+    "Part II",
+    "Intro Part III",
+    "Part III",
+    "Changes",
+)
+_FAST_BOOK_PART_II_HEADER = (
+    "AID",
+    "Main",
+    "X-YEAR",
+    "TAS",
+    "Agency",
+    "Title",
+    "Legislation",
+    "Fund Type",
+    "Independent Agencies",
+    "Last update",
+)
+_FAST_BOOK_PART_III_HEADER = (
+    "AID",
+    "Main",
+    "X-YEAR",
+    "TAS",
+    "Agency",
+    "Title",
+    "Fund Type",
+    "Independent Agencies",
+    "Last update",
+)
+_FAST_BOOK_TAS_PATTERN = r"(?P<aid>\d{3})(?:X| )(?P<main>\d{4}(?:\.\d{3})?) ?"
+
+
+def _fast_book_table(
+    *,
+    name: str,
+    sheet: str,
+    part: str,
+    expected_header: tuple[str, ...],
+    expected_rows: int,
+) -> OoxmlTable:
+    is_part_two = part == "II"
+    return OoxmlTable(
+        name=name,
+        sheet=sheet,
+        header_row=2,
+        expected_header=expected_header,
+        fields=(
+            OoxmlTableField("treasury_account_symbol", 3, "stripped-text"),
+            OoxmlTableField("agency_name", 4, "stripped-text"),
+            OoxmlTableField("account_title", 5, "stripped-text"),
+            *(
+                (OoxmlTableField("legislation", 6, "optional-text"),)
+                if is_part_two
+                else ()
+            ),
+            OoxmlTableField(
+                "fund_type",
+                7 if is_part_two else 6,
+                "stripped-text",
+            ),
+            OoxmlTableField(
+                "independent_agency_identifier",
+                8 if is_part_two else 7,
+                "optional-code3",
+            ),
+            OoxmlTableField(
+                "last_updated",
+                9 if is_part_two else 8,
+                "optional-date",
+            ),
+        ),
+        expected_rows=expected_rows,
+        constants=(
+            ("part", part),
+            *(((("legislation", None),)) if not is_part_two else ()),
+        ),
+        derived_fields=(
+            OoxmlDerivedField(
+                "agency_identifier",
+                "regex-capture",
+                inputs=("treasury_account_symbol",),
+                pattern=_FAST_BOOK_TAS_PATTERN,
+                group="aid",
+            ),
+            OoxmlDerivedField(
+                "main_account",
+                "regex-capture",
+                inputs=("treasury_account_symbol",),
+                pattern=_FAST_BOOK_TAS_PATTERN,
+                group="main",
+            ),
+        ),
+    )
+
+
+def _fast_book_tables() -> tuple[OoxmlTable, ...]:
+    return (
+        _fast_book_table(
+            name="part_ii",
+            sheet="Part II",
+            part="II",
+            expected_header=_FAST_BOOK_PART_II_HEADER,
+            expected_rows=3_442,
+        ),
+        _fast_book_table(
+            name="part_iii",
+            sheet="Part III",
+            part="III",
+            expected_header=_FAST_BOOK_PART_III_HEADER,
+            expected_rows=140,
+        ),
+    )
+
+
+_FAST_BOOK_ROW_TEMPLATE = json.dumps(
+    {
+        "account_title": "{account_title}",
+        "agency_identifier": "{agency_identifier}",
+        "agency_name": "{agency_name}",
+        "fund_type": "{fund_type}",
+        "independent_agency_identifier": "{independent_agency_identifier}",
+        "last_updated": "{last_updated}",
+        "legislation": "{legislation}",
+        "main_account": "{main_account}",
+        "part": "{part}",
+        "treasury_account_symbol": "{treasury_account_symbol}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _fast_book_ooxml_source(*, fund_types: bool) -> SourceSpec:
+    pin = SourcePin(
+        path=(
+            "tests/fixtures/treasury_tas_fast_book/"
+            "fast-book-part-ii-iii-2026-07-31.xlsx"
+        ),
+        sha256="sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461",
+        byte_length=420_508,
+        fmt="xlsx",
+        role="publisherWorkbookPartsIIAndIII",
+        source_iri="https://tfx.treasury.gov/media/60111/download?inline=",
+    )
+    if fund_types:
+        name = "treasury-fast-book-fund-types-parts-ii-iii-2026-07"
+        native_template = json.dumps(
+            {
+                "accountCountsByPart": "{account_counts_by_part}",
+                "fundType": "{fund_type}",
+                "parts": "{parts}",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        selector = OoxmlRelationalSelector(
+            input_role="publisherWorkbookPartsIIAndIII",
+            expected_sheets=_FAST_BOOK_SHEETS,
+            tables=_fast_book_tables(),
+            primary_table="part_ii",
+            union_tables=("part_iii",),
+            filters=(),
+            sort_by=("fund_type",),
+            group_by=("fund_type",),
+            joins=(),
+            aggregates=(
+                OoxmlAggregate(
+                    "parts",
+                    "distinct-list",
+                    "primary",
+                    value_field="part",
+                ),
+                OoxmlAggregate(
+                    "account_counts_by_part",
+                    "count-by",
+                    "primary",
+                    key_field="part",
+                ),
+            ),
+            derived_fields=(
+                OoxmlDerivedField(
+                    "fund_hash",
+                    "sha256",
+                    inputs=("fund_type",),
+                ),
+            ),
+            row_key="fund_type",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:treasury-fast-book:fund-type:{fund_hash}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "fund_type"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=11,
+            declared_unevaluated_fields=(
+                "Intro Part II, Intro Part III, and Changes worksheets",
+            ),
+        )
+    else:
+        name = "treasury-fast-book-accounts-parts-ii-iii-2026-07"
+        native_template = json.dumps(
+            {
+                "duplicatePublisherRowCount": "{duplicate_count}",
+                "publishedRows": "{published_rows}",
+                "treasuryAccountSymbol": "{treasury_account_symbol}",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        selector = OoxmlRelationalSelector(
+            input_role="publisherWorkbookPartsIIAndIII",
+            expected_sheets=_FAST_BOOK_SHEETS,
+            tables=_fast_book_tables(),
+            primary_table="part_ii",
+            union_tables=("part_iii",),
+            filters=(),
+            sort_by=("treasury_account_symbol",),
+            group_by=("treasury_account_symbol",),
+            joins=(),
+            aggregates=(
+                OoxmlAggregate(
+                    "published_rows",
+                    "rows",
+                    "primary",
+                    template_json=_FAST_BOOK_ROW_TEMPLATE,
+                ),
+                OoxmlAggregate(
+                    "duplicate_count",
+                    "count-offset",
+                    "primary",
+                    offset=-1,
+                ),
+            ),
+            derived_fields=(
+                OoxmlDerivedField(
+                    "quoted_tas",
+                    "url-quote",
+                    inputs=("treasury_account_symbol",),
+                ),
+                OoxmlDerivedField(
+                    "preferred_label",
+                    "template",
+                    template="{agency_name} — {account_title}",
+                ),
+            ),
+            row_key="treasury_account_symbol",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:treasury-account:{quoted_tas}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "preferred_label"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=3_581,
+            declared_unevaluated_fields=(
+                "Intro Part II, Intro Part III, and Changes worksheets",
+                "publisher convenience-cell inconsistencies are retained as source residue; the TAS cell is authoritative",
+            ),
+        )
+    return SourceSpec(
+        name=name,
+        kind="vocabulary",
+        release_keys=(name,),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+_EHRI_SHEETS = ("AllDataElements", "CurrentValues", "PastValues")
+_EHRI_ELEMENT_HEADER = (
+    "Name",
+    "Description",
+    "Data Format",
+    "Data Length",
+    "Valid Values",
+    "Current Values",
+    "Past Values",
+)
+_EHRI_VALUE_HEADER = (
+    "Name",
+    "Code",
+    "Explanation",
+    "From Date",
+    "Through Date",
+)
+_EHRI_FIELD_TEMPLATE = json.dumps(
+    {
+        "current_values": "{current_values}",
+        "data_format": "{data_format}",
+        "data_length": "{data_length}",
+        "description": "{description}",
+        "name": "{name}",
+        "past_values": "{past_values}",
+        "valid_values": "{valid_values}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+_EHRI_VALUE_TEMPLATE = json.dumps(
+    {
+        "code": "{code}",
+        "explanation": "{explanation}",
+        "from_date": "{from_date}",
+        "name": "{name}",
+        "through_date": "{through_date}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _ehri_value_table(name: str, sheet: str, expected_rows: int) -> OoxmlTable:
+    return OoxmlTable(
+        name=name,
+        sheet=sheet,
+        header_row=1,
+        expected_header=_EHRI_VALUE_HEADER,
+        fields=tuple(
+            OoxmlTableField(field, column, "cell-text")
+            for column, field in enumerate(
+                ("name", "code", "explanation", "from_date", "through_date")
+            )
+        ),
+        expected_rows=expected_rows,
+    )
+
+
+def _opm_ehri_ooxml_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "EHRI-Data-Standards-20260804.xlsx",
+        "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc",
+        1_154_183,
+        "https://data.opm.gov/data-standards/ehri-data-standards",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "currentValue": "{current_value}",
+            "field": "{field_record}",
+            "identityScope": {"code": "{code}", "field": "{name}"},
+            "identityStatus": "sourceLocalFieldCode",
+            "isCurrentValue": True,
+            "pastLifecycle": "{past_lifecycle}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=_EHRI_SHEETS,
+        tables=(
+            OoxmlTable(
+                name="fields",
+                sheet="AllDataElements",
+                header_row=1,
+                expected_header=_EHRI_ELEMENT_HEADER,
+                fields=tuple(
+                    OoxmlTableField(field, column, "cell-text")
+                    for column, field in enumerate(
+                        (
+                            "name",
+                            "description",
+                            "data_format",
+                            "data_length",
+                            "valid_values",
+                            "current_values",
+                            "past_values",
+                        )
+                    )
+                ),
+                expected_rows=534,
+            ),
+            _ehri_value_table("current", "CurrentValues", 17_263),
+            _ehri_value_table("past", "PastValues", 16_425),
+        ),
+        primary_table="current",
+        union_tables=(),
+        filters=(),
+        sort_by=(),
+        group_by=(),
+        joins=(
+            OoxmlJoin(
+                "field",
+                "fields",
+                ("name",),
+                ("name",),
+                "one",
+            ),
+            OoxmlJoin(
+                "past",
+                "past",
+                ("name", "code"),
+                ("name", "code"),
+                "many",
+            ),
+        ),
+        aggregates=(
+            OoxmlAggregate(
+                "current_value",
+                "one",
+                "primary",
+                template_json=_EHRI_VALUE_TEMPLATE,
+            ),
+            OoxmlAggregate(
+                "field_record",
+                "one",
+                "field",
+                template_json=_EHRI_FIELD_TEMPLATE,
+            ),
+            OoxmlAggregate(
+                "past_lifecycle",
+                "rows",
+                "past",
+                template_json=_EHRI_VALUE_TEMPLATE,
+            ),
+        ),
+        derived_fields=(
+            OoxmlDerivedField(
+                "preferred_label",
+                "strip",
+                inputs=("explanation",),
+            ),
+        ),
+        row_key="source_path",
+        identity_mode="registry-source-key",
+        identity_template="{name}\u001f{code}",
+        identity_token="opm-ehri",
+        recorded_at="2026-08-04T00:00:00Z",
+        source_path_template="{input_source_iri}#CurrentValues/{ordinal}",
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "preferred_label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=17_263,
+        declared_unevaluated_fields=(
+            "field definitions with no current controlled values",
+            "past-only field/code identities are lifecycle context, not current members",
+        ),
+    )
+    return SourceSpec(
+        name="opm-ehri-data-standards-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-ehri-data-standards-2026-08-04",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+OOXML_RELATIONAL_SOURCES = (
+    _naics_ooxml_source(),
+    _psc_ooxml_source(),
+    _fast_book_ooxml_source(fund_types=False),
+    _fast_book_ooxml_source(fund_types=True),
+    _opm_ehri_ooxml_source(),
+)
+
+
+_NRC_ADAMS_INPUT_ROWS = (
+    (
+        "faq",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html",
+        "sha256:13e3041bccbfebd4d06696c388d76595cf343b1be798bbcf727399bbd98012f2",
+        100_397,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:faqPage:13e3041bccbfebd4d06696c388d76595cf343b1be798bbcf727399bbd98012f2",
+        "https://www.nrc.gov/reading-rm/adams/faq.html",
+        "2026-08-03T19:29:41Z",
+    ),
+    (
+        "help",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-help-reference-2026-08-03.html",
+        "sha256:97dd3e55dafa35fabeaccb90a47d5787a9558d528c6e83c0eaa4cc844a75a341",
+        85_748,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:helpReferencePage:97dd3e55dafa35fabeaccb90a47d5787a9558d528c6e83c0eaa4cc844a75a341",
+        "https://www.nrc.gov/reading-rm/adams/help-reference.html",
+        "2026-08-03T19:29:40Z",
+    ),
+    (
+        "landing",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-landing-page-2026-08-03.html",
+        "sha256:437f3bdec4b6d56c27141bf5242cbd60ee6e3d80826687859dbc6931e7f345fb",
+        91_742,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:landingPage:437f3bdec4b6d56c27141bf5242cbd60ee6e3d80826687859dbc6931e7f345fb",
+        "https://www.nrc.gov/reading-rm/adams",
+        "2026-08-03T19:26:41Z",
+    ),
+    (
+        "system-notices",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-system-notices-2026-08-03.html",
+        "sha256:1acc97940de447be550ee9d8f2dea57cf9b49c9d4e73b23b2039ffd71be82732",
+        79_649,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:systemNoticesPage:1acc97940de447be550ee9d8f2dea57cf9b49c9d4e73b23b2039ffd71be82732",
+        "https://www.nrc.gov/reading-rm/adams/adams-sys-notice",
+        "2026-08-03T23:04:00Z",
+    ),
+    (
+        "library-facets",
+        "tests/fixtures/nrc_adams_codes/nrc-aps-library-facet-labels-excerpt-2026-08-03.js",
+        "sha256:6586681097db869c5c8116d8fca288a9f07174a24029ed27c3583afbc7deb603",
+        197,
+        "verbatimExcerptOfLargerOfficialAsset",
+        "urn:ref:nrc-adams-capture:apsLibraryFacetLabels:6586681097db869c5c8116d8fca288a9f07174a24029ed27c3583afbc7deb603",
+        "https://adams-search.nrc.gov/main.6c73a88ad6c1b2ad.js",
+        "2026-08-03T19:33:10Z",
+    ),
+    (
+        "result-fields",
+        "tests/fixtures/nrc_adams_codes/nrc-aps-result-field-labels-excerpt-2026-08-03.js",
+        "sha256:7247022b52a8ffff04ba3589235d300a4a40ad284b89ee18702af9bf5c08b911",
+        1_779,
+        "verbatimExcerptOfLargerOfficialAsset",
+        "urn:ref:nrc-adams-capture:apsResultFieldLabels:7247022b52a8ffff04ba3589235d300a4a40ad284b89ee18702af9bf5c08b911",
+        "https://adams-search.nrc.gov/main.6c73a88ad6c1b2ad.js",
+        "2026-08-03T19:33:10Z",
+    ),
+)
+
+
+def _nrc_adams_pins() -> tuple[SourcePin, ...]:
+    return tuple(
+        SourcePin(
+            path=path,
+            sha256=digest,
+            byte_length=byte_length,
+            fmt="javascript" if path.endswith(".js") else "html",
+            role=role,
+            source_iri=source_iri,
+        )
+        for _, path, digest, byte_length, role, source_iri, _, _ in (
+            _NRC_ADAMS_INPUT_ROWS
+        )
+    )
+
+
+def _nrc_adams_inputs() -> tuple[NrcAdamsInput, ...]:
+    return tuple(
+        NrcAdamsInput(
+            name=name,
+            path=path,
+            official_source_url=official_source_url,
+            observed_at=observed_at,
+        )
+        for name, path, _, _, _, _, official_source_url, observed_at in (
+            _NRC_ADAMS_INPUT_ROWS
+        )
+    )
+
+
+_NRC_IDENTIFIER_AUTHORITY = "https://www.nrc.gov/reading-rm/adams"
+
+
+def _nrc_identifier_template(
+    *,
+    label_kind: str,
+    key_kind: str,
+    key_field: str,
+) -> str:
+    return json.dumps(
+        [
+            {
+                "authority_uri": _NRC_IDENTIFIER_AUTHORITY,
+                "effective_at": None,
+                "kind": label_kind,
+                "observed_at": "{observed_at}",
+                "source_digest": "{input_sha256}",
+                "source_uri": "{official_source_url}",
+                "value": "{label}",
+            },
+            {
+                "authority_uri": _NRC_IDENTIFIER_AUTHORITY,
+                "effective_at": None,
+                "kind": key_kind,
+                "observed_at": "{observed_at}",
+                "source_digest": "{input_sha256}",
+                "source_uri": "{official_source_url}",
+                "value": "{" + key_field + "}",
+            },
+        ],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _nrc_control_template(resource_name: str) -> str:
+    return json.dumps(
+        {
+            "identifiers": "{identifiers}",
+            "is_general_subject_concept": False,
+            "publisher_label": "{label}",
+            "resource_name": resource_name,
+            "source_url": "{official_source_url}",
+            "use": "deterministicMetadata",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+_NRC_CONTROL_NATIVE_TEMPLATE = json.dumps(
+    {
+        "completeGovernedList": False,
+        "control": "{control_payload}",
+        "ordinal": "{ordinal}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _nrc_control_pattern(
+    *,
+    input_name: str,
+    row_pattern: str,
+    expected_matches: int,
+    coverage: str,
+    resource_name: str,
+    label_kind: str,
+    key_kind: str,
+    key_field: str,
+    region_pattern: str | None = None,
+) -> NrcAdamsPattern:
+    return NrcAdamsPattern(
+        input_name=input_name,
+        row_pattern=row_pattern,
+        expected_matches=expected_matches,
+        coverage=coverage,
+        projection="each",
+        constants=(("resource_name", resource_name),),
+        aggregate_templates=(
+            NrcAggregateTemplate(
+                field="identifiers",
+                template_json=_nrc_identifier_template(
+                    label_kind=label_kind,
+                    key_kind=key_kind,
+                    key_field=key_field,
+                ),
+                mode="row",
+            ),
+            NrcAggregateTemplate(
+                field="control_payload",
+                template_json=_nrc_control_template(resource_name),
+                mode="row",
+            ),
+        ),
+        derived_fields=(
+            NrcDerivedField(
+                field="identity_hash",
+                operation="sha256",
+                inputs=(key_field,),
+            ),
+        ),
+        row_key=key_field,
+        identity_template=(
+            "urn:ref:nrc-adams-control:{resource_name}:{identity_hash}"
+        ),
+        source_path_template="{input_source_iri}",
+        source_locator_template="{input_source_iri}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=_NRC_CONTROL_NATIVE_TEMPLATE,
+        native_payload_fields=("completeGovernedList", "control", "ordinal"),
+        region_pattern=region_pattern,
+    )
+
+
+def _nrc_adams_controls_source() -> SourceSpec:
+    selector = NrcAdamsMultiArtifactSelector(
+        inputs=_nrc_adams_inputs(),
+        patterns=(
+            _nrc_control_pattern(
+                input_name="result-fields",
+                row_pattern=(
+                    r'function \w+\(t,n\)\{if\(1&t&&\(_\(0,"tr"\)'
+                    r'\(1,"td",2\),b\(2,"(?P<label>[^"]*)"\),m\(\),_'
+                    r'\(3,"td"\),b\(4\)(?P<date_marker>,St\(5,"date"\))?,'
+                    r'm\(\)\(\)\),2&t\)\{const e=h\(\);f\(4\),_e\('
+                    r'(?P<value_expr>(?:_n\(5,1,)?e\.item\.'
+                    r'(?P<property_key>\w+)\)?)\)\}\}'
+                ),
+                expected_matches=12,
+                coverage="whole",
+                resource_name="apsResultFieldLabels",
+                label_kind="apsResultFieldLabel",
+                key_kind="apsResultFieldPropertyKey",
+                key_field="property_key",
+            ),
+            _nrc_control_pattern(
+                input_name="library-facets",
+                row_pattern=(
+                    r'\["formControlName","(?P<control_name>\w+)","label",'
+                    r'"(?P<label>[^"]+)",1,"me-3",3,"binary","onChange"\]'
+                ),
+                expected_matches=2,
+                coverage="comma-joined",
+                resource_name="apsLibraryFacetLabels",
+                label_kind="apsLibraryFacetLabel",
+                key_kind="apsLibraryFacetControlName",
+                key_field="control_name",
+            ),
+            _nrc_control_pattern(
+                input_name="help",
+                row_pattern=(
+                    r'<li data-list-item-id="[0-9a-f]+"><a href="'
+                    r'(?P<href>[^"]+)">(?P<label>[^<]+)</a></li>'
+                ),
+                expected_matches=5,
+                coverage="whole",
+                resource_name="helpReferencePage",
+                label_kind="docketNumberCategoryLabel",
+                key_kind="docketNumberCategoryReferenceUrl",
+                key_field="href",
+                region_pattern=(
+                    r'<h2 id="ListofLicenses">Lists of Licenses and Docket '
+                    r'Numbers</h2><ul>(?P<region>(?:<li data-list-item-id="'
+                    r'[0-9a-f]+"><a href="[^"]+">[^<]+</a></li>)+)</ul>'
+                ),
+            ),
+        ),
+        expected_count=19,
+        declared_unevaluated_fields=(
+            "HTML outside the selected help-reference list",
+            "FAQ, landing, and system-notices prose not used by this projection",
+            "uncaptured bytes in the two parent JavaScript assets",
+        ),
+    )
+    return SourceSpec(
+        name="nrc-adams-native-controls-bounded-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nrc-adams-native-controls-bounded-2026-08-03",),
+        inputs=_nrc_adams_pins(),
+        reader=NRC_ADAMS_MULTI_ARTIFACT_READER,
+        nrc_adams=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"completeGovernedList", "control", "ordinal"})
+        ),
+    )
+
+
+_NRC_SHAPE_TEMPLATE = json.dumps(
+    {
+        "explanation": "{explanation}",
+        "identifier_kind": "{identifier_kind}",
+        "pattern": "{pattern}",
+        "raw_notes": "{raw_notes}",
+        "sample_values": "{sample_values}",
+        "shape_basis": "{shape_basis}",
+        "source_url": "{official_source_url}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+_NRC_SHAPE_NATIVE_TEMPLATE = json.dumps(
+    {
+        "ordinal": "{ordinal}",
+        "sampleValuesAreAuthorityMembers": False,
+        "shape": "{shape_payload}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _nrc_shape_pattern(
+    *,
+    input_name: str,
+    row_pattern: str,
+    expected_matches: int,
+    constants: tuple[tuple[str, Any], ...],
+    projections: tuple[NrcAggregateTemplate, ...],
+) -> NrcAdamsPattern:
+    return NrcAdamsPattern(
+        input_name=input_name,
+        row_pattern=row_pattern,
+        expected_matches=expected_matches,
+        coverage="selected",
+        projection="single",
+        constants=constants,
+        aggregate_templates=(
+            *projections,
+            NrcAggregateTemplate(
+                field="shape_payload",
+                template_json=_NRC_SHAPE_TEMPLATE,
+                mode="row",
+            ),
+        ),
+        derived_fields=(
+            NrcDerivedField(
+                field="label",
+                operation="template",
+                template="{identifier_kind} format ({shape_basis})",
+            ),
+            NrcDerivedField(
+                field="identity_seed",
+                operation="template",
+                template="{identifier_kind}:{shape_basis}:{pattern}",
+            ),
+            NrcDerivedField(
+                field="identity_hash",
+                operation="sha256",
+                inputs=("identity_seed",),
+            ),
+        ),
+        row_key="identity_seed",
+        identity_template="urn:ref:nrc-adams-identifier-shape:{identity_hash}",
+        source_path_template="{input_source_iri}",
+        source_locator_template="{input_source_iri}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("notation", "pattern"),
+            ("definition", "explanation"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=_NRC_SHAPE_NATIVE_TEMPLATE,
+        native_payload_fields=("ordinal", "sampleValuesAreAuthorityMembers", "shape"),
+    )
+
+
+def _nrc_adams_shapes_source() -> SourceSpec:
+    docket_explanation = (
+        "Web-based ADAMS requires an 8-digit docket number with no dashes in "
+        "the Docket Number field; the FAQ states a docket number may be shown "
+        "elsewhere with a hyphen, but that hyphenated form is explicitly not "
+        "accepted for search."
+    )
+    legacy_explanation = (
+        "The FAQ documents searching Web-based ADAMS Advanced Search for a "
+        "Public Legacy Library document by typing the literal token NUDOCS "
+        "immediately followed by its 10-digit accession number into the "
+        "Document/Report Property field, with Public Library selected from "
+        "the Libraries list."
+    )
+    observed_explanation = (
+        'Neither the landing page, the help-and-references page, nor the FAQ '
+        'states the current ("ML") accession-number format in prose. This '
+        "pattern is inferred from two real example values embedded in linked "
+        "document filenames on the landing page: an 'ML' prefix, a 2-digit "
+        "year, a 3-digit day-of-year, and either a 4-digit sequence or a "
+        "1-letter-plus-3-digit sequence."
+    )
+    notice_explanation = (
+        'The ADAMS System Notices page states both accession-number formats '
+        'in prose: "ML" followed by nine numbers for documents added before '
+        "December 15, 2010 (for example, ML100010001), and \"ML\" followed "
+        "by eight numbers plus an alphabetic character in the sequence "
+        "afterwards (for example, ML10001A001). The prose does not fix the "
+        "alphabetic character's position; this pattern places it where the "
+        "publisher's own example and every observed value put it."
+    )
+    nudocs_sentence = (
+        "<p>If you have the Public Legacy Library accession number of the "
+        "document you are looking for in the Public Library, use Web-based "
+        "ADAMS Advanced Search and type the word NUDOCS followed by the "
+        "10-digit Public Legacy Library accession number into the "
+        "<em>Document/Report</em> Property field as shown in the below example. "
+        "Be sure to have <em>Public Library</em> selected from the Libraries "
+        "list.</p>"
+    )
+    notice_sentence = (
+        'The structure of the accession numbers will change from "ML" followed '
+        "by nine numbers (for example, ML100010001) to \"ML\" followed by "
+        "eight numbers plus an alphabetic character in the sequence (for "
+        "example, ML10001A001)."
+    )
+    selector = NrcAdamsMultiArtifactSelector(
+        inputs=_nrc_adams_inputs(),
+        patterns=(
+            _nrc_shape_pattern(
+                input_name="faq",
+                row_pattern=(
+                    r"<p>To search by a docket number, you must enter it in an "
+                    r"8-digit format, such as (?P<example>\d{8}), in the Docket "
+                    r"Number field in Web-based ADAMS Content Search or Advanced "
+                    r"Search\. You might see a docket number listed elsewhere as "
+                    r"(?P<hyphenated>[\d-]+) or a variation of this, but Web-based "
+                    r"ADAMS will only accept the 8-digit format with no dashes in "
+                    r"the Docket Number field\.</p><p>Examples for Docket "
+                    r"(?P<prefix_a>\d+) \((?P<prefix_a_desc>[^)]+)\) and Docket "
+                    r"(?P<prefix_b>\d+) \((?P<prefix_b_desc>[^)]+)\) would be "
+                    r"(?P<example_a>\d{8}) and (?P<example_b>\d{8})\.</p>"
+                ),
+                expected_matches=1,
+                constants=(
+                    ("identifier_kind", "docketNumber"),
+                    ("pattern", r"^\d{8}$"),
+                    ("shape_basis", "publisherDocumentedProse"),
+                    ("explanation", docket_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json='["{example}","{example_a}","{example_b}"]',
+                        mode="row",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '["hyphenated display variant observed for the first '
+                            "example: '{hyphenated}'\",\"Docket {prefix_a} "
+                            "({prefix_a_desc}) example: {example_a}\",\"Docket "
+                            "{prefix_b} ({prefix_b_desc}) example: {example_b}\"]"
+                        ),
+                        mode="row",
+                    ),
+                ),
+            ),
+            _nrc_shape_pattern(
+                input_name="faq",
+                row_pattern=re.escape(nudocs_sentence),
+                expected_matches=1,
+                constants=(
+                    ("identifier_kind", "legacyLibraryAccessionNumber"),
+                    ("pattern", r"^\d{10}$"),
+                    ("shape_basis", "publisherDocumentedProse"),
+                    ("explanation", legacy_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json="[]",
+                        mode="row",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '["search token prefix observed in the FAQ text: '
+                            "'NUDOCS' (immediately precedes the 10-digit number)\"]"
+                        ),
+                        mode="row",
+                    ),
+                ),
+            ),
+            _nrc_shape_pattern(
+                input_name="landing",
+                row_pattern=(
+                    r'href="/docs/(?P<folder>ML\d{4})/'
+                    r'(?P<accession>[A-Za-z0-9]+)\.pdf"'
+                ),
+                expected_matches=2,
+                constants=(
+                    ("identifier_kind", "currentAccessionNumber"),
+                    ("pattern", r"^(?i:ML)\d{2}\d{3}(?:\d{4}|[A-Za-z]\d{3})$"),
+                    ("shape_basis", "observedFromRealExamples"),
+                    ("explanation", observed_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json='"{accession}"',
+                        mode="collect",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '"observed folder grouping: {folder} for accession '
+                            '{accession}"'
+                        ),
+                        mode="collect",
+                    ),
+                ),
+            ),
+            _nrc_shape_pattern(
+                input_name="system-notices",
+                row_pattern=re.escape(notice_sentence),
+                expected_matches=1,
+                constants=(
+                    ("identifier_kind", "currentAccessionNumber"),
+                    ("pattern", r"^(?i:ML)(?:\d{9}|\d{5}[A-Za-z]\d{3})$"),
+                    ("shape_basis", "publisherDocumentedProse"),
+                    ("explanation", notice_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json='["ML100010001","ML10001A001"]',
+                        mode="row",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '["publisher examples quoted verbatim from the '
+                            'December 2010 renumbering notice","the pre-2010 '
+                            "nine-number form remains valid for documents added "
+                            'before December 15, 2010"]'
+                        ),
+                        mode="row",
+                    ),
+                ),
+            ),
+        ),
+        expected_count=4,
+        declared_unevaluated_fields=(
+            "HTML outside the four selected identifier statements and examples",
+            "help-reference list and JavaScript excerpts used by the sibling control projection",
+        ),
+    )
+    return SourceSpec(
+        name="nrc-adams-identifier-shapes-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nrc-adams-identifier-shapes-2026-08-03",),
+        inputs=_nrc_adams_pins(),
+        reader=NRC_ADAMS_MULTI_ARTIFACT_READER,
+        nrc_adams=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"ordinal", "sampleValuesAreAuthorityMembers", "shape"})
+        ),
+    )
+
+
+NRC_ADAMS_MULTI_ARTIFACT_SOURCES = (
+    _nrc_adams_controls_source(),
+    _nrc_adams_shapes_source(),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -12375,6 +16128,11 @@ SOURCES: tuple[SourceSpec, ...] = (
     *OMB_A11_PATTERN_ROW_SOURCES,
     *USCOURTS_NOS_PATTERN_ROW_SOURCES,
     *COURTLISTENER_PATTERN_ROW_SOURCES,
+    *XML_RECORD_SELECTOR_SOURCES,
+    *JSON_RECORD_SELECTOR_SOURCES,
+    *CSV_RECORD_SELECTOR_SOURCES,
+    *OOXML_RELATIONAL_SOURCES,
+    *NRC_ADAMS_MULTI_ARTIFACT_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -12392,7 +16150,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=LDA_GENERAL_ISSUE_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12423,7 +16181,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://lda.gov/api/v1/constants/filing/filingtypes/",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=LDA_FILING_TYPE_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12457,7 +16215,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://www.ecfr.gov/api/versioner/v1/titles.json",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=ECFR_TITLES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12493,7 +16251,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://api.govinfo.gov/collections",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=GOVINFO_COLLECTIONS_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12530,7 +16288,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=USASPENDING_AWARD_TYPES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12566,7 +16324,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=GSDM_REVIEWED_DOMAIN_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12603,7 +16361,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://techport.nasa.gov/api/taxonomies",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=NASA_TAXONOMY_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12641,7 +16399,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_FILING_TYPES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12679,7 +16437,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_ACCESS_STATUSES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12717,7 +16475,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_BUREAUS_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12755,7 +16513,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_PROCEEDINGS_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12804,7 +16562,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FEDERAL_HIERARCHY_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12859,7 +16617,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=GOVINFO_PACKAGE_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(frozenset({"fixity", "summary"})),
@@ -12884,7 +16642,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=SAM_UEI_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12920,7 +16678,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=SAM_CAGE_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -13929,13 +17687,12 @@ def build_context(
             )
             cache_key = (
                 spec.reader,
-                # API captures can share bytes while selecting different lists
-                # (four FCC units and two SAM units). Other readers keep main's
+                # Structured captures can share bytes while selecting different
+                # lists. Other readers keep main's
                 # cross-spec cache sharing, including the EuroVoc partitions.
                 (
                     spec.name
-                    if spec.reader
-                    in {API_CAPTURE_JSON_READER, PATTERN_ROW_READER}
+                    if spec.reader in SPEC_SCOPED_RECORD_READERS
                     else None
                 ),
                 spec.inputs,
@@ -14304,6 +18061,46 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.reader != PATTERN_ROW_READER and spec.pattern_row is not None:
             failures.append(
                 f"{spec.name}: non-pattern reader must not declare a pattern-row selector"
+            )
+        if spec.reader == CSV_RECORD_SELECTOR_READER and spec.csv_record is None:
+            failures.append(
+                f"{spec.name}: CSV record reader has no declarative selector"
+            )
+        if spec.reader != CSV_RECORD_SELECTOR_READER and spec.csv_record is not None:
+            failures.append(
+                f"{spec.name}: non-CSV reader must not declare a CSV selector"
+            )
+        if spec.reader == XML_RECORD_SELECTOR_READER and spec.xml_record is None:
+            failures.append(
+                f"{spec.name}: XML record reader has no declarative selector"
+            )
+        if spec.reader != XML_RECORD_SELECTOR_READER and spec.xml_record is not None:
+            failures.append(
+                f"{spec.name}: non-XML reader must not declare an XML selector"
+            )
+        if spec.reader == JSON_RECORD_SELECTOR_READER and spec.json_record is None:
+            failures.append(
+                f"{spec.name}: JSON record reader has no declarative selector"
+            )
+        if spec.reader != JSON_RECORD_SELECTOR_READER and spec.json_record is not None:
+            failures.append(
+                f"{spec.name}: non-JSON reader must not declare a JSON selector"
+            )
+        if spec.reader == OOXML_RELATIONAL_READER and spec.ooxml_relational is None:
+            failures.append(
+                f"{spec.name}: OOXML relational reader has no declarative selector"
+            )
+        if spec.reader != OOXML_RELATIONAL_READER and spec.ooxml_relational is not None:
+            failures.append(
+                f"{spec.name}: non-OOXML reader must not declare an OOXML selector"
+            )
+        if spec.reader == NRC_ADAMS_MULTI_ARTIFACT_READER and spec.nrc_adams is None:
+            failures.append(
+                f"{spec.name}: NRC ADAMS reader has no declarative selector"
+            )
+        if spec.reader != NRC_ADAMS_MULTI_ARTIFACT_READER and spec.nrc_adams is not None:
+            failures.append(
+                f"{spec.name}: non-NRC reader must not declare an NRC ADAMS selector"
             )
         if spec.source_extract is not None:
             if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:
@@ -17142,11 +20939,9 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     Atlas-owned resources, rings, profiles, and governed schemes are deliberately
     absent from this view. The binding validator owns those claims.
     """
-    if pair.spec.reader in {
-        API_CAPTURE_JSON_READER,
-        CRS_SOURCE_CONCEPT_RELEASE_READER,
-        PATTERN_ROW_READER,
-    }:
+    if pair.spec.reader in SPEC_SCOPED_RECORD_READERS or pair.spec.reader == (
+        CRS_SOURCE_CONCEPT_RELEASE_READER
+    ):
         # Structured JSON captures also describe value, structure, entity, and
         # legal-identity resources. Their source records are the exact
         # independent join; requiring skos:Concept here would discard every
