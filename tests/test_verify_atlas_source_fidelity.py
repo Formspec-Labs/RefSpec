@@ -53,6 +53,7 @@ from tools.verify_atlas_source_fidelity import (
     RdfSourcePolicy,
     SourcePin,
     SourceSpec,
+    _fixed_width_layout_column,
     check_source_defects,
     main,
     parse_nquads_line,
@@ -1479,6 +1480,40 @@ def test_pattern_row_reader_catches_rewritten_label(suite: Fixture) -> None:
 
     assert not label_check.passed
     assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+def test_pattern_row_fixed_width_column_accepts_wrap_and_rejects_bad_indent() -> None:
+    header = "  Code      Title                                        Description"
+    value = {
+        "block": (
+            "  893       Environmental Matters                        First line.\n"
+            "            Continued title                              Second line.\n"
+            "                                                        Page 7 of 8\n"
+            "Civil Nature of Suit Code Descriptions\n"
+            "(Rev. 10/20)\n"
+            "                                                         Cross-page description."
+        ),
+        "column": "title",
+        "continuationMinIndent": 5,
+        "footerPattern": r"Page \d+ of \d+",
+        "header": header,
+        "pageTitle": "Civil Nature of Suit Code Descriptions",
+        "revisionPattern": r"\(Rev\. \d{2}/\d{2}\)",
+    }
+
+    assert _fixed_width_layout_column(value, "fixture") == (
+        "Environmental Matters Continued title"
+    )
+    assert _fixed_width_layout_column(
+        {**value, "column": "description"}, "fixture"
+    ) == "First line. Second line. Cross-page description."
+
+    bad_value = {
+        **value,
+        "block": value["block"] + "\n\n   unknown continuation",
+    }
+    with pytest.raises(ValueError, match="unrecognized continuation"):
+        _fixed_width_layout_column(bad_value, "fixture")
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
