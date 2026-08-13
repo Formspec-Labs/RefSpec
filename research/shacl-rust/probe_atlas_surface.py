@@ -48,7 +48,7 @@ def git_value(root: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def atlas_surface(root: Path) -> dict[str, Any]:
+def atlas_surface(root: Path, git_revision: str) -> dict[str, Any]:
     """Measure the checked-out Atlas shape graph and corpus manifest."""
 
     binding = root / "bindings" / "atlas" / "3.1"
@@ -63,9 +63,7 @@ def atlas_surface(root: Path) -> dict[str, Any]:
     expected_counts = Counter(case["expected"] for case in cases)
     issue_counts = Counter(case.get("firstIssue", "<none>") for case in cases)
     component_counts = Counter(
-        component
-        for case in cases
-        for component in case.get("shaclComponents", ())
+        component for case in cases for component in case.get("shaclComponents", ())
     )
 
     required_occurrences = {
@@ -80,14 +78,18 @@ def atlas_surface(root: Path) -> dict[str, Any]:
     return {
         "binding": {
             "corpusVersion": corpus["version"],
-            "gitCommit": git_value(root, "rev-parse", "HEAD"),
-            "gitCommitDate": git_value(root, "show", "-s", "--format=%cI", "HEAD"),
+            "gitCommit": git_value(root, "rev-parse", git_revision),
+            "gitCommitDate": git_value(
+                root, "show", "-s", "--format=%cI", git_revision
+            ),
         },
         "corpus": {
             "caseCount": len(cases),
             "expectedCounts": dict(sorted(expected_counts.items())),
             "firstIssueCounts": dict(sorted(issue_counts.items())),
-            "shaclCaseCount": sum(case.get("firstIssue") == "shacl.data" for case in cases),
+            "shaclCaseCount": sum(
+                case.get("firstIssue") == "shacl.data" for case in cases
+            ),
             "shaclComponentCaseCount": sum("shaclComponents" in case for case in cases),
             "shaclComponentCounts": dict(sorted(component_counts.items())),
             "uniqueShaclComponents": sorted(component_counts),
@@ -97,9 +99,7 @@ def atlas_surface(root: Path) -> dict[str, Any]:
             for path in (corpus_path, ontology_path, requirements_path, shapes_path)
         },
         "shapeGraph": {
-            "nodeShapeCount": len(
-                re.findall(r"\ba\s+sh:NodeShape\s*;", shapes)
-            ),
+            "nodeShapeCount": len(re.findall(r"\ba\s+sh:NodeShape\s*;", shapes)),
             "propertyShapeCount": len(re.findall(r"\bsh:property\s*\[", shapes)),
             "requiredTermOccurrences": required_occurrences,
             "sequencePathCount": sequence_paths,
@@ -116,10 +116,15 @@ def main() -> None:
         default=Path(__file__).resolve().parents[2],
         help="RefSpec checkout to inspect",
     )
+    parser.add_argument(
+        "--git-revision",
+        default="HEAD",
+        help="Git revision whose identity should label the inspected binding",
+    )
     parser.add_argument("--output", type=Path, help="Optional JSON output path")
     args = parser.parse_args()
 
-    result = atlas_surface(args.root.resolve())
+    result = atlas_surface(args.root.resolve(), args.git_revision)
     encoded = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
