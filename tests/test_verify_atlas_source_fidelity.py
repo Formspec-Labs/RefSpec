@@ -33,6 +33,7 @@ from pathlib import Path
 import pytest
 
 from tools.verify_atlas_source_fidelity import (
+    API_CAPTURE_JSON_READER,
     CHECK_NAMES,
     CheckResult,
     DeclaredClaimExclusion,
@@ -604,6 +605,131 @@ def _repin_native_capture(suite: Fixture, spec: SourceSpec) -> SourceSpec:
     return replace(spec, inputs=new_inputs)
 
 
+def _add_api_capture_json_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "Agriculture",
+) -> SourceSpec:
+    """Add one LDA JSON row and the independently expected Atlas record."""
+    source_iri = (
+        "https://lda.gov/api/v1/constants/filing/lobbyingactivityissues/"
+    )
+    source_bytes = json.dumps(
+        [{"value": "AGR", "name": "Agriculture"}],
+        separators=(",", ":"),
+    ).encode()
+    source_path = suite.source_root / "lda-general-issues.json"
+    source_path.write_bytes(source_bytes)
+    source_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    pin = SourcePin(
+        path=source_path.name,
+        sha256=source_digest,
+        byte_length=len(source_bytes),
+        fmt="json",
+        role="publisherSource",
+        source_iri=source_iri,
+    )
+    resource = (
+        "urn:ref:source-concept:v2:lda-general-issues:"
+        "019fb30e-b790-7c09-986e-3c53706a707b"
+    )
+    native_payload = {
+        "identifiers": [
+            {
+                "value": "AGR",
+                "kind": "generalIssueCode",
+                "authority_uri": "https://lda.gov/",
+                "source_uri": source_iri,
+                "observed_at": "2026-07-30T12:45:14Z",
+                "effective_at": None,
+                "source_digest": source_digest,
+            }
+        ],
+        "is_general_subject_concept": False,
+        "publisher_label": "Agriculture",
+        "resource_name": "generalIssueCodes",
+        "source_url": source_iri,
+        "use": "sourceAssignedEvidence",
+        "sourceArtifact": source_iri,
+    }
+    spec = SourceSpec(
+        name="lda-general-issue-codes",
+        kind="vocabulary",
+        release_keys=("lda-general-issue-codes",),
+        inputs=(pin,),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=frozenset(
+            {
+                "english-label-selection",
+                "english-annotation-selection",
+                "skos-note-to-atlas-note",
+                "top-concept-source-shape-inverse",
+            }
+        ),
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=frozenset(native_payload)
+        ),
+    )
+    record = "urn:example:source-record:lda-general-issue-codes"
+    label = "urn:example:label:lda-general-issue-codes"
+    lines = [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", source_iri),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps(native_payload, separators=(",", ":")),
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", label),
+        _quad(label, f"{SKOSXL}literalForm", atlas_label, literal=True),
+        _plain_literal_quad(resource, f"{ATLAS}notation", "AGR"),
+    ]
+    pack_relative = "sources/lda-general-issue-codes/all.nq.zst"
+    pack_path = suite.distribution / "packs" / pack_relative
+    pack_path.parent.mkdir(parents=True)
+    transport = zstd.compress(("\n".join(lines) + "\n").encode())
+    pack_path.write_bytes(transport)
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["releases"].append(
+        {
+            "key": "lda-general-issue-codes",
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": pin.path,
+                    "sha256": pin.sha256,
+                    "byteLength": pin.byte_length,
+                    "role": pin.role,
+                    "sourceIri": pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{pack_relative}"}],
+            "recordCounts": {"resources": 1, "labels": 1},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{pack_relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return spec
+
+
 # --------------------------------------------------------------------------------------
 # Baseline
 # --------------------------------------------------------------------------------------
@@ -613,6 +739,40 @@ def test_faithful_pair_passes_every_check(suite: Fixture) -> None:
     results = suite.run()
     assert len(results) == len(CHECK_NAMES)
     assert failed(results) == set(), [item.failures for item in results if not item.passed]
+
+
+def test_api_capture_json_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+) -> None:
+    spec = _add_api_capture_json_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_api_capture_json_reader_catches_rewritten_label(suite: Fixture) -> None:
+    spec = _add_api_capture_json_source(suite, atlas_label="Farming")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any("'Farming'" in failure for failure in label_check.failures)
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
@@ -5142,3 +5302,194 @@ def test_icpsr_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault
     (root / "sources" / "subject.xml").write_bytes(b"<fault/>")
     with pytest.raises(ValueError, match="artifact pin differs"):
         verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
+
+
+def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
+    tmp_path: Path,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    def canonical(value: object) -> bytes:
+        return (
+            json.dumps(
+                value,
+                ensure_ascii=False,
+                allow_nan=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+            + b"\n"
+        )
+
+    def digest(payload: bytes) -> str:
+        return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+    root = tmp_path / "crs-release"
+    (root / "source" / "sources").mkdir(parents=True)
+    scheme = {
+        "code": "cgpa",
+        "id": "http://id.loc.gov/vocabulary/subjectSchemes/cgpa",
+        "label": "Congress.gov Policy Areas",
+    }
+    local_id = "urn:uuid:019fc9f2-c758-70b4-a2c9-214f4e3410e4"
+    observation = {
+        "definition": "The exact definition.",
+        "id": "urn:test:crs-observation:1",
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "Faithful term"}
+        ],
+        "localRecordId": local_id,
+        "sourceArtifact": "urn:test:crs-source-artifact:1",
+    }
+    observation_payload = canonical(observation)
+    namespace_digest = hashlib.sha256(scheme["id"].encode()).hexdigest()
+    concept = {
+        "id": (
+            "urn:ref:source-concept:v1:"
+            f"{namespace_digest}:{local_id.removeprefix('urn:uuid:')}"
+        ),
+        "identityKind": "refspecSourceScoped",
+        "issuer": "https://refspec.org/",
+        "localRecordId": local_id,
+        "semanticRing": "subject",
+        "sourceObservation": observation["id"],
+        "sourceObservationDigest": digest(observation_payload),
+        "sourceScheme": scheme["id"],
+        "type": "SourceScopedConcept",
+    }
+    concepts_payload = canonical(concept)
+    rights_payload = canonical({"sourceArtifact": observation["sourceArtifact"]})
+    lifecycle_payload = b""
+    reconciliation_payload = canonical({})
+    resource_manifest = {
+        "id": "urn:test:crs-source-resource:1",
+        "sourceScheme": scheme,
+    }
+    resource_manifest_payload = canonical(resource_manifest)
+    raw_payload = b"faithful raw publisher bytes"
+    source_artifacts = {
+        "observations.jsonl": observation_payload,
+        "resource-manifest.json": resource_manifest_payload,
+        "sources/source.bin": raw_payload,
+    }
+    nested_artifacts = [
+        {
+            "byteLength": len(payload),
+            "path": path,
+            "role": "sourceArtifact",
+            "sha256": digest(payload),
+        }
+        for path, payload in sorted(source_artifacts.items())
+    ]
+    source_logical_digest = "sha256:" + "2" * 64
+    source_bundle_manifest = {
+        "artifacts": nested_artifacts,
+        "logicalDigest": source_logical_digest,
+        "packageKind": "sourceControlledResource",
+        "resourceManifest": resource_manifest["id"],
+        "schemaVersion": "2.0",
+    }
+    source_bundle_payload = canonical(source_bundle_manifest)
+    source_artifacts["bundle-manifest.json"] = source_bundle_payload
+    for relative_path, payload in source_artifacts.items():
+        path = root / "source" / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+
+    release_basis = {
+        "conceptCount": 1,
+        "conceptSetDigest": digest(concepts_payload),
+        "identityPolicy": {"id": "urn:test:identity-policy"},
+        "issuer": "https://refspec.org/",
+        "lifecycleRecordCount": 0,
+        "lifecycleSetDigest": digest(lifecycle_payload),
+        "membershipMode": "completeMembership",
+        "rightsRecordCount": 1,
+        "rightsSetDigest": digest(rights_payload),
+        "schemaVersion": "1.0",
+        "selectedObservationSetDigest": digest(canonical([observation["id"]])),
+        "selectionPolicy": {"id": "urn:test:selection-policy"},
+        "semanticRing": "subject",
+        "sourceCapture": {
+            "logicalDigest": source_logical_digest,
+            "observationSetDigest": digest(observation_payload),
+            "reconciliationDigest": digest(reconciliation_payload),
+            "resourceManifest": resource_manifest["id"],
+        },
+        "sourceScheme": scheme,
+        "type": "SourceConceptRelease",
+    }
+    release_digest = digest(canonical(release_basis))
+    release = {
+        **release_basis,
+        "id": (
+            "urn:ref:source-concept-release:subject:"
+            f"{release_digest.removeprefix('sha256:')}"
+        ),
+        "releaseDigest": release_digest,
+    }
+    package_artifacts = {
+        "concepts.jsonl": (concepts_payload, "concepts"),
+        "lifecycle.jsonl": (lifecycle_payload, "lifecycle"),
+        "reconciliation.json": (reconciliation_payload, "reconciliation"),
+        "release-manifest.json": (canonical(release), "releaseManifest"),
+        "rights.jsonl": (rights_payload, "rights"),
+        **{
+            f"source/{path}": (payload, "sourceCaptureArtifact")
+            for path, payload in source_artifacts.items()
+        },
+    }
+    outer_artifacts = [
+        {
+            "byteLength": len(payload),
+            "path": path,
+            "role": role,
+            "sha256": digest(payload),
+        }
+        for path, (payload, role) in sorted(package_artifacts.items())
+    ]
+    manifest = {
+        "artifacts": outer_artifacts,
+        "logicalDigest": "sha256:" + "3" * 64,
+        "packageKind": "sourceConceptRelease",
+        "releaseDigest": release_digest,
+        "releaseId": release["id"],
+        "schemaVersion": "1.0",
+    }
+    manifest_payload = canonical(manifest)
+    for relative_path, (payload, _) in package_artifacts.items():
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    manifest_path = root / "bundle-manifest.json"
+    manifest_path.write_bytes(manifest_payload)
+    pin = SourcePin(
+        str(manifest_path),
+        digest(manifest_payload),
+        len(manifest_payload),
+        fmt="managed-release-json",
+        role="publisherSource",
+        source_iri="urn:test:crs-bundle",
+    )
+    spec = SourceSpec(
+        "crs-reader-test",
+        "vocabulary",
+        ("crs-reader-test",),
+        (pin,),
+        reader=verifier.CRS_SOURCE_CONCEPT_RELEASE_READER,
+    )
+
+    view = verifier._read_crs_source_concept_release(spec, {pin: manifest_payload})
+
+    resource = (
+        "urn:ref:source-concept:v2:loc-cgpa:"
+        "019fc9f2-c758-70b4-a2c9-214f4e3410e4"
+    )
+    assert view.concepts == frozenset({resource})
+    assert view.pref_labels[resource] == frozenset(
+        {verifier._literal_value("Faithful term", "en", None)}
+    )
+    assert len(view.annotations) == 1
+    (root / "source" / "sources" / "source.bin").write_bytes(b"fault")
+    with pytest.raises(ValueError, match="artifact pin differs"):
+        verifier._read_crs_source_concept_release(spec, {pin: manifest_payload})
