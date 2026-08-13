@@ -1,0 +1,128 @@
+{
+  "artifact": {
+    "manifestSha256": "53f5b233b95618074612c8331ff2b47cd696e75c5ab4731ced3d5caa95b9cd2f",
+    "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution",
+    "quadCount": 1013723
+  },
+  "fullScaleProjectionInputs": {
+    "artifact": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-full-2026-08-13",
+    "constructionSummarySha256": "3a8075485231d564d00d559d0b406ca7d55eef742de159de66d289c8503512bd",
+    "logicalRecordCounts": {
+      "evidenceBindings": 560429,
+      "identifiers": 4669,
+      "labels": 984114,
+      "lifecycleEvents": 0,
+      "releases": 219,
+      "resources": 588409,
+      "sourceRecords": 590561,
+      "statements": 560429
+    },
+    "manifestSha256": "18fdcd01947821b54c6eb520925219f0a00e1e5a357477cdc68653e772c4b8d6",
+    "quadCount": 29283283,
+    "validationRun": false
+  },
+  "fullValidation": {
+    "graphTriplesCalls": 6172030,
+    "peakRssMiB": 636.734,
+    "phases": [
+      {"graphTriplesCalls": 0, "phase": "load-manifest", "wallSeconds": 0.082738},
+      {"graphTriplesCalls": 0, "phase": "check-closed-distribution", "wallSeconds": 0.007036},
+      {"graphTriplesCalls": 0, "phase": "check-source-accounting", "wallSeconds": 0.954248},
+      {"graphTriplesCalls": 1, "phase": "parse-rdf-packs", "wallSeconds": 16.02625},
+      {"graphTriplesCalls": 155, "phase": "load-binding-graphs", "wallSeconds": 0.028583},
+      {"graphTriplesCalls": 6146362, "phase": "run-shacl", "wallSeconds": 16.962871},
+      {"graphTriplesCalls": 2154, "phase": "check-graph-roles", "wallSeconds": 0.351508},
+      {"graphTriplesCalls": 0, "phase": "check-profile-and-identifier-semantics", "wallSeconds": 0.029842},
+      {"graphTriplesCalls": 0, "phase": "check-release-and-label-semantics", "wallSeconds": 0.172594},
+      {"graphTriplesCalls": 149, "phase": "check-evidence-and-assertions", "wallSeconds": 2.01699},
+      {"graphTriplesCalls": 0, "phase": "check-machine-adjudication", "wallSeconds": 0.146144},
+      {"graphTriplesCalls": 0, "phase": "check-skos-semantics", "wallSeconds": 0.171186},
+      {"graphTriplesCalls": 0, "phase": "check-derived-graph", "wallSeconds": 0.000026},
+      {"graphTriplesCalls": 23192, "phase": "check-payload-and-node-digests", "wallSeconds": 0.239848},
+      {"graphTriplesCalls": 1, "phase": "check-accounting-and-counts", "wallSeconds": 0.192539},
+      {"graphTriplesCalls": 0, "phase": "check-reasoning-isolation", "wallSeconds": 0.00009},
+      {"graphTriplesCalls": 0, "phase": "check-acceptance", "wallSeconds": 0.004526},
+      {"graphTriplesCalls": 16, "phase": "check-construction-record-ownership", "wallSeconds": 0.304615}
+    ],
+    "revision": "b01946bce5643ab81e5e1e3e4c01431e8d8168b1",
+    "sampleCount": 1,
+    "totalSeconds": 37.69172
+  },
+  "memory": {
+    "fullIndex": {
+      "indexedOccurrenceCount": 826127,
+      "indexedPredicateCount": 67,
+      "peakRssMiBSamples": [600.969, 600.469, 603.859],
+      "peakRssMedianMiB": 600.969,
+      "sampleCount": 3
+    },
+    "machineExtension": {
+      "indexedOccurrenceCount": 0,
+      "indexedPredicateCount": 24,
+      "measurementConclusion": "No retained-reference cost on staging; RSS difference is below allocator noise."
+    },
+    "noFactIndex": {
+      "indexedOccurrenceCount": 0,
+      "indexedPredicateCount": 0,
+      "peakRssMiBSamples": [561.859, 559.703, 559.781],
+      "peakRssMedianMiB": 559.781,
+      "sampleCount": 3
+    },
+    "readFoldIndex": {
+      "indexedOccurrenceCount": 826127,
+      "indexedPredicateCount": 43,
+      "peakRssMiBSamples": [622.062, 603.844, 601.797],
+      "peakRssMedianMiB": 603.844,
+      "sampleCount": 3
+    },
+    "totalIndexMeasuredCostMiB": 41.188,
+    "totalIndexProjectedCostGiB": 1.162,
+    "totalIndexProjectionModel": "Scale the staging median RSS delta by the 29283283/1013723 quad ratio."
+  },
+  "projection": {
+    "constructionOwnership": {
+      "afterSeconds": 9.57,
+      "beforeSeconds": 17.75,
+      "model": "Scale post-fold loop work by logical record count and eliminated query work by the derived per-role query count."
+    },
+    "machineAdjudication": {
+      "afterSeconds": 2.79,
+      "beforeSeconds": 6.84,
+      "model": "Scale both measured components by the evidence-binding ratio 560429/29365; staging has no machine protocol records."
+    },
+    "projectedCombinedSavingSeconds": 12.23,
+    "projectedFullValidationMinutes": 18.3,
+    "projectedFullValidationModel": "Subtract the projected 12.23-second saving from the 18.5-minute full validation measured at ae34392c; no full validation was run."
+  },
+  "sample": {
+    "counts": {
+      "crossRingRelationAssertions": 0,
+      "derivedRelations": 0,
+      "identifiers": 0,
+      "labels": 24974,
+      "mappingAssertions": 2003,
+      "nativeRelationAssertions": 27362,
+      "projectedRelations": 0,
+      "relationAssertions": 29365,
+      "releases": 3,
+      "resources": 9502,
+      "sourceAssignments": 0,
+      "sourceRecords": 11505
+    },
+    "packCount": 5
+  },
+  "sourceRecordOrder": {
+    "firstMismatchIndex": 0,
+    "indexFirst": {
+      "resource": "http://id.loc.gov/authorities/subjects/sh00001050",
+      "sourceRecord": "urn:ref:atlas-source-record:11ed65be63fef68beec42c11153286169e208b0106e279fedf7afd25a85a542f"
+    },
+    "pairCount": 34476,
+    "sameMembers": true,
+    "sameOrder": false,
+    "storeFirst": {
+      "resource": "urn:ref:atlas-label:7d9d7e89d2a608936a2dcd1bf966d231984b61acc4f67015487e3a9c247d4dcf",
+      "sourceRecord": "urn:ref:atlas-source-record:11ed65be63fef68beec42c11153286169e208b0106e279fedf7afd25a85a542f"
+    }
+  }
+}
