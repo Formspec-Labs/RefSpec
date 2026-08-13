@@ -295,8 +295,15 @@ with five of six generalising a reader that already exists:
 lower bound: pattern rows cannot safely parse structured XML/JSON/CSV/OOXML, and
 NRC's six-input semantic union cannot be expressed in the single-input
 pattern-row algorithm without inventing a workflow language in configuration.
-PROVEN, not just designed: the FEC HTML family — 5 units from one declarative
-reader — is merged at 4982c0be, taking coverage to 54/110.
+PROVEN AND LANDED: the FEC HTML family first (4982c0be, 54/110), then the whole
+`pattern-row-v2` family — **all 42 units from that one reader, merged at
+8e5cb6e0, taking coverage from 54 to 91 of 110**. The reader carries no
+`spec.name` dispatch and imports no registry or ETL module, so adding a unit is
+adding configuration rather than code; each of the 37 new units got its own
+`--only` run against 13b, reached field-level comparison, and reported honest
+differences rather than passes. The last five kinds (15 units, 91→106) are in
+flight on `research/coverage-readers5`; the residual ~4 units are the ones the
+design flags as possibly bespoke.
 
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
