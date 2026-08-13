@@ -1,5 +1,22 @@
 # RefSpec plan
 
+> **Superseded in part (2026-08-12).** Sections below that describe the
+> bounded-build mechanics are historical records of what was executed at
+> Atlas 3.0: the reuse paths they cite (`_plan_incremental_construction`,
+> `_try_exact_distribution_reuse`) were deleted whole (REF-027,
+> `74aaafd9`); the compact JSONL packs and the `3.0-*` distribution URNs
+> left the wire in the atomic 3.1 replacement (REF-028, `cb10a8e8`); the
+> generator's implementation self-pin this file tracked through three
+> moves was deleted with the recipe digest (`107d8558`). The bounded
+> FR-Thesaurus release itself remains real and current — its live pins
+> are in the Makefile and verify today. For current state and what is
+> next, read
+> [plans/validation-cost-reset-plan.md](plans/validation-cost-reset-plan.md)
+> (its CONTINUATION header first); for why, the
+> [decision ledger](docs/decisions.md) REF-026/027/028. This file is
+> retained verbatim below as design lineage.
+
+
 Written 2026-08-11. This file is the owning plan for RefSpec work.
 
 Boundaries are stated once in [the decision ledger](docs/decisions.md).
