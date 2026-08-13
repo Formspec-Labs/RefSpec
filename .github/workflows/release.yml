@@ -67,6 +67,13 @@ jobs:
     # 14 GB SSD). Keep ~60 GB free disk and prefer a single fast core: the
     # pipeline is serial and memory-bound, and naive multiprocess parsing
     # multiplies the working set rather than dividing the wall clock.
+    #
+    # `runs-on` still names the self-hosted label because the runner decision
+    # is the owner's and has not been made -- the measurement above says a
+    # managed 32 GB runner WOULD now suffice, it does not pick one. Swapping
+    # this line for a larger-runner label is the whole change; nothing else in
+    # this file assumes a self-hosted box. Stated explicitly because the
+    # comment above and this line otherwise read as contradicting each other.
     runs-on: [self-hosted, atlas-release]
     # Sum of the step budgets below (30 build + 30 smoke + 120 acceptance +
     # 120 shapes benchmark = 300) plus headroom for
