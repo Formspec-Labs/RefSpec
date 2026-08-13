@@ -973,6 +973,8 @@ class PatternRowPattern:
     constants: tuple[tuple[str, Any], ...] = ()
     normalizers: tuple[PatternFieldNormalizer, ...] = ()
     row_filters: tuple[PatternRowFilter, ...] = ()
+    native_payload_template_json: str | None = None
+    native_payload_fields: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2506,6 +2508,36 @@ def _read_pattern_rows(
             f"{spec.name} native payload template",
         )
     )
+    for pattern_index, declaration in enumerate(selector.patterns):
+        if declaration.native_payload_template_json is None:
+            if declaration.native_payload_fields:
+                raise ValueError(
+                    f"{spec.name} pattern {pattern_index} declares native payload fields "
+                    "without a pattern payload template"
+                )
+            continue
+        pattern_payload = _json_without_duplicate_keys(
+            declaration.native_payload_template_json.encode("utf-8"),
+            f"{spec.name} pattern {pattern_index} native payload template",
+        )
+        if not isinstance(pattern_payload, Mapping):
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} native payload template "
+                "must be an object"
+            )
+        if set(pattern_payload) != set(declaration.native_payload_fields):
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} native payload field declaration "
+                f"differs from its template -- declared "
+                f"{sorted(declaration.native_payload_fields)}, observed "
+                f"{sorted(pattern_payload)}"
+            )
+        declared_template_fields.update(
+            _pattern_json_template_fields(
+                declaration.native_payload_template_json,
+                f"{spec.name} pattern {pattern_index} native payload template",
+            )
+        )
     for derived in selector.derived_fields:
         declared_template_fields.update(
             _pattern_json_template_fields(
@@ -2517,6 +2549,18 @@ def _read_pattern_rows(
     records: list[_ApiCaptureRecord] = []
     seen_keys: set[str] = set()
     for pattern_index, declaration in enumerate(selector.patterns):
+        pattern_payload_template = payload_template
+        if declaration.native_payload_template_json is not None:
+            parsed_pattern_payload = _json_without_duplicate_keys(
+                declaration.native_payload_template_json.encode("utf-8"),
+                f"{spec.name} pattern {pattern_index} native payload template",
+            )
+            if not isinstance(parsed_pattern_payload, Mapping):  # validated above
+                raise ValueError(
+                    f"{spec.name} pattern {pattern_index} native payload template "
+                    "must be an object"
+                )
+            pattern_payload_template = parsed_pattern_payload
         try:
             input_pattern = re.compile(declaration.input_pattern)
             region_pattern = re.compile(
@@ -2579,7 +2623,9 @@ def _read_pattern_rows(
                         "input_ordinal": spec.inputs.index(pin),
                         "region_ordinal": region_ordinal,
                         "pattern_ordinal": pattern_row_count,
+                        "pattern_ordinal_one_based": pattern_row_count + 1,
                         "ordinal": len(records),
+                        "ordinal_one_based": len(records) + 1,
                         **constants,
                     }
                     captured_sets = (
@@ -2703,7 +2749,9 @@ def _read_pattern_rows(
                             selector.identity_template,
                             fields,
                         )
-                    native_payload = _render_pattern_value(payload_template, fields)
+                    native_payload = _render_pattern_value(
+                        pattern_payload_template, fields
+                    )
                     if not isinstance(native_payload, Mapping):
                         raise ValueError(
                             f"{spec.name} row {key!r} native payload is not an object"
@@ -8057,6 +8105,14 @@ def _pattern_row_source_spec(
     inputs: tuple[SourcePin, ...],
     selector: PatternRowSelector,
 ) -> SourceSpec:
+    native_payload_fields = {
+        *selector.native_payload_fields,
+        *(
+            field_name
+            for pattern in selector.patterns
+            for field_name in pattern.native_payload_fields
+        ),
+    }
     return SourceSpec(
         name=name,
         kind="vocabulary",
@@ -8067,7 +8123,7 @@ def _pattern_row_source_spec(
         identity_policy=selector.identity_mode,
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
-            frozenset(selector.native_payload_fields)
+            frozenset(native_payload_fields)
         ),
     )
 
@@ -9606,6 +9662,151 @@ UNIFIED_AGENDA_PATTERN_ROW_SOURCES = (
 )
 
 
+_SEC_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/sec_series_categories/"
+        "sec-rules-regulations-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:2f39c9d08f0dc55462e30fbda57315fd5159d47a4894dd113dc0bf226112c1b1"
+    ),
+    byte_length=70_936,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.sec.gov/rules-regulations",
+)
+
+
+def _sec_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:25:10Z"
+    source_digest_hex = _SEC_PATTERN_PIN.sha256.removeprefix("sha256:")
+    source_artifact = (
+        "urn:ref:sec-source-artifact:rules-regulations:" + source_digest_hex
+    )
+    common_native_payload = {
+        "collection": "{collection}",
+        "conceptIdentityClaimed": False,
+        "id": "{record_id}",
+        "identifiers": [],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": source_artifact,
+        "sourceObservedAt": observed_at,
+        "sourceOrdinal": "{pattern_ordinal_one_based}",
+        "sourcePath": "{source_path}",
+        "sourceUrl": "{source_iri}",
+        "targetPath": "{target_path}",
+        "uses": ["navigation"],
+    }
+    side_payload = dict(common_native_payload)
+    card_payload = {**common_native_payload, "description": "{description}"}
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_SEC_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<ul class="usa-sidenav">(?P<region>.*?)</ul>.*?'
+                    r'<ul class="usa-sidenav">.*?</ul>'
+                ),
+                row_pattern=(
+                    r'<a href="(?P<target_path>[^"]+)"[^>]*>\s*'
+                    r"<span>(?P<label>.*?)</span>\s*</a>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=13,
+                constants=(
+                    ("collection", "sideNavigation"),
+                    ("description", ""),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer("target_path", ("html-unescape",)),
+                ),
+                row_filters=(
+                    PatternRowFilter(
+                        "target_path", r"/rules-regulations", False
+                    ),
+                ),
+                native_payload_template_json=_canonical_json_bytes(
+                    side_payload
+                ).decode("utf-8"),
+                native_payload_fields=tuple(sorted(side_payload)),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_SEC_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r'<div class="subpage-card">\s*'
+                    r'<h2 class="subpage-card__headline">\s*'
+                    r'<a class="subpage-card__headline__link" '
+                    r'href="(?P<target_path>[^"]+)">(?P<label>.*?)</a>\s*'
+                    r"</h2>\s*<p class=\"subpage-card__body\">"
+                    r"(?P<description>.*?)</p>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=6,
+                constants=(("collection", "subpageCard"),),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer(
+                        "description", ("html-visible-text",)
+                    ),
+                    PatternFieldNormalizer("target_path", ("html-unescape",)),
+                ),
+                native_payload_template_json=_canonical_json_bytes(
+                    card_payload
+                ).decode("utf-8"),
+                native_payload_fields=tuple(sorted(card_payload)),
+            ),
+        ),
+        row_key="{source_path}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:sec-series-categories:{source_uuid7}",
+        source_locator_template=source_artifact,
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("definition", "{description}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{record_id}"),
+        ),
+        native_payload_template_json="{}",
+        native_payload_fields=(),
+        expected_count=19,
+        declared_unevaluated_fields=(
+            "secondNavigationCopyAndHtmlOutsideSelectedCollections",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(
+                    "{collection}[{pattern_ordinal_one_based}]"
+                ),
+            ),
+            PatternDerivedField(
+                field="record_id",
+                operation="template",
+                template_json=json.dumps(
+                    "urn:ref:sec-source-record:"
+                    + source_digest_hex
+                    + ":{collection}:%2Frules-regulations:"
+                    "{pattern_ordinal_one_based}"
+                ),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "sec-series-categories", (_SEC_PATTERN_PIN,), selector
+    )
+
+
+SEC_PATTERN_ROW_SOURCES = (_sec_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -9685,6 +9886,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *OIRA_PATTERN_ROW_SOURCES,
     *OVERSIGHT_PATTERN_ROW_SOURCES,
     *UNIFIED_AGENDA_PATTERN_ROW_SOURCES,
+    *SEC_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
