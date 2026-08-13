@@ -1243,6 +1243,67 @@ class OoxmlRelationalSelector:
 
 
 @dataclass(frozen=True)
+class NrcAdamsInput:
+    """One of the six authenticated NRC pages or JavaScript excerpts."""
+
+    name: str
+    path: str
+    official_source_url: str
+    observed_at: str
+
+
+@dataclass(frozen=True)
+class NrcAggregateTemplate:
+    """Render structured row data or collect one value from every match."""
+
+    field: str
+    template_json: str
+    mode: str
+
+
+@dataclass(frozen=True)
+class NrcDerivedField:
+    """A template or SHA-256 field derived after one pattern projection."""
+
+    field: str
+    operation: str
+    inputs: tuple[str, ...] = ()
+    template: str | None = None
+
+
+@dataclass(frozen=True)
+class NrcAdamsPattern:
+    """One ordered pattern and its source-independent record projection."""
+
+    input_name: str
+    row_pattern: str
+    expected_matches: int
+    coverage: str
+    projection: str
+    constants: tuple[tuple[str, Any], ...]
+    aggregate_templates: tuple[NrcAggregateTemplate, ...]
+    derived_fields: tuple[NrcDerivedField, ...]
+    row_key: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    region_pattern: str | None = None
+
+
+@dataclass(frozen=True)
+class NrcAdamsMultiArtifactSelector:
+    """The six-input ordered semantic union shared by both NRC units."""
+
+    inputs: tuple[NrcAdamsInput, ...]
+    patterns: tuple[NrcAdamsPattern, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -1264,6 +1325,7 @@ class SourceSpec:
     json_record: JsonRecordSelector | None = None
     csv_record: CsvRecordSelector | None = None
     ooxml_relational: OoxmlRelationalSelector | None = None
+    nrc_adams: NrcAdamsMultiArtifactSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2345,6 +2407,7 @@ XML_RECORD_SELECTOR_READER = "xml-record-selector-v1/1.0"
 JSON_RECORD_SELECTOR_READER = "json-record-selector-v2/2.0"
 CSV_RECORD_SELECTOR_READER = "csv-record-selector-v2/2.0"
 OOXML_RELATIONAL_READER = "ooxml-relational-v1/1.0"
+NRC_ADAMS_MULTI_ARTIFACT_READER = "nrc-adams-multi-artifact-v1/1.0"
 LDA_GENERAL_ISSUE_JSON_READER = "lda-general-issue-json-v1/1.0"
 LDA_FILING_TYPE_JSON_READER = "lda-filing-type-json-v1/1.0"
 ECFR_TITLES_JSON_READER = "ecfr-titles-json-v1/1.0"
@@ -2376,6 +2439,7 @@ SPEC_SCOPED_RECORD_READERS = frozenset(
         LDA_FILING_TYPE_JSON_READER,
         LDA_GENERAL_ISSUE_JSON_READER,
         NASA_TAXONOMY_JSON_READER,
+        NRC_ADAMS_MULTI_ARTIFACT_READER,
         OOXML_RELATIONAL_READER,
         PATTERN_ROW_READER,
         SAM_CAGE_JSON_READER,
@@ -4513,6 +4577,222 @@ def _read_ooxml_relational(
         payloads,
         unevaluated_claims=tuple(
             f"authenticated publisher OOXML field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+def _apply_nrc_derived(
+    fields: dict[str, Any],
+    declaration: NrcDerivedField,
+    label: str,
+) -> None:
+    if declaration.field in fields:
+        raise ValueError(f"{label} repeats NRC derived field {declaration.field!r}")
+    if declaration.operation == "template":
+        if declaration.template is None:
+            raise ValueError(f"{label} NRC template-derived field has no template")
+        value: Any = _render_pattern_text(declaration.template, fields)
+    elif declaration.operation == "sha256":
+        if len(declaration.inputs) != 1:
+            raise ValueError(f"{label} NRC sha256-derived field requires one input")
+        source = fields.get(declaration.inputs[0])
+        if not isinstance(source, str):
+            raise ValueError(f"{label} NRC sha256 input must be text")
+        value = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    else:
+        raise ValueError(
+            f"{label} uses unsupported NRC derived operation "
+            f"{declaration.operation!r}"
+        )
+    fields[declaration.field] = value
+
+
+def _read_nrc_adams_multi_artifact(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Reconstruct the two NRC unions from six pinned text inputs and patterns."""
+    selector = spec.nrc_adams
+    if selector is None:
+        raise ValueError(f"{spec.name} has no NRC ADAMS multi-artifact selector")
+    if len(selector.inputs) != 6 or len({item.name for item in selector.inputs}) != 6:
+        raise ValueError(f"{spec.name} NRC selector must name six distinct inputs")
+    by_path = {pin.path: (pin, payloads[pin]) for pin in spec.inputs}
+    if len(by_path) != len(spec.inputs):
+        raise ValueError(f"{spec.name} repeats an authenticated NRC input path")
+    declared_paths = {declaration.path for declaration in selector.inputs}
+    if declared_paths != set(by_path):
+        raise ValueError(
+            f"{spec.name} NRC selector paths differ from its authenticated inputs: "
+            f"declared={sorted(declared_paths)}, authenticated={sorted(by_path)}"
+        )
+    inputs: dict[str, tuple[NrcAdamsInput, SourcePin, str]] = {}
+    for declaration in selector.inputs:
+        matched = by_path.get(declaration.path)
+        if matched is None:
+            raise ValueError(
+                f"{spec.name} NRC input {declaration.name!r} is absent"
+            )
+        pin, payload = matched
+        try:
+            text = payload.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError(
+                f"{spec.name} NRC input {declaration.name!r} is not UTF-8"
+            ) from error
+        inputs[declaration.name] = (declaration, pin, text)
+
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    for pattern_index, pattern in enumerate(selector.patterns):
+        source = inputs.get(pattern.input_name)
+        if source is None:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} names an unknown input"
+            )
+        input_declaration, pin, text = source
+        region = text
+        if pattern.region_pattern is not None:
+            region_matches = list(
+                re.finditer(pattern.region_pattern, text, re.DOTALL)
+            )
+            if len(region_matches) != 1 or "region" not in region_matches[0].groupdict():
+                raise ValueError(
+                    f"{spec.name} NRC pattern {pattern_index} expected one named region"
+                )
+            region = region_matches[0].group("region")
+        try:
+            matches = list(re.finditer(pattern.row_pattern, region, re.DOTALL))
+        except re.error as error:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} is invalid"
+            ) from error
+        if len(matches) != pattern.expected_matches:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} expected "
+                f"{pattern.expected_matches} matches, found {len(matches)}"
+            )
+        covered = "".join(match.group(0) for match in matches)
+        if pattern.coverage == "comma-joined":
+            covered = ",".join(match.group(0) for match in matches)
+        if pattern.coverage in {"whole", "comma-joined"} and covered != region:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} leaves unparsed selected text"
+            )
+        if pattern.coverage not in {"whole", "comma-joined", "selected"}:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} has unsupported coverage"
+            )
+
+        captured = [match.groupdict() for match in matches]
+        if pattern.projection == "each":
+            projected = [dict(row) for row in captured]
+        elif pattern.projection == "single":
+            projected = [dict(captured[0]) if len(captured) == 1 else {}]
+            group_names = sorted(
+                {name for row in captured for name in row}
+            )
+            for name in group_names:
+                projected[0][f"{name}_values"] = [row[name] for row in captured]
+        else:
+            raise ValueError(
+                f"{spec.name} NRC pattern {pattern_index} has unsupported projection"
+            )
+
+        for projected_row in projected:
+            duplicate_constants = set(projected_row) & {
+                name for name, _ in pattern.constants
+            }
+            if duplicate_constants:
+                raise ValueError(
+                    f"{spec.name} NRC pattern {pattern_index} constants repeat "
+                    f"captures {sorted(duplicate_constants)}"
+                )
+            fields = {**projected_row, **dict(pattern.constants)}
+            fields.update(
+                {
+                    "input_sha256": pin.sha256,
+                    "input_source_iri": pin.source_iri or "",
+                    "official_source_url": input_declaration.official_source_url,
+                    "observed_at": input_declaration.observed_at,
+                    "ordinal": len(records),
+                }
+            )
+            for aggregate in pattern.aggregate_templates:
+                try:
+                    template = _json_without_duplicate_keys(
+                        aggregate.template_json.encode("utf-8"),
+                        f"{spec.name} NRC aggregate {aggregate.field}",
+                    )
+                except (UnicodeError, ValueError) as error:
+                    raise ValueError(
+                        f"{spec.name} NRC aggregate template is invalid: {error}"
+                    ) from error
+                if aggregate.mode == "row":
+                    fields[aggregate.field] = _render_pattern_value(
+                        template,
+                        fields,
+                    )
+                elif aggregate.mode == "collect" and pattern.projection == "single":
+                    fields[aggregate.field] = [
+                        _render_pattern_value(
+                            template,
+                            {**row, **dict(pattern.constants)},
+                        )
+                        for row in captured
+                    ]
+                else:
+                    raise ValueError(
+                        f"{spec.name} NRC aggregate {aggregate.field!r} has "
+                        f"unsupported mode {aggregate.mode!r}"
+                    )
+            for declaration in pattern.derived_fields:
+                _apply_nrc_derived(
+                    fields,
+                    declaration,
+                    f"{spec.name}.pattern[{pattern_index}]",
+                )
+            fields["source_path"] = _render_pattern_text(
+                pattern.source_path_template,
+                fields,
+            )
+            key = _required_text(
+                fields.get(pattern.row_key),
+                f"{spec.name} NRC row key",
+            )
+            if key in seen_keys:
+                raise ValueError(f"{spec.name} repeats NRC row key {key!r}")
+            seen_keys.add(key)
+            records.append(
+                _selector_record(
+                    spec=spec,
+                    fields=fields,
+                    row_key=pattern.row_key,
+                    identity_mode="publisher-key",
+                    identity_template=pattern.identity_template,
+                    identity_token=None,
+                    recorded_at=None,
+                    source_locator_template=pattern.source_locator_template,
+                    claim_map=pattern.claim_map,
+                    native_payload_template_json=(
+                        pattern.native_payload_template_json
+                    ),
+                    native_payload_fields=pattern.native_payload_fields,
+                    is_skos_concept=False,
+                )
+            )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} NRC union rows, "
+            f"found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated NRC artifact field is explicitly unevaluated: {field}"
             for field in selector.declared_unevaluated_fields
         ),
     )
@@ -9692,6 +9972,7 @@ _PUBLISHER_READERS: Mapping[
     LDA_FILING_TYPE_JSON_READER: _read_lda_filing_type_capture,
     LDA_GENERAL_ISSUE_JSON_READER: _read_lda_general_issue_capture,
     NASA_TAXONOMY_JSON_READER: _read_nasa_capture,
+    NRC_ADAMS_MULTI_ARTIFACT_READER: _read_nrc_adams_multi_artifact,
     OOXML_RELATIONAL_READER: _read_ooxml_relational,
     SAM_CAGE_JSON_READER: _read_sam_cage_capture,
     SAM_UEI_JSON_READER: _read_sam_uei_capture,
@@ -15191,6 +15472,572 @@ OOXML_RELATIONAL_SOURCES = (
 )
 
 
+_NRC_ADAMS_INPUT_ROWS = (
+    (
+        "faq",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html",
+        "sha256:13e3041bccbfebd4d06696c388d76595cf343b1be798bbcf727399bbd98012f2",
+        100_397,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:faqPage:13e3041bccbfebd4d06696c388d76595cf343b1be798bbcf727399bbd98012f2",
+        "https://www.nrc.gov/reading-rm/adams/faq.html",
+        "2026-08-03T19:29:41Z",
+    ),
+    (
+        "help",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-help-reference-2026-08-03.html",
+        "sha256:97dd3e55dafa35fabeaccb90a47d5787a9558d528c6e83c0eaa4cc844a75a341",
+        85_748,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:helpReferencePage:97dd3e55dafa35fabeaccb90a47d5787a9558d528c6e83c0eaa4cc844a75a341",
+        "https://www.nrc.gov/reading-rm/adams/help-reference.html",
+        "2026-08-03T19:29:40Z",
+    ),
+    (
+        "landing",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-landing-page-2026-08-03.html",
+        "sha256:437f3bdec4b6d56c27141bf5242cbd60ee6e3d80826687859dbc6931e7f345fb",
+        91_742,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:landingPage:437f3bdec4b6d56c27141bf5242cbd60ee6e3d80826687859dbc6931e7f345fb",
+        "https://www.nrc.gov/reading-rm/adams",
+        "2026-08-03T19:26:41Z",
+    ),
+    (
+        "system-notices",
+        "tests/fixtures/nrc_adams_codes/nrc-adams-system-notices-2026-08-03.html",
+        "sha256:1acc97940de447be550ee9d8f2dea57cf9b49c9d4e73b23b2039ffd71be82732",
+        79_649,
+        "fullOfficialResponse",
+        "urn:ref:nrc-adams-capture:systemNoticesPage:1acc97940de447be550ee9d8f2dea57cf9b49c9d4e73b23b2039ffd71be82732",
+        "https://www.nrc.gov/reading-rm/adams/adams-sys-notice",
+        "2026-08-03T23:04:00Z",
+    ),
+    (
+        "library-facets",
+        "tests/fixtures/nrc_adams_codes/nrc-aps-library-facet-labels-excerpt-2026-08-03.js",
+        "sha256:6586681097db869c5c8116d8fca288a9f07174a24029ed27c3583afbc7deb603",
+        197,
+        "verbatimExcerptOfLargerOfficialAsset",
+        "urn:ref:nrc-adams-capture:apsLibraryFacetLabels:6586681097db869c5c8116d8fca288a9f07174a24029ed27c3583afbc7deb603",
+        "https://adams-search.nrc.gov/main.6c73a88ad6c1b2ad.js",
+        "2026-08-03T19:33:10Z",
+    ),
+    (
+        "result-fields",
+        "tests/fixtures/nrc_adams_codes/nrc-aps-result-field-labels-excerpt-2026-08-03.js",
+        "sha256:7247022b52a8ffff04ba3589235d300a4a40ad284b89ee18702af9bf5c08b911",
+        1_779,
+        "verbatimExcerptOfLargerOfficialAsset",
+        "urn:ref:nrc-adams-capture:apsResultFieldLabels:7247022b52a8ffff04ba3589235d300a4a40ad284b89ee18702af9bf5c08b911",
+        "https://adams-search.nrc.gov/main.6c73a88ad6c1b2ad.js",
+        "2026-08-03T19:33:10Z",
+    ),
+)
+
+
+def _nrc_adams_pins() -> tuple[SourcePin, ...]:
+    return tuple(
+        SourcePin(
+            path=path,
+            sha256=digest,
+            byte_length=byte_length,
+            fmt="javascript" if path.endswith(".js") else "html",
+            role=role,
+            source_iri=source_iri,
+        )
+        for _, path, digest, byte_length, role, source_iri, _, _ in (
+            _NRC_ADAMS_INPUT_ROWS
+        )
+    )
+
+
+def _nrc_adams_inputs() -> tuple[NrcAdamsInput, ...]:
+    return tuple(
+        NrcAdamsInput(
+            name=name,
+            path=path,
+            official_source_url=official_source_url,
+            observed_at=observed_at,
+        )
+        for name, path, _, _, _, _, official_source_url, observed_at in (
+            _NRC_ADAMS_INPUT_ROWS
+        )
+    )
+
+
+_NRC_IDENTIFIER_AUTHORITY = "https://www.nrc.gov/reading-rm/adams"
+
+
+def _nrc_identifier_template(
+    *,
+    label_kind: str,
+    key_kind: str,
+    key_field: str,
+) -> str:
+    return json.dumps(
+        [
+            {
+                "authority_uri": _NRC_IDENTIFIER_AUTHORITY,
+                "effective_at": None,
+                "kind": label_kind,
+                "observed_at": "{observed_at}",
+                "source_digest": "{input_sha256}",
+                "source_uri": "{official_source_url}",
+                "value": "{label}",
+            },
+            {
+                "authority_uri": _NRC_IDENTIFIER_AUTHORITY,
+                "effective_at": None,
+                "kind": key_kind,
+                "observed_at": "{observed_at}",
+                "source_digest": "{input_sha256}",
+                "source_uri": "{official_source_url}",
+                "value": "{" + key_field + "}",
+            },
+        ],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _nrc_control_template(resource_name: str) -> str:
+    return json.dumps(
+        {
+            "identifiers": "{identifiers}",
+            "is_general_subject_concept": False,
+            "publisher_label": "{label}",
+            "resource_name": resource_name,
+            "source_url": "{official_source_url}",
+            "use": "deterministicMetadata",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+_NRC_CONTROL_NATIVE_TEMPLATE = json.dumps(
+    {
+        "completeGovernedList": False,
+        "control": "{control_payload}",
+        "ordinal": "{ordinal}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _nrc_control_pattern(
+    *,
+    input_name: str,
+    row_pattern: str,
+    expected_matches: int,
+    coverage: str,
+    resource_name: str,
+    label_kind: str,
+    key_kind: str,
+    key_field: str,
+    region_pattern: str | None = None,
+) -> NrcAdamsPattern:
+    return NrcAdamsPattern(
+        input_name=input_name,
+        row_pattern=row_pattern,
+        expected_matches=expected_matches,
+        coverage=coverage,
+        projection="each",
+        constants=(("resource_name", resource_name),),
+        aggregate_templates=(
+            NrcAggregateTemplate(
+                field="identifiers",
+                template_json=_nrc_identifier_template(
+                    label_kind=label_kind,
+                    key_kind=key_kind,
+                    key_field=key_field,
+                ),
+                mode="row",
+            ),
+            NrcAggregateTemplate(
+                field="control_payload",
+                template_json=_nrc_control_template(resource_name),
+                mode="row",
+            ),
+        ),
+        derived_fields=(
+            NrcDerivedField(
+                field="identity_hash",
+                operation="sha256",
+                inputs=(key_field,),
+            ),
+        ),
+        row_key=key_field,
+        identity_template=(
+            "urn:ref:nrc-adams-control:{resource_name}:{identity_hash}"
+        ),
+        source_path_template="{input_source_iri}",
+        source_locator_template="{input_source_iri}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=_NRC_CONTROL_NATIVE_TEMPLATE,
+        native_payload_fields=("completeGovernedList", "control", "ordinal"),
+        region_pattern=region_pattern,
+    )
+
+
+def _nrc_adams_controls_source() -> SourceSpec:
+    selector = NrcAdamsMultiArtifactSelector(
+        inputs=_nrc_adams_inputs(),
+        patterns=(
+            _nrc_control_pattern(
+                input_name="result-fields",
+                row_pattern=(
+                    r'function \w+\(t,n\)\{if\(1&t&&\(_\(0,"tr"\)'
+                    r'\(1,"td",2\),b\(2,"(?P<label>[^"]*)"\),m\(\),_'
+                    r'\(3,"td"\),b\(4\)(?P<date_marker>,St\(5,"date"\))?,'
+                    r'm\(\)\(\)\),2&t\)\{const e=h\(\);f\(4\),_e\('
+                    r'(?P<value_expr>(?:_n\(5,1,)?e\.item\.'
+                    r'(?P<property_key>\w+)\)?)\)\}\}'
+                ),
+                expected_matches=12,
+                coverage="whole",
+                resource_name="apsResultFieldLabels",
+                label_kind="apsResultFieldLabel",
+                key_kind="apsResultFieldPropertyKey",
+                key_field="property_key",
+            ),
+            _nrc_control_pattern(
+                input_name="library-facets",
+                row_pattern=(
+                    r'\["formControlName","(?P<control_name>\w+)","label",'
+                    r'"(?P<label>[^"]+)",1,"me-3",3,"binary","onChange"\]'
+                ),
+                expected_matches=2,
+                coverage="comma-joined",
+                resource_name="apsLibraryFacetLabels",
+                label_kind="apsLibraryFacetLabel",
+                key_kind="apsLibraryFacetControlName",
+                key_field="control_name",
+            ),
+            _nrc_control_pattern(
+                input_name="help",
+                row_pattern=(
+                    r'<li data-list-item-id="[0-9a-f]+"><a href="'
+                    r'(?P<href>[^"]+)">(?P<label>[^<]+)</a></li>'
+                ),
+                expected_matches=5,
+                coverage="whole",
+                resource_name="helpReferencePage",
+                label_kind="docketNumberCategoryLabel",
+                key_kind="docketNumberCategoryReferenceUrl",
+                key_field="href",
+                region_pattern=(
+                    r'<h2 id="ListofLicenses">Lists of Licenses and Docket '
+                    r'Numbers</h2><ul>(?P<region>(?:<li data-list-item-id="'
+                    r'[0-9a-f]+"><a href="[^"]+">[^<]+</a></li>)+)</ul>'
+                ),
+            ),
+        ),
+        expected_count=19,
+        declared_unevaluated_fields=(
+            "HTML outside the selected help-reference list",
+            "FAQ, landing, and system-notices prose not used by this projection",
+            "uncaptured bytes in the two parent JavaScript assets",
+        ),
+    )
+    return SourceSpec(
+        name="nrc-adams-native-controls-bounded-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nrc-adams-native-controls-bounded-2026-08-03",),
+        inputs=_nrc_adams_pins(),
+        reader=NRC_ADAMS_MULTI_ARTIFACT_READER,
+        nrc_adams=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"completeGovernedList", "control", "ordinal"})
+        ),
+    )
+
+
+_NRC_SHAPE_TEMPLATE = json.dumps(
+    {
+        "explanation": "{explanation}",
+        "identifier_kind": "{identifier_kind}",
+        "pattern": "{pattern}",
+        "raw_notes": "{raw_notes}",
+        "sample_values": "{sample_values}",
+        "shape_basis": "{shape_basis}",
+        "source_url": "{official_source_url}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+_NRC_SHAPE_NATIVE_TEMPLATE = json.dumps(
+    {
+        "ordinal": "{ordinal}",
+        "sampleValuesAreAuthorityMembers": False,
+        "shape": "{shape_payload}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _nrc_shape_pattern(
+    *,
+    input_name: str,
+    row_pattern: str,
+    expected_matches: int,
+    constants: tuple[tuple[str, Any], ...],
+    projections: tuple[NrcAggregateTemplate, ...],
+) -> NrcAdamsPattern:
+    return NrcAdamsPattern(
+        input_name=input_name,
+        row_pattern=row_pattern,
+        expected_matches=expected_matches,
+        coverage="selected",
+        projection="single",
+        constants=constants,
+        aggregate_templates=(
+            *projections,
+            NrcAggregateTemplate(
+                field="shape_payload",
+                template_json=_NRC_SHAPE_TEMPLATE,
+                mode="row",
+            ),
+        ),
+        derived_fields=(
+            NrcDerivedField(
+                field="label",
+                operation="template",
+                template="{identifier_kind} format ({shape_basis})",
+            ),
+            NrcDerivedField(
+                field="identity_seed",
+                operation="template",
+                template="{identifier_kind}:{shape_basis}:{pattern}",
+            ),
+            NrcDerivedField(
+                field="identity_hash",
+                operation="sha256",
+                inputs=("identity_seed",),
+            ),
+        ),
+        row_key="identity_seed",
+        identity_template="urn:ref:nrc-adams-identifier-shape:{identity_hash}",
+        source_path_template="{input_source_iri}",
+        source_locator_template="{input_source_iri}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("notation", "pattern"),
+            ("definition", "explanation"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=_NRC_SHAPE_NATIVE_TEMPLATE,
+        native_payload_fields=("ordinal", "sampleValuesAreAuthorityMembers", "shape"),
+    )
+
+
+def _nrc_adams_shapes_source() -> SourceSpec:
+    docket_explanation = (
+        "Web-based ADAMS requires an 8-digit docket number with no dashes in "
+        "the Docket Number field; the FAQ states a docket number may be shown "
+        "elsewhere with a hyphen, but that hyphenated form is explicitly not "
+        "accepted for search."
+    )
+    legacy_explanation = (
+        "The FAQ documents searching Web-based ADAMS Advanced Search for a "
+        "Public Legacy Library document by typing the literal token NUDOCS "
+        "immediately followed by its 10-digit accession number into the "
+        "Document/Report Property field, with Public Library selected from "
+        "the Libraries list."
+    )
+    observed_explanation = (
+        'Neither the landing page, the help-and-references page, nor the FAQ '
+        'states the current ("ML") accession-number format in prose. This '
+        "pattern is inferred from two real example values embedded in linked "
+        "document filenames on the landing page: an 'ML' prefix, a 2-digit "
+        "year, a 3-digit day-of-year, and either a 4-digit sequence or a "
+        "1-letter-plus-3-digit sequence."
+    )
+    notice_explanation = (
+        'The ADAMS System Notices page states both accession-number formats '
+        'in prose: "ML" followed by nine numbers for documents added before '
+        "December 15, 2010 (for example, ML100010001), and \"ML\" followed "
+        "by eight numbers plus an alphabetic character in the sequence "
+        "afterwards (for example, ML10001A001). The prose does not fix the "
+        "alphabetic character's position; this pattern places it where the "
+        "publisher's own example and every observed value put it."
+    )
+    nudocs_sentence = (
+        "<p>If you have the Public Legacy Library accession number of the "
+        "document you are looking for in the Public Library, use Web-based "
+        "ADAMS Advanced Search and type the word NUDOCS followed by the "
+        "10-digit Public Legacy Library accession number into the "
+        "<em>Document/Report</em> Property field as shown in the below example. "
+        "Be sure to have <em>Public Library</em> selected from the Libraries "
+        "list.</p>"
+    )
+    notice_sentence = (
+        'The structure of the accession numbers will change from "ML" followed '
+        "by nine numbers (for example, ML100010001) to \"ML\" followed by "
+        "eight numbers plus an alphabetic character in the sequence (for "
+        "example, ML10001A001)."
+    )
+    selector = NrcAdamsMultiArtifactSelector(
+        inputs=_nrc_adams_inputs(),
+        patterns=(
+            _nrc_shape_pattern(
+                input_name="faq",
+                row_pattern=(
+                    r"<p>To search by a docket number, you must enter it in an "
+                    r"8-digit format, such as (?P<example>\d{8}), in the Docket "
+                    r"Number field in Web-based ADAMS Content Search or Advanced "
+                    r"Search\. You might see a docket number listed elsewhere as "
+                    r"(?P<hyphenated>[\d-]+) or a variation of this, but Web-based "
+                    r"ADAMS will only accept the 8-digit format with no dashes in "
+                    r"the Docket Number field\.</p><p>Examples for Docket "
+                    r"(?P<prefix_a>\d+) \((?P<prefix_a_desc>[^)]+)\) and Docket "
+                    r"(?P<prefix_b>\d+) \((?P<prefix_b_desc>[^)]+)\) would be "
+                    r"(?P<example_a>\d{8}) and (?P<example_b>\d{8})\.</p>"
+                ),
+                expected_matches=1,
+                constants=(
+                    ("identifier_kind", "docketNumber"),
+                    ("pattern", r"^\d{8}$"),
+                    ("shape_basis", "publisherDocumentedProse"),
+                    ("explanation", docket_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json='["{example}","{example_a}","{example_b}"]',
+                        mode="row",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '["hyphenated display variant observed for the first '
+                            "example: '{hyphenated}'\",\"Docket {prefix_a} "
+                            "({prefix_a_desc}) example: {example_a}\",\"Docket "
+                            "{prefix_b} ({prefix_b_desc}) example: {example_b}\"]"
+                        ),
+                        mode="row",
+                    ),
+                ),
+            ),
+            _nrc_shape_pattern(
+                input_name="faq",
+                row_pattern=re.escape(nudocs_sentence),
+                expected_matches=1,
+                constants=(
+                    ("identifier_kind", "legacyLibraryAccessionNumber"),
+                    ("pattern", r"^\d{10}$"),
+                    ("shape_basis", "publisherDocumentedProse"),
+                    ("explanation", legacy_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json="[]",
+                        mode="row",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '["search token prefix observed in the FAQ text: '
+                            "'NUDOCS' (immediately precedes the 10-digit number)\"]"
+                        ),
+                        mode="row",
+                    ),
+                ),
+            ),
+            _nrc_shape_pattern(
+                input_name="landing",
+                row_pattern=(
+                    r'href="/docs/(?P<folder>ML\d{4})/'
+                    r'(?P<accession>[A-Za-z0-9]+)\.pdf"'
+                ),
+                expected_matches=2,
+                constants=(
+                    ("identifier_kind", "currentAccessionNumber"),
+                    ("pattern", r"^(?i:ML)\d{2}\d{3}(?:\d{4}|[A-Za-z]\d{3})$"),
+                    ("shape_basis", "observedFromRealExamples"),
+                    ("explanation", observed_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json='"{accession}"',
+                        mode="collect",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '"observed folder grouping: {folder} for accession '
+                            '{accession}"'
+                        ),
+                        mode="collect",
+                    ),
+                ),
+            ),
+            _nrc_shape_pattern(
+                input_name="system-notices",
+                row_pattern=re.escape(notice_sentence),
+                expected_matches=1,
+                constants=(
+                    ("identifier_kind", "currentAccessionNumber"),
+                    ("pattern", r"^(?i:ML)(?:\d{9}|\d{5}[A-Za-z]\d{3})$"),
+                    ("shape_basis", "publisherDocumentedProse"),
+                    ("explanation", notice_explanation),
+                ),
+                projections=(
+                    NrcAggregateTemplate(
+                        field="sample_values",
+                        template_json='["ML100010001","ML10001A001"]',
+                        mode="row",
+                    ),
+                    NrcAggregateTemplate(
+                        field="raw_notes",
+                        template_json=(
+                            '["publisher examples quoted verbatim from the '
+                            'December 2010 renumbering notice","the pre-2010 '
+                            "nine-number form remains valid for documents added "
+                            'before December 15, 2010"]'
+                        ),
+                        mode="row",
+                    ),
+                ),
+            ),
+        ),
+        expected_count=4,
+        declared_unevaluated_fields=(
+            "HTML outside the four selected identifier statements and examples",
+            "help-reference list and JavaScript excerpts used by the sibling control projection",
+        ),
+    )
+    return SourceSpec(
+        name="nrc-adams-identifier-shapes-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nrc-adams-identifier-shapes-2026-08-03",),
+        inputs=_nrc_adams_pins(),
+        reader=NRC_ADAMS_MULTI_ARTIFACT_READER,
+        nrc_adams=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"ordinal", "sampleValuesAreAuthorityMembers", "shape"})
+        ),
+    )
+
+
+NRC_ADAMS_MULTI_ARTIFACT_SOURCES = (
+    _nrc_adams_controls_source(),
+    _nrc_adams_shapes_source(),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -15285,6 +16132,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *JSON_RECORD_SELECTOR_SOURCES,
     *CSV_RECORD_SELECTOR_SOURCES,
     *OOXML_RELATIONAL_SOURCES,
+    *NRC_ADAMS_MULTI_ARTIFACT_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -17222,6 +18070,22 @@ def check_configuration(ctx: Context) -> CheckResult:
             failures.append(
                 f"{spec.name}: non-CSV reader must not declare a CSV selector"
             )
+        if spec.reader == XML_RECORD_SELECTOR_READER and spec.xml_record is None:
+            failures.append(
+                f"{spec.name}: XML record reader has no declarative selector"
+            )
+        if spec.reader != XML_RECORD_SELECTOR_READER and spec.xml_record is not None:
+            failures.append(
+                f"{spec.name}: non-XML reader must not declare an XML selector"
+            )
+        if spec.reader == JSON_RECORD_SELECTOR_READER and spec.json_record is None:
+            failures.append(
+                f"{spec.name}: JSON record reader has no declarative selector"
+            )
+        if spec.reader != JSON_RECORD_SELECTOR_READER and spec.json_record is not None:
+            failures.append(
+                f"{spec.name}: non-JSON reader must not declare a JSON selector"
+            )
         if spec.reader == OOXML_RELATIONAL_READER and spec.ooxml_relational is None:
             failures.append(
                 f"{spec.name}: OOXML relational reader has no declarative selector"
@@ -17229,6 +18093,14 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.reader != OOXML_RELATIONAL_READER and spec.ooxml_relational is not None:
             failures.append(
                 f"{spec.name}: non-OOXML reader must not declare an OOXML selector"
+            )
+        if spec.reader == NRC_ADAMS_MULTI_ARTIFACT_READER and spec.nrc_adams is None:
+            failures.append(
+                f"{spec.name}: NRC ADAMS reader has no declarative selector"
+            )
+        if spec.reader != NRC_ADAMS_MULTI_ARTIFACT_READER and spec.nrc_adams is not None:
+            failures.append(
+                f"{spec.name}: non-NRC reader must not declare an NRC ADAMS selector"
             )
         if spec.source_extract is not None:
             if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:

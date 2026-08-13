@@ -40,6 +40,7 @@ from tools.verify_atlas_source_fidelity import (
     JSON_RECORD_SELECTOR_READER,
     LDA_GENERAL_ISSUE_JSON_READER,
     MESH_DESCRIPTOR_XML_READER,
+    NRC_ADAMS_MULTI_ARTIFACT_READER,
     OOXML_RELATIONAL_READER,
     PATTERN_ROW_READER,
     XML_RECORD_SELECTOR_READER,
@@ -54,6 +55,9 @@ from tools.verify_atlas_source_fidelity import (
     JsonRecordSelector,
     LiteralValue,
     NativeControlSelector,
+    NrcAdamsInput,
+    NrcAdamsMultiArtifactSelector,
+    NrcAdamsPattern,
     OoxmlRelationalSelector,
     OoxmlTable,
     OoxmlTableField,
@@ -899,6 +903,7 @@ def _add_single_record_stock_source(
     json_record: JsonRecordSelector | None = None,
     csv_record: CsvRecordSelector | None = None,
     ooxml_relational: OoxmlRelationalSelector | None = None,
+    nrc_adams: NrcAdamsMultiArtifactSelector | None = None,
     definition: str | None = None,
 ) -> SourceSpec:
     """Add one stock-reader pair whose expected Atlas values are explicit."""
@@ -923,6 +928,7 @@ def _add_single_record_stock_source(
         json_record=json_record,
         csv_record=csv_record,
         ooxml_relational=ooxml_relational,
+        nrc_adams=nrc_adams,
         identity_policy=identity_policy,
         policies=frozenset(
             {
@@ -1531,6 +1537,105 @@ def _tiny_ooxml_workbook() -> bytes:
     return payload.getvalue()
 
 
+def _add_nrc_multi_artifact_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    """Add one record selected from six independently authenticated inputs."""
+    input_names = tuple(f"input-{index}" for index in range(6))
+    input_paths = tuple(f"nrc-input-{index}.txt" for index in range(6))
+    selector = NrcAdamsMultiArtifactSelector(
+        inputs=tuple(
+            NrcAdamsInput(
+                name=name,
+                path=path,
+                official_source_url=f"https://publisher.example/{path}",
+                observed_at="2026-08-03T00:00:00Z",
+            )
+            for name, path in zip(input_names, input_paths, strict=True)
+        ),
+        patterns=(
+            NrcAdamsPattern(
+                input_name=input_names[0],
+                row_pattern=r"(?P<key>[A-Z])\|(?P<label>[A-Za-z]+)",
+                expected_matches=1,
+                coverage="whole",
+                projection="each",
+                constants=(),
+                aggregate_templates=(),
+                derived_fields=(),
+                row_key="key",
+                identity_template="urn:example:nrc-record:{key}",
+                source_path_template="row[{ordinal}]",
+                source_locator_template="{input_source_iri}#{key}",
+                claim_map=(
+                    ("preferred_label", "label"),
+                    ("notation", "key"),
+                    ("source_path", "source_path"),
+                ),
+                native_payload_template_json='{"key":"{key}","label":"{label}"}',
+                native_payload_fields=("key", "label"),
+            ),
+        ),
+        expected_count=1,
+        declared_unevaluated_fields=(),
+    )
+    native_payload = {"key": "A", "label": "Alpha"}
+    spec = _add_single_record_stock_source(
+        suite,
+        name="tiny-nrc-multi-artifact",
+        filename=input_paths[0],
+        fmt="text",
+        source_iri="urn:example:nrc-input:0",
+        source_bytes=b"A|Alpha",
+        reader=NRC_ADAMS_MULTI_ARTIFACT_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:nrc-record:A",
+        source_locator="urn:example:nrc-input:0#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        role="nrcRole0",
+        nrc_adams=selector,
+    )
+    pins = [spec.inputs[0]]
+    for index, path in enumerate(input_paths[1:], start=1):
+        payload = f"unused-{index}".encode()
+        (suite.source_root / path).write_bytes(payload)
+        pins.append(
+            SourcePin(
+                path=path,
+                sha256="sha256:" + hashlib.sha256(payload).hexdigest(),
+                byte_length=len(payload),
+                fmt="text",
+                role=f"nrcRole{index}",
+                source_iri=f"urn:example:nrc-input:{index}",
+            )
+        )
+    spec = replace(spec, inputs=tuple(pins))
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    release = next(
+        row for row in summary["releases"] if row["key"] == spec.name
+    )
+    release["inputs"] = [
+        {
+            "path": pin.path,
+            "sha256": pin.sha256,
+            "byteLength": pin.byte_length,
+            "role": pin.role,
+            "sourceIri": pin.source_iri,
+        }
+        for pin in pins
+    ]
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    return spec
+
+
 def _add_ooxml_relational_source(
     suite: Fixture,
     *,
@@ -1859,6 +1964,28 @@ def test_ooxml_relational_reader_passes_and_catches_fault(
     atlas_label: str,
 ) -> None:
     spec = _add_ooxml_relational_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_nrc_multi_artifact_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_nrc_multi_artifact_source(suite, atlas_label=atlas_label)
     results = verify(
         suite.distribution,
         suite.source_root,
