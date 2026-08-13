@@ -5779,6 +5779,7 @@ def build_context(
             )
             cache_key = (
                 spec.reader,
+                spec.name,
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
