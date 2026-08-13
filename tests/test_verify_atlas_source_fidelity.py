@@ -34,6 +34,7 @@ from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
     CheckResult,
     DeclaredClaimExclusion,
+    DeclaredLanguageExclusion,
     Expectations,
     Finding,
     LiteralValue,
@@ -1368,6 +1369,326 @@ def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
     )
     assert family["publisherBlankNodeClaimCount"] == 2
     assert family["status"] == "declared-out-of-scope"
+
+
+# --------------------------------------------------------------------------------------
+# Declared language exclusions: exact non-English literal claims, never subjects
+# --------------------------------------------------------------------------------------
+
+
+def _language_declaration(
+    counts_by_language: dict[str, dict[str, int]],
+    *,
+    predicate_families: dict[str, list[str]] | None = None,
+) -> DeclaredLanguageExclusion:
+    families = predicate_families or {
+        "preferredLabels": [
+            f"{SKOS}prefLabel",
+            f"{SKOSXL}prefLabel",
+            f"{SKOSXL}literalForm",
+        ]
+    }
+    payload = {
+        "schemaVersion": "1.0",
+        "exclusionType": "languageFamily",
+        "selection": {
+            "countUnit": (
+                "unique auditor semantic literal claim after SourceSpec subset selection"
+            ),
+            "excludedClaimRule": (
+                "language tag is present and primary language subtag is not en"
+            ),
+            "includedLanguageFamilies": ["en"],
+            "selectionRule": "bcp47-primary-language-subtag",
+        },
+        "predicateFamilies": families,
+        "countsBySourceAndLanguage": {"example": counts_by_language},
+        "totalExcludedClaims": sum(
+            count
+            for family_counts in counts_by_language.values()
+            for count in family_counts.values()
+        ),
+    }
+    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return DeclaredLanguageExclusion(
+        name="testNonEnglishPublisherLiterals",
+        reason="this fixture declares an English-only product scope",
+        payload_json=payload_json,
+        payload_sha256=(
+            "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+        ),
+    )
+
+
+def _declare_fixture_language_scope(
+    suite: Fixture,
+    declaration: DeclaredLanguageExclusion,
+) -> SourceSpec:
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["languageScope"] = {
+        "includedLanguageFamilies": ["en"],
+        "selectionRule": "bcp47-primary-language-subtag",
+        "unselectedPublisherContent": "notRepresented",
+        "wireLanguageTag": "en",
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    return replace(suite.spec, declared_language_exclusion=declaration)
+
+
+def test_language_exclusion_is_exact_and_itemised_in_the_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    fixture.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
+    )
+    fixture.write_pack(source_digest=fixture.publisher_content_digest())
+    declaration = _language_declaration({"fr": {"preferredLabels": 1}})
+    fixture.spec = _declare_fixture_language_scope(fixture, declaration)
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+
+    return_code = verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    assert return_code == 0
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    language = next(
+        row for row in receipt["results"] if row["check"] == "language-scope"
+    )
+    assert language["passed"]
+    assert "1 non-English publisher" in language["summary"]
+    family = next(
+        row
+        for row in receipt["comparisons"][0]["claimScope"][
+            "intentionallyExcludedFamilies"
+        ]
+        if row["name"] == "testNonEnglishPublisherLiterals"
+    )
+    assert family["status"] == "declared-out-of-scope"
+    assert family["expectedCountsByLanguage"] == {
+        "fr": {"preferredLabels": 1}
+    }
+    assert family["actualCountsByLanguage"] == {
+        "fr": {"preferredLabels": 1}
+    }
+    assert family["publisherClaimCount"] == 1
+    assert family["publisherClaimsDigest"].startswith("sha256:")
+    assert family["atlasClaimCount"] == 0
+    assert receipt["languageScope"]["declaredPublisherClaimCount"] == 1
+
+
+def test_language_exclusion_never_removes_untagged_or_iri_claims(
+    suite: Fixture,
+) -> None:
+    literal_predicate = f"{EX}untaggedMetadata"
+    iri_predicate = f"{EX}iriMetadata"
+    suite.write_publisher(
+        extra_triples=(
+            f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr ;\n'
+            f'  <{literal_predicate}> "must remain" ;\n'
+            f"  <{iri_predicate}> <{EX}target> ."
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration({"fr": {"preferredLabels": 1}}),
+    )
+
+    results = suite.run(spec=spec)
+
+    assert result(results, "language-scope").passed
+    assert result(results, "label-fidelity").passed
+    member_literal = result(results, "member-literal-fidelity")
+    assert any(literal_predicate in failure for failure in member_literal.failures)
+    member_iri = result(results, "member-iri-fidelity")
+    assert any(iri_predicate in failure for failure in member_iri.failures)
+
+
+def test_language_exclusion_keeps_a_scheme_label_in_its_comparison_family(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=(
+            f'<{SCHEME}> <{SKOS}altLabel> "Vocabolario di esempio"@it .'
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    declaration = _language_declaration(
+        {"it": {"sourceSchemeLiterals": 1}},
+        predicate_families={
+            "alternateLabels": [
+                f"{SKOS}altLabel",
+                f"{SKOSXL}altLabel",
+                f"{SKOSXL}literalForm",
+            ],
+            "sourceSchemeLiterals": [
+                "http://www.w3.org/2000/01/rdf-schema#label",
+                f"{SKOS}prefLabel",
+            ],
+        },
+    )
+    spec = _declare_fixture_language_scope(suite, declaration)
+
+    results = suite.run(spec=spec)
+
+    assert result(results, "language-scope").passed
+    assert result(results, "source-claim-coverage").passed
+
+
+@pytest.mark.parametrize(
+    ("counts", "source_language"),
+    (
+        ({"fr": {"preferredLabels": 2}}, "fr"),
+        ({"fr": {"preferredLabels": 1}}, "de"),
+    ),
+)
+def test_language_exclusion_fails_closed_on_count_or_language_drift(
+    suite: Fixture,
+    counts: dict[str, dict[str, int]],
+    source_language: str,
+) -> None:
+    suite.write_publisher(
+        extra_triples=(
+            f'<{EX}c1> <{SKOS}prefLabel> "Out of declared scope"@{source_language} .'
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration(counts),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("cells differ" in failure for failure in language.failures)
+    assert not result(results, "label-fidelity").passed
+
+
+def test_language_exclusion_fails_closed_on_an_undeclared_predicate_family(
+    suite: Fixture,
+) -> None:
+    predicate = f"{EX}localizedMetadata"
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{predicate}> "Hors périmètre"@fr .'
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration({}),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("undeclared predicate family" in failure for failure in language.failures)
+    assert not result(results, "member-literal-fidelity").passed
+
+
+def test_language_scope_fails_when_construction_statement_is_omitted(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = replace(
+        suite.spec,
+        declared_language_exclusion=_language_declaration(
+            {"fr": {"preferredLabels": 1}}
+        ),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("languageScope differs" in failure for failure in language.failures)
+    assert result(results, "label-fidelity").passed
+
+
+def test_language_scope_fails_on_a_non_english_atlas_literal_anywhere(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
+    )
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    atlas_only = "urn:ref:atlas-release:language-test"
+    lines.extend(
+        (
+            _quad(atlas_only, f"{RDF}type", f"{ATLAS}AtlasRelease"),
+            _quad(
+                atlas_only,
+                f"{ATLAS}description",
+                "Ne devrait pas être ici",
+                literal=True,
+                lang="fr",
+            ),
+        )
+    )
+    suite.write_pack_lines(lines)
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration({"fr": {"preferredLabels": 1}}),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("non-English" in failure for failure in language.failures)
+
+
+def test_language_exclusion_leaves_english_claims_compared_both_directions(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Source English"@en .'
+    )
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.append(
+        _quad(
+            f"{EX}c2",
+            f"{SKOS}prefLabel",
+            "Atlas English",
+            literal=True,
+        )
+    )
+    suite.write_pack_lines(lines)
+    spec = _declare_fixture_language_scope(suite, _language_declaration({}))
+
+    results = suite.run(spec=spec)
+
+    assert result(results, "language-scope").passed
+    label = result(results, "label-fidelity")
+    assert not label.passed
+    assert any(
+        "Source English" in failure and "missing from Atlas" in failure
+        for failure in label.failures
+    )
+    assert any(
+        "Atlas English" in failure and "absent from publisher" in failure
+        for failure in label.failures
+    )
 
 
 RELEASE = f"{EX}release/2026-01-01"
