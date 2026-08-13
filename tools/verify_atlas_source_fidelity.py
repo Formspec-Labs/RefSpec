@@ -102,7 +102,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 # artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-VERIFIER_VERSION = "atlas-source-fidelity/10"
+VERIFIER_VERSION = "atlas-source-fidelity/11"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
 
@@ -189,7 +189,13 @@ ATLAS_CONTENT_DIGEST = f"{ATLAS}contentDigest"
 ATLAS_NOTATION = f"{ATLAS}notation"
 ATLAS_DEFINITION = f"{ATLAS}definition"
 ATLAS_NOTE = f"{ATLAS}note"
+ATLAS_RECORD_STATUS = f"{ATLAS}recordStatus"
 
+# Predicates Atlas mints to say where a record sits in its own representation,
+# never to restate a publisher claim. Each one is admitted only on a subject the
+# comparison already knows -- a publisher concept, a source-native scheme, or a
+# source label node -- and stays a failure on every other subject, so an
+# Atlas-minted field on a manufactured subject is still caught.
 ATLAS_SOURCE_REPRESENTATION_STRUCTURE_PREDICATES = frozenset(
     {
         ATLAS_IN_RELEASE,
@@ -198,6 +204,15 @@ ATLAS_SOURCE_REPRESENTATION_STRUCTURE_PREDICATES = frozenset(
         ATLAS_SEMANTIC_RING,
         ATLAS_SOURCE_RECORD_LINK,
         ATLAS_CONTENT_DIGEST,
+        # atlas:recordStatus belongs with its siblings above. The builder writes
+        # the record's own lifecycle state ("active", "deprecated",
+        # "boundedMappingReference") from the registry row it is minting; no
+        # publisher ships a field of that shape, so there is no source claim to
+        # compare it against and no direction in which a comparison could fail.
+        # Where a publisher *does* flag a retired term (ELSST's owl:deprecated),
+        # that flag is a publisher claim in its own right and stays declared on
+        # the spec -- folding it into a status value never discharges it.
+        ATLAS_RECORD_STATUS,
     }
 )
 
@@ -206,6 +221,16 @@ OWL = "http://www.w3.org/2002/07/owl#"
 RDFS = "http://www.w3.org/2000/01/rdf-schema#"
 DCAT = "http://www.w3.org/ns/dcat#"
 CDM = "http://publications.europa.eu/ontology/cdm#"
+# Dataset-description vocabularies. Publishers use these to describe the files
+# and releases they ship; none of them says anything about a term.
+VOID = "http://rdfs.org/ns/void#"
+LIME = "http://www.w3.org/ns/lemon/lime#"
+MDR = "https://w3id.org/mdr#"
+STMDR = "http://semanticturkey.uniroma2.it/ns/stmdr#"
+ALIGNMENT = "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#"
+# GEMET's own schema namespace: the entity kinds it publishes beside its
+# concepts (collections and a bibliographic source register).
+GEMET_SCHEMA = "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#"
 
 KNOWN_CLASS_IRIS = frozenset(
     {
@@ -587,6 +612,13 @@ class PublisherView:
     resource_input_digests: Mapping[str, frozenset[str]]
     input_content_digests: Mapping[str, str]
     unevaluated_claims: tuple[str, ...] = ()
+    # Blank-node claims a declared exclusion accounts for, by exclusion name.
+    # They never reach ``iri_claims``/``literal_claims`` (both require an IRI
+    # subject), so the exclusion report counts them from here instead of losing
+    # them between the two accountings.
+    declared_out_of_scope_blank_node_claims: Mapping[str, tuple[str, ...]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass(frozen=True)
@@ -727,6 +759,51 @@ class RdfSourcePolicy:
 
 
 @dataclass(frozen=True)
+class DeclaredClaimExclusion:
+    """One publisher entity layer a release declares Atlas does not represent.
+
+    This is a claim-scope declaration, never a waiver. Some publishers ship
+    entity kinds beside their terms -- GEMET's Group/Theme/SuperGroup
+    collections and its bibliographic Source register, the Publications Office's
+    void/lime dataset descriptions -- that Atlas deliberately does not model.
+    Leaving those claims in the uncovered report says "we have not looked yet",
+    which is false; dropping them silently is worse. An exclusion says instead:
+    here is the exact subject set, here is every claim it covers counted by
+    predicate, and here is the paired assertion that Atlas asserts *nothing*
+    about any of those subjects.
+
+    That pairing is what keeps it fail-closed. The exclusion only ever removes
+    publisher claims from the residue; the Atlas side of the same subjects stays
+    in the comparison, so one manufactured claim about an excluded subject fails
+    both ``source-claim-coverage`` and ``claim-scope``. An exclusion that
+    overlaps a subject the comparison actually compares is itself a failure.
+
+    Subjects are selected by declared rdf:type or by IRI prefix -- both
+    enumerable from the publisher's own bytes, so the receipt can print the set.
+    """
+
+    name: str
+    reason: str
+    subject_types: frozenset[str] = frozenset()
+    subject_iri_prefixes: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.subject_types and not self.subject_iri_prefixes:
+            raise ValueError(
+                f"declared claim exclusion {self.name!r} selects no subjects; an "
+                "exclusion must name the exact subject set it covers"
+            )
+
+    def selects(self, subject: str, types: frozenset[str]) -> bool:
+        """Return whether one publisher subject falls inside this declaration."""
+        if self.subject_types & types:
+            return True
+        return bool(self.subject_iri_prefixes) and subject.startswith(
+            self.subject_iri_prefixes
+        )
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -738,6 +815,7 @@ class SourceSpec:
     subset: str = "all"
     included_concept_iris: frozenset[str] = frozenset()
     excluded_resource_predicates: frozenset[str] = frozenset()
+    declared_claim_exclusions: tuple[DeclaredClaimExclusion, ...] = ()
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
@@ -1078,6 +1156,7 @@ def _publisher_view(
     additional_relation_predicates: Sequence[str] = (),
     resource_input_digests: Mapping[str, frozenset[str]] | None = None,
     input_content_digests: Mapping[str, str] | None = None,
+    declared_claim_exclusions: Sequence[DeclaredClaimExclusion] = (),
 ) -> PublisherView:
     """Extract exact SKOS claims from a stock RDFLib graph."""
     import rdflib
@@ -1171,7 +1250,17 @@ def _publisher_view(
                         detail=detail,
                     )
                 )
-                unevaluated_claims.append(detail)
+                # An empty label node is a defect in the publisher's data, not a
+                # claim that escaped comparison: it carries no literal, so there
+                # is nothing for a comparison to read, and the label edge that
+                # points at it is compared as an IRI claim on its concept. It is
+                # reported by check-source-defects and left exactly as published.
+                # More than one form is different -- every form does enter the
+                # label comparison, but the node's own multiplicity does not
+                # survive the set-valued representation, so that stays declared
+                # as uncompared.
+                if len(forms) > 1:
+                    unevaluated_claims.append(detail)
             for form in forms:
                 if add_literal_claim(subject, predicate, form, target):
                     count += 1
@@ -1319,6 +1408,38 @@ def _publisher_view(
         and predicate in label_predicate_terms
         and isinstance(obj, rdflib.BNode)
     }
+    # A declared exclusion names an entity layer by rdf:type or IRI prefix, and
+    # publishers describe those entities with blank nodes too -- void:classPartition
+    # hangs its per-class counts off one. Those claims never reach iri_claims or
+    # literal_claims (both need an IRI subject), so the exclusion has to reach
+    # them here or they would be reported as uncovered while the layer they
+    # belong to is declared. The closure follows blank nodes out of an excluded
+    # subject and no further: a blank node reachable from anything else stays in
+    # the uncovered report.
+    excluded_blank_node_claims: dict[str, list[str]] = {}
+    exclusion_nodes: list[tuple[str, set[Any]]] = []
+    for exclusion in declared_claim_exclusions:
+        roots = {
+            term
+            for term in graph.subjects()
+            if isinstance(term, rdflib.URIRef)
+            and exclusion.selects(
+                str(term),
+                frozenset(
+                    str(value) for value in graph.objects(term, rdflib.RDF.type)
+                ),
+            )
+        }
+        reached: set[Any] = set(roots)
+        frontier = list(roots)
+        while frontier:
+            for obj in graph.objects(frontier.pop(), None):
+                if isinstance(obj, rdflib.BNode) and obj not in reached:
+                    reached.add(obj)
+                    frontier.append(obj)
+        if roots:
+            exclusion_nodes.append((exclusion.name, reached))
+            excluded_blank_node_claims[exclusion.name] = []
     for subject, predicate, obj in graph:
         if not isinstance(subject, rdflib.BNode) and not isinstance(obj, rdflib.BNode):
             continue
@@ -1338,6 +1459,14 @@ def _publisher_view(
             f"publisher blank-node claim {subject!r} <{predicate}> {obj!r} has no "
             "executable source-shape inverse"
         )
+        declaring = next(
+            (name for name, nodes in exclusion_nodes if subject in nodes),
+            None,
+        )
+        if declaring is not None:
+            if detail not in excluded_blank_node_claims[declaring]:
+                excluded_blank_node_claims[declaring].append(detail)
+            continue
         if detail not in unevaluated_claims:
             unevaluated_claims.append(detail)
             defects.append(Finding(kind="source", source=source, detail=detail))
@@ -1374,6 +1503,10 @@ def _publisher_view(
         resource_input_digests=dict(resource_input_digests or {}),
         input_content_digests=dict(input_content_digests or {}),
         unevaluated_claims=tuple(dict.fromkeys(unevaluated_claims)),
+        declared_out_of_scope_blank_node_claims={
+            name: tuple(details)
+            for name, details in excluded_blank_node_claims.items()
+        },
     )
 
 
@@ -1398,6 +1531,7 @@ def _read_publisher_pin_set(
     *,
     additional_annotation_predicates: Sequence[str] = (),
     additional_relation_predicates: Sequence[str] = (),
+    declared_claim_exclusions: Sequence[DeclaredClaimExclusion] = (),
 ) -> PublisherView:
     """Read all RDF inputs, reporting every unreadable member before failing the set."""
     import rdflib
@@ -1442,6 +1576,7 @@ def _read_publisher_pin_set(
             for resource, digests in resource_input_digests.items()
         },
         input_content_digests=input_content_digests,
+        declared_claim_exclusions=declared_claim_exclusions,
     )
 
 
@@ -1471,6 +1606,7 @@ def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
                 if spec.rdf_source is not None
                 else ()
             ),
+            declared_claim_exclusions=spec.declared_claim_exclusions,
         ),
         spec.subset,
     )
@@ -1563,6 +1699,9 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
         },
         input_content_digests=view.input_content_digests,
         unevaluated_claims=view.unevaluated_claims,
+        declared_out_of_scope_blank_node_claims=(
+            view.declared_out_of_scope_blank_node_claims
+        ),
     )
 
 
@@ -1650,6 +1789,9 @@ def _select_publisher_concepts(
         },
         input_content_digests=view.input_content_digests,
         unevaluated_claims=view.unevaluated_claims,
+        declared_out_of_scope_blank_node_claims=(
+            view.declared_out_of_scope_blank_node_claims
+        ),
     )
 
 
@@ -3232,6 +3374,60 @@ SOURCES: tuple[SourceSpec, ...] = (
                 f"{CDM}publication_frequency_is_frequency_of_work_dataset",
             }
         ),
+        declared_claim_exclusions=(
+            DeclaredClaimExclusion(
+                name="publisherDatasetDescription",
+                reason=(
+                    "the pinned files carry the Publications Office's own "
+                    "description of the datasets they ship -- void:Linkset and "
+                    "void:Dataset statistics (including the blank-node "
+                    "void:classPartition counts), lime lexicalization sets, dcat "
+                    "catalogue, distribution and service records, the "
+                    "align:Ontology/align:Alignment header, and the EU authority "
+                    "entries those records cite. Every one of them describes a "
+                    "FILE, not a term: this comparison's claim is the "
+                    "EuroVoc-to-LCSH mapping statements, which relation-fidelity "
+                    "compares exactly and in both directions. Atlas asserts "
+                    "nothing about any of these subjects. The publisher's release "
+                    "works (cdm:work and friends) are deliberately NOT here: "
+                    "Atlas reuses the alignment release IRI as its own source "
+                    "release, so those claims are in scope and stay in the "
+                    "uncovered report until something reverses them"
+                ),
+                subject_types=frozenset(
+                    {
+                        f"{ALIGNMENT}Alignment",
+                        f"{ALIGNMENT}Ontology",
+                        f"{CDM}agent",
+                        f"{CDM}concept",
+                        f"{DCAT}Catalog",
+                        f"{DCAT}DataService",
+                        f"{DCAT}Dataset",
+                        f"{DCAT}Distribution",
+                        f"{LIME}LexicalizationSet",
+                        f"{MDR}DatasetArchetype",
+                        f"{MDR}DatasetRealization",
+                        f"{MDR}RDFDataset",
+                        f"{STMDR}SemanticTurkeyInstance",
+                        f"{VOID}Dataset",
+                        f"{VOID}DatasetDescription",
+                        f"{VOID}Linkset",
+                    }
+                ),
+            ),
+            DeclaredClaimExclusion(
+                name="cellarDocumentStoreResources",
+                reason=(
+                    "the metadata files name the Publications Office's own Cellar "
+                    "storage objects and stamp them with owl:sameAs and cmr "
+                    "creation/modification dates. These identify where the "
+                    "publisher keeps the file, not what any term means"
+                ),
+                subject_iri_prefixes=(
+                    "http://publications.europa.eu/resource/cellar/",
+                ),
+            ),
+        ),
         rdf_source=RdfSourcePolicy(
             evaluated_native_payload_fields=frozenset(),
             relation_scope="all",
@@ -3258,11 +3454,36 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
         ),
         policies=DIRECT_SKOS_POLICIES,
+        declared_claim_exclusions=(
+            DeclaredClaimExclusion(
+                name="publisherCollectionAndSourceRegister",
+                reason=(
+                    "GEMET ships two entity kinds beside its concepts: the "
+                    "Group/Theme/SuperGroup collections that arrange concepts for "
+                    "browsing, and a bibliographic Source register naming the "
+                    "dictionaries its definitions came from. Both reuse SKOS "
+                    "predicates in ways GEMET does not use them on concepts -- "
+                    "skos:prefLabel on a Group, an untagged skos:notation on every "
+                    "Source -- which is why the reader declares its catalog scope "
+                    "as the concept IRIs and their scheme membership and models "
+                    "neither layer (see refspec.registry.gemet_thesaurus). Atlas "
+                    "therefore asserts nothing at all about these 165 subjects, "
+                    "which is what the paired Atlas-side count proves"
+                ),
+                subject_types=frozenset(
+                    {
+                        f"{SKOS}Collection",
+                        f"{GEMET_SCHEMA}Group",
+                        f"{GEMET_SCHEMA}Source",
+                        f"{GEMET_SCHEMA}SuperGroup",
+                        f"{GEMET_SCHEMA}Theme",
+                    }
+                ),
+            ),
+        ),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS | {"labelRoleNormalization", "metadata"},
-            additional_annotation_predicates=(
-                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#source",
-            ),
+            additional_annotation_predicates=(f"{GEMET_SCHEMA}source",),
             record_digest_input_paths=("gemet.rdf",),
         ),
     ),
@@ -3633,6 +3854,11 @@ def build_context(
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
+                # Two comparisons can share the same pinned bytes and declare
+                # different scopes (EuroVoc main and domains do), so the
+                # declarations belong in the key: a cached view built under one
+                # spec's exclusions is not the other's view.
+                spec.declared_claim_exclusions,
             )
             cached = publisher_cache.get(cache_key)
             if cached is None:
@@ -3645,6 +3871,7 @@ def build_context(
                             additional_annotation_predicates
                         ),
                         additional_relation_predicates=additional_relation_predicates,
+                        declared_claim_exclusions=spec.declared_claim_exclusions,
                     )
                 except Exception as error:  # noqa: BLE001 - keep reading independent sources
                     cached = f"{type(error).__name__}: {error}"
@@ -6683,6 +6910,150 @@ def check_scheme_organisation(ctx: Context) -> CheckResult:
     )
 
 
+def _publisher_subject_types(view: PublisherView) -> dict[str, frozenset[str]]:
+    """Index the rdf:type values the publisher's own bytes assert per subject."""
+    types: dict[str, set[str]] = defaultdict(set)
+    for subject, predicate, obj in view.iri_claims:
+        if predicate == RDF_TYPE:
+            types[subject].add(obj)
+    return {subject: frozenset(values) for subject, values in types.items()}
+
+
+def _compared_publisher_subjects(pair: SourcePair) -> frozenset[str]:
+    """Return the publisher subjects this adapter's comparisons actually read.
+
+    A declared exclusion that touches one of these would be hiding a compared
+    claim behind a scope declaration, so this is what the overlap guard tests.
+    """
+    endpoints = {
+        *(subject for subject, _, _ in pair.publisher.relations),
+        *(obj for _, _, obj in pair.publisher.relations),
+    }
+    if pair.spec.kind == "mapping":
+        return frozenset(endpoints)
+    return frozenset(
+        {
+            *endpoints,
+            *pair.publisher.concepts,
+            *_publisher_source_scheme_subjects(pair.publisher),
+            *pair.publisher.resource_annotation_target_claim_counts,
+        }
+    )
+
+
+def _declared_exclusion_subjects(
+    pair: SourcePair,
+) -> tuple[tuple[DeclaredClaimExclusion, frozenset[str]], ...]:
+    """Resolve each declared exclusion to the exact publisher subjects it selects."""
+    exclusions = pair.spec.declared_claim_exclusions
+    if not exclusions:
+        return ()
+    types = _publisher_subject_types(pair.publisher)
+    subjects = {
+        *(subject for subject, _, _ in pair.publisher.iri_claims),
+        *(subject for subject, _, _ in pair.publisher.literal_claims),
+    }
+    resolved: list[tuple[DeclaredClaimExclusion, frozenset[str]]] = []
+    for exclusion in exclusions:
+        empty: frozenset[str] = frozenset()
+        resolved.append(
+            (
+                exclusion,
+                frozenset(
+                    subject
+                    for subject in subjects
+                    if exclusion.selects(subject, types.get(subject, empty))
+                ),
+            )
+        )
+    return tuple(resolved)
+
+
+def _declared_excluded_publisher_claims(
+    pair: SourcePair,
+) -> tuple[
+    frozenset[tuple[str, str, str]],
+    frozenset[tuple[str, str, LiteralValue]],
+]:
+    """Return the publisher claims every declared exclusion accounts for.
+
+    Subjects the comparison actually compares are never excluded, whatever a
+    declaration says: the overlap is reported as a failure by ``claim-scope``
+    instead of quietly shrinking the residue.
+    """
+    resolved = _declared_exclusion_subjects(pair)
+    if not resolved:
+        return frozenset(), frozenset()
+    compared = _compared_publisher_subjects(pair)
+    selected = frozenset().union(*(subjects for _, subjects in resolved)) - compared
+    return (
+        frozenset(row for row in pair.publisher.iri_claims if row[0] in selected),
+        frozenset(row for row in pair.publisher.literal_claims if row[0] in selected),
+    )
+
+
+def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
+    """Report each declared exclusion, what it covers, and whether it still holds."""
+    resolved = _declared_exclusion_subjects(pair)
+    if not resolved:
+        return []
+    compared = _compared_publisher_subjects(pair)
+    rows: list[dict[str, Any]] = []
+    for exclusion, subjects in resolved:
+        overlap = sorted(subjects & compared)
+        selected = subjects - compared
+        counts: dict[str, int] = defaultdict(int)
+        for subject, predicate, _ in pair.publisher.iri_claims:
+            if subject in selected:
+                counts[predicate] += 1
+        for subject, predicate, _ in pair.publisher.literal_claims:
+            if subject in selected:
+                counts[predicate] += 1
+        atlas_iri = sorted(
+            row for row in pair.atlas.all_raw_iri_claims if row[0] in selected
+        )
+        atlas_literals = sorted(
+            (row for row in pair.atlas.all_raw_literal_claims if row[0] in selected),
+            key=_literal_claim_sort_key,
+        )
+        atlas_claims = [
+            *(list(row) for row in atlas_iri[:5]),
+            *(
+                [subject, predicate, _literal_repr(literal)]
+                for subject, predicate, literal in atlas_literals[:5]
+            ),
+        ]
+        blank_node_claims = pair.publisher.declared_out_of_scope_blank_node_claims.get(
+            exclusion.name, ()
+        )
+        holds = not atlas_iri and not atlas_literals and not overlap
+        rows.append(
+            {
+                "name": exclusion.name,
+                "reason": exclusion.reason,
+                "subjectTypes": sorted(exclusion.subject_types),
+                "subjectIriPrefixes": list(exclusion.subject_iri_prefixes),
+                "subjectCount": len(selected),
+                "publisherClaimCount": sum(counts.values()),
+                "publisherClaimCountsByPredicate": dict(sorted(counts.items())),
+                "publisherBlankNodeClaimCount": len(blank_node_claims),
+                "publisherBlankNodeClaimExamples": list(blank_node_claims[:5]),
+                "atlasClaimCount": len(atlas_iri) + len(atlas_literals),
+                "atlasClaimExamples": atlas_claims,
+                "comparedSubjectOverlapCount": len(overlap),
+                "comparedSubjectOverlapExamples": overlap[:5],
+                "status": "declared-out-of-scope" if holds else "violated",
+                "meaning": (
+                    "publisher claims this release declares Atlas does not "
+                    "represent; the declaration holds only while Atlas asserts "
+                    "nothing about these subjects and never covers a subject the "
+                    "comparison reads"
+                ),
+            }
+        )
+    return rows
+
+
 def _publisher_claims_outside_comparison(
     pair: SourcePair,
 ) -> tuple[
@@ -6690,8 +7061,9 @@ def _publisher_claims_outside_comparison(
     frozenset[tuple[str, str, LiteralValue]],
 ]:
     """Return source triples that no executable inverse currently evaluates."""
-    publisher_iri = set(pair.publisher.iri_claims)
-    publisher_literals = set(pair.publisher.literal_claims)
+    excluded_iri, excluded_literals = _declared_excluded_publisher_claims(pair)
+    publisher_iri = set(pair.publisher.iri_claims) - excluded_iri
+    publisher_literals = set(pair.publisher.literal_claims) - excluded_literals
     supported_iri: set[tuple[str, str, str]] = set()
     supported_literals: set[tuple[str, str, LiteralValue]] = set()
 
@@ -6946,7 +7318,19 @@ def check_source_claim_coverage(ctx: Context) -> CheckResult:
     """Fail when publisher or Atlas source claims escape executable comparison."""
     failures = _incomplete_evaluation_failure(ctx, "source claim coverage")
     uncovered = 0
+    declared_out_of_scope = 0
     for pair in ctx.pairs:
+        excluded_iri, excluded_literals = _declared_excluded_publisher_claims(pair)
+        declared_out_of_scope += (
+            len(excluded_iri)
+            + len(excluded_literals)
+            + sum(
+                len(details)
+                for details in (
+                    pair.publisher.declared_out_of_scope_blank_node_claims.values()
+                )
+            )
+        )
         for detail in pair.publisher.unevaluated_claims:
             failures.append(
                 f"{pair.spec.name}: publisher claim could not enter an exact comparison: {detail}"
@@ -7025,7 +7409,9 @@ def check_source_claim_coverage(ctx: Context) -> CheckResult:
             uncovered += len(rows)
     return _result(
         "source-claim-coverage",
-        f"{uncovered} publisher or Atlas source claims remain outside executable comparisons",
+        f"{uncovered} publisher or Atlas source claims remain outside executable "
+        f"comparisons; {declared_out_of_scope} more are declared out of scope and "
+        "itemised in the receipt",
         failures,
     )
 
@@ -7844,8 +8230,31 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
             predicate_counts[predicate] += count
     unexpected_predicates = sorted(set(predicate_counts) - compared_predicates)
 
+    excluded_families: list[dict[str, Any]] = [
+        {
+            "name": "atlasRepresentationStructure",
+            "predicates": sorted(ATLAS_SOURCE_REPRESENTATION_STRUCTURE_PREDICATES),
+            "reason": (
+                "classes, rings, profiles, releases, schemes, source records, "
+                "relation assertions, rkaf evidence bindings, and the record "
+                "lifecycle state are Atlas-minted and are not publisher claims; "
+                "each listed predicate is still a failure on any subject the "
+                "comparison does not already know"
+            ),
+        },
+        *_declared_claim_exclusion_report(pair),
+    ]
     family_statuses = {family["status"] for family in families}
-    if family_statuses & {"differences-found", "unrepresented"} or unexpected_predicates:
+    violated_exclusions = [
+        family
+        for family in excluded_families
+        if family.get("status", "declared-out-of-scope") != "declared-out-of-scope"
+    ]
+    if (
+        family_statuses & {"differences-found", "unrepresented"}
+        or unexpected_predicates
+        or violated_exclusions
+    ):
         status = "differences-found"
     elif "normalized-lossy" in family_statuses:
         status = "partial-lossy"
@@ -7854,7 +8263,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
     return {
         "status": status,
         "claimFamilies": families,
-        "intentionallyExcludedFamilies": [],
+        "intentionallyExcludedFamilies": excluded_families,
         "unexpectedPublisherPredicates": [
             {"predicate": predicate, "claimCount": predicate_counts[predicate]}
             for predicate in unexpected_predicates
@@ -8187,6 +8596,23 @@ def _evaluate_claim_scope(ctx: Context) -> CheckResult:
                 f"{pair.spec.name}: publisher predicate <{row['predicate']}> has "
                 f"{row['claimCount']} resource claims but no comparison or explicit exclusion"
             )
+        for family in scope["intentionallyExcludedFamilies"]:
+            if family.get("status", "declared-out-of-scope") == "declared-out-of-scope":
+                continue
+            if family["atlasClaimCount"]:
+                failures.append(
+                    f"{pair.spec.name}: declared exclusion {family['name']} does not "
+                    f"hold -- Atlas asserts {family['atlasClaimCount']} claim(s) about "
+                    f"subjects it declares out of scope; examples "
+                    f"{family['atlasClaimExamples'][:5]}"
+                )
+            if family["comparedSubjectOverlapCount"]:
+                failures.append(
+                    f"{pair.spec.name}: declared exclusion {family['name']} covers "
+                    f"{family['comparedSubjectOverlapCount']} subject(s) this "
+                    "comparison also compares; a scope declaration may never hide a "
+                    f"compared claim; examples {family['comparedSubjectOverlapExamples']}"
+                )
         for family in scope["claimFamilies"]:
             if family["status"] == "normalized-lossy":
                 failures.append(
@@ -8231,6 +8657,54 @@ def _evaluate_claim_scope(ctx: Context) -> CheckResult:
         f"{checked} declared source claim families checked for complete evaluation scope",
         failures,
     )
+
+
+RECEIPT_LIST_LIMIT = 100
+
+
+def _capped_receipt_list(
+    values: Sequence[Any],
+    limit: int = RECEIPT_LIST_LIMIT,
+) -> tuple[list[Any], int, bool, str]:
+    """Cap one receipt list, keeping its total and a digest over the whole of it.
+
+    An unbounded receipt is not an artifact: the first full-registry run wrote
+    231 MB, almost all of it the tail of four per-claim failure lists, which no
+    reviewer can read and no release can carry. The head is what a reader acts
+    on, the count is what they measure, and the digest is over the *complete*
+    ordered list -- so re-running the verifier still proves nothing was dropped,
+    reordered, or edited between the run and the receipt. The terminal report
+    (``render``) stays complete; only the stored artifact is capped.
+    """
+    total = len(values)
+    retained = list(values[:limit])
+    digest = hashlib.sha256(
+        json.dumps(list(values), ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return retained, total, total > len(retained), f"sha256:{digest}"
+
+
+def _capped_result(result: CheckResult) -> dict[str, Any]:
+    """Render one check result with both of its lists capped and accounted for."""
+    failures, failure_total, failures_truncated, failure_digest = _capped_receipt_list(
+        result.failures
+    )
+    findings, finding_total, findings_truncated, finding_digest = _capped_receipt_list(
+        [finding.as_dict() for finding in result.source_findings]
+    )
+    return {
+        "check": result.name,
+        "passed": result.passed,
+        "summary": result.summary,
+        "failures": failures,
+        "failuresTotalCount": failure_total,
+        "failuresTruncated": failures_truncated,
+        "failuresDigest": failure_digest,
+        "sourceFindings": findings,
+        "sourceFindingsTotalCount": finding_total,
+        "sourceFindingsTruncated": findings_truncated,
+        "sourceFindingsDigest": finding_digest,
+    }
 
 
 def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
@@ -8468,7 +8942,16 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
         },
         "comparisons": comparison_rows,
         "executablePolicies": dict(EXECUTABLE_POLICIES),
-        "results": [result.as_dict() for result in results],
+        "receiptLimits": {
+            "perCheckListLimit": RECEIPT_LIST_LIMIT,
+            "cappedFields": ["results[].failures", "results[].sourceFindings"],
+            "completeness": (
+                "each capped field carries its own totalCount, a truncated flag, "
+                "and a sha256 over the complete ordered list, so a re-run proves "
+                "the omitted tail"
+            ),
+        },
+        "results": [_capped_result(result) for result in results],
     }
 
 

@@ -33,6 +33,7 @@ import pytest
 from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
     CheckResult,
+    DeclaredClaimExclusion,
     Expectations,
     Finding,
     LiteralValue,
@@ -1128,14 +1129,14 @@ def test_source_claim_coverage_rejects_an_uncompared_common_field_on_a_source(
         (
             _quad(
                 f"{EX}c1",
-                f"{ATLAS}recordStatus",
-                "manufactured",
-                literal=True,
+                f"{ATLAS}collectionMember",
+                f"{EX}ghost-member",
             ),
             _quad(
                 f"{EX}c1",
-                f"{ATLAS}collectionMember",
-                f"{EX}ghost-member",
+                f"{ATLAS}validationRule",
+                "manufactured",
+                literal=True,
             ),
         )
     )
@@ -1144,8 +1145,255 @@ def test_source_claim_coverage_rejects_an_uncompared_common_field_on_a_source(
     check = result(suite.run(), "source-claim-coverage")
 
     assert not check.passed
-    assert any(f"{ATLAS}recordStatus" in failure for failure in check.failures)
     assert any(f"{ATLAS}collectionMember" in failure for failure in check.failures)
+    assert any(f"{ATLAS}validationRule" in failure for failure in check.failures)
+
+
+def test_record_status_on_a_known_source_subject_is_atlas_minted_structure(
+    suite: Fixture,
+) -> None:
+    """atlas:recordStatus is the builder's own lifecycle field, not a source claim.
+
+    It sits with atlas:inRelease and atlas:semanticRing: no publisher ships a
+    field of that shape, so there is nothing to compare it against on a subject
+    the comparison already knows. The companion test below proves it is still a
+    failure anywhere else, which is what keeps this a classification and not a
+    hole.
+    """
+    lines = atlas_pack_lines()
+    lines.append(
+        _quad(f"{EX}c1", f"{ATLAS}recordStatus", "active", literal=True)
+    )
+    suite.write_pack_lines(lines)
+
+    results = suite.run()
+
+    assert result(results, "source-claim-coverage").passed
+    assert result(results, "claim-scope").passed
+
+
+def test_record_status_is_declared_in_the_receipt_not_silently_dropped(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    fixture.write_publisher()
+    fixture.write_pack()
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+    verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    excluded = receipt["comparisons"][0]["claimScope"]["intentionallyExcludedFamilies"]
+    structure = next(
+        row for row in excluded if row["name"] == "atlasRepresentationStructure"
+    )
+    assert f"{ATLAS}recordStatus" in structure["predicates"]
+    assert "Atlas-minted" in structure["reason"]
+
+
+# --------------------------------------------------------------------------------------
+# Declared claim exclusions: a publisher entity layer Atlas does not model
+# --------------------------------------------------------------------------------------
+
+RDFS = "http://www.w3.org/2000/01/rdf-schema#"
+GROUP = f"{EX}group/1"
+GROUP_TYPE = f"{EX}Group"
+GROUP_TRIPLES = (
+    f"<{GROUP}> a <{GROUP_TYPE}> ;\n"
+    f'  <{RDFS}label> "Browsing group"@en ;\n'
+    f"  <{SKOS}member> <{EX}c1>, <{EX}c2> ."
+)
+GROUP_EXCLUSION = DeclaredClaimExclusion(
+    name="publisherBrowsingGroups",
+    reason="the publisher's browsing collections are not terms and Atlas models none of them",
+    subject_types=frozenset({GROUP_TYPE}),
+)
+
+
+def _with_group(suite: Fixture) -> None:
+    suite.write_publisher(extra_triples=GROUP_TRIPLES)
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+
+
+def test_an_undeclared_publisher_entity_layer_stays_uncovered(suite: Fixture) -> None:
+    _with_group(suite)
+
+    check = result(suite.run(), "source-claim-coverage")
+
+    assert not check.passed
+    assert any(f"{SKOS}member" in failure and GROUP in failure for failure in check.failures)
+
+
+def test_a_declared_exclusion_accounts_for_the_layer_instead_of_hiding_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    _with_group(fixture)
+    fixture.spec = replace(
+        fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,)
+    )
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+    verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    coverage = next(
+        row for row in receipt["results"] if row["check"] == "source-claim-coverage"
+    )
+    assert coverage["passed"]
+    assert "declared out of scope" in coverage["summary"]
+
+    family = next(
+        row
+        for row in receipt["comparisons"][0]["claimScope"][
+            "intentionallyExcludedFamilies"
+        ]
+        if row["name"] == "publisherBrowsingGroups"
+    )
+    assert family["status"] == "declared-out-of-scope"
+    assert family["subjectCount"] == 1
+    assert family["publisherClaimCount"] == 4
+    assert family["publisherClaimCountsByPredicate"][f"{SKOS}member"] == 2
+    assert family["publisherClaimCountsByPredicate"][f"{RDFS}label"] == 1
+    assert family["atlasClaimCount"] == 0
+
+
+def test_a_declared_exclusion_fails_closed_when_atlas_asserts_the_layer(
+    suite: Fixture,
+) -> None:
+    """The exclusion only ever removes publisher claims; the Atlas side stays live."""
+    suite.write_publisher(extra_triples=GROUP_TRIPLES)
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.append(_quad(GROUP, f"{SKOS}prefLabel", "Manufactured group", literal=True))
+    suite.write_pack_lines(lines)
+    spec = replace(suite.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
+
+    results = suite.run(spec=spec)
+
+    coverage = result(results, "source-claim-coverage")
+    assert not coverage.passed
+    assert any(
+        "Atlas literal claim" in failure and GROUP in failure
+        for failure in coverage.failures
+    )
+    scope = result(results, "claim-scope")
+    assert not scope.passed
+    assert any(
+        "publisherBrowsingGroups does not hold" in failure for failure in scope.failures
+    )
+
+
+def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Publishers describe excluded entities with blank nodes; the scheme's are not.
+
+    void:classPartition is the real case: a declared dataset hangs its per-class
+    counts off blank nodes that never reach the IRI-subject claim sets. The
+    closure follows blank nodes out of an excluded subject and stops there, so
+    the identical shape on a compared subject stays in the uncovered report.
+    """
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    fixture.write_publisher(
+        extra_triples=(
+            f"{GROUP_TRIPLES[:-2]};\n"
+            f'  <{EX}partition> [ <{EX}entities> "4" ] .\n'
+            f'<{SCHEME}> <{EX}partition> [ <{EX}entities> "9" ] .'
+        )
+    )
+    fixture.write_pack(source_digest=fixture.publisher_content_digest())
+    fixture.spec = replace(
+        fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,)
+    )
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+    verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    coverage = next(
+        row for row in receipt["results"] if row["check"] == "source-claim-coverage"
+    )
+    assert not coverage["passed"]
+    assert any(SCHEME in failure for failure in coverage["failures"])
+    assert not any(GROUP in failure for failure in coverage["failures"])
+
+    family = next(
+        row
+        for row in receipt["comparisons"][0]["claimScope"][
+            "intentionallyExcludedFamilies"
+        ]
+        if row["name"] == "publisherBrowsingGroups"
+    )
+    assert family["publisherBlankNodeClaimCount"] == 2
+    assert family["status"] == "declared-out-of-scope"
+
+
+def test_a_declared_exclusion_may_not_cover_a_subject_the_comparison_compares(
+    suite: Fixture,
+) -> None:
+    """A scope declaration is not a way to un-compare something already compared."""
+    overreaching = DeclaredClaimExclusion(
+        name="everyConcept",
+        reason="an exclusion that reaches the compared terms themselves",
+        subject_types=frozenset({f"{SKOS}Concept"}),
+    )
+    spec = replace(suite.spec, declared_claim_exclusions=(overreaching,))
+
+    results = suite.run(spec=spec)
+
+    scope = result(results, "claim-scope")
+    assert not scope.passed
+    assert any(
+        "everyConcept covers" in failure and "also compares" in failure
+        for failure in scope.failures
+    )
+
+
+def test_a_declared_exclusion_must_name_the_subjects_it_covers() -> None:
+    with pytest.raises(ValueError, match="selects no subjects"):
+        DeclaredClaimExclusion(name="everything", reason="no selector at all")
 
 
 @pytest.mark.parametrize(
@@ -1721,6 +1969,57 @@ def test_publisher_skosxl_label_is_compared_through_its_literal_form(suite: Fixt
 
     assert result(suite.run(), "label-fidelity").passed
     assert result(suite.run(), "claim-scope").passed
+
+
+def test_empty_publisher_label_node_is_a_defect_not_an_uncovered_claim(
+    suite: Fixture,
+) -> None:
+    """A label node with no literalForm asserts nothing, so nothing escapes.
+
+    The publisher's own bytes are broken here -- an skosxl:prefLabel edge that
+    points at a node carrying no literal. That is worth reporting and worth
+    preserving unrepaired, which is what check-source-defects is for. It is not
+    a claim that fell outside comparison: there is no literal to compare, and
+    the edge itself is compared as an IRI claim on its concept.
+    """
+    empty_node = f"{EX}label/empty-c1"
+    suite.write_publisher(
+        extra_triples=f"<{EX}c1> <{SKOSXL}prefLabel> <{empty_node}> ."
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+
+    results = suite.run()
+
+    assert result(results, "source-claim-coverage").passed
+    defects = result(results, "source-defects")
+    assert defects.passed
+    assert any(
+        "0 skosxl:literalForm values" in finding.detail
+        and empty_node in finding.detail
+        for finding in defects.source_findings
+    )
+
+
+def test_publisher_label_node_with_two_literal_forms_stays_uncovered(
+    suite: Fixture,
+) -> None:
+    """Two forms on one node is different: the node's multiplicity is lost."""
+    node = f"{EX}label/doubled-c1"
+    suite.write_publisher(
+        extra_triples=(
+            f"<{EX}c1> <{SKOSXL}hiddenLabel> <{node}> .\n"
+            f'<{node}> <{SKOSXL}literalForm> "First form"@en, "Second form"@en .'
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+
+    check = result(suite.run(), "source-claim-coverage")
+
+    assert not check.passed
+    assert any(
+        "2 skosxl:literalForm values" in failure and node in failure
+        for failure in check.failures
+    )
 
 
 def test_label_fidelity_fires_when_language_changes(suite: Fixture) -> None:
@@ -3325,6 +3624,64 @@ def test_render_does_not_truncate_failure_details() -> None:
     failures = [f"failure-{index}" for index in range(25)]
     output = render([CheckResult("many-errors", False, "all retained", failures)])
     assert all(failure in output for failure in failures)
+
+
+def test_receipt_caps_a_long_failure_list_but_still_proves_the_whole_of_it() -> None:
+    """A capped list keeps the head, the count, and a digest over every entry."""
+    import tools.verify_atlas_source_fidelity as verifier
+
+    limit = verifier.RECEIPT_LIST_LIMIT
+    failures = [f"failure-{index}" for index in range(limit + 137)]
+    findings = [
+        Finding(kind="source", source="example", detail=f"defect-{index}")
+        for index in range(limit + 5)
+    ]
+
+    row = verifier._capped_result(
+        CheckResult("many-errors", False, "capped", failures, findings)
+    )
+
+    assert row["failures"] == failures[:limit]
+    assert row["failuresTotalCount"] == len(failures)
+    assert row["failuresTruncated"] is True
+    assert row["failuresDigest"] == "sha256:" + hashlib.sha256(
+        json.dumps(failures, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    assert row["sourceFindingsTotalCount"] == len(findings)
+    assert row["sourceFindingsTruncated"] is True
+    assert len(row["sourceFindings"]) == limit
+
+
+def test_receipt_marks_a_short_list_untruncated_and_declares_the_cap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    fixture.write_publisher()
+    fixture.write_pack()
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+    verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    assert receipt["receiptLimits"]["perCheckListLimit"] == verifier.RECEIPT_LIST_LIMIT
+    for row in receipt["results"]:
+        assert row["failuresTruncated"] is False
+        assert row["failuresTotalCount"] == len(row["failures"])
+        assert row["failuresDigest"].startswith("sha256:")
 
 
 # --------------------------------------------------------------------------------------
