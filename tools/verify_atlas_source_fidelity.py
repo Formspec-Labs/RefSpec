@@ -2578,6 +2578,7 @@ def _read_pattern_rows(
                         "source_digest": pin.sha256,
                         "input_ordinal": spec.inputs.index(pin),
                         "region_ordinal": region_ordinal,
+                        "pattern_ordinal": pattern_row_count,
                         "ordinal": len(records),
                         **constants,
                     }
@@ -9129,6 +9130,230 @@ GRANTS_GOV_PATTERN_ROW_SOURCES = (
 )
 
 
+_OIRA_PATTERN_INPUTS = (
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76/"
+            "reviewStatus.html"
+        ),
+        "sha256:bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76",
+        405,
+        (
+            "https://www.reginfo.gov/public/do/"
+            "eoAdvancedSearch?eoStatusCode=CD#eoStatusCode"
+        ),
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76/"
+            "reviewStatus.html"
+        ),
+    ),
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a/"
+            "ruleStage.html"
+        ),
+        "sha256:90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a",
+        1_390,
+        (
+            "https://www.reginfo.gov/public/do/"
+            "eoAdvancedSearch?eoStatusCode=CD#ruleStages"
+        ),
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a/"
+            "ruleStage.html"
+        ),
+    ),
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef/"
+            "concludedAction.html"
+        ),
+        "sha256:a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef",
+        570,
+        (
+            "https://www.reginfo.gov/public/do/"
+            "eoAdvancedSearch?eoStatusCode=CD#concludedActionCode"
+        ),
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef/"
+            "concludedAction.html"
+        ),
+    ),
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea/"
+            "meetingStatus.html"
+        ),
+        "sha256:9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea",
+        379,
+        "https://www.reginfo.gov/public/do/eom12866Search#meetingType",
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea/"
+            "meetingStatus.html"
+        ),
+    ),
+)
+_OIRA_PATTERN_DECLARATIONS = (
+    (
+        _OIRA_PATTERN_INPUTS[0],
+        "reviewStatusCode",
+        (
+            r"(?P<region><label\b.*</label>\s*(?:&nbsp;\s*)*"
+            r"<label\b.*</label>)"
+        ),
+        (
+            r"<label\b[^>]*>\s*<input\b[^>]*name=\"eoStatusCode\"[^>]*"
+            r"value=\"(?P<code>[^\"]+)\"[^>]*/>(?P<label>[^<]*)</label>"
+        ),
+        2,
+    ),
+    (
+        _OIRA_PATTERN_INPUTS[1],
+        "ruleStageCode",
+        r"(?P<region>[\s\S]+)",
+        (
+            r"<label\b[^>]*>\s*<input\b[^>]*name=\"ruleStages\"[^>]*"
+            r"value=\"(?P<code>[^\"]+)\"[^>]*/>"
+            r"(?:<input\s+type=\"hidden\"[^>]*/>)?(?P<label>[^<]*)</label>"
+        ),
+        6,
+    ),
+    (
+        _OIRA_PATTERN_INPUTS[2],
+        "concludedActionCode",
+        r"<select\b[^>]*>(?P<region>.*?)</select>",
+        r'<option\s+value="(?P<code>[^"]*)"[^>]*>(?P<label>[^<]*)</option>',
+        9,
+    ),
+    (
+        _OIRA_PATTERN_INPUTS[3],
+        "meetingStatusCode",
+        r"<select\b[^>]*>(?P<region>.*?)</select>",
+        r'<option\s+value="(?P<code>[^"]*)"[^>]*>(?P<label>[^<]*)</option>',
+        3,
+    ),
+)
+
+
+def _oira_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:13:02Z"
+    resource_id = "oira-eo-12866-review-and-meeting-codes-2026-08-03"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.reginfo.gov/",
+                "kind": "{identifier_kind}",
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{pattern_ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("identifier_kind", identifier_kind),
+                    ("observed_at", observed_at),
+                    ("source_token", "oira-review-controls"),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+                row_filters=(PatternRowFilter("code", r".+", True),),
+            )
+            for (
+                pin,
+                identifier_kind,
+                region_pattern,
+                row_pattern,
+                expected_count,
+            ) in _OIRA_PATTERN_DECLARATIONS
+        ),
+        row_key="{source_iri}#{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=20,
+        declared_unevaluated_fields=("controlMarkupAndPlaceholderOptions",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$[{pattern_ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [
+                            {
+                                "authorityUri": "https://www.reginfo.gov/",
+                                "kind": "{identifier_kind}",
+                                "value": "{code}",
+                            }
+                        ],
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "oira-review-controls", _OIRA_PATTERN_INPUTS, selector
+    )
+
+
+OIRA_PATTERN_ROW_SOURCES = (_oira_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -9205,6 +9430,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES,
     *FERC_HTML_PATTERN_ROW_SOURCES,
     *GRANTS_GOV_PATTERN_ROW_SOURCES,
+    *OIRA_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
