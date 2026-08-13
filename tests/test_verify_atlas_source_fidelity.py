@@ -21,7 +21,9 @@ governed scheme identities are deliberately outside this verifier.
 
 from __future__ import annotations
 
+import gzip
 import hashlib
+import io
 import json
 import zipfile
 from collections.abc import Callable, Sequence
@@ -4702,3 +4704,307 @@ def test_source_extract_fails_closed_on_an_atlas_concept_the_extract_lacks(
         "which the checked source extract does not contain" in failure
         for failure in check.failures
     )
+
+
+def test_epa_xml_reader_accepts_a_faithful_tree_and_rejects_a_shape_fault() -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    payload = b"""<EnterpriseVocabularyReport>
+<Row><Term>Parent</Term><Definitions>Definition</Definitions><ChildTerms>
+<Row><Term>Child</Term><ScopeNote>Note</ScopeNote></Row>
+</ChildTerms></Row></EnterpriseVocabularyReport>"""
+    pin = SourcePin(
+        "epa.xml",
+        "sha256:" + hashlib.sha256(payload).hexdigest(),
+        len(payload),
+        fmt="xml",
+        role="boundedPublisherLabelTree",
+        source_iri="https://example.org/epa.xml",
+    )
+    spec = SourceSpec(
+        "epa-reader-test",
+        "vocabulary",
+        ("epa-reader-test",),
+        (pin,),
+        reader=verifier.EPA_ENTERPRISE_VOCABULARY_XML_READER,
+    )
+
+    view = verifier._read_epa_enterprise_vocabulary_xml(spec, {pin: payload})
+
+    assert len(view.concepts) == 2
+    assert len(view.relations) == 1
+    assert len(view.annotations) == 2
+    assert all(view.resource_locators.values())
+    with pytest.raises(ValueError, match="termCount"):
+        verifier._read_epa_enterprise_vocabulary_xml(
+            spec,
+            {pin: payload.replace(b"<Term>Parent</Term>", b"<Label>Parent</Label>")},
+        )
+
+
+def test_lcsh_jsonld_reader_accepts_a_faithful_pair_and_rejects_context_fault() -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    endpoint = "http://id.loc.gov/authorities/subjects/sh1"
+    alignment = f"""<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="{RDF}" xmlns:align="http://knowledgeweb.semanticweb.org/heterogeneity/alignment#" xmlns:skos="{SKOS}">
+  <align:Alignment rdf:about="urn:test:alignment">
+    <align:onto1 rdf:resource="http://eurovoc.europa.eu"/>
+    <align:onto2 rdf:resource="http://id.loc.gov/authorities/subjects"/>
+  </align:Alignment>
+  <rdf:Description rdf:about="http://eurovoc.europa.eu/1">
+    <skos:exactMatch rdf:resource="{endpoint}"/>
+  </rdf:Description>
+</rdf:RDF>""".encode()
+    document = {
+        "@context": "http://id.loc.gov/authorities/subjects/context.json",
+        "@graph": [
+            {
+                "@id": endpoint,
+                "@type": ["madsrdf:Authority", "madsrdf:Topic"],
+                "identifiers:lccn": "sh1",
+                "madsrdf:authoritativeLabel": {"@value": "Faithful", "@language": "en"},
+            }
+        ],
+        "@id": "/authorities/subjects/sh1",
+    }
+    line = json.dumps(document, separators=(",", ":")).encode()
+    bulk = gzip.compress(line + b"\n")
+    alignment_pin = SourcePin(
+        "alignment.rdf",
+        "sha256:" + hashlib.sha256(alignment).hexdigest(),
+        len(alignment),
+        fmt="xml",
+        role="publisherAlignment",
+        source_iri="https://example.org/alignment.rdf",
+    )
+    bulk_pin = SourcePin(
+        "lcsh.jsonld.gz",
+        "sha256:" + hashlib.sha256(bulk).hexdigest(),
+        len(bulk),
+        fmt="jsonld.gz",
+        role="publisherBulkSource",
+        source_iri="https://example.org/lcsh.jsonld.gz",
+    )
+    spec = SourceSpec(
+        "lcsh-reader-test",
+        "vocabulary",
+        ("lcsh-reader-test",),
+        (alignment_pin, bulk_pin),
+        reader=verifier.LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER,
+    )
+
+    view = verifier._read_lcsh_alignment_endpoint_jsonld(
+        spec,
+        {alignment_pin: alignment, bulk_pin: bulk},
+    )
+
+    assert view.concepts == frozenset({endpoint})
+    assert view.notations[endpoint] == frozenset(
+        {verifier._literal_value("sh1", None, None)}
+    )
+    broken_document = dict(document)
+    broken_document["@context"] = "https://example.org/wrong-context"
+    broken_bulk = gzip.compress(
+        json.dumps(broken_document, separators=(",", ":")).encode() + b"\n"
+    )
+    with pytest.raises(ValueError, match="unexpected @context"):
+        verifier._read_lcsh_alignment_endpoint_jsonld(
+            spec,
+            {alignment_pin: alignment, bulk_pin: broken_bulk},
+        )
+
+
+def test_fast_native_reader_accepts_a_faithful_pair_and_rejects_marc_identity_fault() -> None:
+    from pymarc import Field, MARCWriter, Record, Subfield
+
+    import tools.verify_atlas_source_fidelity as verifier
+
+    nt = "\n".join(
+        (
+            f'<http://id.worldcat.org/fast/1> <{SKOS}prefLabel> "Base heading" .',
+            '<http://id.worldcat.org/fast/1> <http://purl.org/dc/terms/identifier> "1" .',
+            f'<http://id.worldcat.org/fast/2> <{SKOS}prefLabel> "Parent" .',
+            '<http://id.worldcat.org/fast/2> <http://purl.org/dc/terms/identifier> "2" .',
+        )
+    ).encode()
+    archive_buffer = io.BytesIO()
+    with zipfile.ZipFile(archive_buffer, "w") as archive:
+        archive.writestr("FASTTopical.nt", nt)
+        archive.writestr("License.txt", b"test")
+    base = archive_buffer.getvalue()
+
+    record = Record(force_utf8=True)
+    leader = list(record.leader)
+    leader[5] = "n"
+    leader[6] = "z"
+    record.leader = "".join(leader)
+    record.add_field(Field(tag="001", data="fst00000001"))
+    record.add_field(
+        Field(
+            tag="024",
+            indicators=["7", " "],
+            subfields=[Subfield("a", "http://id.worldcat.org/fast/1")],
+        )
+    )
+    record.add_field(
+        Field(
+            tag="040",
+            indicators=[" ", " "],
+            subfields=[Subfield("f", "fast")],
+        )
+    )
+    record.add_field(
+        Field(
+            tag="150",
+            indicators=[" ", " "],
+            subfields=[Subfield("a", "Changed heading")],
+        )
+    )
+    marc_buffer = io.BytesIO()
+    MARCWriter(marc_buffer).write(record)
+    marc = marc_buffer.getvalue()
+    base_pin = SourcePin(
+        "base.zip",
+        "sha256:" + hashlib.sha256(base).hexdigest(),
+        len(base),
+        fmt="zip-ntriples",
+        role="publisherBase",
+        source_iri="https://example.org/base.zip",
+    )
+    change_pin = SourcePin(
+        "change.mrc",
+        "sha256:" + hashlib.sha256(marc).hexdigest(),
+        len(marc),
+        fmt="marc",
+        role="publisherChange",
+        source_iri="https://example.org/change.mrc",
+    )
+    spec = SourceSpec(
+        "fast-reader-test",
+        "vocabulary",
+        ("fast-reader-test",),
+        (base_pin, change_pin),
+        reader=verifier.FAST_TOPICAL_NATIVE_READER,
+    )
+
+    view = verifier._read_fast_topical_native(
+        spec,
+        {base_pin: base, change_pin: marc},
+    )
+
+    resource = "http://id.worldcat.org/fast/1"
+    assert view.pref_labels[resource] == frozenset(
+        {verifier._literal_value("Changed heading", None, None)}
+    )
+    broken_marc = marc.replace(
+        b"http://id.worldcat.org/fast/1",
+        b"http://id.worldcat.org/fast/9",
+    )
+    with pytest.raises(ValueError, match="024 does not match 001"):
+        verifier._read_fast_topical_native(
+            spec,
+            {base_pin: base, change_pin: broken_marc},
+        )
+
+
+def test_icpsr_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
+    tmp_path: Path,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    root = tmp_path / "managed-release"
+    (root / "records").mkdir(parents=True)
+    (root / "sources" / "index").mkdir(parents=True)
+    concept = {
+        "conceptIri": "https://example.org/icpsr/1",
+        "identifiers": [
+            {
+                "authorityUri": "https://example.org/icpsr",
+                "effectiveAt": None,
+                "kind": "publisherCode",
+                "observedAt": None,
+                "sourceDigest": "sha256:" + "1" * 64,
+                "sourceUri": "https://example.org/icpsr?a",
+                "value": "1",
+            }
+        ],
+        "inputTimestamp": "2026-01-01 00:00:00.0",
+        "officialLabel": "Faithful term",
+        "officialLabelRole": "preferred",
+        "publisherCode": "1",
+        "relations": [],
+        "scopeNotes": ["Faithful note"],
+        "sourceLetter": "a",
+        "sourceLocalRecordNumber": "1",
+        "updateTimestamp": "2026-01-01 00:00:00.0",
+        "xmlLabelRole": "preferred",
+    }
+    concepts_payload = json.dumps(concept, separators=(",", ":")).encode() + b"\n"
+    coverage = {
+        "gaps": {"indexOnlyTerms": [], "xmlOnlyLabels": []},
+    }
+    coverage["canonicalPayloadDigest"] = verifier._canonical_json_digest(coverage)
+    coverage_payload = json.dumps(
+        coverage,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    artifact_values = {
+        "records/concepts.jsonl": concepts_payload,
+        "records/coverage.json": coverage_payload,
+        "sources/index/manifest.json": b"{}",
+        "sources/subject.xml": b"<subjects/>",
+    }
+    for relative_path, payload in artifact_values.items():
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    artifacts = [
+        {
+            "byteLength": len(payload),
+            "path": relative_path,
+            "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        }
+        for relative_path, payload in artifact_values.items()
+    ]
+    manifest = {
+        "artifacts": artifacts,
+        "counts": {"concepts": 1},
+        "release": {"schemeIri": "https://example.org/icpsr"},
+        "sources": {
+            "indexManifestDigest": "sha256:" + hashlib.sha256(b"{}").hexdigest(),
+            "xmlDigest": "sha256:" + hashlib.sha256(b"<subjects/>").hexdigest(),
+        },
+    }
+    manifest["canonicalPayloadDigest"] = verifier._canonical_json_digest(manifest)
+    manifest_payload = json.dumps(
+        manifest,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    manifest_path = root / "managed-release.json"
+    manifest_path.write_bytes(manifest_payload)
+    pin = SourcePin(
+        str(manifest_path),
+        "sha256:" + hashlib.sha256(manifest_payload).hexdigest(),
+        len(manifest_payload),
+        fmt="managed-release-json",
+        role="publisherSource",
+        source_iri="urn:test:icpsr-managed-release",
+    )
+    spec = SourceSpec(
+        "icpsr-reader-test",
+        "vocabulary",
+        ("icpsr-reader-test",),
+        (pin,),
+        reader=verifier.ICPSR_MANAGED_RELEASE_READER,
+    )
+
+    view = verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
+
+    assert view.concepts == frozenset({"https://example.org/icpsr/1"})
+    assert len(view.annotations) == 1
+    (root / "sources" / "subject.xml").write_bytes(b"<fault/>")
+    with pytest.raises(ValueError, match="artifact pin differs"):
+        verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
