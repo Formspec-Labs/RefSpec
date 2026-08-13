@@ -9956,6 +9956,293 @@ def _scotus_pattern_source() -> SourceSpec:
 SCOTUS_PATTERN_ROW_SOURCES = (_scotus_pattern_source(),)
 
 
+_CENSUS_FINANCE_PATTERN_DECLARATIONS = (
+    (
+        "census-function-items",
+        SourcePin(
+            path=(
+                "tests/fixtures/census_gov_finance_codes/"
+                "census-aspep-function-item-codes-2026-08-03.html"
+            ),
+            sha256=(
+                "sha256:77b6ddf18572165b6e4526042dacba9fcff80b79cc7f21f1193db3210730dcb3"
+            ),
+            byte_length=321_793,
+            fmt="html",
+            role="publisherSource",
+            source_iri=(
+                "https://www.census.gov/programs-surveys/apes/"
+                "technical-documentation/code-lists/data-function.html"
+            ),
+        ),
+        "census-aspep-function-item-codes-2026-08-03",
+        "census-aspep-function-items",
+        "censusFunctionItemCode",
+        r"<table[^>]*>(?P<region>.*?)</table>",
+        (
+            r"<tr>\s*<td[^>]*>\s*(?P<code>\d{3})\s*=\s*"
+            r"(?P<label>.*?)</td>\s*</tr>"
+        ),
+        33,
+    ),
+    (
+        "census-data-flags",
+        SourcePin(
+            path=(
+                "tests/fixtures/census_gov_finance_codes/"
+                "census-aspep-data-flag-codes-2026-08-03.html"
+            ),
+            sha256=(
+                "sha256:ef47e5a56d2997b4a05f1a3d5c6d112c92735bc876990ae03038020d07b19c39"
+            ),
+            byte_length=323_893,
+            fmt="html",
+            role="publisherSource",
+            source_iri=(
+                "https://www.census.gov/programs-surveys/apes/"
+                "technical-documentation/code-lists/data-flags.html"
+            ),
+        ),
+        "census-aspep-data-flag-codes-2026-08-03",
+        "census-aspep-data-flags",
+        "censusDataFlagCode",
+        r"<table[^>]*>(?P<region>.*?)</table>",
+        (
+            r"<tr>\s*<td[^>]*>\s*(?P<code>[A-Z])\s*</td>\s*"
+            r"<td[^>]*>(?P<label>.*?)</td>\s*</tr>"
+        ),
+        16,
+    ),
+)
+
+
+def _census_finance_pattern_source(
+    *,
+    name: str,
+    pin: SourcePin,
+    resource_id: str,
+    source_token: str,
+    identifier_kind: str,
+    region_pattern: str,
+    row_pattern: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:15:00Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.census.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(("observed_at", observed_at),),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=f"urn:ref:source-concept:v2:{source_token}:{{source_uuid7}}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedCodeRows",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.rows[{ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [
+                            {
+                                "authorityUri": "https://www.census.gov/",
+                                "kind": identifier_kind,
+                                "observedAt": observed_at,
+                                "sourceDigest": "{source_digest}",
+                                "sourcePath": "{source_path}",
+                                "sourceUri": "{source_iri}",
+                                "value": "{code}",
+                            }
+                        ],
+                        "publisherLabel": "{label}",
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourceOrdinal": "{ordinal}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (pin,), selector)
+
+
+CENSUS_FINANCE_PATTERN_ROW_SOURCES = tuple(
+    _census_finance_pattern_source(
+        name=name,
+        pin=pin,
+        resource_id=resource_id,
+        source_token=source_token,
+        identifier_kind=identifier_kind,
+        region_pattern=region_pattern,
+        row_pattern=row_pattern,
+        expected_count=expected_count,
+    )
+    for (
+        name,
+        pin,
+        resource_id,
+        source_token,
+        identifier_kind,
+        region_pattern,
+        row_pattern,
+        expected_count,
+    ) in _CENSUS_FINANCE_PATTERN_DECLARATIONS
+)
+
+
+_NASBO_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/census_gov_finance_codes/"
+        "nasbo-ser-program-area-chapters-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:cff509abccd46a7bba32e5261164a430934db29004024c2b66d389d83ef9ba57"
+    ),
+    byte_length=189_899,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://www.nasbo.org/mainsite/reports-data/state-expenditure-report"
+    ),
+)
+
+
+def _nasbo_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:15:00Z"
+    resource_id = "nasbo-ser-program-area-chapters-2026-08-03"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_NASBO_PATTERN_PIN.path),
+                region_pattern=(
+                    r"<h2>Chapters</h2>.*?<table[^>]*>(?P<region>.*?)</table>"
+                ),
+                row_pattern=(
+                    r"<p class=\"card-description text-break font-size-md\"[^>]*>"
+                    r"(?:<strong>|<span[^>]*>)(?P<label>.*?)"
+                    r"(?:</strong>|</span>)</p>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=7,
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+                row_filters=(PatternRowFilter("label", r".+", True),),
+            ),
+        ),
+        row_key="{label}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:nasbo-program-areas:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=7,
+        declared_unevaluated_fields=("htmlOutsideSelectedChapterTitles",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.rows[{ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [],
+                        "publisherLabel": "{label}",
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourceOrdinal": "{ordinal}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "nasbo-program-areas", (_NASBO_PATTERN_PIN,), selector
+    )
+
+
+NASBO_PATTERN_ROW_SOURCES = (_nasbo_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -10037,6 +10324,8 @@ SOURCES: tuple[SourceSpec, ...] = (
     *UNIFIED_AGENDA_PATTERN_ROW_SOURCES,
     *SEC_PATTERN_ROW_SOURCES,
     *SCOTUS_PATTERN_ROW_SOURCES,
+    *CENSUS_FINANCE_PATTERN_ROW_SOURCES,
+    *NASBO_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
