@@ -22,6 +22,7 @@ governed scheme identities are deliberately outside this verifier.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import zipfile
 from collections.abc import Callable, Sequence
@@ -30,8 +31,14 @@ from pathlib import Path
 
 import pytest
 
+import tools.verify_atlas_source_fidelity as fidelity
 from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
+    NAICS_PSC_XLSX_READER,
+    NPPES_CSV_READER,
+    OPM_EHRI_XLSX_READER,
+    OPM_PLUM_CSV_READER,
+    TREASURY_FAST_BOOK_XLSX_READER,
     CheckResult,
     DeclaredClaimExclusion,
     Expectations,
@@ -368,6 +375,513 @@ def failed(results: Sequence) -> set[str]:
 def _plain_literal_quad(subject: str, predicate: str, value: str) -> str:
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'<{subject}> <{predicate}> "{escaped}" <{GRAPH}> .'
+
+
+def _native_payload_digest(payload: object) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def _add_single_record_stock_source(
+    suite: Fixture,
+    *,
+    release_key: str,
+    filename: str,
+    fmt: str,
+    source_iri: str,
+    source_bytes: bytes,
+    reader: str,
+    identity_policy: str,
+    resource: str,
+    source_locator: str,
+    native_payload: dict[str, object],
+    evaluated_native_fields: frozenset[str],
+    atlas_only_native_fields: frozenset[str],
+    atlas_label: str,
+    notation: str | None,
+    role: str = "publisherSource",
+) -> SourceSpec:
+    """Add one authenticated stock-reader row and its explicit Atlas pair."""
+    source_path = suite.source_root / filename
+    source_path.write_bytes(source_bytes)
+    source_pin = SourcePin(
+        path=filename,
+        sha256="sha256:" + hashlib.sha256(source_bytes).hexdigest(),
+        byte_length=len(source_bytes),
+        fmt=fmt,
+        role=role,
+        source_iri=source_iri,
+    )
+    spec = SourceSpec(
+        name=release_key,
+        kind="vocabulary",
+        release_keys=(release_key,),
+        inputs=(source_pin,),
+        reader=reader,
+        identity_policy=identity_policy,
+        policies=frozenset(
+            {
+                "english-label-selection",
+                "english-annotation-selection",
+                "skos-note-to-atlas-note",
+                "top-concept-source-shape-inverse",
+            }
+        ),
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=evaluated_native_fields,
+            atlas_only_native_payload_fields=atlas_only_native_fields,
+        ),
+    )
+    record = f"urn:example:source-record:{release_key}"
+    label = f"urn:example:label:{release_key}"
+    lines = [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(
+            resource,
+            f"{SKOS}inScheme",
+            f"urn:ref:atlas-resource-scheme:{release_key}",
+        ),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", source_locator),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}sourceDigest",
+            _native_payload_digest(native_payload),
+        ),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps(native_payload, separators=(",", ":")),
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", label),
+        _quad(label, f"{SKOSXL}literalForm", atlas_label, literal=True),
+    ]
+    if notation is not None:
+        lines.append(_plain_literal_quad(resource, f"{ATLAS}notation", notation))
+
+    pack_relative = f"sources/{release_key}/all.nq.zst"
+    pack_path = suite.distribution / "packs" / pack_relative
+    pack_path.parent.mkdir(parents=True)
+    transport = zstd.compress(("\n".join(lines) + "\n").encode())
+    pack_path.write_bytes(transport)
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["releases"].append(
+        {
+            "key": release_key,
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": source_pin.path,
+                    "sha256": source_pin.sha256,
+                    "byteLength": source_pin.byte_length,
+                    "role": source_pin.role,
+                    "sourceIri": source_pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{pack_relative}"}],
+            "recordCounts": {"resources": 1, "labels": 1},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{pack_relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    return spec
+
+
+def _xlsx_bytes(sheets: Sequence[tuple[str, Sequence[Sequence[object]]]]) -> bytes:
+    """Create a small deterministic workbook for stock-reader tests."""
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    for name, rows in sheets:
+        worksheet = workbook.create_sheet(name)
+        for row in rows:
+            worksheet.append(list(row))
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+def _stock_reader_case(
+    suite: Fixture,
+    monkeypatch: pytest.MonkeyPatch,
+    reader: str,
+    *,
+    rewritten_label: bool,
+) -> SourceSpec:
+    """Build one tiny valid source for each tabular reader kind."""
+    atlas_label_suffix = " rewritten" if rewritten_label else ""
+    if reader == OPM_EHRI_XLSX_READER:
+        monkeypatch.setattr(fidelity, "_OPM_EHRI_EXPECTED_COUNTS", (1, 1, 1))
+        source_iri = "https://data.opm.gov/data-standards/ehri-data-standards"
+        source_bytes = _xlsx_bytes(
+            (
+                (
+                    "AllDataElements",
+                    (
+                        (
+                            "Name",
+                            "Description",
+                            "Data Format",
+                            "Data Length",
+                            "Valid Values",
+                            "Current Values",
+                            "Past Values",
+                        ),
+                        ("Status", "Status field", "AN", "1", "Y", "A", "I"),
+                    ),
+                ),
+                (
+                    "CurrentValues",
+                    (
+                        ("Name", "Code", "Explanation", "From Date", "Through Date"),
+                        ("Status", "A", "Active", "2026-01-01", ""),
+                    ),
+                ),
+                (
+                    "PastValues",
+                    (
+                        ("Name", "Code", "Explanation", "From Date", "Through Date"),
+                        ("Status", "A", "Formerly active", "2020-01-01", "2025-12-31"),
+                    ),
+                ),
+            )
+        )
+        payload = {
+            "currentValue": {
+                "name": "Status",
+                "code": "A",
+                "explanation": "Active",
+                "from_date": "2026-01-01",
+                "through_date": "",
+            },
+            "field": {
+                "name": "Status",
+                "description": "Status field",
+                "data_format": "AN",
+                "data_length": "1",
+                "valid_values": "Y",
+                "current_values": "A",
+                "past_values": "I",
+            },
+            "identityScope": {"code": "A", "field": "Status"},
+            "identityStatus": "sourceLocalFieldCode",
+            "isCurrentValue": True,
+            "pastLifecycle": [
+                {
+                    "name": "Status",
+                    "code": "A",
+                    "explanation": "Formerly active",
+                    "from_date": "2020-01-01",
+                    "through_date": "2025-12-31",
+                }
+            ],
+        }
+        return _add_single_record_stock_source(
+            suite,
+            release_key="opm-ehri-data-standards-2026-08-04",
+            filename="ehri.xlsx",
+            fmt="xlsx",
+            source_iri=source_iri,
+            source_bytes=source_bytes,
+            reader=reader,
+            identity_policy="source-scoped-identifier",
+            resource=fidelity._source_local_resource_iri(
+                "opm-ehri",
+                "2026-08-04T00:00:00Z",
+                source_iri,
+                "Status\u001fA",
+            ),
+            source_locator=source_iri + "#CurrentValues/0",
+            native_payload=payload,
+            evaluated_native_fields=frozenset(
+                {"currentValue", "field", "identityScope", "isCurrentValue", "pastLifecycle"}
+            ),
+            atlas_only_native_fields=frozenset({"identityStatus"}),
+            atlas_label="Active" + atlas_label_suffix,
+            notation="A",
+        )
+
+    if reader == OPM_PLUM_CSV_READER:
+        monkeypatch.setattr(fidelity, "_OPM_PLUM_EXPECTED_ROW_COUNT", 1)
+        monkeypatch.setattr(
+            fidelity,
+            "_OPM_PLUM_EXPECTED_VALUE_COUNTS",
+            {"appointmentType": 1, "positionStatus": 0, "payPlan": 0},
+        )
+        source_iri = "https://escs.opm.gov/escs-net/api/pbpub/download-data"
+        values = ["" for _ in fidelity._OPM_PLUM_HEADER]
+        values[fidelity._OPM_PLUM_HEADER.index("AppointmentTypeDescription")] = "Career"
+        source_bytes = (",".join(fidelity._OPM_PLUM_HEADER) + "\n" + ",".join(values) + "\n").encode()
+        payload = {
+            "category": "appointmentType",
+            "identityScope": {"category": "appointmentType", "value": "Career"},
+            "identityStatus": "sourceObservedClosedValue",
+            "sourceColumn": "AppointmentTypeDescription",
+            "value": "Career",
+        }
+        return _add_single_record_stock_source(
+            suite,
+            release_key="opm-plum-position-status-codes-2026-08-04",
+            filename="plum.csv",
+            fmt="csv",
+            source_iri=source_iri,
+            source_bytes=source_bytes,
+            reader=reader,
+            identity_policy="source-scoped-identifier",
+            resource=fidelity._source_local_resource_iri(
+                "opm-plum",
+                "2026-08-04T00:00:00Z",
+                source_iri,
+                "appointmentType\u001fCareer",
+            ),
+            source_locator=source_iri + "#AppointmentTypeDescription=Career",
+            native_payload=payload,
+            evaluated_native_fields=frozenset({"category", "identityScope", "sourceColumn", "value"}),
+            atlas_only_native_fields=frozenset({"identityStatus"}),
+            atlas_label="Career" + atlas_label_suffix,
+            notation="Career",
+        )
+
+    if reader == NAICS_PSC_XLSX_READER:
+        monkeypatch.setattr(fidelity, "_NAICS_EXPECTED_SOURCE_ROW_COUNT", 1)
+        source_iri = "https://www.census.gov/naics/2022NAICS/2-6%20digit_2022_Codes.xlsx"
+        source_bytes = _xlsx_bytes(
+            (
+                (
+                    "Codes",
+                    (
+                        ("Seq. No.", "2022 NAICS US Code", "2022 NAICS US Title"),
+                        (1, "11", "Agriculture"),
+                    ),
+                ),
+            )
+        )
+        source_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+        payload = {
+            "facet": "sector",
+            "identifiers": [
+                {
+                    "value": "11",
+                    "kind": "naicsCode",
+                    "authorityUri": "https://www.census.gov/naics/",
+                    "sourceUri": source_iri,
+                    "observedAt": "2026-08-03T20:00:00Z",
+                    "effectiveAt": None,
+                    "sourceDigest": source_digest,
+                }
+            ],
+            "identityStatus": "publisherCodeSourceLocalIri",
+            "publisherLabel": "Agriculture",
+            "resourceName": "naicsCodes",
+            "use": "deterministicMetadata",
+        }
+        return _add_single_record_stock_source(
+            suite,
+            release_key="naics-2022",
+            filename="naics.xlsx",
+            fmt="xlsx",
+            source_iri=source_iri,
+            source_bytes=source_bytes,
+            reader=reader,
+            identity_policy="source-scoped-identifier",
+            resource=fidelity._source_local_resource_iri(
+                "naics-2022",
+                "2026-08-03T20:00:00Z",
+                source_iri,
+                "11",
+            ),
+            source_locator=source_iri + "#code=11",
+            native_payload=payload,
+            evaluated_native_fields=frozenset({"facet", "identifiers", "publisherLabel", "resourceName", "use"}),
+            atlas_only_native_fields=frozenset({"identityStatus"}),
+            atlas_label="Agriculture" + atlas_label_suffix,
+            notation="11",
+        )
+
+    if reader == TREASURY_FAST_BOOK_XLSX_READER:
+        from datetime import date
+
+        monkeypatch.setattr(
+            fidelity,
+            "_FAST_BOOK_EXPECTED_PART_COUNTS",
+            {"II": 1, "III": 0},
+        )
+        monkeypatch.setattr(fidelity, "_FAST_BOOK_EXPECTED_ACCOUNT_COUNT", 1)
+        source_iri = "https://tfx.treasury.gov/media/60111/download?inline="
+        source_bytes = _xlsx_bytes(
+            (
+                ("Intro Part II", ()),
+                (
+                    "Part II",
+                    (
+                        (),
+                        fidelity._FAST_BOOK_HEADERS["Part II"],
+                        (
+                            "001",
+                            "0001",
+                            "X",
+                            "001X0001",
+                            "Treasury",
+                            "Test Account",
+                            "Test law",
+                            "General Fund",
+                            None,
+                            date(2026, 7, 31),
+                        ),
+                    ),
+                ),
+                ("Intro Part III", ()),
+                ("Part III", ((), fidelity._FAST_BOOK_HEADERS["Part III"])),
+                ("Changes", ()),
+            )
+        )
+        payload = {
+            "treasuryAccountSymbol": "001X0001",
+            "publishedRows": [
+                {
+                    "part": "II",
+                    "treasury_account_symbol": "001X0001",
+                    "agency_identifier": "001",
+                    "main_account": "0001",
+                    "agency_name": "Treasury",
+                    "account_title": "Test Account",
+                    "legislation": "Test law",
+                    "fund_type": "General Fund",
+                    "independent_agency_identifier": None,
+                    "last_updated": "2026-07-31",
+                }
+            ],
+            "duplicatePublisherRowCount": 0,
+        }
+        return _add_single_record_stock_source(
+            suite,
+            release_key="treasury-fast-book-accounts-parts-ii-iii-2026-07",
+            filename="fast-book.xlsx",
+            fmt="xlsx",
+            source_iri=source_iri,
+            source_bytes=source_bytes,
+            reader=reader,
+            identity_policy="source-local-record",
+            resource="urn:ref:treasury-account:001X0001",
+            source_locator=source_iri,
+            native_payload=payload,
+            evaluated_native_fields=frozenset({"treasuryAccountSymbol", "publishedRows", "duplicatePublisherRowCount"}),
+            atlas_only_native_fields=frozenset(),
+            atlas_label="Treasury — Test Account" + atlas_label_suffix,
+            notation=None,
+        )
+
+    if reader == NPPES_CSV_READER:
+        monkeypatch.setattr(fidelity, "_NPPES_EXPECTED_LAYOUT_COLUMN_COUNT", 1)
+        source_iri = "urn:ref:nppes:source:npi-file-header-v2:test"
+        payload = {
+            "columnName": "NPI",
+            "ordinal": 0,
+            "layoutVersion": "2",
+            "licensedTaxonomyValuesIncluded": False,
+        }
+        return _add_single_record_stock_source(
+            suite,
+            release_key="nppes-data-dissemination-layout-v2-2026-08-03",
+            filename="nppes-header.csv",
+            fmt="csv",
+            source_iri=source_iri,
+            source_bytes=b"NPI\n",
+            reader=reader,
+            identity_policy="source-local-record",
+            resource="urn:ref:nppes-layout:v2:field-000",
+            source_locator=source_iri,
+            native_payload=payload,
+            evaluated_native_fields=frozenset(
+                {"columnName", "ordinal", "layoutVersion", "licensedTaxonomyValuesIncluded"}
+            ),
+            atlas_only_native_fields=frozenset(),
+            atlas_label="NPI" + atlas_label_suffix,
+            notation="0",
+            role="publisherFileHeader",
+        )
+    raise AssertionError(f"unhandled reader test case {reader!r}")
+
+
+@pytest.mark.parametrize(
+    "reader",
+    (
+        OPM_EHRI_XLSX_READER,
+        OPM_PLUM_CSV_READER,
+        NAICS_PSC_XLSX_READER,
+        TREASURY_FAST_BOOK_XLSX_READER,
+        NPPES_CSV_READER,
+    ),
+)
+def test_tabular_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+    monkeypatch: pytest.MonkeyPatch,
+    reader: str,
+) -> None:
+    spec = _stock_reader_case(suite, monkeypatch, reader, rewritten_label=False)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [item.failures for item in results if not item.passed]
+
+
+@pytest.mark.parametrize(
+    "reader",
+    (
+        OPM_EHRI_XLSX_READER,
+        OPM_PLUM_CSV_READER,
+        NAICS_PSC_XLSX_READER,
+        TREASURY_FAST_BOOK_XLSX_READER,
+        NPPES_CSV_READER,
+    ),
+)
+def test_tabular_reader_catches_rewritten_label(
+    suite: Fixture,
+    monkeypatch: pytest.MonkeyPatch,
+    reader: str,
+) -> None:
+    spec = _stock_reader_case(suite, monkeypatch, reader, rewritten_label=True)
+
+    check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not check.passed
+    assert any("rewritten" in failure for failure in check.failures)
 
 
 def _add_native_control(

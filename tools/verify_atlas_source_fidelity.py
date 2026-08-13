@@ -70,6 +70,7 @@ inputs and checks still run.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import io
 import json
@@ -78,10 +79,12 @@ import re
 import sys
 import threading
 import urllib.parse
+import uuid
 import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -628,6 +631,10 @@ class PublisherView:
     declared_out_of_scope_subjects: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict
     )
+    resource_locators: Mapping[str, str] = field(default_factory=dict)
+    expected_native_payloads: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass(frozen=True)
@@ -820,6 +827,8 @@ class SourceSpec:
     kind: str  # "vocabulary", "mapping", "native-control", or "source-extract"
     release_keys: tuple[str, ...]
     inputs: tuple[SourcePin, ...]
+    reader: str = "rdf"
+    identity_policy: str = "publisher-iri"
     policies: frozenset[str] = frozenset()
     subset: str = "all"
     included_concept_iris: frozenset[str] = frozenset()
@@ -1595,7 +1604,7 @@ def _read_publisher_pin_set(
 
 
 def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
-    """Read and union every independently pinned RDF input for one comparison scope."""
+    """Read every independently pinned input with the spec's stock parser."""
     payloads = {
         pin: read_verified_file_pin(
             _resolve_source_pin(source_root, pin),
@@ -1605,6 +1614,11 @@ def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
         )
         for pin in spec.inputs
     }
+    if spec.reader != "rdf":
+        reader = _PUBLISHER_READERS.get(spec.reader)
+        if reader is None:
+            raise ValueError(f"unsupported publisher reader {spec.reader!r}")
+        return reader(spec, payloads)
     view = _select_publisher_view(
         _read_publisher_pin_set(
             spec.inputs,
@@ -1717,6 +1731,12 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
             view.declared_out_of_scope_blank_node_claims
         ),
         declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
+        resource_locators={
+            resource: locator for resource, locator in view.resource_locators.items() if resource in resources
+        },
+        expected_native_payloads={
+            resource: payload for resource, payload in view.expected_native_payloads.items() if resource in resources
+        },
     )
 
 
@@ -1808,6 +1828,12 @@ def _select_publisher_concepts(
             view.declared_out_of_scope_blank_node_claims
         ),
         declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
+        resource_locators={
+            resource: locator for resource, locator in view.resource_locators.items() if resource in resources
+        },
+        expected_native_payloads={
+            resource: payload for resource, payload in view.expected_native_payloads.items() if resource in resources
+        },
     )
 
 
@@ -1823,6 +1849,840 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
         return result
 
     return json.loads(payload, object_pairs_hook=reject_duplicates)
+
+
+@dataclass(frozen=True)
+class _StockSourceRecord:
+    """One record reconstructed without importing a registry adapter."""
+
+    resource: str
+    preferred_label: str
+    alternate_labels: tuple[str, ...]
+    notations: tuple[str, ...]
+    source_locator: str
+    native_payload: Mapping[str, Any]
+
+
+def _stock_source_view(
+    records: Sequence[_StockSourceRecord],
+    relations: Collection[tuple[str, str, str]],
+    pins: Sequence[SourcePin],
+    *,
+    unevaluated_claims: Sequence[str] = (),
+) -> PublisherView:
+    """Build the common comparison view from independently parsed records."""
+    concepts: set[str] = set()
+    pref_labels: dict[str, frozenset[LiteralValue]] = {}
+    alt_labels: dict[str, frozenset[LiteralValue]] = {}
+    notations: dict[str, frozenset[LiteralValue]] = {}
+    iri_claims: set[tuple[str, str, str]] = set(relations)
+    literal_claims: set[tuple[str, str, LiteralValue]] = set()
+    predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
+    resource_input_digests: dict[str, frozenset[str]] = {}
+    resource_locators: dict[str, str] = {}
+    expected_native_payloads: dict[str, Mapping[str, Any]] = {}
+    for record in records:
+        if record.resource in concepts:
+            raise ValueError(f"stock source reader repeats resource {record.resource!r}")
+        concepts.add(record.resource)
+        preferred = _literal_value(record.preferred_label, "en", None)
+        alternate = frozenset(_literal_value(value, "en", None) for value in record.alternate_labels)
+        notation_values = frozenset(_literal_value(value, None, None) for value in record.notations)
+        pref_labels[record.resource] = frozenset({preferred})
+        alt_labels[record.resource] = alternate
+        notations[record.resource] = notation_values
+        literal_claims.add((record.resource, SKOS_PREF_LABEL, preferred))
+        literal_claims.update((record.resource, SKOS_ALT_LABEL, literal) for literal in alternate)
+        literal_claims.update((record.resource, SKOS_NOTATION, literal) for literal in notation_values)
+        predicate_counts[(record.resource, SKOS_PREF_LABEL)] = 1
+        predicate_counts[(record.resource, SKOS_ALT_LABEL)] = len(alternate)
+        predicate_counts[(record.resource, SKOS_NOTATION)] = len(notation_values)
+        resource_input_digests[record.resource] = frozenset({_canonical_json_digest(record.native_payload)})
+        resource_locators[record.resource] = record.source_locator
+        expected_native_payloads[record.resource] = record.native_payload
+    for subject, predicate, _ in relations:
+        predicate_counts[(subject, predicate)] += 1
+    unknown_relation_endpoints = sorted(
+        {endpoint for subject, _, obj in relations for endpoint in (subject, obj) if endpoint not in concepts}
+    )
+    if unknown_relation_endpoints:
+        raise ValueError(f"stock source relations name unknown resources: {unknown_relation_endpoints[:5]}")
+    return PublisherView(
+        concepts=frozenset(concepts),
+        schemes=frozenset(),
+        pref_labels=pref_labels,
+        alt_labels=alt_labels,
+        hidden_labels={},
+        notations=notations,
+        annotations=frozenset(),
+        resource_annotations=frozenset(),
+        resource_annotation_target_claim_counts={},
+        literal_claims=frozenset(literal_claims),
+        iri_claims=frozenset(iri_claims),
+        reified_statements=frozenset(),
+        pref_label_count_all_languages=len(pref_labels),
+        alt_label_count_all_languages=sum(len(values) for values in alt_labels.values()),
+        hidden_label_count_all_languages=0,
+        relations=frozenset(relations),
+        memberships=frozenset(),
+        top_concept_of=frozenset(),
+        has_top_concept=frozenset(),
+        resource_predicate_counts=dict(predicate_counts),
+        defects=(),
+        resource_input_digests=resource_input_digests,
+        input_content_digests={pin.path: pin.sha256 for pin in pins},
+        unevaluated_claims=tuple(unevaluated_claims),
+        resource_locators=resource_locators,
+        expected_native_payloads=expected_native_payloads,
+    )
+
+
+def _derive_source_uuid7(recorded_at: str, seed: bytes) -> str:
+    """Independently derive the deterministic UUIDv7 used for local rows."""
+    parsed = datetime.fromisoformat(recorded_at[:-1] + "+00:00" if recorded_at.endswith("Z") else recorded_at)
+    if parsed.tzinfo is None:
+        raise ValueError("source-local identity timestamp must include a time zone")
+    timestamp_ms = int(parsed.astimezone(UTC).timestamp() * 1_000)
+    if timestamp_ms < 0 or timestamp_ms >= 1 << 48:
+        raise ValueError("source-local identity timestamp is outside UUIDv7 range")
+    random_bits = int.from_bytes(hashlib.sha256(seed).digest(), "big") >> 182
+    random_a = random_bits >> 62
+    random_b = random_bits & ((1 << 62) - 1)
+    value = timestamp_ms << 80
+    value |= 0x7 << 76
+    value |= random_a << 64
+    value |= 0b10 << 62
+    value |= random_b
+    return str(uuid.UUID(int=value))
+
+
+def _source_local_resource_iri(
+    namespace: str,
+    recorded_at: str,
+    source_iri: str,
+    source_key: str,
+) -> str:
+    """Reconstruct one registry-local identity from publisher identity inputs."""
+    seed = (f"atlas-v3-registry-source-identity-v1\n{source_iri}\n{source_key}\n").encode()
+    local_id = _derive_source_uuid7(recorded_at, seed)
+    return f"urn:ref:source-concept:v2:{namespace}:{local_id}"
+
+
+OPM_EHRI_XLSX_READER = "opm-ehri-data-standards-xlsx-v1"
+OPM_PLUM_CSV_READER = "opm-plum-controlled-values-csv-v1"
+NAICS_PSC_XLSX_READER = "naics-psc-workbook-v1"
+TREASURY_FAST_BOOK_XLSX_READER = "treasury-fast-book-parts-ii-iii-xlsx-v1"
+NPPES_CSV_READER = "nppes-layout-and-provider-sample-csv-v1"
+
+_OPM_EHRI_EXPECTED_COUNTS = (534, 17_263, 16_425)
+_OPM_PLUM_EXPECTED_ROW_COUNT = 15_777
+_OPM_PLUM_EXPECTED_VALUE_COUNTS = {
+    "appointmentType": 12,
+    "positionStatus": 2,
+    "payPlan": 13,
+}
+_NAICS_EXPECTED_SOURCE_ROW_COUNT = 2_125
+_PSC_EXPECTED_SOURCE_ROW_COUNT = 6_108
+_PSC_EXPECTED_ACTIVE_CODE_COUNT = 2_344
+_FAST_BOOK_EXPECTED_PART_COUNTS = {"II": 3_442, "III": 140}
+_FAST_BOOK_EXPECTED_ACCOUNT_COUNT = 3_581
+_NPPES_EXPECTED_LAYOUT_COLUMN_COUNT = 330
+_NPPES_EXPECTED_PROVIDER_COUNT = 3
+
+
+def _load_xlsx(payload: bytes, source: str) -> Any:
+    """Open one authenticated XLSX payload with the stock workbook library."""
+    from openpyxl import load_workbook
+
+    try:
+        return load_workbook(io.BytesIO(payload), read_only=True, data_only=True)
+    except Exception as error:
+        raise ValueError(f"{source} is not a readable XLSX workbook") from error
+
+
+def _cell_text(value: object) -> str:
+    """Spell an empty or scalar workbook cell as publisher text."""
+    return "" if value is None else str(value)
+
+
+def _read_opm_ehri_xlsx(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read OPM EHRI fields and current values independently with openpyxl."""
+    if len(spec.inputs) != 1:
+        raise ValueError("OPM EHRI reader requires one workbook")
+    pin = spec.inputs[0]
+    workbook = _load_xlsx(authenticated_payloads[pin], spec.name)
+    expected_sheets = ("AllDataElements", "CurrentValues", "PastValues")
+    if tuple(workbook.sheetnames) != expected_sheets:
+        raise ValueError(f"OPM EHRI workbook sheets drifted: {workbook.sheetnames!r}")
+    element_header = (
+        "Name",
+        "Description",
+        "Data Format",
+        "Data Length",
+        "Valid Values",
+        "Current Values",
+        "Past Values",
+    )
+    value_header = ("Name", "Code", "Explanation", "From Date", "Through Date")
+    element_rows = workbook["AllDataElements"].iter_rows(values_only=True)
+    if tuple(_cell_text(value) for value in next(element_rows)) != element_header:
+        raise ValueError("OPM EHRI AllDataElements header drifted")
+    fields: dict[str, dict[str, str]] = {}
+    for row in element_rows:
+        if not any(value is not None and str(value) for value in row):
+            continue
+        values = tuple(_cell_text(value) for value in row)
+        field = {
+            "name": values[0],
+            "description": values[1],
+            "data_format": values[2],
+            "data_length": values[3],
+            "valid_values": values[4],
+            "current_values": values[5],
+            "past_values": values[6],
+        }
+        if field["name"] in fields:
+            raise ValueError(f"OPM EHRI repeats field {field['name']!r}")
+        fields[field["name"]] = field
+
+    def read_values(sheet_name: str) -> list[dict[str, str]]:
+        rows = workbook[sheet_name].iter_rows(values_only=True)
+        if tuple(_cell_text(value) for value in next(rows)) != value_header:
+            raise ValueError(f"OPM EHRI {sheet_name} header drifted")
+        return [
+            {
+                "name": values[0],
+                "code": values[1],
+                "explanation": values[2],
+                "from_date": values[3],
+                "through_date": values[4],
+            }
+            for row in rows
+            if any(value is not None and str(value) for value in row)
+            for values in [tuple(_cell_text(value) for value in row)]
+        ]
+
+    current = read_values("CurrentValues")
+    past = read_values("PastValues")
+    if (len(fields), len(current), len(past)) != _OPM_EHRI_EXPECTED_COUNTS:
+        raise ValueError(f"OPM EHRI workbook counts drifted: observed {(len(fields), len(current), len(past))!r}")
+    past_by_key: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
+    for value in past:
+        past_by_key[(value["name"], value["code"])].append(value)
+    records: list[_StockSourceRecord] = []
+    seen: set[tuple[str, str]] = set()
+    for ordinal, value in enumerate(current):
+        key = (value["name"], value["code"])
+        if key in seen:
+            raise ValueError(f"OPM EHRI repeats current field/code {key!r}")
+        seen.add(key)
+        field = fields.get(value["name"])
+        if field is None:
+            raise ValueError(f"OPM EHRI current value names unknown field {value['name']!r}")
+        locator = f"{pin.source_iri}#CurrentValues/{ordinal}"
+        records.append(
+            _StockSourceRecord(
+                resource=_source_local_resource_iri(
+                    "opm-ehri",
+                    "2026-08-04T00:00:00Z",
+                    str(pin.source_iri),
+                    f"{value['name']}\u001f{value['code']}",
+                ),
+                preferred_label=value["explanation"].strip(),
+                alternate_labels=(),
+                notations=(value["code"],),
+                source_locator=locator,
+                native_payload={
+                    "currentValue": value,
+                    "field": field,
+                    "identityScope": {
+                        "code": value["code"],
+                        "field": value["name"],
+                    },
+                    "identityStatus": "sourceLocalFieldCode",
+                    "isCurrentValue": True,
+                    "pastLifecycle": past_by_key.get(key, []),
+                },
+            )
+        )
+    return _stock_source_view(records, frozenset(), spec.inputs)
+
+
+_OPM_PLUM_HEADER = (
+    "AgencyName",
+    "OrganizationName",
+    "PositionTitle",
+    "PositionStatus",
+    "AppointmentTypeDescription",
+    "ExpirationDate",
+    "LevelGradePay",
+    "Location",
+    "IncumbentFirstName",
+    "IncumbentLastName",
+    "PaymentPlanDescription",
+    "Tenure",
+    "IncumbentBeginDate",
+    "IncumbentVacateDate",
+)
+
+
+def _read_opm_plum_csv(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read PLUM's observed closed values without importing person rows."""
+    if len(spec.inputs) != 1:
+        raise ValueError("OPM PLUM reader requires one CSV input")
+    pin = spec.inputs[0]
+    try:
+        text = authenticated_payloads[pin].decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise ValueError("OPM PLUM input is not UTF-8 CSV") from error
+    reader = csv.DictReader(io.StringIO(text, newline=""))
+    if tuple(reader.fieldnames or ()) != _OPM_PLUM_HEADER:
+        raise ValueError(f"OPM PLUM header drifted: {reader.fieldnames!r}")
+    rows = list(reader)
+    if len(rows) != _OPM_PLUM_EXPECTED_ROW_COUNT:
+        raise ValueError(f"OPM PLUM row count drifted: observed {len(rows)}")
+    categories = (
+        (
+            "appointmentType",
+            "AppointmentTypeDescription",
+            sorted({row["AppointmentTypeDescription"] for row in rows if row["AppointmentTypeDescription"]}),
+        ),
+        (
+            "positionStatus",
+            "PositionStatus",
+            sorted({row["PositionStatus"] for row in rows if row["PositionStatus"]}),
+        ),
+        (
+            "payPlan",
+            "PaymentPlanDescription",
+            sorted({row["PaymentPlanDescription"] for row in rows if row["PaymentPlanDescription"]}),
+        ),
+    )
+    if {name: len(values) for name, _, values in categories} != _OPM_PLUM_EXPECTED_VALUE_COUNTS:
+        raise ValueError("OPM PLUM controlled-value counts drifted")
+    records: list[_StockSourceRecord] = []
+    for category, column, values in categories:
+        for value in values:
+            locator = f"{pin.source_iri}#{urllib.parse.quote(f'{column}={value}', safe='=')}"
+            records.append(
+                _StockSourceRecord(
+                    resource=_source_local_resource_iri(
+                        "opm-plum",
+                        "2026-08-04T00:00:00Z",
+                        str(pin.source_iri),
+                        f"{category}\u001f{value}",
+                    ),
+                    preferred_label=value,
+                    alternate_labels=(),
+                    notations=(value,),
+                    source_locator=locator,
+                    native_payload={
+                        "category": category,
+                        "identityScope": {"category": category, "value": value},
+                        "identityStatus": "sourceObservedClosedValue",
+                        "sourceColumn": column,
+                        "value": value,
+                    },
+                )
+            )
+    return _stock_source_view(records, frozenset(), spec.inputs)
+
+
+def _identifier_payload(
+    *,
+    value: str,
+    kind: str,
+    authority_iri: str,
+    source_iri: str,
+    observed_at: str,
+    effective_at: str | None,
+    source_digest: str,
+) -> dict[str, Any]:
+    """Spell the independently reconstructed controlled identifier."""
+    return {
+        "value": value,
+        "kind": kind,
+        "authorityUri": authority_iri,
+        "sourceUri": source_iri,
+        "observedAt": observed_at,
+        "effectiveAt": effective_at,
+        "sourceDigest": source_digest,
+    }
+
+
+def _naics_facet(code: str) -> str:
+    """Classify one publisher code by its stated digit level."""
+    if "-" in code:
+        return "sector"
+    return {
+        2: "sector",
+        3: "subsector",
+        4: "industryGroup",
+        5: "naicsIndustry",
+        6: "nationalIndustry",
+    }.get(len(code), "unsupported")
+
+
+def _xlsx_code(value: object) -> str:
+    """Preserve publisher code spelling across Excel numeric cells."""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return "" if value is None else str(value).strip()
+
+
+def _read_naics_psc_xlsx(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read the official NAICS or PSC workbook with openpyxl."""
+    if len(spec.inputs) != 1:
+        raise ValueError("NAICS/PSC reader requires one workbook")
+    pin = spec.inputs[0]
+    workbook = _load_xlsx(authenticated_payloads[pin], spec.name)
+    key = spec.release_keys[0]
+    records: list[_StockSourceRecord] = []
+    if key == "naics-2022":
+        if len(workbook.sheetnames) != 1:
+            raise ValueError("NAICS workbook must contain exactly one worksheet")
+        rows: list[list[str]] = []
+        for raw_row in workbook.active.iter_rows(values_only=True):
+            values = raw_row[:3]
+            if all(value is None for value in values):
+                continue
+            if any(value is None for value in values):
+                raise ValueError("NAICS populated row has a blank required cell")
+            rows.append([str(value).strip() for value in values])
+        if [" ".join(value.split()) for value in rows[0]] != [
+            "Seq. No.",
+            "2022 NAICS US Code",
+            "2022 NAICS US Title",
+        ]:
+            raise ValueError("NAICS workbook header drifted")
+        if len(rows) != _NAICS_EXPECTED_SOURCE_ROW_COUNT + 1:
+            raise ValueError(f"NAICS row count drifted: observed {len(rows) - 1}")
+        seen: set[str] = set()
+        for ordinal, (sequence, code, label) in enumerate(rows[1:], start=1):
+            if sequence != str(ordinal) or code in seen or not label or label != label.strip():
+                raise ValueError(f"NAICS row {ordinal} is malformed or duplicated")
+            facet = _naics_facet(code)
+            if facet == "unsupported":
+                raise ValueError(f"NAICS code {code!r} has unsupported shape")
+            seen.add(code)
+            identifier = _identifier_payload(
+                value=code,
+                kind="naicsCode",
+                authority_iri="https://www.census.gov/naics/",
+                source_iri=str(pin.source_iri),
+                observed_at="2026-08-03T20:00:00Z",
+                effective_at=None,
+                source_digest=pin.sha256,
+            )
+            locator = f"{pin.source_iri}#code={urllib.parse.quote(code, safe='')}"
+            records.append(
+                _StockSourceRecord(
+                    resource=_source_local_resource_iri(
+                        "naics-2022",
+                        "2026-08-03T20:00:00Z",
+                        str(pin.source_iri),
+                        code,
+                    ),
+                    preferred_label=label,
+                    alternate_labels=(),
+                    notations=(code,),
+                    source_locator=locator,
+                    native_payload={
+                        "facet": facet,
+                        "identifiers": [identifier],
+                        "identityStatus": "publisherCodeSourceLocalIri",
+                        "publisherLabel": label,
+                        "resourceName": "naicsCodes",
+                        "use": "deterministicMetadata",
+                    },
+                )
+            )
+    elif key == "psc-april-2025":
+        if workbook.sheetnames != ["PSC for 042025", "Category Managers"]:
+            raise ValueError(f"PSC workbook sheets drifted: {workbook.sheetnames!r}")
+        worksheet = workbook["PSC for 042025"]
+        worksheet.calculate_dimension(force=True)
+        rows = list(worksheet.iter_rows(values_only=True))
+        expected_header = (
+            "PSC CODE",
+            "PRODUCT AND SERVICE CODE NAME",
+            "START DATE",
+            "END DATE",
+            "PRODUCT AND SERVICE CODE FULL NAME (DESCRIPTION)",
+            "PRODUCT AND SERVICE CODE INCLUDES",
+            "PRODUCT AND SERVICE CODE EXCLUDES",
+            "PRODUCT AND SERVICE CODE NOTES",
+            "Parent PSC Code",
+            "PSC Category: Service (S)/Product (P)",
+            "Level 1 Category Code",
+            "Level 1 Category",
+            "Level 2 Category Code",
+            "Level 2 Category",
+        )
+        if not rows or tuple(rows[0][:14]) != expected_header or len(rows) != _PSC_EXPECTED_SOURCE_ROW_COUNT + 1:
+            raise ValueError("PSC workbook header or source row count drifted")
+        seen = set()
+        for source_row, row in enumerate(rows[1:], start=2):
+            code = _xlsx_code(row[0])
+            if re.fullmatch(r"[A-Z0-9]{4}", code) is None or row[3] is not None:
+                continue
+            label = row[1]
+            if not isinstance(label, str) or not label.strip() or label != label.strip():
+                raise ValueError(f"PSC row {source_row} has malformed label")
+            if code in seen:
+                raise ValueError(f"PSC active code {code!r} is duplicated")
+            seen.add(code)
+            raw_facet = row[11] if row[11] is not None else row[8]
+            if not isinstance(raw_facet, str) or not raw_facet.strip():
+                raise ValueError(f"PSC row {source_row} has no category")
+            start = row[2]
+            if not isinstance(start, (date, datetime)):
+                raise ValueError(f"PSC row {source_row} START DATE is not an Excel date")
+            identifier = _identifier_payload(
+                value=code,
+                kind="pscCode",
+                authority_iri="https://www.acquisition.gov/psc-manual/all",
+                source_iri=str(pin.source_iri),
+                observed_at="2026-08-04T01:17:18Z",
+                effective_at=start.date().isoformat() if isinstance(start, datetime) else start.isoformat(),
+                source_digest=pin.sha256,
+            )
+            locator = f"{pin.source_iri}#code={urllib.parse.quote(code, safe='')}"
+            records.append(
+                _StockSourceRecord(
+                    resource=_source_local_resource_iri(
+                        "psc-2025",
+                        "2026-08-04T01:17:18Z",
+                        str(pin.source_iri),
+                        code,
+                    ),
+                    preferred_label=label,
+                    alternate_labels=(),
+                    notations=(code,),
+                    source_locator=locator,
+                    native_payload={
+                        "facet": raw_facet.strip(),
+                        "identifiers": [identifier],
+                        "identityStatus": "publisherCodeSourceLocalIri",
+                        "publisherLabel": label,
+                        "resourceName": "pscCodes",
+                        "use": "deterministicMetadata",
+                    },
+                )
+            )
+        if len(records) != _PSC_EXPECTED_ACTIVE_CODE_COUNT:
+            raise ValueError(f"PSC active code count drifted: observed {len(records)}")
+    else:
+        raise ValueError(f"NAICS/PSC reader does not own {key!r}")
+    return _stock_source_view(records, frozenset(), spec.inputs)
+
+
+_FAST_BOOK_HEADERS: Mapping[str, tuple[str, ...]] = {
+    "Part II": (
+        "AID",
+        "Main",
+        "X-YEAR",
+        "TAS",
+        "Agency",
+        "Title",
+        "Legislation",
+        "Fund Type",
+        "Independent Agencies",
+        "Last update",
+    ),
+    "Part III": (
+        "AID",
+        "Main",
+        "X-YEAR",
+        "TAS",
+        "Agency",
+        "Title",
+        "Fund Type",
+        "Independent Agencies",
+        "Last update",
+    ),
+}
+_PUBLISHED_TAS = re.compile(r"^(?P<aid>\d{3})(?:X| )(?P<main>\d{4}(?:\.\d{3})?) ?$")
+
+
+def _fast_book_text(value: object, sheet: str, row_number: int, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{sheet} row {row_number} {field_name} is not text")
+    return value.strip()
+
+
+def _fast_book_optional_text(value: object) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("FAST Book optional text cell is malformed")
+    return value.strip()
+
+
+def _fast_book_date(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    raise ValueError("FAST Book Last update is not an Excel date")
+
+
+def _fast_book_independent_agency(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, int) and 0 <= value <= 999:
+        return f"{value:03d}"
+    if isinstance(value, str) and value.strip().isdigit() and len(value.strip()) <= 3:
+        return value.strip().zfill(3)
+    raise ValueError("FAST Book independent-agency identifier is malformed")
+
+
+def _read_treasury_fast_book_xlsx(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read official FAST Book Part II and III account rows with openpyxl."""
+    if len(spec.inputs) != 1:
+        raise ValueError("Treasury FAST Book reader requires one workbook")
+    pin = spec.inputs[0]
+    workbook = _load_xlsx(authenticated_payloads[pin], spec.name)
+    expected_sheets = ("Intro Part II", "Part II", "Intro Part III", "Part III", "Changes")
+    if tuple(workbook.sheetnames) != expected_sheets:
+        raise ValueError(f"FAST Book sheets drifted: {workbook.sheetnames!r}")
+    rows_by_tas: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    part_counts: dict[str, int] = {}
+    for sheet, part in (("Part II", "II"), ("Part III", "III")):
+        worksheet = workbook[sheet]
+        header = tuple(cell.value for cell in next(worksheet.iter_rows(min_row=2, max_row=2)))
+        if header != _FAST_BOOK_HEADERS[sheet]:
+            raise ValueError(f"FAST Book {sheet} header drifted")
+        count = 0
+        for row_number, row in enumerate(worksheet.iter_rows(min_row=3, values_only=True), start=3):
+            if not any(value is not None for value in row):
+                continue
+            tas = _fast_book_text(row[3], sheet, row_number, "TAS")
+            match = _PUBLISHED_TAS.fullmatch(tas)
+            if match is None:
+                raise ValueError(f"{sheet} row {row_number} TAS is malformed: {tas!r}")
+            if part == "II":
+                legislation = _fast_book_optional_text(row[6])
+                fund_cell, independent_cell, update_cell = row[7], row[8], row[9]
+            else:
+                legislation = None
+                fund_cell, independent_cell, update_cell = row[6], row[7], row[8]
+            rows_by_tas[tas].append(
+                {
+                    "part": part,
+                    "treasury_account_symbol": tas,
+                    "agency_identifier": match.group("aid"),
+                    "main_account": match.group("main"),
+                    "agency_name": _fast_book_text(row[4], sheet, row_number, "Agency"),
+                    "account_title": _fast_book_text(row[5], sheet, row_number, "Title"),
+                    "legislation": legislation,
+                    "fund_type": _fast_book_text(fund_cell, sheet, row_number, "Fund Type"),
+                    "independent_agency_identifier": _fast_book_independent_agency(independent_cell),
+                    "last_updated": _fast_book_date(update_cell),
+                }
+            )
+            count += 1
+        part_counts[part] = count
+    if part_counts != _FAST_BOOK_EXPECTED_PART_COUNTS or len(rows_by_tas) != _FAST_BOOK_EXPECTED_ACCOUNT_COUNT:
+        raise ValueError(f"FAST Book row or account count drifted: {part_counts!r}, {len(rows_by_tas)} accounts")
+    key = spec.release_keys[0]
+    records: list[_StockSourceRecord] = []
+    if key == "treasury-fast-book-accounts-parts-ii-iii-2026-07":
+        for tas in sorted(rows_by_tas):
+            rows = rows_by_tas[tas]
+            first = rows[0]
+            records.append(
+                _StockSourceRecord(
+                    resource=f"urn:ref:treasury-account:{urllib.parse.quote(tas, safe='')}",
+                    preferred_label=f"{first['agency_name']} — {first['account_title']}",
+                    alternate_labels=(),
+                    notations=(),
+                    source_locator=str(pin.source_iri),
+                    native_payload={
+                        "treasuryAccountSymbol": tas,
+                        "publishedRows": rows,
+                        "duplicatePublisherRowCount": len(rows) - 1,
+                    },
+                )
+            )
+    elif key == "treasury-fast-book-fund-types-parts-ii-iii-2026-07":
+        counts: Counter[tuple[str, str]] = Counter(
+            (row["part"], row["fund_type"]) for rows in rows_by_tas.values() for row in rows
+        )
+        for fund_type in sorted({fund for _, fund in counts}):
+            parts = sorted(part for part in {part for part, _ in counts} if counts[(part, fund_type)])
+            records.append(
+                _StockSourceRecord(
+                    resource=(
+                        "urn:ref:treasury-fast-book:fund-type:" + hashlib.sha256(fund_type.encode("utf-8")).hexdigest()
+                    ),
+                    preferred_label=fund_type,
+                    alternate_labels=(),
+                    notations=(),
+                    source_locator=str(pin.source_iri),
+                    native_payload={
+                        "fundType": fund_type,
+                        "parts": parts,
+                        "accountCountsByPart": {part: counts[(part, fund_type)] for part in parts},
+                    },
+                )
+            )
+        if len(records) != 11:
+            raise ValueError(f"FAST Book fund-type count drifted: observed {len(records)}")
+    else:
+        raise ValueError(f"Treasury FAST Book reader does not own {key!r}")
+    return _stock_source_view(records, frozenset(), spec.inputs)
+
+
+def _npi_check_digit(base9: str) -> str:
+    digits = [int(char) for char in ("80840" + base9)]
+    total = 0
+    for position, digit in enumerate(reversed(digits)):
+        if position % 2 == 0:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        total += digit
+    return str((10 - (total % 10)) % 10)
+
+
+def _read_nppes_csv(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read the NPPES Version 2 layout and bounded provider rows with csv."""
+    pins_by_role = {pin.role: pin for pin in spec.inputs}
+    header_pin = pins_by_role.get("publisherFileHeader")
+    if header_pin is None:
+        raise ValueError("NPPES reader requires the publisher file-header pin")
+    try:
+        header_text = authenticated_payloads[header_pin].decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("NPPES file header is not UTF-8") from error
+    header_rows = [row for row in csv.reader(header_text.splitlines()) if row]
+    if len(header_rows) != 1:
+        raise ValueError("NPPES file-header capture must contain one row")
+    columns = header_rows[0]
+    if (
+        len(columns) != _NPPES_EXPECTED_LAYOUT_COLUMN_COUNT
+        or len(columns) != len(set(columns))
+        or any(not value for value in columns)
+    ):
+        raise ValueError("NPPES Version 2 layout columns drifted")
+    key = spec.release_keys[0]
+    records: list[_StockSourceRecord] = []
+    if key == "nppes-data-dissemination-layout-v2-2026-08-03":
+        for ordinal, column in enumerate(columns):
+            records.append(
+                _StockSourceRecord(
+                    resource=f"urn:ref:nppes-layout:v2:field-{ordinal:03d}",
+                    preferred_label=column,
+                    alternate_labels=(),
+                    notations=(str(ordinal),),
+                    source_locator=str(header_pin.source_iri),
+                    native_payload={
+                        "columnName": column,
+                        "ordinal": ordinal,
+                        "layoutVersion": "2",
+                        "licensedTaxonomyValuesIncluded": False,
+                    },
+                )
+            )
+    elif key == "nppes-npi-provider-sample-2026-08-03":
+        sample_pin = pins_by_role.get("publisherProviderSample")
+        if sample_pin is None:
+            raise ValueError("NPPES provider reader requires the bounded sample pin")
+        try:
+            sample_text = authenticated_payloads[sample_pin].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError("NPPES provider sample is not UTF-8") from error
+        rows = [row for row in csv.reader(sample_text.splitlines()) if row]
+        if not rows or rows[0] != columns or len(rows) != _NPPES_EXPECTED_PROVIDER_COUNT + 1:
+            raise ValueError("NPPES provider sample layout or row count drifted")
+        npi_index = columns.index("NPI")
+        entity_index = columns.index("Entity Type Code")
+        for ordinal, row in enumerate(rows[1:]):
+            if len(row) != len(columns):
+                raise ValueError(f"NPPES provider row {ordinal} width drifted")
+            npi = row[npi_index]
+            if re.fullmatch(r"\d{10}", npi) is None or npi[-1] != _npi_check_digit(npi[:9]):
+                raise ValueError(f"NPPES provider row {ordinal} has invalid NPI")
+            entity_type = row[entity_index]
+            if entity_type not in {"1", "2"}:
+                raise ValueError(f"NPPES provider row {ordinal} has invalid entity type")
+            if entity_type == "1":
+                label_columns = (
+                    "Provider Name Prefix Text",
+                    "Provider First Name",
+                    "Provider Middle Name",
+                    "Provider Last Name (Legal Name)",
+                    "Provider Credential Text",
+                )
+            else:
+                label_columns = ("Provider Organization Name (Legal Business Name)",)
+            label = " ".join(
+                row[columns.index(name)].strip() for name in label_columns if row[columns.index(name)].strip()
+            )
+            if not label:
+                raise ValueError(f"NPPES provider row {ordinal} has no public name")
+            source_uri = str(sample_pin.source_iri).partition("#")[0]
+            identifier = _identifier_payload(
+                value=npi,
+                kind="nationalProviderIdentifier",
+                authority_iri="https://nppes.cms.hhs.gov/",
+                source_iri=source_uri,
+                observed_at="2026-08-03T19:22:12Z",
+                effective_at=None,
+                source_digest=sample_pin.sha256,
+            )
+            records.append(
+                _StockSourceRecord(
+                    resource=f"urn:ref:nppes-provider:{npi}",
+                    preferred_label=label,
+                    alternate_labels=(),
+                    notations=(),
+                    source_locator=str(sample_pin.source_iri),
+                    native_payload={
+                        "entityTypeCode": entity_type,
+                        "identifier": identifier,
+                        "publisherLabel": label,
+                        "fields": dict(zip(columns, row, strict=True)),
+                    },
+                )
+            )
+    else:
+        raise ValueError(f"NPPES reader does not own {key!r}")
+    return _stock_source_view(records, frozenset(), spec.inputs)
+
+
+_PUBLISHER_READERS: Mapping[
+    str,
+    Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
+] = {
+    OPM_EHRI_XLSX_READER: _read_opm_ehri_xlsx,
+    OPM_PLUM_CSV_READER: _read_opm_plum_csv,
+    NAICS_PSC_XLSX_READER: _read_naics_psc_xlsx,
+    TREASURY_FAST_BOOK_XLSX_READER: _read_treasury_fast_book_xlsx,
+    NPPES_CSV_READER: _read_nppes_csv,
+}
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
@@ -3681,6 +4541,190 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
     ),
     SourceSpec(
+        name="opm-ehri-data-standards-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-ehri-data-standards-2026-08-04",),
+        inputs=(
+            _registry_source_pin(
+                "EHRI-Data-Standards-20260804.xlsx",
+                "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc",
+                1_154_183,
+                "https://data.opm.gov/data-standards/ehri-data-standards",
+                fmt="xlsx",
+            ),
+        ),
+        reader=OPM_EHRI_XLSX_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "currentValue",
+                    "field",
+                    "identityScope",
+                    "isCurrentValue",
+                    "pastLifecycle",
+                }
+            ),
+            atlas_only_native_payload_fields=frozenset({"identityStatus"}),
+        ),
+    ),
+    SourceSpec(
+        name="opm-plum-position-status-codes-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-plum-position-status-codes-2026-08-04",),
+        inputs=(
+            _registry_source_pin(
+                "OPM-PLUM-all-data-20260804.csv",
+                "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f",
+                2_737_270,
+                "https://escs.opm.gov/escs-net/api/pbpub/download-data",
+                fmt="csv",
+            ),
+        ),
+        reader=OPM_PLUM_CSV_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"category", "identityScope", "sourceColumn", "value"}),
+            atlas_only_native_payload_fields=frozenset({"identityStatus"}),
+        ),
+    ),
+    SourceSpec(
+        name="naics-2022",
+        kind="vocabulary",
+        release_keys=("naics-2022",),
+        inputs=(
+            _registry_source_pin(
+                "2-6-digit_2022_Codes.xlsx",
+                "sha256:be12ba41002803359f49181c9bf33a03fbd08578f4f4a4c0bbad7aadaaea0316",
+                82_460,
+                "https://www.census.gov/naics/2022NAICS/2-6%20digit_2022_Codes.xlsx",
+                fmt="xlsx",
+            ),
+        ),
+        reader=NAICS_PSC_XLSX_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"facet", "identifiers", "publisherLabel", "resourceName", "use"}),
+            atlas_only_native_payload_fields=frozenset({"identityStatus"}),
+        ),
+    ),
+    SourceSpec(
+        name="psc-april-2025",
+        kind="vocabulary",
+        release_keys=("psc-april-2025",),
+        inputs=(
+            _registry_source_pin(
+                "PSC-April-2025-wayback.xlsx",
+                "sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4",
+                462_762,
+                "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx",
+                fmt="xlsx",
+            ),
+        ),
+        reader=NAICS_PSC_XLSX_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"facet", "identifiers", "publisherLabel", "resourceName", "use"}),
+            atlas_only_native_payload_fields=frozenset({"identityStatus"}),
+        ),
+    ),
+    SourceSpec(
+        name="treasury-fast-book-accounts-parts-ii-iii-2026-07",
+        kind="vocabulary",
+        release_keys=("treasury-fast-book-accounts-parts-ii-iii-2026-07",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/treasury_tas_fast_book/fast-book-part-ii-iii-2026-07-31.xlsx",
+                sha256="sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461",
+                byte_length=420_508,
+                fmt="xlsx",
+                role="publisherWorkbookPartsIIAndIII",
+                source_iri="https://tfx.treasury.gov/media/60111/download?inline=",
+            ),
+        ),
+        reader=TREASURY_FAST_BOOK_XLSX_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"treasuryAccountSymbol", "publishedRows", "duplicatePublisherRowCount"})
+        ),
+    ),
+    SourceSpec(
+        name="treasury-fast-book-fund-types-parts-ii-iii-2026-07",
+        kind="vocabulary",
+        release_keys=("treasury-fast-book-fund-types-parts-ii-iii-2026-07",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/treasury_tas_fast_book/fast-book-part-ii-iii-2026-07-31.xlsx",
+                sha256="sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461",
+                byte_length=420_508,
+                fmt="xlsx",
+                role="publisherWorkbookPartsIIAndIII",
+                source_iri="https://tfx.treasury.gov/media/60111/download?inline=",
+            ),
+        ),
+        reader=TREASURY_FAST_BOOK_XLSX_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset({"fundType", "parts", "accountCountsByPart"})),
+    ),
+    SourceSpec(
+        name="nppes-data-dissemination-layout-v2-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nppes-data-dissemination-layout-v2-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_fileheader_v2.csv",
+                sha256="sha256:1f781040d7dae44496be1729250e79114b6dd03f17c10d7d8965486052177679",
+                byte_length=12_267,
+                fmt="csv",
+                role="publisherFileHeader",
+                source_iri="urn:ref:nppes:source:npi-file-header-v2:2026-07-27-2026-08-02",
+            ),
+        ),
+        reader=NPPES_CSV_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"columnName", "ordinal", "layoutVersion", "licensedTaxonomyValuesIncluded"})
+        ),
+    ),
+    SourceSpec(
+        name="nppes-npi-provider-sample-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nppes-npi-provider-sample-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_fileheader_v2.csv",
+                sha256="sha256:1f781040d7dae44496be1729250e79114b6dd03f17c10d7d8965486052177679",
+                byte_length=12_267,
+                fmt="csv",
+                role="publisherFileHeader",
+                source_iri="urn:ref:nppes:source:npi-file-header-v2:2026-07-27-2026-08-02",
+            ),
+            SourcePin(
+                path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_sample_v2.csv",
+                sha256="sha256:3735061e873e5db7cfb422aeaa7eea5514d0a5e8089765c94b82f0d43450a87d",
+                byte_length=15_866,
+                fmt="csv",
+                role="publisherProviderSample",
+                source_iri=(
+                    "https://download.cms.gov/nppes/"
+                    "NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip"
+                    "#bounded-provider-sample"
+                ),
+            ),
+        ),
+        reader=NPPES_CSV_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset({"entityTypeCode", "identifier", "publisherLabel", "fields"})),
+    ),
+    SourceSpec(
         name="federal-register-thesaurus-2025",
         kind="source-extract",
         release_keys=("federal-register-thesaurus-2025",),
@@ -3866,10 +4910,7 @@ def build_context(
     native_control_pairs: list[NativeControlPair] = []
     source_extract_pairs: list[SourceExtractPair] = []
     atlas_views: list[tuple[SourceSpec, AtlasView]] = []
-    publisher_cache: dict[
-        tuple[tuple[SourcePin, ...], tuple[str, ...], tuple[str, ...]],
-        PublisherView | str,
-    ] = {}
+    publisher_cache: dict[tuple[Any, ...], PublisherView | str] = {}
     native_specs = [spec for spec in specs if spec.kind == "native-control"]
     native_control_publishers: dict[SourceSpec, NativeControlPublisherView] = {}
     if native_specs:
@@ -3906,6 +4947,8 @@ def build_context(
                 else ()
             )
             cache_key = (
+                spec.reader,
+                spec.release_keys if spec.reader != "rdf" else (),
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
@@ -3918,16 +4961,22 @@ def build_context(
             cached = publisher_cache.get(cache_key)
             if cached is None:
                 try:
-                    cached = _read_publisher_pin_set(
-                        spec.inputs,
-                        " + ".join(sorted(pin.path for pin in spec.inputs)),
-                        authenticated_payloads,
-                        additional_annotation_predicates=(
-                            additional_annotation_predicates
-                        ),
-                        additional_relation_predicates=additional_relation_predicates,
-                        declared_claim_exclusions=spec.declared_claim_exclusions,
-                    )
+                    if spec.reader == "rdf":
+                        cached = _read_publisher_pin_set(
+                            spec.inputs,
+                            " + ".join(sorted(pin.path for pin in spec.inputs)),
+                            authenticated_payloads,
+                            additional_annotation_predicates=(
+                                additional_annotation_predicates
+                            ),
+                            additional_relation_predicates=additional_relation_predicates,
+                            declared_claim_exclusions=spec.declared_claim_exclusions,
+                        )
+                    else:
+                        reader = _PUBLISHER_READERS.get(spec.reader)
+                        if reader is None:
+                            raise ValueError(f"unsupported publisher reader {spec.reader!r}")
+                        cached = reader(spec, authenticated_payloads)
                 except Exception as error:  # noqa: BLE001 - keep reading independent sources
                     cached = f"{type(error).__name__}: {error}"
                 publisher_cache[cache_key] = cached
@@ -4100,6 +5149,12 @@ def check_configuration(ctx: Context) -> CheckResult:
         selector = spec.native_control
         if spec.kind not in COMPARISON_KINDS:
             failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
+        if spec.identity_policy not in {
+            "publisher-iri",
+            "source-local-record",
+            "source-scoped-identifier",
+        }:
+            failures.append(f"{spec.name}: unsupported identity policy {spec.identity_policy!r}")
         for pin in spec.inputs:
             if not pin.role:
                 failures.append(
@@ -4109,6 +5164,14 @@ def check_configuration(ctx: Context) -> CheckResult:
                 failures.append(
                     f"{spec.name}: publisher pin {pin.path!r} has no source IRI"
                 )
+        if (
+            spec.kind in RDF_COMPARISON_KINDS
+            and spec.reader != "rdf"
+            and spec.reader not in _PUBLISHER_READERS
+        ):
+            failures.append(
+                f"{spec.name}: no publisher reader is declared for {spec.reader!r}"
+            )
         if not spec.release_keys:
             failures.append(f"{spec.name}: comparison declares no construction-unit key")
         if len(spec.release_keys) != 1:
@@ -4501,6 +5564,14 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         | aggregate_relation_fields
         | aggregate_source_evidence_fields
     )
+    reader_native_fields = frozenset(
+        field_name
+        for payload in pair.publisher.expected_native_payloads.values()
+        for field_name in payload
+    )
+    supported_resource_fields = (
+        supported_resource_fields | reader_native_fields
+    )
     expected_payload_fields = policy.evaluated_native_payload_fields
     unsupported_declared_fields = sorted(
         expected_payload_fields - supported_resource_fields
@@ -4639,7 +5710,10 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 "a publisher concept in the selected pinned bytes"
             )
         locator = pair.atlas.record_source_locators.get(record)
-        expected_locator = locator_by_resource.get(target, policy.record_locator or target)
+        expected_locator = pair.publisher.resource_locators.get(
+            target,
+            locator_by_resource.get(target, policy.record_locator or target),
+        )
         if locator != expected_locator:
             failures.append(
                 f"{source}: source record <{record}> locator differs -- expected "
@@ -4674,8 +5748,15 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             - policy.atlas_only_native_payload_fields
         ):
             unexpected_payload_fields[field_name].append(record)
+        reader_expected_payload = pair.publisher.expected_native_payloads.get(
+            target,
+            {},
+        )
+        expected_per_record_fields = per_record_resource_fields | frozenset(
+            reader_expected_payload
+        )
         missing_fields = sorted(
-            (expected_payload_fields & per_record_resource_fields) - set(payload)
+            (expected_payload_fields & expected_per_record_fields) - set(payload)
         )
         if missing_fields:
             failures.append(
@@ -4702,6 +5783,14 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 failures.append(
                     f"{source}: source record <{record}> topConceptOfIris differs -- expected "
                     f"{expected!r}, observed {payload.get('topConceptOfIris')!r}"
+                )
+        for field_name in sorted((expected_payload_fields & set(reader_expected_payload)) - per_record_resource_fields):
+            expected = reader_expected_payload[field_name]
+            if payload.get(field_name) != expected:
+                failures.append(
+                    f"{source}: source record <{record}> nativePayload.{field_name} "
+                    f"differs from publisher bytes -- expected {expected!r}, "
+                    f"observed {payload.get(field_name)!r}"
                 )
 
     if pair.spec.kind == "mapping":
@@ -5313,22 +6402,35 @@ def check_concept_traceability(ctx: Context) -> CheckResult:
 
 
 def check_identifier_retention(ctx: Context) -> CheckResult:
-    """The publisher's own identifier is retained rather than minted."""
+    """Concept identity follows each source's explicit identity policy."""
     failures = _incomplete_evaluation_failure(ctx, "identifier retention", "vocabulary")
     checked = 0
     for pair in ctx.vocabularies():
         atlas_concepts = _atlas_publisher_concepts(pair)
-        minted = sorted(resource for resource in atlas_concepts if resource.startswith("urn:ref:"))
         checked += len(atlas_concepts)
-        for resource in minted:
+        if pair.spec.identity_policy == "publisher-iri":
+            minted = sorted(resource for resource in atlas_concepts if resource.startswith("urn:ref:"))
+            for resource in minted:
+                failures.append(
+                    f"{pair.spec.name}: Atlas concept <{resource}> carries a minted "
+                    "RefSpec identifier where the publisher supplies its own IRI"
+                )
+            continue
+        unexpected = sorted(
+            resource
+            for resource in atlas_concepts
+            if not resource.startswith("urn:ref:source-concept:v2:")
+            and pair.spec.identity_policy != "source-local-record"
+        )
+        for resource in unexpected:
             failures.append(
-                f"{pair.spec.name}: Atlas concept <{resource}> carries a minted RefSpec identifier "
-                f"where the publisher supplies its own IRI"
+                f"{pair.spec.name}: Atlas concept <{resource}> does not use the "
+                f"declared {pair.spec.identity_policy} identity form"
             )
 
     return _result(
         "identifier-retention",
-        f"{checked} concept identities checked; publisher IRIs retained verbatim",
+        f"{checked} concept identities checked against declared source identity policies",
         failures,
     )
 
@@ -6427,6 +7529,8 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     Atlas-owned resources, rings, profiles, and governed schemes are deliberately
     absent from this view. The binding validator owns those claims.
     """
+    if pair.spec.reader != "rdf":
+        return _atlas_source_targets(pair)
     return frozenset(
         resource
         for resource, types in pair.atlas.rdf_types.items()
@@ -9098,6 +10202,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
             {
                 "name": spec.name,
                 "kind": spec.kind,
+                "publisherReader": spec.reader,
+                "identityPolicy": spec.identity_policy,
                 "subset": spec.subset,
                 "includedPublisherConceptIris": sorted(spec.included_concept_iris),
                 "releaseKeys": list(spec.release_keys),
