@@ -2464,6 +2464,100 @@ def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
     raise ValueError(f"{label} declares unsupported normalization {operation!r}")
 
 
+def _fixed_width_layout_column(value: Any, label: str) -> str:
+    """Read one declared column from a bounded fixed-width row block."""
+    required = {
+        "block",
+        "column",
+        "continuationMinIndent",
+        "footerPattern",
+        "header",
+        "pageTitle",
+        "revisionPattern",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ValueError(
+            f"{label} fixed-width layout requires {sorted(required)}"
+        )
+    if (
+        not all(
+            isinstance(value[field], str)
+            for field in (
+                "block",
+                "column",
+                "footerPattern",
+                "header",
+                "pageTitle",
+                "revisionPattern",
+            )
+        )
+        or not isinstance(value["continuationMinIndent"], int)
+        or value["column"] not in {"title", "description"}
+    ):
+        raise ValueError(f"{label} fixed-width layout parameters have invalid types")
+    header = value["header"]
+    title_column = header.find("Title")
+    description_column = header.find("Description")
+    if title_column <= 0 or description_column <= title_column:
+        raise ValueError(f"{label} fixed-width header has invalid column positions")
+    try:
+        footer_pattern = re.compile(value["footerPattern"])
+        revision_pattern = re.compile(value["revisionPattern"])
+    except re.error as error:
+        raise ValueError(f"{label} fixed-width metadata pattern is invalid") from error
+
+    columns: dict[str, list[str]] = {"title": [], "description": []}
+    active_column: str | None = None
+    page_continuation_window = False
+
+    def add_fixed_width_line(line: str) -> None:
+        nonlocal active_column
+        title = line[title_column:description_column].strip()
+        description = line[description_column:].strip()
+        if title:
+            columns["title"].append(title)
+            active_column = "title"
+        if description:
+            columns["description"].append(description)
+            active_column = "description"
+
+    lines = value["block"].splitlines()
+    if not lines:
+        raise ValueError(f"{label} fixed-width row block is empty")
+    add_fixed_width_line(lines[0])
+    if active_column is None:
+        raise ValueError(f"{label} fixed-width row has no title or description")
+
+    for line in lines[1:]:
+        stripped = line.strip()
+        if not stripped:
+            page_continuation_window = False
+            continue
+        if footer_pattern.fullmatch(stripped) is not None:
+            continue
+        if stripped == value["pageTitle"]:
+            continue
+        if revision_pattern.fullmatch(stripped) is not None:
+            page_continuation_window = True
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if page_continuation_window:
+            if indent < value["continuationMinIndent"] or active_column is None:
+                raise ValueError(
+                    f"{label} fixed-width page continuation has invalid indentation"
+                )
+            columns[active_column].append(stripped)
+            continue
+        if indent not in {title_column, description_column}:
+            raise ValueError(
+                f"{label} fixed-width row has an unrecognized continuation: "
+                f"{stripped!r}"
+            )
+        add_fixed_width_line(line)
+
+    return " ".join(columns[value["column"]])
+
+
 def _pattern_claims(
     selector: PatternRowSelector,
     fields: Mapping[str, Any],
@@ -2772,6 +2866,14 @@ def _read_pattern_rows(
                                 rendered["recordedAt"],
                                 rendered["sourceIri"],
                                 rendered["sourceKey"],
+                            )
+                        elif derived.operation == "fixed-width-layout-column":
+                            fields[derived.field] = (
+                                derived.prefix
+                                + _fixed_width_layout_column(
+                                    rendered,
+                                    f"{spec.name} fixed-width field {derived.field!r}",
+                                )
                             )
                         else:
                             raise ValueError(
@@ -11899,6 +12001,202 @@ OMB_A11_PATTERN_ROW_SOURCES = (
 )
 
 
+_USCOURTS_NOS_DOCUMENT_URL = (
+    "https://www.uscourts.gov/sites/default/files/js_044_code_descriptions.pdf"
+)
+_USCOURTS_NOS_DOCUMENT_PIN = SourcePin(
+    path="js_044_code_descriptions.pdf",
+    sha256="sha256:aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95",
+    byte_length=316_187,
+    fmt="pdf",
+    role="publisherSource",
+    source_iri=_USCOURTS_NOS_DOCUMENT_URL,
+    construction_path="output/registry-real-data-sources/js_044_code_descriptions.pdf",
+)
+_USCOURTS_NOS_TEXT_PIN = SourcePin(
+    path=(
+        "tests/fixtures/nature_of_suit_codes/"
+        "js_044_code_descriptions.layout.txt"
+    ),
+    sha256="sha256:dcb5ac0d1da85ad597d1e7ae07e91b6b8193e6eb19ae6403a050607eebfde1f2",
+    byte_length=32_211,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "dcb5ac0d1da85ad597d1e7ae07e91b6b8193e6eb19ae6403a050607eebfde1f2"
+    ),
+)
+_USCOURTS_NOS_RESOURCE_ID = "uscourts-nature-of-suit-codes-js-044"
+_USCOURTS_NOS_ROW_PATTERN = (
+    r"(?P<row_block>^[ ]{0,4}(?P<code>\d{3})[ ]{2,}[^\n]*"
+    r"(?:\n(?![ ]{0,4}\d{3}[ ]{2,})[^\n]*)*)"
+)
+_USCOURTS_NOS_SECTIONS = (
+    ("nos-section-0001", ("Contract",), ("Real Property",), 12),
+    ("nos-section-0002", ("Real Property",), ("Torts/Personal Injury",), 6),
+    ("nos-section-0003", ("Torts/Personal Injury",), ("Personal Property",), 13),
+    ("nos-section-0004", ("Personal Property",), ("Civil Rights",), 4),
+    ("nos-section-0005", ("Civil Rights",), ("Prisoner Petitions",), 7),
+    (
+        "nos-section-0006",
+        ("Prisoner Petitions", "Habeas Corpus"),
+        ("Other",),
+        4,
+    ),
+    (
+        "nos-section-0007",
+        ("Other", "Prisoner Petitions"),
+        ("Forfeiture/Penalty",),
+        4,
+    ),
+    ("nos-section-0008", ("Forfeiture/Penalty",), ("Labor",), 2),
+    ("nos-section-0009", ("Labor",), ("Immigration",), 6),
+    ("nos-section-0010", ("Immigration",), ("Bankruptcy",), 2),
+    ("nos-section-0011", ("Bankruptcy",), ("Intellectual Property Rights",), 2),
+    (
+        "nos-section-0012",
+        ("Intellectual Property Rights",),
+        ("Social Security",),
+        5,
+    ),
+    ("nos-section-0013", ("Social Security",), ("Federal Tax Suits",), 5),
+    ("nos-section-0014", ("Federal Tax Suits",), ("Other Statutes",), 2),
+    (
+        "nos-section-0015",
+        ("Other Statutes",),
+        ("Other Statutes (Continued)",),
+        15,
+    ),
+    ("nos-section-0016", ("Other Statutes (Continued)",), (), 4),
+)
+
+
+def _uscourts_nos_section_pattern(
+    section_id: str,
+    headings: tuple[str, ...],
+    next_headings: tuple[str, ...],
+    expected_count: int,
+) -> PatternRowPattern:
+    heading_pattern = "".join(
+        rf"^[ ]+{re.escape(heading)}[ \t]*$\n" for heading in headings
+    )
+    end_pattern = (
+        rf"^[ ]+{re.escape(next_headings[0])}[ \t]*$"
+        if next_headings
+        else r"^Note:"
+    )
+    return PatternRowPattern(
+        input_pattern=re.escape(_USCOURTS_NOS_TEXT_PIN.path),
+        region_pattern=(
+            heading_pattern
+            + r"(?P<header>^[ ]*Code[^\n]*Title[^\n]*Description[^\n]*)\n"
+            + rf"(?P<region>[\s\S]*?)(?={end_pattern})"
+        ),
+        row_pattern=_USCOURTS_NOS_ROW_PATTERN,
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=expected_count,
+        constants=(("section_id", section_id),),
+    )
+
+
+def _uscourts_nos_layout_field(field: str, column: str) -> PatternDerivedField:
+    return PatternDerivedField(
+        field=field,
+        operation="fixed-width-layout-column",
+        template_json=_canonical_json_bytes(
+            {
+                "block": "{row_block}",
+                "column": column,
+                "continuationMinIndent": 5,
+                "footerPattern": r"Page \d+ of \d+",
+                "header": "{header}",
+                "pageTitle": "Civil Nature of Suit Code Descriptions",
+                "revisionPattern": r"\(Rev\. \d{{2}}/\d{{2}}\)",
+            }
+        ).decode("utf-8"),
+    )
+
+
+def _uscourts_nos_pattern_source() -> SourceSpec:
+    source_path = "entries[{ordinal_one_based}]"
+    identifier = {
+        "authorityUri": "https://www.uscourts.gov/",
+        "kind": "uscourtsNatureOfSuitCode",
+        "observedAt": "2026-08-03T00:00:00Z",
+        "sourceDigest": "{source_digest}",
+        "sourcePath": "{source_path}",
+        "sourceUri": _USCOURTS_NOS_DOCUMENT_URL,
+        "value": "{code}",
+    }
+    native_payload = {
+        "code": "{code}",
+        "conceptIdentityClaimed": False,
+        "description": "{description}",
+        "id": "{observation_id}",
+        "identifiers": [identifier],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sectionId": "{section_id}",
+        "sourceArtifact": _USCOURTS_NOS_DOCUMENT_URL,
+        "sourceOrdinal": "{ordinal_one_based}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            _uscourts_nos_section_pattern(*section)
+            for section in _USCOURTS_NOS_SECTIONS
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:uscourts-nature-of-suit:{source_uuid7}"
+        ),
+        source_locator_template=_USCOURTS_NOS_DOCUMENT_URL,
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("definition", "{description}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "2026-08-03T00:00:00Z"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=93,
+        declared_unevaluated_fields=(
+            "page metadata, authored section headings, and document note",
+        ),
+        derived_fields=(
+            _uscourts_nos_layout_field("label", "title"),
+            _uscourts_nos_layout_field("description", "description"),
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(source_path),
+            ),
+            _pra_observation_id_field(
+                _USCOURTS_NOS_RESOURCE_ID,
+                [identifier],
+                source_artifact=_USCOURTS_NOS_DOCUMENT_URL,
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "uscourts-nature-of-suit",
+        (_USCOURTS_NOS_DOCUMENT_PIN, _USCOURTS_NOS_TEXT_PIN),
+        selector,
+    )
+
+
+USCOURTS_NOS_PATTERN_ROW_SOURCES = (_uscourts_nos_pattern_source(),)
+
+
 _COURTLISTENER_PATTERN_PIN = _registry_source_pin(
     "courtlistener-jurisdictions-zyte.html",
     "sha256:883446028b029078c032bfe7c3545f9e109bb328c79ec486fbbbdbf35580b292",
@@ -12203,6 +12501,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *CENSUS_GEO_PATTERN_ROW_SOURCES,
     *GAO_PATTERN_ROW_SOURCES,
     *OMB_A11_PATTERN_ROW_SOURCES,
+    *USCOURTS_NOS_PATTERN_ROW_SOURCES,
     *COURTLISTENER_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
