@@ -301,9 +301,34 @@ PROVEN AND LANDED: the FEC HTML family first (4982c0be, 54/110), then the whole
 `spec.name` dispatch and imports no registry or ETL module, so adding a unit is
 adding configuration rather than code; each of the 37 new units got its own
 `--only` run against 13b, reached field-level comparison, and reported honest
-differences rather than passes. The last five kinds (15 units, 91→106) are in
-flight on `research/coverage-readers5`; the residual ~4 units are the ones the
-design flags as possibly bespoke.
+differences rather than passes. The last five kinds LANDED at 0e85d2a0 —
+xml-record-selector-v1, csv-record-selector-v2, ooxml-relational-v1,
+nrc-adams-multi-artifact-v1 and json-record-selector-v2, 15 units, **coverage
+91 → 106 of 110**, with the JSON kind also deleting the API-capture reader's
+spec-name dispatch. The residual 4 units are the raw-PDF ones: BLOCKED rather
+than bespoke — an authenticated PDF pin compares no publisher rows, so each
+needs a reviewed text or JSON extract added to the construction inputs, after
+which a declarative entry covers it. Adding an auditor-side extract or
+importing the production PDF ETL would break the independence rule.
+
+**FULL-SCALE ENGINE TEST — THE STAGING OBJECTION IS ANSWERED, AND THE ANSWER
+IS NO (research/engine-fullscale, 2026-08-13).** The owner's objection was fair
+and the prior survey had conceded it: every engine comparison had run at 1M
+staging quads, where a fixed JVM cost could hide a native store's advantage. So
+TDB2 was loaded with the real 29,286,753-quad artifact under a hard 600s
+timeout, a 6 GiB max heap and an 11 GiB RSS abort guard. **It never reached the
+timeout — the memory guard killed it at 96.7 seconds.** Sampled RSS climbed
+1,953.6 MiB at 5s → 12,038.5 MiB at 95s: not bounded, steeply growing. At the
+stop it had read all 29,286,753 tuples (53.5s), completed the GSPO→GPOS,GOSP
+replay (24.0s), and reached 20,000,000 of 29,286,753 items (68.29%) of the
+second replay, leaving a 9.157 GiB INVALID store. So **11.756 GiB is a LOWER
+BOUND on TDB2's load alone**, against pySHACL's 13.83 GiB for the ENTIRE
+13-gate acceptance run including SHACL. The disk-backed native store could not
+finish LOADING inside a budget close to what the Python path uses to load AND
+validate AND pass. The crossover does not exist in the direction hoped for;
+full scale makes the JVM candidates look worse, not better. Trigger (b) below
+stands unchanged and is now backed by full-scale evidence rather than a staging
+extrapolation.
 
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
