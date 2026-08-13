@@ -739,6 +739,15 @@ must remain outside the distribution. If any pack or root input changes, the
 validator reparses the complete graph because the global checks above still
 need the cross-pack facts; per-pack receipts cannot safely replace those facts.
 
+The independent validator uses a binding-local two-index RDF store and pools
+immutable RDF terms within each parsed dataset. The store keeps subject-
+predicate-object (SPO) and predicate-object-subject (POS) indexes; it answers
+object-only queries with a correct scan. The Atlas validator and the pinned
+SHACL shapes use the indexed patterns. Set
+`REFSPEC_ATLAS_RDF_STORE=memory` to restore stock `rdflib` `Memory` and stock
+term construction for differential diagnosis or immediate mitigation. The
+default value is `two-index`; any other value fails closed.
+
 A trusted writer satisfies `shacl-data` by validating the normalized source and
 evidence-backed mapping rows and their joins and reconciling the fixed
 constructor counts with source accounting and exact pack receipts. The current
