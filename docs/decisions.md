@@ -1336,3 +1336,54 @@ validated in 5.9s; byte-reproducible over distribution, generation report
 and view; sealed and verified end to end — 4 members, 2 packs, 8 tables,
 1,599,155 bytes walked under one signature. Corpus 127 cases / 114
 invalid; full suite 2,467 passed at 96.8s.
+
+### REF-029: Contract identity and proof identity are two different digests
+
+- **Date:** 2026-08-13
+- **Status:** Accepted; executed (`521ed20c`). Continues REF-028, which left
+  `--repin` standing for the six binding-profile digests.
+
+**What `bindingBundleDigest` meant.** One digest over a sorted
+path/length/digest inventory of seven binding assets plus every schema: the
+ontology, the SHACL shapes, the registry profile map, the coverage proof,
+the real-registry descriptor dataset and its proof — and
+`fixtures/corpus.json`, the conformance corpus. It was pinned into every
+manifest, every acceptance record and every construction summary, and an
+independent reader recomputed it from the binding on its own disk and
+refused any artifact that disagreed. That refusal is exactly right for six
+of those seven. For the seventh it was a category error: adding one
+conformance case rewrote the corpus, moved the digest, and invalidated
+every artifact on disk — the external manifest pins, the served view's pin,
+and the signature over both — for a contract that had not moved a byte. The
+corpus is not a rule. It is the proof that the program implementing the
+rules behaves as they say.
+
+**Why they separate.** `binding.contractDigest` (renamed) covers exactly
+the rules, and it is *derived and checked*: a reader recomputes it and
+refuses a disagreement, because a distribution validated against different
+rules is a different claim. The acceptance record's new `corpusDigest` sits
+beside `validator`, and it is *recorded and never re-derived*: the
+acceptance record describes a validation **event**, and an event is
+identified by which validator ran and which corpus that validator was
+answerable to. Nothing is lost — an auditor asking "what proved this
+verdict" reads the receipt; an auditor asking "what was this validated
+against" reads the manifest. Two questions that were being answered by one
+number, and only one of them could be answered correctly.
+
+**What invalidates artifacts now, and what does not.** A rule change — the
+ontology, the shapes, a schema, the profile map, the registry descriptors —
+moves `contractDigest`, and every artifact on disk must be reissued against
+the new meaning. That is the point. Test growth does not: adding
+conformance cases moves `corpusDigest` in newly written receipts and leaves
+every artifact already on disk valid, because nothing a new test case says
+changes what those artifacts were validated against. The same reasoning
+that kept the tools out of the contract in REF-028, applied to the corpus,
+in the other direction.
+
+**The fifth self-agreement, with it.** The producer's compiled table of six
+binding digests is deleted along with `--repin`. The builder hashes the
+binding files it reads at build start and records them; the comparison that
+survives is between two readings taken ~25 minutes apart, which catches a
+binding edited under a running build. The tripwire that always mattered —
+the independent validator recomputing those digests from the binding on
+*its* disk — is untouched.
