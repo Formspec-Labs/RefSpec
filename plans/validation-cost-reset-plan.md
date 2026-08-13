@@ -185,6 +185,26 @@ sequence-path `sh:equals` shapes, and the focus-node discovery feeding
 them — is a real floor or a discovery problem the fact index can already
 answer.
 
+**OPEN — the machine-adjudication archive question, now MEASURED (owner
+call, not mine).** Evidence gathered 2026-08-13 against the artifact of
+record `output/atlas-3.1-full-2026-08-13`: a full streamed scan of all
+126 packs (29,283,283 lines read — the count proves the scan was
+complete) found **zero** occurrences of `rkaf:ResolverProofRecord`,
+`rkaf:comparisonProofRecord`, `rkaf:AILineage`,
+`rkaf:RelationComparisonContext`, `rkaf:ResolverProofIssuer`,
+`rkaf:comparisonOutcome`, or `rkaf:gatePass`. What enforces that empty
+set: ~390 validator lines (`_check_machine_adjudication`,
+validate.py:5459-5848), 7 shape mentions, and — as of 15b468c8 — **24 of
+the fact index's 67 allowlisted predicates**, added solely to fold a gate
+that has never once had a record to judge. The protocol is
+corpus-fixture-exercised only; its runtime was retired in 5ed56db5.
+Weighing against deletion, honestly: every term is UPSTREAM rkaf
+vocabulary, not Atlas-minted, so this is Atlas refusing malformed
+records a rulespec producer *could* emit — deleting it removes a
+consumer-visible refusal class rather than merely deleting Atlas's own
+scaffolding. That is the trade to decide; the measurement is no longer
+the unknown half.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
