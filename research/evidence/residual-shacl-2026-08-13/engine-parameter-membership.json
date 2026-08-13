@@ -1,0 +1,198 @@
+{
+  "distribution": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution",
+  "distributionId": "urn:ref:atlas:distribution:3.1-bounded-development:198a41c398de4a8f2240430ef648ecafe2519537d1739b3d6f52123c66386a56",
+  "environment": {
+    "pyshacl": "0.31.0",
+    "python": "3.12.9",
+    "rdflib": "7.5.0"
+  },
+  "packCount": 5,
+  "parseSeconds": 20.209558333008317,
+  "quadCount": 1013723,
+  "raw": {
+    "baseline": [
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 13.62721700099064,
+        "maximumRssBytes": 1245396992,
+        "precheckSeconds": 3.161279124993598,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.371619958983501,
+            "precheckSeconds": 3.1347017500083894,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.25559704200713895,
+            "precheckSeconds": 0.026577374985208735,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 16.78849612598424
+      },
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 13.590014749992406,
+        "maximumRssBytes": 1244987392,
+        "precheckSeconds": 3.1365559170080815,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.344425499992212,
+            "precheckSeconds": 3.1111959170084447,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.24558925000019372,
+            "precheckSeconds": 0.025359999999636784,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 16.726570667000487
+      },
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 13.561326333991019,
+        "maximumRssBytes": 1244987392,
+        "precheckSeconds": 3.16127833299106,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.299183916999027,
+            "precheckSeconds": 3.132796874997439,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.2621424169919919,
+            "precheckSeconds": 0.028481457993621007,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 16.72260466698208
+      }
+    ],
+    "constraint-parameter-set": [
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 13.495875042019179,
+        "maximumRssBytes": 1245315072,
+        "precheckSeconds": 3.1176768750010524,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.224217667011544,
+            "precheckSeconds": 3.0898982500075363,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.271657375007635,
+            "precheckSeconds": 0.027778624993516132,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 16.61355191702023
+      },
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 13.41367008301313,
+        "maximumRssBytes": 1245151232,
+        "precheckSeconds": 3.1477270420000423,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.16540066699963,
+            "precheckSeconds": 3.1209332080034073,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.24826941601349972,
+            "precheckSeconds": 0.02679383399663493,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 16.561397125013173
+      },
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 19.17568662497797,
+        "maximumRssBytes": 1247789056,
+        "precheckSeconds": 3.1520297910028603,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 18.63087179098511,
+            "precheckSeconds": 3.0794246660079807,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.5448148339928593,
+            "precheckSeconds": 0.07260512499487959,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 22.32771641598083
+      }
+    ]
+  },
+  "recordedAt": "2026-08-13T13:37:01+00:00",
+  "shapeGraphProofSeconds": 1.5685578340198845,
+  "summaries": {
+    "baseline": {
+      "directPropertyShapes": 0,
+      "engineSeconds": {
+        "maximum": 13.62721700099064,
+        "median": 13.590014749992406,
+        "minimum": 13.561326333991019
+      },
+      "maximumRssBytes": 1245396992,
+      "medianRatioToBaseline": 1.0,
+      "medianSecondsRemoved": 0.0,
+      "precheckSeconds": {
+        "maximum": 3.161279124993598,
+        "median": 3.16127833299106,
+        "minimum": 3.1365559170080815
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 16.78849612598424,
+        "median": 16.726570667000487,
+        "minimum": 16.72260466698208
+      }
+    },
+    "constraint-parameter-set": {
+      "directPropertyShapes": 0,
+      "engineSeconds": {
+        "maximum": 19.17568662497797,
+        "median": 13.495875042019179,
+        "minimum": 13.41367008301313
+      },
+      "maximumRssBytes": 1247789056,
+      "medianRatioToBaseline": 0.9932431607033934,
+      "medianSecondsRemoved": 0.11301874998025596,
+      "precheckSeconds": {
+        "maximum": 3.1520297910028603,
+        "median": 3.1477270420000423,
+        "minimum": 3.1176768750010524
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 22.32771641598083,
+        "median": 16.61355191702023,
+        "minimum": 16.561397125013173
+      }
+    }
+  }
+}

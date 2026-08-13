@@ -1,0 +1,468 @@
+{
+  "distribution": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution",
+  "distributionId": "urn:ref:atlas:distribution:3.1-bounded-development:198a41c398de4a8f2240430ef648ecafe2519537d1739b3d6f52123c66386a56",
+  "environment": {
+    "pyshacl": "0.31.0",
+    "python": "3.12.9",
+    "rdflib": "7.5.0"
+  },
+  "packCount": 5,
+  "parseSeconds": 20.81640608300222,
+  "quadCount": 1013723,
+  "raw": {
+    "all": [
+      {
+        "directPropertyShapes": 133,
+        "engineSeconds": 6.6144858339685015,
+        "maximumRssBytes": 1279180800,
+        "precheckSeconds": 11.183818874967983,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 6.514927041978808,
+            "precheckSeconds": 10.788207790988963,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.09955879198969342,
+            "precheckSeconds": 0.3956110839790199,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.798304708936485
+      },
+      {
+        "directPropertyShapes": 133,
+        "engineSeconds": 6.60508554201806,
+        "maximumRssBytes": 1277345792,
+        "precheckSeconds": 10.948640708025778,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 6.512597082997672,
+            "precheckSeconds": 10.549677083006827,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.09248845902038738,
+            "precheckSeconds": 0.39896362501895055,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.553726250043837
+      },
+      {
+        "directPropertyShapes": 133,
+        "engineSeconds": 6.626164500019513,
+        "maximumRssBytes": 1278705664,
+        "precheckSeconds": 11.094627415994182,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 6.52715716601233,
+            "precheckSeconds": 10.737412582995603,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.09900733400718309,
+            "precheckSeconds": 0.35721483299857937,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.720791916013695
+      }
+    ],
+    "baseline": [
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 14.241114541015122,
+        "maximumRssBytes": 1245478912,
+        "precheckSeconds": 3.213022792042466,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.951496916008182,
+            "precheckSeconds": 3.1797741670161486,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.2896176250069402,
+            "precheckSeconds": 0.03324862502631731,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.454137333057588
+      },
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 14.17436233299668,
+        "maximumRssBytes": 1244069888,
+        "precheckSeconds": 3.2054342919727787,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.88211587499245,
+            "precheckSeconds": 3.1725696249923203,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.29224645800422877,
+            "precheckSeconds": 0.032864666980458423,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.379796624969458
+      },
+      {
+        "directPropertyShapes": 0,
+        "engineSeconds": 13.907654084003298,
+        "maximumRssBytes": 1244151808,
+        "precheckSeconds": 3.294009000004735,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.63731266700779,
+            "precheckSeconds": 3.2627020830113906,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.27034141699550673,
+            "precheckSeconds": 0.0313069169933442,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.201663084008032
+      }
+    ],
+    "cardinality-membership": [
+      {
+        "directPropertyShapes": 23,
+        "engineSeconds": 13.103277916990919,
+        "maximumRssBytes": 1259683840,
+        "precheckSeconds": 4.249249540967867,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 12.845584208989749,
+            "precheckSeconds": 4.160753665986704,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.2576937080011703,
+            "precheckSeconds": 0.08849587498116307,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.352527457958786
+      },
+      {
+        "directPropertyShapes": 23,
+        "engineSeconds": 13.374831749970326,
+        "maximumRssBytes": 1261813760,
+        "precheckSeconds": 4.282364333019359,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.106250749988249,
+            "precheckSeconds": 4.174442666000687,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.26858099998207763,
+            "precheckSeconds": 0.10792166701867245,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.657196082989685
+      },
+      {
+        "directPropertyShapes": 23,
+        "engineSeconds": 13.08329187502386,
+        "maximumRssBytes": 1256177664,
+        "precheckSeconds": 4.2078646670270246,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 12.8166354590212,
+            "precheckSeconds": 4.116427875007503,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.266656416002661,
+            "precheckSeconds": 0.09143679201952182,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.291156542050885
+      }
+    ],
+    "class": [
+      {
+        "directPropertyShapes": 19,
+        "engineSeconds": 13.683327624981757,
+        "maximumRssBytes": 1250082816,
+        "precheckSeconds": 4.532807749987114,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.370195832976606,
+            "precheckSeconds": 4.39172245899681,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.3131317920051515,
+            "precheckSeconds": 0.1410852909903042,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 18.21613537496887
+      },
+      {
+        "directPropertyShapes": 19,
+        "engineSeconds": 12.924322625010973,
+        "maximumRssBytes": 1249918976,
+        "precheckSeconds": 4.295492458011722,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 12.635777750023408,
+            "precheckSeconds": 4.164105083007598,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.288544874987565,
+            "precheckSeconds": 0.1313873750041239,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.219815083022695
+      },
+      {
+        "directPropertyShapes": 19,
+        "engineSeconds": 12.876075417007087,
+        "maximumRssBytes": 1249673216,
+        "precheckSeconds": 4.262686625006609,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 12.606387542007724,
+            "precheckSeconds": 4.129963332990883,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.269687874999363,
+            "precheckSeconds": 0.13272329201572575,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.138762042013695
+      }
+    ],
+    "term": [
+      {
+        "directPropertyShapes": 1,
+        "engineSeconds": 14.458115666988306,
+        "maximumRssBytes": 1244528640,
+        "precheckSeconds": 3.2195739580201916,
+        "repetition": 1,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 14.028244124987395,
+            "precheckSeconds": 3.165021583001362,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.42987154200091027,
+            "precheckSeconds": 0.05455237501882948,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.677689625008497
+      },
+      {
+        "directPropertyShapes": 1,
+        "engineSeconds": 14.041709584009368,
+        "maximumRssBytes": 1244872704,
+        "precheckSeconds": 3.202208792004967,
+        "repetition": 2,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.739813042018795,
+            "precheckSeconds": 3.1697344580024946,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.3018965419905726,
+            "precheckSeconds": 0.03247433400247246,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 17.243918376014335
+      },
+      {
+        "directPropertyShapes": 1,
+        "engineSeconds": 13.776277001015842,
+        "maximumRssBytes": 1244299264,
+        "precheckSeconds": 3.213932582002599,
+        "repetition": 3,
+        "roles": [
+          {
+            "conforms": true,
+            "engineSeconds": 13.496487666998291,
+            "precheckSeconds": 3.18285716601531,
+            "role": "asserted"
+          },
+          {
+            "conforms": true,
+            "engineSeconds": 0.2797893340175506,
+            "precheckSeconds": 0.03107541598728858,
+            "role": "derived"
+          }
+        ],
+        "totalSeconds": 16.99020958301844
+      }
+    ]
+  },
+  "recordedAt": "2026-08-13T13:28:50+00:00",
+  "shapeGraphProofSeconds": 1.6561781249765772,
+  "summaries": {
+    "all": {
+      "directPropertyShapes": 133,
+      "engineSeconds": {
+        "maximum": 6.626164500019513,
+        "median": 6.6144858339685015,
+        "minimum": 6.60508554201806
+      },
+      "maximumRssBytes": 1279180800,
+      "medianRatioToBaseline": 1.0196202118127395,
+      "medianSecondsRemoved": -0.3409952910442371,
+      "precheckSeconds": {
+        "maximum": 11.183818874967983,
+        "median": 11.094627415994182,
+        "minimum": 10.948640708025778
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 17.798304708936485,
+        "median": 17.720791916013695,
+        "minimum": 17.553726250043837
+      }
+    },
+    "baseline": {
+      "directPropertyShapes": 0,
+      "engineSeconds": {
+        "maximum": 14.241114541015122,
+        "median": 14.17436233299668,
+        "minimum": 13.907654084003298
+      },
+      "maximumRssBytes": 1245478912,
+      "medianRatioToBaseline": 1.0,
+      "medianSecondsRemoved": 0.0,
+      "precheckSeconds": {
+        "maximum": 3.294009000004735,
+        "median": 3.213022792042466,
+        "minimum": 3.2054342919727787
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 17.454137333057588,
+        "median": 17.379796624969458,
+        "minimum": 17.201663084008032
+      }
+    },
+    "cardinality-membership": {
+      "directPropertyShapes": 23,
+      "engineSeconds": {
+        "maximum": 13.374831749970326,
+        "median": 13.103277916990919,
+        "minimum": 13.08329187502386
+      },
+      "maximumRssBytes": 1261813760,
+      "medianRatioToBaseline": 0.9984309846887681,
+      "medianSecondsRemoved": 0.02726916701067239,
+      "precheckSeconds": {
+        "maximum": 4.282364333019359,
+        "median": 4.249249540967867,
+        "minimum": 4.2078646670270246
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 17.657196082989685,
+        "median": 17.352527457958786,
+        "minimum": 17.291156542050885
+      }
+    },
+    "class": {
+      "directPropertyShapes": 19,
+      "engineSeconds": {
+        "maximum": 13.683327624981757,
+        "median": 12.924322625010973,
+        "minimum": 12.876075417007087
+      },
+      "maximumRssBytes": 1250082816,
+      "medianRatioToBaseline": 0.9907949704246298,
+      "medianSecondsRemoved": 0.15998154194676317,
+      "precheckSeconds": {
+        "maximum": 4.532807749987114,
+        "median": 4.295492458011722,
+        "minimum": 4.262686625006609
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 18.21613537496887,
+        "median": 17.219815083022695,
+        "minimum": 17.138762042013695
+      }
+    },
+    "term": {
+      "directPropertyShapes": 1,
+      "engineSeconds": {
+        "maximum": 14.458115666988306,
+        "median": 14.041709584009368,
+        "minimum": 13.776277001015842
+      },
+      "maximumRssBytes": 1244872704,
+      "medianRatioToBaseline": 0.9921818274467086,
+      "medianSecondsRemoved": 0.13587824895512313,
+      "precheckSeconds": {
+        "maximum": 3.2195739580201916,
+        "median": 3.213932582002599,
+        "minimum": 3.202208792004967
+      },
+      "sampleCount": 3,
+      "totalSeconds": {
+        "maximum": 17.677689625008497,
+        "median": 17.243918376014335,
+        "minimum": 16.99020958301844
+      }
+    }
+  }
+}

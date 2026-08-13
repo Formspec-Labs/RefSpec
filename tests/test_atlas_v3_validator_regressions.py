@@ -1499,6 +1499,10 @@ def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties()
     property_shapes = set(shapes.objects(ATLAS.SourceRecordShape, SH.property))
 
     plan = atlas_validate._batched_shacl_plan(shapes)
+    prototype = atlas_validate._batched_shacl_plan(
+        shapes,
+        direct_constraints=atlas_validate._DIRECT_PROPERTY_CONSTRAINTS,
+    )
 
     assert set(shapes) == normative_triples
     assert property_shapes
@@ -1524,6 +1528,48 @@ def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties()
     assert not list(plan.shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
     assert not list(plan.shapes.objects(ATLAS.RelationAssertionShape, SH.xone))
     assert list(shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
+    assert not plan.direct_targets
+    assert prototype.direct_targets
+    lifted_properties = {
+        property_plan.shape
+        for target in prototype.direct_targets
+        for property_plan in target.properties
+    }
+    assert lifted_properties
+    assert all(
+        not any(
+            (property_shape, predicate, None) in prototype.shapes
+            for predicate in atlas_validate._SHACL_TARGET_PREDICATES
+        )
+        for property_shape in lifted_properties
+    )
+
+
+def test_direct_property_lift_refuses_a_complex_path() -> None:
+    _, shapes = atlas_validate._parse_binding_graphs()
+    decision_shape = next(
+        property_shape
+        for property_shape in shapes.objects(ATLAS.EvidenceBindingShape, SH.property)
+        if shapes.value(property_shape, SH.path) == RKAF.decision
+    )
+    drifted = atlas_validate._copy_graph(shapes)
+    sequence = rdflib.BNode()
+    drifted.remove((decision_shape, SH.path, RKAF.decision))
+    drifted.add((decision_shape, SH.path, sequence))
+    drifted.add((sequence, RDF.first, RKAF.decision))
+    drifted.add((sequence, RDF.rest, RDF.nil))
+
+    plan = atlas_validate._batched_shacl_plan(
+        drifted,
+        direct_constraints=atlas_validate._DIRECT_PROPERTY_CONSTRAINTS,
+    )
+
+    assert all(
+        decision_shape not in {row.shape for row in target.properties}
+        for target in plan.direct_targets
+    )
+    assert (decision_shape, SH.targetClass, RKAF.EvidenceBinding) in plan.shapes
+    assert (decision_shape, SH.hasValue, RKAF.approved) in plan.shapes
 
 
 def test_lifted_warrant_xone_is_refused_when_the_shape_drifts() -> None:
@@ -1640,6 +1686,76 @@ def test_batched_shacl_conformance_matches_normative_shapes(
         asserted.add((assertion, ATLAS.targetRing, ATLAS.entity))
 
     assert _shacl_conformance_pair(graphs) == (expected, expected)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "component"),
+    (
+        ("minCount", "MinCountConstraintComponent"),
+        ("maxCount", "MaxCountConstraintComponent"),
+        ("in", "InConstraintComponent"),
+        ("hasValue", "HasValueConstraintComponent"),
+        ("datatype", "DatatypeConstraintComponent"),
+        ("nodeKind", "NodeKindConstraintComponent"),
+        ("class", "ClassConstraintComponent"),
+    ),
+)
+def test_direct_property_lift_matches_normative_engine_mutations(
+    mutation: str,
+    component: str,
+) -> None:
+    """Every lifted component rejects the same mutation as normative pySHACL."""
+
+    _, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    binding = next(asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+    if mutation == "minCount":
+        asserted.remove((binding, RKAF.evidentiaryFunction, None))
+    elif mutation == "maxCount":
+        asserted.add((binding, RKAF.evidentiaryFunction, RKAF.qualifies))
+    elif mutation == "in":
+        asserted.remove((binding, RKAF.evidentiaryFunction, None))
+        asserted.add((binding, RKAF.evidentiaryFunction, URIRef("urn:test:unknown-function")))
+    elif mutation == "hasValue":
+        asserted.remove((binding, RKAF.decision, None))
+        asserted.add((binding, RKAF.decision, RKAF.rejected))
+    elif mutation == "datatype":
+        asserted.remove((binding, RKAF.attestedAt, None))
+        asserted.add((binding, RKAF.attestedAt, Literal("not-a-date-time")))
+    elif mutation == "nodeKind":
+        asserted.remove((binding, RKAF.attestor, None))
+        asserted.add((binding, RKAF.attestor, Literal("not-an-iri")))
+    elif mutation == "class":
+        asserted.remove((binding, RKAF.bindsAssertion, None))
+        asserted.add((binding, RKAF.bindsAssertion, URIRef("urn:test:not-an-assertion")))
+
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    view = atlas_validate._ShaclDataView(
+        [asserted, atlas_validate.inoculate(Graph(), ontology)]
+    )
+    normative, normative_report, _ = atlas_validate._validate_shacl_data(view, shapes)
+    plan = atlas_validate._batched_shacl_plan(
+        shapes,
+        direct_constraints=atlas_validate._DIRECT_PROPERTY_CONSTRAINTS,
+    )
+    misses = atlas_validate._batched_shacl_precheck_misses(
+        view,
+        shapes,
+        plan,
+        first_only=False,
+    )
+    residual, _, _ = atlas_validate._validate_shacl_data(view, plan.shapes)
+
+    observed_components = {
+        violation_component
+        for _focus, _path, violation_component in atlas_validate._report_violations(
+            normative_report
+        )
+    }
+    assert not normative
+    assert component in observed_components
+    assert misses
+    assert (residual and not misses) is normative
 
 
 def test_audit_mode_invalid_path_falls_back_to_exact_normative_report(

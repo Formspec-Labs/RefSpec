@@ -1,0 +1,24 @@
+{
+  "derivedBaselineMedianEngineSeconds": 0.2896176250069402,
+  "derivedBaselineMedianPrecheckSeconds": 0.032864666980458423,
+  "parseBindingGraphsSeconds": [
+    0.023224417003802955,
+    0.022110875026555732,
+    0.02166908301296644,
+    0.026911458000540733,
+    0.021567916992353275,
+    0.021622000000206754,
+    0.021303791989339516,
+    0.021361916995374486,
+    0.021707666979636997,
+    0.022072666994063184
+  ],
+  "medianParseBindingGraphsSeconds": 0.021688374996301718,
+  "notes": {
+    "derived": "Medians selected from avenue-matrix-v1.json baseline role samples.",
+    "parseBindingGraphs": "Ten consecutive calls in the pinned Python 3.12.9 process; this parses the ontology and shapes, not the 1,013,723-quads distribution.",
+    "pyshaclShapeCache": "profile-baseline.txt records 0.014 cumulative seconds for two _build_node_shape_cache calls."
+  },
+  "pyshaclShapeCacheCalls": 2,
+  "pyshaclShapeCacheCumulativeSecondsInstrumented": 0.014
+}

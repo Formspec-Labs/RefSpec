@@ -1,0 +1,29 @@
+{
+  "baseline": {
+    "maximumRssBytes": 58736640,
+    "result": {
+      "caseCount": 130,
+      "invalidCount": 117,
+      "registryDescriptorCount": 88,
+      "registryDescriptorQuadCount": 994,
+      "schemaCount": 10
+    },
+    "seconds": 29.141303624986904
+  },
+  "caseCount": 130,
+  "equivalent": true,
+  "firstIssueCaseCount": 117,
+  "prototype": {
+    "maximumRssBytes": 58507264,
+    "result": {
+      "caseCount": 130,
+      "invalidCount": 117,
+      "registryDescriptorCount": 88,
+      "registryDescriptorQuadCount": 994,
+      "schemaCount": 10
+    },
+    "seconds": 28.312252584000817
+  },
+  "recordedAt": "2026-08-13T13:44:24+00:00",
+  "shaclComponentCaseCount": 47
+}

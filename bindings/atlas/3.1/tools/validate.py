@@ -54,7 +54,8 @@ from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from datetime import time as datetime_time
 from decimal import Decimal
 from functools import lru_cache
 from itertools import chain, combinations
@@ -67,6 +68,7 @@ from jsonschema import _utils as jsonschema_utils
 from jsonschema import validators as jsonschema_validators
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from pyshacl import validate as shacl_validate
+from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS as PYSHACL_CONSTRAINT_PARAMETERS
 from pyshacl.rdfutil import inoculate
 from rdf_canonical import (
     ABSOLUTE_IRI_RE,
@@ -81,6 +83,7 @@ from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS, SH, SKOS, XSD
 from rdflib.parser import create_input_source
 from rdflib.plugins.parsers.nquads import NQuadsParser
 from rdflib.plugins.parsers.ntriples import URI, ParseError, r_literal, r_tail, r_wspace, unquote, uriquote
+from rdflib.term import Identifier
 from referencing import Registry, Resource
 
 try:  # Python 3.14+
@@ -1015,11 +1018,62 @@ class _ClosedShapePlan:
 
 
 @dataclass(frozen=True, slots=True)
+class _DirectConstraintPlan:
+    """One parsed SHACL Core constraint over a direct IRI property path."""
+
+    predicate: URIRef
+    parameters: tuple[Any, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _DirectPropertyPlan:
+    """The lifted constraints for one property shape."""
+
+    path: URIRef
+    shape: Any
+    constraints: tuple[_DirectConstraintPlan, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _DirectTargetPlan:
+    """Direct property checks grouped under one target lookup."""
+
+    shape: URIRef
+    properties: tuple[_DirectPropertyPlan, ...]
+
+
+class _CombinedTypeIndex(Mapping[Any, Sequence[Any]]):
+    """Read the parser's data types together with the small ontology index."""
+
+    __slots__ = ("primary", "supplemental")
+
+    def __init__(
+        self,
+        primary: Mapping[Any, Sequence[Any]],
+        supplemental: Mapping[Any, Sequence[Any]],
+    ) -> None:
+        self.primary = primary
+        self.supplemental = supplemental
+
+    def __getitem__(self, key: Any) -> Sequence[Any]:
+        if key not in self.primary and key not in self.supplemental:
+            raise KeyError(key)
+        return (*self.primary.get(key, ()), *self.supplemental.get(key, ()))
+
+    def __iter__(self) -> Iterable[Any]:
+        return iter(set(self.primary) | set(self.supplemental))
+
+    def __len__(self) -> int:
+        return len(set(self.primary) | set(self.supplemental))
+
+
+@dataclass(frozen=True, slots=True)
 class _BatchedShaclPlan:
     """Conformance-equivalent shapes optimized for Atlas's valid-data path."""
 
     shapes: Graph
     closed_shapes: tuple[_ClosedShapePlan, ...]
+    direct_targets: tuple[_DirectTargetPlan, ...]
     checks_relation_ring_context: bool
     # The parsed atlas:EvidenceBindingShape warrant `sh:xone`, one frozenset of
     # `(path, hasValue, minCount, maxCount)` rows per branch, or None when the
@@ -2754,6 +2808,21 @@ _INLINE_VALUE_CONSTRAINTS = frozenset(
         SH.pattern,
     }
 )
+_DIRECT_CARDINALITY_MEMBERSHIP_CONSTRAINTS = frozenset(
+    {
+        SH.hasValue,
+        SH["in"],
+        SH.minCount,
+        SH.maxCount,
+    }
+)
+_DIRECT_TERM_CONSTRAINTS = frozenset({SH.datatype, SH.nodeKind})
+_DIRECT_CLASS_CONSTRAINTS = frozenset({SH["class"]})
+_DIRECT_PROPERTY_CONSTRAINTS = (
+    _DIRECT_CARDINALITY_MEMBERSHIP_CONSTRAINTS
+    | _DIRECT_TERM_CONSTRAINTS
+    | _DIRECT_CLASS_CONSTRAINTS
+)
 _SHAPE_EXPECTING_PREDICATES = (
     SH.node,
     SH["not"],
@@ -2887,6 +2956,59 @@ def _closed_shape_plan(
         allowed_paths=allowed_paths,
         ignored_paths=ignored_paths,
     )
+
+
+def _direct_constraint_plan(
+    shapes: Graph,
+    property_shape: Any,
+    predicate: URIRef,
+) -> _DirectConstraintPlan | None:
+    """Parse one mechanically liftable constraint, or leave it to pySHACL."""
+
+    values = list(shapes.objects(property_shape, predicate))
+    if not values:
+        return None
+    if predicate in {SH.minCount, SH.maxCount}:
+        if (
+            len(values) != 1
+            or not isinstance(values[0], Literal)
+            or values[0].datatype != XSD.integer
+            or not isinstance(values[0].value, int)
+            or values[0].value < 0
+        ):
+            return None
+        return _DirectConstraintPlan(predicate, (values[0].value,))
+    if predicate == SH["in"]:
+        if len(values) != 1 or not isinstance(values[0], Identifier):
+            return None
+        try:
+            allowed = frozenset(shapes.items(values[0]))
+        except ValueError:
+            return None
+        return _DirectConstraintPlan(predicate, (allowed,))
+    if predicate == SH.hasValue:
+        return _DirectConstraintPlan(predicate, tuple(values))
+    if predicate == SH.datatype:
+        if len(values) != 1 or not isinstance(values[0], URIRef):
+            return None
+        return _DirectConstraintPlan(predicate, (values[0],))
+    if predicate == SH.nodeKind:
+        supported = {
+            SH.BlankNode,
+            SH.BlankNodeOrIRI,
+            SH.BlankNodeOrLiteral,
+            SH.IRI,
+            SH.IRIOrLiteral,
+            SH.Literal,
+        }
+        if len(values) != 1 or values[0] not in supported:
+            return None
+        return _DirectConstraintPlan(predicate, (values[0],))
+    if predicate == SH["class"]:
+        if not all(isinstance(value, URIRef) for value in values):
+            return None
+        return _DirectConstraintPlan(predicate, tuple(values))
+    return None
 
 
 def _ring_context_branch_signature(shapes: Graph, branch: Any) -> frozenset[tuple[Any, int | None, int | None]] | None:
@@ -3112,7 +3234,11 @@ def _warrant_branch_holds(
     return True
 
 
-def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
+def _batched_shacl_plan(
+    shapes: Graph,
+    *,
+    direct_constraints: AbstractSet[URIRef] | None = None,
+) -> _BatchedShaclPlan:
     """Build a valid-data execution graph without changing normative shapes.
 
     pySHACL 0.31 evaluates every ``sh:property`` shape once per focus node.
@@ -3127,8 +3253,14 @@ def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
     """
 
     execution = _copy_graph(shapes)
+    selected_direct_constraints = (
+        frozenset()
+        if direct_constraints is None
+        else frozenset(direct_constraints) & _DIRECT_PROPERTY_CONSTRAINTS
+    )
     referenced = _referenced_shapes(shapes)
     closed_plans: list[_ClosedShapePlan] = []
+    property_parents: dict[Any, list[URIRef]] = defaultdict(list)
     targeted_shapes = {
         subject
         for predicate in _SHACL_TARGET_PREDICATES
@@ -3149,6 +3281,7 @@ def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
             for obj in shapes.objects(shape, predicate)
         ]
         for property_shape in property_shapes:
+            property_parents[property_shape].append(shape)
             for predicate, obj in targets:
                 execution.add((property_shape, predicate, obj))
             execution.remove((shape, SH.property, property_shape))
@@ -3171,6 +3304,39 @@ def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
                 execution.add((property_shape, predicate, obj))
         execution.remove((property_shape, SH.node, value_shape))
 
+    direct_properties: dict[URIRef, list[_DirectPropertyPlan]] = defaultdict(list)
+    for property_shape, parents in property_parents.items():
+        paths = list(execution.objects(property_shape, SH.path))
+        if len(parents) != 1 or len(paths) != 1 or not isinstance(paths[0], URIRef):
+            continue
+        present_constraints = {
+            predicate
+            for predicate in PYSHACL_CONSTRAINT_PARAMETERS
+            if (property_shape, predicate, None) in execution
+        }
+        if not present_constraints or not present_constraints <= selected_direct_constraints:
+            continue
+        constraints: list[_DirectConstraintPlan] = []
+        for predicate in sorted(present_constraints, key=str):
+            parsed = _direct_constraint_plan(execution, property_shape, predicate)
+            if parsed is None:
+                constraints = []
+                break
+            constraints.append(parsed)
+        if not constraints:
+            continue
+        for constraint in constraints:
+            execution.remove((property_shape, constraint.predicate, None))
+        direct_properties[parents[0]].append(
+            _DirectPropertyPlan(
+                path=paths[0],
+                shape=property_shape,
+                constraints=tuple(constraints),
+            )
+        )
+        for predicate in _SHACL_TARGET_PREDICATES:
+            execution.remove((property_shape, predicate, None))
+
     checks_relation_ring_context = _can_lift_relation_ring_context(shapes)
     if checks_relation_ring_context:
         execution.remove((ATLAS.RelationAssertionShape, SH.xone, None))
@@ -3182,6 +3348,13 @@ def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
     return _BatchedShaclPlan(
         shapes=execution,
         closed_shapes=tuple(sorted(closed_plans, key=lambda plan: str(plan.shape))),
+        direct_targets=tuple(
+            _DirectTargetPlan(
+                shape=shape,
+                properties=tuple(sorted(properties, key=lambda row: (str(row.path), str(row.shape)))),
+            )
+            for shape, properties in sorted(direct_properties.items(), key=lambda row: str(row[0]))
+        ),
         checks_relation_ring_context=checks_relation_ring_context,
         warrant_branches=warrant_branches,
     )
@@ -3203,21 +3376,145 @@ def _core_shacl_targets(data_graph: Graph, shapes: Graph, shape: Any) -> set[Any
     return targets
 
 
+def _matches_direct_datatype(value: Any, datatype: URIRef) -> bool:
+    """Match pySHACL 0.31's RDFLib datatype semantics without report work."""
+
+    if not isinstance(value, Literal):
+        return False
+    value_datatype = value.datatype
+    language = value.language
+    if value_datatype == datatype:
+        if getattr(value, "ill_typed", None) is True:
+            return False
+    elif datatype == RDFS.Literal or (
+        datatype == RDFS.Datatype and value_datatype
+    ):
+        return True
+    elif (
+        value_datatype is None and language is None and datatype == XSD.string
+    ) or (datatype == RDF.langString and language):
+        pass
+    else:
+        return False
+
+    actual = value.value
+    if datatype in {XSD.string, RDF.langString}:
+        return isinstance(actual, (str, bytes))
+    if datatype == XSD.integer:
+        return isinstance(actual, int)
+    if datatype == XSD.float:
+        return isinstance(actual, float)
+    if datatype == XSD.decimal:
+        return isinstance(actual, Decimal)
+    if datatype == XSD.boolean:
+        return isinstance(actual, bool)
+    if datatype == XSD.date:
+        return isinstance(actual, date)
+    if datatype == XSD.time:
+        return isinstance(actual, datetime_time)
+    if datatype == XSD.dateTime:
+        return isinstance(actual, datetime)
+    return True
+
+
+def _matches_direct_node_kind(value: Any, node_kind: URIRef) -> bool:
+    if isinstance(value, BNode):
+        return node_kind in {SH.BlankNode, SH.BlankNodeOrIRI, SH.BlankNodeOrLiteral}
+    if isinstance(value, Literal):
+        return node_kind in {SH.Literal, SH.BlankNodeOrLiteral, SH.IRIOrLiteral}
+    if isinstance(value, Identifier):
+        return node_kind in {SH.IRI, SH.IRIOrLiteral, SH.BlankNodeOrIRI}
+    return False
+
+
+def _direct_class_memberships(
+    value: Any,
+    data_graph: Graph,
+    type_index: Mapping[Any, Sequence[Any]] | None,
+    membership_cache: dict[Any, frozenset[Any]],
+    superclass_cache: dict[Any, frozenset[Any]],
+) -> frozenset[Any]:
+    cached = membership_cache.get(value)
+    if cached is not None:
+        return cached
+    if isinstance(value, Literal):
+        memberships = frozenset()
+    else:
+        direct_types = (
+            type_index.get(value, ())
+            if type_index is not None
+            else tuple(data_graph.objects(value, RDF.type))
+        )
+        expanded: set[Any] = set()
+        for direct_type in direct_types:
+            superclasses = superclass_cache.get(direct_type)
+            if superclasses is None:
+                superclasses = frozenset(
+                    chain(
+                        (direct_type,),
+                        data_graph.transitive_objects(direct_type, RDFS.subClassOf),
+                    )
+                )
+                superclass_cache[direct_type] = superclasses
+            expanded.update(superclasses)
+        memberships = frozenset(expanded)
+    membership_cache[value] = memberships
+    return memberships
+
+
+def _direct_constraint_holds(
+    constraint: _DirectConstraintPlan,
+    values: frozenset[Any],
+    data_graph: Graph,
+    type_index: Mapping[Any, Sequence[Any]] | None,
+    membership_cache: dict[Any, frozenset[Any]],
+    superclass_cache: dict[Any, frozenset[Any]],
+) -> bool:
+    predicate = constraint.predicate
+    parameters = constraint.parameters
+    if predicate == SH.minCount:
+        return len(values) >= parameters[0]
+    if predicate == SH.maxCount:
+        return len(values) <= parameters[0]
+    if predicate == SH.hasValue:
+        return all(parameter in values for parameter in parameters)
+    if predicate == SH["in"]:
+        return values <= parameters[0]
+    if predicate == SH.datatype:
+        return all(_matches_direct_datatype(value, parameters[0]) for value in values)
+    if predicate == SH.nodeKind:
+        return all(_matches_direct_node_kind(value, parameters[0]) for value in values)
+    if predicate == SH["class"]:
+        return all(
+            all(
+                expected in _direct_class_memberships(
+                    value,
+                    data_graph,
+                    type_index,
+                    membership_cache,
+                    superclass_cache,
+                )
+                for expected in parameters
+            )
+            for value in values
+        )
+    raise AssertionError(f"unsupported direct SHACL constraint {predicate}")
+
+
 def _batched_shacl_precheck_misses(
     data_graph: Graph,
     normative_shapes: Graph,
     plan: _BatchedShaclPlan,
     *,
     first_only: bool,
+    type_index: Mapping[Any, Sequence[Any]] | None = None,
 ) -> list[Any]:
     """Return one focus node per lifted constraint that the fast path refuses.
 
-    Each lifted constraint (one closed shape, the relation ring context, or
-    the evidence warrant) can only ever produce its own constraint component,
-    so one violating focus node per lifted constraint is enough to reproduce
-    that component under the normative shapes.  `first_only` stops at the
-    first miss for the plain conformance question, which is all the audit path
-    needs.
+    Each lifted constraint can only produce its own constraint component, so
+    one violating focus node per lifted constraint is enough to reproduce that
+    component under the normative shapes. `first_only` stops at the first miss
+    for the plain conformance question, which is all the audit path needs.
     """
 
     misses: list[Any] = []
@@ -3239,6 +3536,86 @@ def _batched_shacl_precheck_misses(
                     miss = focus
         if miss is not None:
             misses.append(miss)
+
+    membership_cache: dict[Any, frozenset[Any]] = {}
+    superclass_cache: dict[Any, frozenset[Any]] = {}
+    for target in plan.direct_targets:
+        focuses = _core_shacl_targets(data_graph, normative_shapes, target.shape)
+        constraint_misses: dict[tuple[Any, URIRef], Any] = {}
+        for property_plan in target.properties:
+            constraints = {
+                constraint.predicate: constraint
+                for constraint in property_plan.constraints
+            }
+            minimum = constraints.get(SH.minCount)
+            maximum = constraints.get(SH.maxCount)
+            seen: set[Any] = set()
+            counts: Counter[Any] = Counter()
+            for focus, value in data_graph.subject_objects(property_plan.path):
+                if focus not in focuses:
+                    continue
+                if minimum is not None:
+                    seen.add(focus)
+                if (
+                    minimum is not None and minimum.parameters[0] > 1
+                ) or maximum is not None:
+                    counts[focus] += 1
+                if maximum is not None and counts[focus] > maximum.parameters[0]:
+                    if first_only:
+                        return [focus]
+                    key = (property_plan.shape, SH.maxCount)
+                    previous = constraint_misses.get(key)
+                    if previous is None or str(focus) < str(previous):
+                        constraint_misses[key] = focus
+                for predicate in (SH["in"], SH.datatype, SH.nodeKind, SH["class"]):
+                    constraint = constraints.get(predicate)
+                    if constraint is None or _direct_constraint_holds(
+                        constraint,
+                        frozenset({value}),
+                        data_graph,
+                        type_index,
+                        membership_cache,
+                        superclass_cache,
+                    ):
+                        continue
+                    if first_only:
+                        return [focus]
+                    key = (property_plan.shape, predicate)
+                    previous = constraint_misses.get(key)
+                    if previous is None or str(focus) < str(previous):
+                        constraint_misses[key] = focus
+
+            if minimum is not None:
+                required = minimum.parameters[0]
+                missing = focuses - seen if required == 1 else {
+                    focus for focus in focuses if counts[focus] < required
+                }
+                if missing:
+                    focus = min(missing, key=str)
+                    if first_only:
+                        return [focus]
+                    constraint_misses[(property_plan.shape, SH.minCount)] = focus
+            for required_value in constraints.get(
+                SH.hasValue,
+                _DirectConstraintPlan(SH.hasValue, ()),
+            ).parameters:
+                having = set(data_graph.subjects(property_plan.path, required_value))
+                missing = focuses - having
+                if missing:
+                    focus = min(missing, key=str)
+                    if first_only:
+                        return [focus]
+                    key = (property_plan.shape, SH.hasValue)
+                    previous = constraint_misses.get(key)
+                    if previous is None or str(focus) < str(previous):
+                        constraint_misses[key] = focus
+        misses.extend(
+            focus
+            for _key, focus in sorted(
+                constraint_misses.items(),
+                key=lambda row: (str(row[0][0]), str(row[0][1])),
+            )
+        )
 
     if plan.checks_relation_ring_context:
         miss = None
@@ -3281,7 +3658,13 @@ def _batched_shacl_precheck_misses(
     return misses
 
 
-def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _BatchedShaclPlan) -> bool:
+def _batched_shacl_prechecks(
+    data_graph: Graph,
+    normative_shapes: Graph,
+    plan: _BatchedShaclPlan,
+    *,
+    type_index: Mapping[Any, Sequence[Any]] | None = None,
+) -> bool:
     """Return false when a lifted constraint needs the original SHACL report."""
 
     return not _batched_shacl_precheck_misses(
@@ -3289,6 +3672,7 @@ def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _
         normative_shapes,
         plan,
         first_only=True,
+        type_index=type_index,
     )
 
 
@@ -3562,7 +3946,13 @@ def _prove_shape_graph_conforms(ontology_digest: str, shapes_digest: str) -> Non
         _fail("shacl.meta", f"shape graph does not conform: {compact[:900]}")
 
 
-def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> None:
+def _run_shacl(
+    graphs: Mapping[str, Graph],
+    ontology: Graph,
+    shapes: Graph,
+    *,
+    asserted_type_index: Mapping[Any, Sequence[Any]] | None = None,
+) -> None:
     """Validate authoritative inputs; exact regeneration validates the projection.
 
     Red builds fail fast. Measured on a 32M-quad non-conforming distribution
@@ -3589,8 +3979,24 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
     audit = os.environ.get(VALIDATION_MODE_ENV) == AUDIT_VALIDATION_MODE
     ontology_view = inoculate(Graph(), ontology)
     plan = _batched_shacl_plan(shapes)
+    direct_class_lifted = any(
+        constraint.predicate == SH["class"]
+        for target in plan.direct_targets
+        for property_plan in target.properties
+        for constraint in property_plan.constraints
+    )
+    ontology_types: dict[Any, list[Any]] = defaultdict(list)
+    if asserted_type_index is not None and direct_class_lifted:
+        for subject, node_type in ontology_view.subject_objects(RDF.type):
+            ontology_types[subject].append(node_type)
+    complete_asserted_type_index = (
+        _CombinedTypeIndex(asserted_type_index, ontology_types)
+        if asserted_type_index is not None and direct_class_lifted
+        else None
+    )
     for role in ("asserted", "derived"):
         validation_view = _ShaclDataView([graphs[role], ontology_view])
+        type_index = complete_asserted_type_index if role == "asserted" else None
         for prefix, namespace in ontology.namespaces():
             validation_view.namespace_manager.bind(prefix, namespace)
         conforms = False
@@ -3598,7 +4004,12 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
         focus_samples: list[URIRef] | None = None
         try:
             if audit:
-                if _batched_shacl_prechecks(validation_view, shapes, plan):
+                if _batched_shacl_prechecks(
+                    validation_view,
+                    shapes,
+                    plan,
+                    type_index=type_index,
+                ):
                     conforms, _, report = _validate_shacl_data(validation_view, plan.shapes)
             else:
                 # Both halves of the fast path run before reporting: the
@@ -3611,6 +4022,7 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
                     shapes,
                     plan,
                     first_only=False,
+                    type_index=type_index,
                 )
                 conforms, results, report = _validate_shacl_data(validation_view, plan.shapes)
                 conforms = conforms and not misses
@@ -8196,7 +8608,14 @@ def _validate_semantic_graphs(
     ontology, shapes = _parse_binding_graphs()
     _lint_ontology(ontology)
     _STATUS.phase("run-shacl")
-    _run_shacl(graphs, ontology, shapes)
+    _run_shacl(
+        graphs,
+        ontology,
+        shapes,
+        asserted_type_index=(
+            asserted_placement.types if asserted_placement is not None else None
+        ),
+    )
     _STATUS.phase("check-graph-roles")
     inventory = _check_graph_roles(graphs, asserted_placement=asserted_placement)
     _STATUS.phase("check-profile-and-identifier-semantics")

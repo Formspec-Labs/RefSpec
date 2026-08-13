@@ -1,0 +1,128 @@
+         195320051 function calls (194598521 primitive calls) in 39.462 seconds
+
+   Ordered by: cumulative time
+   List reduced from 301 to 120 due to restriction <120>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        2    0.000    0.000   39.462   19.731 validate.py:3295(_validate_shacl_data)
+        2    0.000    0.000   39.462   19.731 entrypoints.py:45(validate)
+        2    0.001    0.000   39.462   19.731 validator.py:178(run)
+13053/652    0.102    0.000   39.446    0.060 profile_atlas_residual_shacl.py:122(measured_shape)
+13053/652    0.115    0.000   39.354    0.060 shape.py:621(validate)
+ 11322113    2.562    0.000   23.137    0.000 graph.py:672(triples)
+  7667225    1.955    0.000   23.083    0.000 graph.py:3153(triples)
+  6133147    1.452    0.000   22.356    0.000 graph.py:987(objects)
+    12528    0.892    0.000   20.647    0.002 shape.py:542(value_nodes)
+1932243/1426963    1.444    0.000   19.750    0.000 expression_helper.py:31(value_nodes_from_path)
+ 11322113    6.436    0.000   18.983    0.000 memory.py:411(triples)
+14717/313    0.035    0.000   12.356    0.039 profile_atlas_residual_shacl.py:103(measured_component)
+      652    0.004    0.000    6.426    0.010 shape.py:321(focus_nodes)
+   178955    0.536    0.000    6.405    0.000 {method 'update' of 'set' objects}
+  3157610    0.325    0.000    6.008    0.000 graph.py:919(subjects)
+      126    0.000    0.000    5.363    0.043 value_constraints.py:90(evaluate)
+      126    0.500    0.004    5.363    0.043 value_constraints.py:134(_evaluate_class_rules_rdflib)
+ 15048771    4.365    0.000    4.365    0.000 term.py:167(__eq__)
+ 19836040    2.118    0.000    4.356    0.000 {built-in method builtins.isinstance}
+  6033972    1.317    0.000    4.136    0.000 memory.py:702(__contexts)
+  5288149    1.682    0.000    3.425    0.000 memory.py:681(__ctx_to_str)
+  6033972    1.828    0.000    2.819    0.000 memory.py:644(__get_context_for_triple)
+ 13148718    1.165    0.000    2.239    0.000 <frozen abc>:117(__instancecheck__)
+        2    0.001    0.001    1.894    0.947 logical_constraints.py:421(evaluate)
+        2    0.004    0.002    1.893    0.946 logical_constraints.py:441(_evaluate_xone_constraint)
+  9072297    1.072    0.000    1.864    0.000 memory.py:659(__triple_has_context)
+       14    0.000    0.000    1.771    0.127 property_pair_constraints.py:72(evaluate)
+       14    0.158    0.011    1.771    0.127 property_pair_constraints.py:135(_evaluate_property_equals_rdflib)
+     4104    0.008    0.000    1.635    0.000 shape_based_constraints.py:76(evaluate)
+     8119    0.010    0.000    1.616    0.000 shape_based_constraints.py:108(_evaluate_property_shape)
+ 15202709    1.226    0.000    1.344    0.000 {method 'get' of 'dict' objects}
+  5332392    1.297    0.000    1.297    0.000 {method 'format' of 'str' objects}
+631095/454905    0.113    0.000    1.259    0.000 graph.py:1285(transitive_objects)
+   924183    0.255    0.000    1.230    0.000 __init__.py:183(__getattr__)
+ 13148718    1.073    0.000    1.073    0.000 {built-in method _abc._abc_instancecheck}
+       81    0.325    0.004    1.026    0.013 value_constraints.py:308(evaluate)
+   924183    0.289    0.000    0.856    0.000 __init__.py:176(term)
+    14717    0.164    0.000    0.680    0.000 {built-in method builtins.sum}
+       22    0.168    0.008    0.660    0.030 value_constraints.py:200(evaluate)
+     4163    0.019    0.000    0.599    0.000 constraint_component.py:221(make_v_result)
+    50155    0.076    0.000    0.578    0.000 graph.py:1208(items)
+  1007237    0.243    0.000    0.573    0.000 term.py:286(__new__)
+   785910    0.071    0.000    0.546    0.000 {built-in method builtins.next}
+  4184101    0.388    0.000    0.517    0.000 profile_atlas_residual_shacl.py:110(<genexpr>)
+29011/28990    0.031    0.000    0.468    0.000 stringify.py:158(stringify_node)
+  6056824    0.467    0.000    0.467    0.000 {method 'items' of 'dict' objects}
+ 10576314    0.460    0.000    0.460    0.000 graph.py:550(identifier)
+     2059    0.114    0.000    0.401    0.000 cardinality_constraints.py:92(evaluate)
+   100310    0.023    0.000    0.390    0.000 graph.py:1143(value)
+     4013    0.037    0.000    0.382    0.000 other_constraints.py:78(evaluate)
+    27770    0.046    0.000    0.346    0.000 profile_atlas_residual_shacl.py:81(_shape_label)
+    31261    0.050    0.000    0.323    0.000 shape.py:724(<genexpr>)
+     4163    0.014    0.000    0.312    0.000 constraint_component.py:129(make_v_result_description)
+   213991    0.090    0.000    0.303    0.000 value_constraints.py:247(_assert_actual_datatype)
+  7247731    0.265    0.000    0.265    0.000 {built-in method builtins.len}
+  2837954    0.264    0.000    0.264    0.000 {method 'keys' of 'dict' objects}
+    24828    0.009    0.000    0.244    0.000 term.py:307(n3)
+       17    0.000    0.000    0.244    0.014 string_based_constraints.py:72(evaluate)
+    24828    0.030    0.000    0.230    0.000 __init__.py:580(normalizeUri)
+  1032086    0.211    0.000    0.211    0.000 term.py:104(_is_valid_uri)
+        2    0.000    0.000    0.206    0.103 property_pair_constraints.py:199(evaluate)
+        3    0.020    0.007    0.206    0.069 property_pair_constraints.py:258(_evaluate_property_disjoint_rdflib)
+     4013    0.010    0.000    0.185    0.000 other_constraints.py:41(__init__)
+     4079    0.152    0.000    0.183    0.000 cardinality_constraints.py:179(evaluate)
+   667874    0.151    0.000    0.174    0.000 term.py:1313(__hash__)
+        5    0.046    0.009    0.169    0.034 string_based_constraints.py:330(_evaluate_string_rule)
+    24849    0.105    0.000    0.159    0.000 __init__.py:902(split_uri)
+   329946    0.058    0.000    0.157    0.000 {method 'difference' of 'set' objects}
+  1107303    0.144    0.000    0.144    0.000 {method 'startswith' of 'str' objects}
+    31941    0.013    0.000    0.137    0.000 {built-in method builtins.sorted}
+    29114    0.041    0.000    0.133    0.000 __init__.py:754(bind)
+  1015569    0.126    0.000    0.126    0.000 {built-in method __new__ of type object at 0x1012e4958}
+     2003    0.003    0.000    0.109    0.000 other_constraints.py:73(make_generic_messages)
+    39810    0.008    0.000    0.106    0.000 graph.py:1069(predicate_objects)
+  1456206    0.100    0.000    0.100    0.000 {built-in method builtins.iter}
+     2003    0.003    0.000    0.099    0.000 cardinality_constraints.py:78(make_generic_messages)
+   143938    0.050    0.000    0.078    0.000 string_based_constraints.py:56(value_node_to_string)
+   155872    0.055    0.000    0.076    0.000 __init__.py:297(__getattr__)
+        2    0.000    0.000    0.060    0.030 property_pair_constraints.py:475(evaluate)
+        2    0.006    0.003    0.060    0.030 property_pair_constraints.py:566(_evaluate_ltoe_rdflib)
+       11    0.017    0.002    0.058    0.005 string_based_constraints.py:149(_evaluate_string_rule)
+      101    0.000    0.000    0.048    0.000 other_constraints.py:321(evaluate)
+      101    0.009    0.000    0.048    0.000 other_constraints.py:339(_evaluate_has_value)
+    99604    0.043    0.000    0.043    0.000 {method 'match' of 're.Pattern' objects}
+        5    0.000    0.000    0.042    0.008 logical_constraints.py:307(evaluate)
+        5    0.001    0.000    0.042    0.008 logical_constraints.py:325(_evaluate_or_constraint)
+   668423    0.041    0.000    0.041    0.000 {built-in method unicodedata.category}
+     4079    0.009    0.000    0.038    0.000 cardinality_constraints.py:126(__init__)
+    25581    0.018    0.000    0.037    0.000 shape.py:171(__str__)
+     4104    0.005    0.000    0.034    0.000 shape_based_constraints.py:55(__init__)
+    53963    0.008    0.000    0.030    0.000 memory.py:548(prefix)
+   524521    0.029    0.000    0.029    0.000 term.py:768(value)
+     4167    0.003    0.000    0.029    0.000 term.py:458(__new__)
+       89    0.000    0.000    0.025    0.000 logical_constraints.py:73(evaluate)
+       89    0.000    0.000    0.025    0.000 logical_constraints.py:94(_evaluate_not_constraint)
+     4165    0.008    0.000    0.024    0.000 term.py:641(__new__)
+   364109    0.023    0.000    0.023    0.000 term.py:776(datatype)
+     4167    0.003    0.000    0.023    0.000 uuid.py:723(uuid4)
+     2059    0.004    0.000    0.020    0.000 cardinality_constraints.py:37(__init__)
+    10418    0.002    0.000    0.019    0.000 validate.py:995(__bool__)
+    83172    0.013    0.000    0.018    0.000 __init__.py:529(store)
+    10608    0.001    0.000    0.018    0.000 graph.py:1046(subject_objects)
+   310566    0.018    0.000    0.018    0.000 {built-in method builtins.hash}
+        1    0.011    0.011    0.017    0.017 string_based_constraints.py:395(_evaluate_string_rule)
+        1    0.000    0.000    0.016    0.016 {built-in method builtins.any}
+        2    0.000    0.000    0.016    0.008 validate.py:1000(<genexpr>)
+        2    0.000    0.000    0.014    0.007 shapes_graph.py:164(shapes)
+        2    0.001    0.000    0.014    0.007 shapes_graph.py:202(_build_node_shape_cache)
+    97481    0.011    0.000    0.014    0.000 {built-in method builtins.getattr}
+   238968    0.013    0.000    0.013    0.000 term.py:772(language)
+    29021    0.005    0.000    0.013    0.000 term.py:164(__ne__)
+    24849    0.009    0.000    0.013    0.000 term.py:237(startswith)
+4196/4193    0.003    0.000    0.012    0.000 stringify.py:15(wrapped)
+    39286    0.007    0.000    0.011    0.000 __init__.py:1517(debug)
+     4167    0.010    0.000    0.010    0.000 {built-in method posix.urandom}
+     4167    0.008    0.000    0.010    0.000 uuid.py:139(__init__)
+2864/2038    0.001    0.000    0.010    0.000 graph.py:1311(transitive_subjects)
+    16446    0.003    0.000    0.009    0.000 shapes_graph.py:186(is_filtered_out_shape)
+     4165    0.005    0.000    0.009    0.000 term.py:2091(_castPythonToLiteral)
+4196/4193    0.004    0.000    0.008    0.000 stringify.py:28(stringify_blank_node)
+
+

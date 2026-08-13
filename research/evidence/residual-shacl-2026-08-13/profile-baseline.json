@@ -1,0 +1,4985 @@
+{
+  "attribution": {
+    "constraints": [
+      {
+        "calls": 1,
+        "component": "XoneConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 1.830036,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 2003,
+        "component": "PropertyConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 1.101937,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.575623,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#bindsAssertion",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.553728,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.552578,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 2003,
+        "component": "PropertyConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.455834,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb194",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.44294,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.442561,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 2003,
+        "component": "InConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.305274,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.296689,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb223",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.295401,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb217",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.295011,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb220",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.29428,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb214",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 2003,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.266789,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189 -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.253381,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceRecord",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.252242,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb162",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.228269,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#governedByPolicy",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.221345,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 27362,
+        "seconds": 0.215202,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 27362
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.214603,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.192806,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.153709,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.151845,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#representsResource",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "DisjointConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.150178,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#prefLabel",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.144196,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.130853,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#assertedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.130291,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#altLabel",
+        "value_nodes": 15472
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.129677,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.101142,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb96",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.101089,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb105",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.10102,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.10098,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb102",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.100152,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb99",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.089065,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#inSourceRelease",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.083274,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.081484,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#prefLabel",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.073523,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.073463,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.070197,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.069213,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.068345,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#assertionIdentityDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.068136,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "XoneConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.064008,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "LessThanOrEqualsConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.059208,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DisjointConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.056115,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#altLabel",
+        "value_nodes": 15472
+      },
+      {
+        "calls": 1,
+        "component": "PatternConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.050427,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#assertionIdentityDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "PatternConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.049963,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.049909,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#nativePayload",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "PatternConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.049244,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.048907,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.048202,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.042914,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.042831,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.042388,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.042046,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041921,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb162",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041758,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041686,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041524,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceRecord",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041469,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestor",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "OrConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.041304,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041189,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#governedByPolicy",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.041182,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#bindsAssertion",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.040943,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.040724,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.035068,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.034878,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.033893,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.032602,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.032567,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.032127,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 3,
+        "component": "PropertyConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.03212,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb38",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.026879,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.026832,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.026227,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#assertionIdentityDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.026224,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#assertedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.026112,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 89,
+        "component": "NotConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.025212,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb64",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.02232,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#notation",
+        "value_nodes": 9496
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.022177,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.022161,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.022068,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb181",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.021344,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb184",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.021206,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb178",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.021145,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb187",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.020637,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#altLabel",
+        "value_nodes": 15472
+      },
+      {
+        "calls": 1,
+        "component": "PatternConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.01925,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "LanguageInConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.017281,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 3,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.017255,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb38 -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 3
+      },
+      {
+        "calls": 89,
+        "component": "PropertyConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.016749,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb65",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.016254,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#decision",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 3,
+        "component": "PropertyConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.016223,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb41",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.01616,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#inSourceRelease",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.015823,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.015734,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.015569,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.015557,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.015391,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.01539,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.015259,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.015171,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidentiaryFunction",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.015057,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 3,
+        "component": "PropertyConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.014849,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb35",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.014839,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.014519,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestorKind",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.013626,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.013609,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.013302,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.01326,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#prefLabel",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.013257,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#representsResource",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.013256,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.013255,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.013178,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.012985,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.01272,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.0127,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.012126,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#notation",
+        "value_nodes": 9496
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.010562,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#nativePayload",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.009717,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.008223,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#notation",
+        "value_nodes": 9496
+      },
+      {
+        "calls": 89,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.008023,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb65 -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.007826,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 89,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.007232,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb67",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005653,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005624,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005616,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005566,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005547,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidentiaryFunction",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.00552,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005516,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#decision",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005511,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#assertedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005493,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005478,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceRecord",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005469,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#decision",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005451,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.00544,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005418,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidentiaryFunction",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005414,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005396,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005396,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005392,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005384,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005365,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#supersedesAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005357,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005356,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005333,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005326,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005304,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestor",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005303,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestor",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005293,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#bindsAssertion",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005293,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005292,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005283,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#assertionIdentityDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005271,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb162",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005269,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#governedByPolicy",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005268,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005239,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#assertionIdentityDigest",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.00523,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestorKind",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005223,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005197,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005192,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceRecord",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.00517,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005134,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005075,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.005027,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#governedByPolicy",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.00501,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#assertedAt",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.004845,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.004562,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.004554,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#bindsAssertion",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.004438,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.004425,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.004349,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.004294,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.004174,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.003725,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.003367,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestorKind",
+        "value_nodes": 29365
+      },
+      {
+        "calls": 2003,
+        "component": "InConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.003196,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb194 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 24974,
+        "seconds": 0.002989,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 2003,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.002928,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189 -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2003,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.002902,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb194 -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.002446,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.002389,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#supersedesAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.002318,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.002309,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.002262,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#supersedesAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.002258,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.002005,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#nativePayload",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.001966,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.001927,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#nativePayload",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.001919,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.001896,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#inSourceRelease",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.001888,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#inSourceRelease",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.00187,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.001688,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 11505,
+        "seconds": 0.001667,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 11505
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001659,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#hiddenLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001651,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001643,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001629,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001622,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001613,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001585,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#altLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001582,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#prefLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001578,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#prefLabel",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001552,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001545,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.00154,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb88",
+        "value_nodes": 24974
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001533,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001509,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001494,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001474,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001079,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.001009,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 2003,
+        "seconds": 0.000986,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 2003
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 29365,
+        "seconds": 0.000948,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000888,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000794,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#sourceDescriptor",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000769,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#componentPosition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000755,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#note",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000737,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.00072,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#hiddenLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinInclusiveConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000702,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#componentPosition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000658,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#definition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000646,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000621,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#hiddenLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "LessThanOrEqualsConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000597,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 3,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.00055,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb41 -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 3,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 0.000515,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb41 -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000448,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#componentPosition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000423,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000399,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "OrConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000379,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#note",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "OrConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000369,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#definition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000361,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000361,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 9502,
+        "seconds": 0.000223,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#componentPosition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000211,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#memberDisposition",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000126,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#sourceDescriptor",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000125,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000123,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000121,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000117,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000117,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000115,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000114,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#supportedRing",
+        "value_nodes": 81
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 0.000108,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 88
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 7.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 7.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 7.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 7.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 88
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 5.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#memberDisposition",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 5.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "OrConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 5.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#note",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "OrConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 5.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#definition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "EqualsConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 3.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> n1e28280ab04d43ff94b1dbc2abff2deeb48",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 3.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ConceptHostingSchemeShape",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 1.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 2,
+        "seconds": 1.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape -> https://refspec.org/ns/atlas/v3#policyPayload",
+        "value_nodes": 2
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 1.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "PatternConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 1.2e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#sourceDescriptor",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 88
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#sourceDescriptor",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 9e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape",
+        "value_nodes": 4
+      },
+      {
+        "calls": 3,
+        "component": "HasValueConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 9e-06,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb35 -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 3
+      },
+      {
+        "calls": 3,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 9e-06,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb38 -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 2,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape",
+        "value_nodes": 2
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#memberDisposition",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#memberDisposition",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 89
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 8e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/issued",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 7e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 4
+      },
+      {
+        "calls": 3,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 7e-06,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb35 -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 9502
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 6e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validationRule",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 5e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 5e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/issued",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 2,
+        "seconds": 5e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape -> https://refspec.org/ns/atlas/v3#policyPayload",
+        "value_nodes": 2
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 5e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validationRule",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 5e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "ClassConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#collectionMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#definition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MinLengthConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 4e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validationRule",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "InConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 3e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 3e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#collectionMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "DatatypeConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 3e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 3e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#note",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "NodeKindConstraintComponent",
+        "focus_nodes": 89,
+        "seconds": 3e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 3e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/issued",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/issued",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 3,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 3
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 2,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape -> https://refspec.org/ns/atlas/v3#policyPayload",
+        "value_nodes": 2
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 2,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape -> https://refspec.org/ns/atlas/v3#policyPayload",
+        "value_nodes": 2
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "MaxCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 4
+      },
+      {
+        "calls": 1,
+        "component": "MinCountConstraintComponent",
+        "focus_nodes": 4,
+        "seconds": 2e-06,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 4
+      }
+    ],
+    "shapes": [
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.864044,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb220",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.847359,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb217",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.83919,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.833297,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb223",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.828585,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb214",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2005,
+        "focus_nodes": 2003,
+        "seconds": 1.212841,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.13013,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.121995,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 1.119734,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb162",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.95578,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#bindsAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.872443,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb88",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.822791,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#governedByPolicy",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.761903,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.758501,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.725655,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#assertedAt",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.689665,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#assertionIdentityDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.666529,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb102",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.664714,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb96",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.661527,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb99",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.637878,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2005,
+        "focus_nodes": 2003,
+        "seconds": 0.572502,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb194",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.5659,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.554207,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.550932,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.548349,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.543827,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.540359,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2005,
+        "focus_nodes": 2003,
+        "seconds": 0.535475,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.531889,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.522828,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#evidenceSourceDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.51935,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.511652,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.506,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestedAt",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.505393,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.485388,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape -> http://www.w3.org/2008/05/skos-xl#literalForm",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2005,
+        "focus_nodes": 2003,
+        "seconds": 0.481557,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb189 -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.421056,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#supersedesAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.415947,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.415227,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.410086,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.398548,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#prefLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.379356,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestor",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.36536,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#altLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.360656,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#decision",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.357774,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.356788,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.356099,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidentiaryFunction",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.353358,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.349605,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#attestorKind",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.346745,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> n1e28280ab04d43ff94b1dbc2abff2deeb105",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.311895,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.281859,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#representsResource",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.266073,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationAssertionShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.248539,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.243098,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#inRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.237443,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#inSourceRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.236086,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2005,
+        "focus_nodes": 2003,
+        "seconds": 0.234158,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb194 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.230736,
+        "shape": "https://refspec.org/ns/atlas/v3#EvidenceBindingShape -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.214328,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.207899,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#nativePayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.203239,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.20206,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#notation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.201365,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.183233,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.181302,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.169666,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.167183,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.145846,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.14018,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb181",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2005,
+        "focus_nodes": 2003,
+        "seconds": 0.139725,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb194 -> https://rulespec.org/ns/v1#hasEffectivePeriod",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.138354,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb184",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.137889,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb178",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.137297,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb187",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.124416,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.120433,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2008/05/skos-xl#hiddenLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.119638,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#componentPosition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.119024,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#altLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.117332,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#definition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.117163,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> https://refspec.org/ns/atlas/v3#note",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.116739,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#hiddenLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.115266,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape -> http://www.w3.org/2004/02/skos/core#prefLabel",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.112278,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.095598,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosXlLabelShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.074569,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasResourceShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.071734,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.071076,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.064219,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.061867,
+        "shape": "https://refspec.org/ns/atlas/v3#NativeRelationAssertionShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.059745,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.058843,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.042996,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.04221,
+        "shape": "https://refspec.org/ns/atlas/v3#MappingAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.041932,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceRecordShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.041822,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.03833,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.037652,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.032421,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb38",
+        "value_nodes": 0
+      },
+      {
+        "calls": 91,
+        "focus_nodes": 89,
+        "seconds": 0.028795,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb64",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.023514,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 91,
+        "focus_nodes": 89,
+        "seconds": 0.020631,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb65",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.019503,
+        "shape": "https://refspec.org/ns/atlas/v3#SubjectConceptShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.017569,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb38 -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.016466,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb41",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.01642,
+        "shape": "https://refspec.org/ns/atlas/v3#ConceptHostingSchemeShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.015077,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb35",
+        "value_nodes": 0
+      },
+      {
+        "calls": 91,
+        "focus_nodes": 89,
+        "seconds": 0.014797,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb65 -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.014683,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb41 -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.014513,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb35 -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.014506,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb38 -> http://www.w3.org/ns/prov#hadMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 91,
+        "focus_nodes": 89,
+        "seconds": 0.010595,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb67",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.004203,
+        "shape": "https://refspec.org/ns/atlas/v3#SkosMappingAssertionShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.002287,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#sourceDescriptor",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001839,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001818,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> https://refspec.org/ns/atlas/v3#memberDisposition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001726,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validFrom",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001651,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001618,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001498,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.001475,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb41 -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001465,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> http://purl.org/dc/terms/title",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001364,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001327,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#supportedRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001045,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#descriptorPayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001043,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#recordStatus",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001026,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validationRule",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.001007,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#validUntil",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000968,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#note",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000958,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#definition",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000896,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceSchemeShape -> https://refspec.org/ns/atlas/v3#collectionMember",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000484,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistrySourceShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000421,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000409,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000395,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> n1e28280ab04d43ff94b1dbc2abff2deeb48",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000369,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000343,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> https://refspec.org/ns/atlas/v3#sourceLocator",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000342,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000335,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000332,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/identifier",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.00033,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> https://refspec.org/ns/atlas/v3#resourceProfile",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000316,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape -> https://refspec.org/ns/atlas/v3#policyPayload",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000302,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape -> http://purl.org/dc/terms/issued",
+        "value_nodes": 0
+      },
+      {
+        "calls": 5,
+        "focus_nodes": 3,
+        "seconds": 0.000297,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb35 -> https://rulespec.org/ns/v1#membershipMode",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000223,
+        "shape": "https://refspec.org/ns/atlas/v3#AtlasReleaseShape -> http://purl.org/dc/terms/issued",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000197,
+        "shape": "https://refspec.org/ns/atlas/v3#EditorialPolicyShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000174,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceReleaseShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000158,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofIssuerShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000142,
+        "shape": "https://refspec.org/ns/atlas/v3#AILineageShape -> https://rulespec.org/ns/v1#modelVersion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000126,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000123,
+        "shape": "https://refspec.org/ns/atlas/v3#AILineageShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000123,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape -> https://rulespec.org/ns/v1#appliesTo",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000122,
+        "shape": "https://refspec.org/ns/atlas/v3#EffectivePeriodShape -> https://rulespec.org/ns/v1#effectivePeriodEnd",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000115,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000115,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000115,
+        "shape": "https://refspec.org/ns/atlas/v3#ValueResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000114,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#relationPredicate",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000113,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#supportingAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000112,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#contentDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.00011,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#independenceGroup",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000109,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofIssuerShape -> https://rulespec.org/ns/v1#proofPolicyVersion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000108,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000108,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofRationale",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000108,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000107,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofEvaluatedAt",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000106,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#engine",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000106,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonProofRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000106,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofSnapshot",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000105,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000105,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb249",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000105,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape -> https://refspec.org/ns/atlas/v3#fromRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000104,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000103,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000102,
+        "shape": "https://refspec.org/ns/atlas/v3#AILineageShape -> https://rulespec.org/ns/v1#inputContextHash",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000102,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#engineVersion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 0.000101,
+        "shape": "https://refspec.org/ns/atlas/v3#ArtifactShape -> https://rulespec.org/ns/v1#hasArtifactIdentifier",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonEvaluationTime",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ArtifactShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LegalIdentityResourceShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonDetectorVersion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#EntityResourceShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb243",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape -> https://rulespec.org/ns/v1#lifecycleEventKind",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistryConflictShape -> https://rulespec.org/ns/v1#conflictingEntries",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonConsumer",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 9.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ValueResourceShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#derivationRule",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#IdentifierShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#IdentifierShape -> n1e28280ab04d43ff94b1dbc2abff2deeb126",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonObservedArtifact",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#adjudicationVerdict",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofIssuer",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#relationObject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistryConflictShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonDetector",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonSnapshot",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofOutcome",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#AILineageShape -> https://rulespec.org/ns/v1#temperature",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ArtifactShape -> https://rulespec.org/ns/v1#artifactIdentifierScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#derivedFromAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#EffectivePeriodShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofIssuerShape -> https://rulespec.org/ns/v1#proofResolverVersion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#sealedResponseArtifact",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb246",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://rulespec.org/ns/v1#inputDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#IdentifierShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#relationObject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#relationSubject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofIssuerShape -> https://rulespec.org/ns/v1#proofPolicy",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofInput",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofRecordDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape -> n1e28280ab04d43ff94b1dbc2abff2deeb232",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#AILineageShape -> https://rulespec.org/ns/v1#promptTemplateRef",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ArtifactShape -> https://rulespec.org/ns/v1#hasContentDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonPolicyVersion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofIssuerShape -> https://rulespec.org/ns/v1#proofResolver",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#hasAILineage",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#sealedRequestDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.2e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#AILineageShape -> https://rulespec.org/ns/v1#modelId",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.2e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ProjectedRelationShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.2e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonBaselineArtifact",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> n1e28280ab04d43ff94b1dbc2abff2deeb252",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#generatedAt",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#relationSubject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#IdentifierShape -> https://refspec.org/ns/atlas/v3#identifierScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8.1e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#IdentifierShape -> https://refspec.org/ns/atlas/v3#identifierValue",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> https://refspec.org/ns/atlas/v3#sourceRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#IdentifierShape -> https://refspec.org/ns/atlas/v3#identifies",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LegalIdentityResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonScope",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertionShape -> http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DerivedRelationShape -> https://refspec.org/ns/atlas/v3#relationPredicate",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape -> https://refspec.org/ns/atlas/v3#toRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape -> https://rulespec.org/ns/v1#effectiveDate",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistryConflictShape -> https://rulespec.org/ns/v1#detectedAt",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonExpectedAssertion",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofComparisonContext",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.9e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape -> https://refspec.org/ns/atlas/v3#targetRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LifecycleEventShape -> https://refspec.org/ns/atlas/v3#sourceRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape -> n1e28280ab04d43ff94b1dbc2abff2deeb229",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb306",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#EffectivePeriodShape -> https://rulespec.org/ns/v1#effectivePeriodStart",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#EntityResourceShape -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RelationComparisonContextShape -> https://rulespec.org/ns/v1#comparisonOutcome",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.7e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SourceAssignmentShape -> n1e28280ab04d43ff94b1dbc2abff2deeb235",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#LegalIdentityResourceShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.6e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#RegistryConflictShape -> https://rulespec.org/ns/v1#severity",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb321 -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#EntityResourceShape -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofInputDigest",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResolverProofRecordShape -> https://rulespec.org/ns/v1#proofType",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb306 -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb306 -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.2e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb326 -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7.1e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb326 -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb1",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb311 -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.9e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb167 -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb306 -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb431 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb427 -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb412",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb163 -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.3e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb311 -> https://rulespec.org/ns/v1#attestorKind",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.2e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#NonEmptyStringValueShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.2e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#TextLiteralValueShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6.2e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb326",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 6e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb414 -> https://rulespec.org/ns/v1#comparisonProofRecord",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.8e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#SemanticRingValueShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb114",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb427 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb163 -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb311 -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb431",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.5e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DigestValueShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb306 -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb311 -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.4e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#DateTimeValueShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.3e-05,
+        "shape": "https://refspec.org/ns/atlas/v3#ResourceProfileValueShape",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.3e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb321 -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.2e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb301 -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.2e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb311",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.2e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb344",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.2e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb431 -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5.1e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb348 -> https://rulespec.org/ns/v1#lifecycleEventKind",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb114 -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb301 -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb414",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb427",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.9e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb326 -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb111 -> http://www.w3.org/2004/02/skos/core#inScheme",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb163 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb167 -> https://refspec.org/ns/atlas/v3#semanticRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb317",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb321 -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb344 -> https://refspec.org/ns/atlas/v3#fromRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb344 -> https://refspec.org/ns/atlas/v3#toRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.8e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb427 -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb167",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb167 -> https://refspec.org/ns/atlas/v3#sourceRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb301 -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb311 -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb317 -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb326 -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb348",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.7e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb431 -> https://refspec.org/ns/atlas/v3#targetRing",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.6e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb111",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.6e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb2",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.6e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb301",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.6e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb321 -> https://rulespec.org/ns/v1#basedOnAttestation",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.6e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb412 -> https://rulespec.org/ns/v1#comparisonOutcome",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb317 -> https://rulespec.org/ns/v1#epistemicBasis",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb321",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.5e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb348 -> https://refspec.org/ns/atlas/v3#toRelease",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb112",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb163",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb301 -> https://rulespec.org/ns/v1#evidenceRole",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb317 -> https://rulespec.org/ns/v1#assertionOrigin",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb344 -> https://rulespec.org/ns/v1#lifecycleEventKind",
+        "value_nodes": 0
+      },
+      {
+        "calls": 2,
+        "focus_nodes": 0,
+        "seconds": 4.4e-05,
+        "shape": "n1e28280ab04d43ff94b1dbc2abff2deeb348 -> https://refspec.org/ns/atlas/v3#fromRelease",
+        "value_nodes": 0
+      }
+    ]
+  },
+  "distribution": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution",
+  "distributionId": "urn:ref:atlas:distribution:3.1-bounded-development:198a41c398de4a8f2240430ef648ecafe2519537d1739b3d6f52123c66386a56",
+  "environment": {
+    "mode": "default",
+    "pyshacl": "0.31.0",
+    "python": "3.12.9",
+    "rdflib": "7.5.0"
+  },
+  "maximumRssBytes": 1442398208,
+  "packCount": 5,
+  "parseSeconds": 19.802903,
+  "quadCount": 1013723,
+  "recordedAt": "2026-08-13T12:58:25+00:00",
+  "roles": [
+    {
+      "conforms": true,
+      "engineSecondsInstrumented": 38.530842,
+      "precheckPassed": true,
+      "precheckSeconds": 3.004104,
+      "role": "asserted"
+    },
+    {
+      "conforms": true,
+      "engineSecondsInstrumented": 0.931657,
+      "precheckPassed": true,
+      "precheckSeconds": 0.033119,
+      "role": "derived"
+    }
+  ],
+  "setupSeconds": 0.012982,
+  "shapeGraphProofSeconds": 1.623314
+}
