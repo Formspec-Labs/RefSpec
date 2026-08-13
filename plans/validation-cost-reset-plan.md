@@ -237,6 +237,50 @@ audit to exercise the PUBLISHER-side declaration itemisation, which the
 1-record FCC-scoped proof above left at declaredPublisherClaimCount 0, and
 (iii) re-pin + seal if this becomes the artifact of record.
 
+**ENGINE QUESTION CLOSED WITH REOPEN CRITERIA (2026-08-13,
+research/shacl-engine-survey + research/shacl-rust).** The two cells the plan
+named as never tested are now resolved. **TopBraid SHACL 1.5.0 is the closest
+any engine has come**: it finished the real `atlas.shacl.ttl` at staging in
+10.31s in-memory Jena / 14.82s TDB2, did NOT reproduce Jena 6.2's shape-
+combination stall at that scale, and agreed with pySHACL on the result fields
+Atlas uses across four injected-defect reports. It still fails the bar — it has
+not run the 132-case corpus, and its TDB2 profile showed no native-storage
+memory advantage. **Jena 5.6 is a dead end**: 11% SLOWER than 6.2 on the
+complete staging shapes, no regression to exploit; neither version reproduces
+the pathology at bounded scale, which needs the full graph.
+
+**THE ARGUMENT THAT ACTUALLY SETTLES IT, independent of any benchmark:** the
+engine is not the validator. Of the sealed corpus's 132 cases (119 invalid, 13
+valid), only **48 carry `firstIssue: shacl.data`**, pinning 15 distinct
+shaclComponents; the other 84 prove JSON, canonical RDF, pack integrity, graph
+placement, dataset relationships, reasoning, lifecycle and registry rules. A
+generic SHACL report yields `sh:sourceConstraintComponent`, which an adapter can
+normalize — but it cannot emit Atlas refusal identities like `rdf.canonical`,
+`pack.content` or `dataset.relation`, and it cannot decide which gate becomes
+`firstIssue`. Any engine swap therefore keeps the whole Atlas verdict machinery
+and buys at most the SHACL share of 48 cases.
+
+Rust was tested too, not merely surveyed: rudof_cli 0.3.8 (published 2026-08-13)
+PARSES the real shapes (376 IR entries, including the sequence-path
+`(rdf:object / atlas:inRelease)` carrying `Equals: atlas:targetRelease`) and
+emits real SHACL reports, with an oxrdf-backed default backend. Its corpus
+parity is still unproven. Two candidate claims were also debunked:
+`oxigraph-cloud`'s advertised rudof-over-Oxigraph pairing actually serializes
+every quad into one in-memory N-Triples string and DROPS GRAPH NAMES (fatal for
+a quad-based Atlas), and `oxirs-shacl`'s W3C integration test does not fail when
+suite cases fail, skip, or error.
+
+**REOPEN ONLY IF** one of these becomes true — a version bump, a faster toy
+benchmark, or W3C conformance alone is NOT sufficient: (a) a compact native
+store ships a maintained native SHACL Core engine with Atlas's components and no
+term-reconstruction adapter; (b) TopBraid or Jena ships an identified fix for
+the combined-shape pathology AND its native-store path shows bounded resident
+memory as Atlas focus-node counts grow; (c) shacl-rust, goRDFlib, rudof/QLever
+or OxiRS publishes independent conformance evidence plus a direct compact-store
+validation path that can be pinned and reproduced offline; (d) pySHACL/RDFLib
+gains an integer-ID or encoded-store execution interface that batches discovery
+without rebuilding Python terms per lookup.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
