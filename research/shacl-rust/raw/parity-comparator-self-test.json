@@ -1,0 +1,15 @@
+{
+  "actualCaseCount": 132,
+  "agreementCount": 132,
+  "exactParity": true,
+  "expectedCaseCount": 132,
+  "extraCaseIds": [],
+  "fieldsCompared": [
+    "expected",
+    "firstIssue",
+    "shaclComponents"
+  ],
+  "mismatchCount": 0,
+  "mismatches": [],
+  "missingCaseIds": []
+}

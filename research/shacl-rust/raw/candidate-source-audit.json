@@ -54,6 +54,7 @@
   ],
   "integrationExample": {
     "commit": "95d0613a9467d810b5d615930968d757b36669a8",
+    "commitDate": "2026-04-06",
     "finding": "The current oxigraph-cloud implementation serializes every Oxigraph quad to one in-memory N-Triples string, drops graph names, and reparses the string into Rudof RdfData. It is not a direct Rust-engine-over-Rust-store path.",
     "name": "oxigraph-cloud",
     "status": "rejected",

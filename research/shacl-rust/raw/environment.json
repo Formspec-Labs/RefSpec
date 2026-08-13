@@ -1,4 +1,18 @@
 {
+  "candidateCache": {
+    "paths": [],
+    "patterns": [
+      "rudof-*",
+      "shacl_ast-*",
+      "shacl_ir-*",
+      "shacl_rdf-*",
+      "shacl_validation-*",
+      "srdf-*",
+      "shacl-rust-*",
+      "oxirs-shacl-*"
+    ],
+    "registryRoot": "/Users/mikewolfd/.cargo/registry/src"
+  },
   "commands": {
     "candidateRegistryProbe": {
       "command": [
@@ -40,7 +54,7 @@
       ],
       "returnCode": 0,
       "stderr": "",
-      "stdout": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    21197.\nPages active:                                 993440.\nPages inactive:                               990496.\nPages speculative:                              6935.\nPages throttled:                                   0.\nPages wired down:                             362724.\nPages purgeable:                               26686.\n\"Translation faults\":                     8452397537.\nPages copy-on-write:                       213906707.\nPages zero filled:                        3488309115.\nPages reactivated:                        1354858215.\nPages purged:                               78523856.\nFile-backed pages:                            531996.\nAnonymous pages:                             1458875.\nPages stored in compressor:                  1995880.\nPages occupied by compressor:                 714854.\nDecompressions:                           2227215394.\nCompressions:                             2306574869.\nPageins:                                   136383362.\nPageouts:                                   21294099.\nSwapins:                                    52051127.\nSwapouts:                                   55614429.\n",
+      "stdout": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     4363.\nPages active:                                 695632.\nPages inactive:                               693333.\nPages speculative:                              1349.\nPages throttled:                                   0.\nPages wired down:                             326960.\nPages purgeable:                                   2.\n\"Translation faults\":                     8511255722.\nPages copy-on-write:                       214864056.\nPages zero filled:                        3501415159.\nPages reactivated:                        1370732838.\nPages purged:                               80614768.\nFile-backed pages:                            227054.\nAnonymous pages:                             1163260.\nPages stored in compressor:                  3736668.\nPages occupied by compressor:                1368597.\nDecompressions:                           2260314989.\nCompressions:                             2342028703.\nPageins:                                   137259305.\nPageouts:                                   21317934.\nSwapins:                                    52167482.\nSwapouts:                                   56006749.\n",
       "timedOut": false
     }
   },

@@ -12,6 +12,18 @@ from pathlib import Path
 from typing import Any
 
 
+CANDIDATE_PATTERNS = (
+    "rudof-*",
+    "shacl_ast-*",
+    "shacl_ir-*",
+    "shacl_rdf-*",
+    "shacl_validation-*",
+    "srdf-*",
+    "shacl-rust-*",
+    "oxirs-shacl-*",
+)
+
+
 def run(command: list[str], timeout: float = 15.0) -> dict[str, Any]:
     """Run a diagnostic command without raising on its expected failure."""
 
@@ -53,7 +65,19 @@ def main() -> None:
         "rustc": run(["rustc", "--version", "--verbose"]),
         "vmStat": run(["vm_stat"]),
     }
+    cargo_registry = Path.home() / ".cargo" / "registry" / "src"
+    candidate_cache_paths = sorted(
+        str(path)
+        for registry_root in cargo_registry.glob("*")
+        for pattern in CANDIDATE_PATTERNS
+        for path in registry_root.glob(pattern)
+    )
     result = {
+        "candidateCache": {
+            "patterns": list(CANDIDATE_PATTERNS),
+            "paths": candidate_cache_paths,
+            "registryRoot": str(cargo_registry),
+        },
         "commands": commands,
         "executables": {
             name: shutil.which(name)
