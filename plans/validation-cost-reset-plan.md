@@ -338,6 +338,9 @@ restart from scratch.
 | research/fidelity-langbugs | MERGED e3fd49f1 | one BCP-47 predicate + English definitions/scope notes carried; cherry-picked (its base predates the substrate). Integration found a real defect: it stripped annotation whitespace on the parser path while asserting the claims path preserved it, and the reconciling test skipped in its worktree for want of a generated output/ tree. Both paths strip now — definitions enter node digests, so a stray publisher newline would have made node identity depend on which path built the release. |
 | feat/parse-substrate | MERGED ae34392c | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
 | research/graph-residual | MERGED 15b468c8 | the observer campaign's last two folds; 310,282 store calls → 16 |
+| research/shacl-engine-survey | complete, research-only | TopBraid 1.5.0 + Jena 5.6 measured; measurements/ holds the raw jsonl; no production code |
+| research/shacl-rust | in flight (round 2) | rudof_cli 0.3.8 runs the real shapes; corpus parity pending |
+| research/coverage-dry | in flight | authoritative 49/110 inventory; declarative FEC HTML family proven |
 | research/shacl-floor | complete | DON'T-TAKE; the SHACL floor measured (9.449s of 11.652s is engine); corrects residual-shacl's "needs a second implementation" |
 | research/coverage-bulk | MERGED 18283ce5 | four bulk-vocabulary readers; campaign coverage 27/110 → 31/110 |
 | research/auditor-language-scope | MERGED 7a9d75c7 | NASA note-kind fix (19,312 false failure rows → 0) + a checked English scope declaration proving the distribution asserts no non-English literal anywhere. RED BY DESIGN against the 08-13 artifact, which predates the producer change; goes green only on a distribution rebuilt at e3fd49f1 or later. |
