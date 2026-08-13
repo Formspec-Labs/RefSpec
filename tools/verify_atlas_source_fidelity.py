@@ -73,6 +73,7 @@ import argparse
 import csv
 import gzip
 import hashlib
+import html
 import io
 import json
 import logging
@@ -932,6 +933,22 @@ class AtlasLanguageScopeEvidence:
 
 
 @dataclass(frozen=True)
+class HtmlCodeListSelector:
+    """Declarative extraction and identity rules for one HTML code list."""
+
+    section_pattern: str
+    row_pattern: str
+    resource_name: str
+    source_token: str
+    identifier_kind: str
+    authority_iri: str
+    observed_at: str
+    observation_namespace: str
+    expected_count: int
+    use: str = "deterministicMetadata"
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -948,6 +965,7 @@ class SourceSpec:
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
+    html_code_list: HtmlCodeListSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2025,6 +2043,7 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
 
 
 API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
+HTML_CODE_LIST_READER = "html-code-list-v1/1.0"
 
 
 @dataclass(frozen=True)
@@ -2240,6 +2259,142 @@ def _api_capture_view(
         unevaluated_claims=tuple(unevaluated_claims),
         resource_locators=locators,
         expected_native_payloads=native_payloads,
+    )
+
+
+def _html_fragment_text(value: str) -> str:
+    """Return exact visible text from one bounded HTML fragment."""
+    without_tags = re.sub(r"<[^>]+>", " ", value)
+    return re.sub(r"\s+", " ", html.unescape(without_tags)).strip()
+
+
+def _read_html_code_list(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read a configured HTML code-list region without source-specific code."""
+    selector = spec.html_code_list
+    if selector is None:
+        raise ValueError(f"{spec.name} has no HTML code-list selector")
+    pin, payload = _single_pin(spec, payloads)
+    if pin.source_iri is None:
+        raise ValueError(f"{spec.name} publisher input has no source IRI")
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"{spec.name} publisher input is not UTF-8 HTML") from error
+
+    try:
+        section_pattern = re.compile(selector.section_pattern, re.DOTALL)
+        row_pattern = re.compile(selector.row_pattern, re.DOTALL)
+    except re.error as error:
+        raise ValueError(f"{spec.name} has an invalid HTML selector: {error}") from error
+    if "section" not in section_pattern.groupindex:
+        raise ValueError(f"{spec.name} section pattern must define a 'section' group")
+    required_row_groups = {"code", "label"}
+    missing_groups = required_row_groups - set(row_pattern.groupindex)
+    if missing_groups:
+        raise ValueError(
+            f"{spec.name} row pattern is missing groups {sorted(missing_groups)}"
+        )
+
+    sections = list(section_pattern.finditer(text))
+    if len(sections) != 1:
+        raise ValueError(
+            f"{spec.name} expected one configured HTML section, found {len(sections)}"
+        )
+    rows = list(row_pattern.finditer(sections[0].group("section")))
+    if len(rows) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} code rows, found {len(rows)}"
+        )
+
+    records: list[_ApiCaptureRecord] = []
+    seen_codes: set[str] = set()
+    for ordinal, match in enumerate(rows):
+        code = _html_fragment_text(match.group("code"))
+        label = _html_fragment_text(match.group("label"))
+        description_value = match.groupdict().get("description") or ""
+        description = _html_fragment_text(description_value)
+        if not code or not label:
+            raise ValueError(f"{spec.name}[{ordinal}] has an empty code or label")
+        if code in seen_codes:
+            raise ValueError(f"{spec.name} repeats publisher code {code!r}")
+        seen_codes.add(code)
+
+        source_path = f"$.{selector.resource_name}.{code}"
+        identifier = {
+            "value": code,
+            "kind": selector.identifier_kind,
+            "authorityUri": selector.authority_iri,
+            "sourceUri": pin.source_iri,
+            "sourcePath": source_path,
+            "observedAt": selector.observed_at,
+            "sourceDigest": pin.sha256,
+        }
+        observation_identity = {
+            "resourceName": selector.resource_name,
+            "sourceArtifact": pin.source_iri,
+            "sourcePath": source_path,
+            "value": code,
+        }
+        observation_id = (
+            f"urn:ref:source-observation:{selector.observation_namespace}:"
+            + hashlib.sha256(_canonical_json_bytes(observation_identity)).hexdigest()
+        )
+        native_payload = {
+            "id": observation_id,
+            "sourceArtifact": pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": ordinal,
+            "labels": [
+                {
+                    "value": label,
+                    "language": "en",
+                    "role": "preferred",
+                }
+            ],
+            "identifiers": [identifier],
+            "uses": [selector.use],
+            "conceptIdentityClaimed": False,
+            "description": description,
+        }
+        resource = _source_concept_iri(
+            token=selector.source_token,
+            recorded_at=selector.observed_at,
+            source_locator=pin.source_iri,
+            source_path=source_path,
+            notations=(code,),
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code,),
+                source_locator=pin.source_iri,
+                source_digest=(
+                    "sha256:"
+                    + hashlib.sha256(_canonical_json_bytes(native_payload)).hexdigest()
+                ),
+                native_payload=native_payload,
+                definition=description or None,
+            )
+        )
+
+    selected_section = sections[0]
+    outside_section = text[: selected_section.start()] + text[selected_section.end() :]
+    unevaluated_claims = (
+        (
+            "authenticated HTML outside the configured code-list section is not represented; "
+            "the selected code, label, and description cells are compared exactly"
+        ),
+    ) if _html_fragment_text(outside_section) else ()
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=unevaluated_claims,
     )
 
 
@@ -7348,6 +7503,7 @@ _PUBLISHER_READERS: Mapping[
     FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
     FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
     GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
+    HTML_CODE_LIST_READER: _read_html_code_list,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
     LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
     MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
@@ -7404,6 +7560,199 @@ _PUBLICATIONS_OFFICE_DATASET_DESCRIPTION = DeclaredClaimExclusion(
             f"{VOID}Linkset",
         }
     ),
+)
+
+
+def _fec_inline_section_pattern(column_name: str, field_label: str) -> str:
+    """Build one exact FEC master-file row selector from declared labels."""
+    return (
+        r"<tr>\s*<td>\s*"
+        + re.escape(column_name)
+        + r"\s*</td>\s*<td[^>]*>\s*"
+        + re.escape(field_label)
+        + r"\s*</td>\s*(?:<td[^>]*>.*?</td>\s*){3}"
+        + r"<td[^>]*>(?P<section>.*?)</td>\s*"
+        + r"<td[^>]*>.*?</td>\s*</tr>"
+    )
+
+
+_FEC_MASTER_PIN = SourcePin(
+    path=(
+        "tests/fixtures/fec_committee_codes/"
+        "fec-committee-master-file-description-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:dda49be2e360d39bb1b7dcbc53239e627109a26fbaefe172688aca84abc4ff66"
+    ),
+    byte_length=29_343,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://www.fec.gov/campaign-finance-data/"
+        "committee-master-file-description/"
+    ),
+)
+_FEC_COMMITTEE_TYPE_PIN = SourcePin(
+    path=(
+        "tests/fixtures/fec_committee_codes/"
+        "fec-committee-type-code-descriptions-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:84e9f16628fd2475750cd89a3947f2c737a5f66c8ced04aea6b1118ac2aecaa4"
+    ),
+    byte_length=28_121,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://www.fec.gov/campaign-finance-data/"
+        "committee-type-code-descriptions/"
+    ),
+)
+_FEC_PARTY_PIN = SourcePin(
+    path=(
+        "tests/fixtures/fec_committee_codes/"
+        "fec-party-code-descriptions-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:e17420381df0e5709449a8c9702600fde97503ea378ef357beef4c40ed6a6b09"
+    ),
+    byte_length=29_578,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://www.fec.gov/campaign-finance-data/party-code-descriptions/"
+    ),
+)
+_FEC_INLINE_ROW_PATTERN = (
+    r"(?:^|<br\s*/?>)\s*(?P<code>[A-Z])\s*=\s*"
+    r"(?P<label>.*?)(?=<br\s*/?>|$)"
+)
+_FEC_TABLE_SECTION_PATTERN = r"<table[^>]*>(?P<section>.*?)</table>"
+_FEC_TABLE_ROW_PATTERN = (
+    r"<tr>\s*<td[^>]*>\s*(?P<code>[A-Z]{1,3}|[A-Z]/[A-Z])\s*</td>\s*"
+    r"<td[^>]*>(?P<label>.*?)</td>\s*"
+    r"<td[^>]*>(?P<description>.*?)</td>\s*</tr>"
+)
+_FEC_HTML_CODE_LIST_DECLARATIONS = (
+    (
+        "fec-committee-designation",
+        _FEC_MASTER_PIN,
+        HtmlCodeListSelector(
+            section_pattern=_fec_inline_section_pattern(
+                "CMTE_DSGN", "Committee designation"
+            ),
+            row_pattern=_FEC_INLINE_ROW_PATTERN,
+            resource_name="committeeDesignation",
+            source_token="fec-committee-designation",
+            identifier_kind="committeeDesignationCode",
+            authority_iri="https://www.fec.gov/",
+            observed_at="2026-08-03T19:24:00Z",
+            observation_namespace="fec-committee-codes",
+            expected_count=6,
+        ),
+    ),
+    (
+        "fec-filing-frequency",
+        _FEC_MASTER_PIN,
+        HtmlCodeListSelector(
+            section_pattern=_fec_inline_section_pattern(
+                "CMTE_FILING_FREQ", "Filing frequency"
+            ),
+            row_pattern=_FEC_INLINE_ROW_PATTERN,
+            resource_name="filingFrequency",
+            source_token="fec-filing-frequency",
+            identifier_kind="filingFrequencyCode",
+            authority_iri="https://www.fec.gov/",
+            observed_at="2026-08-03T19:24:00Z",
+            observation_namespace="fec-committee-codes",
+            expected_count=6,
+        ),
+    ),
+    (
+        "fec-organization-type",
+        _FEC_MASTER_PIN,
+        HtmlCodeListSelector(
+            section_pattern=_fec_inline_section_pattern(
+                "ORG_TP", "Interest group category"
+            ),
+            row_pattern=_FEC_INLINE_ROW_PATTERN,
+            resource_name="organizationType",
+            source_token="fec-organization-type",
+            identifier_kind="organizationTypeCode",
+            authority_iri="https://www.fec.gov/",
+            observed_at="2026-08-03T19:24:00Z",
+            observation_namespace="fec-committee-codes",
+            expected_count=6,
+        ),
+    ),
+    (
+        "fec-committee-type",
+        _FEC_COMMITTEE_TYPE_PIN,
+        HtmlCodeListSelector(
+            section_pattern=_FEC_TABLE_SECTION_PATTERN,
+            row_pattern=_FEC_TABLE_ROW_PATTERN,
+            resource_name="committeeType",
+            source_token="fec-committee-type",
+            identifier_kind="committeeTypeCode",
+            authority_iri="https://www.fec.gov/",
+            observed_at="2026-08-03T19:24:00Z",
+            observation_namespace="fec-committee-codes",
+            expected_count=16,
+        ),
+    ),
+    (
+        "fec-party",
+        _FEC_PARTY_PIN,
+        HtmlCodeListSelector(
+            section_pattern=_FEC_TABLE_SECTION_PATTERN,
+            row_pattern=_FEC_TABLE_ROW_PATTERN,
+            resource_name="party",
+            source_token="fec-party",
+            identifier_kind="partyCode",
+            authority_iri="https://www.fec.gov/",
+            observed_at="2026-08-03T19:24:00Z",
+            observation_namespace="fec-committee-codes",
+            expected_count=95,
+        ),
+    ),
+)
+
+
+def _html_code_list_source_spec(
+    name: str,
+    pin: SourcePin,
+    selector: HtmlCodeListSelector,
+) -> SourceSpec:
+    return SourceSpec(
+        name=name,
+        kind="vocabulary",
+        release_keys=(name,),
+        inputs=(pin,),
+        reader=HTML_CODE_LIST_READER,
+        html_code_list=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "description",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    )
+
+
+FEC_HTML_CODE_LIST_SOURCES = tuple(
+    _html_code_list_source_spec(*declaration)
+    for declaration in _FEC_HTML_CODE_LIST_DECLARATIONS
 )
 
 
@@ -7476,6 +7825,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
         ),
     ),
+    *FEC_HTML_CODE_LIST_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -9033,7 +9383,12 @@ def build_context(
                 # API captures can share bytes while selecting different lists
                 # (four FCC units and two SAM units). Other readers keep main's
                 # cross-spec cache sharing, including the EuroVoc partitions.
-                spec.name if spec.reader == API_CAPTURE_JSON_READER else None,
+                (
+                    spec.name
+                    if spec.reader
+                    in {API_CAPTURE_JSON_READER, HTML_CODE_LIST_READER}
+                    else None
+                ),
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
@@ -12233,6 +12588,7 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     if pair.spec.reader in {
         API_CAPTURE_JSON_READER,
         CRS_SOURCE_CONCEPT_RELEASE_READER,
+        HTML_CODE_LIST_READER,
     }:
         # Structured JSON captures also describe value, structure, entity, and
         # legal-identity resources. Their source records are the exact
