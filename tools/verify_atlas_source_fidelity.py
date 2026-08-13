@@ -996,6 +996,142 @@ class PatternRowSelector:
 
 
 @dataclass(frozen=True)
+class XmlRecordField:
+    """One text, attribute, capture, or constant field from an XML record."""
+
+    field: str
+    xpath: str | None = None
+    attribute: str | None = None
+    constant: Any = None
+    required: bool = True
+    capture_pattern: str | None = None
+    normalizers: tuple[str, ...] = ("strip",)
+
+
+@dataclass(frozen=True)
+class XmlRecordSelector:
+    """Declarative ElementTree record selection and claim reconstruction."""
+
+    input_role: str
+    namespaces: tuple[tuple[str, str], ...]
+    record_xpath: str
+    fields: tuple[XmlRecordField, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+    expected_record_tags: tuple[str, ...] = ()
+    expansion_field: str | None = None
+    expansion_pattern: str | None = None
+    expansion_group: str = "value"
+    expected_raw_count: int | None = None
+    deduplicate_expansion: bool = False
+    identity_token: str | None = None
+    recorded_at: str | None = None
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
+class JsonRecordField:
+    """One positional field copied from a JSON record array."""
+
+    field: str
+    index: int
+
+
+@dataclass(frozen=True)
+class JsonRecordSelector:
+    """Declarative JSON path, row field, identity, claim, and residue rules."""
+
+    input_role: str
+    record_path: tuple[str, ...]
+    fields: tuple[JsonRecordField, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    expected_row_width: int
+    declared_unevaluated_fields: tuple[str, ...]
+    expected_root_fields: tuple[str, ...] = ()
+    expected_parent_fields: tuple[str, ...] = ()
+    header_path: tuple[str, ...] = ()
+    header_value_field: str | None = None
+    expected_header_fields: tuple[str, ...] = ()
+    count_path: tuple[str, ...] = ()
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
+class CsvProjection:
+    """One direct, header-field, or distinct-value CSV row selection."""
+
+    mode: str
+    expected_count: int
+    source_field: str | None = None
+    constants: tuple[tuple[str, Any], ...] = ()
+    nonempty: bool = False
+
+
+@dataclass(frozen=True)
+class CsvLabelRule:
+    """Join a declared set of non-empty columns for one discriminator value."""
+
+    discriminator_value: str
+    fields: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CsvFieldValidator:
+    """Apply one stock validation rule to a selected CSV field."""
+
+    field: str
+    validation: str
+    allowed_values: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CsvRecordSelector:
+    """Declarative CSV dialect, projection, identity, claim, and residue rules."""
+
+    input_role: str
+    encoding: str
+    delimiter: str
+    quotechar: str
+    projections: tuple[CsvProjection, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+    header_role: str | None = None
+    expected_header: tuple[str, ...] = ()
+    max_data_rows: int | None = None
+    expected_data_rows: int | None = None
+    label_discriminator_field: str | None = None
+    label_rules: tuple[CsvLabelRule, ...] = ()
+    validators: tuple[CsvFieldValidator, ...] = ()
+    identity_token: str | None = None
+    recorded_at: str | None = None
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -1013,6 +1149,9 @@ class SourceSpec:
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
     pattern_row: PatternRowSelector | None = None
+    xml_record: XmlRecordSelector | None = None
+    json_record: JsonRecordSelector | None = None
+    csv_record: CsvRecordSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2089,8 +2228,48 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
     return json.loads(payload, object_pairs_hook=reject_duplicates)
 
 
-API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
 PATTERN_ROW_READER = "pattern-row-v2/2.0"
+XML_RECORD_SELECTOR_READER = "xml-record-selector-v1/1.0"
+JSON_RECORD_SELECTOR_READER = "json-record-selector-v2/2.0"
+CSV_RECORD_SELECTOR_READER = "csv-record-selector-v2/2.0"
+LDA_GENERAL_ISSUE_JSON_READER = "lda-general-issue-json-v1/1.0"
+LDA_FILING_TYPE_JSON_READER = "lda-filing-type-json-v1/1.0"
+ECFR_TITLES_JSON_READER = "ecfr-titles-json-v1/1.0"
+GOVINFO_COLLECTIONS_JSON_READER = "govinfo-collections-json-v1/1.0"
+USASPENDING_AWARD_TYPES_JSON_READER = "usaspending-award-types-json-v1/1.0"
+GSDM_REVIEWED_DOMAIN_JSON_READER = "gsdm-reviewed-domain-json-v1/1.0"
+NASA_TAXONOMY_JSON_READER = "nasa-taxonomy-json-v1/1.0"
+FCC_FILING_TYPES_JSON_READER = "fcc-filing-types-json-v1/1.0"
+FCC_ACCESS_STATUSES_JSON_READER = "fcc-access-statuses-json-v1/1.0"
+FCC_BUREAUS_JSON_READER = "fcc-bureaus-json-v1/1.0"
+FCC_PROCEEDINGS_JSON_READER = "fcc-proceedings-json-v1/1.0"
+FEDERAL_HIERARCHY_JSON_READER = "federal-hierarchy-json-v1/1.0"
+GOVINFO_PACKAGE_JSON_READER = "govinfo-package-json-v1/1.0"
+SAM_UEI_JSON_READER = "sam-uei-json-v1/1.0"
+SAM_CAGE_JSON_READER = "sam-cage-json-v1/1.0"
+SPEC_SCOPED_RECORD_READERS = frozenset(
+    {
+        CSV_RECORD_SELECTOR_READER,
+        ECFR_TITLES_JSON_READER,
+        FCC_ACCESS_STATUSES_JSON_READER,
+        FCC_BUREAUS_JSON_READER,
+        FCC_FILING_TYPES_JSON_READER,
+        FCC_PROCEEDINGS_JSON_READER,
+        FEDERAL_HIERARCHY_JSON_READER,
+        GOVINFO_COLLECTIONS_JSON_READER,
+        GOVINFO_PACKAGE_JSON_READER,
+        GSDM_REVIEWED_DOMAIN_JSON_READER,
+        JSON_RECORD_SELECTOR_READER,
+        LDA_FILING_TYPE_JSON_READER,
+        LDA_GENERAL_ISSUE_JSON_READER,
+        NASA_TAXONOMY_JSON_READER,
+        PATTERN_ROW_READER,
+        SAM_CAGE_JSON_READER,
+        SAM_UEI_JSON_READER,
+        USASPENDING_AWARD_TYPES_JSON_READER,
+        XML_RECORD_SELECTOR_READER,
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -2991,6 +3170,706 @@ def _read_pattern_rows(
     )
 
 
+def _selector_claims(
+    claim_map: Sequence[tuple[str, str]],
+    fields: Mapping[str, Any],
+    label: str,
+) -> tuple[str, tuple[str, ...], str | None, str]:
+    """Resolve the common label, notation, definition, and source-path claims."""
+    claims: dict[str, list[Any]] = defaultdict(list)
+    for claim, field_name in claim_map:
+        if field_name not in fields:
+            raise ValueError(f"{label} claim {claim!r} names unknown field {field_name!r}")
+        value = fields[field_name]
+        if value is not None and value != "":
+            claims[claim].append(value)
+    if len(claims["preferred_label"]) != 1:
+        raise ValueError(f"{label} requires exactly one preferred_label claim")
+    if len(claims["source_path"]) != 1:
+        raise ValueError(f"{label} requires exactly one source_path claim")
+    definitions = claims["definition"]
+    if len(definitions) > 1:
+        raise ValueError(f"{label} declares multiple definitions")
+    preferred = _required_text(claims["preferred_label"][0], f"{label} label")
+    source_path = _required_text(claims["source_path"][0], f"{label} source path")
+    notations = tuple(
+        _required_text(value, f"{label} notation") for value in claims["notation"]
+    )
+    definition = (
+        _required_text(definitions[0], f"{label} definition")
+        if definitions
+        else None
+    )
+    unknown = sorted(
+        set(claims)
+        - {"preferred_label", "notation", "definition", "source_path"}
+    )
+    if unknown:
+        raise ValueError(f"{label} declares unsupported claims {unknown}")
+    return preferred, notations, definition, source_path
+
+
+def _selector_resource(
+    *,
+    identity_mode: str,
+    identity_template: str,
+    identity_token: str | None,
+    recorded_at: str | None,
+    fields: Mapping[str, Any],
+    row_key: str,
+    preferred_label: str,
+    notations: Sequence[str],
+    source_locator: str,
+    source_path: str,
+    label: str,
+) -> str:
+    """Apply one fixed identity rule without dispatching on a construction unit."""
+    if row_key not in fields:
+        raise ValueError(f"{label} identity names unknown row key {row_key!r}")
+    key = _required_text(fields[row_key], f"{label} row key")
+    render_fields = {**fields, "quoted_key": urllib.parse.quote(key, safe="")}
+    if identity_mode in {"publisher-iri", "publisher-key"}:
+        resource = _render_pattern_text(identity_template, render_fields)
+        return _required_text(resource, f"{label} resource identity")
+    if identity_mode == "registry-source-key":
+        if identity_token is None or recorded_at is None:
+            raise ValueError(
+                f"{label} registry-source-key identity requires identity_token "
+                "and recorded_at"
+            )
+        source_iri = _required_text(
+            fields.get("identity_source_iri", fields.get("input_source_iri")),
+            f"{label} identity source IRI",
+        )
+        source_key = _required_text(
+            _render_pattern_text(identity_template, render_fields),
+            f"{label} identity source key",
+        )
+        return _source_local_resource_iri(
+            identity_token,
+            recorded_at,
+            source_iri,
+            source_key,
+        )
+    if identity_mode == "source-local-record":
+        if identity_token is None or recorded_at is None:
+            raise ValueError(
+                f"{label} source-local identity requires identity_token and recorded_at"
+            )
+        return _source_concept_iri(
+            token=identity_token,
+            recorded_at=recorded_at,
+            source_locator=source_locator,
+            source_path=source_path,
+            notations=notations,
+            identity_hint=preferred_label,
+        )
+    raise ValueError(f"{label} has unsupported identity mode {identity_mode!r}")
+
+
+def _selector_record(
+    *,
+    spec: SourceSpec,
+    fields: Mapping[str, Any],
+    row_key: str,
+    identity_mode: str,
+    identity_template: str,
+    identity_token: str | None,
+    recorded_at: str | None,
+    source_locator_template: str,
+    claim_map: Sequence[tuple[str, str]],
+    native_payload_template_json: str,
+    native_payload_fields: Collection[str],
+    is_skos_concept: bool,
+) -> _ApiCaptureRecord:
+    """Render one configured source row into the verifier's common record form."""
+    preferred, notations, definition, source_path = _selector_claims(
+        claim_map,
+        fields,
+        spec.name,
+    )
+    source_locator = _required_text(
+        _render_pattern_text(source_locator_template, fields),
+        f"{spec.name} source locator",
+    )
+    resource = _selector_resource(
+        identity_mode=identity_mode,
+        identity_template=identity_template,
+        identity_token=identity_token,
+        recorded_at=recorded_at,
+        fields=fields,
+        row_key=row_key,
+        preferred_label=preferred,
+        notations=notations,
+        source_locator=source_locator,
+        source_path=source_path,
+        label=spec.name,
+    )
+    try:
+        template = _json_without_duplicate_keys(
+            native_payload_template_json.encode("utf-8"),
+            f"{spec.name} native payload template",
+        )
+    except (UnicodeError, ValueError) as error:
+        raise ValueError(f"{spec.name} native payload template is invalid: {error}") from error
+    native_payload = _render_pattern_value(template, fields)
+    if not isinstance(native_payload, Mapping):
+        raise ValueError(f"{spec.name} native payload template must render an object")
+    if set(native_payload) != set(native_payload_fields):
+        raise ValueError(
+            f"{spec.name} native payload field declaration differs from its template -- "
+            f"declared={sorted(native_payload_fields)}, rendered={sorted(native_payload)}"
+        )
+    return _ApiCaptureRecord(
+        resource=resource,
+        preferred_label=preferred,
+        notations=notations,
+        source_locator=source_locator,
+        source_digest=_canonical_json_digest(native_payload),
+        native_payload=native_payload,
+        is_skos_concept=is_skos_concept,
+        definition=definition,
+    )
+
+
+def _xml_field_value(
+    record: Any,
+    declaration: XmlRecordField,
+    namespaces: Mapping[str, str],
+    label: str,
+) -> Any:
+    """Read one declared XML field without importing a registry parser."""
+    if declaration.xpath is None and declaration.attribute is None:
+        value = declaration.constant
+    elif declaration.attribute is not None:
+        target = record if declaration.xpath in (None, ".") else record.find(
+            declaration.xpath,
+            namespaces,
+        )
+        value = None if target is None else target.attrib.get(declaration.attribute)
+    else:
+        target = record.find(declaration.xpath or ".", namespaces)
+        value = None if target is None else "".join(target.itertext())
+    if value is None:
+        if declaration.required:
+            raise ValueError(f"{label} required XML field {declaration.field!r} is absent")
+        return None
+    if declaration.capture_pattern is not None:
+        match = re.search(declaration.capture_pattern, str(value), re.DOTALL)
+        if match is None:
+            raise ValueError(f"{label} field {declaration.field!r} did not match its capture")
+        value = match.groupdict().get("value") or (
+            match.group(1) if match.groups() else match.group(0)
+        )
+    for operation in declaration.normalizers:
+        value = _normalize_pattern_field(value, operation, f"{label}.{declaration.field}")
+    if declaration.required and value in (None, ""):
+        raise ValueError(f"{label} required XML field {declaration.field!r} is empty")
+    return value
+
+
+def _read_xml_record_selector(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read one XML record family from XPath and capture declarations."""
+    selector = spec.xml_record
+    if selector is None:
+        raise ValueError(f"{spec.name} has no XML record selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError(f"{spec.name} XML must not declare custom entities")
+    try:
+        root = ElementTree.fromstring(payload)
+    except ElementTree.ParseError as error:
+        raise ValueError(f"{spec.name} input is not well-formed XML") from error
+    namespaces = dict(selector.namespaces)
+    selected = root.findall(selector.record_xpath, namespaces)
+    if not selected:
+        raise ValueError(f"{spec.name} XML record XPath selected no rows")
+    records: list[_ApiCaptureRecord] = []
+    raw_expansion_count = 0
+    seen_expansions: set[str] = set()
+    for ordinal, node in enumerate(selected):
+        if selector.expected_record_tags and tuple(child.tag for child in node) != (
+            selector.expected_record_tags
+        ):
+            raise ValueError(f"{spec.name} XML record {ordinal} child tags changed")
+        base_fields = {
+            declaration.field: _xml_field_value(
+                node,
+                declaration,
+                namespaces,
+                f"{spec.name}[{ordinal}]",
+            )
+            for declaration in selector.fields
+        }
+        row_fields: list[dict[str, Any]] = []
+        if selector.expansion_field is None:
+            row_fields.append(dict(base_fields))
+        else:
+            if selector.expansion_pattern is None:
+                raise ValueError(f"{spec.name} XML expansion has no capture pattern")
+            source = base_fields.get(selector.expansion_field)
+            if not isinstance(source, str):
+                raise ValueError(f"{spec.name} XML expansion source must be text")
+            try:
+                matches = list(re.finditer(selector.expansion_pattern, source, re.DOTALL))
+            except re.error as error:
+                raise ValueError(f"{spec.name} XML expansion pattern is invalid") from error
+            raw_expansion_count += len(matches)
+            for match in matches:
+                value = match.groupdict().get(selector.expansion_group)
+                if value is None:
+                    raise ValueError(
+                        f"{spec.name} XML expansion lacks group {selector.expansion_group!r}"
+                    )
+                value = value.strip()
+                if not value:
+                    raise ValueError(f"{spec.name} XML expansion produced an empty value")
+                if selector.deduplicate_expansion and value in seen_expansions:
+                    continue
+                seen_expansions.add(value)
+                row_fields.append(
+                    {**base_fields, selector.expansion_group: value}
+                )
+        for fields in row_fields:
+            row_ordinal = len(records)
+            rendered_fields = {
+                **fields,
+                "ordinal": row_ordinal,
+                "input_source_iri": pin.source_iri or "",
+                "input_sha256": pin.sha256,
+            }
+            rendered_fields["source_path"] = _render_pattern_text(
+                selector.source_path_template,
+                rendered_fields,
+            )
+            records.append(
+                _selector_record(
+                    spec=spec,
+                    fields=rendered_fields,
+                    row_key=selector.row_key,
+                    identity_mode=selector.identity_mode,
+                    identity_template=selector.identity_template,
+                    identity_token=selector.identity_token,
+                    recorded_at=selector.recorded_at,
+                    source_locator_template=selector.source_locator_template,
+                    claim_map=selector.claim_map,
+                    native_payload_template_json=selector.native_payload_template_json,
+                    native_payload_fields=selector.native_payload_fields,
+                    is_skos_concept=selector.is_skos_concept,
+                )
+            )
+    if selector.expected_raw_count is not None and raw_expansion_count != selector.expected_raw_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_raw_count} raw XML captures, "
+            f"found {raw_expansion_count}"
+        )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} XML records, found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher XML field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+def _json_path(value: Any, path: Sequence[str], label: str) -> Any:
+    """Traverse one declared object-only JSON path."""
+    current = value
+    for part in path:
+        if not isinstance(current, Mapping) or part not in current:
+            raise ValueError(f"{label} JSON path {'.'.join(path)!r} is absent")
+        current = current[part]
+    return current
+
+
+def _read_json_record_selector(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read one array-shaped JSON record family from declarative paths and fields."""
+    selector = spec.json_record
+    if selector is None:
+        raise ValueError(f"{spec.name} has no JSON record selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    document = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(document, Mapping):
+        raise ValueError(f"{spec.name} JSON root must be an object")
+    if selector.expected_root_fields and set(document) != set(selector.expected_root_fields):
+        raise ValueError(f"{spec.name} JSON root fields changed")
+    parent = _json_path(document, selector.record_path[:-1], spec.name)
+    if selector.expected_parent_fields and (
+        not isinstance(parent, Mapping)
+        or set(parent) != set(selector.expected_parent_fields)
+    ):
+        raise ValueError(f"{spec.name} JSON record parent fields changed")
+    rows = _json_path(document, selector.record_path, spec.name)
+    if not isinstance(rows, list):
+        raise ValueError(f"{spec.name} JSON record path must select an array")
+    if selector.count_path:
+        declared_count = _json_path(document, selector.count_path, spec.name)
+        if declared_count != selector.expected_count:
+            raise ValueError(
+                f"{spec.name} JSON declared count differs: {declared_count!r}"
+            )
+    if selector.header_path:
+        headers = _json_path(document, selector.header_path, spec.name)
+        if not isinstance(headers, list) or selector.header_value_field is None:
+            raise ValueError(f"{spec.name} JSON headers have an invalid declaration")
+        observed_headers = tuple(
+            header.get(selector.header_value_field)
+            if isinstance(header, Mapping)
+            else None
+            for header in headers
+        )
+        if observed_headers != selector.expected_header_fields:
+            raise ValueError(f"{spec.name} JSON header fields changed")
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    for ordinal, row in enumerate(rows):
+        if not isinstance(row, list) or len(row) != selector.expected_row_width:
+            raise ValueError(f"{spec.name} JSON row {ordinal} width changed")
+        if any(
+            value is not None and not isinstance(value, (str, int, float, bool))
+            for value in row
+        ):
+            raise ValueError(f"{spec.name} JSON row {ordinal} contains a non-scalar cell")
+        fields = {declaration.field: row[declaration.index] for declaration in selector.fields}
+        if selector.row_key not in fields:
+            raise ValueError(f"{spec.name} JSON selector has no row key field")
+        key_value = fields[selector.row_key]
+        key = _required_text(key_value, f"{spec.name}[{ordinal}] row key")
+        if key != key.strip() or key in seen_keys:
+            raise ValueError(f"{spec.name} JSON row {ordinal} has a malformed or repeated key")
+        seen_keys.add(key)
+        rendered_fields = {
+            **fields,
+            "ordinal": ordinal,
+            "input_source_iri": pin.source_iri or "",
+            "input_sha256": pin.sha256,
+            "publisher_header_count": len(selector.expected_header_fields),
+            "publisher_row_width": len(row),
+        }
+        rendered_fields["source_path"] = _render_pattern_text(
+            selector.source_path_template,
+            rendered_fields,
+        )
+        records.append(
+            _selector_record(
+                spec=spec,
+                fields=rendered_fields,
+                row_key=selector.row_key,
+                identity_mode=selector.identity_mode,
+                identity_template=selector.identity_template,
+                identity_token=None,
+                recorded_at=None,
+                source_locator_template=selector.source_locator_template,
+                claim_map=selector.claim_map,
+                native_payload_template_json=selector.native_payload_template_json,
+                native_payload_fields=selector.native_payload_fields,
+                is_skos_concept=selector.is_skos_concept,
+            )
+        )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} JSON records, found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher JSON field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+def _csv_decoded_rows(
+    payload: bytes,
+    selector: CsvRecordSelector,
+    label: str,
+) -> list[list[str]]:
+    """Decode one declared CSV dialect and reject malformed or blank records."""
+    try:
+        text = payload.decode(selector.encoding)
+    except (LookupError, UnicodeDecodeError) as error:
+        raise ValueError(
+            f"{label} is not valid {selector.encoding} CSV"
+        ) from error
+    try:
+        rows = list(
+            csv.reader(
+                io.StringIO(text, newline=""),
+                delimiter=selector.delimiter,
+                quotechar=selector.quotechar,
+                strict=True,
+            )
+        )
+    except csv.Error as error:
+        raise ValueError(f"{label} is not valid CSV") from error
+    if not rows or any(not row for row in rows):
+        raise ValueError(f"{label} contains no rows or contains a blank CSV row")
+    return rows
+
+
+def _npi_luhn_valid(value: str) -> bool:
+    """Validate the CMS NPI check digit with its published 80840 prefix."""
+    if re.fullmatch(r"[1-9][0-9]{9}", value) is None:
+        return False
+    digits = [int(character) for character in "80840" + value]
+    total = 0
+    parity = len(digits) % 2
+    for index, digit in enumerate(digits):
+        if index % 2 == parity:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        total += digit
+    return total % 10 == 0
+
+
+def _validate_csv_field(
+    declaration: CsvFieldValidator,
+    fields: Mapping[str, Any],
+    label: str,
+) -> None:
+    """Apply a selector-declared validation without construction-unit code."""
+    if declaration.field not in fields:
+        raise ValueError(
+            f"{label} validator names unknown field {declaration.field!r}"
+        )
+    value = fields[declaration.field]
+    if not isinstance(value, str):
+        raise ValueError(f"{label} validated CSV field must be text")
+    if declaration.validation == "allowed-values":
+        valid = value in declaration.allowed_values
+    elif declaration.validation == "npi-luhn":
+        valid = _npi_luhn_valid(value)
+    elif declaration.validation.startswith("regex:"):
+        valid = re.fullmatch(
+            declaration.validation.removeprefix("regex:"),
+            value,
+        ) is not None
+    else:
+        raise ValueError(
+            f"{label} has unsupported CSV validation "
+            f"{declaration.validation!r}"
+        )
+    if not valid:
+        raise ValueError(
+            f"{label} field {declaration.field!r} failed "
+            f"{declaration.validation} validation"
+        )
+
+
+def _read_csv_record_selector(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read direct, header-field, or distinct CSV rows from selector data."""
+    selector = spec.csv_record
+    if selector is None:
+        raise ValueError(f"{spec.name} has no CSV record selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    rows = _csv_decoded_rows(payload, selector, spec.name)
+
+    declared_header: tuple[str, ...] | None = None
+    if selector.header_role is not None:
+        _, header_payload = _pin_with_role(
+            spec,
+            payloads,
+            selector.header_role,
+        )
+        header_rows = _csv_decoded_rows(
+            header_payload,
+            selector,
+            f"{spec.name} header",
+        )
+        if len(header_rows) != 1:
+            raise ValueError(f"{spec.name} header input must contain one CSV row")
+        declared_header = tuple(header_rows[0])
+
+    selected_rows: list[dict[str, Any]] = []
+    for projection in selector.projections:
+        projection_start = len(selected_rows)
+        if projection.mode == "header-fields":
+            if len(rows) != 1:
+                raise ValueError(
+                    f"{spec.name} header-fields mode requires one CSV row"
+                )
+            if projection.source_field is not None:
+                raise ValueError(
+                    f"{spec.name} header-fields mode cannot name a source field"
+                )
+            selected_rows.extend(
+                {
+                    "column_name": column,
+                    "ordinal": ordinal,
+                    **dict(projection.constants),
+                }
+                for ordinal, column in enumerate(rows[0])
+            )
+        else:
+            header = tuple(rows[0])
+            if len(header) != len(set(header)) or any(not value for value in header):
+                raise ValueError(f"{spec.name} CSV header is empty or repeated")
+            expected = declared_header or selector.expected_header
+            if expected and header != expected:
+                raise ValueError(f"{spec.name} CSV header differs from its declaration")
+            data_rows = rows[1:]
+            if (
+                selector.expected_data_rows is not None
+                and len(data_rows) != selector.expected_data_rows
+            ):
+                raise ValueError(
+                    f"{spec.name} expected {selector.expected_data_rows} CSV data "
+                    f"rows, found {len(data_rows)}"
+                )
+            if selector.max_data_rows is not None and len(data_rows) > selector.max_data_rows:
+                raise ValueError(
+                    f"{spec.name} has {len(data_rows)} data rows, above its "
+                    f"declared ceiling {selector.max_data_rows}"
+                )
+            mappings: list[dict[str, str]] = []
+            for ordinal, row in enumerate(data_rows):
+                if len(row) != len(header):
+                    raise ValueError(
+                        f"{spec.name} CSV row {ordinal} has {len(row)} fields, "
+                        f"expected {len(header)}"
+                    )
+                mappings.append(dict(zip(header, row, strict=True)))
+            if projection.mode == "rows":
+                selected_rows.extend(
+                    {
+                        **row,
+                        "row_fields": row,
+                        "ordinal": ordinal,
+                        **dict(projection.constants),
+                    }
+                    for ordinal, row in enumerate(mappings)
+                )
+            elif projection.mode == "distinct-values":
+                if projection.source_field not in header:
+                    raise ValueError(
+                        f"{spec.name} distinct projection names unknown field "
+                        f"{projection.source_field!r}"
+                    )
+                values = {
+                    row[projection.source_field]
+                    for row in mappings
+                    if not projection.nonempty or row[projection.source_field]
+                }
+                selected_rows.extend(
+                    {
+                        "value": value,
+                        "source_column": projection.source_field,
+                        **dict(projection.constants),
+                    }
+                    for value in sorted(values)
+                )
+            else:
+                raise ValueError(
+                    f"{spec.name} has unsupported CSV projection mode "
+                    f"{projection.mode!r}"
+                )
+        observed = len(selected_rows) - projection_start
+        if observed != projection.expected_count:
+            raise ValueError(
+                f"{spec.name} expected {projection.expected_count} rows from "
+                f"{projection.mode}, found {observed}"
+            )
+
+    if len(selected_rows) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} selected CSV rows, "
+            f"found {len(selected_rows)}"
+        )
+    projection_total = sum(item.expected_count for item in selector.projections)
+    if projection_total != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} CSV projection counts do not total the family count"
+        )
+
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    label_rules = {
+        rule.discriminator_value: rule.fields for rule in selector.label_rules
+    }
+    for ordinal, base_fields in enumerate(selected_rows):
+        fields = dict(base_fields)
+        if label_rules:
+            discriminator_field = selector.label_discriminator_field
+            if discriminator_field is None:
+                raise ValueError(f"{spec.name} CSV label rules lack a discriminator")
+            discriminator = fields.get(discriminator_field)
+            label_fields = label_rules.get(str(discriminator))
+            if label_fields is None:
+                raise ValueError(
+                    f"{spec.name} CSV row {ordinal} has unsupported label discriminator"
+                )
+            fields["preferred_label"] = " ".join(
+                str(fields.get(name, "")).strip()
+                for name in label_fields
+                if str(fields.get(name, "")).strip()
+            )
+        fields.update(
+            {
+                "ordinal": fields.get("ordinal", ordinal),
+                "input_source_iri": pin.source_iri or "",
+                "input_sha256": pin.sha256,
+                "quoted_value": urllib.parse.quote(
+                    str(fields.get("value", "")),
+                    safe="",
+                ),
+            }
+        )
+        fields["ordinal_text"] = str(fields["ordinal"])
+        fields["source_path"] = _render_pattern_text(
+            selector.source_path_template,
+            fields,
+        )
+        for validator in selector.validators:
+            _validate_csv_field(validator, fields, f"{spec.name}[{ordinal}]")
+        key = _required_text(fields.get(selector.row_key), f"{spec.name} row key")
+        if key in seen_keys:
+            raise ValueError(f"{spec.name} repeats CSV row key {key!r}")
+        seen_keys.add(key)
+        records.append(
+            _selector_record(
+                spec=spec,
+                fields=fields,
+                row_key=selector.row_key,
+                identity_mode=selector.identity_mode,
+                identity_template=selector.identity_template,
+                identity_token=selector.identity_token,
+                recorded_at=selector.recorded_at,
+                source_locator_template=selector.source_locator_template,
+                claim_map=selector.claim_map,
+                native_payload_template_json=selector.native_payload_template_json,
+                native_payload_fields=selector.native_payload_fields,
+                is_skos_concept=selector.is_skos_concept,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher CSV field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
 def _code_identifier(
     *,
     value: str,
@@ -3013,16 +3892,16 @@ def _code_identifier(
 def _read_lda_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
+    *,
+    token: str,
+    resource_name: str,
+    identifier_kind: str,
+    use: str,
+    is_skos_concept: bool,
 ) -> PublisherView:
     pin, payload = _single_pin(spec, payloads)
     data = _json_without_duplicate_keys(payload, spec.name)
     rows = _mapping_rows(data, spec.name)
-    if spec.name == "lda-general-issue-codes":
-        token, resource_name = "lda-general-issues", "generalIssueCodes"
-        identifier_kind, use = "generalIssueCode", "sourceAssignedEvidence"
-    else:
-        token, resource_name = "lda-filing-types", "filingTypes"
-        identifier_kind, use = "filingTypeCode", "deterministicMetadata"
     recorded_at = "2026-07-30T12:45:14Z"
     records: list[_ApiCaptureRecord] = []
     for ordinal, row in enumerate(rows):
@@ -3064,10 +3943,40 @@ def _read_lda_capture(
                 source_locator=pin.source_iri or "",
                 source_digest=pin.sha256,
                 native_payload=native,
-                is_skos_concept=(spec.name == "lda-general-issue-codes"),
+                is_skos_concept=is_skos_concept,
             )
         )
     return _api_capture_view(records, spec, payloads)
+
+
+def _read_lda_general_issue_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_lda_capture(
+        spec,
+        payloads,
+        token="lda-general-issues",
+        resource_name="generalIssueCodes",
+        identifier_kind="generalIssueCode",
+        use="sourceAssignedEvidence",
+        is_skos_concept=True,
+    )
+
+
+def _read_lda_filing_type_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_lda_capture(
+        spec,
+        payloads,
+        token="lda-filing-types",
+        resource_name="filingTypes",
+        identifier_kind="filingTypeCode",
+        use="deterministicMetadata",
+        is_skos_concept=False,
+    )
 
 
 def _read_ecfr_titles_capture(
@@ -3525,6 +4434,10 @@ def _fcc_identifier(
 def _read_fcc_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
+    *,
+    mode: str,
+    resource_id: str,
+    expected_count: int,
 ) -> PublisherView:
     pin, payload = _single_pin(spec, payloads)
     data = _json_without_duplicate_keys(payload, spec.name)
@@ -3550,7 +4463,7 @@ def _read_fcc_capture(
             raise ValueError(f"{spec.name} carries conflicting rows for {key!r}")
 
     for ordinal, filing in enumerate(filings):
-        if spec.name == "fcc-ecfs-filing-types":
+        if mode == "filing-types":
             row = filing.get("submissiontype")
             if not isinstance(row, Mapping):
                 raise ValueError(f"{spec.name}.filing[{ordinal}].submissiontype is invalid")
@@ -3568,7 +4481,7 @@ def _read_fcc_capture(
                     _fcc_identifier(row.get("id"), "publisherRecordId", pin, path),
                 ],
             )
-        elif spec.name == "fcc-ecfs-access-statuses":
+        elif mode == "access-statuses":
             row = filing.get("viewingstatus")
             if not isinstance(row, Mapping):
                 raise ValueError(f"{spec.name}.filing[{ordinal}].viewingstatus is invalid")
@@ -3584,7 +4497,7 @@ def _read_fcc_capture(
                 path = f"$.filing[{ordinal}].proceedings[{proceeding_ordinal}]"
                 source_ordinal = ordinal * 1000 + proceeding_ordinal
                 bureau_code = _required_text(row.get("bureau_code"), f"{path}.bureau_code")
-                if spec.name == "fcc-ecfs-bureaus":
+                if mode == "bureaus":
                     label = _required_text(row.get("bureau_name"), f"{path}.bureau_name")
                     retain(
                         bureau_code,
@@ -3607,13 +4520,6 @@ def _read_fcc_capture(
                             _fcc_identifier(bureau_code, "bureauCode", pin, path),
                         ],
                     )
-    config = {
-        "fcc-ecfs-filing-types": ("fcc-ecfs-filing-types-2026-08-03", 6),
-        "fcc-ecfs-access-statuses": ("fcc-ecfs-access-statuses-2026-08-03", 1),
-        "fcc-ecfs-bureaus": ("fcc-ecfs-bureaus-2026-08-03", 5),
-        "fcc-ecfs-proceedings": ("fcc-ecfs-proceedings-2026-08-03", 15),
-    }
-    resource_id, expected_count = config[spec.name]
     if len(distinct) != expected_count:
         raise ValueError(f"{spec.name} expected {expected_count} distinct rows, observed {len(distinct)}")
     records: list[_ApiCaptureRecord] = []
@@ -3661,6 +4567,58 @@ def _read_fcc_capture(
         unevaluated_claims=(
             "FCC filing fields outside submissiontype, viewingstatus, and proceedings are authenticated but not represented",
         ),
+    )
+
+
+def _read_fcc_filing_types_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="filing-types",
+        resource_id="fcc-ecfs-filing-types-2026-08-03",
+        expected_count=6,
+    )
+
+
+def _read_fcc_access_statuses_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="access-statuses",
+        resource_id="fcc-ecfs-access-statuses-2026-08-03",
+        expected_count=1,
+    )
+
+
+def _read_fcc_bureaus_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="bureaus",
+        resource_id="fcc-ecfs-bureaus-2026-08-03",
+        expected_count=5,
+    )
+
+
+def _read_fcc_proceedings_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_fcc_capture(
+        spec,
+        payloads,
+        mode="proceedings",
+        resource_id="fcc-ecfs-proceedings-2026-08-03",
+        expected_count=15,
     )
 
 
@@ -3940,6 +4898,8 @@ def _sam_identifier(
 def _read_sam_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
+    *,
+    identity_kind: str,
 ) -> PublisherView:
     pin, payload = _single_pin(spec, payloads)
     data = _json_without_duplicate_keys(payload, spec.name)
@@ -3954,7 +4914,7 @@ def _read_sam_capture(
     label = _required_text(
         registration.get("legalBusinessName"), f"{spec.name}.legalBusinessName"
     )
-    if spec.name.startswith("sam-uei-"):
+    if identity_kind == "uei":
         resource = f"urn:ref:sam-entity:uei:{uei}"
         native = {
             "identifier": _sam_identifier(
@@ -4007,36 +4967,18 @@ def _read_sam_capture(
     )
 
 
-def _read_api_capture(
+def _read_sam_uei_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    readers: Mapping[
-        str,
-        Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
-    ] = {
-        "lda-general-issue-codes": _read_lda_capture,
-        "lda-filing-types": _read_lda_capture,
-        "ecfr-cfr-titles": _read_ecfr_titles_capture,
-        "govinfo-collections": _read_govinfo_collections_capture,
-        "usaspending-award-types": _read_usaspending_capture,
-        "gsdm-reviewed-domain-values-2026-08-03": _read_gsdm_capture,
-        "nasa-technology-taxonomy-8817": _read_nasa_capture,
-        "fcc-ecfs-filing-types": _read_fcc_capture,
-        "fcc-ecfs-access-statuses": _read_fcc_capture,
-        "fcc-ecfs-bureaus": _read_fcc_capture,
-        "fcc-ecfs-proceedings": _read_fcc_capture,
-        "federal-hierarchy-orgs-bounded-2026-08-03": (
-            _read_federal_hierarchy_capture
-        ),
-        "govinfo-cfr-package-bounded-2026-08-03": _read_govinfo_package_capture,
-        "sam-uei-bounded-public-entity-2026-08-03": _read_sam_capture,
-        "sam-cage-bounded-public-facility-2026-08-03": _read_sam_capture,
-    }
-    reader = readers.get(spec.name)
-    if reader is None:
-        raise ValueError(f"{API_CAPTURE_JSON_READER} does not support {spec.name!r}")
-    return reader(spec, payloads)
+    return _read_sam_capture(spec, payloads, identity_kind="uei")
+
+
+def _read_sam_cage_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    return _read_sam_capture(spec, payloads, identity_kind="cage")
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
@@ -8090,13 +9032,30 @@ _PUBLISHER_READERS: Mapping[
     str,
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
-    API_CAPTURE_JSON_READER: _read_api_capture,
+    ECFR_TITLES_JSON_READER: _read_ecfr_titles_capture,
+    FCC_ACCESS_STATUSES_JSON_READER: _read_fcc_access_statuses_capture,
+    FCC_BUREAUS_JSON_READER: _read_fcc_bureaus_capture,
+    FCC_FILING_TYPES_JSON_READER: _read_fcc_filing_types_capture,
+    FCC_PROCEEDINGS_JSON_READER: _read_fcc_proceedings_capture,
+    FEDERAL_HIERARCHY_JSON_READER: _read_federal_hierarchy_capture,
+    GOVINFO_COLLECTIONS_JSON_READER: _read_govinfo_collections_capture,
+    GOVINFO_PACKAGE_JSON_READER: _read_govinfo_package_capture,
+    GSDM_REVIEWED_DOMAIN_JSON_READER: _read_gsdm_capture,
+    LDA_FILING_TYPE_JSON_READER: _read_lda_filing_type_capture,
+    LDA_GENERAL_ISSUE_JSON_READER: _read_lda_general_issue_capture,
+    NASA_TAXONOMY_JSON_READER: _read_nasa_capture,
+    SAM_CAGE_JSON_READER: _read_sam_cage_capture,
+    SAM_UEI_JSON_READER: _read_sam_uei_capture,
+    USASPENDING_AWARD_TYPES_JSON_READER: _read_usaspending_capture,
     CRS_SOURCE_CONCEPT_RELEASE_READER: _read_crs_source_concept_release,
     EPA_ENTERPRISE_VOCABULARY_XML_READER: _read_epa_enterprise_vocabulary_xml,
     FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
     FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
     GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
+    CSV_RECORD_SELECTOR_READER: _read_csv_record_selector,
+    JSON_RECORD_SELECTOR_READER: _read_json_record_selector,
     PATTERN_ROW_READER: _read_pattern_rows,
+    XML_RECORD_SELECTOR_READER: _read_xml_record_selector,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
     LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
     MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
@@ -12285,6 +13244,594 @@ def _courtlistener_pattern_source() -> SourceSpec:
 COURTLISTENER_PATTERN_ROW_SOURCES = (_courtlistener_pattern_source(),)
 
 
+_CBO_PUBLICATION_XML_PIN = SourcePin(
+    path="tests/fixtures/cbo_topic_codes/cbo-119congress-cost-estimates-2026-08-04.xml",
+    sha256="sha256:edc957a1115320f1c0da4b02c33d1af146a3c508592ee20b4909e0a8db44d968",
+    byte_length=375_365,
+    fmt="xml",
+    role="publisherSource",
+    source_iri="https://www.cbo.gov/rss/119congress-cost-estimates.xml",
+)
+
+
+def _cbo_publication_xml_source() -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "billNumber": "{bill_number}",
+            "canonicalPublicationUrl": "{link}",
+            "date": "{date}",
+            "description": "{description}",
+            "feedItemKey": "{key}",
+            "publicationId": "{publication_id}",
+            "sourceArtifact": "{input_source_iri}",
+            "sourcePath": "{source_path}",
+            "title": "{title}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="cbo-119th-congress-publications",
+        kind="vocabulary",
+        release_keys=("cbo-119th-congress-publications",),
+        inputs=(_CBO_PUBLICATION_XML_PIN,),
+        reader=XML_RECORD_SELECTOR_READER,
+        xml_record=XmlRecordSelector(
+            input_role="publisherSource",
+            namespaces=(),
+            record_xpath="./item",
+            fields=(
+                XmlRecordField("key", attribute="key"),
+                XmlRecordField("title", xpath="Title"),
+                XmlRecordField("date", xpath="Date"),
+                XmlRecordField("link", xpath="Link"),
+                XmlRecordField("description", xpath="Description"),
+                XmlRecordField(
+                    "bill_number",
+                    xpath="Bill_Number",
+                    required=False,
+                    normalizers=("strip", "none-if-empty"),
+                ),
+                XmlRecordField(
+                    "publication_id",
+                    xpath="Link",
+                    capture_pattern=r"/publication/(?P<value>[1-9][0-9]*)$",
+                ),
+            ),
+            row_key="link",
+            identity_mode="publisher-iri",
+            identity_template="{link}",
+            source_path_template="response.item[{ordinal}]",
+            source_locator_template="{input_source_iri}#item={key}",
+            claim_map=(
+                ("preferred_label", "title"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=1_058,
+            expected_record_tags=(
+                "Title",
+                "Date",
+                "Link",
+                "Description",
+                "Bill_Number",
+            ),
+            declared_unevaluated_fields=(),
+        ),
+        identity_policy="publisher-iri",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(json.loads(native_template)),
+        ),
+    )
+
+
+_UNIFIED_AGENDA_XSD_PIN = SourcePin(
+    path="tests/fixtures/unified_agenda_codes/reginfo-rin-data-ver10262011.xsd",
+    sha256="sha256:94fdcf4b382830cc44b9956c00439dc20a9643de402c298cee71293a14153b24",
+    byte_length=22_730,
+    fmt="xml",
+    role="publisherSource",
+    source_iri="https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd",
+)
+
+
+def _unified_agenda_xml_source(
+    *,
+    name: str,
+    container: str,
+    element: str,
+    field_name: str,
+    identifier_kind: str,
+    expected_count: int,
+    expected_raw_count: int,
+    quoted: bool,
+) -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "fieldName": "{field_name}",
+            "identifier": {
+                "authority_uri": "https://www.reginfo.gov/",
+                "effective_at": None,
+                "kind": "{identifier_kind}",
+                "observed_at": "2026-08-03T19:15:15Z",
+                "source_digest": "{input_sha256}",
+                "source_uri": "{input_source_iri}",
+                "value": "{value}",
+            },
+            "sourceArtifact": "{input_source_iri}",
+            "value": "{value}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    documentation_capture = (
+        r"One of the following(?: options)?:\s*(?P<value>.*)"
+    )
+    expansion_pattern = (
+        r'"(?P<value>[^"]+)"'
+        if quoted
+        else r"(?:^|,\s*)(?P<value>[^,]+?)(?=,\s*|\.$)"
+    )
+    return SourceSpec(
+        name=name,
+        kind="vocabulary",
+        release_keys=(name,),
+        inputs=(_UNIFIED_AGENDA_XSD_PIN,),
+        reader=XML_RECORD_SELECTOR_READER,
+        xml_record=XmlRecordSelector(
+            input_role="publisherSource",
+            namespaces=(("xs", "http://www.w3.org/2001/XMLSchema"),),
+            record_xpath=(
+                f".//xs:complexType[@name='{container}']"
+                f"//xs:element[@name='{element}']"
+                "/xs:annotation/xs:documentation"
+            ),
+            fields=(
+                XmlRecordField(
+                    "documentation",
+                    xpath=".",
+                    capture_pattern=documentation_capture,
+                ),
+                XmlRecordField("field_name", constant=field_name),
+                XmlRecordField("identifier_kind", constant=identifier_kind),
+            ),
+            expansion_field="documentation",
+            expansion_pattern=expansion_pattern,
+            expected_raw_count=expected_raw_count,
+            deduplicate_expansion=True,
+            row_key="value",
+            identity_mode="source-local-record",
+            identity_template="",
+            identity_token=name,
+            recorded_at="2026-08-03T19:15:15Z",
+            source_path_template=f"$.{field_name}[{{ordinal}}]",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "value"),
+                ("notation", "value"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=expected_count,
+            declared_unevaluated_fields=(
+                "schema declarations outside the selected documented option list",
+            ),
+        ),
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(json.loads(native_template)),
+        ),
+    )
+
+
+XML_RECORD_SELECTOR_SOURCES = (
+    _cbo_publication_xml_source(),
+    _unified_agenda_xml_source(
+        name="unified-agenda-priority-category",
+        container="RIN_INFOType",
+        element="PRIORITY_CATEGORY",
+        field_name="priorityCategory",
+        identifier_kind="priorityCategoryValue",
+        expected_count=6,
+        expected_raw_count=7,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rule-stage",
+        container="RIN_INFOType",
+        element="RULE_STAGE",
+        field_name="ruleStage",
+        identifier_kind="ruleStageValue",
+        expected_count=6,
+        expected_raw_count=6,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-timetable-action",
+        container="TIMETABLEType",
+        element="TTBL_ACTION",
+        field_name="timetableAction",
+        identifier_kind="timetableActionValue",
+        expected_count=34,
+        expected_raw_count=35,
+        quoted=False,
+    ),
+)
+
+
+_GSDM_DICTIONARY_HEADERS = (
+    "A:element",
+    "B:definition",
+    "C:fpds_data_dictionary_element",
+    "D:grouping",
+    "E:domain_values",
+    "F:domain_values_code_description",
+    "G:award_file",
+    "H:award_element",
+    "I:subaward_file",
+    "J:subaward_element",
+    "K:account_file",
+    "L:account_element",
+    "M:table",
+    "N:element",
+    "O:award_file",
+    "P:award_element",
+    "Q:subaward_element",
+)
+_GSDM_DICTIONARY_FIELDS = (
+    *_GSDM_DICTIONARY_HEADERS,
+    "R:unlabeled_publisher_cell",
+)
+
+
+def _gsdm_json_record_source() -> SourceSpec:
+    field_names = tuple(f"cell_{index}" for index in range(18))
+    native_template = json.dumps(
+        {
+            "cells": dict(zip(_GSDM_DICTIONARY_FIELDS, (f"{{{field}}}" for field in field_names), strict=True)),
+            "ordinal": "{ordinal}",
+            "publisherHeaderCount": "{publisher_header_count}",
+            "publisherRowWidth": "{publisher_row_width}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="gsdm-online-data-dictionary-2026-08-03",
+        kind="vocabulary",
+        release_keys=("gsdm-online-data-dictionary-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "gsdm-data-dictionary-2026-08-03.json",
+                "sha256:3d0f2e3a952297050db5c2a4addf40765460a49d499427da1b57ef3c7edea3c3",
+                358_054,
+                "https://api.usaspending.gov/api/v2/references/data_dictionary/",
+                fmt="json",
+                role="completeOnlineDataDictionary",
+                construction_path="output/registry-real-data-sources/gsdm-data-dictionary-2026-08-03.json",
+            ),
+            _registry_source_pin(
+                "gsdm-architecture-v1.0.1.pdf",
+                "sha256:6901ce4004e3338e54a69abb59d81205680d63f25e8dca0f9a92815dff6ced9d",
+                363_340,
+                "https://fiscal.treasury.gov/files/data-transparency/gsdm-architecture-v1.0.1.pdf",
+                fmt="pdf",
+                role="architectureDocument",
+                construction_path="output/registry-real-data-sources/gsdm-architecture-v1.0.1.pdf",
+            ),
+        ),
+        reader=JSON_RECORD_SELECTOR_READER,
+        json_record=JsonRecordSelector(
+            input_role="completeOnlineDataDictionary",
+            record_path=("document", "rows"),
+            fields=tuple(
+                JsonRecordField(field, index)
+                for index, field in enumerate(field_names)
+            ),
+            row_key="cell_0",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:gsdm:data-element:{quoted_key}",
+            source_path_template="document.rows[{ordinal}]",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "cell_0"),
+                ("definition", "cell_1"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=457,
+            expected_row_width=18,
+            expected_root_fields=("document",),
+            expected_parent_fields=("headers", "metadata", "rows", "sections"),
+            header_path=("document", "headers"),
+            header_value_field="raw",
+            expected_header_fields=_GSDM_DICTIONARY_HEADERS,
+            count_path=("document", "metadata", "total_rows"),
+            declared_unevaluated_fields=(
+                "architectureDocument bytes are authenticated context, not parsed rows",
+                "document.sections",
+                "document.headers.display",
+                "document.metadata fields other than total_rows",
+            ),
+        ),
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(json.loads(native_template)),
+        ),
+    )
+
+
+JSON_RECORD_SELECTOR_SOURCES = (_gsdm_json_record_source(),)
+
+
+_NPPES_HEADER_CSV_PIN = SourcePin(
+    path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_fileheader_v2.csv",
+    sha256="sha256:1f781040d7dae44496be1729250e79114b6dd03f17c10d7d8965486052177679",
+    byte_length=12_267,
+    fmt="csv",
+    role="publisherFileHeader",
+    source_iri=(
+        "urn:ref:nppes:source:npi-file-header-v2:2026-07-27-2026-08-02"
+    ),
+)
+_NPPES_SAMPLE_CSV_PIN = SourcePin(
+    path="tests/fixtures/nppes_npi_identifiers/npidata_pfile_sample_v2.csv",
+    sha256="sha256:3735061e873e5db7cfb422aeaa7eea5514d0a5e8089765c94b82f0d43450a87d",
+    byte_length=15_866,
+    fmt="csv",
+    role="publisherProviderSample",
+    source_iri=(
+        "https://download.cms.gov/nppes/"
+        "NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip"
+        "#bounded-provider-sample"
+    ),
+)
+_NPPES_WEEKLY_SOURCE_IRI = (
+    "https://download.cms.gov/nppes/"
+    "NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip"
+)
+
+
+def _nppes_layout_csv_source() -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "columnName": "{column_name}",
+            "layoutVersion": "2",
+            "licensedTaxonomyValuesIncluded": False,
+            "ordinal": "{ordinal}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="nppes-data-dissemination-layout-v2-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nppes-data-dissemination-layout-v2-2026-08-03",),
+        inputs=(_NPPES_HEADER_CSV_PIN,),
+        reader=CSV_RECORD_SELECTOR_READER,
+        csv_record=CsvRecordSelector(
+            input_role="publisherFileHeader",
+            encoding="utf-8",
+            delimiter=",",
+            quotechar='"',
+            projections=(CsvProjection("header-fields", 330),),
+            row_key="column_name",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:nppes-layout:v2:field-{ordinal:03d}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "column_name"),
+                ("notation", "ordinal_text"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=330,
+            declared_unevaluated_fields=(),
+        ),
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+def _nppes_provider_csv_source() -> SourceSpec:
+    native_template = json.dumps(
+        {
+            "entityTypeCode": "{Entity Type Code}",
+            "fields": "{row_fields}",
+            "identifier": {
+                "authorityUri": "https://nppes.cms.hhs.gov/",
+                "effectiveAt": None,
+                "kind": "nationalProviderIdentifier",
+                "observedAt": "2026-08-03T19:22:12Z",
+                "sourceDigest": "{input_sha256}",
+                "sourceUri": _NPPES_WEEKLY_SOURCE_IRI,
+                "value": "{NPI}",
+            },
+            "publisherLabel": "{preferred_label}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="nppes-npi-provider-sample-2026-08-03",
+        kind="vocabulary",
+        release_keys=("nppes-npi-provider-sample-2026-08-03",),
+        inputs=(_NPPES_HEADER_CSV_PIN, _NPPES_SAMPLE_CSV_PIN),
+        reader=CSV_RECORD_SELECTOR_READER,
+        csv_record=CsvRecordSelector(
+            input_role="publisherProviderSample",
+            header_role="publisherFileHeader",
+            encoding="utf-8",
+            delimiter=",",
+            quotechar='"',
+            projections=(CsvProjection("rows", 3),),
+            row_key="NPI",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:nppes-provider:{NPI}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "preferred_label"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=3,
+            expected_data_rows=3,
+            max_data_rows=10,
+            label_discriminator_field="Entity Type Code",
+            label_rules=(
+                CsvLabelRule(
+                    "1",
+                    (
+                        "Provider Name Prefix Text",
+                        "Provider First Name",
+                        "Provider Middle Name",
+                        "Provider Last Name (Legal Name)",
+                        "Provider Credential Text",
+                    ),
+                ),
+                CsvLabelRule(
+                    "2",
+                    ("Provider Organization Name (Legal Business Name)",),
+                ),
+            ),
+            validators=(
+                CsvFieldValidator(
+                    "Entity Type Code",
+                    "allowed-values",
+                    ("1", "2"),
+                ),
+                CsvFieldValidator("NPI", "npi-luhn"),
+            ),
+            declared_unevaluated_fields=(),
+        ),
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+_OPM_PLUM_HEADER = (
+    "AgencyName",
+    "OrganizationName",
+    "PositionTitle",
+    "PositionStatus",
+    "AppointmentTypeDescription",
+    "ExpirationDate",
+    "LevelGradePay",
+    "Location",
+    "IncumbentFirstName",
+    "IncumbentLastName",
+    "PaymentPlanDescription",
+    "Tenure",
+    "IncumbentBeginDate",
+    "IncumbentVacateDate",
+)
+
+
+def _opm_plum_csv_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "OPM-PLUM-all-data-20260804.csv",
+        "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f",
+        2_737_270,
+        "https://escs.opm.gov/escs-net/api/pbpub/download-data",
+        fmt="csv",
+    )
+    native_template = json.dumps(
+        {
+            "category": "{category}",
+            "identityScope": {
+                "category": "{category}",
+                "value": "{value}",
+            },
+            "identityStatus": "sourceObservedClosedValue",
+            "sourceColumn": "{source_column}",
+            "value": "{value}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return SourceSpec(
+        name="opm-plum-position-status-codes-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-plum-position-status-codes-2026-08-04",),
+        inputs=(pin,),
+        reader=CSV_RECORD_SELECTOR_READER,
+        csv_record=CsvRecordSelector(
+            input_role="publisherSource",
+            encoding="utf-8-sig",
+            delimiter=",",
+            quotechar='"',
+            expected_header=_OPM_PLUM_HEADER,
+            expected_data_rows=15_777,
+            projections=(
+                CsvProjection(
+                    "distinct-values",
+                    12,
+                    source_field="AppointmentTypeDescription",
+                    constants=(("category", "appointmentType"),),
+                    nonempty=True,
+                ),
+                CsvProjection(
+                    "distinct-values",
+                    2,
+                    source_field="PositionStatus",
+                    constants=(("category", "positionStatus"),),
+                    nonempty=True,
+                ),
+                CsvProjection(
+                    "distinct-values",
+                    13,
+                    source_field="PaymentPlanDescription",
+                    constants=(("category", "payPlan"),),
+                    nonempty=True,
+                ),
+            ),
+            row_key="source_path",
+            identity_mode="registry-source-key",
+            identity_template="{category}\u001f{value}",
+            identity_token="opm-plum",
+            recorded_at="2026-08-04T00:00:00Z",
+            source_path_template=(
+                "{input_source_iri}#{source_column}={quoted_value}"
+            ),
+            source_locator_template="{source_path}",
+            claim_map=(
+                ("preferred_label", "value"),
+                ("notation", "value"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=27,
+            declared_unevaluated_fields=(
+                "bulk position rows and columns outside the three selected closed-value fields",
+                "empty controlled-value cells",
+            ),
+        ),
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+CSV_RECORD_SELECTOR_SOURCES = (
+    _nppes_layout_csv_source(),
+    _nppes_provider_csv_source(),
+    _opm_plum_csv_source(),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -12375,6 +13922,9 @@ SOURCES: tuple[SourceSpec, ...] = (
     *OMB_A11_PATTERN_ROW_SOURCES,
     *USCOURTS_NOS_PATTERN_ROW_SOURCES,
     *COURTLISTENER_PATTERN_ROW_SOURCES,
+    *XML_RECORD_SELECTOR_SOURCES,
+    *JSON_RECORD_SELECTOR_SOURCES,
+    *CSV_RECORD_SELECTOR_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -12392,7 +13942,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=LDA_GENERAL_ISSUE_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12423,7 +13973,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://lda.gov/api/v1/constants/filing/filingtypes/",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=LDA_FILING_TYPE_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12457,7 +14007,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://www.ecfr.gov/api/versioner/v1/titles.json",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=ECFR_TITLES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12493,7 +14043,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://api.govinfo.gov/collections",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=GOVINFO_COLLECTIONS_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12530,7 +14080,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=USASPENDING_AWARD_TYPES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12566,7 +14116,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=GSDM_REVIEWED_DOMAIN_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12603,7 +14153,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 source_iri="https://techport.nasa.gov/api/taxonomies",
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=NASA_TAXONOMY_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12641,7 +14191,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_FILING_TYPES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12679,7 +14229,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_ACCESS_STATUSES_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12717,7 +14267,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_BUREAUS_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12755,7 +14305,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FCC_PROCEEDINGS_JSON_READER,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12804,7 +14354,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=FEDERAL_HIERARCHY_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12859,7 +14409,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=GOVINFO_PACKAGE_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(frozenset({"fixity", "summary"})),
@@ -12884,7 +14434,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=SAM_UEI_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -12920,7 +14470,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=API_CAPTURE_JSON_READER,
+        reader=SAM_CAGE_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -13929,13 +15479,12 @@ def build_context(
             )
             cache_key = (
                 spec.reader,
-                # API captures can share bytes while selecting different lists
-                # (four FCC units and two SAM units). Other readers keep main's
+                # Structured captures can share bytes while selecting different
+                # lists. Other readers keep main's
                 # cross-spec cache sharing, including the EuroVoc partitions.
                 (
                     spec.name
-                    if spec.reader
-                    in {API_CAPTURE_JSON_READER, PATTERN_ROW_READER}
+                    if spec.reader in SPEC_SCOPED_RECORD_READERS
                     else None
                 ),
                 spec.inputs,
@@ -14304,6 +15853,14 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.reader != PATTERN_ROW_READER and spec.pattern_row is not None:
             failures.append(
                 f"{spec.name}: non-pattern reader must not declare a pattern-row selector"
+            )
+        if spec.reader == CSV_RECORD_SELECTOR_READER and spec.csv_record is None:
+            failures.append(
+                f"{spec.name}: CSV record reader has no declarative selector"
+            )
+        if spec.reader != CSV_RECORD_SELECTOR_READER and spec.csv_record is not None:
+            failures.append(
+                f"{spec.name}: non-CSV reader must not declare a CSV selector"
             )
         if spec.source_extract is not None:
             if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:
@@ -17142,11 +18699,9 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     Atlas-owned resources, rings, profiles, and governed schemes are deliberately
     absent from this view. The binding validator owns those claims.
     """
-    if pair.spec.reader in {
-        API_CAPTURE_JSON_READER,
-        CRS_SOURCE_CONCEPT_RELEASE_READER,
-        PATTERN_ROW_READER,
-    }:
+    if pair.spec.reader in SPEC_SCOPED_RECORD_READERS or pair.spec.reader == (
+        CRS_SOURCE_CONCEPT_RELEASE_READER
+    ):
         # Structured JSON captures also describe value, structure, entity, and
         # legal-identity resources. Their source records are the exact
         # independent join; requiring skos:Concept here would discard every
