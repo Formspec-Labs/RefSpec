@@ -2436,6 +2436,11 @@ def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
         return value.strip()
     if operation == "rstrip":
         return value.rstrip()
+    if operation.startswith("rstrip-chars:"):
+        characters = operation.removeprefix("rstrip-chars:")
+        if not characters:
+            raise ValueError(f"{label} rstrip-chars normalization has no characters")
+        return value.rstrip(characters)
     if operation == "collapse-whitespace":
         return " ".join(value.split())
     if operation == "html-visible-text":
@@ -11495,6 +11500,405 @@ GAO_PATTERN_ROW_SOURCES = (
 )
 
 
+_OMB_A11_DOCUMENT_URL = "https://www.whitehouse.gov/wp-content/uploads/2025/08/a11.pdf"
+_OMB_A11_DOCUMENT_PIN = SourcePin(
+    path="omb-a11-2025-wayback.pdf",
+    sha256="sha256:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+    byte_length=15_124_998,
+    fmt="pdf",
+    role="publisherSource",
+    source_iri=_OMB_A11_DOCUMENT_URL,
+    construction_path="output/registry-real-data-sources/omb-a11-2025-wayback.pdf",
+)
+_OMB_A11_FUNCTION_PIN = SourcePin(
+    path=(
+        "tests/fixtures/omb_a11_budget_codes/"
+        "exhibit-79a-functional-classification-2025.txt"
+    ),
+    sha256="sha256:0a8f141ffbbd83b4d9de7e099249ff6eb4eed53c688b14afbde3e9a2f0e496bb",
+    byte_length=3_635,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "0a8f141ffbbd83b4d9de7e099249ff6eb4eed53c688b14afbde3e9a2f0e496bb"
+    ),
+)
+_OMB_A11_OBJECT_PIN = SourcePin(
+    path=(
+        "tests/fixtures/omb_a11_budget_codes/"
+        "exhibit-83a-object-classification-2025.txt"
+    ),
+    sha256="sha256:3714b8b88982f87dc491061d316bc89dbc2151a97b3aa7b3add1726738b4b325",
+    byte_length=1_886,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "3714b8b88982f87dc491061d316bc89dbc2151a97b3aa7b3add1726738b4b325"
+    ),
+)
+_OMB_A11_APPORTIONMENT_PIN = SourcePin(
+    path=(
+        "tests/fixtures/omb_a11_budget_codes/"
+        "section-120-13-apportionment-categories-2025.txt"
+    ),
+    sha256="sha256:e0e4f4d718add1b21d5106f454e45e3c30a0a5896a964032b3dc249b1aeb871a",
+    byte_length=3_377,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "e0e4f4d718add1b21d5106f454e45e3c30a0a5896a964032b3dc249b1aeb871a"
+    ),
+)
+
+
+def _omb_a11_identifier(kind: str, value: str) -> Mapping[str, Any]:
+    return {
+        "authority_uri": "https://www.whitehouse.gov/omb/",
+        "effective_at": None,
+        "kind": kind,
+        "observed_at": "2026-08-03T19:18:00Z",
+        "source_digest": "{source_digest}",
+        "source_uri": _OMB_A11_DOCUMENT_URL,
+        "value": value,
+    }
+
+
+def _omb_a11_payload(
+    *,
+    resource_name: str,
+    category: str,
+    label: str,
+    identifiers: Sequence[Mapping[str, Any]],
+) -> Mapping[str, Any]:
+    return {
+        "category": category,
+        "fiscal_year_edition": "OMB Circular No. A–11 (2025)",
+        "identifiers": list(identifiers),
+        "is_general_subject_concept": False,
+        "publisher_label": label,
+        "resource_name": resource_name,
+        "sourceArtifact": _OMB_A11_DOCUMENT_URL,
+        "source_url": _OMB_A11_DOCUMENT_URL,
+        "use": "deterministicMetadata",
+    }
+
+
+def _omb_a11_source_path(resource_name: str) -> PatternDerivedField:
+    return PatternDerivedField(
+        field="source_path",
+        operation="template",
+        template_json=json.dumps(f"$.{resource_name}[{{match_ordinal}}]"),
+    )
+
+
+def _omb_a11_selector(
+    *,
+    patterns: tuple[PatternRowPattern, ...],
+    resource_name: str,
+    source_token: str,
+    native_payload: Mapping[str, Any],
+    expected_count: int,
+    claim_map: tuple[tuple[str, str], ...],
+    derived_fields: tuple[PatternDerivedField, ...] = (),
+) -> PatternRowSelector:
+    return PatternRowSelector(
+        patterns=patterns,
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=f"urn:ref:source-concept:v2:{source_token}:{{source_uuid7}}",
+        source_locator_template=_OMB_A11_DOCUMENT_URL,
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("observed_at", "2026-08-03T19:18:00Z"),
+            ("identity_hint", "{label}"),
+            ("source_path", "{source_path}"),
+            *claim_map,
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=(
+            f"{resource_name} page headings, grouping labels, and narrative",
+        ),
+        derived_fields=derived_fields,
+    )
+
+
+_OMB_A11_FUNCTION_ROW = (
+    r"^(?P<code>\d{3}(?:[–-]\d{3})?)[ \t]+"
+    r"(?P<label>[^\n]+(?:\n(?!(?:\d{3}(?:[–-]\d{3})?)[ \t]|"
+    r"MULTIPLE FUNCTIONS[ \t]*$)[^\n]+)*)"
+)
+_OMB_A11_MAJOR_FUNCTION = r"(?=[^a-z]*[A-Z])[^a-z]+"
+
+
+def _omb_a11_function_source() -> SourceSpec:
+    major_payload = _omb_a11_payload(
+        resource_name="functionalClassification",
+        category="majorFunction",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("budgetFunctionCode", "{code}"),
+        ),
+    )
+    subfunction_payload = _omb_a11_payload(
+        resource_name="functionalClassification",
+        category="subfunction",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("budgetSubfunctionCode", "{code}"),
+        ),
+    )
+
+    def pattern(
+        *,
+        include_major: bool,
+        expected_count: int,
+        native_payload: Mapping[str, Any],
+    ) -> PatternRowPattern:
+        return PatternRowPattern(
+            input_pattern=re.escape(_OMB_A11_FUNCTION_PIN.path),
+            region_pattern=r"Functional Classification\s+(?P<region>[\s\S]+)",
+            row_pattern=_OMB_A11_FUNCTION_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=expected_count,
+            normalizers=(
+                PatternFieldNormalizer("label", ("collapse-whitespace",)),
+            ),
+            row_filters=(
+                PatternRowFilter(
+                    field="label",
+                    pattern=_OMB_A11_MAJOR_FUNCTION,
+                    include=include_major,
+                ),
+            ),
+            native_payload_template_json=_canonical_json_bytes(
+                native_payload
+            ).decode("utf-8"),
+            native_payload_fields=tuple(sorted(native_payload)),
+        )
+
+    selector = _omb_a11_selector(
+        patterns=(
+            pattern(
+                include_major=True,
+                expected_count=20,
+                native_payload=major_payload,
+            ),
+            pattern(
+                include_major=False,
+                expected_count=78,
+                native_payload=subfunction_payload,
+            ),
+        ),
+        resource_name="functionalClassification",
+        source_token="omb-a11-functional-classification",
+        native_payload=major_payload,
+        expected_count=98,
+        claim_map=(("notation", "{code}"),),
+        derived_fields=(_omb_a11_source_path("functionalClassification"),),
+    )
+    return _pattern_row_source_spec(
+        "omb-a11-functional-classification",
+        (_OMB_A11_DOCUMENT_PIN, _OMB_A11_FUNCTION_PIN),
+        selector,
+    )
+
+
+def _omb_a11_object_source() -> SourceSpec:
+    native_payload = _omb_a11_payload(
+        resource_name="objectClassification",
+        category="objectClass",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("objectClassScheduleCode", "{code}"),
+            _omb_a11_identifier("objectClassAppendixCode", "{appendix_code}"),
+        ),
+    )
+    selector = _omb_a11_selector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_OMB_A11_OBJECT_PIN.path),
+                region_pattern=r"Standard Titles(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r"^(?P<prefix>[X9])(?P<digits_prefix>\d{2})"
+                    r"(?P<digit_last>\d)[ \t]+(?P<label>[^\n]+)"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=38,
+                normalizers=(
+                    PatternFieldNormalizer(
+                        "label", ("rstrip-chars:*", "strip")
+                    ),
+                ),
+                native_payload_template_json=_canonical_json_bytes(
+                    native_payload
+                ).decode("utf-8"),
+                native_payload_fields=tuple(sorted(native_payload)),
+            ),
+        ),
+        resource_name="objectClassification",
+        source_token="omb-a11-object-classification",
+        native_payload=native_payload,
+        expected_count=38,
+        claim_map=(
+            ("notation", "{code}"),
+            ("notation", "{appendix_code}"),
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="code",
+                operation="template",
+                template_json=json.dumps("{prefix}{digits_prefix}{digit_last}"),
+            ),
+            PatternDerivedField(
+                field="appendix_code",
+                operation="template",
+                template_json=json.dumps("{digits_prefix}.{digit_last}"),
+            ),
+            _omb_a11_source_path("objectClassification"),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "omb-a11-object-classification",
+        (_OMB_A11_DOCUMENT_PIN, _OMB_A11_OBJECT_PIN),
+        selector,
+    )
+
+
+def _omb_a11_apportionment_line_pattern(
+    code: str,
+    source_ordinal: int,
+    native_payload: Mapping[str, Any],
+) -> PatternRowPattern:
+    return PatternRowPattern(
+        input_pattern=re.escape(_OMB_A11_APPORTIONMENT_PIN.path),
+        region_pattern=(
+            r"non-apportioned budgetary resources are shown using one of four "
+            r"apportionment lines[^\n]*—(?P<region>[\s\S]*?)Agencies must report"
+        ),
+        row_pattern=(
+            rf"(?P<code>{re.escape(code)}),\s+(?P<label>.*?)"
+            r"(?:,?\s+and)?(?=,?\s+618[0-3],|\s*\Z)"
+        ),
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=1,
+        constants=(
+            ("range", ""),
+            ("source_path", f"$.apportionmentCategories[{source_ordinal}]"),
+        ),
+        normalizers=(
+            PatternFieldNormalizer(
+                "label", ("collapse-whitespace", "rstrip-chars:,", "strip")
+            ),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+    )
+
+
+def _omb_a11_apportionment_source() -> SourceSpec:
+    category_payload = _omb_a11_payload(
+        resource_name="apportionmentCategories",
+        category="apportionmentCategory",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("apportionmentCategoryCode", "{code}"),
+            _omb_a11_identifier("apportionmentLineRange", "{range}"),
+        ),
+    )
+    line_payload = _omb_a11_payload(
+        resource_name="apportionmentCategories",
+        category="nonApportionedLine",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("apportionmentLineCode", "{code}"),
+        ),
+    )
+    category_pattern = PatternRowPattern(
+        input_pattern=re.escape(_OMB_A11_APPORTIONMENT_PIN.path),
+        region_pattern=r"(?P<region>[\s\S]+)",
+        row_pattern=(
+            r"Category\s+(?P<code>AB|A|B|C)\s+apportions\s+budgetary\s+"
+            r"resources\s+(?P<description>.+?)\.\s*.*?Lines?\s+"
+            r"(?P<line_start>\d{4})\s+"
+            r"(?:t\s*h\s*r\s*o\s*u\s*g\s*h|thru)\s+"
+            r"(?P<line_end>\d{4})"
+        ),
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=4,
+        normalizers=(
+            PatternFieldNormalizer("description", ("collapse-whitespace",)),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            category_payload
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(category_payload)),
+        derived_fields=(
+            PatternDerivedField(
+                field="label",
+                operation="template",
+                template_json=json.dumps(
+                    "Category {code} apportions budgetary resources {description}."
+                ),
+            ),
+            PatternDerivedField(
+                field="range",
+                operation="template",
+                template_json=json.dumps("{line_start}-{line_end}"),
+            ),
+            _omb_a11_source_path("apportionmentCategories"),
+        ),
+    )
+    selector = _omb_a11_selector(
+        patterns=(
+            category_pattern,
+            *(
+                _omb_a11_apportionment_line_pattern(
+                    code,
+                    source_ordinal,
+                    line_payload,
+                )
+                for source_ordinal, code in enumerate(
+                    ("6180", "6181", "6182", "6183"),
+                    start=4,
+                )
+            ),
+        ),
+        resource_name="apportionmentCategories",
+        source_token="omb-a11-apportionment-categories",
+        native_payload=category_payload,
+        expected_count=8,
+        claim_map=(
+            ("notation", "{code}"),
+            ("notation", "{range}"),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "omb-a11-apportionment-categories",
+        (_OMB_A11_DOCUMENT_PIN, _OMB_A11_APPORTIONMENT_PIN),
+        selector,
+    )
+
+
+OMB_A11_PATTERN_ROW_SOURCES = (
+    _omb_a11_function_source(),
+    _omb_a11_object_source(),
+    _omb_a11_apportionment_source(),
+)
+
+
 _COURTLISTENER_PATTERN_PIN = _registry_source_pin(
     "courtlistener-jurisdictions-zyte.html",
     "sha256:883446028b029078c032bfe7c3545f9e109bb328c79ec486fbbbdbf35580b292",
@@ -11798,6 +12202,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *FAC_PATTERN_ROW_SOURCES,
     *CENSUS_GEO_PATTERN_ROW_SOURCES,
     *GAO_PATTERN_ROW_SOURCES,
+    *OMB_A11_PATTERN_ROW_SOURCES,
     *COURTLISTENER_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
