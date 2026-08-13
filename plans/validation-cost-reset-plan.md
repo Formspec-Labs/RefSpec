@@ -249,9 +249,19 @@ statement matching. ONLY ONE THING REMAINS ON THIS ARTIFACT: minting its seal,
 which needs the offline signer key and is therefore the owner's step. All seal
 inputs are staged — manifest sha256 `656e4cc79923398ce3f1546cc321e2c40d871bc8d0297c053ba59218877bd3db`,
 parquet view manifest sha256 `22a23316cdb16fb01f93bcc3a9bdfaddecaa0f871bf3d8d3f914445b786540c5`,
-acceptance receipt written by the run above; `create_seal(root, private_key_path,
-signer_identity, parquet_view_path=…)` in src/refspec/seal.py is the entry point
-and `docs/seal-allowed-signers` already pins atlas-release@refspec.
+acceptance receipt written by the run above (`19ca43a5…`). **The step is now one
+command** (c4871635 — previously it meant hand-writing a snippet against
+`create_seal`):
+
+    make seal-distribution SEAL_ROOT=output/atlas-3.1-full-2026-08-13b SEAL_KEY=<offline key>
+    make verify-distribution-seal SEAL_ROOT=output/atlas-3.1-full-2026-08-13b
+
+Both paths were proven end-to-end on 13b with an ephemeral key that was then
+destroyed: mint bound all three digests; verify walked 4 members, 126 packs, 8
+Parquet tables, 941,856,313 bytes. Minting refuses a distribution with no
+acceptance receipt. `docs/seal-allowed-signers` already pins
+atlas-release@refspec, and that key is NOT on this machine — checked; no local
+key matches the pin — which is the ceremony working as designed.
 
 **ENGINE QUESTION CLOSED WITH REOPEN CRITERIA (2026-08-13,
 research/shacl-engine-survey + research/shacl-rust).** The two cells the plan
