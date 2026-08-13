@@ -202,6 +202,33 @@ do that later"), do when the waves are done:**
   loop (bench_phases harness + /usr/bin/sample technique live on the
   spike branches).
 
+**RESEARCH FLEET — ELEVEN BRANCHES, all committed (2026-08-13).** Every
+codex 5.6-sol xhigh agent's work survives on its own branch; several were
+killed mid-run by an orchestration error (sibling agents suspended under
+memory pressure took their harness wrappers down) and carry a final `wip`
+commit marking exactly where they stopped. Resume from the wip, do not
+restart from scratch.
+| branch | state | what it holds |
+|---|---|---|
+| research/parse-substrate | complete | DON'T-TAKE study + prototype; the −57% RSS finding |
+| research/residual-shacl | complete | DON'T-TAKE; the lift pattern's measured floor |
+| research/shacl-sparql | complete | portable sh:sparql prototype, 26/26 cross-engine |
+| research/move2-compiler | complete | option (b) proven; note its cited rulespec commit 28b37d7b does NOT exist upstream — re-verify that half |
+| research/fidelity-coverage | complete | 24→27 units, the inventory + payoff order |
+| research/fidelity-definitions | complete | the carry/declare decision package |
+| research/fidelity-langbugs | complete | b079de13: one BCP-47 predicate + definitions carried |
+| feat/parse-substrate | INTEGRATED, gate-green | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
+| research/auditor-language-scope | wip | NASA double-count FIXED (5e833c18); language mechanism unfinished |
+| research/coverage-{bulk,json,csv-pdf,html-misc} | wip | first SourceSpecs authored + committed per batch |
+
+**ORCHESTRATION LESSONS (recorded so they are not relearned):** never
+SIGSTOP a codex agent — its harness wrapper exits and the agent dies;
+size the fleet to the machine (six xhigh agents plus a 14 GB validation
+on a 48 GB box drove 8.7 GB of swap and killed everything); wait-loops
+must match child PIDs, not name patterns (a codex prompt containing a
+path makes pgrep match forever); and RSS measured under swap pressure
+UNDERSTATES demand, so memory numbers require a quiet machine.
+
 **Spike evidence — COMMITTED AS BRANCHES (2026-08-12):**
 `spike/oxigraph-substrate` (f81b3749) and `spike/jena-shacl` (028dd63b).
 The worktrees under .claude/worktrees/ hold the same branches checked out
