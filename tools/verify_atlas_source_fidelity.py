@@ -9354,6 +9354,131 @@ def _oira_pattern_source() -> SourceSpec:
 OIRA_PATTERN_ROW_SOURCES = (_oira_pattern_source(),)
 
 
+_OVERSIGHT_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/oversight_report_types/"
+        "oversight-reports-federal-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:8f1f8b29a5ecb224e19505ccdb24edf59b785273a60e807dc95355ffbc1785dd"
+    ),
+    byte_length=110_293,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.oversight.gov/reports/federal",
+)
+
+
+def _oversight_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:25:24Z"
+    resource_id = "oversight-gov-federal-report-types"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.oversight.gov/",
+                "kind": "oversightReportTypeId",
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{identifier_source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_OVERSIGHT_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<select[^>]*name="field_report_type\[\]"[^>]*'
+                    r'id="edit-field-report-type--2"[^>]*>'
+                    r"(?P<region>.*?)</select>"
+                ),
+                row_pattern=(
+                    r'<option\s+value="(?P<code>[^"]+)"[^>]*>'
+                    r"(?P<label>.*?)</option>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=10,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("source_token", "oversight-report-types"),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=10,
+        declared_unevaluated_fields=("htmlOutsideReportTypeSelect",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("filters.reportType.options[{ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="identifier_source_path",
+                operation="template",
+                template_json=json.dumps("{source_path}.value"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [
+                            {
+                                "authorityUri": "https://www.oversight.gov/",
+                                "kind": "oversightReportTypeId",
+                                "value": "{code}",
+                            }
+                        ],
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "oversight-report-types", (_OVERSIGHT_PATTERN_PIN,), selector
+    )
+
+
+OVERSIGHT_PATTERN_ROW_SOURCES = (_oversight_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -9431,6 +9556,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *FERC_HTML_PATTERN_ROW_SOURCES,
     *GRANTS_GOV_PATTERN_ROW_SOURCES,
     *OIRA_PATTERN_ROW_SOURCES,
+    *OVERSIGHT_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
