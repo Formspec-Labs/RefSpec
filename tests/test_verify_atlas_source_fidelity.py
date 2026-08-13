@@ -37,16 +37,19 @@ from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
     FEDERAL_REGISTER_TOPICS_JSON_READER,
     GCMD_SCIENCE_KEYWORDS_CSV_READER,
-    HTML_CODE_LIST_READER,
     MESH_DESCRIPTOR_XML_READER,
+    PATTERN_ROW_READER,
     CheckResult,
     DeclaredClaimExclusion,
     DeclaredLanguageExclusion,
     Expectations,
     Finding,
-    HtmlCodeListSelector,
     LiteralValue,
     NativeControlSelector,
+    PatternDerivedField,
+    PatternFieldNormalizer,
+    PatternRowPattern,
+    PatternRowSelector,
     RdfSourcePolicy,
     SourcePin,
     SourceSpec,
@@ -877,7 +880,7 @@ def _add_single_record_stock_source(
     atlas_label: str,
     notation: str,
     role: str = "publisherSource",
-    html_code_list: HtmlCodeListSelector | None = None,
+    pattern_row: PatternRowSelector | None = None,
     definition: str | None = None,
 ) -> SourceSpec:
     """Add one stock-reader pair whose expected Atlas values are explicit."""
@@ -897,7 +900,7 @@ def _add_single_record_stock_source(
         release_keys=(name,),
         inputs=(source_pin,),
         reader=reader,
-        html_code_list=html_code_list,
+        pattern_row=pattern_row,
         identity_policy=identity_policy,
         policies=frozenset(
             {
@@ -1125,7 +1128,7 @@ def _add_gcmd_csv_source(
     )
 
 
-def _add_html_code_list_source(
+def _add_pattern_row_source(
     suite: Fixture,
     *,
     atlas_label: str = "Communication cost",
@@ -1176,7 +1179,7 @@ def _add_html_code_list_source(
         fmt="html",
         source_iri=source_iri,
         source_bytes=source_bytes,
-        reader=HTML_CODE_LIST_READER,
+        reader=PATTERN_ROW_READER,
         identity_policy="source-local-record",
         resource=(
             "urn:ref:source-concept:v2:tiny-fec-html:"
@@ -1191,20 +1194,104 @@ def _add_html_code_list_source(
         atlas_only_native_fields=frozenset(),
         atlas_label=atlas_label,
         notation="C",
-        html_code_list=HtmlCodeListSelector(
-            section_pattern=r"<table[^>]*>(?P<section>.*?)</table>",
-            row_pattern=(
-                r"<tr>\s*<td>\s*(?P<code>[A-Z])\s*</td>\s*"
-                r"<td>(?P<label>.*?)</td>\s*"
-                r"<td>(?P<description>.*?)</td>\s*</tr>"
+        pattern_row=PatternRowSelector(
+            patterns=(
+                PatternRowPattern(
+                    input_pattern=r"fec\-codes\.html",
+                    region_pattern=r"<table[^>]*>(?P<region>.*?)</table>",
+                    row_pattern=(
+                        r"<tr>\s*<td>\s*(?P<code>[A-Z])\s*</td>\s*"
+                        r"<td>(?P<label>.*?)</td>\s*"
+                        r"<td>(?P<description>.*?)</td>\s*</tr>"
+                    ),
+                    expected_input_count=1,
+                    expected_region_count=1,
+                    expected_row_count=1,
+                    constants=(
+                        ("identifier_kind", "committeeTypeCode"),
+                        ("observed_at", "2026-08-03T19:24:00Z"),
+                        ("resource_name", "committeeType"),
+                        ("source_token", "tiny-fec-html"),
+                    ),
+                    normalizers=(
+                        PatternFieldNormalizer("code", ("html-visible-text",)),
+                        PatternFieldNormalizer("label", ("html-visible-text",)),
+                        PatternFieldNormalizer(
+                            "description", ("html-visible-text",)
+                        ),
+                    ),
+                ),
             ),
-            resource_name="committeeType",
-            source_token="tiny-fec-html",
-            identifier_kind="committeeTypeCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-test",
+            row_key="{code}",
+            identity_mode="source-local-record",
+            identity_template=(
+                "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+            ),
+            source_locator_template="{source_iri}",
+            claim_map=(
+                ("preferred_label", "{label}"),
+                ("notation", "{code}"),
+                ("definition", "{description}"),
+                ("source_path", "{source_path}"),
+                ("observed_at", "{observed_at}"),
+                ("identity_hint", "{observation_id}"),
+            ),
+            native_payload_template_json=json.dumps(
+                {
+                    "conceptIdentityClaimed": False,
+                    "description": "{description}",
+                    "id": "{observation_id}",
+                    "identifiers": [
+                        {
+                            "authorityUri": "https://www.fec.gov/",
+                            "kind": "{identifier_kind}",
+                            "observedAt": "{observed_at}",
+                            "sourceDigest": "{source_digest}",
+                            "sourcePath": "{source_path}",
+                            "sourceUri": "{source_iri}",
+                            "value": "{code}",
+                        }
+                    ],
+                    "labels": [
+                        {
+                            "language": "en",
+                            "role": "preferred",
+                            "value": "{label}",
+                        }
+                    ],
+                    "sourceArtifact": "{source_iri}",
+                    "sourceOrdinal": "{ordinal}",
+                    "sourcePath": "{source_path}",
+                    "uses": ["deterministicMetadata"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+            native_payload_fields=tuple(sorted(native_payload)),
             expected_count=1,
+            declared_unevaluated_fields=(),
+            derived_fields=(
+                PatternDerivedField(
+                    field="source_path",
+                    operation="template",
+                    template_json=json.dumps("$.{resource_name}.{code}"),
+                ),
+                PatternDerivedField(
+                    field="observation_id",
+                    operation="canonical-json-sha256",
+                    template_json=json.dumps(
+                        {
+                            "resourceName": "{resource_name}",
+                            "sourceArtifact": "{source_iri}",
+                            "sourcePath": "{source_path}",
+                            "value": "{code}",
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    prefix="urn:ref:source-observation:fec-test:",
+                ),
+            ),
         ),
         definition="Publisher definition",
     )
@@ -1360,10 +1447,10 @@ def test_api_capture_json_reader_catches_rewritten_label(suite: Fixture) -> None
     assert any("'Farming'" in failure for failure in label_check.failures)
 
 
-def test_html_code_list_reader_faithful_pair_passes_every_check(
+def test_pattern_row_reader_faithful_pair_passes_every_check(
     suite: Fixture,
 ) -> None:
-    spec = _add_html_code_list_source(suite)
+    spec = _add_pattern_row_source(suite)
 
     results = verify(
         suite.distribution,
@@ -1377,8 +1464,8 @@ def test_html_code_list_reader_faithful_pair_passes_every_check(
     ]
 
 
-def test_html_code_list_reader_catches_rewritten_label(suite: Fixture) -> None:
-    spec = _add_html_code_list_source(suite, atlas_label="Rewritten")
+def test_pattern_row_reader_catches_rewritten_label(suite: Fixture) -> None:
+    spec = _add_pattern_row_source(suite, atlas_label="Rewritten")
 
     label_check = result(
         verify(

@@ -78,6 +78,7 @@ import io
 import json
 import logging
 import re
+import string
 import sys
 import threading
 import urllib.parse
@@ -933,19 +934,62 @@ class AtlasLanguageScopeEvidence:
 
 
 @dataclass(frozen=True)
-class HtmlCodeListSelector:
-    """Declarative extraction and identity rules for one HTML code list."""
+class PatternFieldNormalizer:
+    """One bounded, named normalization applied to a captured row field."""
 
-    section_pattern: str
+    field: str
+    operations: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PatternDerivedField:
+    """One value derived from row fields by a fixed reader operation."""
+
+    field: str
+    operation: str
+    template_json: str
+    prefix: str = ""
+
+
+@dataclass(frozen=True)
+class PatternRowFilter:
+    """Keep or reject a row by applying one declared regular expression."""
+
+    field: str
+    pattern: str
+    include: bool = True
+
+
+@dataclass(frozen=True)
+class PatternRowPattern:
+    """Select rows from an exact set of authenticated UTF-8 inputs."""
+
+    input_pattern: str
+    region_pattern: str
     row_pattern: str
-    resource_name: str
-    source_token: str
-    identifier_kind: str
-    authority_iri: str
-    observed_at: str
-    observation_namespace: str
+    expected_input_count: int
+    expected_region_count: int
+    expected_row_count: int
+    constants: tuple[tuple[str, str], ...] = ()
+    normalizers: tuple[PatternFieldNormalizer, ...] = ()
+    row_filters: tuple[PatternRowFilter, ...] = ()
+
+
+@dataclass(frozen=True)
+class PatternRowSelector:
+    """Declarative row, identity, locator, claim, count, and residue rules."""
+
+    patterns: tuple[PatternRowPattern, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
     expected_count: int
-    use: str = "deterministicMetadata"
+    declared_unevaluated_fields: tuple[str, ...]
+    derived_fields: tuple[PatternDerivedField, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -965,7 +1009,7 @@ class SourceSpec:
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
-    html_code_list: HtmlCodeListSelector | None = None
+    pattern_row: PatternRowSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2043,7 +2087,7 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
 
 
 API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
-HTML_CODE_LIST_READER = "html-code-list-v1/1.0"
+PATTERN_ROW_READER = "pattern-row-v2/2.0"
 
 
 @dataclass(frozen=True)
@@ -2268,128 +2312,442 @@ def _html_fragment_text(value: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(without_tags)).strip()
 
 
-def _read_html_code_list(
+_EXACT_PATTERN_FIELD = re.compile(r"^\{([A-Za-z_][A-Za-z0-9_]*)\}$")
+_PATTERN_CLAIMS = frozenset(
+    {
+        "alternate_label",
+        "definition",
+        "identity_hint",
+        "notation",
+        "observed_at",
+        "preferred_label",
+        "source_path",
+    }
+)
+
+
+def _pattern_template_fields(template: str) -> frozenset[str]:
+    """Return the named fields referenced by one bounded format template."""
+    fields: set[str] = set()
+    try:
+        parsed = string.Formatter().parse(template)
+        for _, field_name, _, _ in parsed:
+            if field_name is None:
+                continue
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", field_name):
+                raise ValueError(
+                    f"pattern-row template field must be one plain name: {field_name!r}"
+                )
+            fields.add(field_name)
+    except ValueError as error:
+        raise ValueError(f"invalid pattern-row template {template!r}: {error}") from error
+    return frozenset(fields)
+
+
+def _render_pattern_text(template: str, fields: Mapping[str, Any]) -> str:
+    """Render one text template and reject missing or non-scalar values."""
+    try:
+        value = template.format_map(fields)
+    except (KeyError, ValueError) as error:
+        raise ValueError(f"could not render pattern-row template {template!r}: {error}") from error
+    if not isinstance(value, str):  # pragma: no cover - str.format_map promises text
+        raise ValueError(f"pattern-row template did not render text: {template!r}")
+    return value
+
+
+def _render_pattern_value(value: Any, fields: Mapping[str, Any]) -> Any:
+    """Render a JSON-shaped value while preserving whole-field JSON types."""
+    if isinstance(value, str):
+        exact = _EXACT_PATTERN_FIELD.fullmatch(value)
+        if exact is not None:
+            field_name = exact.group(1)
+            if field_name not in fields:
+                raise ValueError(f"pattern-row template names unknown field {field_name!r}")
+            return fields[field_name]
+        return _render_pattern_text(value, fields)
+    if isinstance(value, list):
+        return [_render_pattern_value(item, fields) for item in value]
+    if isinstance(value, Mapping):
+        return {
+            str(key): _render_pattern_value(child, fields)
+            for key, child in value.items()
+        }
+    return value
+
+
+def _pattern_json_template_fields(template_json: str, label: str) -> frozenset[str]:
+    """Parse a JSON template and return every referenced row field."""
+    try:
+        value = _json_without_duplicate_keys(template_json.encode("utf-8"), label)
+    except (UnicodeError, ValueError) as error:
+        raise ValueError(f"{label} is not valid JSON: {error}") from error
+    fields: set[str] = set()
+
+    def visit(item: Any) -> None:
+        if isinstance(item, str):
+            fields.update(_pattern_template_fields(item))
+        elif isinstance(item, list):
+            for child in item:
+                visit(child)
+        elif isinstance(item, Mapping):
+            for child in item.values():
+                visit(child)
+
+    visit(value)
+    return frozenset(fields)
+
+
+def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
+    """Apply one stock, source-independent field normalization."""
+    if operation == "none-if-empty":
+        if value is None or (isinstance(value, str) and not value):
+            return None
+        return value
+    if not isinstance(value, str):
+        raise ValueError(
+            f"{label} normalization {operation!r} requires text, observed "
+            f"{type(value).__name__}"
+        )
+    if operation == "strip":
+        return value.strip()
+    if operation == "rstrip":
+        return value.rstrip()
+    if operation == "collapse-whitespace":
+        return " ".join(value.split())
+    if operation == "html-visible-text":
+        return _html_fragment_text(value)
+    if operation == "html-unescape":
+        return html.unescape(value)
+    if operation == "markdown-bold":
+        match = re.fullmatch(r"\*\*(.+)\*\*", value.strip())
+        if match is None:
+            raise ValueError(f"{label} is not one bold Markdown value: {value!r}")
+        return match.group(1).strip()
+    if operation == "casefold":
+        return value.casefold()
+    if operation == "integer":
+        try:
+            return int(value)
+        except ValueError as error:
+            raise ValueError(f"{label} is not an integer: {value!r}") from error
+    raise ValueError(f"{label} declares unsupported normalization {operation!r}")
+
+
+def _pattern_claims(
+    selector: PatternRowSelector,
+    fields: Mapping[str, Any],
+) -> Mapping[str, tuple[str, ...]]:
+    """Render the declared claim map without accepting hidden claim kinds."""
+    claims: dict[str, list[str]] = defaultdict(list)
+    for claim, template in selector.claim_map:
+        if claim not in _PATTERN_CLAIMS:
+            raise ValueError(f"pattern-row claim map names unsupported claim {claim!r}")
+        value = _render_pattern_text(template, fields)
+        claims[claim].append(value)
+    return {claim: tuple(values) for claim, values in claims.items()}
+
+
+def _read_pattern_rows(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    """Read a configured HTML code-list region without source-specific code."""
-    selector = spec.html_code_list
+    """Read declared UTF-8 row patterns without source-name dispatch."""
+    selector = spec.pattern_row
     if selector is None:
-        raise ValueError(f"{spec.name} has no HTML code-list selector")
-    pin, payload = _single_pin(spec, payloads)
-    if pin.source_iri is None:
-        raise ValueError(f"{spec.name} publisher input has no source IRI")
+        raise ValueError(f"{spec.name} has no pattern-row selector")
+    if not selector.patterns:
+        raise ValueError(f"{spec.name} pattern-row selector declares no input patterns")
+    if selector.identity_mode not in {"publisher-iri", "source-local-record"}:
+        raise ValueError(
+            f"{spec.name} pattern-row identity mode is unsupported: "
+            f"{selector.identity_mode!r}"
+        )
+    claim_names = [claim for claim, _ in selector.claim_map]
+    required_claims = {"preferred_label", "source_path"}
+    missing_claims = required_claims - set(claim_names)
+    if selector.identity_mode == "source-local-record":
+        missing_claims |= {"observed_at"} - set(claim_names)
+    if missing_claims:
+        raise ValueError(
+            f"{spec.name} pattern-row claim map omits {sorted(missing_claims)}"
+        )
+    if claim_names.count("preferred_label") != 1:
+        raise ValueError(f"{spec.name} pattern-row requires one preferred_label claim")
+    if claim_names.count("source_path") != 1:
+        raise ValueError(f"{spec.name} pattern-row requires one source_path claim")
+
     try:
-        text = payload.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise ValueError(f"{spec.name} publisher input is not UTF-8 HTML") from error
-
-    try:
-        section_pattern = re.compile(selector.section_pattern, re.DOTALL)
-        row_pattern = re.compile(selector.row_pattern, re.DOTALL)
-    except re.error as error:
-        raise ValueError(f"{spec.name} has an invalid HTML selector: {error}") from error
-    if "section" not in section_pattern.groupindex:
-        raise ValueError(f"{spec.name} section pattern must define a 'section' group")
-    required_row_groups = {"code", "label"}
-    missing_groups = required_row_groups - set(row_pattern.groupindex)
-    if missing_groups:
+        payload_template = _json_without_duplicate_keys(
+            selector.native_payload_template_json.encode("utf-8"),
+            f"{spec.name} native payload template",
+        )
+    except (UnicodeError, ValueError) as error:
+        raise ValueError(f"{spec.name} native payload template is invalid: {error}") from error
+    if not isinstance(payload_template, Mapping):
+        raise ValueError(f"{spec.name} native payload template must be an object")
+    if set(payload_template) != set(selector.native_payload_fields):
         raise ValueError(
-            f"{spec.name} row pattern is missing groups {sorted(missing_groups)}"
+            f"{spec.name} native payload field declaration differs from its template -- "
+            f"declared {sorted(selector.native_payload_fields)}, observed "
+            f"{sorted(payload_template)}"
         )
 
-    sections = list(section_pattern.finditer(text))
-    if len(sections) != 1:
-        raise ValueError(
-            f"{spec.name} expected one configured HTML section, found {len(sections)}"
+    declared_template_fields: set[str] = set()
+    for template in (
+        selector.row_key,
+        selector.identity_template,
+        selector.source_locator_template,
+        *(template for _, template in selector.claim_map),
+    ):
+        declared_template_fields.update(_pattern_template_fields(template))
+    declared_template_fields.update(
+        _pattern_json_template_fields(
+            selector.native_payload_template_json,
+            f"{spec.name} native payload template",
         )
-    rows = list(row_pattern.finditer(sections[0].group("section")))
-    if len(rows) != selector.expected_count:
-        raise ValueError(
-            f"{spec.name} expected {selector.expected_count} code rows, found {len(rows)}"
-        )
-
-    records: list[_ApiCaptureRecord] = []
-    seen_codes: set[str] = set()
-    for ordinal, match in enumerate(rows):
-        code = _html_fragment_text(match.group("code"))
-        label = _html_fragment_text(match.group("label"))
-        description_value = match.groupdict().get("description") or ""
-        description = _html_fragment_text(description_value)
-        if not code or not label:
-            raise ValueError(f"{spec.name}[{ordinal}] has an empty code or label")
-        if code in seen_codes:
-            raise ValueError(f"{spec.name} repeats publisher code {code!r}")
-        seen_codes.add(code)
-
-        source_path = f"$.{selector.resource_name}.{code}"
-        identifier = {
-            "value": code,
-            "kind": selector.identifier_kind,
-            "authorityUri": selector.authority_iri,
-            "sourceUri": pin.source_iri,
-            "sourcePath": source_path,
-            "observedAt": selector.observed_at,
-            "sourceDigest": pin.sha256,
-        }
-        observation_identity = {
-            "resourceName": selector.resource_name,
-            "sourceArtifact": pin.source_iri,
-            "sourcePath": source_path,
-            "value": code,
-        }
-        observation_id = (
-            f"urn:ref:source-observation:{selector.observation_namespace}:"
-            + hashlib.sha256(_canonical_json_bytes(observation_identity)).hexdigest()
-        )
-        native_payload = {
-            "id": observation_id,
-            "sourceArtifact": pin.source_iri,
-            "sourcePath": source_path,
-            "sourceOrdinal": ordinal,
-            "labels": [
-                {
-                    "value": label,
-                    "language": "en",
-                    "role": "preferred",
-                }
-            ],
-            "identifiers": [identifier],
-            "uses": [selector.use],
-            "conceptIdentityClaimed": False,
-            "description": description,
-        }
-        resource = _source_concept_iri(
-            token=selector.source_token,
-            recorded_at=selector.observed_at,
-            source_locator=pin.source_iri,
-            source_path=source_path,
-            notations=(code,),
-            identity_hint=observation_id,
-        )
-        records.append(
-            _ApiCaptureRecord(
-                resource=resource,
-                preferred_label=label,
-                notations=(code,),
-                source_locator=pin.source_iri,
-                source_digest=(
-                    "sha256:"
-                    + hashlib.sha256(_canonical_json_bytes(native_payload)).hexdigest()
-                ),
-                native_payload=native_payload,
-                definition=description or None,
+    )
+    for derived in selector.derived_fields:
+        declared_template_fields.update(
+            _pattern_json_template_fields(
+                derived.template_json,
+                f"{spec.name} derived field {derived.field!r}",
             )
         )
 
-    selected_section = sections[0]
-    outside_section = text[: selected_section.start()] + text[selected_section.end() :]
-    unevaluated_claims = (
-        (
-            "authenticated HTML outside the configured code-list section is not represented; "
-            "the selected code, label, and description cells are compared exactly"
-        ),
-    ) if _html_fragment_text(outside_section) else ()
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    for pattern_index, declaration in enumerate(selector.patterns):
+        try:
+            input_pattern = re.compile(declaration.input_pattern)
+            region_pattern = re.compile(
+                declaration.region_pattern,
+                re.DOTALL | re.MULTILINE,
+            )
+            row_pattern = re.compile(
+                declaration.row_pattern,
+                re.DOTALL | re.MULTILINE,
+            )
+            compiled_filters = tuple(
+                (row_filter, re.compile(row_filter.pattern))
+                for row_filter in declaration.row_filters
+            )
+        except re.error as error:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} has invalid regular expression: {error}"
+            ) from error
+        if "region" not in region_pattern.groupindex:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} region must define a 'region' group"
+            )
+        selected_inputs = [
+            (pin, match)
+            for pin in spec.inputs
+            if (match := input_pattern.fullmatch(pin.path)) is not None
+        ]
+        if len(selected_inputs) != declaration.expected_input_count:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} expected "
+                f"{declaration.expected_input_count} inputs, found {len(selected_inputs)}"
+            )
+        pattern_row_count = 0
+        for pin, input_match in selected_inputs:
+            if pin.source_iri is None:
+                raise ValueError(f"{spec.name} publisher input has no source IRI")
+            try:
+                text = payloads[pin].decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError(f"{spec.name} input {pin.path!r} is not UTF-8") from error
+            regions = list(region_pattern.finditer(text))
+            if len(regions) != declaration.expected_region_count:
+                raise ValueError(
+                    f"{spec.name} pattern {pattern_index} input {pin.path!r} expected "
+                    f"{declaration.expected_region_count} regions, found {len(regions)}"
+                )
+            for region_ordinal, region in enumerate(regions):
+                row_matches = list(row_pattern.finditer(region.group("region")))
+                for match in row_matches:
+                    constants = dict(declaration.constants)
+                    if len(constants) != len(declaration.constants):
+                        raise ValueError(
+                            f"{spec.name} pattern {pattern_index} repeats a constant name"
+                        )
+                    fields: dict[str, Any] = {
+                        "input_path": pin.path,
+                        "input_role": pin.role or "",
+                        "source_iri": pin.source_iri,
+                        "source_digest": pin.sha256,
+                        "input_ordinal": spec.inputs.index(pin),
+                        "region_ordinal": region_ordinal,
+                        "ordinal": len(records),
+                        **constants,
+                    }
+                    captured_sets = (
+                        input_match.groupdict(),
+                        {
+                            key: value
+                            for key, value in region.groupdict().items()
+                            if key != "region"
+                        },
+                        match.groupdict(),
+                    )
+                    captured_names: set[str] = set()
+                    for captured in captured_sets:
+                        overlaps = set(fields) & set(captured)
+                        if overlaps:
+                            raise ValueError(
+                                f"{spec.name} pattern {pattern_index} captures duplicate fields "
+                                f"{sorted(overlaps)}"
+                            )
+                        fields.update(captured)
+                        captured_names.update(captured)
+                    for normalizer in declaration.normalizers:
+                        if normalizer.field not in fields:
+                            raise ValueError(
+                                f"{spec.name} normalizes unknown field {normalizer.field!r}"
+                            )
+                        for operation in normalizer.operations:
+                            fields[normalizer.field] = _normalize_pattern_field(
+                                fields[normalizer.field],
+                                operation,
+                                f"{spec.name} field {normalizer.field!r}",
+                            )
+                    keep = True
+                    for row_filter, compiled_filter in compiled_filters:
+                        value = fields.get(row_filter.field)
+                        matched = isinstance(value, str) and (
+                            compiled_filter.fullmatch(value) is not None
+                        )
+                        if matched != row_filter.include:
+                            keep = False
+                    if not keep:
+                        continue
+                    for derived in selector.derived_fields:
+                        if derived.field in fields:
+                            raise ValueError(
+                                f"{spec.name} derived field repeats {derived.field!r}"
+                            )
+                        template = _json_without_duplicate_keys(
+                            derived.template_json.encode("utf-8"),
+                            f"{spec.name} derived field {derived.field!r}",
+                        )
+                        rendered = _render_pattern_value(template, fields)
+                        if derived.operation == "canonical-json-sha256":
+                            fields[derived.field] = derived.prefix + hashlib.sha256(
+                                _canonical_json_bytes(rendered)
+                            ).hexdigest()
+                        elif derived.operation == "template":
+                            if not isinstance(rendered, str):
+                                raise ValueError(
+                                    f"{spec.name} template-derived field "
+                                    f"{derived.field!r} is not text"
+                                )
+                            fields[derived.field] = derived.prefix + rendered
+                        else:
+                            raise ValueError(
+                                f"{spec.name} derived field {derived.field!r} uses "
+                                f"unsupported operation {derived.operation!r}"
+                            )
+                    used_fields = {
+                        *declared_template_fields,
+                        *(row_filter.field for row_filter in declaration.row_filters),
+                    }
+                    unaccounted = captured_names - used_fields - set(
+                        selector.declared_unevaluated_fields
+                    )
+                    if unaccounted:
+                        raise ValueError(
+                            f"{spec.name} pattern {pattern_index} captures fields without a "
+                            f"claim or explicit residue declaration: {sorted(unaccounted)}"
+                        )
+
+                    key = _render_pattern_text(selector.row_key, fields)
+                    if not key:
+                        raise ValueError(f"{spec.name} pattern-row key is empty")
+                    if key in seen_keys:
+                        raise ValueError(f"{spec.name} repeats publisher row key {key!r}")
+                    seen_keys.add(key)
+                    claims = _pattern_claims(selector, fields)
+                    label = claims["preferred_label"][0]
+                    if not label:
+                        raise ValueError(f"{spec.name} row {key!r} has an empty label")
+                    source_path = claims["source_path"][0]
+                    source_locator = _render_pattern_text(
+                        selector.source_locator_template,
+                        fields,
+                    )
+                    notations = tuple(
+                        dict.fromkeys(
+                            value for value in claims.get("notation", ()) if value
+                        )
+                    )
+                    if selector.identity_mode == "source-local-record":
+                        observed_at = claims["observed_at"][0]
+                        identity_hint = claims.get("identity_hint", (label,))[0]
+                        seed = {
+                            "source": source_locator,
+                            "path": source_path,
+                            "notations": list(notations),
+                            "identityHint": identity_hint,
+                        }
+                        identity_fields = {
+                            **fields,
+                            "source_uuid7": _source_uuid7(observed_at, seed),
+                        }
+                        resource = _render_pattern_text(
+                            selector.identity_template,
+                            identity_fields,
+                        )
+                    else:
+                        resource = _render_pattern_text(
+                            selector.identity_template,
+                            fields,
+                        )
+                    native_payload = _render_pattern_value(payload_template, fields)
+                    if not isinstance(native_payload, Mapping):
+                        raise ValueError(
+                            f"{spec.name} row {key!r} native payload is not an object"
+                        )
+                    definitions = claims.get("definition", ())
+                    if len(definitions) > 1:
+                        raise ValueError(
+                            f"{spec.name} row {key!r} declares multiple definitions"
+                        )
+                    records.append(
+                        _ApiCaptureRecord(
+                            resource=resource,
+                            preferred_label=label,
+                            alternate_labels=claims.get("alternate_label", ()),
+                            notations=notations,
+                            source_locator=source_locator,
+                            source_digest=(
+                                "sha256:"
+                                + hashlib.sha256(
+                                    _canonical_json_bytes(native_payload)
+                                ).hexdigest()
+                            ),
+                            native_payload=native_payload,
+                            definition=(
+                                definitions[0]
+                                if definitions and definitions[0]
+                                else None
+                            ),
+                        )
+                    )
+                    pattern_row_count += 1
+        if pattern_row_count != declaration.expected_row_count:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} expected "
+                f"{declaration.expected_row_count} rows, found {pattern_row_count}"
+            )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} total pattern rows, "
+            f"found {len(records)}"
+        )
+    unevaluated_claims = tuple(
+        f"authenticated publisher field or region is explicitly unevaluated: {field_name}"
+        for field_name in selector.declared_unevaluated_fields
+    )
     return _api_capture_view(
         records,
         spec,
@@ -7503,7 +7861,7 @@ _PUBLISHER_READERS: Mapping[
     FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
     FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
     GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
-    HTML_CODE_LIST_READER: _read_html_code_list,
+    PATTERN_ROW_READER: _read_pattern_rows,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
     LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
     MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
@@ -7571,7 +7929,7 @@ def _fec_inline_section_pattern(column_name: str, field_label: str) -> str:
         + r"\s*</td>\s*<td[^>]*>\s*"
         + re.escape(field_label)
         + r"\s*</td>\s*(?:<td[^>]*>.*?</td>\s*){3}"
-        + r"<td[^>]*>(?P<section>.*?)</td>\s*"
+        + r"<td[^>]*>(?P<region>.*?)</td>\s*"
         + r"<td[^>]*>.*?</td>\s*</tr>"
     )
 
@@ -7627,132 +7985,207 @@ _FEC_INLINE_ROW_PATTERN = (
     r"(?:^|<br\s*/?>)\s*(?P<code>[A-Z])\s*=\s*"
     r"(?P<label>.*?)(?=<br\s*/?>|$)"
 )
-_FEC_TABLE_SECTION_PATTERN = r"<table[^>]*>(?P<section>.*?)</table>"
+_FEC_TABLE_SECTION_PATTERN = r"<table[^>]*>(?P<region>.*?)</table>"
 _FEC_TABLE_ROW_PATTERN = (
     r"<tr>\s*<td[^>]*>\s*(?P<code>[A-Z]{1,3}|[A-Z]/[A-Z])\s*</td>\s*"
     r"<td[^>]*>(?P<label>.*?)</td>\s*"
     r"<td[^>]*>(?P<description>.*?)</td>\s*</tr>"
 )
-_FEC_HTML_CODE_LIST_DECLARATIONS = (
+_FEC_PATTERN_ROW_DECLARATIONS = (
     (
         "fec-committee-designation",
         _FEC_MASTER_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_fec_inline_section_pattern(
+        _fec_inline_section_pattern(
                 "CMTE_DSGN", "Committee designation"
             ),
-            row_pattern=_FEC_INLINE_ROW_PATTERN,
-            resource_name="committeeDesignation",
-            source_token="fec-committee-designation",
-            identifier_kind="committeeDesignationCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=6,
-        ),
+        _FEC_INLINE_ROW_PATTERN,
+        "committeeDesignation",
+        "fec-committee-designation",
+        "committeeDesignationCode",
+        6,
     ),
     (
         "fec-filing-frequency",
         _FEC_MASTER_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_fec_inline_section_pattern(
+        _fec_inline_section_pattern(
                 "CMTE_FILING_FREQ", "Filing frequency"
             ),
-            row_pattern=_FEC_INLINE_ROW_PATTERN,
-            resource_name="filingFrequency",
-            source_token="fec-filing-frequency",
-            identifier_kind="filingFrequencyCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=6,
-        ),
+        _FEC_INLINE_ROW_PATTERN,
+        "filingFrequency",
+        "fec-filing-frequency",
+        "filingFrequencyCode",
+        6,
     ),
     (
         "fec-organization-type",
         _FEC_MASTER_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_fec_inline_section_pattern(
+        _fec_inline_section_pattern(
                 "ORG_TP", "Interest group category"
             ),
-            row_pattern=_FEC_INLINE_ROW_PATTERN,
-            resource_name="organizationType",
-            source_token="fec-organization-type",
-            identifier_kind="organizationTypeCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=6,
-        ),
+        _FEC_INLINE_ROW_PATTERN,
+        "organizationType",
+        "fec-organization-type",
+        "organizationTypeCode",
+        6,
     ),
     (
         "fec-committee-type",
         _FEC_COMMITTEE_TYPE_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_FEC_TABLE_SECTION_PATTERN,
-            row_pattern=_FEC_TABLE_ROW_PATTERN,
-            resource_name="committeeType",
-            source_token="fec-committee-type",
-            identifier_kind="committeeTypeCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=16,
-        ),
+        _FEC_TABLE_SECTION_PATTERN,
+        _FEC_TABLE_ROW_PATTERN,
+        "committeeType",
+        "fec-committee-type",
+        "committeeTypeCode",
+        16,
     ),
     (
         "fec-party",
         _FEC_PARTY_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_FEC_TABLE_SECTION_PATTERN,
-            row_pattern=_FEC_TABLE_ROW_PATTERN,
-            resource_name="party",
-            source_token="fec-party",
-            identifier_kind="partyCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=95,
-        ),
+        _FEC_TABLE_SECTION_PATTERN,
+        _FEC_TABLE_ROW_PATTERN,
+        "party",
+        "fec-party",
+        "partyCode",
+        95,
     ),
 )
 
 
-def _html_code_list_source_spec(
+def _pattern_row_source_spec(
     name: str,
-    pin: SourcePin,
-    selector: HtmlCodeListSelector,
+    inputs: tuple[SourcePin, ...],
+    selector: PatternRowSelector,
 ) -> SourceSpec:
     return SourceSpec(
         name=name,
         kind="vocabulary",
         release_keys=(name,),
-        inputs=(pin,),
-        reader=HTML_CODE_LIST_READER,
-        html_code_list=selector,
+        inputs=inputs,
+        reader=PATTERN_ROW_READER,
+        pattern_row=selector,
         identity_policy="source-local-record",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "conceptIdentityClaimed",
-                    "description",
-                    "id",
-                    "identifiers",
-                    "labels",
-                    "sourceArtifact",
-                    "sourceOrdinal",
-                    "sourcePath",
-                    "uses",
-                }
-            )
+            frozenset(selector.native_payload_fields)
         ),
     )
 
 
-FEC_HTML_CODE_LIST_SOURCES = tuple(
-    _html_code_list_source_spec(*declaration)
-    for declaration in _FEC_HTML_CODE_LIST_DECLARATIONS
+def _fec_pattern_row_source(
+    name: str,
+    pin: SourcePin,
+    region_pattern: str,
+    row_pattern: str,
+    resource_name: str,
+    source_token: str,
+    identifier_kind: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:24:00Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "description": "{description}",
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.fec.gov/",
+                "kind": "{identifier_kind}",
+                "observedAt": "{observed_at}",
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {
+                "language": "en",
+                "role": "preferred",
+                "value": "{label}",
+            }
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("description", ""),
+                    ("identifier_kind", identifier_kind),
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                )
+                if "description" not in re.compile(row_pattern).groupindex
+                else (
+                    ("identifier_kind", identifier_kind),
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer("description", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("definition", "{description}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("authenticatedHtmlOutsideSelectedRegion",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}.{code}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": "{resource_name}",
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:fec-committee-codes:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (pin,), selector)
+
+
+FEC_PATTERN_ROW_SOURCES = tuple(
+    _fec_pattern_row_source(*declaration)
+    for declaration in _FEC_PATTERN_ROW_DECLARATIONS
 )
 
 
@@ -7825,7 +8258,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
         ),
     ),
-    *FEC_HTML_CODE_LIST_SOURCES,
+    *FEC_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -9386,7 +9819,7 @@ def build_context(
                 (
                     spec.name
                     if spec.reader
-                    in {API_CAPTURE_JSON_READER, HTML_CODE_LIST_READER}
+                    in {API_CAPTURE_JSON_READER, PATTERN_ROW_READER}
                     else None
                 ),
                 spec.inputs,
@@ -9747,6 +10180,14 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.kind != "source-extract" and spec.source_extract is not None:
             failures.append(
                 f"{spec.name}: {spec.kind!r} comparison must not declare a source-extract selector"
+            )
+        if spec.reader == PATTERN_ROW_READER and spec.pattern_row is None:
+            failures.append(
+                f"{spec.name}: pattern-row reader has no declarative selector"
+            )
+        if spec.reader != PATTERN_ROW_READER and spec.pattern_row is not None:
+            failures.append(
+                f"{spec.name}: non-pattern reader must not declare a pattern-row selector"
             )
         if spec.source_extract is not None:
             if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:
@@ -12588,7 +13029,7 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     if pair.spec.reader in {
         API_CAPTURE_JSON_READER,
         CRS_SOURCE_CONCEPT_RELEASE_READER,
-        HTML_CODE_LIST_READER,
+        PATTERN_ROW_READER,
     }:
         # Structured JSON captures also describe value, structure, entity, and
         # legal-identity resources. Their source records are the exact
