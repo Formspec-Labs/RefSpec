@@ -1,0 +1,9 @@
+measured_utc=2026-08-13T21:36:30Z
+store_path=build/engine-fullscale/tdb2-full
+store_complete=false
+regular_file_count=43
+logical_bytes=9828662997
+logical_gib=9.153656
+du_kibibytes=9602112
+du_bytes=9832562688
+du_gib=9.157288
