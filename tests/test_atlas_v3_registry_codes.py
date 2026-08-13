@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from refspec.atlas import v3_registry_codes as codes
 from refspec.atlas.v3_registry_codes import load_registry_code_releases
 from refspec.atlas.v3_source_data import RegistryRelease
 from refspec.registry.infrastructure.source_identity import validate_uuid7
@@ -58,6 +59,39 @@ PROFILE_BY_RESOURCE_KIND = {
     "structuralSchema": "structureScheme",
     "subjectVocabulary": "conceptScheme",
 }
+
+
+def test_code_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
+    items = codes._bundle_items(
+        (
+            {
+                "identifiers": (),
+                "labels": (
+                    {"language": "en", "role": "preferred", "value": "Code"},
+                    {
+                        "language": "en-US",
+                        "role": "preferred",
+                        "value": "Code",
+                    },
+                ),
+                "sourcePath": "publisher.json#code=1",
+            },
+            {
+                "identifiers": (),
+                "labels": (
+                    {
+                        "language": "en-GB",
+                        "role": "preferred",
+                        "value": "Variant code",
+                    },
+                ),
+                "sourcePath": "publisher.json#code=2",
+            },
+        ),
+        key="test-codes",
+    )
+
+    assert [item.label for item in items] == ["Code", "Variant code"]
 
 
 @pytest.fixture(scope="module")

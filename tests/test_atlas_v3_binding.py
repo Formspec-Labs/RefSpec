@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -52,7 +53,10 @@ def _rdf_pack_text(distribution: Path = VALID_DISTRIBUTION) -> str:
     return b"".join(payloads).decode("utf-8")
 
 
-def _standalone(*arguments: str) -> subprocess.CompletedProcess[str]:
+def _standalone(
+    *arguments: str,
+    environment: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             "uv",
@@ -68,6 +72,7 @@ def _standalone(*arguments: str) -> subprocess.CompletedProcess[str]:
         check=False,
         capture_output=True,
         text=True,
+        env={**os.environ, **(environment or {})},
     )
 
 
@@ -75,8 +80,24 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 130,
-        "invalidCount": 117,
+        "caseCount": 132,
+        "invalidCount": 119,
+        "registryDescriptorCount": 88,
+        "registryDescriptorQuadCount": 994,
+        "schemaCount": 10,
+    }
+
+
+def test_memory_fallback_matches_the_sealed_corpus() -> None:
+    """The stock store remains a complete oracle and operational fallback."""
+
+    completed = _standalone(
+        environment={atlas_validate.RDF_STORE_ENV: atlas_validate.MEMORY_STORE}
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads(completed.stdout) == {
+        "caseCount": 132,
+        "invalidCount": 119,
         "registryDescriptorCount": 88,
         "registryDescriptorQuadCount": 994,
         "schemaCount": 10,
@@ -433,9 +454,13 @@ def test_fixture_corpus_rebuild_is_exact() -> None:
 
 
 def test_portable_validator_does_not_import_refspec() -> None:
-    source = VALIDATOR_PATH.read_text(encoding="utf-8")
-    assert "import refspec" not in source
-    assert "from refspec" not in source
+    for path in (
+        VALIDATOR_PATH,
+        BINDING_ROOT / "tools" / "parse_substrate.py",
+    ):
+        source = path.read_text(encoding="utf-8")
+        assert "import refspec" not in source
+        assert "from refspec" not in source
 
 
 def _sandboxed_repository(tmp_path: Path) -> Path:

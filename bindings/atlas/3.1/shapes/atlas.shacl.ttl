@@ -39,13 +39,11 @@ atlas:NonEmptyStringValueShape
   sh:datatype xsd:string ;
   sh:minLength 1 .
 
-atlas:TextLiteralValueShape
+atlas:EnglishTextLiteralValueShape
   a sh:NodeShape ;
   sh:nodeKind sh:Literal ;
-  sh:or (
-    [ sh:datatype rdf:langString ]
-    [ sh:datatype xsd:string ]
-  ) .
+  sh:datatype rdf:langString ;
+  sh:languageIn ( "en" ) .
 
 atlas:DateTimeValueShape
   a sh:NodeShape ;
@@ -262,8 +260,8 @@ atlas:ResourceSchemeShape
   ] ;
   sh:property [ sh:path atlas:validationRule ; sh:node atlas:NonEmptyStringValueShape ] ;
   sh:property [ sh:path atlas:recordStatus ; sh:maxCount 1 ; sh:node atlas:NonEmptyStringValueShape ] ;
-  sh:property [ sh:path atlas:definition ; sh:node atlas:TextLiteralValueShape ] ;
-  sh:property [ sh:path atlas:note ; sh:node atlas:TextLiteralValueShape ] ;
+  sh:property [ sh:path atlas:definition ; sh:node atlas:EnglishTextLiteralValueShape ] ;
+  sh:property [ sh:path atlas:note ; sh:node atlas:EnglishTextLiteralValueShape ] ;
   sh:property [
     sh:path atlas:validFrom ;
     sh:maxCount 1 ;
@@ -325,8 +323,8 @@ atlas:AtlasResourceShape
   ] ;
   sh:property [ sh:path atlas:notation ; sh:node atlas:NonEmptyStringValueShape ] ;
   sh:property [ sh:path atlas:recordStatus ; sh:maxCount 1 ; sh:node atlas:NonEmptyStringValueShape ] ;
-  sh:property [ sh:path atlas:definition ; sh:node atlas:TextLiteralValueShape ] ;
-  sh:property [ sh:path atlas:note ; sh:node atlas:TextLiteralValueShape ] ;
+  sh:property [ sh:path atlas:definition ; sh:node atlas:EnglishTextLiteralValueShape ] ;
+  sh:property [ sh:path atlas:note ; sh:node atlas:EnglishTextLiteralValueShape ] ;
   sh:property [
     sh:path atlas:componentPosition ;
     sh:maxCount 1 ;

@@ -46,6 +46,7 @@ from refspec.registry import nrc_adams_codes as nrc
 from refspec.registry import treasury_tas_fast_book as treasury
 from refspec.registry import uei_cage_identifiers as sam
 from refspec.registry import usaspending_gsdm_codes as gsdm
+from refspec.vocabulary import is_english_language_tag
 
 ATLAS = "https://refspec.org/ns/atlas/v3#"
 SKOS = "http://www.w3.org/2004/02/skos/core#"
@@ -167,6 +168,47 @@ def _label(value: str, source_path: str, role: str = "preferred") -> RegistryLab
     )
 
 
+def _normalized_english_labels(
+    source_labels: Sequence[Any],
+    *,
+    source_path: str,
+) -> tuple[tuple[RegistryLabel, ...], int]:
+    """Normalize English-family source labels and collapse tagged twins."""
+
+    base_rows = [
+        item
+        for item in source_labels
+        if item.value.language_tag is None
+        or item.value.language_tag.casefold() == "en"
+    ]
+    base_values = {item.value.lexical_form.strip() for item in base_rows}
+    has_base_preferred = any(item.role == "preferred" for item in base_rows)
+    labels: list[RegistryLabel] = []
+    seen: set[tuple[str, str]] = set()
+    dropped = 0
+    for item in source_labels:
+        language = item.value.language_tag
+        if not is_english_language_tag(
+            language,
+            untagged_is_english=True,
+        ):
+            dropped += 1
+            continue
+        value = item.value.lexical_form.strip()
+        is_base_english = language is None or language.casefold() == "en"
+        if not is_base_english and value in base_values:
+            continue
+        role = item.role
+        if not is_base_english and role == "preferred" and has_base_preferred:
+            role = "alternate"
+        key = (role, value)
+        if key in seen:
+            continue
+        seen.add(key)
+        labels.append(_label(value, source_path, role))
+    return tuple(labels), dropped
+
+
 def _agrovoc_releases(root: Path) -> tuple[RegistryRelease, ...]:
     sample = agrovoc.AGROVOC_C330_SAMPLE
     pin = _pin(
@@ -185,8 +227,10 @@ def _agrovoc_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
     concept = next(item for item in parsed.concepts if item.concept_iri == sample.concept_iri)
     source_labels = [item for item in parsed.labels if item.subject_iri == concept.concept_iri]
-    english_labels = [item for item in source_labels if item.value.language_tag in {None, "en"}]
-    labels = tuple(_label(item.value.lexical_form, pin.logical_path, item.role) for item in english_labels)
+    labels, dropped_labels = _normalized_english_labels(
+        source_labels,
+        source_path=pin.logical_path,
+    )
     resource = RegistryResource(
         iri=concept.concept_iri,
         labels=labels,
@@ -222,7 +266,7 @@ def _agrovoc_releases(root: Path) -> tuple[RegistryRelease, ...]:
             issued="2026-08-03",
             inputs=(pin,),
             resources=(resource,),
-            dropped_label_count=len(source_labels) - len(english_labels),
+            dropped_label_count=dropped_labels,
             metadata={
                 "completePublisherRelease": False,
                 "mappingReferenceOnly": True,
@@ -644,6 +688,62 @@ def _govinfo_package_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
+def _nalt_english_definitions(
+    vocabulary: nalt_core.NaltVocabulary,
+    concept_iri: str,
+) -> tuple[str | None, tuple[str, ...], int, int]:
+    """Flatten attributed English NALT definition nodes for Atlas text fields.
+
+    NALT points from a concept to a definition IRI. A definition qualifies
+    only when that node supplies both an English-family ``rdf:value`` literal
+    and a non-empty ``dcterms:source`` attribution. The source-shaped rows
+    remain unchanged in ``native_payload``; this view adds only Atlas's
+    existing definition and note fields.
+    """
+
+    definition_targets = {
+        relation.object_iri
+        for relation in vocabulary.definition_relations
+        if relation.subject_iri == concept_iri
+        and relation.predicate_iri == nalt_core.DEFINITION_PREDICATE_IRI
+    }
+    attributed_targets = {
+        row.subject_iri
+        for row in vocabulary.reified_sources
+        if row.property_iri == nalt_core.REIFIED_SOURCE_PREDICATE_IRI
+        and row.value.lexical_form.strip()
+    }
+    definitions = sorted(
+        {
+            row.value.lexical_form.strip()
+            for row in vocabulary.reified_values
+            if row.subject_iri in definition_targets
+            and row.subject_iri in attributed_targets
+            and row.property_iri == nalt_core.REIFIED_VALUE_PREDICATE_IRI
+            and row.value.lexical_form.strip()
+            and is_english_language_tag(row.value.language_tag)
+        }
+    )
+    resolved_targets = {
+        target
+        for target in definition_targets
+        if any(
+            row.subject_iri == target
+            and row.property_iri == nalt_core.REIFIED_VALUE_PREDICATE_IRI
+            and row.value.lexical_form.strip() in definitions
+            and is_english_language_tag(row.value.language_tag)
+            for row in vocabulary.reified_values
+        )
+        and target in attributed_targets
+    }
+    return (
+        definitions[0] if definitions else None,
+        tuple(definitions[1:]),
+        len(resolved_targets),
+        len(definition_targets - resolved_targets),
+    )
+
+
 def _nalt_releases(root: Path) -> tuple[RegistryRelease, ...]:
     fixture_root = "tests/fixtures/nalt_core"
     specs = (
@@ -675,13 +775,17 @@ def _nalt_releases(root: Path) -> tuple[RegistryRelease, ...]:
     requested = {capture.requested_concept_iri for capture in captures}
     resources: list[RegistryResource] = []
     dropped_labels = 0
+    resolved_definition_relations = 0
+    unresolved_definition_relations = 0
     for capture, pin in zip(captures, pins, strict=True):
         vocabulary = capture.vocabulary
         source_path = pin.logical_path
         source_labels = [item for item in vocabulary.labels if item.subject_iri == capture.requested_concept_iri]
-        english_labels = [item for item in source_labels if item.value.language_tag in {None, "en"}]
-        dropped_labels += len(source_labels) - len(english_labels)
-        labels = tuple(_label(item.value.lexical_form, source_path, item.role) for item in english_labels)
+        labels, member_dropped_labels = _normalized_english_labels(
+            source_labels,
+            source_path=source_path,
+        )
+        dropped_labels += member_dropped_labels
         if sum(label.role == "preferred" for label in labels) != 1:
             raise ValueError(f"NALT capture has no single English preferred label: {capture.requested_concept_iri}")
         direct_relations = [
@@ -689,6 +793,14 @@ def _nalt_releases(root: Path) -> tuple[RegistryRelease, ...]:
             for relation in vocabulary.semantic_relations
             if relation.subject_iri == capture.requested_concept_iri
         ]
+        definition, definition_notes, resolved, unresolved = (
+            _nalt_english_definitions(
+                vocabulary,
+                capture.requested_concept_iri,
+            )
+        )
+        resolved_definition_relations += resolved
+        unresolved_definition_relations += unresolved
         resources.append(
             RegistryResource(
                 iri=capture.requested_concept_iri,
@@ -703,6 +815,8 @@ def _nalt_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 ),
                 source_locator=pin.source_iri,
                 source_digest=pin.sha256,
+                definition=definition,
+                notes=definition_notes,
             )
         )
 
@@ -739,7 +853,13 @@ def _nalt_releases(root: Path) -> tuple[RegistryRelease, ...]:
             metadata={
                 "boundedConceptCount": 2,
                 "completePublisherRelease": False,
+                "englishDefinitionRelationCount": (
+                    resolved_definition_relations
+                ),
                 "licenseEvidenceResolved": False,
+                "unresolvedDefinitionRelationCount": (
+                    unresolved_definition_relations
+                ),
             },
         ),
     )

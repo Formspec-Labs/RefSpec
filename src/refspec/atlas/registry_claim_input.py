@@ -28,6 +28,7 @@ from refspec.registry.infrastructure.registry_claim_release import (
     RegistryClaimReleaseError,
     RegistryClaimReleaseView,
 )
+from refspec.vocabulary import is_english_language_tag
 
 ATLAS_CLAIM_RECORD_VERSION = "1.0"
 ATLAS_CLAIM_RECORD_TYPE = "RegistryClaimRecord"
@@ -82,7 +83,9 @@ class RegistryClaimResourceRules:
     member_object_iri: str
     resource_kind: str
     label_roles: Mapping[str, LabelRole]
+    definition_predicates: Collection[str] = ()
     excluded_member_claims: Collection[tuple[str, str]] = ()
+    note_predicates: Collection[str] = ()
     notation_predicates: Collection[str] = ()
     native_iri_predicates: Mapping[str, str] = field(default_factory=dict)
     common_native_payload: Mapping[str, Any] = field(default_factory=dict)
@@ -92,26 +95,79 @@ class RegistryClaimResourceRules:
 _LABEL_ROLE_ORDER = {"preferred": 0, "alternate": 1, "hidden": 2}
 
 
+def _compatibility_text_values(
+    claims: Sequence[RegistryClaim],
+    predicates: Collection[str],
+) -> tuple[str, ...]:
+    """Select distinct non-empty English-family text in wire-stable order.
+
+    Surrounding whitespace is stripped before the values are deduplicated, so
+    this agrees with the compatibility parser, which strips every annotation
+    literal it reads. Without that, a publisher's trailing newline would make
+    the claims view and the parser view of the same release disagree on a
+    definition -- and definitions enter node digests, so the digest would
+    depend on which path built the release.
+    """
+
+    values = {
+        cast(str, claim.lexical_value).strip()
+        for claim in claims
+        if claim.predicate in predicates
+        and claim.object_kind == "literal"
+        and is_english_language_tag(claim.language)
+        and claim.lexical_value
+    }
+    return tuple(sorted(value for value in values if value))
+
+
 def _compatibility_labels(
     subject: str,
     claims: Sequence[RegistryClaim],
     rules: RegistryClaimResourceRules,
 ) -> tuple[RegistryLabel, ...]:
+    eligible_claims = [
+        claim
+        for claim in claims
+        if claim.predicate in rules.label_roles
+        and claim.object_kind == "literal"
+        and is_english_language_tag(claim.language)
+    ]
+
+    def value_for(claim: RegistryClaim) -> str:
+        value = cast(str, claim.lexical_value)
+        return value.strip() if rules.strip_label_whitespace else value
+
+    base_english_values = {
+        value_for(claim)
+        for claim in eligible_claims
+        if claim.language is not None and claim.language.casefold() == "en"
+    }
+    has_base_english_preferred = any(
+        claim.language is not None
+        and claim.language.casefold() == "en"
+        and rules.label_roles[claim.predicate] == "preferred"
+        for claim in eligible_claims
+    )
     labels = sorted(
         (
             RegistryLabel(
-                value=(
-                    cast(str, claim.lexical_value).strip()
-                    if rules.strip_label_whitespace
-                    else cast(str, claim.lexical_value)
+                value=value_for(claim),
+                role=(
+                    "alternate"
+                    if claim.language is not None
+                    and claim.language.casefold() != "en"
+                    and rules.label_roles[claim.predicate] == "preferred"
+                    and has_base_english_preferred
+                    else rules.label_roles[claim.predicate]
                 ),
-                role=rules.label_roles[claim.predicate],
                 source_path=f"{subject}::{claim.predicate}",
             )
-            for claim in claims
-            if claim.predicate in rules.label_roles
-            and claim.object_kind == "literal"
-            and claim.language == "en"
+            for claim in eligible_claims
+            if not (
+                claim.language is not None
+                and claim.language.casefold() != "en"
+                and value_for(claim) in base_english_values
+            )
         ),
         key=lambda label: (
             _LABEL_ROLE_ORDER[label.role],
@@ -128,9 +184,7 @@ def _compatibility_labels(
             retained_by_value[label.value] = label
             retained.append(label)
         elif previous.role == label.role:
-            raise AtlasRegistryClaimError(
-                f"claim resource {subject} repeats {label.role} label {label.value!r}"
-            )
+            continue
     if not retained:
         raise AtlasRegistryClaimError(
             f"claim resource {subject} has no selected English label"
@@ -206,6 +260,21 @@ def registry_resources_from_claim_release(
                     and claim.object_kind == "iri"
                 }
             )
+        definitions = _compatibility_text_values(
+            subject_claims,
+            rules.definition_predicates,
+        )
+        notes = tuple(
+            sorted(
+                {
+                    *_compatibility_text_values(
+                        subject_claims,
+                        rules.note_predicates,
+                    ),
+                    *definitions[1:],
+                }
+            )
+        )
         resources.append(
             RegistryResource(
                 iri=subject,
@@ -213,6 +282,8 @@ def registry_resources_from_claim_release(
                 native_payload=native_payload,
                 source_locator=subject,
                 source_digest=next(iter(source_digests)),
+                definition=definitions[0] if definitions else None,
+                notes=notes,
                 notations=notations,
                 status="active",
             )

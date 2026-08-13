@@ -88,22 +88,95 @@ def test_label_role_normalization_prefers_stronger_skos_role_and_receipts_source
     )
 
 
-def test_label_role_normalization_rejects_duplicate_normalized_claim() -> None:
-    with pytest.raises(ValueError, match="repeat the same value and role"):
-        vocabularies._normalize_skos_label_roles(
-            (
-                vocabularies.RegistryLabel(
-                    value="same",
-                    role="alternate",
-                    source_path="source:a",
-                ),
-                vocabularies.RegistryLabel(
-                    value="same",
-                    role="alternate",
-                    source_path="source:b",
-                ),
-            )
+def test_label_role_normalization_deduplicates_same_value_and_role() -> None:
+    retained, conflicts = vocabularies._normalize_skos_label_roles(
+        (
+            vocabularies.RegistryLabel(
+                value="same",
+                role="alternate",
+                source_path="source:a",
+            ),
+            vocabularies.RegistryLabel(
+                value="same",
+                role="alternate",
+                source_path="source:b",
+            ),
         )
+    )
+
+    assert retained == (
+        vocabularies.RegistryLabel(
+            value="same",
+            role="alternate",
+            source_path="source:a",
+        ),
+    )
+    assert conflicts == ()
+
+
+def test_gemet_normalization_keeps_variant_synonym_and_deduplicates_twins(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    concept_iri = "https://example.test/gemet/concept/1"
+
+    def label(
+        value: str,
+        language: str,
+        role: str,
+        predicate: str,
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            subject_iri=concept_iri,
+            property_iri=predicate,
+            role=role,
+            value=SimpleNamespace(
+                lexical_form=value,
+                language_tag=language,
+            ),
+        )
+
+    parsed = SimpleNamespace(
+        concepts=(
+            SimpleNamespace(
+                concept_iri=concept_iri,
+                scheme_iris=("https://example.test/gemet",),
+                top_concept_of_iris=(),
+            ),
+        ),
+        labels=(
+            label("organisation", "en", "preferred", "skos:prefLabel"),
+            label("organization", "en", "alternate", "skos:altLabel"),
+            label("organisation", "en-US", "preferred", "skos:prefLabel"),
+            label("organization", "en-US", "preferred", "skos:prefLabel"),
+            label("organizational", "en-US", "preferred", "skos:prefLabel"),
+        ),
+        metadata_literals=(),
+        notes=(),
+        notations=(),
+        semantic_relations=(),
+    )
+    monkeypatch.setitem(vocabularies.EXPECTED_RESOURCE_COUNTS, "gemet-4.2.3", 1)
+    monkeypatch.setitem(vocabularies.EXPECTED_LABEL_COUNTS, "gemet-4.2.3", 3)
+    monkeypatch.setitem(vocabularies.EXPECTED_RELATION_COUNTS, "gemet-4.2.3", 0)
+    source = vocabularies.RegistryInputPin(
+        path=tmp_path / "gemet.rdf",
+        logical_path="output/registry-real-data-sources/gemet.rdf",
+        sha256="sha256:" + "0" * 64,
+        byte_length=1,
+        source_iri="https://example.test/gemet.rdf",
+    )
+
+    release = vocabularies._normalize_gemet(parsed, source)
+
+    assert [(row.value, row.role) for row in release.resources[0].labels] == [
+        ("organisation", "preferred"),
+        ("organization", "alternate"),
+        ("organizational", "alternate"),
+    ]
+    assert release.metadata["englishFamilyVariantLabelCount"] == 3
+    assert release.metadata["englishFamilyDuplicateLabelCount"] == 2
+    assert release.metadata["englishFamilyVariantSynonymCount"] == 1
 
 
 def test_direct_relations_keep_only_unique_member_triples() -> None:

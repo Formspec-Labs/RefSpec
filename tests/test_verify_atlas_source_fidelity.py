@@ -21,7 +21,9 @@ governed scheme identities are deliberately outside this verifier.
 
 from __future__ import annotations
 
+import gzip
 import hashlib
+import io
 import json
 import zipfile
 from collections.abc import Callable, Sequence
@@ -31,12 +33,14 @@ from pathlib import Path
 import pytest
 
 from tools.verify_atlas_source_fidelity import (
+    API_CAPTURE_JSON_READER,
     CHECK_NAMES,
     FEDERAL_REGISTER_TOPICS_JSON_READER,
     GCMD_SCIENCE_KEYWORDS_CSV_READER,
     MESH_DESCRIPTOR_XML_READER,
     CheckResult,
     DeclaredClaimExclusion,
+    DeclaredLanguageExclusion,
     Expectations,
     Finding,
     LiteralValue,
@@ -47,6 +51,7 @@ from tools.verify_atlas_source_fidelity import (
     check_source_defects,
     main,
     parse_nquads_line,
+    read_atlas_source,
     render,
     run_checks,
     unescape_literal,
@@ -604,6 +609,131 @@ def _repin_native_capture(suite: Fixture, spec: SourceSpec) -> SourceSpec:
     return replace(spec, inputs=new_inputs)
 
 
+def _add_api_capture_json_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "Agriculture",
+) -> SourceSpec:
+    """Add one LDA JSON row and the independently expected Atlas record."""
+    source_iri = (
+        "https://lda.gov/api/v1/constants/filing/lobbyingactivityissues/"
+    )
+    source_bytes = json.dumps(
+        [{"value": "AGR", "name": "Agriculture"}],
+        separators=(",", ":"),
+    ).encode()
+    source_path = suite.source_root / "lda-general-issues.json"
+    source_path.write_bytes(source_bytes)
+    source_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    pin = SourcePin(
+        path=source_path.name,
+        sha256=source_digest,
+        byte_length=len(source_bytes),
+        fmt="json",
+        role="publisherSource",
+        source_iri=source_iri,
+    )
+    resource = (
+        "urn:ref:source-concept:v2:lda-general-issues:"
+        "019fb30e-b790-7c09-986e-3c53706a707b"
+    )
+    native_payload = {
+        "identifiers": [
+            {
+                "value": "AGR",
+                "kind": "generalIssueCode",
+                "authority_uri": "https://lda.gov/",
+                "source_uri": source_iri,
+                "observed_at": "2026-07-30T12:45:14Z",
+                "effective_at": None,
+                "source_digest": source_digest,
+            }
+        ],
+        "is_general_subject_concept": False,
+        "publisher_label": "Agriculture",
+        "resource_name": "generalIssueCodes",
+        "source_url": source_iri,
+        "use": "sourceAssignedEvidence",
+        "sourceArtifact": source_iri,
+    }
+    spec = SourceSpec(
+        name="lda-general-issue-codes",
+        kind="vocabulary",
+        release_keys=("lda-general-issue-codes",),
+        inputs=(pin,),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=frozenset(
+            {
+                "english-label-selection",
+                "english-annotation-selection",
+                "skos-note-to-atlas-note",
+                "top-concept-source-shape-inverse",
+            }
+        ),
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=frozenset(native_payload)
+        ),
+    )
+    record = "urn:example:source-record:lda-general-issue-codes"
+    label = "urn:example:label:lda-general-issue-codes"
+    lines = [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", source_iri),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps(native_payload, separators=(",", ":")),
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", label),
+        _quad(label, f"{SKOSXL}literalForm", atlas_label, literal=True),
+        _plain_literal_quad(resource, f"{ATLAS}notation", "AGR"),
+    ]
+    pack_relative = "sources/lda-general-issue-codes/all.nq.zst"
+    pack_path = suite.distribution / "packs" / pack_relative
+    pack_path.parent.mkdir(parents=True)
+    transport = zstd.compress(("\n".join(lines) + "\n").encode())
+    pack_path.write_bytes(transport)
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["releases"].append(
+        {
+            "key": "lda-general-issue-codes",
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": pin.path,
+                    "sha256": pin.sha256,
+                    "byteLength": pin.byte_length,
+                    "role": pin.role,
+                    "sourceIri": pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{pack_relative}"}],
+            "recordCounts": {"resources": 1, "labels": 1},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{pack_relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return spec
+
+
 def _add_mesh_xml_source(
     suite: Fixture,
     *,
@@ -802,7 +932,7 @@ def _add_single_record_stock_source(
     pack_relative = f"sources/{name}/all.nq.zst"
     pack_path = suite.distribution / "packs" / pack_relative
     pack_path.parent.mkdir(parents=True)
-    transport = zstd.compress(("\n".join(lines) + "\n").encode("utf-8"))
+    transport = zstd.compress(("\n".join(lines) + "\n").encode())
     pack_path.write_bytes(transport)
 
     summary_path = suite.distribution / "atlas-construction-summary.json"
@@ -881,9 +1011,7 @@ def _add_federal_register_json_source(
             "urn:ref:source-concept:v2:federal-register-api:"
             "019fc4eb-9000-715b-b0d0-6dfc94b25f1a"
         ),
-        source_locator=(
-            source_iri + "#results.thesaurus%5B0%5D"
-        ),
+        source_locator=source_iri + "#results.thesaurus%5B0%5D",
         source_digest=row_digest,
         native_payload={
             "collection": "thesaurus",
@@ -947,9 +1075,7 @@ def _add_gcmd_csv_source(
         native_payload={
             "sourceIdentity": {
                 "identityKind": "refspecSourceScoped",
-                "localRecordId": (
-                    "urn:uuid:019fc902-aa98-7051-ab80-744873a9f923"
-                ),
+                "localRecordId": "urn:uuid:019fc902-aa98-7051-ab80-744873a9f923",
                 "namespaceToken": "gcmd-science-keywords",
                 "sourceKey": concept_uuid,
                 "sourceScheme": (
@@ -1106,6 +1232,40 @@ def test_gcmd_csv_reader_catches_rewritten_label(suite: Fixture) -> None:
 
     assert not label_check.passed
     assert any("'PARTICULATES'" in failure for failure in label_check.failures)
+
+
+def test_api_capture_json_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+) -> None:
+    spec = _add_api_capture_json_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_api_capture_json_reader_catches_rewritten_label(suite: Fixture) -> None:
+    spec = _add_api_capture_json_source(suite, atlas_label="Farming")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any("'Farming'" in failure for failure in label_check.failures)
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
@@ -1866,6 +2026,457 @@ def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
     assert family["status"] == "declared-out-of-scope"
 
 
+# --------------------------------------------------------------------------------------
+# Declared language exclusions: exact non-English literal claims, never subjects
+# --------------------------------------------------------------------------------------
+
+
+def _language_declaration(
+    counts_by_language: dict[str, dict[str, int]],
+    *,
+    predicate_families: dict[str, list[str]] | None = None,
+) -> DeclaredLanguageExclusion:
+    families = predicate_families or {
+        "preferredLabels": [
+            f"{SKOS}prefLabel",
+            f"{SKOSXL}prefLabel",
+            f"{SKOSXL}literalForm",
+        ]
+    }
+    payload = {
+        "schemaVersion": "1.0",
+        "exclusionType": "languageFamily",
+        "selection": {
+            "countUnit": (
+                "unique auditor semantic literal claim after SourceSpec subset selection"
+            ),
+            "excludedClaimRule": (
+                "language tag is present and primary language subtag is not en"
+            ),
+            "includedLanguageFamilies": ["en"],
+            "selectionRule": "bcp47-primary-language-subtag",
+        },
+        "predicateFamilies": families,
+        "countsBySourceAndLanguage": {"example": counts_by_language},
+        "totalExcludedClaims": sum(
+            count
+            for family_counts in counts_by_language.values()
+            for count in family_counts.values()
+        ),
+    }
+    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return DeclaredLanguageExclusion(
+        name="testNonEnglishPublisherLiterals",
+        reason="this fixture declares an English-only product scope",
+        payload_json=payload_json,
+        payload_sha256=(
+            "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+        ),
+    )
+
+
+def _declare_fixture_language_scope(
+    suite: Fixture,
+    declaration: DeclaredLanguageExclusion,
+) -> SourceSpec:
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["languageScope"] = {
+        "includedLanguageFamilies": ["en"],
+        "selectionRule": "bcp47-primary-language-subtag",
+        "unselectedPublisherContent": "notRepresented",
+        "wireLanguageTag": "en",
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    return replace(suite.spec, declared_language_exclusion=declaration)
+
+
+def test_language_exclusion_is_exact_and_itemised_in_the_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    fixture.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
+    )
+    fixture.write_pack(source_digest=fixture.publisher_content_digest())
+    declaration = _language_declaration({"fr": {"preferredLabels": 1}})
+    fixture.spec = _declare_fixture_language_scope(fixture, declaration)
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+
+    return_code = verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    assert return_code == 0
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    language = next(
+        row for row in receipt["results"] if row["check"] == "language-scope"
+    )
+    assert language["passed"]
+    assert "1 non-English publisher" in language["summary"]
+    family = next(
+        row
+        for row in receipt["comparisons"][0]["claimScope"][
+            "intentionallyExcludedFamilies"
+        ]
+        if row["name"] == "testNonEnglishPublisherLiterals"
+    )
+    assert family["status"] == "declared-out-of-scope"
+    assert family["expectedCountsByLanguage"] == {
+        "fr": {"preferredLabels": 1}
+    }
+    assert family["actualCountsByLanguage"] == {
+        "fr": {"preferredLabels": 1}
+    }
+    assert family["publisherClaimCount"] == 1
+    assert family["publisherClaimsDigest"].startswith("sha256:")
+    assert family["atlasClaimCount"] == 0
+    assert receipt["languageScope"]["declaredPublisherClaimCount"] == 1
+
+
+def test_language_exclusion_never_removes_untagged_or_iri_claims(
+    suite: Fixture,
+) -> None:
+    literal_predicate = f"{EX}untaggedMetadata"
+    iri_predicate = f"{EX}iriMetadata"
+    suite.write_publisher(
+        extra_triples=(
+            f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr ;\n'
+            f'  <{literal_predicate}> "must remain" ;\n'
+            f"  <{iri_predicate}> <{EX}target> ."
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration({"fr": {"preferredLabels": 1}}),
+    )
+
+    results = suite.run(spec=spec)
+
+    assert result(results, "language-scope").passed
+    assert result(results, "label-fidelity").passed
+    member_literal = result(results, "member-literal-fidelity")
+    assert any(literal_predicate in failure for failure in member_literal.failures)
+    member_iri = result(results, "member-iri-fidelity")
+    assert any(iri_predicate in failure for failure in member_iri.failures)
+
+
+def test_language_exclusion_keeps_a_scheme_label_in_its_comparison_family(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=(
+            f'<{SCHEME}> <{SKOS}altLabel> "Vocabolario di esempio"@it .'
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    declaration = _language_declaration(
+        {"it": {"sourceSchemeLiterals": 1}},
+        predicate_families={
+            "alternateLabels": [
+                f"{SKOS}altLabel",
+                f"{SKOSXL}altLabel",
+                f"{SKOSXL}literalForm",
+            ],
+            "sourceSchemeLiterals": [
+                "http://www.w3.org/2000/01/rdf-schema#label",
+                f"{SKOS}prefLabel",
+            ],
+        },
+    )
+    spec = _declare_fixture_language_scope(suite, declaration)
+
+    results = suite.run(spec=spec)
+
+    assert result(results, "language-scope").passed
+    assert result(results, "source-claim-coverage").passed
+
+
+@pytest.mark.parametrize(
+    ("counts", "source_language"),
+    (
+        ({"fr": {"preferredLabels": 2}}, "fr"),
+        ({"fr": {"preferredLabels": 1}}, "de"),
+    ),
+)
+def test_language_exclusion_fails_closed_on_count_or_language_drift(
+    suite: Fixture,
+    counts: dict[str, dict[str, int]],
+    source_language: str,
+) -> None:
+    suite.write_publisher(
+        extra_triples=(
+            f'<{EX}c1> <{SKOS}prefLabel> "Out of declared scope"@{source_language} .'
+        )
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration(counts),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("cells differ" in failure for failure in language.failures)
+    assert not result(results, "label-fidelity").passed
+
+
+def test_language_exclusion_fails_closed_on_an_undeclared_predicate_family(
+    suite: Fixture,
+) -> None:
+    predicate = f"{EX}localizedMetadata"
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{predicate}> "Hors périmètre"@fr .'
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration({}),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("undeclared predicate family" in failure for failure in language.failures)
+    assert not result(results, "member-literal-fidelity").passed
+
+
+def test_language_scope_fails_when_construction_statement_is_omitted(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
+    )
+    suite.write_pack(source_digest=suite.publisher_content_digest())
+    spec = replace(
+        suite.spec,
+        declared_language_exclusion=_language_declaration(
+            {"fr": {"preferredLabels": 1}}
+        ),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("languageScope differs" in failure for failure in language.failures)
+    assert result(results, "label-fidelity").passed
+
+
+def test_language_scope_fails_on_a_non_english_atlas_literal_anywhere(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
+    )
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    atlas_only = "urn:ref:atlas-release:language-test"
+    lines.extend(
+        (
+            _quad(atlas_only, f"{RDF}type", f"{ATLAS}AtlasRelease"),
+            _quad(
+                atlas_only,
+                f"{ATLAS}description",
+                "Ne devrait pas être ici",
+                literal=True,
+                lang="fr",
+            ),
+        )
+    )
+    suite.write_pack_lines(lines)
+    spec = _declare_fixture_language_scope(
+        suite,
+        _language_declaration({"fr": {"preferredLabels": 1}}),
+    )
+
+    results = suite.run(spec=spec)
+
+    language = result(results, "language-scope")
+    assert not language.passed
+    assert any("non-English" in failure for failure in language.failures)
+
+
+def test_language_exclusion_leaves_english_claims_compared_both_directions(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(
+        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Source English"@en .'
+    )
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.append(
+        _quad(
+            f"{EX}c2",
+            f"{SKOS}prefLabel",
+            "Atlas English",
+            literal=True,
+        )
+    )
+    suite.write_pack_lines(lines)
+    spec = _declare_fixture_language_scope(suite, _language_declaration({}))
+
+    results = suite.run(spec=spec)
+
+    assert result(results, "language-scope").passed
+    label = result(results, "label-fidelity")
+    assert not label.passed
+    assert any(
+        "Source English" in failure and "missing from Atlas" in failure
+        for failure in label.failures
+    )
+    assert any(
+        "Atlas English" in failure and "absent from publisher" in failure
+        for failure in label.failures
+    )
+
+
+RELEASE = f"{EX}release/2026-01-01"
+
+
+def _with_adopted_release(suite: Fixture, *, atlas_asserts: Sequence[str] = ()) -> None:
+    """Publisher describes a release; Atlas adopts that IRI as its source release."""
+    suite.write_publisher(
+        extra_triples=(
+            f"<{RELEASE}> a <{EX}Work> ;\n"
+            f'  <http://purl.org/dc/terms/title> "Example release"@en ;\n'
+            f'  <http://purl.org/dc/terms/version> "1.0" .'
+        )
+    )
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.append(_quad(RELEASE, f"{RDF}type", f"{ATLAS}SourceRelease"))
+    lines.extend(atlas_asserts)
+    suite.write_pack_lines(lines)
+
+
+def test_release_metadata_reports_publisher_fields_atlas_drops_by_family(
+    suite: Fixture,
+) -> None:
+    """A release Atlas adopts is compared field for field, named compactly."""
+    _with_adopted_release(suite)
+
+    check = result(suite.run(), "source-release-metadata")
+
+    assert not check.passed
+    assert any(
+        "title family are missing from Atlas" in failure for failure in check.failures
+    )
+    assert any(
+        "version family are missing from Atlas" in failure for failure in check.failures
+    )
+
+
+def test_release_metadata_fires_when_atlas_states_an_unsupported_release_field(
+    suite: Fixture,
+) -> None:
+    """The direction that matters most: Atlas asserting what the publisher did not."""
+    _with_adopted_release(
+        suite,
+        atlas_asserts=(
+            _quad(
+                RELEASE,
+                "http://purl.org/dc/terms/issued",
+                "2026-01-01",
+                literal=True,
+            ),
+        ),
+    )
+
+    check = result(suite.run(), "source-release-metadata")
+
+    assert not check.passed
+    assert any(
+        "Atlas adds" in failure and "dates family" in failure
+        for failure in check.failures
+    )
+
+
+def test_an_adopted_release_iri_can_never_be_declared_out_of_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Adoption beats any declaration, and the routing is stated, not silent.
+
+    A declaration worded broadly enough to reach a release Atlas adopted does
+    not get to cover it: those claims stay in source-release-metadata, and the
+    receipt names the subject it routed away rather than quietly dropping it.
+    """
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    _with_adopted_release(fixture)
+    overreaching = DeclaredClaimExclusion(
+        name="allPublisherWorks",
+        reason="an exclusion worded broadly enough to reach the adopted release",
+        subject_types=frozenset({f"{EX}Work"}),
+    )
+    fixture.spec = replace(
+        fixture.spec, declared_claim_exclusions=(overreaching,)
+    )
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+    verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    family = next(
+        row
+        for row in receipt["comparisons"][0]["claimScope"][
+            "intentionallyExcludedFamilies"
+        ]
+        if row["name"] == "allPublisherWorks"
+    )
+    assert family["routedToReleaseComparison"] == [RELEASE]
+    assert family["publisherClaimCount"] == 0
+    release = next(
+        row for row in receipt["results"] if row["check"] == "source-release-metadata"
+    )
+    assert any(
+        "title family are missing from Atlas" in failure
+        for failure in release["failures"]
+    )
+
+
+def test_release_metadata_ignores_atlas_minted_provenance(suite: Fixture) -> None:
+    """Atlas structure on the adopted IRI is declared elsewhere, not a difference."""
+    _with_adopted_release(
+        suite,
+        atlas_asserts=(
+            _quad(RELEASE, f"{ATLAS}semanticRing", f"{ATLAS}SourceRing"),
+            _plain_literal_quad(RELEASE, f"{ATLAS}contentDigest", "sha256:" + "a" * 64),
+        ),
+    )
+
+    check = result(suite.run(), "source-release-metadata")
+
+    assert not any("Atlas adds" in failure for failure in check.failures)
+
+
 def test_a_declared_exclusion_may_not_cover_a_subject_the_comparison_compares(
     suite: Fixture,
 ) -> None:
@@ -2126,6 +2737,139 @@ def test_graph_structure_fires_on_duplicate_literal_forms(suite: Fixture) -> Non
     check = result(suite.run(), "graph-structure")
     assert not check.passed
     assert any("has 2 literal forms" in text for text in check.failures)
+
+
+def test_graph_structure_accepts_a_digested_source_shaped_editorial_relation(
+    suite: Fixture,
+) -> None:
+    relation = {
+        "relation": "related",
+        "sourceLabel": "Child",
+        "sourceLocalRecordNumber": "1",
+        "sourcePath": "subject.xml#record=1",
+        "targetLabel": "Parent",
+    }
+    relation_bytes = json.dumps(
+        relation,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    relation_digest = "sha256:" + hashlib.sha256(relation_bytes).hexdigest()
+    payload = {
+        "editorialTransformation": {
+            "fromPredicate": f"{SKOS}related",
+            "reason": "SKOS-S27-hierarchy-path",
+            "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+            "toPredicate": f"{ATLAS}thesaurusRelated",
+        },
+        "publisherRelation": relation,
+        "publisherRelationDigest": relation_digest,
+    }
+    record = "urn:ref:atlas-source-record:editorial-relation"
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.extend(
+        (
+            _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+            _quad(
+                record,
+                f"{ATLAS}sourceLocator",
+                "urn:ref:publisher-relation:"
+                + relation_digest.removeprefix("sha256:"),
+            ),
+            _plain_literal_quad(
+                record,
+                f"{ATLAS}sourceDigest",
+                "sha256:"
+                + hashlib.sha256(
+                    json.dumps(
+                        payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                ).hexdigest(),
+            ),
+            _quad(
+                record,
+                f"{ATLAS}nativePayload",
+                json.dumps(payload, separators=(",", ":")),
+                literal=True,
+            ),
+        )
+    )
+    suite.write_pack_lines(lines)
+
+    faithful = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+    )
+    assert not faithful.structural_failures
+
+    broken = json.loads(json.dumps(payload))
+    broken["publisherRelationDigest"] = "sha256:" + "0" * 64
+    lines[-1] = _quad(
+        record,
+        f"{ATLAS}nativePayload",
+        json.dumps(broken, separators=(",", ":")),
+        literal=True,
+    )
+    suite.write_pack_lines(lines)
+
+    fault = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+    )
+    assert any(
+        "invalid nativePayload.publisherRelation" in failure
+        for failure in fault.structural_failures
+    )
+
+
+def test_compact_native_payload_index_keeps_exact_digests_and_field_faults(
+    suite: Fixture,
+) -> None:
+    source_subjects = frozenset(CONCEPTS)
+    expected_fields = frozenset({"schemeIris"})
+    expected_payload = {"schemeIris": [SCHEME]}
+    expected_digest = "sha256:" + hashlib.sha256(
+        json.dumps(
+            expected_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    suite.write_pack(source_digest=expected_digest)
+    faithful = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+        source_subjects,
+        compact_normalized_claims=True,
+        compact_native_payload_fields=expected_fields,
+    )
+
+    assert not faithful.native_payloads
+    assert faithful.compact_native_payload_records == frozenset(
+        f"urn:ref:atlas-source-record:{resource.rsplit('/', 1)[-1]}"
+        for resource in CONCEPTS
+    )
+    assert not faithful.native_payload_digest_differences
+    assert not faithful.native_payload_field_differences
+
+    suite.write_pack(
+        extra_native_payload={"unexpectedField": "fault"},
+        source_digest=expected_digest,
+    )
+    fault = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+        source_subjects,
+        compact_normalized_claims=True,
+        compact_native_payload_fields=expected_fields,
+    )
+
+    assert set(fault.native_payload_field_differences.values()) == {
+        (("unexpectedField",), ())
+    }
+    assert len(fault.native_payload_digest_differences) == len(CONCEPTS)
 
 
 def test_graph_structure_reports_a_pack_that_differs_from_its_manifest_pin(
@@ -3437,6 +4181,49 @@ def test_literal_reification_round_trips_from_exact_native_literal_evidence(
 
     assert check.passed
     assert check.summary == "1 relation statement reifications reconstructed from Atlas"
+
+
+def test_literal_reification_marker_is_not_also_treated_as_annotation_text(
+    suite: Fixture,
+) -> None:
+    """A note-kind marker belongs to reification, not annotation text."""
+    base = "https://example.org/source.xml"
+    subject = f"{base}#c1"
+    predicate = "http://example.org/source/termNote"
+    marker = "Definition"
+    suite.write_publisher(
+        extra_triples=(
+            f'<{subject}> <{predicate}> "{marker}" .\n'
+            f"<{base}#Definition-c1> a <{RDF}Statement> ;\n"
+            f"  <{RDF}subject> <{subject}> ;\n"
+            f"  <{RDF}predicate> <{predicate}> ;\n"
+            f'  <{RDF}object> "{marker}" .'
+        )
+    )
+    suite.write_pack(
+        extra_native_payload_by_resource={
+            f"{EX}c1": {
+                "sourceAnnotations": [
+                    {
+                        "subjectIri": subject,
+                        "propertyIri": predicate,
+                        "value": marker,
+                    }
+                ]
+            }
+        }
+    )
+    policy = replace(
+        suite.spec.rdf_source,
+        literal_reification_id_rules=((predicate, marker, "Definition-"),),
+        reification_base_iri=base,
+        reification_predicates=(predicate,),
+    )
+    spec = replace(suite.spec, rdf_source=policy)
+    results = suite.run(spec=spec)
+
+    assert result(results, "annotation-fidelity").passed
+    assert result(results, "reification-fidelity").passed
 
 
 def test_literal_relation_object_cannot_match_an_atlas_iri_with_the_same_text(suite: Fixture) -> None:
@@ -5067,3 +5854,498 @@ def test_source_extract_fails_closed_on_an_atlas_concept_the_extract_lacks(
         "which the checked source extract does not contain" in failure
         for failure in check.failures
     )
+
+
+def test_epa_xml_reader_accepts_a_faithful_tree_and_rejects_a_shape_fault() -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    payload = b"""<EnterpriseVocabularyReport>
+<Row><Term>Parent</Term><Definitions>Definition</Definitions><ChildTerms>
+<Row><Term>Child</Term><ScopeNote>Note</ScopeNote></Row>
+</ChildTerms></Row></EnterpriseVocabularyReport>"""
+    pin = SourcePin(
+        "epa.xml",
+        "sha256:" + hashlib.sha256(payload).hexdigest(),
+        len(payload),
+        fmt="xml",
+        role="boundedPublisherLabelTree",
+        source_iri="https://example.org/epa.xml",
+    )
+    spec = SourceSpec(
+        "epa-reader-test",
+        "vocabulary",
+        ("epa-reader-test",),
+        (pin,),
+        reader=verifier.EPA_ENTERPRISE_VOCABULARY_XML_READER,
+    )
+
+    view = verifier._read_epa_enterprise_vocabulary_xml(spec, {pin: payload})
+
+    assert len(view.concepts) == 2
+    assert len(view.relations) == 1
+    assert len(view.annotations) == 2
+    assert all(view.resource_locators.values())
+    with pytest.raises(ValueError, match="termCount"):
+        verifier._read_epa_enterprise_vocabulary_xml(
+            spec,
+            {pin: payload.replace(b"<Term>Parent</Term>", b"<Label>Parent</Label>")},
+        )
+
+
+def test_lcsh_jsonld_reader_accepts_a_faithful_pair_and_rejects_context_fault() -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    endpoint = "http://id.loc.gov/authorities/subjects/sh1"
+    alignment = f"""<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="{RDF}" xmlns:align="http://knowledgeweb.semanticweb.org/heterogeneity/alignment#" xmlns:skos="{SKOS}">
+  <align:Alignment rdf:about="urn:test:alignment">
+    <align:onto1 rdf:resource="http://eurovoc.europa.eu"/>
+    <align:onto2 rdf:resource="http://id.loc.gov/authorities/subjects"/>
+  </align:Alignment>
+  <rdf:Description rdf:about="http://eurovoc.europa.eu/1">
+    <skos:exactMatch rdf:resource="{endpoint}"/>
+  </rdf:Description>
+</rdf:RDF>""".encode()
+    document = {
+        "@context": "http://id.loc.gov/authorities/subjects/context.json",
+        "@graph": [
+            {
+                "@id": endpoint,
+                "@type": ["madsrdf:Authority", "madsrdf:Topic"],
+                "identifiers:lccn": "sh1",
+                "madsrdf:authoritativeLabel": {"@value": "Faithful", "@language": "en"},
+            }
+        ],
+        "@id": "/authorities/subjects/sh1",
+    }
+    line = json.dumps(document, separators=(",", ":")).encode()
+    bulk = gzip.compress(line + b"\n")
+    alignment_pin = SourcePin(
+        "alignment.rdf",
+        "sha256:" + hashlib.sha256(alignment).hexdigest(),
+        len(alignment),
+        fmt="xml",
+        role="publisherAlignment",
+        source_iri="https://example.org/alignment.rdf",
+    )
+    bulk_pin = SourcePin(
+        "lcsh.jsonld.gz",
+        "sha256:" + hashlib.sha256(bulk).hexdigest(),
+        len(bulk),
+        fmt="jsonld.gz",
+        role="publisherBulkSource",
+        source_iri="https://example.org/lcsh.jsonld.gz",
+    )
+    spec = SourceSpec(
+        "lcsh-reader-test",
+        "vocabulary",
+        ("lcsh-reader-test",),
+        (alignment_pin, bulk_pin),
+        reader=verifier.LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER,
+    )
+
+    view = verifier._read_lcsh_alignment_endpoint_jsonld(
+        spec,
+        {alignment_pin: alignment, bulk_pin: bulk},
+    )
+
+    assert view.concepts == frozenset({endpoint})
+    assert view.notations[endpoint] == frozenset(
+        {verifier._literal_value("sh1", None, None)}
+    )
+    broken_document = dict(document)
+    broken_document["@context"] = "https://example.org/wrong-context"
+    broken_bulk = gzip.compress(
+        json.dumps(broken_document, separators=(",", ":")).encode() + b"\n"
+    )
+    with pytest.raises(ValueError, match="unexpected @context"):
+        verifier._read_lcsh_alignment_endpoint_jsonld(
+            spec,
+            {alignment_pin: alignment, bulk_pin: broken_bulk},
+        )
+
+
+def test_fast_native_reader_accepts_a_faithful_pair_and_rejects_marc_identity_fault() -> None:
+    from pymarc import Field, MARCWriter, Record, Subfield
+
+    import tools.verify_atlas_source_fidelity as verifier
+
+    nt = "\n".join(
+        (
+            f'<http://id.worldcat.org/fast/1> <{SKOS}prefLabel> "Base heading" .',
+            '<http://id.worldcat.org/fast/1> <http://purl.org/dc/terms/identifier> "1" .',
+            f'<http://id.worldcat.org/fast/2> <{SKOS}prefLabel> "Parent" .',
+            '<http://id.worldcat.org/fast/2> <http://purl.org/dc/terms/identifier> "2" .',
+        )
+    ).encode()
+    archive_buffer = io.BytesIO()
+    with zipfile.ZipFile(archive_buffer, "w") as archive:
+        archive.writestr("FASTTopical.nt", nt)
+        archive.writestr("License.txt", b"test")
+    base = archive_buffer.getvalue()
+
+    record = Record(force_utf8=True)
+    leader = list(record.leader)
+    leader[5] = "n"
+    leader[6] = "z"
+    record.leader = "".join(leader)
+    record.add_field(Field(tag="001", data="fst00000001"))
+    record.add_field(
+        Field(
+            tag="024",
+            indicators=["7", " "],
+            subfields=[Subfield("a", "http://id.worldcat.org/fast/1")],
+        )
+    )
+    record.add_field(
+        Field(
+            tag="040",
+            indicators=[" ", " "],
+            subfields=[Subfield("f", "fast")],
+        )
+    )
+    record.add_field(
+        Field(
+            tag="150",
+            indicators=[" ", " "],
+            subfields=[Subfield("a", "Changed heading")],
+        )
+    )
+    marc_buffer = io.BytesIO()
+    MARCWriter(marc_buffer).write(record)
+    marc = marc_buffer.getvalue()
+    base_pin = SourcePin(
+        "base.zip",
+        "sha256:" + hashlib.sha256(base).hexdigest(),
+        len(base),
+        fmt="zip-ntriples",
+        role="publisherBase",
+        source_iri="https://example.org/base.zip",
+    )
+    change_pin = SourcePin(
+        "change.mrc",
+        "sha256:" + hashlib.sha256(marc).hexdigest(),
+        len(marc),
+        fmt="marc",
+        role="publisherChange",
+        source_iri="https://example.org/change.mrc",
+    )
+    spec = SourceSpec(
+        "fast-reader-test",
+        "vocabulary",
+        ("fast-reader-test",),
+        (base_pin, change_pin),
+        reader=verifier.FAST_TOPICAL_NATIVE_READER,
+    )
+
+    view = verifier._read_fast_topical_native(
+        spec,
+        {base_pin: base, change_pin: marc},
+    )
+
+    resource = "http://id.worldcat.org/fast/1"
+    assert view.pref_labels[resource] == frozenset(
+        {verifier._literal_value("Changed heading", None, None)}
+    )
+    broken_marc = marc.replace(
+        b"http://id.worldcat.org/fast/1",
+        b"http://id.worldcat.org/fast/9",
+    )
+    with pytest.raises(ValueError, match="024 does not match 001"):
+        verifier._read_fast_topical_native(
+            spec,
+            {base_pin: base, change_pin: broken_marc},
+        )
+
+
+def test_icpsr_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
+    tmp_path: Path,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    root = tmp_path / "managed-release"
+    (root / "records").mkdir(parents=True)
+    (root / "sources" / "index").mkdir(parents=True)
+    concept = {
+        "conceptIri": "https://example.org/icpsr/1",
+        "identifiers": [
+            {
+                "authorityUri": "https://example.org/icpsr",
+                "effectiveAt": None,
+                "kind": "publisherCode",
+                "observedAt": None,
+                "sourceDigest": "sha256:" + "1" * 64,
+                "sourceUri": "https://example.org/icpsr?a",
+                "value": "1",
+            }
+        ],
+        "inputTimestamp": "2026-01-01 00:00:00.0",
+        "officialLabel": "Faithful term",
+        "officialLabelRole": "preferred",
+        "publisherCode": "1",
+        "relations": [],
+        "scopeNotes": ["Faithful note"],
+        "sourceLetter": "a",
+        "sourceLocalRecordNumber": "1",
+        "updateTimestamp": "2026-01-01 00:00:00.0",
+        "xmlLabelRole": "preferred",
+    }
+    concepts_payload = json.dumps(concept, separators=(",", ":")).encode() + b"\n"
+    coverage = {
+        "gaps": {"indexOnlyTerms": [], "xmlOnlyLabels": []},
+    }
+    coverage["canonicalPayloadDigest"] = verifier._canonical_json_digest(coverage)
+    coverage_payload = json.dumps(
+        coverage,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    artifact_values = {
+        "records/concepts.jsonl": concepts_payload,
+        "records/coverage.json": coverage_payload,
+        "sources/index/manifest.json": b"{}",
+        "sources/subject.xml": b"<subjects/>",
+    }
+    for relative_path, payload in artifact_values.items():
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    artifacts = [
+        {
+            "byteLength": len(payload),
+            "path": relative_path,
+            "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        }
+        for relative_path, payload in artifact_values.items()
+    ]
+    manifest = {
+        "artifacts": artifacts,
+        "counts": {"concepts": 1},
+        "release": {"schemeIri": "https://example.org/icpsr"},
+        "sources": {
+            "indexManifestDigest": "sha256:" + hashlib.sha256(b"{}").hexdigest(),
+            "xmlDigest": "sha256:" + hashlib.sha256(b"<subjects/>").hexdigest(),
+        },
+    }
+    manifest["canonicalPayloadDigest"] = verifier._canonical_json_digest(manifest)
+    manifest_payload = json.dumps(
+        manifest,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    manifest_path = root / "managed-release.json"
+    manifest_path.write_bytes(manifest_payload)
+    pin = SourcePin(
+        str(manifest_path),
+        "sha256:" + hashlib.sha256(manifest_payload).hexdigest(),
+        len(manifest_payload),
+        fmt="managed-release-json",
+        role="publisherSource",
+        source_iri="urn:test:icpsr-managed-release",
+    )
+    spec = SourceSpec(
+        "icpsr-reader-test",
+        "vocabulary",
+        ("icpsr-reader-test",),
+        (pin,),
+        reader=verifier.ICPSR_MANAGED_RELEASE_READER,
+    )
+
+    view = verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
+
+    assert view.concepts == frozenset({"https://example.org/icpsr/1"})
+    assert len(view.annotations) == 1
+    (root / "sources" / "subject.xml").write_bytes(b"<fault/>")
+    with pytest.raises(ValueError, match="artifact pin differs"):
+        verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
+
+
+def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
+    tmp_path: Path,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    def canonical(value: object) -> bytes:
+        return (
+            json.dumps(
+                value,
+                ensure_ascii=False,
+                allow_nan=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+            + b"\n"
+        )
+
+    def digest(payload: bytes) -> str:
+        return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+    root = tmp_path / "crs-release"
+    (root / "source" / "sources").mkdir(parents=True)
+    scheme = {
+        "code": "cgpa",
+        "id": "http://id.loc.gov/vocabulary/subjectSchemes/cgpa",
+        "label": "Congress.gov Policy Areas",
+    }
+    local_id = "urn:uuid:019fc9f2-c758-70b4-a2c9-214f4e3410e4"
+    observation = {
+        "definition": "The exact definition.",
+        "id": "urn:test:crs-observation:1",
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "Faithful term"}
+        ],
+        "localRecordId": local_id,
+        "sourceArtifact": "urn:test:crs-source-artifact:1",
+    }
+    observation_payload = canonical(observation)
+    namespace_digest = hashlib.sha256(scheme["id"].encode()).hexdigest()
+    concept = {
+        "id": (
+            "urn:ref:source-concept:v1:"
+            f"{namespace_digest}:{local_id.removeprefix('urn:uuid:')}"
+        ),
+        "identityKind": "refspecSourceScoped",
+        "issuer": "https://refspec.org/",
+        "localRecordId": local_id,
+        "semanticRing": "subject",
+        "sourceObservation": observation["id"],
+        "sourceObservationDigest": digest(observation_payload),
+        "sourceScheme": scheme["id"],
+        "type": "SourceScopedConcept",
+    }
+    concepts_payload = canonical(concept)
+    rights_payload = canonical({"sourceArtifact": observation["sourceArtifact"]})
+    lifecycle_payload = b""
+    reconciliation_payload = canonical({})
+    resource_manifest = {
+        "id": "urn:test:crs-source-resource:1",
+        "sourceScheme": scheme,
+    }
+    resource_manifest_payload = canonical(resource_manifest)
+    raw_payload = b"faithful raw publisher bytes"
+    source_artifacts = {
+        "observations.jsonl": observation_payload,
+        "resource-manifest.json": resource_manifest_payload,
+        "sources/source.bin": raw_payload,
+    }
+    nested_artifacts = [
+        {
+            "byteLength": len(payload),
+            "path": path,
+            "role": "sourceArtifact",
+            "sha256": digest(payload),
+        }
+        for path, payload in sorted(source_artifacts.items())
+    ]
+    source_logical_digest = "sha256:" + "2" * 64
+    source_bundle_manifest = {
+        "artifacts": nested_artifacts,
+        "logicalDigest": source_logical_digest,
+        "packageKind": "sourceControlledResource",
+        "resourceManifest": resource_manifest["id"],
+        "schemaVersion": "2.0",
+    }
+    source_bundle_payload = canonical(source_bundle_manifest)
+    source_artifacts["bundle-manifest.json"] = source_bundle_payload
+    for relative_path, payload in source_artifacts.items():
+        path = root / "source" / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+
+    release_basis = {
+        "conceptCount": 1,
+        "conceptSetDigest": digest(concepts_payload),
+        "identityPolicy": {"id": "urn:test:identity-policy"},
+        "issuer": "https://refspec.org/",
+        "lifecycleRecordCount": 0,
+        "lifecycleSetDigest": digest(lifecycle_payload),
+        "membershipMode": "completeMembership",
+        "rightsRecordCount": 1,
+        "rightsSetDigest": digest(rights_payload),
+        "schemaVersion": "1.0",
+        "selectedObservationSetDigest": digest(canonical([observation["id"]])),
+        "selectionPolicy": {"id": "urn:test:selection-policy"},
+        "semanticRing": "subject",
+        "sourceCapture": {
+            "logicalDigest": source_logical_digest,
+            "observationSetDigest": digest(observation_payload),
+            "reconciliationDigest": digest(reconciliation_payload),
+            "resourceManifest": resource_manifest["id"],
+        },
+        "sourceScheme": scheme,
+        "type": "SourceConceptRelease",
+    }
+    release_digest = digest(canonical(release_basis))
+    release = {
+        **release_basis,
+        "id": (
+            "urn:ref:source-concept-release:subject:"
+            f"{release_digest.removeprefix('sha256:')}"
+        ),
+        "releaseDigest": release_digest,
+    }
+    package_artifacts = {
+        "concepts.jsonl": (concepts_payload, "concepts"),
+        "lifecycle.jsonl": (lifecycle_payload, "lifecycle"),
+        "reconciliation.json": (reconciliation_payload, "reconciliation"),
+        "release-manifest.json": (canonical(release), "releaseManifest"),
+        "rights.jsonl": (rights_payload, "rights"),
+        **{
+            f"source/{path}": (payload, "sourceCaptureArtifact")
+            for path, payload in source_artifacts.items()
+        },
+    }
+    outer_artifacts = [
+        {
+            "byteLength": len(payload),
+            "path": path,
+            "role": role,
+            "sha256": digest(payload),
+        }
+        for path, (payload, role) in sorted(package_artifacts.items())
+    ]
+    manifest = {
+        "artifacts": outer_artifacts,
+        "logicalDigest": "sha256:" + "3" * 64,
+        "packageKind": "sourceConceptRelease",
+        "releaseDigest": release_digest,
+        "releaseId": release["id"],
+        "schemaVersion": "1.0",
+    }
+    manifest_payload = canonical(manifest)
+    for relative_path, (payload, _) in package_artifacts.items():
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    manifest_path = root / "bundle-manifest.json"
+    manifest_path.write_bytes(manifest_payload)
+    pin = SourcePin(
+        str(manifest_path),
+        digest(manifest_payload),
+        len(manifest_payload),
+        fmt="managed-release-json",
+        role="publisherSource",
+        source_iri="urn:test:crs-bundle",
+    )
+    spec = SourceSpec(
+        "crs-reader-test",
+        "vocabulary",
+        ("crs-reader-test",),
+        (pin,),
+        reader=verifier.CRS_SOURCE_CONCEPT_RELEASE_READER,
+    )
+
+    view = verifier._read_crs_source_concept_release(spec, {pin: manifest_payload})
+
+    resource = (
+        "urn:ref:source-concept:v2:loc-cgpa:"
+        "019fc9f2-c758-70b4-a2c9-214f4e3410e4"
+    )
+    assert view.concepts == frozenset({resource})
+    assert view.pref_labels[resource] == frozenset(
+        {verifier._literal_value("Faithful term", "en", None)}
+    )
+    assert len(view.annotations) == 1
+    (root / "source" / "sources" / "source.bin").write_bytes(b"fault")
+    with pytest.raises(ValueError, match="artifact pin differs"):
+        verifier._read_crs_source_concept_release(spec, {pin: manifest_payload})

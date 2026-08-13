@@ -99,6 +99,32 @@
       ],
       "type": "object"
     },
+    "languageScope": {
+      "additionalProperties": false,
+      "properties": {
+        "includedLanguageFamilies": {
+          "const": [
+            "en"
+          ]
+        },
+        "selectionRule": {
+          "const": "bcp47-primary-language-subtag"
+        },
+        "unselectedPublisherContent": {
+          "const": "notRepresented"
+        },
+        "wireLanguageTag": {
+          "const": "en"
+        }
+      },
+      "required": [
+        "includedLanguageFamilies",
+        "selectionRule",
+        "unselectedPublisherContent",
+        "wireLanguageTag"
+      ],
+      "type": "object"
+    },
     "recordCounts": {
       "additionalProperties": false,
       "properties": {
@@ -360,6 +386,9 @@
     "distributionId": {
       "$ref": "common.schema.json#/$defs/absoluteIri"
     },
+    "languageScope": {
+      "$ref": "#/$defs/languageScope"
+    },
     "profile": {
       "const": "atlas-3-release-local-construction-v1"
     },
@@ -393,6 +422,7 @@
     "version",
     "profile",
     "distributionId",
+    "languageScope",
     "contractDigest",
     "assertedInventoryDigest",
     "sourceAccountingDigest",

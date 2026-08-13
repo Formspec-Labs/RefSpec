@@ -71,6 +71,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import hashlib
 import io
 import json
@@ -83,8 +84,9 @@ import uuid
 import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
+from itertools import chain
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
@@ -106,9 +108,16 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 # artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-VERIFIER_VERSION = "atlas-source-fidelity/11"
+VERIFIER_VERSION = "atlas-source-fidelity/13"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
+LANGUAGE_SCOPE_EXCLUSIONS = REPOSITORY_ROOT / "language-scope-exclusions.json"
+ENGLISH_LANGUAGE_SCOPE = {
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+    "unselectedPublisherContent": "notRepresented",
+    "wireLanguageTag": "en",
+}
 
 RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 SKOS = "http://www.w3.org/2004/02/skos/core#"
@@ -174,6 +183,7 @@ SKOSXL_LABEL_PREDICATES = frozenset(
 )
 
 ATLAS_SOURCE_RECORD = f"{ATLAS}SourceRecord"
+ATLAS_SOURCE_RELEASE = f"{ATLAS}SourceRelease"
 ATLAS_RESOURCE = f"{ATLAS}AtlasResource"
 ATLAS_RELEASE = f"{ATLAS}AtlasRelease"
 ATLAS_SUBJECT_CONCEPT = f"{ATLAS}SubjectConcept"
@@ -426,6 +436,26 @@ class Quad:
 
 
 _LITERAL_BODY = re.compile(r'^"((?:[^"\\]|\\.)*)"(?:@([A-Za-z0-9-]+)|\^\^<([^>]*)>)?\s*$')
+_BCP47 = re.compile(
+    r"^(?:(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4}|"
+    r"[A-Za-z]{5,8})(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?"
+    r"(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*"
+    r"(?:-[0-9A-WY-Za-wy-z](?:-[A-Za-z0-9]{2,8})+)*"
+    r"(?:-[xX](?:-[A-Za-z0-9]{1,8})+)?|"
+    r"[xX](?:-[A-Za-z0-9]{1,8})+|[eE][nN]-[gG][bB]-[oO][eE][dD]|"
+    r"[iI]-(?:[aA][mM][iI]|[bB][nN][nN]|[dD][eE][fF][aA][uU][lL][tT]|"
+    r"[eE][nN][oO][cC][hH][iI][aA][nN]|[hH][aA][kK]|"
+    r"[kK][lL][iI][nN][gG][oO][nN]|[lL][uU][xX]|"
+    r"[mM][iI][nN][gG][oO]|[nN][aA][vV][aA][jJ][oO]|"
+    r"[pP][wW][nN]|[tT][aA][oO]|[tT][aA][yY]|[tT][sS][uU])|"
+    r"[sS][gG][nN]-(?:[bB][eE]-[fF][rR]|[bB][eE]-[nN][lL]|"
+    r"[cC][hH]-[dD][eE])|[aA][rR][tT]-[lL][oO][jJ][bB][aA][nN]|"
+    r"[cC][eE][lL]-[gG][aA][uU][lL][iI][sS][hH]|"
+    r"[nN][oO]-(?:[bB][oO][kK]|[nN][yY][nN])|"
+    r"[zZ][hH]-(?:[gG][uU][oO][yY][uU]|[hH][aA][kK][kK][aA]|"
+    r"[mM][iI][nN]|[mM][iI][nN]-[nN][aA][nN]|"
+    r"[xX][iI][aA][nN][gG]))$"
+)
 
 
 def parse_nquads_line(line: str) -> Quad | None:
@@ -616,13 +646,6 @@ class PublisherView:
     resource_input_digests: Mapping[str, frozenset[str]]
     input_content_digests: Mapping[str, str]
     unevaluated_claims: tuple[str, ...] = ()
-    # Non-RDF readers derive these expectations directly from authenticated
-    # publisher rows. RDF readers leave them empty and use the declarative
-    # RdfSourcePolicy fallbacks below.
-    resource_locators: Mapping[str, str] = field(default_factory=dict)
-    expected_native_payloads: Mapping[str, Mapping[str, Any]] = field(
-        default_factory=dict
-    )
     # Blank-node claims a declared exclusion accounts for, by exclusion name.
     # They never reach ``iri_claims``/``literal_claims`` (both require an IRI
     # subject), so the exclusion report counts them from here instead of losing
@@ -630,6 +653,31 @@ class PublisherView:
     declared_out_of_scope_blank_node_claims: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict
     )
+    # The subjects each exclusion selected out of the publisher's whole graph,
+    # before any subset selector narrowed this view. EuroVoc's main/domains
+    # split drops the dataset-description subjects entirely, which would leave
+    # the exclusion's Atlas-side proof ranging over an empty set -- vacuously
+    # true, and therefore worthless. Keeping the roots makes that proof real.
+    declared_out_of_scope_subjects: Mapping[str, tuple[str, ...]] = field(
+        default_factory=dict
+    )
+    language_exclusion_evidence: LanguageExclusionEvidence | None = None
+    # Stock non-RDF readers derive the source-record evidence address and the
+    # exact native payload independently from publisher bytes. RDF readers use
+    # the source IRI and the existing field-level inverse by default.
+    resource_locators: Mapping[str, str] = field(default_factory=dict)
+    expected_native_payloads: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
+    expected_relation_payloads: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
+    # High-cardinality stock readers can retain the one exact digest directly
+    # instead of allocating one frozenset per publisher resource.  The boolean
+    # additionally says that this digest authenticates the entire independently
+    # reconstructed native payload, not merely an input file.
+    resource_input_digest_values: Mapping[str, str] = field(default_factory=dict)
+    source_digest_is_native_payload_digest: bool = False
 
 
 @dataclass(frozen=True)
@@ -662,6 +710,15 @@ class AtlasView:
     native_top_concept_of_iris: Mapping[str, frozenset[str]]
     native_literal_claims: frozenset[tuple[str, str, LiteralValue]]
     native_relations: frozenset[tuple[str, str, str]]
+    compact_native_payload_records: frozenset[str]
+    native_payload_digest_differences: Mapping[
+        str,
+        tuple[str, str | None],
+    ]
+    native_payload_field_differences: Mapping[
+        str,
+        tuple[tuple[str, ...], tuple[str, ...]],
+    ]
     raw_source_iri_claims: frozenset[tuple[str, str, str]]
     raw_source_literal_claims: frozenset[tuple[str, str, LiteralValue]]
     all_raw_iri_claims: frozenset[tuple[str, str, str]]
@@ -815,6 +872,66 @@ class DeclaredClaimExclusion:
 
 
 @dataclass(frozen=True)
+class DeclaredLanguageExclusion:
+    """One exact claim-level declaration of Atlas's English product scope.
+
+    Unlike ``DeclaredClaimExclusion``, this declaration never selects a subject.
+    It selects only explicitly tagged semantic literal claims whose valid BCP 47
+    primary language subtag is not ``en``. The authenticated payload fixes the
+    source, language, and predicate-family counts that must be observed.
+    """
+
+    name: str
+    reason: str
+    payload_json: str
+    payload_sha256: str
+
+    def __post_init__(self) -> None:
+        observed = "sha256:" + hashlib.sha256(
+            self.payload_json.encode("utf-8")
+        ).hexdigest()
+        if observed != self.payload_sha256:
+            raise ValueError(
+                f"declared language exclusion {self.name!r} payload digest differs: "
+                f"expected {self.payload_sha256}, observed {observed}"
+            )
+
+    def payload(self) -> Mapping[str, Any]:
+        """Return the immutable declaration payload after structural checks."""
+        value = json.loads(self.payload_json)
+        if not isinstance(value, dict):
+            raise ValueError("language exclusion payload must be an object")
+        return value
+
+
+@dataclass(frozen=True)
+class LanguageExclusionEvidence:
+    """Measured claim cells and exact selected-claim identity for one source."""
+
+    expected_counts_by_language: Mapping[str, Mapping[str, int]]
+    actual_counts_by_language: Mapping[str, Mapping[str, int]]
+    excluded_claim_count: int
+    excluded_claims_digest: str
+    applied: bool
+    failures: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class AtlasLanguageScopeEvidence:
+    """Whole-distribution evidence that the Atlas side obeys its language scope."""
+
+    non_english_literal_count: int = 0
+    non_english_literals_digest: str = "sha256:" + hashlib.sha256(b"[]").hexdigest()
+    non_english_literal_examples: tuple[str, ...] = ()
+    noncanonical_semantic_literal_count: int = 0
+    noncanonical_semantic_literals_digest: str = (
+        "sha256:" + hashlib.sha256(b"[]").hexdigest()
+    )
+    noncanonical_semantic_literal_examples: tuple[str, ...] = ()
+    scan_failures: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -822,19 +939,50 @@ class SourceSpec:
     kind: str  # "vocabulary", "mapping", "native-control", or "source-extract"
     release_keys: tuple[str, ...]
     inputs: tuple[SourcePin, ...]
-    reader: str = "rdf"
-    identity_policy: str = "publisher-iri"
     policies: frozenset[str] = frozenset()
     subset: str = "all"
     included_concept_iris: frozenset[str] = frozenset()
     excluded_resource_predicates: frozenset[str] = frozenset()
     declared_claim_exclusions: tuple[DeclaredClaimExclusion, ...] = ()
+    declared_language_exclusion: DeclaredLanguageExclusion | None = None
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
+    reader: str = "rdf"
+    identity_policy: str = "publisher-iri"
 
     def has_policy(self, name: str) -> bool:
         return name in self.policies
+
+
+_ENGLISH_LANGUAGE_EXCLUSION_PAYLOAD = LANGUAGE_SCOPE_EXCLUSIONS.read_text(
+    encoding="utf-8"
+)
+_ENGLISH_LANGUAGE_EXCLUSION = DeclaredLanguageExclusion(
+    name="nonEnglishPublisherLiteralClaims",
+    reason=(
+        "Atlas carries the BCP 47 English language family; explicitly tagged "
+        "publisher literals outside that family are deliberately not represented"
+    ),
+    payload_json=_ENGLISH_LANGUAGE_EXCLUSION_PAYLOAD,
+    payload_sha256=(
+        "sha256:8c7ffd458cef9b182d86b1b3e9626cc0d38d5db6eb0d8ba1ef59e63e024082bb"
+    ),
+)
+_ENGLISH_LANGUAGE_EXCLUSION_SOURCE_NAMES = frozenset(
+    _ENGLISH_LANGUAGE_EXCLUSION.payload().get("countsBySourceAndLanguage", {})
+)
+
+
+def _language_exclusion_for_spec(
+    spec: SourceSpec,
+) -> DeclaredLanguageExclusion | None:
+    """Resolve an explicit test declaration or the registry-wide owner decision."""
+    if spec.declared_language_exclusion is not None:
+        return spec.declared_language_exclusion
+    if spec.name in _ENGLISH_LANGUAGE_EXCLUSION_SOURCE_NAMES:
+        return _ENGLISH_LANGUAGE_EXCLUSION
+    return None
 
 
 @dataclass(frozen=True)
@@ -931,11 +1079,15 @@ class Context:
     expectations: Expectations
     units: tuple[DistributionUnit, ...]
     construction_summary_digest: str | None
+    construction_language_scope: Any
     manifest_digest: str | None
     pack_pins: Mapping[str, PackPin]
     verified_pins: frozenset[SourcePin]
     pin_failures: tuple[str, ...]
     load_failures: tuple[str, ...]
+    atlas_language_scope_evidence: AtlasLanguageScopeEvidence = field(
+        default_factory=AtlasLanguageScopeEvidence
+    )
     source_extract_pairs: tuple[SourceExtractPair, ...] = ()
     # Specs this run deliberately did not evaluate. They stay visible so the
     # coverage arithmetic can report their construction units as scoped out
@@ -1430,6 +1582,7 @@ def _publisher_view(
     # subject and no further: a blank node reachable from anything else stays in
     # the uncovered report.
     excluded_blank_node_claims: dict[str, list[str]] = {}
+    excluded_subjects: dict[str, tuple[str, ...]] = {}
     exclusion_nodes: list[tuple[str, set[Any]]] = []
     for exclusion in declared_claim_exclusions:
         roots = {
@@ -1453,6 +1606,9 @@ def _publisher_view(
         if roots:
             exclusion_nodes.append((exclusion.name, reached))
             excluded_blank_node_claims[exclusion.name] = []
+            excluded_subjects[exclusion.name] = tuple(
+                sorted(str(term) for term in roots)
+            )
     for subject, predicate, obj in graph:
         if not isinstance(subject, rdflib.BNode) and not isinstance(obj, rdflib.BNode):
             continue
@@ -1520,6 +1676,7 @@ def _publisher_view(
             name: tuple(details)
             for name, details in excluded_blank_node_claims.items()
         },
+        declared_out_of_scope_subjects=dict(excluded_subjects),
     )
 
 
@@ -1631,226 +1788,6 @@ def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
     return _select_publisher_concepts(view, spec.included_concept_iris)
 
 
-MESH_DESCRIPTOR_XML_READER = "mesh-descriptor-xml-2026-v1"
-_MESH_DESCRIPTOR_ROOT = "DescriptorRecordSet"
-_MESH_DESCRIPTOR_RECORD = "DescriptorRecord"
-_MESH_DESCRIPTOR_IRI_BASE = "https://id.nlm.nih.gov/mesh/"
-_MESH_DESCRIPTOR_UI = re.compile(r"^D\d{6,}$")
-_MESH_DESCRIPTOR_CLASSES = frozenset({"1", "2", "3", "4", "5", "6"})
-_MESH_USED_XML_PATHS = frozenset(
-    {
-        "DescriptorRecord",
-        "DescriptorRecord/DescriptorUI",
-        "DescriptorRecord/DescriptorName",
-        "DescriptorRecord/DescriptorName/String",
-        "DescriptorRecord/TreeNumberList",
-        "DescriptorRecord/TreeNumberList/TreeNumber",
-        "DescriptorRecord/ConceptList",
-        "DescriptorRecord/ConceptList/Concept",
-        "DescriptorRecord/ConceptList/Concept/TermList",
-        "DescriptorRecord/ConceptList/Concept/TermList/Term",
-        "DescriptorRecord/ConceptList/Concept/TermList/Term/String",
-    }
-)
-
-
-def _required_xml_text(value: str | None, label: str) -> str:
-    """Return one required MeSH value without normalizing its internal text."""
-    if value is None or not value.strip():
-        raise ValueError(f"{label} must be non-empty text")
-    return value.strip()
-
-
-def _read_mesh_descriptor_xml(
-    spec: SourceSpec,
-    authenticated_payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    """Read MeSH descriptors with ElementTree, independent of registry ETL.
-
-    The reader maps only the fields the Atlas adapter claims to represent. It
-    also counts every other XML path and attribute as an unevaluated source
-    claim, so adding the SourceSpec cannot turn ignored MeSH content into an
-    apparent fidelity success.
-    """
-    if len(spec.inputs) != 1:
-        raise ValueError("MeSH descriptor reader requires exactly one XML input")
-    pin = spec.inputs[0]
-    payload = authenticated_payloads[pin]
-    if b"<!ENTITY" in payload[:8192].upper():
-        raise ValueError("MeSH descriptor XML must not declare custom XML entities")
-
-    concepts: set[str] = set()
-    pref_labels: dict[str, frozenset[LiteralValue]] = {}
-    alt_labels: dict[str, frozenset[LiteralValue]] = {}
-    notations: dict[str, frozenset[LiteralValue]] = {}
-    iri_claims: set[tuple[str, str, str]] = set()
-    literal_claims: set[tuple[str, str, LiteralValue]] = set()
-    predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
-    resource_input_digests: dict[str, frozenset[str]] = {}
-    resource_locators: dict[str, str] = {}
-    expected_native_payloads: dict[str, Mapping[str, Any]] = {}
-    ignored_paths: Counter[str] = Counter()
-    ignored_attributes: Counter[str] = Counter()
-
-    context = ElementTree.iterparse(io.BytesIO(payload), events=("start", "end"))
-    try:
-        event, root = next(context)
-    except (StopIteration, ElementTree.ParseError) as error:
-        raise ValueError("MeSH descriptor XML is empty or malformed") from error
-    if event != "start" or root.tag != _MESH_DESCRIPTOR_ROOT:
-        raise ValueError(
-            f"MeSH XML root must be {_MESH_DESCRIPTOR_ROOT!r}, observed {root.tag!r}"
-        )
-    if root.get("LanguageCode") != "eng":
-        raise ValueError("MeSH DescriptorRecordSet LanguageCode must be 'eng'")
-    for attribute in root.attrib:
-        if attribute != "LanguageCode":
-            ignored_attributes[f"{_MESH_DESCRIPTOR_ROOT}@{attribute}"] += 1
-
-    try:
-        for event, element in context:
-            if event != "end" or element.tag != _MESH_DESCRIPTOR_RECORD:
-                continue
-            descriptor_class = element.get("DescriptorClass")
-            if descriptor_class not in _MESH_DESCRIPTOR_CLASSES:
-                raise ValueError(
-                    "MeSH DescriptorRecord has unsupported DescriptorClass "
-                    f"{descriptor_class!r}"
-                )
-            descriptor_ui = _required_xml_text(
-                element.findtext("DescriptorUI"),
-                "MeSH DescriptorUI",
-            )
-            if _MESH_DESCRIPTOR_UI.fullmatch(descriptor_ui) is None:
-                raise ValueError(f"MeSH DescriptorUI is malformed: {descriptor_ui!r}")
-            resource = _MESH_DESCRIPTOR_IRI_BASE + descriptor_ui
-            if resource in concepts:
-                raise ValueError(f"MeSH XML repeats DescriptorUI {descriptor_ui!r}")
-
-            heading = _required_xml_text(
-                element.findtext("DescriptorName/String"),
-                f"MeSH {descriptor_ui} DescriptorName",
-            )
-            tree_numbers = tuple(
-                _required_xml_text(node.text, f"MeSH {descriptor_ui} TreeNumber")
-                for node in element.findall("TreeNumberList/TreeNumber")
-            )
-            alternate: list[str] = []
-            seen_labels = {heading}
-            for term in element.findall("ConceptList/Concept/TermList/Term"):
-                permuted = term.get("IsPermutedTermYN")
-                if permuted not in {"Y", "N"}:
-                    raise ValueError(
-                        f"MeSH {descriptor_ui} Term has unsupported "
-                        f"IsPermutedTermYN {permuted!r}"
-                    )
-                if permuted == "Y":
-                    continue
-                value = _required_xml_text(
-                    term.findtext("String"),
-                    f"MeSH {descriptor_ui} Term",
-                )
-                if value not in seen_labels:
-                    seen_labels.add(value)
-                    alternate.append(value)
-
-            def account_xml(node: ElementTree.Element, path: str) -> None:
-                if path not in _MESH_USED_XML_PATHS:
-                    ignored_paths[path] += 1
-                allowed_attributes = (
-                    {"DescriptorClass"}
-                    if path == "DescriptorRecord"
-                    else {"IsPermutedTermYN"}
-                    if path.endswith("/Term")
-                    else set()
-                )
-                for attribute in node.attrib:
-                    if attribute not in allowed_attributes:
-                        ignored_attributes[f"{path}@{attribute}"] += 1
-                for child in node:
-                    account_xml(child, f"{path}/{child.tag}")
-
-            account_xml(element, _MESH_DESCRIPTOR_RECORD)
-
-            preferred_literal = _literal_value(heading, "en", None)
-            alternate_literals = frozenset(
-                _literal_value(value, "en", None) for value in alternate
-            )
-            notation_literals = frozenset(
-                _literal_value(value, None, None) for value in tree_numbers
-            )
-            concepts.add(resource)
-            pref_labels[resource] = frozenset({preferred_literal})
-            alt_labels[resource] = alternate_literals
-            notations[resource] = notation_literals
-            iri_claims.add((resource, RDF_TYPE, SKOS_CONCEPT))
-            literal_claims.add((resource, SKOS_PREF_LABEL, preferred_literal))
-            literal_claims.update(
-                (resource, SKOS_ALT_LABEL, literal) for literal in alternate_literals
-            )
-            literal_claims.update(
-                (resource, SKOS_NOTATION, literal) for literal in notation_literals
-            )
-            predicate_counts[(resource, RDF_TYPE)] = 1
-            predicate_counts[(resource, SKOS_PREF_LABEL)] = 1
-            predicate_counts[(resource, SKOS_ALT_LABEL)] = len(alternate_literals)
-            predicate_counts[(resource, SKOS_NOTATION)] = len(notation_literals)
-            resource_input_digests[resource] = frozenset({pin.sha256})
-            resource_locators[resource] = resource
-            expected_native_payloads[resource] = {
-                "publisherConceptIri": resource,
-                "descriptorUi": descriptor_ui,
-                "descriptorClass": descriptor_class,
-                "treeNumbers": list(tree_numbers),
-            }
-            element.clear()
-            while len(root):
-                del root[0]
-    except ElementTree.ParseError as error:
-        raise ValueError("MeSH descriptor XML is malformed") from error
-    if not concepts:
-        raise ValueError("MeSH descriptor XML contains no DescriptorRecord elements")
-
-    unevaluated_claims = tuple(
-        [
-            f"MeSH XML path {path!r} has {count} values outside the declared reader"
-            for path, count in sorted(ignored_paths.items())
-        ]
-        + [
-            f"MeSH XML attribute {path!r} has {count} values outside the declared reader"
-            for path, count in sorted(ignored_attributes.items())
-        ]
-    )
-    return PublisherView(
-        concepts=frozenset(concepts),
-        schemes=frozenset(),
-        pref_labels=pref_labels,
-        alt_labels=alt_labels,
-        hidden_labels={},
-        notations=notations,
-        annotations=frozenset(),
-        resource_annotations=frozenset(),
-        resource_annotation_target_claim_counts={},
-        literal_claims=frozenset(literal_claims),
-        iri_claims=frozenset(iri_claims),
-        reified_statements=frozenset(),
-        pref_label_count_all_languages=len(concepts),
-        alt_label_count_all_languages=sum(len(values) for values in alt_labels.values()),
-        hidden_label_count_all_languages=0,
-        relations=frozenset(),
-        memberships=frozenset(),
-        top_concept_of=frozenset(),
-        has_top_concept=frozenset(),
-        resource_predicate_counts=dict(predicate_counts),
-        defects=(),
-        resource_input_digests=resource_input_digests,
-        input_content_digests={pin.path: pin.sha256},
-        unevaluated_claims=unevaluated_claims,
-        resource_locators=resource_locators,
-        expected_native_payloads=expected_native_payloads,
-    )
-
-
 def _publisher_source_scheme_subjects(view: PublisherView) -> frozenset[str]:
     """Return explicit and referenced publisher-native scheme IRIs."""
     return frozenset(
@@ -1940,6 +1877,7 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
         declared_out_of_scope_blank_node_claims=(
             view.declared_out_of_scope_blank_node_claims
         ),
+        declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
         resource_locators={
             resource: locator
             for resource, locator in view.resource_locators.items()
@@ -1950,6 +1888,15 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
             for resource, payload in view.expected_native_payloads.items()
             if resource in resources
         },
+        expected_relation_payloads=view.expected_relation_payloads,
+        resource_input_digest_values={
+            resource: digest
+            for resource, digest in view.resource_input_digest_values.items()
+            if resource in resources
+        },
+        source_digest_is_native_payload_digest=(
+            view.source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -2040,6 +1987,7 @@ def _select_publisher_concepts(
         declared_out_of_scope_blank_node_claims=(
             view.declared_out_of_scope_blank_node_claims
         ),
+        declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
         resource_locators={
             resource: locator
             for resource, locator in view.resource_locators.items()
@@ -2050,6 +1998,15 @@ def _select_publisher_concepts(
             for resource, payload in view.expected_native_payloads.items()
             if resource in resources
         },
+        expected_relation_payloads=view.expected_relation_payloads,
+        resource_input_digest_values={
+            resource: digest
+            for resource, digest in view.resource_input_digest_values.items()
+            if resource in resources
+        },
+        source_digest_is_native_payload_digest=(
+            view.source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -2067,121 +2024,195 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
     return json.loads(payload, object_pairs_hook=reject_duplicates)
 
 
-FEDERAL_REGISTER_TOPICS_JSON_READER = "federal-register-topics-json-v1"
-GCMD_SCIENCE_KEYWORDS_CSV_READER = "gcmd-science-keywords-csv-v1"
-_FEDERAL_REGISTER_TOPICS_URL = (
-    "https://www.federalregister.gov/api/v1/topics.json"
-)
-_FEDERAL_REGISTER_TOPIC_KEYS = frozenset(
-    {"cfr_references", "name", "see", "see_also", "slug"}
-)
-_FEDERAL_REGISTER_LINK_KEYS = frozenset({"name", "slug"})
-_GCMD_CSV_COLUMNS = (
-    "Category",
-    "Topic",
-    "Term",
-    "Variable_Level_1",
-    "Variable_Level_2",
-    "Variable_Level_3",
-    "Detailed_Variable",
-    "UUID",
-)
-_GCMD_UUID = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    re.IGNORECASE,
-)
-_GCMD_ALLOWED_CATEGORIES = frozenset(
-    {"EARTH SCIENCE", "EARTH SCIENCE SERVICES"}
-)
-_GCMD_VIEWER_URL = (
-    "https://gcmd.earthdata.nasa.gov/KeywordViewer/scheme/"
-    "sciencekeywords/27478148-b4b6-4c89-8829-08d2ee7bfe10/"
-)
-_GCMD_AUTHORITY_URL = "https://gcmd.earthdata.nasa.gov/kms/"
+API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
 
 
 @dataclass(frozen=True)
-class _StockSourceRecord:
-    """One record read without registry code from JSON, CSV, XML, or MARC."""
+class _ApiCaptureRecord:
+    """One source row reconstructed with only stock JSON/XML operations."""
 
     resource: str
     preferred_label: str
-    alternate_labels: tuple[str, ...]
     notations: tuple[str, ...]
     source_locator: str
     source_digest: str
     native_payload: Mapping[str, Any]
+    is_skos_concept: bool = False
+    alternate_labels: tuple[str, ...] = ()
+    definition: str | None = None
+    relations: tuple[tuple[str, str], ...] = ()
 
 
-def _stock_source_view(
-    records: Sequence[_StockSourceRecord],
-    relations: Collection[tuple[str, str, str]],
-    pins: Sequence[SourcePin],
+def _canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _required_text(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label} must be non-empty text")
+    return value
+
+
+def _mapping_rows(value: Any, label: str) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list) or any(not isinstance(row, Mapping) for row in value):
+        raise ValueError(f"{label} must be an array of objects")
+    return list(value)
+
+
+def _single_pin(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> tuple[SourcePin, bytes]:
+    if len(spec.inputs) != 1:
+        raise ValueError(f"{spec.name} requires exactly one publisher input")
+    pin = spec.inputs[0]
+    return pin, payloads[pin]
+
+
+def _pin_with_role(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+    role: str,
+) -> tuple[SourcePin, bytes]:
+    matches = [(pin, payloads[pin]) for pin in spec.inputs if pin.role == role]
+    if len(matches) != 1:
+        raise ValueError(f"{spec.name} requires exactly one {role!r} input")
+    return matches[0]
+
+
+def _source_uuid7(recorded_at: str, seed: Mapping[str, Any]) -> str:
+    """Reconstruct the source-local UUIDv7 from its published inputs.
+
+    This is an independent spelling of UUIDv7 bit placement. It deliberately
+    does not import the registry's source-identity helper.
+    """
+    instant = datetime.fromisoformat(recorded_at)
+    timestamp_ms = int(instant.astimezone(UTC).timestamp() * 1000)
+    random_bits = int.from_bytes(hashlib.sha256(_canonical_json_bytes(seed)).digest())
+    random_bits >>= 182
+    random_a = random_bits >> 62
+    random_b = random_bits & ((1 << 62) - 1)
+    value = (
+        (timestamp_ms << 80)
+        | (0x7 << 76)
+        | (random_a << 64)
+        | (0b10 << 62)
+        | random_b
+    )
+    return str(uuid.UUID(int=value))
+
+
+def _source_concept_iri(
+    *,
+    token: str,
+    recorded_at: str,
+    source_locator: str,
+    source_path: str,
+    notations: Sequence[str],
+    identity_hint: str,
+) -> str:
+    seed = {
+        "source": source_locator,
+        "path": source_path,
+        "notations": list(notations),
+        "identityHint": identity_hint,
+    }
+    return f"urn:ref:source-concept:v2:{token}:{_source_uuid7(recorded_at, seed)}"
+
+
+def _source_observation_id(
+    *,
+    resource_id: str,
+    source_artifact: str,
+    source_path: str,
+    identifiers: Sequence[Mapping[str, Any]],
+    package_version: str | None = None,
+) -> str:
+    identity: dict[str, Any] = {
+        "resourceId": resource_id,
+        "sourceArtifact": source_artifact,
+        "sourcePath": source_path,
+        "identifiers": [
+            {
+                "value": item["value"],
+                "kind": item["kind"],
+                "authorityUri": item["authorityUri"],
+            }
+            for item in identifiers
+        ],
+    }
+    if package_version is not None:
+        identity = {"packageVersion": package_version, **identity}
+    digest = hashlib.sha256(_canonical_json_bytes(identity)).hexdigest()
+    return f"urn:ref:source-observation:{resource_id}:{digest}"
+
+
+def _api_capture_view(
+    records: Sequence[_ApiCaptureRecord],
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
     *,
     unevaluated_claims: Sequence[str] = (),
 ) -> PublisherView:
-    """Build the common comparison view from stock-parser records."""
     concepts: set[str] = set()
     pref_labels: dict[str, frozenset[LiteralValue]] = {}
     alt_labels: dict[str, frozenset[LiteralValue]] = {}
     notations: dict[str, frozenset[LiteralValue]] = {}
-    iri_claims: set[tuple[str, str, str]] = set(relations)
+    annotations: set[tuple[str, str, LiteralValue]] = set()
     literal_claims: set[tuple[str, str, LiteralValue]] = set()
-    predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
-    resource_input_digests: dict[str, frozenset[str]] = {}
-    resource_locators: dict[str, str] = {}
-    expected_native_payloads: dict[str, Mapping[str, Any]] = {}
+    iri_claims: set[tuple[str, str, str]] = set()
+    relations: set[tuple[str, str, str]] = set()
+    predicate_counts: Counter[tuple[str, str]] = Counter()
+    input_digests = {
+        pin.path: "sha256:" + hashlib.sha256(payload).hexdigest()
+        for pin, payload in payloads.items()
+    }
+    resource_digests: dict[str, frozenset[str]] = {}
+    locators: dict[str, str] = {}
+    native_payloads: dict[str, Mapping[str, Any]] = {}
     for record in records:
         if record.resource in concepts:
-            raise ValueError(
-                f"stock source reader repeats resource {record.resource!r}"
-            )
+            raise ValueError(f"{spec.name} repeats resource {record.resource!r}")
         concepts.add(record.resource)
         preferred = _literal_value(record.preferred_label, "en", None)
-        alternate = frozenset(
-            _literal_value(value, "en", None)
-            for value in record.alternate_labels
+        alternates = frozenset(
+            _literal_value(value, "en", None) for value in record.alternate_labels
         )
         notation_values = frozenset(
             _literal_value(value, None, None) for value in record.notations
         )
         pref_labels[record.resource] = frozenset({preferred})
-        alt_labels[record.resource] = alternate
+        alt_labels[record.resource] = alternates
         notations[record.resource] = notation_values
-        iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
         literal_claims.add((record.resource, SKOS_PREF_LABEL, preferred))
-        literal_claims.update(
-            (record.resource, SKOS_ALT_LABEL, literal)
-            for literal in alternate
-        )
-        literal_claims.update(
-            (record.resource, SKOS_NOTATION, literal)
-            for literal in notation_values
-        )
-        predicate_counts[(record.resource, RDF_TYPE)] = 1
-        predicate_counts[(record.resource, SKOS_PREF_LABEL)] = 1
-        predicate_counts[(record.resource, SKOS_ALT_LABEL)] = len(alternate)
-        predicate_counts[(record.resource, SKOS_NOTATION)] = len(notation_values)
-        resource_input_digests[record.resource] = frozenset(
-            {record.source_digest}
-        )
-        resource_locators[record.resource] = record.source_locator
-        expected_native_payloads[record.resource] = record.native_payload
-    for subject, predicate, _ in relations:
-        predicate_counts[(subject, predicate)] += 1
-    unknown_relation_endpoints = sorted(
-        {
-            endpoint
-            for subject, _, obj in relations
-            for endpoint in (subject, obj)
-            if endpoint not in concepts
-        }
-    )
-    if unknown_relation_endpoints:
-        raise ValueError(
-            "stock source relations name unknown resources: "
-            f"{unknown_relation_endpoints[:5]}"
-        )
+        predicate_counts[(record.resource, SKOS_PREF_LABEL)] += 1
+        if record.is_skos_concept:
+            iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
+            predicate_counts[(record.resource, RDF_TYPE)] += 1
+        for value in alternates:
+            literal_claims.add((record.resource, SKOS_ALT_LABEL, value))
+            predicate_counts[(record.resource, SKOS_ALT_LABEL)] += 1
+        for value in notation_values:
+            literal_claims.add((record.resource, SKOS_NOTATION, value))
+            predicate_counts[(record.resource, SKOS_NOTATION)] += 1
+        if record.definition is not None:
+            value = _literal_value(record.definition, "en", None)
+            annotations.add((record.resource, SKOS_DEFINITION, value))
+            literal_claims.add((record.resource, SKOS_DEFINITION, value))
+            predicate_counts[(record.resource, SKOS_DEFINITION)] += 1
+        for predicate, target in record.relations:
+            relations.add((record.resource, predicate, target))
+            iri_claims.add((record.resource, predicate, target))
+            predicate_counts[(record.resource, predicate)] += 1
+        resource_digests[record.resource] = frozenset({record.source_digest})
+        locators[record.resource] = record.source_locator
+        native_payloads[record.resource] = record.native_payload
     return PublisherView(
         concepts=frozenset(concepts),
         schemes=frozenset(),
@@ -2189,14 +2220,14 @@ def _stock_source_view(
         alt_labels=alt_labels,
         hidden_labels={},
         notations=notations,
-        annotations=frozenset(),
+        annotations=frozenset(annotations),
         resource_annotations=frozenset(),
         resource_annotation_target_claim_counts={},
         literal_claims=frozenset(literal_claims),
         iri_claims=frozenset(iri_claims),
         reified_statements=frozenset(),
-        pref_label_count_all_languages=len(pref_labels),
-        alt_label_count_all_languages=sum(len(values) for values in alt_labels.values()),
+        pref_label_count_all_languages=len(records),
+        alt_label_count_all_languages=sum(len(row.alternate_labels) for row in records),
         hidden_label_count_all_languages=0,
         relations=frozenset(relations),
         memberships=frozenset(),
@@ -2204,363 +2235,1060 @@ def _stock_source_view(
         has_top_concept=frozenset(),
         resource_predicate_counts=dict(predicate_counts),
         defects=(),
-        resource_input_digests=resource_input_digests,
-        input_content_digests={pin.path: pin.sha256 for pin in pins},
+        resource_input_digests=resource_digests,
+        input_content_digests=input_digests,
         unevaluated_claims=tuple(unevaluated_claims),
-        resource_locators=resource_locators,
-        expected_native_payloads=expected_native_payloads,
+        resource_locators=locators,
+        expected_native_payloads=native_payloads,
     )
 
 
-def _canonical_json_source_digest(value: Any) -> str:
-    """Hash one JSON value with the source adapters' documented spelling."""
-    payload = json.dumps(
-        value,
-        ensure_ascii=False,
-        allow_nan=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
+def _code_identifier(
+    *,
+    value: str,
+    kind: str,
+    authority: str,
+    pin: SourcePin,
+    observed_at: str,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "kind": kind,
+        "authority_uri": authority,
+        "source_uri": pin.source_iri,
+        "observed_at": observed_at,
+        "effective_at": None,
+        "source_digest": pin.sha256,
+    }
 
 
-def _derive_source_uuid7(recorded_at: str, seed: bytes) -> str:
-    """Independently derive the deterministic UUIDv7 used for local rows."""
-    parsed = datetime.fromisoformat(
-        recorded_at[:-1] + "+00:00"
-        if recorded_at.endswith("Z")
-        else recorded_at
-    )
-    if parsed.tzinfo is None:
-        raise ValueError("source-local identity timestamp must include a time zone")
-    timestamp_ms = int(parsed.astimezone(UTC).timestamp() * 1_000)
-    if timestamp_ms < 0 or timestamp_ms >= 1 << 48:
-        raise ValueError("source-local identity timestamp is outside UUIDv7 range")
-    random_bits = int.from_bytes(hashlib.sha256(seed).digest(), "big") >> 182
-    random_a = random_bits >> 62
-    random_b = random_bits & ((1 << 62) - 1)
-    value = timestamp_ms << 80
-    value |= 0x7 << 76
-    value |= random_a << 64
-    value |= 0b10 << 62
-    value |= random_b
-    return str(uuid.UUID(int=value))
-
-
-def _source_local_resource_iri(
-    namespace: str,
-    recorded_at: str,
-    source_iri: str,
-    source_key: str,
-) -> str:
-    seed = (
-        "atlas-v3-registry-source-identity-v1\n"
-        f"{source_iri}\n{source_key}\n"
-    ).encode()
-    local_id = _derive_source_uuid7(recorded_at, seed)
-    return f"urn:ref:source-concept:v2:{namespace}:{local_id}"
-
-
-def _source_scoped_resource_identity(
-    namespace: str,
-    recorded_at: str,
-    source_scheme: str,
-    source_key: str,
-) -> tuple[str, Mapping[str, str]]:
-    seed = (
-        "atlas-v3-source-concept-v1\n"
-        f"{source_scheme}\n{source_key}\n"
-    ).encode()
-    local_id = _derive_source_uuid7(recorded_at, seed)
-    return (
-        f"urn:ref:source-concept:v2:{namespace}:{local_id}",
-        {
-            "identityKind": "refspecSourceScoped",
-            "localRecordId": f"urn:uuid:{local_id}",
-            "namespaceToken": namespace,
-            "sourceKey": source_key,
-            "sourceScheme": source_scheme,
-        },
-    )
-
-
-def _require_exact_json_keys(
-    value: Mapping[str, Any],
-    expected: Collection[str],
-    label: str,
-) -> None:
-    if set(value) != set(expected):
-        raise ValueError(
-            f"{label} fields changed; missing={sorted(set(expected) - set(value))}, "
-            f"extra={sorted(set(value) - set(expected))}"
-        )
-
-
-def _read_federal_register_topics_json(
+def _read_lda_capture(
     spec: SourceSpec,
-    authenticated_payloads: Mapping[SourcePin, bytes],
+    payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    """Read the captured FederalRegister.gov topics API with stdlib JSON."""
-    if len(spec.inputs) != 1:
-        raise ValueError("Federal Register topics reader requires one JSON input")
-    pin = spec.inputs[0]
-    document = _json_without_duplicate_keys(
-        authenticated_payloads[pin],
-        pin.path,
-    )
-    if not isinstance(document, Mapping):
-        raise ValueError("Federal Register topics response must be an object")
-    _require_exact_json_keys(document, {"meta", "results"}, "topics response")
-    meta = document["meta"]
-    results = document["results"]
-    if not isinstance(meta, Mapping) or set(meta) != {"count"}:
-        raise ValueError("Federal Register topics meta must contain only count")
-    counts = meta["count"]
-    if not isinstance(counts, Mapping):
-        raise ValueError("Federal Register topics meta.count must be an object")
-    _require_exact_json_keys(
-        counts,
-        {"thesaurus", "ad_hoc", "total"},
-        "topics meta.count",
-    )
-    if not isinstance(results, Mapping):
-        raise ValueError("Federal Register topics results must be an object")
-    _require_exact_json_keys(
-        results,
-        {"thesaurus", "ad_hoc"},
-        "topics results",
-    )
-
-    parsed_rows: list[tuple[str, int, Mapping[str, Any], str]] = []
-    resource_by_pair: dict[tuple[str, str, str], str] = {}
-    for collection in ("thesaurus", "ad_hoc"):
-        rows = results[collection]
-        if not isinstance(rows, list):
-            raise ValueError(f"topics results.{collection} must be an array")
-        declared_count = counts.get(collection)
-        if declared_count != len(rows) or isinstance(declared_count, bool):
-            raise ValueError(
-                f"topics meta.count.{collection} declares {declared_count!r}, "
-                f"observed {len(rows)}"
-            )
-        for ordinal, raw_row in enumerate(rows):
-            label = f"results.{collection}[{ordinal}]"
-            if not isinstance(raw_row, Mapping):
-                raise ValueError(f"{label} must be an object")
-            _require_exact_json_keys(raw_row, _FEDERAL_REGISTER_TOPIC_KEYS, label)
-            name = raw_row.get("name")
-            slug = raw_row.get("slug")
-            if not isinstance(name, str) or not name.strip():
-                raise ValueError(f"{label}.name must be non-empty text")
-            if not isinstance(slug, str):
-                raise ValueError(f"{label}.slug must be text")
-            for field_name in ("see", "see_also", "cfr_references"):
-                if not isinstance(raw_row.get(field_name), list):
-                    raise ValueError(f"{label}.{field_name} must be an array")
-            for field_name in ("see", "see_also"):
-                for index, link in enumerate(raw_row[field_name]):
-                    if not isinstance(link, Mapping):
-                        raise ValueError(f"{label}.{field_name}[{index}] must be an object")
-                    _require_exact_json_keys(
-                        link,
-                        _FEDERAL_REGISTER_LINK_KEYS,
-                        f"{label}.{field_name}[{index}]",
-                    )
-                    if not isinstance(link.get("name"), str) or not link["name"].strip():
-                        raise ValueError(f"{label}.{field_name}[{index}].name must be text")
-                    if not isinstance(link.get("slug"), str):
-                        raise ValueError(f"{label}.{field_name}[{index}].slug must be text")
-            row_digest = _canonical_json_source_digest(
-                {
-                    "collection": collection,
-                    "sourceOrdinal": ordinal,
-                    "record": raw_row,
-                }
-            )
-            resource = _source_local_resource_iri(
-                "federal-register-api",
-                "2026-08-03T00:00:00Z",
-                _FEDERAL_REGISTER_TOPICS_URL,
-                f"{collection}:{ordinal}:{row_digest}",
-            )
-            pair = (collection, name, slug)
-            if pair in resource_by_pair:
-                raise ValueError(f"Federal Register topic pair is duplicated: {pair!r}")
-            resource_by_pair[pair] = resource
-            parsed_rows.append((collection, ordinal, raw_row, resource))
-    if counts.get("total") != len(parsed_rows) or isinstance(counts.get("total"), bool):
-        raise ValueError(
-            f"topics meta.count.total declares {counts.get('total')!r}, "
-            f"observed {len(parsed_rows)}"
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    rows = _mapping_rows(data, spec.name)
+    if spec.name == "lda-general-issue-codes":
+        token, resource_name = "lda-general-issues", "generalIssueCodes"
+        identifier_kind, use = "generalIssueCode", "sourceAssignedEvidence"
+    else:
+        token, resource_name = "lda-filing-types", "filingTypes"
+        identifier_kind, use = "filingTypeCode", "deterministicMetadata"
+    recorded_at = "2026-07-30T12:45:14Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, row in enumerate(rows):
+        if set(row) != {"value", "name"}:
+            raise ValueError(f"{spec.name}[{ordinal}] has an unexpected field set")
+        code = _required_text(row["value"], f"{spec.name}[{ordinal}].value")
+        label = _required_text(row["name"], f"{spec.name}[{ordinal}].name")
+        source_path = f"$.{resource_name}[{ordinal}]"
+        resource = _source_concept_iri(
+            token=token,
+            recorded_at=recorded_at,
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=(code,),
+            identity_hint=label,
         )
+        native = {
+            "identifiers": [
+                _code_identifier(
+                    value=code,
+                    kind=identifier_kind,
+                    authority="https://lda.gov/",
+                    pin=pin,
+                    observed_at=recorded_at,
+                )
+            ],
+            "is_general_subject_concept": False,
+            "publisher_label": label,
+            "resource_name": resource_name,
+            "source_url": pin.source_iri,
+            "use": use,
+            "sourceArtifact": pin.source_iri,
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+                is_skos_concept=(spec.name == "lda-general-issue-codes"),
+            )
+        )
+    return _api_capture_view(records, spec, payloads)
 
-    records: list[_StockSourceRecord] = []
-    relations: set[tuple[str, str, str]] = set()
-    for collection, ordinal, row, resource in parsed_rows:
-        source_path = f"results.{collection}[{ordinal}]"
-        row_digest = _canonical_json_source_digest(
+
+def _read_ecfr_titles_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    rows = _mapping_rows(data.get("titles"), f"{spec.name}.titles")
+    recorded_at = "2026-08-03T19:15:00Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, row in enumerate(rows):
+        number = row.get("number")
+        if not isinstance(number, int) or isinstance(number, bool):
+            raise ValueError(f"{spec.name}.titles[{ordinal}].number must be an integer")
+        label = _required_text(row.get("name"), f"{spec.name}.titles[{ordinal}].name")
+        notation = str(number)
+        source_path = f"$.titles[{ordinal}]"
+        resource = _source_concept_iri(
+            token="ecfr-cfr-titles",
+            recorded_at=recorded_at,
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=(notation,),
+            identity_hint=label,
+        )
+        native = {
+            "title_number": number,
+            "name": label,
+            "latest_amended_on": row.get("latest_amended_on"),
+            "latest_issue_date": row.get("latest_issue_date"),
+            "up_to_date_as_of": row.get("up_to_date_as_of"),
+            "reserved": row.get("reserved"),
+            "identifiers": [
+                _code_identifier(
+                    value=notation,
+                    kind="ecfrCfrTitleNumber",
+                    authority="https://www.ecfr.gov/developers/documentation/api/v1",
+                    pin=pin,
+                    observed_at=recorded_at,
+                )
+            ],
+            "is_general_subject_concept": False,
+            "sourceArtifact": pin.source_iri,
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(notation,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=("eCFR response-level metadata is authenticated but not represented",),
+    )
+
+
+def _camel_identifier(
+    *,
+    value: str,
+    kind: str,
+    authority: str,
+    pin: SourcePin,
+    source_path: str,
+    observed_at: str,
+    source_field: str,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "kind": kind,
+        "authorityUri": authority,
+        "sourceUri": pin.source_iri,
+        "sourcePath": f"{source_path}.{source_field}",
+        "observedAt": observed_at,
+        "sourceDigest": pin.sha256,
+    }
+
+
+def _read_govinfo_collections_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    rows = _mapping_rows(data.get("collections"), f"{spec.name}.collections")
+    observed_at = "2026-08-03T19:15:00Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, row in enumerate(rows):
+        code = _required_text(
+            row.get("collectionCode"),
+            f"{spec.name}.collections[{ordinal}].collectionCode",
+        )
+        label = _required_text(
+            row.get("collectionName"),
+            f"{spec.name}.collections[{ordinal}].collectionName",
+        )
+        source_path = f"$[{ordinal}]"
+        identifiers = [
+            _camel_identifier(
+                value=code,
+                kind="govInfoCollectionCode",
+                authority="https://www.govinfo.gov/developers",
+                pin=pin,
+                source_path=source_path,
+                observed_at=observed_at,
+                source_field="collectionCode",
+            )
+        ]
+        observation_id = _source_observation_id(
+            resource_id="govinfo-collections-2026-08-03",
+            source_artifact=pin.source_iri or "",
+            source_path=source_path,
+            identifiers=identifiers,
+        )
+        native = {
+            "id": observation_id,
+            "sourceArtifact": pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": ordinal,
+            "labels": [{"value": label, "language": "en", "role": "preferred"}],
+            "identifiers": identifiers,
+            "uses": ["deterministicMetadata"],
+            "conceptIdentityClaimed": False,
+        }
+        resource = _source_concept_iri(
+            token="govinfo-collections",
+            recorded_at=observed_at,
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=(code,),
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=("GovInfo collection package and granule counts are not represented",),
+    )
+
+
+def _read_usaspending_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    categories = {
+        "contracts": "awardTypeCode",
+        "idvs": "awardTypeCode",
+        "grants": "assistanceTypeCode",
+        "loans": "assistanceTypeCode",
+        "other_financial_assistance": "assistanceTypeCode",
+        "direct_payments": "assistanceTypeCode",
+    }
+    if set(data) != set(categories):
+        raise ValueError(f"{spec.name} has an unexpected category set")
+    observed_at = "2026-08-03T19:25:21Z"
+    records: list[_ApiCaptureRecord] = []
+    ordinal = 0
+    for category, identifier_kind in categories.items():
+        rows = data[category]
+        if not isinstance(rows, Mapping):
+            raise ValueError(f"{spec.name}.{category} must be an object")
+        for raw_code, raw_label in rows.items():
+            code = _required_text(raw_code, f"{spec.name}.{category} code")
+            label = _required_text(raw_label, f"{spec.name}.{category}.{code}")
+            source_path = f"$.awardTypes[{ordinal}]"
+            resource = _source_concept_iri(
+                token="usaspending-award-types",
+                recorded_at=observed_at,
+                source_locator=pin.source_iri or "",
+                source_path=source_path,
+                notations=(code,),
+                identity_hint=label,
+            )
+            native = {
+                "category": category,
+                "identifiers": [
+                    _code_identifier(
+                        value=code,
+                        kind=identifier_kind,
+                        authority="https://www.usaspending.gov/",
+                        pin=pin,
+                        observed_at=observed_at,
+                    )
+                ],
+                "is_general_subject_concept": False,
+                "publisher_label": label,
+                "resource_name": "awardTypes",
+                "source_url": pin.source_iri,
+                "use": "deterministicMetadata",
+                "sourceArtifact": pin.source_iri,
+            }
+            records.append(
+                _ApiCaptureRecord(
+                    resource=resource,
+                    preferred_label=label,
+                    notations=(code,),
+                    source_locator=pin.source_iri or "",
+                    source_digest=pin.sha256,
+                    native_payload=native,
+                )
+            )
+            ordinal += 1
+    return _api_capture_view(records, spec, payloads)
+
+
+def _equals_lines(value: Any, label: str) -> list[tuple[str, str]]:
+    if value is None:
+        return []
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be text or null")
+    result: list[tuple[str, str]] = []
+    for line in value.splitlines():
+        if not line.strip():
+            continue
+        if " = " not in line:
+            raise ValueError(f"{label} has a malformed domain row {line!r}")
+        code, text = line.split(" = ", 1)
+        result.append((_required_text(code, label), _required_text(text, label)))
+    return result
+
+
+def _read_gsdm_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    root = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(root, Mapping) or not isinstance(root.get("document"), Mapping):
+        raise ValueError(f"{spec.name} must contain one document object")
+    document = root["document"]
+    raw_rows = document.get("rows")
+    if not isinstance(raw_rows, list) or any(not isinstance(row, list) for row in raw_rows):
+        raise ValueError(f"{spec.name}.document.rows must be an array of arrays")
+    rows = list(raw_rows)
+    targets = {"ActionType", "AssistanceType", "ContractAwardType"}
+    records: list[_ApiCaptureRecord] = []
+    seen_elements: set[str] = set()
+    for row_number, row in enumerate(rows):
+        # The publisher represents each dictionary row as an 18-column array.
+        values = list(row)
+        if len(values) != 18:
+            raise ValueError(f"{spec.name}.document.rows[{row_number}] has {len(values)} columns")
+        element = values[0]
+        if element not in targets:
+            continue
+        if not isinstance(element, str) or element in seen_elements:
+            raise ValueError(f"{spec.name} repeats reviewed element {element!r}")
+        seen_elements.add(element)
+        description_by_code = dict(
+            _equals_lines(values[5], f"{spec.name}.{element}.codeDescriptions")
+        )
+        domain_text = values[4]
+        if not isinstance(domain_text, str):
+            raise ValueError(f"{spec.name}.{element}.domainValues must be text")
+        group = ""
+        parsed: list[tuple[str, str, str]] = []
+        for line in domain_text.splitlines():
+            if not line.strip():
+                continue
+            if line.endswith(":") and " = " not in line:
+                group = line[:-1].strip().lower()
+                continue
+            for code, label in _equals_lines(line, f"{spec.name}.{element}.domainValues"):
+                parsed.append((group, code, label))
+        for domain_group, code, label in parsed:
+            group_token = domain_group or "default"
+            resource = (
+                "urn:ref:gsdm:domain-value:"
+                f"{urllib.parse.quote(element, safe='')}:"
+                f"{urllib.parse.quote(group_token, safe='')}:"
+                f"{urllib.parse.quote(code, safe='')}"
+            )
+            code_description = description_by_code.get(code)
+            native = {
+                "gsdmElement": element,
+                "domainGroup": domain_group,
+                "code": code,
+                "label": label,
+                "codeDescription": code_description,
+            }
+            records.append(
+                _ApiCaptureRecord(
+                    resource=resource,
+                    preferred_label=label,
+                    notations=(code,),
+                    source_locator=pin.source_iri or "",
+                    source_digest=pin.sha256,
+                    native_payload=native,
+                    definition=code_description,
+                )
+            )
+    if seen_elements != targets or len(records) != 40:
+        raise ValueError(
+            f"{spec.name} reviewed domain selection drifted: "
+            f"elements={sorted(seen_elements)}, records={len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "the other 454 authenticated GSDM dictionary rows are outside this reviewed release",
+        ),
+    )
+
+
+def _read_nasa_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    child_matches = [
+        (pin, payload)
+        for pin, payload in payloads.items()
+        if (pin.source_iri or "").endswith("/8817")
+    ]
+    root_matches = [
+        (pin, payload)
+        for pin, payload in payloads.items()
+        if (pin.source_iri or "").endswith("/taxonomies")
+    ]
+    if len(child_matches) != 1 or len(root_matches) != 1:
+        raise ValueError(f"{spec.name} requires one roots capture and one 8817 capture")
+    child_pin, child_payload = child_matches[0]
+    _, root_payload = root_matches[0]
+    child = _json_without_duplicate_keys(child_payload, f"{spec.name} children")
+    roots = _json_without_duplicate_keys(root_payload, f"{spec.name} roots")
+    if not isinstance(child, Mapping) or not isinstance(roots, Mapping):
+        raise ValueError(f"{spec.name} inputs must be JSON objects")
+    root_rows = _mapping_rows(roots.get("taxonomyRoots"), f"{spec.name}.taxonomyRoots")
+    selected = [row for row in root_rows if row.get("taxonomyRootId") == 8817]
+    if len(selected) != 1 or child.get("taxonomyRootId") != 8817:
+        raise ValueError(f"{spec.name} does not contain the declared taxonomy root 8817")
+    if child.get("taxonomyRoot") != selected[0]:
+        raise ValueError(f"{spec.name} root index and children capture disagree")
+    rows = _mapping_rows(child.get("children"), f"{spec.name}.children")
+    observed_at = "2026-08-03T19:03:22Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, wrapper in enumerate(rows):
+        content = wrapper.get("content")
+        if not isinstance(content, Mapping):
+            raise ValueError(f"{spec.name}.children[{ordinal}].content must be an object")
+        code = _required_text(content.get("code"), f"{spec.name}.children[{ordinal}].code")
+        label = _required_text(content.get("title"), f"{spec.name}.children[{ordinal}].title")
+        node_id = str(content.get("taxonomyNodeId"))
+        source_path = f"$.children[{ordinal}].content"
+        identifiers = [
+            _camel_identifier(
+                value=code,
+                kind="taxonomyNodeCode",
+                authority="https://techport.nasa.gov/",
+                pin=child_pin,
+                source_path=source_path.removesuffix(".content"),
+                observed_at=observed_at,
+                source_field="content",
+            ),
+            _camel_identifier(
+                value=node_id,
+                kind="publisherRecordId",
+                authority="https://techport.nasa.gov/",
+                pin=child_pin,
+                source_path=source_path.removesuffix(".content"),
+                observed_at=observed_at,
+                source_field="content",
+            ),
+        ]
+        observation_id = _source_observation_id(
+            resource_id="nasa-technology-taxonomy-8817-top-level-2026-08-03",
+            source_artifact=child_pin.source_iri or "",
+            source_path=source_path,
+            identifiers=identifiers,
+            package_version="nasa-technology-taxonomy-package-v1",
+        )
+        native = {
+            "id": observation_id,
+            "sourceArtifact": child_pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": ordinal,
+            "labels": [{"value": label, "language": "en", "role": "preferred"}],
+            "identifiers": identifiers,
+            "uses": ["deterministicMetadata", "mappingReference"],
+            "conceptIdentityClaimed": False,
+        }
+        resource = _source_concept_iri(
+            token="nasa-techport-taxonomy",
+            recorded_at=observed_at,
+            source_locator=child_pin.source_iri or "",
+            source_path=source_path,
+            notations=(code, node_id),
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code, node_id),
+                source_locator=child_pin.source_iri or "",
+                source_digest=child_pin.sha256,
+                native_payload=native,
+                is_skos_concept=True,
+            )
+        )
+    if len(records) != 17:
+        raise ValueError(f"{spec.name} expected 17 top-level nodes, observed {len(records)}")
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "NASA root release metadata is authenticated and cross-checked but not represented per node",
+        ),
+    )
+
+
+def _fcc_identifier(
+    value: Any,
+    kind: str,
+    pin: SourcePin,
+    source_path: str,
+) -> dict[str, Any]:
+    return {
+        "value": str(value),
+        "kind": kind,
+        "authorityUri": "https://www.fcc.gov/ecfs/",
+        "sourceUri": pin.source_iri,
+        "sourcePath": source_path,
+        "observedAt": "2026-08-03T19:20:00Z",
+        "sourceDigest": pin.sha256,
+    }
+
+
+def _read_fcc_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    filings = _mapping_rows(data.get("filing"), f"{spec.name}.filing")
+    distinct: dict[str, tuple[str, str, int, list[dict[str, Any]]]] = {}
+
+    def retain(
+        key: str,
+        label: str,
+        source_path: str,
+        source_ordinal: int,
+        identifiers: list[dict[str, Any]],
+    ) -> None:
+        candidate = (label, source_path, source_ordinal, identifiers)
+        prior = distinct.get(key)
+        if prior is None:
+            distinct[key] = candidate
+        elif prior[0] != label or [item["value"] for item in prior[3]] != [
+            item["value"] for item in identifiers
+        ]:
+            raise ValueError(f"{spec.name} carries conflicting rows for {key!r}")
+
+    for ordinal, filing in enumerate(filings):
+        if spec.name == "fcc-ecfs-filing-types":
+            row = filing.get("submissiontype")
+            if not isinstance(row, Mapping):
+                raise ValueError(f"{spec.name}.filing[{ordinal}].submissiontype is invalid")
+            code = row.get("abbreviation", row.get("type"))
+            code = _required_text(code, f"{spec.name}.filing[{ordinal}] abbreviation")
+            label = _required_text(row.get("description"), f"{spec.name}.filing[{ordinal}] description")
+            path = f"$.filing[{ordinal}].submissiontype"
+            retain(
+                code,
+                label,
+                path,
+                ordinal,
+                [
+                    _fcc_identifier(code, "filingTypeAbbreviation", pin, path),
+                    _fcc_identifier(row.get("id"), "publisherRecordId", pin, path),
+                ],
+            )
+        elif spec.name == "fcc-ecfs-access-statuses":
+            row = filing.get("viewingstatus")
+            if not isinstance(row, Mapping):
+                raise ValueError(f"{spec.name}.filing[{ordinal}].viewingstatus is invalid")
+            key = str(row.get("id"))
+            label = _required_text(row.get("description"), f"{spec.name}.filing[{ordinal}] description")
+            path = f"$.filing[{ordinal}].viewingstatus"
+            retain(key, label, path, ordinal, [_fcc_identifier(key, "accessStatusId", pin, path)])
+        else:
+            proceedings = _mapping_rows(
+                filing.get("proceedings"), f"{spec.name}.filing[{ordinal}].proceedings"
+            )
+            for proceeding_ordinal, row in enumerate(proceedings):
+                path = f"$.filing[{ordinal}].proceedings[{proceeding_ordinal}]"
+                source_ordinal = ordinal * 1000 + proceeding_ordinal
+                bureau_code = _required_text(row.get("bureau_code"), f"{path}.bureau_code")
+                if spec.name == "fcc-ecfs-bureaus":
+                    label = _required_text(row.get("bureau_name"), f"{path}.bureau_name")
+                    retain(
+                        bureau_code,
+                        label,
+                        path,
+                        source_ordinal,
+                        [_fcc_identifier(bureau_code, "bureauCode", pin, path)],
+                    )
+                else:
+                    number = _required_text(row.get("name"), f"{path}.name")
+                    label = _required_text(row.get("description"), f"{path}.description")
+                    retain(
+                        number,
+                        label,
+                        path,
+                        source_ordinal,
+                        [
+                            _fcc_identifier(number, "proceedingNumber", pin, path),
+                            _fcc_identifier(row.get("id_proceeding"), "publisherRecordId", pin, path),
+                            _fcc_identifier(bureau_code, "bureauCode", pin, path),
+                        ],
+                    )
+    config = {
+        "fcc-ecfs-filing-types": ("fcc-ecfs-filing-types-2026-08-03", 6),
+        "fcc-ecfs-access-statuses": ("fcc-ecfs-access-statuses-2026-08-03", 1),
+        "fcc-ecfs-bureaus": ("fcc-ecfs-bureaus-2026-08-03", 5),
+        "fcc-ecfs-proceedings": ("fcc-ecfs-proceedings-2026-08-03", 15),
+    }
+    resource_id, expected_count = config[spec.name]
+    if len(distinct) != expected_count:
+        raise ValueError(f"{spec.name} expected {expected_count} distinct rows, observed {len(distinct)}")
+    records: list[_ApiCaptureRecord] = []
+    for _, (label, source_path, source_ordinal, identifiers) in distinct.items():
+        observation_id = _source_observation_id(
+            resource_id=resource_id,
+            source_artifact=pin.source_iri or "",
+            source_path=source_path,
+            identifiers=identifiers,
+            package_version="fcc-ecfs-controlled-list-package-v1",
+        )
+        native = {
+            "id": observation_id,
+            "sourceArtifact": pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": source_ordinal,
+            "labels": [{"value": label, "language": "en", "role": "preferred"}],
+            "identifiers": identifiers,
+            "uses": ["deterministicMetadata"],
+            "conceptIdentityClaimed": False,
+        }
+        notation_values = tuple(item["value"] for item in identifiers)
+        resource = _source_concept_iri(
+            token=spec.name,
+            recorded_at="2026-08-03T19:20:00Z",
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=notation_values,
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=notation_values,
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "FCC filing fields outside submissiontype, viewingstatus, and proceedings are authenticated but not represented",
+        ),
+    )
+
+
+def _read_federal_hierarchy_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    parsed: list[tuple[SourcePin, int, Mapping[str, Any], str]] = []
+    input_totals: list[str] = []
+    for pin in spec.inputs:
+        data = _json_without_duplicate_keys(payloads[pin], pin.path)
+        if not isinstance(data, Mapping) or set(data) != {"totalrecords", "orglist"}:
+            raise ValueError(f"{pin.path} has an unexpected Federal Hierarchy shape")
+        rows = _mapping_rows(data["orglist"], f"{pin.path}.orglist")
+        observed_at = (
+            "2026-08-03T22:19:12Z"
+            if "fhorgtype=Sub-Tier" in (pin.source_iri or "")
+            else "2026-08-03T22:19:03Z"
+        )
+        input_totals.append(
+            f"{pin.path} totalrecords={data['totalrecords']!r} (bounded page returned {len(rows)})"
+        )
+        parsed.extend((pin, ordinal, row, observed_at) for ordinal, row in enumerate(rows))
+    resource_ids = {str(row.get("fhorgid")) for _, _, row, _ in parsed}
+    records: list[_ApiCaptureRecord] = []
+    for pin, ordinal, row, observed_at in parsed:
+        fhorgid = str(row.get("fhorgid"))
+        label = _required_text(row.get("fhorgname"), f"{pin.path}.orglist[{ordinal}].fhorgname")
+        parent_id = str(row.get("fhdeptindagencyorgid"))
+        parent_history = _mapping_rows(
+            row.get("fhorgparenthistory"),
+            f"{pin.path}.orglist[{ordinal}].fhorgparenthistory",
+        )
+        if not parent_history:
+            raise ValueError(f"{pin.path}.orglist[{ordinal}] has no parent history")
+        parent = parent_history[0]
+        identifiers = [
+            _code_identifier(
+                value=fhorgid,
+                kind="fhOrgId",
+                authority="https://sam.gov/",
+                pin=pin,
+                observed_at=observed_at,
+            ),
+            _code_identifier(
+                value=_required_text(row.get("agencycode"), f"{pin.path}.agencycode"),
+                kind="fpdsAgencyCode",
+                authority="https://www.fpds.gov/",
+                pin=pin,
+                observed_at=observed_at,
+            ),
+        ]
+        old_code = row.get("oldfpdsofficecode")
+        if old_code is not None:
+            identifiers.append(
+                _code_identifier(
+                    value=_required_text(old_code, f"{pin.path}.oldfpdsofficecode"),
+                    kind="oldFpdsOfficeCode",
+                    authority="https://www.fpds.gov/",
+                    pin=pin,
+                    observed_at=observed_at,
+                )
+            )
+        cgac_rows = row.get("cgaclist")
+        if not isinstance(cgac_rows, list):
+            raise ValueError(f"{pin.path}.orglist[{ordinal}].cgaclist must be an array")
+        if cgac_rows:
+            cgac_row = cgac_rows[0]
+            if not isinstance(cgac_row, Mapping):
+                raise ValueError(f"{pin.path}.orglist[{ordinal}].cgaclist[0] is invalid")
+            identifiers.append(
+                _code_identifier(
+                    value=_required_text(cgac_row.get("cgac"), f"{pin.path}.cgac"),
+                    kind="cgacCode",
+                    authority="https://www.fiscal.treasury.gov/",
+                    pin=pin,
+                    observed_at=observed_at,
+                )
+            )
+        full_parent_path_id = _required_text(
+            parent.get("fhfullparentpathid"), f"{pin.path}.fhfullparentpathid"
+        )
+        identifiers.append(
+            _code_identifier(
+                value=full_parent_path_id,
+                kind="fhFullParentPathId",
+                authority="https://sam.gov/",
+                pin=pin,
+                observed_at=observed_at,
+            )
+        )
+        native = {
+            "fhorgid": fhorgid,
+            "fhorgname": label,
+            "fhorgtype": row.get("fhorgtype"),
+            "status": row.get("status"),
+            "identifiers": identifiers,
+            "parent_fhorgid": parent_id,
+            "parent_org_name": row.get("fhagencyorgname"),
+            "full_parent_path_id": full_parent_path_id,
+            "full_parent_path_name": parent.get("fhfullparentpathname"),
+            "source_ordinal": ordinal,
+        }
+        relations: tuple[tuple[str, str], ...] = ()
+        if parent_id != fhorgid and parent_id in resource_ids:
+            relations = ((f"{ATLAS}parentEntity", f"urn:ref:federal-hierarchy-org:{parent_id}"),)
+        records.append(
+            _ApiCaptureRecord(
+                resource=f"urn:ref:federal-hierarchy-org:{fhorgid}",
+                preferred_label=label,
+                notations=(),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+                relations=relations,
+            )
+        )
+    if len(records) != 20:
+        raise ValueError(f"{spec.name} expected 20 organizations, observed {len(records)}")
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(input_totals),
+    )
+
+
+def _element_text(element: ElementTree.Element, path: str, label: str) -> str:
+    found = element.find(path)
+    return _required_text(found.text if found is not None else None, label).strip()
+
+
+def _read_govinfo_package_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    summary_pin, summary_payload = _pin_with_role(spec, payloads, "publisherPackageSummary")
+    fixity_pin, fixity_payload = _pin_with_role(spec, payloads, "publisherPackageFixity")
+    raw = _json_without_duplicate_keys(summary_payload, f"{spec.name} summary")
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"{spec.name} summary must be a JSON object")
+    observed_at = "2026-08-03T19:15:00Z"
+    package_id = _required_text(raw.get("packageId"), f"{spec.name}.packageId")
+    summary_identifiers = [
+        _code_identifier(
+            value=package_id,
+            kind="govInfoPackageId",
+            authority="https://www.govinfo.gov/developers",
+            pin=summary_pin,
+            observed_at=observed_at,
+        ),
+        _code_identifier(
+            value=_required_text(raw.get("suDocClassNumber"), f"{spec.name}.suDocClassNumber"),
+            kind="suDocClassNumber",
+            authority="https://www.govinfo.gov/developers",
+            pin=summary_pin,
+            observed_at=observed_at,
+        ),
+    ]
+    summary = {
+        "package_id": package_id,
+        "collection_code": raw.get("collectionCode"),
+        "collection_name": raw.get("collectionName"),
+        "title_number": int(_required_text(raw.get("titleNumber"), f"{spec.name}.titleNumber")),
+        "date_issued": raw.get("dateIssued"),
+        "last_modified": raw.get("lastModified"),
+        "doc_class": raw.get("docClass"),
+        "document_type": raw.get("documentType"),
+        "category": raw.get("category"),
+        "sudoc_class_number": raw.get("suDocClassNumber"),
+        "details_link": raw.get("detailsLink"),
+        "granules_link": raw.get("granulesLink"),
+        "download_links": raw.get("download"),
+        "identifiers": summary_identifiers,
+        "is_general_subject_concept": False,
+    }
+    root = ElementTree.fromstring(fixity_payload)
+    namespace = root.tag.removesuffix("premis")
+    xsi_type = "{http://www.w3.org/2001/XMLSchema-instance}type"
+    fixity_records: list[dict[str, Any]] = []
+    for obj in root.findall(f"{namespace}object"):
+        if obj.get(xsi_type) != "file":
+            continue
+        fixity = obj.find(
+            f"{namespace}objectCharacteristics/{namespace}fixity"
+        )
+        if fixity is None:
+            continue
+        object_id = _element_text(
+            obj,
+            f"{namespace}objectIdentifier/{namespace}objectIdentifierValue",
+            "PREMIS object identifier",
+        )
+        algorithm = _element_text(
+            fixity,
+            f"{namespace}messageDigestAlgorithm",
+            "PREMIS digest algorithm",
+        )
+        digest = _element_text(
+            fixity,
+            f"{namespace}messageDigest",
+            "PREMIS message digest",
+        ).lower()
+        original_name = _element_text(obj, f"{namespace}originalName", "PREMIS original name")
+        location = _element_text(
+            obj,
+            (
+                f"{namespace}storage/{namespace}contentLocation/"
+                f"{namespace}contentLocationValue"
+            ),
+            "PREMIS content location",
+        ).rsplit(" ", 1)[-1]
+        fixity_records.append(
             {
-                "collection": collection,
-                "sourceOrdinal": ordinal,
-                "record": row,
+                "object_identifier_value": object_id,
+                "original_name": original_name,
+                "content_location_uri": location,
+                "algorithm": algorithm,
+                "digest": digest,
+                "identifiers": [
+                    _code_identifier(
+                        value=digest,
+                        kind="govInfoPremisSha256Fixity",
+                        authority="https://www.govinfo.gov/developers",
+                        pin=fixity_pin,
+                        observed_at=observed_at,
+                    )
+                ],
+                "is_general_subject_concept": False,
             }
         )
-        records.append(
-            _StockSourceRecord(
-                resource=resource,
-                preferred_label=row["name"],
-                alternate_labels=(),
-                notations=(row["slug"],) if row["slug"] else (),
-                source_locator=(
-                    _FEDERAL_REGISTER_TOPICS_URL
-                    + "#"
-                    + urllib.parse.quote(source_path, safe="")
-                ),
-                source_digest=row_digest,
-                native_payload={
-                    "collection": collection,
-                    "record": dict(row),
-                    "sourceOrdinal": ordinal,
-                    "sourceRecordDigest": row_digest,
-                },
-            )
-        )
-        for field_name, predicate in (
-            ("see", f"{ATLAS}thesaurusUse"),
-            ("see_also", f"{SKOS}related"),
-        ):
-            for link in row[field_name]:
-                target = resource_by_pair.get(
-                    (collection, link["name"], link["slug"])
-                )
-                if target is None:
-                    raise ValueError(
-                        f"{source_path}.{field_name} has no exact same-collection target: "
-                        f"{link!r}"
-                    )
-                relations.add((resource, predicate, target))
-    return _stock_source_view(records, relations, spec.inputs)
+    fixity_payload_value = {
+        "package_id": package_id,
+        "retrieved_at": observed_at,
+        "source_sha256": fixity_pin.sha256,
+        "source_byte_length": fixity_pin.byte_length,
+        "records": fixity_records,
+    }
+    native = {"summary": summary, "fixity": fixity_payload_value}
+    record = _ApiCaptureRecord(
+        resource=f"urn:ref:govinfo-cfr-package:{package_id}",
+        preferred_label=f"{raw.get('documentType')}: {package_id}",
+        notations=(),
+        source_locator=_required_text(raw.get("detailsLink"), f"{spec.name}.detailsLink"),
+        source_digest=summary_pin.sha256,
+        native_payload=native,
+    )
+    return _api_capture_view(
+        [record],
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "GovInfo summary authorship, pagination, part range, and migration fields are authenticated but not represented",
+            "PREMIS characteristics other than file SHA-256 fixity and location are authenticated but not represented",
+        ),
+    )
 
 
-def _read_gcmd_science_keywords_csv(
+def _sam_identifier(
+    *,
+    value: str,
+    kind: str,
+    authority: str,
+    pin: SourcePin,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "kind": kind,
+        "authorityUri": authority,
+        "sourceUri": pin.source_iri,
+        "observedAt": "2026-08-03T22:19:50Z",
+        "effectiveAt": None,
+        "sourceDigest": pin.sha256,
+    }
+
+
+def _read_sam_capture(
     spec: SourceSpec,
-    authenticated_payloads: Mapping[SourcePin, bytes],
+    payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    """Read NASA GCMD Science Keywords with the stdlib CSV parser."""
-    if len(spec.inputs) != 1:
-        raise ValueError("GCMD Science Keywords reader requires one CSV input")
-    pin = spec.inputs[0]
-    try:
-        text = authenticated_payloads[pin].decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise ValueError("GCMD Science Keywords CSV is not UTF-8") from error
-    reader = csv.reader(io.StringIO(text))
-    try:
-        metadata = next(reader)
-        header = next(reader)
-    except StopIteration as error:
-        raise ValueError("GCMD CSV is missing metadata or column headers") from error
-    if (
-        len(metadata) < 2
-        or metadata[0].strip() != "Keyword Version: 24.4"
-        or metadata[1].strip() != "Revision: 2026-07-22T11:07:16.739Z"
-    ):
-        raise ValueError("GCMD CSV version or revision header drifted")
-    if tuple(header) != _GCMD_CSV_COLUMNS:
-        raise ValueError(f"GCMD CSV columns drifted: {header!r}")
-
-    records: list[_StockSourceRecord] = []
-    seen_uuids: set[str] = set()
-    for ordinal, row in enumerate(reader):
-        if not row:
-            continue
-        if len(row) != len(_GCMD_CSV_COLUMNS):
-            raise ValueError(
-                f"GCMD CSV row {ordinal} has {len(row)} fields, expected 8"
-            )
-        category, topic, term, level_1, level_2, level_3, detailed, concept_uuid = row
-        if category not in _GCMD_ALLOWED_CATEGORIES:
-            raise ValueError(
-                f"GCMD CSV row {ordinal} has out-of-scope category {category!r}"
-            )
-        if _GCMD_UUID.fullmatch(concept_uuid) is None:
-            raise ValueError(
-                f"GCMD CSV row {ordinal} has malformed UUID {concept_uuid!r}"
-            )
-        if concept_uuid in seen_uuids:
-            raise ValueError(
-                f"GCMD CSV row {ordinal} repeats UUID {concept_uuid!r}"
-            )
-        seen_uuids.add(concept_uuid)
-        levels = (category, topic, term, level_1, level_2, level_3, detailed)
-        seen_blank = False
-        for level in levels:
-            if not level:
-                seen_blank = True
-            elif seen_blank:
-                raise ValueError(
-                    f"GCMD CSV row {ordinal} populates a level after a blank ancestor"
-                )
-        preferred_label = next(level for level in reversed(levels) if level)
-        resource, source_identity = _source_scoped_resource_identity(
-            "gcmd-science-keywords",
-            "2026-08-03T19:03:43Z",
-            _GCMD_VIEWER_URL,
-            concept_uuid,
-        )
-        source_path = f"csv:row[{ordinal}]"
-        locator_digest = hashlib.sha256(
-            f"{pin.source_iri}\n{source_path}\n{concept_uuid}\n".encode()
-        ).hexdigest()
-        records.append(
-            _StockSourceRecord(
-                resource=resource,
-                preferred_label=preferred_label,
-                alternate_labels=(),
-                notations=(concept_uuid,),
-                source_locator=(
-                    "urn:ref:source-observation:gcmd-science-keywords-24-4:"
-                    + locator_digest
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    rows = _mapping_rows(data.get("entityData"), f"{spec.name}.entityData")
+    if len(rows) != 1 or not isinstance(rows[0].get("entityRegistration"), Mapping):
+        raise ValueError(f"{spec.name} requires one public entity registration")
+    registration = rows[0]["entityRegistration"]
+    uei = _required_text(registration.get("ueiSAM"), f"{spec.name}.ueiSAM")
+    cage = _required_text(registration.get("cageCode"), f"{spec.name}.cageCode")
+    label = _required_text(
+        registration.get("legalBusinessName"), f"{spec.name}.legalBusinessName"
+    )
+    if spec.name.startswith("sam-uei-"):
+        resource = f"urn:ref:sam-entity:uei:{uei}"
+        native = {
+            "identifier": _sam_identifier(
+                value=uei,
+                kind="samUniqueEntityId",
+                authority="https://sam.gov/entity-registration",
+                pin=pin,
+            ),
+            "legalBusinessName": label,
+            "registrationStatus": str(registration.get("registrationStatus")).lower(),
+            "immediateParentUei": None,
+            "highestLevelOwnerUei": None,
+            "accessClassification": "public",
+        }
+        relations: tuple[tuple[str, str], ...] = ()
+    else:
+        resource = f"urn:ref:dla-cage-facility:{cage}"
+        native = {
+            "identifier": _sam_identifier(
+                value=cage,
+                kind="dlaCageCode",
+                authority=(
+                    "https://www.dla.mil/Working-With-DLA/Applications/Details/"
+                    "Article/2920893/cage-code-commercial-and-government-entity-code/"
                 ),
-                source_digest=pin.sha256,
-                native_payload={
-                    "publisherIdentifier": {
-                        "value": concept_uuid,
-                        "kind": "gcmdConceptUUID",
-                        "authorityUri": _GCMD_AUTHORITY_URL,
-                    },
-                    "category": category,
-                    "topic": topic or None,
-                    "term": term or None,
-                    "variableLevel1": level_1 or None,
-                    "variableLevel2": level_2 or None,
-                    "variableLevel3": level_3 or None,
-                    "detailedVariable": detailed or None,
-                    "sourceIdentity": source_identity,
-                },
-            )
-        )
-    ignored_metadata = tuple(
-        f"GCMD metadata header field {index} is authenticated but not represented: {value!r}"
-        for index, value in enumerate(metadata[2:], start=2)
-        if value
+                pin=pin,
+            ),
+            "facilityName": label,
+            "cageStatus": "notObserved",
+            "associatedUei": uei,
+            "accessClassification": "public",
+        }
+        relations = ((f"{ATLAS}relatedEntity", f"urn:ref:sam-entity:uei:{uei}"),)
+    record = _ApiCaptureRecord(
+        resource=resource,
+        preferred_label=label,
+        notations=(),
+        source_locator=pin.source_iri or "",
+        source_digest=pin.sha256,
+        native_payload=native,
+        relations=relations,
     )
-    return _stock_source_view(
-        records,
-        frozenset(),
-        spec.inputs,
-        unevaluated_claims=ignored_metadata,
+    return _api_capture_view(
+        [record],
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "SAM registration lifecycle and API paging fields are authenticated but outside this bounded identity record",
+        ),
     )
 
 
-_PUBLISHER_READERS: Mapping[
-    str,
-    Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
-] = {
-    FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
-    GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
-    MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
-}
+def _read_api_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    readers: Mapping[
+        str,
+        Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
+    ] = {
+        "lda-general-issue-codes": _read_lda_capture,
+        "lda-filing-types": _read_lda_capture,
+        "ecfr-cfr-titles": _read_ecfr_titles_capture,
+        "govinfo-collections": _read_govinfo_collections_capture,
+        "usaspending-award-types": _read_usaspending_capture,
+        "gsdm-reviewed-domain-values-2026-08-03": _read_gsdm_capture,
+        "nasa-technology-taxonomy-8817": _read_nasa_capture,
+        "fcc-ecfs-filing-types": _read_fcc_capture,
+        "fcc-ecfs-access-statuses": _read_fcc_capture,
+        "fcc-ecfs-bureaus": _read_fcc_capture,
+        "fcc-ecfs-proceedings": _read_fcc_capture,
+        "federal-hierarchy-orgs-bounded-2026-08-03": (
+            _read_federal_hierarchy_capture
+        ),
+        "govinfo-cfr-package-bounded-2026-08-03": _read_govinfo_package_capture,
+        "sam-uei-bounded-public-entity-2026-08-03": _read_sam_capture,
+        "sam-cage-bounded-public-facility-2026-08-03": _read_sam_capture,
+    }
+    reader = readers.get(spec.name)
+    if reader is None:
+        raise ValueError(f"{API_CAPTURE_JSON_READER} does not support {spec.name!r}")
+    return reader(spec, payloads)
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
@@ -3076,6 +3804,10 @@ def read_atlas_source(
     distribution: Path,
     packs: Sequence[str],
     source_claim_subjects: frozenset[str] = frozenset(),
+    *,
+    compact_normalized_claims: bool = False,
+    compact_native_payload_fields: frozenset[str] | None = None,
+    compact_native_payload_atlas_only_fields: frozenset[str] = frozenset(),
 ) -> AtlasView:
     """Read what the Atlas asserts for one source out of its distribution packs."""
     resources: set[str] = set()
@@ -3106,11 +3838,20 @@ def read_atlas_source(
     ] = defaultdict(set)
     native_relations: set[tuple[str, str, str]] = set()
     native_payloads: dict[str, Mapping[str, Any]] = {}
+    pending_native_payload_digests: dict[str, str] = {}
+    compact_native_payload_records: set[str] = set()
+    native_payload_digest_differences: dict[
+        str,
+        tuple[str, str | None],
+    ] = {}
+    native_payload_field_differences: dict[
+        str,
+        tuple[tuple[str, ...], tuple[str, ...]],
+    ] = {}
     checked_pack_transports: dict[str, tuple[str, int]] = {}
     record_targets: dict[str, str] = {}
     record_source_digests: dict[str, str] = {}
     structural_failures: list[str] = []
-    native_payload_values: dict[str, set[str]] = defaultdict(set)
     raw_source_iri_claims: set[tuple[str, str, str]] = set()
     raw_source_literal_claims: set[tuple[str, str, LiteralValue]] = set()
     all_raw_iri_claims: set[tuple[str, str, str]] = set()
@@ -3130,6 +3871,47 @@ def read_atlas_source(
             ATLAS_NATIVE_PAYLOAD,
         }
     )
+    compact_globally_parsed_predicates = frozenset(
+        {
+            RDF_TYPE,
+            RDF_SUBJECT,
+            RDF_PREDICATE,
+            RDF_OBJECT,
+            ATLAS_SOURCE_LOCATOR,
+            ATLAS_SOURCE_DIGEST,
+            ATLAS_REPRESENTS_RESOURCE,
+            ATLAS_NATIVE_PAYLOAD,
+        }
+    )
+    compact_source_parsed_predicates = frozenset(
+        {
+            SKOS_IN_SCHEME,
+            SKOSXL_PREF_LABEL,
+            SKOSXL_ALT_LABEL,
+            SKOSXL_HIDDEN_LABEL,
+            ATLAS_IN_SCHEME,
+            ATLAS_RESOURCE_PROFILE,
+            ATLAS_SEMANTIC_RING,
+            ATLAS_NOTATION,
+            ATLAS_DEFINITION,
+            ATLAS_NOTE,
+            *ATLAS_SOURCE_REPRESENTATION_STRUCTURE_PREDICATES,
+        }
+    )
+
+    def retain_raw_claim(quad: Quad) -> bool:
+        """Keep only claims not already retained in a parsed Atlas index."""
+        if not compact_normalized_claims:
+            return True
+        if quad.predicate in compact_globally_parsed_predicates:
+            return False
+        if quad.predicate == SKOSXL_LITERAL_FORM:
+            # Orphan forms are restored after every label edge is known.
+            return False
+        return not (
+            quad.subject in source_claim_subjects
+            and quad.predicate in compact_source_parsed_predicates
+        )
 
     def atlas_only_quad(quad: Quad) -> bool:
         if quad.predicate == SKOS_IN_SCHEME:
@@ -3164,11 +3946,17 @@ def read_atlas_source(
                     ),
                 )
                 iri_claim = (quad.subject, quad.predicate, quad.obj)
-                if quad.is_literal:
+                retain_raw = retain_raw_claim(quad)
+                if retain_raw and quad.is_literal:
                     all_raw_literal_claims.add(literal_claim)
-                else:
+                elif retain_raw:
                     all_raw_iri_claims.add(iri_claim)
-                if quad.subject in source_claim_subjects:
+                retain_source_raw = retain_raw or (
+                    compact_normalized_claims
+                    and quad.subject in source_claim_subjects
+                    and quad.predicate == RDF_TYPE
+                )
+                if retain_source_raw and quad.subject in source_claim_subjects:
                     if quad.is_literal:
                         raw_source_literal_claims.add(literal_claim)
                     else:
@@ -3257,6 +4045,17 @@ def read_atlas_source(
                             "atlas:sourceDigest values"
                         )
                     record_source_digests[quad.subject] = quad.obj
+                    pending_payload_digest = pending_native_payload_digests.pop(
+                        quad.subject,
+                        None,
+                    )
+                    if pending_payload_digest is not None:
+                        compact_native_payload_records.add(quad.subject)
+                        if pending_payload_digest != quad.obj:
+                            native_payload_digest_differences[quad.subject] = (
+                                pending_payload_digest,
+                                quad.obj,
+                            )
                 elif predicate == ATLAS_REPRESENTS_RESOURCE:
                     if quad.subject in record_targets and record_targets[quad.subject] != quad.obj:
                         structural_failures.append(
@@ -3264,11 +4063,6 @@ def read_atlas_source(
                         )
                     record_targets[quad.subject] = quad.obj
                 elif predicate == ATLAS_NATIVE_PAYLOAD:
-                    native_payload_values[quad.subject].add(quad.obj)
-                    if len(native_payload_values[quad.subject]) > 1:
-                        structural_failures.append(
-                            f"{pack}: source record <{quad.subject}> has contradictory atlas:nativePayload values"
-                        )
                     try:
                         payload = _json_without_duplicate_keys(
                             quad.obj.encode("utf-8"),
@@ -3284,7 +4078,52 @@ def read_atlas_source(
                             f"{pack}: source record <{quad.subject}> has non-object atlas:nativePayload JSON"
                         )
                         continue
-                    native_payloads[quad.subject] = payload
+                    if compact_native_payload_fields is not None:
+                        payload_digest = _canonical_json_digest(payload)
+                        prior_digest = pending_native_payload_digests.get(
+                            quad.subject
+                        )
+                        if prior_digest is not None and prior_digest != payload_digest:
+                            structural_failures.append(
+                                f"{pack}: source record <{quad.subject}> has contradictory "
+                                "atlas:nativePayload values"
+                            )
+                        source_digest = record_source_digests.get(quad.subject)
+                        if source_digest is None:
+                            pending_native_payload_digests[quad.subject] = (
+                                payload_digest
+                            )
+                        else:
+                            compact_native_payload_records.add(quad.subject)
+                            if source_digest != payload_digest:
+                                native_payload_digest_differences[quad.subject] = (
+                                    payload_digest,
+                                    source_digest,
+                                )
+                        unexpected_fields = tuple(
+                            sorted(
+                                set(payload)
+                                - compact_native_payload_fields
+                                - compact_native_payload_atlas_only_fields
+                            )
+                        )
+                        missing_fields = tuple(
+                            sorted(compact_native_payload_fields - set(payload))
+                        )
+                        if unexpected_fields or missing_fields:
+                            native_payload_field_differences[quad.subject] = (
+                                unexpected_fields,
+                                missing_fields,
+                            )
+                        continue
+                    prior_payload = native_payloads.get(quad.subject)
+                    if prior_payload is not None and prior_payload != payload:
+                        structural_failures.append(
+                            f"{pack}: source record <{quad.subject}> has contradictory "
+                            "atlas:nativePayload values"
+                        )
+                    else:
+                        native_payloads[quad.subject] = payload
                     scheme_iris = payload.get("schemeIris")
                     if isinstance(scheme_iris, list):
                         native_schemes[quad.subject] = frozenset(str(item) for item in scheme_iris)
@@ -3476,19 +4315,26 @@ def read_atlas_source(
                                 "nativePayload.publisherRelation"
                             )
                         else:
-                            subject = publisher_relation.get("subjectIri")
-                            predicate = publisher_relation.get("predicateIri")
-                            obj = publisher_relation.get("objectIri")
-                            if not all(
-                                isinstance(value, str) and ":" in value
-                                for value in (subject, predicate, obj)
-                            ):
+                            relation = _payload_relation(publisher_relation)
+                            editorial_transformation = payload.get(
+                                "editorialTransformation"
+                            )
+                            publisher_relation_digest = payload.get(
+                                "publisherRelationDigest"
+                            )
+                            source_shaped_relation = (
+                                isinstance(editorial_transformation, Mapping)
+                                and isinstance(publisher_relation_digest, str)
+                                and publisher_relation_digest
+                                == _canonical_json_digest(publisher_relation)
+                            )
+                            if relation is None and not source_shaped_relation:
                                 structural_failures.append(
                                     f"{pack}: source record <{quad.subject}> has invalid "
                                     "nativePayload.publisherRelation"
                                 )
-                            else:
-                                native_relations.add((subject, predicate, obj))
+                            elif relation is not None:
+                                native_relations.add(relation)
         except Exception as error:  # noqa: BLE001 - inspect every other pack in the comparison
             structural_failures.append(f"{pack}: could not be read: {type(error).__name__}: {error}")
 
@@ -3516,6 +4362,50 @@ def read_atlas_source(
                 f"label node <{label_node}> referenced as hidden label has {len(forms)} literal forms"
             )
         hidden[subject].update(forms)
+
+    for record, payload_digest in pending_native_payload_digests.items():
+        compact_native_payload_records.add(record)
+        native_payload_digest_differences[record] = (
+            payload_digest,
+            record_source_digests.get(record),
+        )
+
+    linked_label_nodes = {
+        *(node for _, node in pref_edges),
+        *(node for _, node in alt_edges),
+        *(node for _, node in hidden_edges),
+    }
+    if compact_normalized_claims:
+        for subject, forms in label_forms.items():
+            if subject in linked_label_nodes:
+                continue
+            rows = {
+                (subject, SKOSXL_LITERAL_FORM, literal)
+                for literal in forms
+            }
+            all_raw_literal_claims.update(rows)
+            if subject in source_claim_subjects:
+                raw_source_literal_claims.update(rows)
+
+        # The dedicated indexes above already retain source concepts, source
+        # records, and linked label nodes. Keep their exact publisher types in
+        # raw_source_iri_claims, but do not allocate the same high-cardinality
+        # type map a second time. Atlas-owned resources and source-release
+        # nodes remain classified here for residual-claim and release checks.
+        redundant_typed_subjects = (
+            set(source_claim_subjects)
+            | set(source_records)
+            | linked_label_nodes
+        )
+        rdf_types = defaultdict(
+            set,
+            {
+                subject: types
+                for subject, types in rdf_types.items()
+                if subject not in redundant_typed_subjects
+                or ATLAS_SOURCE_RELEASE in types
+            },
+        )
 
     # Some source labels are intentionally suppressed from the Atlas display role
     # to satisfy SKOS S13. Restore only the exact publisher role/value retained in
@@ -3548,7 +4438,11 @@ def read_atlas_source(
     relations = frozenset(relation_rows)
 
     # A comparison pack must not silently collapse multiple source records onto one resource.
-    record_claim_subjects = set(record_targets) | set(native_payloads)
+    record_claim_subjects = (
+        set(record_targets)
+        | set(native_payloads)
+        | compact_native_payload_records
+    )
     for record in sorted(record_claim_subjects - source_records):
         structural_failures.append(
             f"record-like subject <{record}> is not typed atlas:SourceRecord"
@@ -3597,58 +4491,223 @@ def read_atlas_source(
                 for claim_subject, predicate, literal in claims
             )
 
+    # Freeze each high-cardinality index and release its mutable predecessor
+    # before allocating the next one. This keeps return-value construction from
+    # becoming the peak-memory phase for the 441,127-record FAST comparison.
+    label_links = frozenset(
+        chain(
+            (
+                (subject, SKOSXL_PREF_LABEL, node)
+                for subject, node in pref_edges
+            ),
+            (
+                (subject, SKOSXL_ALT_LABEL, node)
+                for subject, node in alt_edges
+            ),
+            (
+                (subject, SKOSXL_HIDDEN_LABEL, node)
+                for subject, node in hidden_edges
+            ),
+        )
+    )
+    label_forms.clear()
+    pref_edges.clear()
+    alt_edges.clear()
+    hidden_edges.clear()
+    native_label_claims_by_record.clear()
+
+    relation_assertions = frozenset(reified)
+    reified.clear()
+    relation_rows.clear()
+
+    frozen_rdf_types = {
+        key: frozenset(value) for key, value in rdf_types.items()
+    }
+    rdf_types.clear()
+    frozen_resource_profiles = {
+        key: frozenset(value) for key, value in resource_profiles.items()
+    }
+    resource_profiles.clear()
+    frozen_semantic_rings = {
+        key: frozenset(value) for key, value in semantic_rings.items()
+    }
+    semantic_rings.clear()
+    frozen_atlas_scheme_iris = {
+        key: frozenset(value) for key, value in atlas_scheme_iris.items()
+    }
+    atlas_scheme_iris.clear()
+    frozen_pref_labels = {
+        key: frozenset(value) for key, value in pref.items()
+    }
+    pref.clear()
+    frozen_alt_labels = {
+        key: frozenset(value) for key, value in alt.items()
+    }
+    alt.clear()
+    frozen_hidden_labels = {
+        key: frozenset(value) for key, value in hidden.items()
+    }
+    hidden.clear()
+    frozen_notations = {
+        key: frozenset(value) for key, value in notations.items()
+    }
+    notations.clear()
+    frozen_definitions = {
+        key: frozenset(value) for key, value in definitions.items()
+    }
+    definitions.clear()
+    frozen_notes = {
+        key: frozenset(value) for key, value in notes.items()
+    }
+    notes.clear()
+
+    frozen_resources = frozenset(resources)
+    resources.clear()
+    frozen_releases = frozenset(releases)
+    releases.clear()
+    frozen_skos_schemes = frozenset(skos_schemes)
+    skos_schemes.clear()
+    frozen_memberships = frozenset(memberships)
+    memberships.clear()
+    frozen_source_records = frozenset(source_records)
+    source_records.clear()
+    record_locators = frozenset(
+        locator
+        for subject, locator in locator_by_subject.items()
+        if subject in frozen_source_records
+    )
+    record_locator_pairs = frozenset(
+        (target, locator_by_subject[record])
+        for record, target in record_targets.items()
+        if record in frozen_source_records and record in locator_by_subject
+    )
+
     return AtlasView(
-        resources=frozenset(resources),
-        releases=frozenset(releases),
-        rdf_types={key: frozenset(value) for key, value in rdf_types.items()},
-        resource_profiles={
-            key: frozenset(value) for key, value in resource_profiles.items()
-        },
-        semantic_rings={key: frozenset(value) for key, value in semantic_rings.items()},
-        atlas_scheme_iris={
-            key: frozenset(value) for key, value in atlas_scheme_iris.items()
-        },
-        skos_schemes=frozenset(skos_schemes),
-        pref_labels={key: frozenset(value) for key, value in pref.items()},
-        alt_labels={key: frozenset(value) for key, value in alt.items()},
-        hidden_labels={key: frozenset(value) for key, value in hidden.items()},
-        notations={key: frozenset(value) for key, value in notations.items()},
-        definitions={key: frozenset(value) for key, value in definitions.items()},
-        notes={key: frozenset(value) for key, value in notes.items()},
+        resources=frozen_resources,
+        releases=frozen_releases,
+        rdf_types=frozen_rdf_types,
+        resource_profiles=frozen_resource_profiles,
+        semantic_rings=frozen_semantic_rings,
+        atlas_scheme_iris=frozen_atlas_scheme_iris,
+        skos_schemes=frozen_skos_schemes,
+        pref_labels=frozen_pref_labels,
+        alt_labels=frozen_alt_labels,
+        hidden_labels=frozen_hidden_labels,
+        notations=frozen_notations,
+        definitions=frozen_definitions,
+        notes=frozen_notes,
         relations=relations,
-        memberships=frozenset(memberships),
-        source_records=frozenset(source_records),
-        record_locators=frozenset(
-            locator for subject, locator in locator_by_subject.items() if subject in source_records
-        ),
-        record_locator_pairs=frozenset(
-            (target, locator_by_subject[record])
-            for record, target in record_targets.items()
-            if record in source_records and record in locator_by_subject
-        ),
-        record_targets=dict(sorted(record_targets.items())),
-        record_source_locators=dict(sorted(locator_by_subject.items())),
-        record_source_digests=dict(sorted(record_source_digests.items())),
+        memberships=frozen_memberships,
+        source_records=frozen_source_records,
+        record_locators=record_locators,
+        record_locator_pairs=record_locator_pairs,
+        record_targets=record_targets,
+        record_source_locators=locator_by_subject,
+        record_source_digests=record_source_digests,
         native_payloads=dict(sorted(native_payloads.items())),
         native_scheme_iris=keyed_native,
         native_top_concept_of_iris=keyed_native_top_concepts,
         native_literal_claims=frozenset(keyed_native_literal_claims),
         native_relations=frozenset(native_relations),
+        compact_native_payload_records=frozenset(compact_native_payload_records),
+        native_payload_digest_differences=dict(
+            sorted(native_payload_digest_differences.items())
+        ),
+        native_payload_field_differences=dict(
+            sorted(native_payload_field_differences.items())
+        ),
         raw_source_iri_claims=frozenset(raw_source_iri_claims),
         raw_source_literal_claims=frozenset(raw_source_literal_claims),
         all_raw_iri_claims=frozenset(all_raw_iri_claims),
         all_raw_literal_claims=frozenset(all_raw_literal_claims),
-        label_links=frozenset(
-            {
-                *((subject, SKOSXL_PREF_LABEL, node) for subject, node in pref_edges),
-                *((subject, SKOSXL_ALT_LABEL, node) for subject, node in alt_edges),
-                *((subject, SKOSXL_HIDDEN_LABEL, node) for subject, node in hidden_edges),
-            }
-        ),
-        relation_assertions=frozenset(reified),
+        label_links=label_links,
+        relation_assertions=relation_assertions,
         structural_failures=tuple(structural_failures),
         checked_packs=tuple(packs),
         checked_pack_transports=dict(sorted(checked_pack_transports.items())),
+    )
+
+
+def _audit_atlas_language_scope(
+    distribution: Path,
+    packs: Collection[str],
+) -> AtlasLanguageScopeEvidence:
+    """Inspect every declared pack and prove the Atlas has no out-of-scope text."""
+    non_english: set[tuple[str, str, LiteralValue]] = set()
+    noncanonical_semantic: set[tuple[str, str, LiteralValue]] = set()
+    scan_failures: list[str] = []
+    semantic_predicates = frozenset(
+        {
+            SKOS_PREF_LABEL,
+            SKOS_ALT_LABEL,
+            SKOS_HIDDEN_LABEL,
+            SKOSXL_LITERAL_FORM,
+            ATLAS_DEFINITION,
+            ATLAS_NOTE,
+        }
+    )
+    for pack in sorted(set(packs)):
+        try:
+            quads = read_pack(distribution / "packs" / pack, scan_failures)
+            for quad in quads:
+                if not quad.is_literal:
+                    continue
+                literal = _literal_value(quad.obj, quad.language, quad.datatype)
+                row = (quad.subject, quad.predicate, literal)
+                if quad.language is not None:
+                    normalized = quad.language.casefold()
+                    if (
+                        _BCP47.fullmatch(quad.language) is None
+                        or normalized != "en"
+                    ):
+                        non_english.add(row)
+                if quad.predicate in semantic_predicates and quad.language != "en":
+                    noncanonical_semantic.add(row)
+        except OSError as error:
+            scan_failures.append(f"{pack}: {type(error).__name__}: {error}")
+
+    def evidence(
+        rows: Collection[tuple[str, str, LiteralValue]],
+    ) -> tuple[int, str, tuple[str, ...]]:
+        ordered = sorted(rows, key=_literal_claim_sort_key)
+        serialized = [
+            {
+                "datatype": literal.datatype,
+                "language": literal.language,
+                "predicate": predicate,
+                "subject": subject,
+                "value": literal.value,
+            }
+            for subject, predicate, literal in ordered
+        ]
+        digest = "sha256:" + hashlib.sha256(
+            json.dumps(
+                serialized,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        examples = tuple(
+            f"<{subject}> <{predicate}> {_literal_repr(literal)}"
+            for subject, predicate, literal in ordered[:5]
+        )
+        return len(ordered), digest, examples
+
+    non_english_count, non_english_digest, non_english_examples = evidence(
+        non_english
+    )
+    semantic_count, semantic_digest, semantic_examples = evidence(
+        noncanonical_semantic
+    )
+    return AtlasLanguageScopeEvidence(
+        non_english_literal_count=non_english_count,
+        non_english_literals_digest=non_english_digest,
+        non_english_literal_examples=non_english_examples,
+        noncanonical_semantic_literal_count=semantic_count,
+        noncanonical_semantic_literals_digest=semantic_digest,
+        noncanonical_semantic_literal_examples=semantic_examples,
+        scan_failures=tuple(scan_failures),
     )
 
 
@@ -3666,6 +4725,7 @@ def _registry_source_pin(
     fmt: str = "turtle",
     zip_member: str | None = None,
     role: str = "publisherSource",
+    construction_path: str | None = None,
 ) -> SourcePin:
     """Declare one local publisher file and its exact construction-summary identity."""
     return SourcePin(
@@ -3676,7 +4736,11 @@ def _registry_source_pin(
         zip_member=zip_member,
         role=role,
         source_iri=source_iri,
-        construction_path=f"refspec/output/registry-real-data-sources/{filename}",
+        construction_path=(
+            construction_path
+            if construction_path is not None
+            else f"refspec/output/registry-real-data-sources/{filename}"
+        ),
     )
 
 
@@ -3937,7 +5001,3351 @@ _GENERIC_SKOS_NATIVE_FIELDS = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class _StockVocabularyRecord:
+    """One publisher record read without importing its registry adapter."""
+
+    resource: str
+    preferred_labels: tuple[LiteralValue, ...]
+    alternate_labels: tuple[LiteralValue, ...]
+    notations: tuple[LiteralValue, ...]
+    annotations: tuple[tuple[str, LiteralValue], ...]
+    source_locator: str
+    source_digest: str
+    native_payload: Mapping[str, Any]
+    is_skos_concept: bool = True
+
+
+def _stock_vocabulary_view(
+    records: Iterable[_StockVocabularyRecord],
+    relations: Collection[tuple[str, str, str]],
+    memberships: Collection[tuple[str, str]],
+    pins: Sequence[SourcePin],
+    *,
+    unevaluated_claims: Sequence[str] = (),
+    require_relation_members: bool = True,
+    retain_predicate_counts: bool = True,
+    retain_claim_sets: bool = True,
+    retain_expected_native_payloads: bool = True,
+    compact_resource_digests: bool = False,
+    expected_relation_payloads: Mapping[str, Mapping[str, Any]] | None = None,
+    source_digest_is_native_payload_digest: bool = True,
+    additional_literal_claims: Collection[
+        tuple[str, str, LiteralValue]
+    ] = (),
+) -> PublisherView:
+    """Build the comparison view shared by stock XML, RDF, MARC, and JSON readers."""
+    concepts: set[str] = set()
+    pref_labels: dict[str, frozenset[LiteralValue]] = {}
+    alt_labels: dict[str, frozenset[LiteralValue]] = {}
+    notations: dict[str, frozenset[LiteralValue]] = {}
+    annotation_claims: set[tuple[str, str, LiteralValue]] = set()
+    literal_claims: set[tuple[str, str, LiteralValue]] = set(
+        additional_literal_claims
+    )
+    iri_claims: set[tuple[str, str, str]] = set(relations) if retain_claim_sets else set()
+    if retain_claim_sets:
+        iri_claims.update(
+            (resource, SKOS_IN_SCHEME, scheme) for resource, scheme in memberships
+        )
+    predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
+    resource_input_digests: dict[str, frozenset[str]] = {}
+    resource_input_digest_values: dict[str, str] = {}
+    resource_locators: dict[str, str] = {}
+    expected_native_payloads: dict[str, Mapping[str, Any]] = {}
+    for record in records:
+        if record.resource in concepts:
+            raise ValueError(
+                f"stock source reader repeats resource {record.resource!r}"
+            )
+        concepts.add(record.resource)
+        preferred = frozenset(record.preferred_labels)
+        alternate = frozenset(record.alternate_labels)
+        notation_values = frozenset(record.notations)
+        if not preferred and not alternate:
+            raise ValueError(
+                f"stock source record {record.resource!r} has no asserted label"
+            )
+        pref_labels[record.resource] = preferred
+        alt_labels[record.resource] = alternate
+        notations[record.resource] = notation_values
+        # The member-IRI comparison treats an explicit Concept type as evidence
+        # distinct from concept-set identity. Entity-ring managed records do
+        # not make that SKOS assertion.
+        if record.is_skos_concept:
+            iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
+        for predicate, values in (
+            (SKOS_PREF_LABEL, preferred),
+            (SKOS_ALT_LABEL, alternate),
+            (SKOS_NOTATION, notation_values),
+        ):
+            if retain_claim_sets:
+                literal_claims.update(
+                    (record.resource, predicate, literal) for literal in values
+                )
+            if retain_predicate_counts:
+                predicate_counts[(record.resource, predicate)] = len(values)
+        record_annotations = {
+            (record.resource, predicate, literal)
+            for predicate, literal in record.annotations
+        }
+        annotation_claims.update(record_annotations)
+        if retain_claim_sets:
+            literal_claims.update(record_annotations)
+        if retain_predicate_counts:
+            if record.is_skos_concept:
+                predicate_counts[(record.resource, RDF_TYPE)] = 1
+            for _, predicate, _ in record_annotations:
+                predicate_counts[(record.resource, predicate)] += 1
+        if compact_resource_digests:
+            resource_input_digest_values[record.resource] = record.source_digest
+        else:
+            resource_input_digests[record.resource] = frozenset(
+                {record.source_digest}
+            )
+        resource_locators[record.resource] = record.source_locator
+        if retain_expected_native_payloads:
+            expected_native_payloads[record.resource] = record.native_payload
+    unknown_relation_endpoints = sorted(
+        {
+            endpoint
+            for subject, _, obj in relations
+            for endpoint in ((subject, obj) if require_relation_members else (subject,))
+            if endpoint not in concepts
+        }
+    )
+    if unknown_relation_endpoints:
+        raise ValueError(
+            "stock source relations name unknown required resources: "
+            f"{unknown_relation_endpoints[:5]}"
+        )
+    if retain_predicate_counts:
+        for subject, predicate, _ in relations:
+            predicate_counts[(subject, predicate)] += 1
+        for subject, _ in memberships:
+            predicate_counts[(subject, SKOS_IN_SCHEME)] += 1
+    return PublisherView(
+        concepts=frozenset(concepts),
+        schemes=frozenset(),
+        pref_labels=pref_labels,
+        alt_labels=alt_labels,
+        hidden_labels={},
+        notations=notations,
+        annotations=frozenset(annotation_claims),
+        resource_annotations=frozenset(),
+        resource_annotation_target_claim_counts={},
+        literal_claims=frozenset(literal_claims),
+        iri_claims=frozenset(iri_claims),
+        reified_statements=frozenset(),
+        pref_label_count_all_languages=sum(len(values) for values in pref_labels.values()),
+        alt_label_count_all_languages=sum(len(values) for values in alt_labels.values()),
+        hidden_label_count_all_languages=0,
+        relations=frozenset(relations),
+        memberships=frozenset(memberships),
+        top_concept_of=frozenset(),
+        has_top_concept=frozenset(),
+        resource_predicate_counts=dict(predicate_counts),
+        defects=(),
+        resource_input_digests=resource_input_digests,
+        input_content_digests={pin.path: pin.sha256 for pin in pins},
+        unevaluated_claims=tuple(unevaluated_claims),
+        resource_locators=resource_locators,
+        expected_native_payloads=expected_native_payloads,
+        expected_relation_payloads=dict(expected_relation_payloads or {}),
+        resource_input_digest_values=resource_input_digest_values,
+        source_digest_is_native_payload_digest=(
+            source_digest_is_native_payload_digest
+        ),
+    )
+
+
+MESH_DESCRIPTOR_XML_READER = "mesh-descriptor-xml-2026-v1"
+FEDERAL_REGISTER_TOPICS_JSON_READER = "federal-register-topics-json-v1"
+GCMD_SCIENCE_KEYWORDS_CSV_READER = "gcmd-science-keywords-csv-v1"
+_MESH_DESCRIPTOR_ROOT = "DescriptorRecordSet"
+_MESH_DESCRIPTOR_RECORD = "DescriptorRecord"
+_MESH_DESCRIPTOR_IRI_BASE = "https://id.nlm.nih.gov/mesh/"
+_MESH_DESCRIPTOR_UI = re.compile(r"^D\d{6,}$")
+_MESH_DESCRIPTOR_CLASSES = frozenset({"1", "2", "3", "4", "5", "6"})
+_MESH_USED_XML_PATHS = frozenset(
+    {
+        "DescriptorRecord",
+        "DescriptorRecord/DescriptorUI",
+        "DescriptorRecord/DescriptorName",
+        "DescriptorRecord/DescriptorName/String",
+        "DescriptorRecord/TreeNumberList",
+        "DescriptorRecord/TreeNumberList/TreeNumber",
+        "DescriptorRecord/ConceptList",
+        "DescriptorRecord/ConceptList/Concept",
+        "DescriptorRecord/ConceptList/Concept/TermList",
+        "DescriptorRecord/ConceptList/Concept/TermList/Term",
+        "DescriptorRecord/ConceptList/Concept/TermList/Term/String",
+    }
+)
+_FEDERAL_REGISTER_TOPICS_URL = (
+    "https://www.federalregister.gov/api/v1/topics.json"
+)
+_FEDERAL_REGISTER_TOPIC_KEYS = frozenset(
+    {"cfr_references", "name", "see", "see_also", "slug"}
+)
+_FEDERAL_REGISTER_LINK_KEYS = frozenset({"name", "slug"})
+_GCMD_CSV_COLUMNS = (
+    "Category",
+    "Topic",
+    "Term",
+    "Variable_Level_1",
+    "Variable_Level_2",
+    "Variable_Level_3",
+    "Detailed_Variable",
+    "UUID",
+)
+_GCMD_UUID = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+_GCMD_ALLOWED_CATEGORIES = frozenset(
+    {"EARTH SCIENCE", "EARTH SCIENCE SERVICES"}
+)
+_GCMD_VIEWER_URL = (
+    "https://gcmd.earthdata.nasa.gov/KeywordViewer/scheme/"
+    "sciencekeywords/27478148-b4b6-4c89-8829-08d2ee7bfe10/"
+)
+_GCMD_AUTHORITY_URL = "https://gcmd.earthdata.nasa.gov/kms/"
+
+
+@dataclass(frozen=True)
+class _StockSourceRecord:
+    """One record read without registry code from JSON, CSV, XML, or MARC."""
+
+    resource: str
+    preferred_label: str
+    alternate_labels: tuple[str, ...]
+    notations: tuple[str, ...]
+    source_locator: str
+    source_digest: str
+    native_payload: Mapping[str, Any]
+
+
+def _stock_source_view(
+    records: Iterable[_StockSourceRecord],
+    relations: Collection[tuple[str, str, str]],
+    pins: Sequence[SourcePin],
+    *,
+    unevaluated_claims: Sequence[str] = (),
+) -> PublisherView:
+    """Adapt the three source readers to main's bounded stock-view indexes."""
+
+    def stock_records() -> Iterator[_StockVocabularyRecord]:
+        for record in records:
+            yield _StockVocabularyRecord(
+                resource=record.resource,
+                preferred_labels=(
+                    _literal_value(record.preferred_label, "en", None),
+                ),
+                alternate_labels=tuple(
+                    _literal_value(value, "en", None)
+                    for value in record.alternate_labels
+                ),
+                notations=tuple(
+                    _literal_value(value, None, None) for value in record.notations
+                ),
+                annotations=(),
+                source_locator=record.source_locator,
+                source_digest=record.source_digest,
+                native_payload=record.native_payload,
+            )
+
+    # These three sources use file or source-row digests, not native-payload
+    # digests. Main's compact payload path therefore cannot prove field values.
+    # Keep that one necessary expected-value map, while dropping duplicate claim
+    # and predicate-count indexes and using the compact one-string digest map.
+    return _stock_vocabulary_view(
+        stock_records(),
+        relations,
+        (),
+        pins,
+        unevaluated_claims=unevaluated_claims,
+        retain_predicate_counts=False,
+        retain_claim_sets=False,
+        retain_expected_native_payloads=True,
+        compact_resource_digests=True,
+        source_digest_is_native_payload_digest=False,
+    )
+
+
+def _canonical_json_source_digest(value: Any) -> str:
+    """Hash one JSON value with the source adapters' documented spelling."""
+    return _canonical_json_digest(value)
+
+
+def _derive_source_uuid7(recorded_at: str, seed: bytes) -> str:
+    """Independently derive the deterministic UUIDv7 used for local rows."""
+    parsed = datetime.fromisoformat(
+        recorded_at[:-1] + "+00:00"
+        if recorded_at.endswith("Z")
+        else recorded_at
+    )
+    if parsed.tzinfo is None:
+        raise ValueError("source-local identity timestamp must include a time zone")
+    timestamp_ms = int(parsed.astimezone(UTC).timestamp() * 1_000)
+    if timestamp_ms < 0 or timestamp_ms >= 1 << 48:
+        raise ValueError("source-local identity timestamp is outside UUIDv7 range")
+    random_bits = int.from_bytes(hashlib.sha256(seed).digest(), "big") >> 182
+    random_a = random_bits >> 62
+    random_b = random_bits & ((1 << 62) - 1)
+    value = timestamp_ms << 80
+    value |= 0x7 << 76
+    value |= random_a << 64
+    value |= 0b10 << 62
+    value |= random_b
+    return str(uuid.UUID(int=value))
+
+
+def _source_local_resource_iri(
+    namespace: str,
+    recorded_at: str,
+    source_iri: str,
+    source_key: str,
+) -> str:
+    seed = (
+        "atlas-v3-registry-source-identity-v1\n"
+        f"{source_iri}\n{source_key}\n"
+    ).encode()
+    local_id = _derive_source_uuid7(recorded_at, seed)
+    return f"urn:ref:source-concept:v2:{namespace}:{local_id}"
+
+
+def _source_scoped_resource_identity(
+    namespace: str,
+    recorded_at: str,
+    source_scheme: str,
+    source_key: str,
+) -> tuple[str, Mapping[str, str]]:
+    seed = (
+        "atlas-v3-source-concept-v1\n"
+        f"{source_scheme}\n{source_key}\n"
+    ).encode()
+    local_id = _derive_source_uuid7(recorded_at, seed)
+    return (
+        f"urn:ref:source-concept:v2:{namespace}:{local_id}",
+        {
+            "identityKind": "refspecSourceScoped",
+            "localRecordId": f"urn:uuid:{local_id}",
+            "namespaceToken": namespace,
+            "sourceKey": source_key,
+            "sourceScheme": source_scheme,
+        },
+    )
+
+
+def _require_exact_json_keys(
+    value: Mapping[str, Any],
+    expected: Collection[str],
+    label: str,
+) -> None:
+    if set(value) != set(expected):
+        raise ValueError(
+            f"{label} fields changed; missing={sorted(set(expected) - set(value))}, "
+            f"extra={sorted(set(value) - set(expected))}"
+        )
+
+
+def _required_xml_text(value: str | None, label: str) -> str:
+    """Return one required MeSH value without normalizing its internal text."""
+    if value is None or not value.strip():
+        raise ValueError(f"{label} must be non-empty text")
+    return value.strip()
+
+
+def _read_mesh_descriptor_xml(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read MeSH descriptors with ElementTree, independent of registry ETL."""
+    if len(spec.inputs) != 1:
+        raise ValueError("MeSH descriptor reader requires exactly one XML input")
+    pin = spec.inputs[0]
+    payload = authenticated_payloads[pin]
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError("MeSH descriptor XML must not declare custom XML entities")
+
+    ignored_paths: Counter[str] = Counter()
+    ignored_attributes: Counter[str] = Counter()
+    concept_count = 0
+
+    def records() -> Iterator[_StockSourceRecord]:
+        nonlocal concept_count
+        context = ElementTree.iterparse(io.BytesIO(payload), events=("start", "end"))
+        try:
+            event, root = next(context)
+        except (StopIteration, ElementTree.ParseError) as error:
+            raise ValueError("MeSH descriptor XML is empty or malformed") from error
+        if event != "start" or root.tag != _MESH_DESCRIPTOR_ROOT:
+            raise ValueError(
+                f"MeSH XML root must be {_MESH_DESCRIPTOR_ROOT!r}, observed {root.tag!r}"
+            )
+        if root.get("LanguageCode") != "eng":
+            raise ValueError("MeSH DescriptorRecordSet LanguageCode must be 'eng'")
+        for attribute in root.attrib:
+            if attribute != "LanguageCode":
+                ignored_attributes[f"{_MESH_DESCRIPTOR_ROOT}@{attribute}"] += 1
+
+        try:
+            for event, element in context:
+                if event != "end" or element.tag != _MESH_DESCRIPTOR_RECORD:
+                    continue
+                descriptor_class = element.get("DescriptorClass")
+                if descriptor_class not in _MESH_DESCRIPTOR_CLASSES:
+                    raise ValueError(
+                        "MeSH DescriptorRecord has unsupported DescriptorClass "
+                        f"{descriptor_class!r}"
+                    )
+                descriptor_ui = _required_xml_text(
+                    element.findtext("DescriptorUI"),
+                    "MeSH DescriptorUI",
+                )
+                if _MESH_DESCRIPTOR_UI.fullmatch(descriptor_ui) is None:
+                    raise ValueError(
+                        f"MeSH DescriptorUI is malformed: {descriptor_ui!r}"
+                    )
+                resource = _MESH_DESCRIPTOR_IRI_BASE + descriptor_ui
+                heading = _required_xml_text(
+                    element.findtext("DescriptorName/String"),
+                    f"MeSH {descriptor_ui} DescriptorName",
+                )
+                tree_numbers = tuple(
+                    _required_xml_text(node.text, f"MeSH {descriptor_ui} TreeNumber")
+                    for node in element.findall("TreeNumberList/TreeNumber")
+                )
+                alternate: list[str] = []
+                seen_labels = {heading}
+                for term in element.findall("ConceptList/Concept/TermList/Term"):
+                    permuted = term.get("IsPermutedTermYN")
+                    if permuted not in {"Y", "N"}:
+                        raise ValueError(
+                            f"MeSH {descriptor_ui} Term has unsupported "
+                            f"IsPermutedTermYN {permuted!r}"
+                        )
+                    if permuted == "Y":
+                        continue
+                    value = _required_xml_text(
+                        term.findtext("String"),
+                        f"MeSH {descriptor_ui} Term",
+                    )
+                    if value not in seen_labels:
+                        seen_labels.add(value)
+                        alternate.append(value)
+
+                def account_xml(node: ElementTree.Element, path: str) -> None:
+                    if path not in _MESH_USED_XML_PATHS:
+                        ignored_paths[path] += 1
+                    allowed_attributes = (
+                        {"DescriptorClass"}
+                        if path == "DescriptorRecord"
+                        else {"IsPermutedTermYN"}
+                        if path.endswith("/Term")
+                        else set()
+                    )
+                    for attribute in node.attrib:
+                        if attribute not in allowed_attributes:
+                            ignored_attributes[f"{path}@{attribute}"] += 1
+                    for child in node:
+                        account_xml(child, f"{path}/{child.tag}")
+
+                account_xml(element, _MESH_DESCRIPTOR_RECORD)
+                concept_count += 1
+                yield _StockSourceRecord(
+                    resource=resource,
+                    preferred_label=heading,
+                    alternate_labels=tuple(alternate),
+                    notations=tree_numbers,
+                    source_locator=resource,
+                    source_digest=pin.sha256,
+                    native_payload={
+                        "publisherConceptIri": resource,
+                        "descriptorUi": descriptor_ui,
+                        "descriptorClass": descriptor_class,
+                        "treeNumbers": list(tree_numbers),
+                    },
+                )
+                element.clear()
+                while len(root):
+                    del root[0]
+        except ElementTree.ParseError as error:
+            raise ValueError("MeSH descriptor XML is malformed") from error
+
+    view = _stock_source_view(records(), (), spec.inputs)
+    if not concept_count:
+        raise ValueError("MeSH descriptor XML contains no DescriptorRecord elements")
+    unevaluated_claims = tuple(
+        [
+            f"MeSH XML path {path!r} has {count} values outside the declared reader"
+            for path, count in sorted(ignored_paths.items())
+        ]
+        + [
+            f"MeSH XML attribute {path!r} has {count} values outside the declared reader"
+            for path, count in sorted(ignored_attributes.items())
+        ]
+    )
+    return replace(view, unevaluated_claims=unevaluated_claims)
+
+
+def _read_federal_register_topics_json(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read the captured FederalRegister.gov topics API with stdlib JSON."""
+    if len(spec.inputs) != 1:
+        raise ValueError("Federal Register topics reader requires one JSON input")
+    pin = spec.inputs[0]
+    document = _json_without_duplicate_keys(authenticated_payloads[pin], pin.path)
+    if not isinstance(document, Mapping):
+        raise ValueError("Federal Register topics response must be an object")
+    _require_exact_json_keys(document, {"meta", "results"}, "topics response")
+    meta = document["meta"]
+    results = document["results"]
+    if not isinstance(meta, Mapping) or set(meta) != {"count"}:
+        raise ValueError("Federal Register topics meta must contain only count")
+    counts = meta["count"]
+    if not isinstance(counts, Mapping):
+        raise ValueError("Federal Register topics meta.count must be an object")
+    _require_exact_json_keys(
+        counts,
+        {"thesaurus", "ad_hoc", "total"},
+        "topics meta.count",
+    )
+    if not isinstance(results, Mapping):
+        raise ValueError("Federal Register topics results must be an object")
+    _require_exact_json_keys(results, {"thesaurus", "ad_hoc"}, "topics results")
+
+    parsed_rows: list[tuple[str, int, Mapping[str, Any], str]] = []
+    resource_by_pair: dict[tuple[str, str, str], str] = {}
+    for collection in ("thesaurus", "ad_hoc"):
+        rows = results[collection]
+        if not isinstance(rows, list):
+            raise ValueError(f"topics results.{collection} must be an array")
+        declared_count = counts.get(collection)
+        if declared_count != len(rows) or isinstance(declared_count, bool):
+            raise ValueError(
+                f"topics meta.count.{collection} declares {declared_count!r}, "
+                f"observed {len(rows)}"
+            )
+        for ordinal, raw_row in enumerate(rows):
+            label = f"results.{collection}[{ordinal}]"
+            if not isinstance(raw_row, Mapping):
+                raise ValueError(f"{label} must be an object")
+            _require_exact_json_keys(raw_row, _FEDERAL_REGISTER_TOPIC_KEYS, label)
+            name = raw_row.get("name")
+            slug = raw_row.get("slug")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"{label}.name must be non-empty text")
+            if not isinstance(slug, str):
+                raise ValueError(f"{label}.slug must be text")
+            for field_name in ("see", "see_also", "cfr_references"):
+                if not isinstance(raw_row.get(field_name), list):
+                    raise ValueError(f"{label}.{field_name} must be an array")
+            for field_name in ("see", "see_also"):
+                for index, link in enumerate(raw_row[field_name]):
+                    if not isinstance(link, Mapping):
+                        raise ValueError(
+                            f"{label}.{field_name}[{index}] must be an object"
+                        )
+                    _require_exact_json_keys(
+                        link,
+                        _FEDERAL_REGISTER_LINK_KEYS,
+                        f"{label}.{field_name}[{index}]",
+                    )
+                    if (
+                        not isinstance(link.get("name"), str)
+                        or not link["name"].strip()
+                    ):
+                        raise ValueError(
+                            f"{label}.{field_name}[{index}].name must be text"
+                        )
+                    if not isinstance(link.get("slug"), str):
+                        raise ValueError(
+                            f"{label}.{field_name}[{index}].slug must be text"
+                        )
+            row_digest = _canonical_json_source_digest(
+                {
+                    "collection": collection,
+                    "sourceOrdinal": ordinal,
+                    "record": raw_row,
+                }
+            )
+            resource = _source_local_resource_iri(
+                "federal-register-api",
+                "2026-08-03T00:00:00Z",
+                _FEDERAL_REGISTER_TOPICS_URL,
+                f"{collection}:{ordinal}:{row_digest}",
+            )
+            pair = (collection, name, slug)
+            if pair in resource_by_pair:
+                raise ValueError(
+                    f"Federal Register topic pair is duplicated: {pair!r}"
+                )
+            resource_by_pair[pair] = resource
+            parsed_rows.append((collection, ordinal, raw_row, resource))
+    if counts.get("total") != len(parsed_rows) or isinstance(
+        counts.get("total"), bool
+    ):
+        raise ValueError(
+            f"topics meta.count.total declares {counts.get('total')!r}, "
+            f"observed {len(parsed_rows)}"
+        )
+
+    records: list[_StockSourceRecord] = []
+    relations: set[tuple[str, str, str]] = set()
+    for collection, ordinal, row, resource in parsed_rows:
+        source_path = f"results.{collection}[{ordinal}]"
+        row_digest = _canonical_json_source_digest(
+            {
+                "collection": collection,
+                "sourceOrdinal": ordinal,
+                "record": row,
+            }
+        )
+        records.append(
+            _StockSourceRecord(
+                resource=resource,
+                preferred_label=row["name"],
+                alternate_labels=(),
+                notations=(row["slug"],) if row["slug"] else (),
+                source_locator=(
+                    _FEDERAL_REGISTER_TOPICS_URL
+                    + "#"
+                    + urllib.parse.quote(source_path, safe="")
+                ),
+                source_digest=row_digest,
+                native_payload={
+                    "collection": collection,
+                    "record": dict(row),
+                    "sourceOrdinal": ordinal,
+                    "sourceRecordDigest": row_digest,
+                },
+            )
+        )
+        for field_name, predicate in (
+            ("see", f"{ATLAS}thesaurusUse"),
+            ("see_also", f"{SKOS}related"),
+        ):
+            for link in row[field_name]:
+                target = resource_by_pair.get(
+                    (collection, link["name"], link["slug"])
+                )
+                if target is None:
+                    raise ValueError(
+                        f"{source_path}.{field_name} has no exact same-collection "
+                        f"target: {link!r}"
+                    )
+                relations.add((resource, predicate, target))
+    return _stock_source_view(records, relations, spec.inputs)
+
+
+def _read_gcmd_science_keywords_csv(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read NASA GCMD Science Keywords with the stdlib CSV parser."""
+    if len(spec.inputs) != 1:
+        raise ValueError("GCMD Science Keywords reader requires one CSV input")
+    pin = spec.inputs[0]
+    try:
+        text = authenticated_payloads[pin].decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("GCMD Science Keywords CSV is not UTF-8") from error
+    reader = csv.reader(io.StringIO(text))
+    try:
+        metadata = next(reader)
+        header = next(reader)
+    except StopIteration as error:
+        raise ValueError("GCMD CSV is missing metadata or column headers") from error
+    if (
+        len(metadata) < 2
+        or metadata[0].strip() != "Keyword Version: 24.4"
+        or metadata[1].strip() != "Revision: 2026-07-22T11:07:16.739Z"
+    ):
+        raise ValueError("GCMD CSV version or revision header drifted")
+    if tuple(header) != _GCMD_CSV_COLUMNS:
+        raise ValueError(f"GCMD CSV columns drifted: {header!r}")
+
+    records: list[_StockSourceRecord] = []
+    seen_uuids: set[str] = set()
+    for ordinal, row in enumerate(reader):
+        if not row:
+            continue
+        if len(row) != len(_GCMD_CSV_COLUMNS):
+            raise ValueError(
+                f"GCMD CSV row {ordinal} has {len(row)} fields, expected 8"
+            )
+        category, topic, term, level_1, level_2, level_3, detailed, concept_uuid = row
+        if category not in _GCMD_ALLOWED_CATEGORIES:
+            raise ValueError(
+                f"GCMD CSV row {ordinal} has out-of-scope category {category!r}"
+            )
+        if _GCMD_UUID.fullmatch(concept_uuid) is None:
+            raise ValueError(
+                f"GCMD CSV row {ordinal} has malformed UUID {concept_uuid!r}"
+            )
+        if concept_uuid in seen_uuids:
+            raise ValueError(f"GCMD CSV row {ordinal} repeats UUID {concept_uuid!r}")
+        seen_uuids.add(concept_uuid)
+        levels = (category, topic, term, level_1, level_2, level_3, detailed)
+        seen_blank = False
+        for level in levels:
+            if not level:
+                seen_blank = True
+            elif seen_blank:
+                raise ValueError(
+                    f"GCMD CSV row {ordinal} populates a level after a blank ancestor"
+                )
+        preferred_label = next(level for level in reversed(levels) if level)
+        resource, source_identity = _source_scoped_resource_identity(
+            "gcmd-science-keywords",
+            "2026-08-03T19:03:43Z",
+            _GCMD_VIEWER_URL,
+            concept_uuid,
+        )
+        source_path = f"csv:row[{ordinal}]"
+        locator_digest = hashlib.sha256(
+            f"{pin.source_iri}\n{source_path}\n{concept_uuid}\n".encode()
+        ).hexdigest()
+        records.append(
+            _StockSourceRecord(
+                resource=resource,
+                preferred_label=preferred_label,
+                alternate_labels=(),
+                notations=(concept_uuid,),
+                source_locator=(
+                    "urn:ref:source-observation:gcmd-science-keywords-24-4:"
+                    + locator_digest
+                ),
+                source_digest=pin.sha256,
+                native_payload={
+                    "publisherIdentifier": {
+                        "value": concept_uuid,
+                        "kind": "gcmdConceptUUID",
+                        "authorityUri": _GCMD_AUTHORITY_URL,
+                    },
+                    "category": category,
+                    "topic": topic or None,
+                    "term": term or None,
+                    "variableLevel1": level_1 or None,
+                    "variableLevel2": level_2 or None,
+                    "variableLevel3": level_3 or None,
+                    "detailedVariable": detailed or None,
+                    "sourceIdentity": source_identity,
+                },
+            )
+        )
+    ignored_metadata = tuple(
+        f"GCMD metadata header field {index} is authenticated but not represented: {value!r}"
+        for index, value in enumerate(metadata[2:], start=2)
+        if value
+    )
+    return _stock_source_view(
+        records,
+        (),
+        spec.inputs,
+        unevaluated_claims=ignored_metadata,
+    )
+
+
+EPA_ENTERPRISE_VOCABULARY_XML_READER = "epa-enterprise-vocabulary-xml-v1"
+_EPA_BROWSE_URL = (
+    "https://ofmpub.epa.gov/sor_internet/registry/termreg/searchandretrieve/"
+    "enterprisevocabulary/search.do?search=&tierTwoSelected=1005100&searchString="
+)
+
+
+def _read_epa_enterprise_vocabulary_xml(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read EPA's positional XML label tree with ElementTree."""
+    if len(spec.inputs) != 1:
+        raise ValueError("EPA Enterprise Vocabulary reader requires one XML input")
+    pin = spec.inputs[0]
+    payload = authenticated_payloads[pin]
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError("EPA Enterprise Vocabulary XML must not declare custom entities")
+    try:
+        root = ElementTree.fromstring(payload)
+    except ElementTree.ParseError as error:
+        raise ValueError(f"EPA Enterprise Vocabulary XML is malformed: {error}") from error
+    if root.tag != "EnterpriseVocabularyReport" or root.attrib:
+        raise ValueError(
+            "EPA Enterprise Vocabulary root must be an attribute-free "
+            "<EnterpriseVocabularyReport>"
+        )
+
+    records: list[_StockVocabularyRecord] = []
+    relations: set[tuple[str, str, str]] = set()
+    row_by_path: dict[str, str] = {}
+
+    def parse_row(element: ElementTree.Element, path: tuple[int, ...], depth: int) -> Mapping[str, Any]:
+        source_path = "/".join(f"Row[{index}]" for index in path)
+        if element.tag != "Row" or element.attrib:
+            raise ValueError(f"EPA {source_path} must be an attribute-free <Row>")
+        children_by_tag: dict[str, list[ElementTree.Element]] = defaultdict(list)
+        for child in element:
+            children_by_tag[child.tag].append(child)
+        allowed = {"Term", "Definitions", "ScopeNote", "ChildTerms"}
+        unexpected = sorted(set(children_by_tag) - allowed)
+        repeated = sorted(tag for tag, rows in children_by_tag.items() if len(rows) > 1)
+        if unexpected or repeated or len(children_by_tag.get("Term", ())) != 1:
+            raise ValueError(
+                f"EPA {source_path} shape differs; unexpected={unexpected}, "
+                f"repeated={repeated}, termCount={len(children_by_tag.get('Term', ()))}"
+            )
+        term = children_by_tag["Term"][0]
+        if term.attrib or not (term.text or "").strip():
+            raise ValueError(f"EPA {source_path} Term must be nonblank and attribute-free")
+        definition = children_by_tag.get("Definitions", [None])[0]
+        scope_note = children_by_tag.get("ScopeNote", [None])[0]
+        for label, node in (("Definitions", definition), ("ScopeNote", scope_note)):
+            if node is not None and (node.attrib or len(node)):
+                raise ValueError(f"EPA {source_path} {label} must contain only text")
+        child_container = children_by_tag.get("ChildTerms", [None])[0]
+        if child_container is not None and (
+            child_container.attrib or (child_container.text or "").strip()
+        ):
+            raise ValueError(f"EPA {source_path} ChildTerms shape differs")
+        child_payloads: list[Mapping[str, Any]] = []
+        if child_container is not None:
+            for index, child in enumerate(child_container):
+                if child.tag != "Row":
+                    raise ValueError(
+                        f"EPA {source_path} ChildTerms contains <{child.tag}>"
+                    )
+                child_payloads.append(parse_row(child, (*path, index), depth + 1))
+        row_payload: Mapping[str, Any] = {
+            "label": term.text or "",
+            "source_path": source_path,
+            "definitions_text": None if definition is None else (definition.text or ""),
+            "scope_note_text": None if scope_note is None else (scope_note.text or ""),
+            "child_terms": child_payloads,
+        }
+        resource = "urn:ref:epa-enterprise-vocabulary-row:" + urllib.parse.quote(
+            source_path,
+            safe="",
+        )
+        row_by_path[source_path] = resource
+        annotations: list[tuple[str, LiteralValue]] = []
+        definition_text = (row_payload["definitions_text"] or "").strip()
+        scope_note_text = (row_payload["scope_note_text"] or "").strip()
+        if definition_text:
+            annotations.append(
+                (SKOS_DEFINITION, _literal_value(definition_text, None, None))
+            )
+        if scope_note_text and scope_note_text != "\xa0":
+            annotations.append(
+                (SKOS_SCOPE_NOTE, _literal_value(scope_note_text, None, None))
+            )
+        native_payload = {
+            "depth": depth,
+            "row": row_payload,
+            "publisherConceptIdentityAvailable": False,
+        }
+        records.append(
+            _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(
+                    _literal_value((term.text or "").strip(), None, None),
+                ),
+                alternate_labels=(),
+                notations=(),
+                annotations=tuple(annotations),
+                source_locator=(
+                    _EPA_BROWSE_URL
+                    + "#"
+                    + urllib.parse.quote(source_path, safe="/")
+                ),
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+        )
+        for child in child_payloads:
+            child_path = child["source_path"]
+            child_resource = row_by_path.get(str(child_path))
+            if child_resource is None:
+                raise ValueError(f"EPA walk omitted child {child_path!r}")
+            relations.add((child_resource, f"{SKOS}broader", resource))
+        return row_payload
+
+    for index, child in enumerate(root):
+        parse_row(child, (index,), 0)
+    return _stock_vocabulary_view(records, relations, (), spec.inputs)
+
+
+LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER = "lcsh-alignment-endpoint-jsonld-v1"
+_LCSH_SCHEME = "http://id.loc.gov/authorities/subjects"
+_LCSH_CONTEXT = "http://id.loc.gov/authorities/subjects/context.json"
+_LCSH_ALIGNMENT_RELEASE = (
+    "http://publications.europa.eu/resource/dataset/"
+    "eurovoc_alignment_lcsh/20240711-0"
+)
+_LCSH_ALIGNMENT_PREDICATES = frozenset(
+    {f"{SKOS}exactMatch", f"{SKOS}closeMatch"}
+)
+
+
+def _jsonld_term_set(value: object, label: str) -> frozenset[str]:
+    if value is None:
+        return frozenset()
+    if isinstance(value, str):
+        return frozenset({value})
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return frozenset(value)
+    raise ValueError(f"{label} @type must be a string or string array")
+
+
+def _jsonld_references(value: object, label: str) -> tuple[Mapping[str, Any], ...]:
+    if value is None:
+        return ()
+    if isinstance(value, Mapping):
+        return (value,)
+    if isinstance(value, list) and all(isinstance(item, Mapping) for item in value):
+        return tuple(value)
+    raise ValueError(f"{label} must contain JSON-LD reference objects")
+
+
+def _jsonld_label(value: object, label: str) -> LiteralValue:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{label} must be a JSON-LD value object")
+    text = value.get("@value")
+    language = value.get("@language")
+    if not isinstance(text, str) or not text:
+        raise ValueError(f"{label} has no non-empty @value")
+    if not isinstance(language, str) or not language:
+        raise ValueError(f"{label} has no @language")
+    return _literal_value(text, language, None)
+
+
+def _read_lcsh_alignment_endpoint_jsonld(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Select official alignment objects, then stream their LOC JSON-LD records."""
+    import rdflib
+
+    alignment_pin = next(
+        (pin for pin in spec.inputs if pin.role == "publisherAlignment"),
+        None,
+    )
+    bulk_pin = next(
+        (pin for pin in spec.inputs if pin.role == "publisherBulkSource"),
+        None,
+    )
+    if alignment_pin is None or bulk_pin is None or len(spec.inputs) != 2:
+        raise ValueError(
+            "LCSH alignment endpoint reader requires one alignment and one bulk input"
+        )
+    alignment = rdflib.Graph()
+    try:
+        alignment.parse(
+            data=authenticated_payloads[alignment_pin],
+            format="xml",
+            publicID=alignment_pin.source_iri,
+        )
+    except Exception as error:
+        raise ValueError(f"LCSH selection alignment is malformed: {error}") from error
+    align_type = rdflib.URIRef(
+        "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#Alignment"
+    )
+    onto1 = rdflib.URIRef(
+        "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#onto1"
+    )
+    onto2 = rdflib.URIRef(
+        "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#onto2"
+    )
+    headers = set(alignment.subjects(rdflib.RDF.type, align_type))
+    if len(headers) != 1:
+        raise ValueError(
+            f"LCSH selection alignment must have one header, observed {len(headers)}"
+        )
+    header = next(iter(headers))
+    if set(map(str, alignment.objects(header, onto1))) != {"http://eurovoc.europa.eu"}:
+        raise ValueError("LCSH selection alignment onto1 is not EuroVoc")
+    if set(map(str, alignment.objects(header, onto2))) != {_LCSH_SCHEME}:
+        raise ValueError("LCSH selection alignment onto2 is not LCSH")
+    selected_iris: set[str] = set()
+    mapping_counts: Counter[str] = Counter()
+    for predicate in _LCSH_ALIGNMENT_PREDICATES:
+        for subject, obj in alignment.subject_objects(rdflib.URIRef(predicate)):
+            if not isinstance(subject, rdflib.URIRef) or not str(subject).startswith(
+                "http://eurovoc.europa.eu/"
+            ):
+                raise ValueError(f"LCSH selection has non-EuroVoc subject {subject!r}")
+            if not isinstance(obj, rdflib.URIRef) or not str(obj).startswith(
+                _LCSH_SCHEME + "/"
+            ):
+                raise ValueError(f"LCSH selection has non-LCSH object {obj!r}")
+            selected_iris.add(str(obj))
+            mapping_counts[predicate] += 1
+    production_alignment = alignment_pin.sha256 == (
+        "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853"
+    )
+    expected_counts = {f"{SKOS}closeMatch": 99, f"{SKOS}exactMatch": 1_904}
+    if production_alignment and dict(mapping_counts) != expected_counts:
+        raise ValueError(
+            "LCSH selection mapping counts differ: "
+            f"expected={expected_counts}, observed={dict(mapping_counts)}"
+        )
+    if production_alignment and len(selected_iris) != 1_966:
+        raise ValueError(
+            f"LCSH selection must name 1,966 distinct endpoints, observed {len(selected_iris)}"
+        )
+    if not selected_iris:
+        raise ValueError("LCSH selection alignment names no endpoints")
+    path_to_iri = {
+        "/authorities/subjects/" + iri.removeprefix(_LCSH_SCHEME + "/"): iri
+        for iri in selected_iris
+    }
+
+    records: list[_StockVocabularyRecord] = []
+    broader_by_resource: dict[str, tuple[str, ...]] = {}
+    selected: set[str] = set()
+    ignored_fields: Counter[str] = Counter()
+    try:
+        stream = gzip.GzipFile(
+            fileobj=io.BytesIO(authenticated_payloads[bulk_pin]),
+            mode="rb",
+        )
+        for line_number, line in enumerate(stream, start=1):
+            raw = line.rstrip(b"\r\n")
+            if not raw.strip():
+                continue
+            try:
+                document = json.loads(raw)
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError(
+                    f"LCSH bulk line {line_number} is not UTF-8 JSON: {error}"
+                ) from error
+            if not isinstance(document, Mapping):
+                raise ValueError(f"LCSH bulk line {line_number} is not an object")
+            resource = path_to_iri.get(document.get("@id"))
+            if resource is None:
+                continue
+            if resource in selected:
+                raise ValueError(f"LCSH bulk repeats selected authority {resource}")
+            if document.get("@context") != _LCSH_CONTEXT:
+                raise ValueError(f"LCSH {resource} uses an unexpected @context")
+            graph = document.get("@graph")
+            if not isinstance(graph, list) or not graph:
+                raise ValueError(f"LCSH {resource} has no non-empty @graph")
+            by_id: dict[str, Mapping[str, Any]] = {}
+            for node in graph:
+                if not isinstance(node, Mapping) or not isinstance(node.get("@id"), str):
+                    raise ValueError(f"LCSH {resource} has an invalid @graph node")
+                node_id = node["@id"]
+                if node_id in by_id:
+                    raise ValueError(f"LCSH {resource} repeats node {node_id!r}")
+                by_id[node_id] = node
+            authorities = [
+                node
+                for node in graph
+                if node.get("@id") == resource
+                and "madsrdf:Authority"
+                in _jsonld_term_set(node.get("@type"), f"LCSH {resource}")
+            ]
+            if len(authorities) != 1:
+                raise ValueError(
+                    f"LCSH {resource} must have one matching Authority node"
+                )
+            authority = authorities[0]
+            authority_types = tuple(
+                sorted(_jsonld_term_set(authority.get("@type"), f"LCSH {resource}"))
+            )
+            preferred = _jsonld_label(
+                authority.get("madsrdf:authoritativeLabel"),
+                f"LCSH {resource} authoritativeLabel",
+            )
+            if preferred.language is None or preferred.language.casefold() != "en":
+                raise ValueError(f"LCSH {resource} has no English preferred label")
+            broader = tuple(
+                sorted(
+                    {
+                        str(reference.get("@id"))
+                        for reference in _jsonld_references(
+                            authority.get("madsrdf:hasBroaderAuthority"),
+                            f"LCSH {resource} broader",
+                        )
+                        if isinstance(reference.get("@id"), str)
+                        and str(reference["@id"]).startswith(_LCSH_SCHEME + "/")
+                    }
+                )
+            )
+            variants: list[LiteralValue] = []
+            for reference in _jsonld_references(
+                authority.get("madsrdf:hasVariant"),
+                f"LCSH {resource} variants",
+            ):
+                variant_id = reference.get("@id")
+                if not isinstance(variant_id, str) or variant_id not in by_id:
+                    raise ValueError(
+                        f"LCSH {resource} variant reference is absent from @graph"
+                    )
+                label = _jsonld_label(
+                    by_id[variant_id].get("madsrdf:variantLabel"),
+                    f"LCSH {resource} variant {variant_id}",
+                )
+                if label.language is not None and label.language.casefold() == "en":
+                    variants.append(
+                        _literal_value(label.value.strip(), "en", None)
+                    )
+                else:
+                    ignored_fields["non-English variant label"] += 1
+            alternate = tuple(
+                sorted(
+                    {
+                        label
+                        for label in variants
+                        if label.value and label.value != preferred.value.strip()
+                    },
+                    key=lambda value: (value.language or "", value.value),
+                )
+            )
+            lccn = authority.get("identifiers:lccn")
+            if lccn is not None and (
+                not isinstance(lccn, str) or not lccn.strip()
+            ):
+                raise ValueError(f"LCSH {resource} has an invalid LCCN")
+            record_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+            native_payload = {
+                "authorityTypes": list(authority_types),
+                "broaderIris": list(broader),
+                "captureSelection": {
+                    "alignmentDigest": alignment_pin.sha256,
+                    "alignmentRelease": _LCSH_ALIGNMENT_RELEASE,
+                },
+                "lccn": lccn,
+                "lineNumber": line_number,
+                "recordByteLength": len(raw),
+                "recordDigest": record_digest,
+            }
+            records.append(
+                _StockVocabularyRecord(
+                    resource=resource,
+                    preferred_labels=(
+                        _literal_value(preferred.value.strip(), "en", None),
+                    ),
+                    alternate_labels=alternate,
+                    notations=(
+                        ()
+                        if lccn is None
+                        else (_literal_value(lccn, None, None),)
+                    ),
+                    annotations=(),
+                    source_locator=f"{bulk_pin.source_iri}#line-{line_number}",
+                    source_digest=_canonical_json_digest(native_payload),
+                    native_payload=native_payload,
+                )
+            )
+            selected.add(resource)
+            broader_by_resource[resource] = broader
+            used_authority_fields = {
+                "@id",
+                "@type",
+                "identifiers:lccn",
+                "madsrdf:authoritativeLabel",
+                "madsrdf:hasBroaderAuthority",
+                "madsrdf:hasVariant",
+            }
+            for field_name in set(authority) - used_authority_fields:
+                ignored_fields[f"authority field {field_name}"] += 1
+            used_node_ids = {
+                reference.get("@id")
+                for reference in _jsonld_references(
+                    authority.get("madsrdf:hasVariant"),
+                    f"LCSH {resource} variants",
+                )
+            }
+            for node_id, node in by_id.items():
+                if node_id == resource:
+                    continue
+                if node_id not in used_node_ids:
+                    ignored_fields["unrepresented JSON-LD graph node"] += len(node)
+                else:
+                    for field_name in set(node) - {"@id", "@type", "madsrdf:variantLabel"}:
+                        ignored_fields[f"variant field {field_name}"] += 1
+    except (OSError, EOFError) as error:
+        raise ValueError(f"LCSH bulk gzip is malformed: {error}") from error
+    missing = sorted(selected_iris - selected)
+    if missing:
+        raise ValueError(
+            f"LCSH bulk lacks {len(missing)} aligned authorities: {missing[:5]}"
+        )
+    relations = {
+        (resource, f"{SKOS}broader", broader)
+        for resource, broader_iris in broader_by_resource.items()
+        for broader in broader_iris
+        if broader in selected
+    }
+    unevaluated = tuple(
+        f"LCSH selected records contain {count} authenticated but unrepresented {field} claims"
+        for field, count in sorted(ignored_fields.items())
+        if count
+    )
+    return _stock_vocabulary_view(
+        records,
+        relations,
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+    )
+
+
+FAST_TOPICAL_NATIVE_READER = "fast-topical-ntriples-marc-v1"
+_FAST_IRI_BASE = "http://id.worldcat.org/fast/"
+_FAST_PREF_LABEL = f"{SKOS}prefLabel"
+_FAST_ALT_LABEL = f"{SKOS}altLabel"
+_FAST_BROADER = f"{SKOS}broader"
+_FAST_DEPRECATED = f"{OWL}deprecated"
+_FAST_IDENTIFIER = f"{DCTERMS}identifier"
+_FAST_MARC_ID = re.compile(r"^fst0*(\d+)$")
+_FAST_MARC_LINK = re.compile(r"\(OCoLC\)fst0*(\d+)")
+_FAST_HEADING_TAGS = frozenset(
+    {"100", "110", "111", "130", "147", "148", "150", "151", "155"}
+)
+_FAST_ALT_TAGS = frozenset(
+    {"400", "410", "411", "430", "447", "448", "450", "451", "455"}
+)
+_FAST_LINK_TAGS = frozenset(
+    {"500", "510", "511", "530", "547", "548", "550", "551", "555"}
+)
+_FAST_CONTENT_CODES = frozenset("abcdefghjklmnopqrstu")
+_FAST_SUBDIVISION_CODES = frozenset("vxyz")
+_FAST_CHANGE_COUNTS = {
+    "sha256:f53c640767cb1c4c0bce85b85a69e382780a65772d4deae30ab3a1a8fa96419a": 3_276,
+    "sha256:06ae6714240ac1d8126cfeff5392feb8004f6a1d16e2bb392c854ecf47a6a011": 2_153,
+    "sha256:0d505664fe5de155d58bd1c178e65112ee4b42067044b6a4cb14f516ef03f116": 4_350,
+    "sha256:98c965420836f0f21aed18599f0216cc61b2f3c2b7ca06cc10f6b9cc1ad374e3": 12_633,
+}
+
+
+def _fast_legacy_id(numeric_id: str) -> str:
+    return f"fst{int(numeric_id):08d}"
+
+
+def _fast_marc_numeric_id(record: Any) -> str:
+    fields = record.get_fields("001")
+    if len(fields) != 1:
+        raise ValueError("FAST MARC record must contain exactly one 001 field")
+    match = _FAST_MARC_ID.fullmatch(fields[0].value())
+    if match is None:
+        raise ValueError(f"FAST MARC 001 is malformed: {fields[0].value()!r}")
+    return str(int(match.group(1)))
+
+
+def _fast_render_marc_heading(field: Any) -> str:
+    rendered = ""
+    for subfield in field.subfields:
+        value = " ".join(subfield.value.split())
+        if not value:
+            continue
+        if subfield.code in _FAST_SUBDIVISION_CODES:
+            rendered += f"--{value}"
+        elif subfield.code in _FAST_CONTENT_CODES:
+            if rendered and not rendered.endswith((" ", "--")):
+                rendered += " "
+            rendered += value
+    if not rendered:
+        raise ValueError(f"FAST MARC {field.tag} has no heading content")
+    return rendered
+
+
+def _fast_marc_link_ids(field: Any) -> tuple[str, ...]:
+    ids: list[str] = []
+    for value in field.get_subfields("0"):
+        for match in _FAST_MARC_LINK.finditer(value):
+            numeric_id = str(int(match.group(1)))
+            if numeric_id not in ids:
+                ids.append(numeric_id)
+    return tuple(ids)
+
+
+def _fast_validate_marc_identity(record: Any, numeric_id: str) -> None:
+    if record.leader[6] != "z":
+        raise ValueError(f"FAST MARC {numeric_id} is not an authority record")
+    if not any(
+        value == "fast"
+        for field in record.get_fields("040")
+        for value in field.get_subfields("f")
+    ):
+        raise ValueError(f"FAST MARC {numeric_id} lacks 040 $f fast")
+    headings = [field for field in record.fields if field.tag in _FAST_HEADING_TAGS]
+    if len(headings) > 1:
+        raise ValueError(f"FAST MARC {numeric_id} has multiple 1XX headings")
+    uri_values = [
+        value
+        for field in record.get_fields("024")
+        for value in field.get_subfields("a")
+    ]
+    if uri_values != [f"{_FAST_IRI_BASE}{numeric_id}"]:
+        raise ValueError(f"FAST MARC {numeric_id} 024 does not match 001")
+
+
+def _fast_row_from_marc(record: Any, numeric_id: str) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    topical = record.get_fields("150")
+    if len(topical) != 1:
+        raise ValueError(f"FAST topical MARC {numeric_id} must have one 150")
+    alternate = tuple(
+        dict.fromkeys(
+            _fast_render_marc_heading(field)
+            for field in record.fields
+            if field.tag in _FAST_ALT_TAGS
+        )
+    )
+    broader: list[str] = []
+    for marc_field in record.fields:
+        if marc_field.tag not in _FAST_LINK_TAGS or not any(
+            value.startswith("g") for value in marc_field.get_subfields("w")
+        ):
+            continue
+        for target in _fast_marc_link_ids(marc_field):
+            if target not in broader:
+                broader.append(target)
+    return _fast_render_marc_heading(topical[0]), alternate, tuple(broader)
+
+
+def _read_fast_topical_native(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Rebuild the current FAST Topical snapshot with rdflib and pymarc."""
+    import rdflib
+    from pymarc import MARCReader
+    from rdflib.plugins.parsers.ntriples import W3CNTriplesParser
+
+    base_pins = [pin for pin in spec.inputs if pin.role == "publisherBase"]
+    change_pins = [pin for pin in spec.inputs if pin.role == "publisherChange"]
+    if len(base_pins) != 1 or not change_pins:
+        raise ValueError("FAST reader requires one base and chronological MARC changes")
+    base_pin = base_pins[0]
+    labels: dict[str, str] = {}
+    alternate: dict[str, list[str]] = defaultdict(list)
+    broader: dict[str, list[str]] = defaultdict(list)
+    deprecated: set[str] = set()
+    ignored_predicates: Counter[str] = Counter()
+
+    class FastSink:
+        def triple(self, subject: Any, predicate: Any, obj: Any) -> None:
+            subject_iri = str(subject)
+            if not subject_iri.startswith(_FAST_IRI_BASE):
+                return
+            numeric_id = subject_iri.removeprefix(_FAST_IRI_BASE)
+            if not numeric_id.isdigit():
+                return
+            predicate_iri = str(predicate)
+            if predicate_iri == _FAST_PREF_LABEL and isinstance(obj, rdflib.Literal):
+                labels.setdefault(numeric_id, str(obj))
+            elif predicate_iri == _FAST_ALT_LABEL and isinstance(obj, rdflib.Literal):
+                value = str(obj)
+                if value not in alternate[numeric_id]:
+                    alternate[numeric_id].append(value)
+            elif (
+                predicate_iri == _FAST_BROADER
+                and isinstance(obj, rdflib.URIRef)
+                and str(obj).startswith(_FAST_IRI_BASE)
+                and str(obj).removeprefix(_FAST_IRI_BASE).isdigit()
+            ):
+                target = str(int(str(obj).removeprefix(_FAST_IRI_BASE)))
+                if target not in broader[numeric_id]:
+                    broader[numeric_id].append(target)
+            elif predicate_iri == _FAST_IDENTIFIER and isinstance(obj, rdflib.Literal):
+                if str(obj) != numeric_id:
+                    raise ValueError(
+                        f"FAST identifier {obj!r} does not match {subject_iri}"
+                    )
+            elif predicate_iri == _FAST_DEPRECATED:
+                deprecated.add(numeric_id)
+            else:
+                ignored_predicates[predicate_iri] += 1
+
+    payload = authenticated_payloads[base_pin]
+    try:
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            nt_members = [
+                name for name in archive.namelist() if name.lower().endswith(".nt")
+            ]
+            if nt_members != ["FASTTopical.nt"]:
+                raise ValueError(f"FAST base ZIP members differ: {nt_members!r}")
+            with archive.open("FASTTopical.nt") as source:
+                W3CNTriplesParser(FastSink()).parse(source)
+    except (OSError, zipfile.BadZipFile) as error:
+        raise ValueError(f"FAST base ZIP is malformed: {error}") from error
+    rows: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {}
+    for numeric_id, heading in labels.items():
+        if numeric_id in deprecated:
+            continue
+        rows[numeric_id] = (
+            heading,
+            tuple(alternate.get(numeric_id, ())),
+            tuple(broader.get(numeric_id, ())),
+        )
+    if base_pin.sha256.endswith("217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db") and len(rows) != 440_612:
+        raise ValueError(f"FAST base active count differs: observed {len(rows)}")
+    ignored_marc_tags: Counter[str] = Counter()
+    for pin in change_pins:
+        reader = MARCReader(
+            io.BytesIO(authenticated_payloads[pin]),
+            to_unicode=True,
+            force_utf8=False,
+            utf8_handling="strict",
+            permissive=False,
+        )
+        record_count = 0
+        for record in reader:
+            record_count += 1
+            if record is None:
+                raise ValueError(f"{pin.path} contains an unreadable MARC record")
+            numeric_id = _fast_marc_numeric_id(record)
+            _fast_validate_marc_identity(record, numeric_id)
+            status = record.leader[5]
+            if status not in {"c", "n", "x", "d"}:
+                raise ValueError(
+                    f"FAST MARC {numeric_id} has unsupported status {status!r}"
+                )
+            is_topical = bool(record.get_fields("150"))
+            if status in {"x", "d"}:
+                if is_topical or numeric_id in rows:
+                    rows.pop(numeric_id, None)
+            elif is_topical:
+                rows[numeric_id] = _fast_row_from_marc(record, numeric_id)
+            elif numeric_id in rows:
+                rows.pop(numeric_id)
+            used_tags = {
+                "001",
+                "024",
+                "040",
+                *_FAST_HEADING_TAGS,
+                *_FAST_ALT_TAGS,
+                *_FAST_LINK_TAGS,
+            }
+            for marc_field in record.fields:
+                if marc_field.tag not in used_tags:
+                    ignored_marc_tags[marc_field.tag] += 1
+        expected_count = _FAST_CHANGE_COUNTS.get(pin.sha256)
+        if expected_count is not None and record_count != expected_count:
+            raise ValueError(
+                f"{pin.path} record count differs: expected {expected_count}, "
+                f"observed {record_count}"
+            )
+    if base_pin.sha256.endswith("217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db") and len(rows) != 441_127:
+        raise ValueError(f"FAST current active count differs: observed {len(rows)}")
+
+    active_ids = frozenset(rows)
+    relations = {
+        (
+            f"{_FAST_IRI_BASE}{numeric_id}",
+            _FAST_BROADER,
+            f"{_FAST_IRI_BASE}{target}",
+        )
+        for numeric_id, (_, _, targets) in rows.items()
+        for target in targets
+        if target in active_ids
+    }
+    labels.clear()
+    alternate.clear()
+    broader.clear()
+    deprecated.clear()
+    del active_ids
+
+    def stock_records() -> Iterator[_StockVocabularyRecord]:
+        for numeric_id, (heading, alt_labels, broader_ids) in rows.items():
+            resource = f"{_FAST_IRI_BASE}{numeric_id}"
+            preferred_value = heading.strip()
+            seen = {preferred_value}
+            output_alt: list[LiteralValue] = []
+            for value in alt_labels:
+                stripped = value.strip()
+                if stripped and stripped not in seen:
+                    seen.add(stripped)
+                    output_alt.append(_literal_value(stripped, None, None))
+            native_payload = {
+                "altLabels": list(alt_labels),
+                "broaderIds": list(broader_ids),
+                "heading": heading,
+                "identityStatus": "publisherIdentifierVerified",
+                "legacyFstId": _fast_legacy_id(numeric_id),
+                "numericId": numeric_id,
+                "publisherIri": resource,
+            }
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(
+                    _literal_value(preferred_value, None, None),
+                ),
+                alternate_labels=tuple(output_alt),
+                notations=(
+                    _literal_value(numeric_id, None, None),
+                    _literal_value(_fast_legacy_id(numeric_id), None, None),
+                ),
+                annotations=(),
+                source_locator=resource,
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+
+    unevaluated = tuple(
+        [
+            f"FAST base contains {count} authenticated but unrepresented {predicate} claims"
+            for predicate, count in sorted(ignored_predicates.items())
+            if count
+        ]
+        + [
+            f"FAST changes contain {count} authenticated but unrepresented MARC {tag} fields"
+            for tag, count in sorted(ignored_marc_tags.items())
+            if count
+        ]
+    )
+    return _stock_vocabulary_view(
+        stock_records(),
+        relations,
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+        retain_predicate_counts=False,
+        retain_claim_sets=False,
+        retain_expected_native_payloads=False,
+        compact_resource_digests=True,
+    )
+
+
+CRS_SOURCE_CONCEPT_RELEASE_READER = "crs-source-concept-release-json-v1"
+ICPSR_MANAGED_RELEASE_READER = "icpsr-managed-release-json-v1"
+
+
+def _json_without_duplicates(payload: bytes, label: str) -> Any:
+    """Parse JSON while rejecting duplicate object keys."""
+
+    def object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"{label} repeats field {key!r}")
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(payload, object_pairs_hook=object_pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"{label} is not UTF-8 JSON: {error}") from error
+
+
+def _canonical_json_line(value: Any) -> bytes:
+    """Return the newline-terminated canonical JSON used by CRS bundles."""
+    return _canonical_json_bytes(value) + b"\n"
+
+
+def _read_canonical_json_lines(payload: bytes, label: str) -> list[Mapping[str, Any]]:
+    """Read one CRS JSONL artifact without importing its production reader."""
+    rows: list[Mapping[str, Any]] = []
+    rebuilt = bytearray()
+    for line_number, line in enumerate(payload.splitlines(), start=1):
+        if not line:
+            raise ValueError(f"{label} line {line_number} is blank")
+        row = _json_without_duplicates(line, f"{label} line {line_number}")
+        if not isinstance(row, Mapping):
+            raise ValueError(f"{label} line {line_number} is not an object")
+        rebuilt.extend(_canonical_json_line(row))
+        rows.append(row)
+    if bytes(rebuilt) != payload:
+        raise ValueError(f"{label} bytes are not canonical newline-terminated JSONL")
+    return rows
+
+
+def _crs_artifact_path(root: Path, relative_path: Any, label: str) -> Path:
+    if not isinstance(relative_path, str) or not relative_path:
+        raise ValueError(f"{label} has no path")
+    relative = Path(relative_path)
+    if (
+        relative.is_absolute()
+        or "\\" in relative_path
+        or "://" in relative_path
+        or any(part in {"", ".", ".."} for part in relative.parts)
+    ):
+        raise ValueError(f"{label} path is unsafe: {relative_path!r}")
+    return root.joinpath(*relative.parts)
+
+
+def _read_crs_source_concept_release(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Authenticate a CRS managed JSON bundle and reverse its selected records."""
+    if len(spec.inputs) != 1:
+        raise ValueError("CRS source-concept release reader requires one manifest input")
+    pin = spec.inputs[0]
+    manifest_payload = authenticated_payloads[pin]
+    manifest = _json_without_duplicates(manifest_payload, pin.path)
+    if not isinstance(manifest, Mapping):
+        raise ValueError("CRS source-concept bundle manifest must be an object")
+    if manifest_payload != _canonical_json_line(manifest):
+        raise ValueError("CRS source-concept bundle manifest is not canonical")
+    if set(manifest) != {
+        "artifacts",
+        "logicalDigest",
+        "packageKind",
+        "releaseDigest",
+        "releaseId",
+        "schemaVersion",
+    }:
+        raise ValueError("CRS source-concept bundle manifest shape differs")
+    if (
+        manifest.get("schemaVersion") != "1.0"
+        or manifest.get("packageKind") != "sourceConceptRelease"
+    ):
+        raise ValueError("CRS source-concept bundle version differs")
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("CRS source-concept bundle artifacts must be an array")
+
+    root = Path(pin.path).parent
+    retained_paths = {
+        "concepts.jsonl",
+        "lifecycle.jsonl",
+        "reconciliation.json",
+        "release-manifest.json",
+        "rights.jsonl",
+        "source/bundle-manifest.json",
+        "source/observations.jsonl",
+        "source/resource-manifest.json",
+    }
+    retained: dict[str, bytes] = {}
+    roles: dict[str, str] = {}
+    expected_paths = {"bundle-manifest.json"}
+    descriptor_digests: dict[str, str] = {}
+    descriptor_lengths: dict[str, int] = {}
+    for index, descriptor in enumerate(artifacts):
+        label = f"CRS artifact {index}"
+        if not isinstance(descriptor, Mapping) or set(descriptor) != {
+            "byteLength",
+            "path",
+            "role",
+            "sha256",
+        }:
+            raise ValueError(
+                f"{label} must contain byteLength, path, role, and sha256"
+            )
+        relative_path = descriptor.get("path")
+        artifact_path = _crs_artifact_path(root, relative_path, label)
+        relative_text = str(relative_path)
+        if relative_text in expected_paths:
+            raise ValueError(f"CRS bundle repeats artifact path {relative_text!r}")
+        expected_paths.add(relative_text)
+        if artifact_path.is_symlink() or not artifact_path.is_file():
+            raise ValueError(f"CRS artifact is not a regular file: {relative_text}")
+        payload = artifact_path.read_bytes()
+        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if (
+            descriptor.get("byteLength") != len(payload)
+            or descriptor.get("sha256") != digest
+        ):
+            raise ValueError(f"CRS artifact pin differs for {relative_text}")
+        role = descriptor.get("role")
+        if not isinstance(role, str) or not role:
+            raise ValueError(f"{label} has no role")
+        roles[relative_text] = role
+        descriptor_digests[relative_text] = digest
+        descriptor_lengths[relative_text] = len(payload)
+        if relative_text in retained_paths:
+            retained[relative_text] = payload
+
+    actual_paths: set[str] = set()
+    for item in root.rglob("*"):
+        if item.is_symlink():
+            raise ValueError(f"CRS source-concept bundle contains a symlink: {item}")
+        if item.is_file():
+            actual_paths.add(item.relative_to(root).as_posix())
+    if actual_paths != expected_paths:
+        raise ValueError("CRS source-concept bundle file set differs from its manifest")
+    missing = sorted(retained_paths - retained.keys())
+    if missing:
+        raise ValueError(f"CRS source-concept bundle lacks required artifacts: {missing}")
+    expected_roles = {
+        "concepts.jsonl": "concepts",
+        "lifecycle.jsonl": "lifecycle",
+        "reconciliation.json": "reconciliation",
+        "release-manifest.json": "releaseManifest",
+        "rights.jsonl": "rights",
+        "source/bundle-manifest.json": "sourceCaptureArtifact",
+        "source/observations.jsonl": "sourceCaptureArtifact",
+        "source/resource-manifest.json": "sourceCaptureArtifact",
+    }
+    if any(roles.get(path) != role for path, role in expected_roles.items()):
+        raise ValueError("CRS source-concept bundle core artifact roles differ")
+    if any(
+        role
+        not in {
+            "concepts",
+            "lifecycle",
+            "reconciliation",
+            "releaseManifest",
+            "rights",
+            "sourceCaptureArtifact",
+        }
+        for role in roles.values()
+    ):
+        raise ValueError("CRS source-concept bundle contains an unsupported artifact role")
+
+    release = _json_without_duplicates(
+        retained["release-manifest.json"],
+        "CRS source-concept release manifest",
+    )
+    resource_manifest = _json_without_duplicates(
+        retained["source/resource-manifest.json"],
+        "CRS source resource manifest",
+    )
+    source_bundle_manifest = _json_without_duplicates(
+        retained["source/bundle-manifest.json"],
+        "CRS nested source bundle manifest",
+    )
+    reconciliation = _json_without_duplicates(
+        retained["reconciliation.json"],
+        "CRS source-concept reconciliation",
+    )
+    if not all(
+        isinstance(value, Mapping)
+        for value in (release, resource_manifest, source_bundle_manifest, reconciliation)
+    ):
+        raise ValueError("CRS release, resource, or reconciliation manifest is not an object")
+    for value, payload, label in (
+        (release, retained["release-manifest.json"], "CRS release manifest"),
+        (
+            resource_manifest,
+            retained["source/resource-manifest.json"],
+            "CRS source resource manifest",
+        ),
+        (
+            source_bundle_manifest,
+            retained["source/bundle-manifest.json"],
+            "CRS nested source bundle manifest",
+        ),
+        (
+            reconciliation,
+            retained["reconciliation.json"],
+            "CRS reconciliation",
+        ),
+    ):
+        if payload != _canonical_json_line(value):
+            raise ValueError(f"{label} is not canonical")
+
+    concepts = _read_canonical_json_lines(
+        retained["concepts.jsonl"],
+        "CRS concepts",
+    )
+    observations = _read_canonical_json_lines(
+        retained["source/observations.jsonl"],
+        "CRS observations",
+    )
+    rights = _read_canonical_json_lines(retained["rights.jsonl"], "CRS rights")
+    lifecycle = _read_canonical_json_lines(
+        retained["lifecycle.jsonl"],
+        "CRS lifecycle",
+    )
+    if release.get("conceptCount") != len(concepts):
+        raise ValueError("CRS release conceptCount differs from concepts.jsonl")
+    if release.get("rightsRecordCount") != len(rights):
+        raise ValueError("CRS release rightsRecordCount differs from rights.jsonl")
+    if release.get("lifecycleRecordCount") != len(lifecycle):
+        raise ValueError("CRS release lifecycleRecordCount differs from lifecycle.jsonl")
+    for field_name, path in (
+        ("conceptSetDigest", "concepts.jsonl"),
+        ("rightsSetDigest", "rights.jsonl"),
+        ("lifecycleSetDigest", "lifecycle.jsonl"),
+    ):
+        if release.get(field_name) != descriptor_digests[path]:
+            raise ValueError(f"CRS release {field_name} differs from sealed artifact")
+    source_capture = release.get("sourceCapture")
+    if not isinstance(source_capture, Mapping):
+        raise ValueError("CRS release sourceCapture must be an object")
+    if source_capture.get("observationSetDigest") != descriptor_digests[
+        "source/observations.jsonl"
+    ]:
+        raise ValueError("CRS release observationSetDigest differs from sealed observations")
+    if source_capture.get("reconciliationDigest") != descriptor_digests[
+        "reconciliation.json"
+    ]:
+        raise ValueError("CRS release reconciliationDigest differs from sealed record")
+    nested_artifacts = source_bundle_manifest.get("artifacts")
+    if not isinstance(nested_artifacts, list):
+        raise ValueError("CRS nested source bundle artifacts must be an array")
+    nested_paths: set[str] = set()
+    for index, descriptor in enumerate(nested_artifacts):
+        if not isinstance(descriptor, Mapping):
+            raise ValueError(f"CRS nested source artifact {index} is not an object")
+        relative_path = descriptor.get("path")
+        _crs_artifact_path(root / "source", relative_path, f"CRS nested artifact {index}")
+        outer_path = f"source/{relative_path}"
+        if not isinstance(relative_path, str) or relative_path in nested_paths:
+            raise ValueError("CRS nested source artifact path repeats or is missing")
+        nested_paths.add(relative_path)
+        if (
+            descriptor.get("sha256") != descriptor_digests.get(outer_path)
+            or descriptor.get("byteLength") != descriptor_lengths.get(outer_path)
+            or roles.get(outer_path) != "sourceCaptureArtifact"
+        ):
+            raise ValueError(
+                f"CRS nested source artifact differs from outer pin: {relative_path}"
+            )
+    outer_source_paths = {
+        path.removeprefix("source/")
+        for path in roles
+        if path.startswith("source/") and path != "source/bundle-manifest.json"
+    }
+    if nested_paths != outer_source_paths:
+        raise ValueError("CRS nested and outer source artifact sets differ")
+    if (
+        source_bundle_manifest.get("packageKind") != "sourceControlledResource"
+        or source_bundle_manifest.get("schemaVersion") != "2.0"
+        or source_capture.get("logicalDigest")
+        != source_bundle_manifest.get("logicalDigest")
+        or source_capture.get("resourceManifest") != resource_manifest.get("id")
+        or source_bundle_manifest.get("resourceManifest")
+        != resource_manifest.get("id")
+    ):
+        raise ValueError("CRS nested source bundle identity differs")
+    if release.get("sourceScheme") != resource_manifest.get("sourceScheme"):
+        raise ValueError("CRS release sourceScheme differs from its source capture")
+
+    release_basis = dict(release)
+    release_id = release_basis.pop("id", None)
+    release_digest = release_basis.pop("releaseDigest", None)
+    expected_release_digest = "sha256:" + hashlib.sha256(
+        _canonical_json_line(release_basis)
+    ).hexdigest()
+    semantic_ring = release.get("semanticRing")
+    expected_release_id = (
+        f"urn:ref:source-concept-release:{semantic_ring}:"
+        f"{expected_release_digest.removeprefix('sha256:')}"
+    )
+    if release_digest != expected_release_digest or release_id != expected_release_id:
+        raise ValueError("CRS release identity differs from its canonical facts")
+    if (
+        manifest.get("releaseDigest") != release_digest
+        or manifest.get("releaseId") != release_id
+    ):
+        raise ValueError("CRS bundle and release identities differ")
+
+    observation_by_id: dict[str, Mapping[str, Any]] = {}
+    for observation in observations:
+        observation_id = observation.get("id")
+        if not isinstance(observation_id, str) or not observation_id:
+            raise ValueError("CRS observation has no id")
+        if observation_id in observation_by_id:
+            raise ValueError(f"CRS observations repeat id {observation_id!r}")
+        observation_by_id[observation_id] = observation
+    selected_ids = sorted(str(concept.get("sourceObservation")) for concept in concepts)
+    selected_digest = "sha256:" + hashlib.sha256(
+        _canonical_json_line(selected_ids)
+    ).hexdigest()
+    if release.get("selectedObservationSetDigest") != selected_digest:
+        raise ValueError("CRS selectedObservationSetDigest differs from concept bindings")
+
+    source_scheme = release.get("sourceScheme")
+    scheme_iri = source_scheme.get("id") if isinstance(source_scheme, Mapping) else None
+    namespace_tokens = {
+        "http://id.loc.gov/vocabulary/subjectSchemes/lst": "loc-lst",
+        "http://id.loc.gov/vocabulary/subjectSchemes/cgpa": "loc-cgpa",
+    }
+    namespace_token = namespace_tokens.get(scheme_iri)
+    if namespace_token is None:
+        raise ValueError(f"CRS source scheme is unsupported: {scheme_iri!r}")
+    namespace_digest = hashlib.sha256(str(scheme_iri).encode("utf-8")).hexdigest()
+    if [str(concept.get("id")) for concept in concepts] != sorted(
+        str(concept.get("id")) for concept in concepts
+    ):
+        raise ValueError("CRS concepts are not sorted by id")
+
+    def records() -> Iterator[_StockVocabularyRecord]:
+        for concept in concepts:
+            required_concept_fields = {
+                "id",
+                "identityKind",
+                "issuer",
+                "localRecordId",
+                "semanticRing",
+                "sourceObservation",
+                "sourceObservationDigest",
+                "sourceScheme",
+                "type",
+            }
+            if set(concept) != required_concept_fields:
+                raise ValueError("CRS source-scoped concept fields differ")
+            observation_id = concept.get("sourceObservation")
+            observation = observation_by_id.get(str(observation_id))
+            if observation is None:
+                raise ValueError(
+                    f"CRS concept names unavailable observation {observation_id!r}"
+                )
+            observation_digest = "sha256:" + hashlib.sha256(
+                _canonical_json_line(observation)
+            ).hexdigest()
+            if concept.get("sourceObservationDigest") != observation_digest:
+                raise ValueError("CRS concept sourceObservationDigest differs")
+            local_record_id = concept.get("localRecordId")
+            if (
+                not isinstance(local_record_id, str)
+                or not local_record_id.startswith("urn:uuid:")
+            ):
+                raise ValueError("CRS concept localRecordId is not a UUID URN")
+            try:
+                local_uuid = uuid.UUID(local_record_id.removeprefix("urn:uuid:"))
+            except ValueError as error:
+                raise ValueError("CRS concept localRecordId is invalid") from error
+            if local_uuid.version != 7 or str(local_uuid) != local_record_id.removeprefix(
+                "urn:uuid:"
+            ):
+                raise ValueError("CRS concept localRecordId is not canonical UUIDv7")
+            expected_prior_iri = (
+                f"urn:ref:source-concept:v1:{namespace_digest}:{local_uuid}"
+            )
+            if (
+                concept.get("id") != expected_prior_iri
+                or concept.get("identityKind") != "refspecSourceScoped"
+                or concept.get("issuer") != "https://refspec.org/"
+                or concept.get("semanticRing") != semantic_ring
+                or concept.get("sourceScheme") != scheme_iri
+                or concept.get("type") != "SourceScopedConcept"
+                or observation.get("localRecordId") != local_record_id
+            ):
+                raise ValueError("CRS concept identity or source binding differs")
+            labels = observation.get("labels")
+            if not isinstance(labels, list) or not labels:
+                raise ValueError("CRS selected observation has no labels")
+            preferred: list[LiteralValue] = []
+            alternate: list[LiteralValue] = []
+            for label in labels:
+                if not isinstance(label, Mapping) or set(label) != {
+                    "language",
+                    "role",
+                    "value",
+                }:
+                    raise ValueError("CRS selected observation label shape differs")
+                value = label.get("value")
+                language = label.get("language")
+                role = label.get("role")
+                if not isinstance(value, str) or not value or language != "en":
+                    raise ValueError(
+                        "CRS reader supports only the sealed English observation profile"
+                    )
+                literal = _literal_value(value, "en", None)
+                if role == "preferred":
+                    preferred.append(literal)
+                elif role == "alternate":
+                    alternate.append(literal)
+                else:
+                    raise ValueError(f"CRS selected label role is unsupported: {role!r}")
+            definition = observation.get("definition")
+            if definition is not None and not isinstance(definition, str):
+                raise ValueError("CRS selected observation definition is not text")
+            resource = (
+                f"urn:ref:source-concept:v2:{namespace_token}:"
+                f"{local_record_id.removeprefix('urn:uuid:')}"
+            )
+            native_payload = {
+                "englishOnlyObservation": dict(observation),
+                "sourceEvidence": {
+                    "droppedLanguageContentDigest": _canonical_json_digest([]),
+                    "droppedLanguageValueCount": 0,
+                    "languageNormalizationAlgorithm": (
+                        "recursiveLanguageMapsAndTaggedValuesV1"
+                    ),
+                    "originalObservationDigest": _canonical_json_digest(observation),
+                    "sourceTextLanguage": "en",
+                },
+                "sourceIdentity": {
+                    "identityKind": "refspecSourceScoped",
+                    "localRecordId": local_record_id,
+                    "namespaceToken": namespace_token,
+                    "priorSourceConceptIri": expected_prior_iri,
+                    "sourceScheme": scheme_iri,
+                },
+            }
+            annotations = (
+                (
+                    (SKOS_DEFINITION, _literal_value(definition, "en", None)),
+                )
+                if definition
+                else ()
+            )
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=tuple(preferred),
+                alternate_labels=tuple(alternate),
+                notations=(),
+                annotations=annotations,
+                source_locator=str(observation_id),
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+                is_skos_concept=semantic_ring == "subject",
+            )
+
+    unselected_count = len(observations) - len(concepts)
+    unevaluated = (
+        *(
+            (
+                f"CRS managed release contains {unselected_count} authenticated source observations outside its selected concept set",
+            )
+            if unselected_count
+            else ()
+        ),
+        "CRS sourceObservationDigest values are independently verified against the selected observations; Atlas sourceDigest instead seals the reconstructed native payload",
+        "CRS raw Congress.gov captures are authenticated transitively through the closed bundle but are not reparsed by this managed-release reader",
+        "CRS rights, lifecycle, reconciliation, and source-capture logicalDigest claims are authenticated but are not Atlas member claims",
+    )
+    return _stock_vocabulary_view(
+        records(),
+        (),
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+        additional_literal_claims=(
+            (
+                str(release_id),
+                f"{DCTERMS}identifier",
+                _literal_value(str(release_id), None, None),
+            ),
+        ),
+    )
+
+
+def _verify_canonical_json_seal(value: Mapping[str, Any], label: str) -> None:
+    observed = value.get("canonicalPayloadDigest")
+    unsigned = dict(value)
+    unsigned.pop("canonicalPayloadDigest", None)
+    expected = _canonical_json_digest(unsigned)
+    if observed != expected:
+        raise ValueError(
+            f"{label} canonicalPayloadDigest differs: expected {expected}, "
+            f"observed {observed!r}"
+        )
+
+
+def _icpsr_index_identifier(value: Mapping[str, Any]) -> Mapping[str, Any]:
+    keys = {
+        "authorityUri": "authority_uri",
+        "effectiveAt": "effective_at",
+        "kind": "kind",
+        "observedAt": "observed_at",
+        "sourceDigest": "source_digest",
+        "sourceUri": "source_uri",
+        "value": "value",
+    }
+    if set(value) != set(keys):
+        raise ValueError(f"ICPSR managed identifier fields differ: {sorted(value)}")
+    return {target: value[source] for source, target in keys.items()}
+
+
+def _read_icpsr_managed_release(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Authenticate a managed release and compare its sealed concept records."""
+    if len(spec.inputs) != 1:
+        raise ValueError("ICPSR managed release reader requires one manifest input")
+    pin = spec.inputs[0]
+    manifest = _json_without_duplicates(authenticated_payloads[pin], pin.path)
+    if not isinstance(manifest, Mapping):
+        raise ValueError("ICPSR managed release manifest must be an object")
+    _verify_canonical_json_seal(manifest, "ICPSR managed release manifest")
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("ICPSR managed release artifacts must be an array")
+    manifest_path = Path(pin.path)
+    root = manifest_path.parent
+    artifact_payloads: dict[str, bytes] = {}
+    for index, descriptor in enumerate(artifacts):
+        if not isinstance(descriptor, Mapping):
+            raise ValueError(f"ICPSR artifact {index} must be an object")
+        relative_path = descriptor.get("path")
+        digest = descriptor.get("sha256")
+        byte_length = descriptor.get("byteLength")
+        if not isinstance(relative_path, str):
+            raise ValueError(f"ICPSR artifact {index} has no path")
+        path_parts = Path(relative_path).parts
+        if (
+            Path(relative_path).is_absolute()
+            or not path_parts
+            or any(part in {"", ".", ".."} for part in path_parts)
+        ):
+            raise ValueError(f"ICPSR artifact path is unsafe: {relative_path!r}")
+        artifact_path = root / relative_path
+        if artifact_path.is_symlink() or not artifact_path.is_file():
+            raise ValueError(f"ICPSR artifact is not a regular file: {relative_path}")
+        payload = artifact_path.read_bytes()
+        observed_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if len(payload) != byte_length or observed_digest != digest:
+            raise ValueError(
+                f"ICPSR artifact pin differs for {relative_path}: "
+                f"observed=({len(payload)}, {observed_digest})"
+            )
+        if relative_path in artifact_payloads:
+            raise ValueError(f"ICPSR artifact path repeats: {relative_path}")
+        artifact_payloads[relative_path] = payload
+    required = {
+        "records/concepts.jsonl",
+        "records/coverage.json",
+        "sources/index/manifest.json",
+        "sources/subject.xml",
+    }
+    missing_artifacts = sorted(required - artifact_payloads.keys())
+    if missing_artifacts:
+        raise ValueError(f"ICPSR managed release lacks artifacts: {missing_artifacts}")
+    coverage = _json_without_duplicates(
+        artifact_payloads["records/coverage.json"],
+        "ICPSR coverage",
+    )
+    if not isinstance(coverage, Mapping):
+        raise ValueError("ICPSR coverage must be an object")
+    _verify_canonical_json_seal(coverage, "ICPSR coverage")
+    release = manifest.get("release")
+    sources = manifest.get("sources")
+    counts = manifest.get("counts")
+    gaps = coverage.get("gaps")
+    if not all(isinstance(value, Mapping) for value in (release, sources, counts, gaps)):
+        raise ValueError("ICPSR manifest or coverage structural fields are missing")
+    scheme_iri = release.get("schemeIri")
+    if not isinstance(scheme_iri, str):
+        raise ValueError("ICPSR managed release has no scheme IRI")
+    index_manifest_digest = (
+        "sha256:"
+        + hashlib.sha256(artifact_payloads["sources/index/manifest.json"]).hexdigest()
+    )
+    subject_xml_digest = (
+        "sha256:"
+        + hashlib.sha256(artifact_payloads["sources/subject.xml"]).hexdigest()
+    )
+    if sources.get("indexManifestDigest") != index_manifest_digest:
+        raise ValueError("ICPSR index manifest digest differs from authenticated artifact")
+    if sources.get("xmlDigest") != subject_xml_digest:
+        raise ValueError("ICPSR subject XML digest differs from authenticated artifact")
+
+    concepts: list[Mapping[str, Any]] = []
+    for line_number, line in enumerate(
+        artifact_payloads["records/concepts.jsonl"].splitlines(),
+        start=1,
+    ):
+        if not line.strip():
+            continue
+        row = _json_without_duplicates(line, f"ICPSR concept line {line_number}")
+        if not isinstance(row, Mapping):
+            raise ValueError(f"ICPSR concept line {line_number} is not an object")
+        concepts.append(row)
+    expected_concepts = counts.get("concepts")
+    if expected_concepts != len(concepts):
+        raise ValueError(
+            f"ICPSR managed concept count differs: declared {expected_concepts!r}, "
+            f"observed {len(concepts)}"
+        )
+    raw_relations: list[tuple[str, str, str, Mapping[str, Any]]] = []
+    unresolved_relations = 0
+    for concept in concepts:
+        resource = concept.get("conceptIri")
+        source_label = concept.get("officialLabel")
+        local_number = concept.get("sourceLocalRecordNumber")
+        rows = concept.get("relations")
+        if (
+            not isinstance(resource, str)
+            or not isinstance(source_label, str)
+            or not isinstance(local_number, str)
+            or not isinstance(rows, list)
+        ):
+            raise ValueError("ICPSR managed concept identity or relations differ")
+        for relation in rows:
+            if not isinstance(relation, Mapping):
+                raise ValueError(f"ICPSR {resource} relation must be an object")
+            relation_name = relation.get("relation")
+            target = relation.get("targetConceptIri")
+            target_label = relation.get("targetLabel")
+            if not isinstance(relation_name, str) or not isinstance(target_label, str):
+                raise ValueError(f"ICPSR {resource} relation shape differs")
+            if relation.get("resolutionStatus") != "uriVerified":
+                unresolved_relations += 1
+                continue
+            if not isinstance(target, str):
+                raise ValueError(f"ICPSR {resource} verified relation has no target IRI")
+            raw_relations.append(
+                (
+                    resource,
+                    relation_name,
+                    target,
+                    {
+                        "relation": relation_name,
+                        "sourceLabel": source_label,
+                        "sourceLocalRecordNumber": local_number,
+                        "sourcePath": f"subject.xml#record={local_number}",
+                        "targetLabel": target_label,
+                    },
+                )
+            )
+    broader_graph: dict[str, set[str]] = defaultdict(set)
+    for subject, relation_name, target, _ in raw_relations:
+        if relation_name == "broader":
+            broader_graph[subject].add(target)
+        elif relation_name == "narrower":
+            broader_graph[target].add(subject)
+    ancestor_cache: dict[str, frozenset[str]] = {}
+
+    def ancestors(start: str) -> frozenset[str]:
+        cached = ancestor_cache.get(start)
+        if cached is not None:
+            return cached
+        found: set[str] = set()
+        pending = list(broader_graph.get(start, ()))
+        while pending:
+            target = pending.pop()
+            if target in found:
+                continue
+            found.add(target)
+            pending.extend(broader_graph.get(target, ()))
+        result = frozenset(found)
+        ancestor_cache[start] = result
+        return result
+
+    relation_predicates = {
+        "broader": f"{SKOS}broader",
+        "narrower": f"{SKOS}narrower",
+        "related": f"{SKOS}related",
+        "use": f"{ATLAS}thesaurusUse",
+        "usedFor": f"{ATLAS}thesaurusUsedFor",
+    }
+    relations: set[tuple[str, str, str]] = set()
+    relation_payloads: dict[str, Mapping[str, Any]] = {}
+    for subject, relation_name, target, source_payload in raw_relations:
+        predicate = relation_predicates.get(relation_name)
+        if predicate is None:
+            raise ValueError(f"ICPSR relation kind is unsupported: {relation_name!r}")
+        relations.add((subject, predicate, target))
+        if relation_name == "related" and (
+            target in ancestors(subject) or subject in ancestors(target)
+        ):
+            relation_digest = _canonical_json_digest(source_payload)
+            relation_payloads[relation_digest] = {
+                "editorialTransformation": {
+                    "fromPredicate": f"{SKOS}related",
+                    "reason": "SKOS-S27-hierarchy-path",
+                    "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+                    "toPredicate": f"{ATLAS}thesaurusRelated",
+                },
+                "publisherRelation": source_payload,
+                "publisherRelationDigest": relation_digest,
+            }
+    production_manifest = pin.sha256 == (
+        "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a"
+    )
+    if production_manifest and len(relation_payloads) != 22:
+        raise ValueError(
+            f"ICPSR S27 relation count differs: observed {len(relation_payloads)}"
+        )
+
+    def records() -> Iterator[_StockVocabularyRecord]:
+        for concept in concepts:
+            resource = str(concept["conceptIri"])
+            official_label = str(concept["officialLabel"])
+            official_role = concept.get("officialLabelRole")
+            xml_role = concept.get("xmlLabelRole")
+            identifiers = concept.get("identifiers")
+            if official_role not in {"preferred", "alternate"}:
+                raise ValueError(f"ICPSR {resource} official label role differs")
+            if xml_role not in {"preferred", "alternate"}:
+                raise ValueError(f"ICPSR {resource} XML label role differs")
+            if not isinstance(identifiers, list) or not all(
+                isinstance(item, Mapping) for item in identifiers
+            ):
+                raise ValueError(f"ICPSR {resource} identifiers differ")
+            relation_labels: dict[str, list[str]] = defaultdict(list)
+            for relation in concept["relations"]:
+                relation_labels[str(relation["relation"])].append(
+                    str(relation["targetLabel"])
+                )
+            xml_term = {
+                "broaderLabels": relation_labels["broader"],
+                "inputTimestamp": concept.get("inputTimestamp"),
+                "label": official_label,
+                "narrowerLabels": relation_labels["narrower"],
+                "preferred": xml_role == "preferred",
+                "relatedLabels": relation_labels["related"],
+                "scopeNotes": list(concept.get("scopeNotes", ())),
+                "sourceLocalRecordNumber": concept.get("sourceLocalRecordNumber"),
+                "updateTimestamp": concept.get("updateTimestamp"),
+                "useLabels": relation_labels["use"],
+                "usedForLabels": relation_labels["usedFor"],
+            }
+            index_term = {
+                "identifiers": [
+                    _icpsr_index_identifier(identifier)
+                    for identifier in identifiers
+                ],
+                "label": official_label,
+                "preferred": official_role == "preferred",
+                "source_letter": concept.get("sourceLetter"),
+            }
+            source_path = (
+                f"index/pages/{concept['sourceLetter']}#term={concept['publisherCode']}"
+            )
+            native_payload = {
+                "identityStatus": "publisherIdentifierVerified",
+                "indexTerm": index_term,
+                "managedConcept": dict(concept),
+                "sourceArtifactDigests": {
+                    "indexManifest": index_manifest_digest,
+                    "subjectXml": subject_xml_digest,
+                },
+                "sourcePaths": [
+                    source_path,
+                    f"subject.xml#record={concept['sourceLocalRecordNumber']}",
+                ],
+                "sourceScheme": scheme_iri,
+                "xmlTerm": xml_term,
+            }
+            label_literal = _literal_value(official_label, None, None)
+            notes = tuple(
+                (SKOS_SCOPE_NOTE, _literal_value(str(note), None, None))
+                for note in concept.get("scopeNotes", ())
+            )
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(label_literal,) if official_role == "preferred" else (),
+                alternate_labels=(label_literal,) if official_role == "alternate" else (),
+                notations=(),
+                annotations=notes,
+                source_locator=resource,
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+
+    index_only = gaps.get("indexOnlyTerms")
+    xml_only = gaps.get("xmlOnlyLabels")
+    if not isinstance(index_only, list) or not isinstance(xml_only, list):
+        raise ValueError("ICPSR coverage gap lists are missing")
+    unevaluated = (
+        f"ICPSR managed release declares {len(index_only)} index-only union members outside records/concepts.jsonl",
+        f"ICPSR managed release declares {len(xml_only)} XML-only union members outside records/concepts.jsonl",
+        f"ICPSR managed concepts contain {unresolved_relations} unresolved source-skew relations",
+        "ICPSR raw index HTML, subject XML, and indexed-expression artifacts are authenticated transitively but not reparsed by this managed-release reader",
+    )
+    return _stock_vocabulary_view(
+        records(),
+        relations,
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+        require_relation_members=False,
+        expected_relation_payloads=relation_payloads,
+    )
+
+
+_PUBLISHER_READERS: Mapping[
+    str,
+    Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
+] = {
+    API_CAPTURE_JSON_READER: _read_api_capture,
+    CRS_SOURCE_CONCEPT_RELEASE_READER: _read_crs_source_concept_release,
+    EPA_ENTERPRISE_VOCABULARY_XML_READER: _read_epa_enterprise_vocabulary_xml,
+    FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
+    FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
+    GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
+    ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
+    LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
+    MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
+}
+
+# Every Publications Office release ships the same dataset-description layer in
+# its metadata file, so the comparisons that read those files share one
+# declaration rather than several drifting copies of it.
+#
+# cdm:work and its relatives ARE listed here, which needs saying plainly. The
+# publisher describes a whole family of release entities -- the abstract work,
+# the dated release, its documentation, the agent that published it. Atlas
+# adopts exactly one of them as its own source-release node, and that one can
+# never be covered by this declaration: adopted release IRIs are compared
+# subjects (see _compared_publisher_subjects), so the overlap guard fails the
+# declaration rather than letting it hide them. The split is made by evidence
+# from the Atlas pack, not by a hand-picked predicate allowlist.
+_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION = DeclaredClaimExclusion(
+    name="publisherDatasetDescription",
+    reason=(
+        "the pinned metadata files carry the Publications Office's own "
+        "description of the datasets they ship -- void:Linkset and void:Dataset "
+        "statistics (including the blank-node void:classPartition counts), lime "
+        "lexicalization sets, dcat catalogue, distribution and service records, "
+        "the align:Ontology/align:Alignment header, the cdm release works that "
+        "Atlas does not adopt, and the EU authority entries those records cite. "
+        "Every one of them describes a FILE or a publication event, not a term. "
+        "Atlas asserts nothing about any of these subjects, which is what the "
+        "paired Atlas-side count proves; the one release IRI Atlas DOES adopt is "
+        "a compared subject and is excluded from this exclusion by the overlap "
+        "guard, then compared field by field by source-release-metadata"
+    ),
+    subject_types=frozenset(
+        {
+            f"{ALIGNMENT}Alignment",
+            f"{ALIGNMENT}Ontology",
+            f"{CDM}agent",
+            f"{CDM}complex_work",
+            f"{CDM}concept",
+            f"{CDM}documentation",
+            f"{CDM}work",
+            f"{CDM}work_dataset",
+            f"{DCAT}Catalog",
+            f"{DCAT}DataService",
+            f"{DCAT}Dataset",
+            f"{DCAT}Distribution",
+            f"{LIME}LexicalizationSet",
+            f"{MDR}DatasetArchetype",
+            f"{MDR}DatasetRealization",
+            f"{MDR}RDFDataset",
+            f"{STMDR}SemanticTurkeyInstance",
+            f"{VOID}Dataset",
+            f"{VOID}DatasetDescription",
+            f"{VOID}Linkset",
+        }
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
+    SourceSpec(
+        name="federal-register-api-topics-2026-08-03",
+        kind="vocabulary",
+        release_keys=("federal-register-api-topics-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "federal-register-topics-zyte.json",
+                "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+                920_705,
+                _FEDERAL_REGISTER_TOPICS_URL,
+                fmt="json",
+                role="publisherApiCapture",
+            ),
+        ),
+        reader=FEDERAL_REGISTER_TOPICS_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "collection",
+                    "record",
+                    "sourceOrdinal",
+                    "sourceRecordDigest",
+                }
+            ),
+            atlas_only_native_payload_fields=frozenset({"identityStatus"}),
+            additional_relation_predicates=(f"{ATLAS}thesaurusUse",),
+        ),
+    ),
+    SourceSpec(
+        name="gcmd-science-keywords-24-4",
+        kind="vocabulary",
+        release_keys=("gcmd-science-keywords-24-4",),
+        inputs=(
+            _registry_source_pin(
+                "gcmd-science-keywords-24.4.csv",
+                "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2",
+                504_190,
+                (
+                    "https://gcmd.earthdata.nasa.gov/kms/concepts/"
+                    "concept_scheme/sciencekeywords?format=csv"
+                ),
+                fmt="csv",
+            ),
+        ),
+        reader=GCMD_SCIENCE_KEYWORDS_CSV_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "publisherIdentifier",
+                    "category",
+                    "topic",
+                    "term",
+                    "variableLevel1",
+                    "variableLevel2",
+                    "variableLevel3",
+                    "detailedVariable",
+                    "sourceIdentity",
+                }
+            ),
+            atlas_only_native_payload_fields=frozenset(
+                {"hierarchyIsDescriptiveNotInferred"}
+            ),
+        ),
+    ),
+    SourceSpec(
+        name="lda-general-issue-codes",
+        kind="vocabulary",
+        release_keys=("lda-general-issue-codes",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/lda-general-issue-codes-2026-07-30.json",
+                sha256="sha256:e1820ef17f3e63048ae50e526c2f56e507b2cf60d720fc227c76ee7c3610d5bf",
+                byte_length=3_596,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://lda.gov/api/v1/constants/filing/"
+                    "lobbyingactivityissues/"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "publisher_label",
+                    "resource_name",
+                    "sourceArtifact",
+                    "source_url",
+                    "use",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="lda-filing-types",
+        kind="vocabulary",
+        release_keys=("lda-filing-types",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/lda-filing-types-2026-07-30.json",
+                sha256="sha256:49fbd39383b0be63fb474878aa229d4e397880a30c2e0dac1a0905bc660a3149",
+                byte_length=2_803,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://lda.gov/api/v1/constants/filing/filingtypes/",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "publisher_label",
+                    "resource_name",
+                    "sourceArtifact",
+                    "source_url",
+                    "use",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="ecfr-cfr-titles",
+        kind="vocabulary",
+        release_keys=("ecfr-cfr-titles",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "ecfr-cfr-titles-2026-08-03.json"
+                ),
+                sha256="sha256:a5985527fc0b07ac95d2cb5d7c867cfd0ddbc2712708e271edbe4ad742001781",
+                byte_length=8_033,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://www.ecfr.gov/api/versioner/v1/titles.json",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "latest_amended_on",
+                    "latest_issue_date",
+                    "name",
+                    "reserved",
+                    "sourceArtifact",
+                    "title_number",
+                    "up_to_date_as_of",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="govinfo-collections",
+        kind="vocabulary",
+        release_keys=("govinfo-collections",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "govinfo-collections-2026-08-03.json"
+                ),
+                sha256="sha256:82cd4191d6abf88c0c1443284e8466a380a7841889cfe79cf19e92864b0dc347",
+                byte_length=4_803,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://api.govinfo.gov/collections",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="usaspending-award-types",
+        kind="vocabulary",
+        release_keys=("usaspending-award-types",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/usaspending_gsdm_codes/"
+                    "usaspending-award-types-2026-08-03.json"
+                ),
+                sha256="sha256:682269b46e0cf200c7002ca7d55ba3da3de8dc345958d579ec98e579fc6782e7",
+                byte_length=1_271,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://api.usaspending.gov/api/v2/references/award_types/"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "category",
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "publisher_label",
+                    "resource_name",
+                    "sourceArtifact",
+                    "source_url",
+                    "use",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="gsdm-reviewed-domain-values-2026-08-03",
+        kind="vocabulary",
+        release_keys=("gsdm-reviewed-domain-values-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "gsdm-data-dictionary-2026-08-03.json",
+                "sha256:3d0f2e3a952297050db5c2a4addf40765460a49d499427da1b57ef3c7edea3c3",
+                358_054,
+                "https://api.usaspending.gov/api/v2/references/data_dictionary/",
+                fmt="json",
+                role="completeOnlineDataDictionary",
+                construction_path=(
+                    "output/registry-real-data-sources/"
+                    "gsdm-data-dictionary-2026-08-03.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"code", "codeDescription", "domainGroup", "gsdmElement", "label"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="nasa-technology-taxonomy-8817",
+        kind="vocabulary",
+        release_keys=("nasa-technology-taxonomy-8817",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/nasa_technology_taxonomy/"
+                    "techport-taxonomy-8817-children-2026-08-03.json"
+                ),
+                sha256="sha256:4e0ed6f5edee5b7e80c8789e4c3ef39c337a1f27de4cddede431feb94d314932",
+                byte_length=3_408,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://techport.nasa.gov/api/taxonomies/8817",
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/nasa_technology_taxonomy/"
+                    "techport-taxonomy-roots-2026-08-03.json"
+                ),
+                sha256="sha256:c0c4b8e154f337be41f59b6b61bdd3b6b673b33bd49e5904b780e640391cbb07",
+                byte_length=143,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://techport.nasa.gov/api/taxonomies",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-filing-types",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-filing-types",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-access-statuses",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-access-statuses",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-bureaus",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-bureaus",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-proceedings",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-proceedings",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="federal-hierarchy-orgs-bounded-2026-08-03",
+        kind="vocabulary",
+        release_keys=("federal-hierarchy-orgs-bounded-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "fh-orgs-default-page.json",
+                "sha256:582d409dd3743646dd6ec58acfa2bc8f346168f69b044cd6dd48e06f0c9cba49",
+                9_270,
+                "https://api.sam.gov/prod/federalorganizations/v1/orgs",
+                fmt="json",
+                role="boundedPublisherOrganizationPage",
+                construction_path=(
+                    "output/registry-real-data-sources/fh-orgs-default-page.json"
+                ),
+            ),
+            _registry_source_pin(
+                "fh-orgs-sub-tier-page.json",
+                "sha256:601b9e7323cd4e6b1fbde3799533cbfb5c1f88d78039df84a24b6d60533eccd7",
+                9_476,
+                (
+                    "https://api.sam.gov/prod/federalorganizations/v1/"
+                    "orgs?fhorgtype=Sub-Tier"
+                ),
+                fmt="json",
+                role="boundedPublisherOrganizationPage",
+                construction_path=(
+                    "output/registry-real-data-sources/fh-orgs-sub-tier-page.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "fhorgid",
+                    "fhorgname",
+                    "fhorgtype",
+                    "full_parent_path_id",
+                    "full_parent_path_name",
+                    "identifiers",
+                    "parent_fhorgid",
+                    "parent_org_name",
+                    "source_ordinal",
+                    "status",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}parentEntity",),
+        ),
+    ),
+    SourceSpec(
+        name="govinfo-cfr-package-bounded-2026-08-03",
+        kind="vocabulary",
+        release_keys=("govinfo-cfr-package-bounded-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "govinfo-package-summary-cfr-2023-title1-vol1-2026-08-03.json"
+                ),
+                sha256="sha256:705a28865a4fba746e8deb4aff05a21bbd63534201e74c5320f56d505ca3d79e",
+                byte_length=1_532,
+                fmt="json",
+                role="publisherPackageSummary",
+                source_iri=(
+                    "https://api.govinfo.gov/packages/"
+                    "CFR-2023-title1-vol1/summary"
+                ),
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "govinfo-premis-cfr-2023-title1-vol1-mini-2026-08-03.xml"
+                ),
+                sha256="sha256:afeba6d9e48f502c911ef0ec1400accdbaa5cad5d7d056672dce6a54d1326417",
+                byte_length=4_268,
+                fmt="xml",
+                role="publisherPackageFixity",
+                source_iri=(
+                    "https://api.govinfo.gov/packages/"
+                    "CFR-2023-title1-vol1/premis"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset({"fixity", "summary"})),
+    ),
+    SourceSpec(
+        name="sam-uei-bounded-public-entity-2026-08-03",
+        kind="vocabulary",
+        release_keys=("sam-uei-bounded-public-entity-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "sam-entity-3m-public.json",
+                "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
+                1_076,
+                (
+                    "https://api.sam.gov/entity-information/v4/entities?"
+                    "ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
+                ),
+                fmt="json",
+                role="boundedPublicEntityResponse",
+                construction_path=(
+                    "output/registry-real-data-sources/sam-entity-3m-public.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "accessClassification",
+                    "highestLevelOwnerUei",
+                    "identifier",
+                    "immediateParentUei",
+                    "legalBusinessName",
+                    "registrationStatus",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="sam-cage-bounded-public-facility-2026-08-03",
+        kind="vocabulary",
+        release_keys=("sam-cage-bounded-public-facility-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "sam-entity-3m-public.json",
+                "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
+                1_076,
+                (
+                    "https://api.sam.gov/entity-information/v4/entities?"
+                    "ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
+                ),
+                fmt="json",
+                role="boundedPublicEntityResponse",
+                construction_path=(
+                    "output/registry-real-data-sources/sam-entity-3m-public.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "accessClassification",
+                    "associatedUei",
+                    "cageStatus",
+                    "facilityName",
+                    "identifier",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}relatedEntity",),
+        ),
+    ),
+    SourceSpec(
+        name="crs-legislative-entities",
+        kind="vocabulary",
+        release_keys=("crs-legislative-entities",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "research/evidence/crs-source-concept-releases-2026-08-04/"
+                    "legislative-entities/bundle-manifest.json"
+                ),
+                construction_path=(
+                    "refspec/research/evidence/"
+                    "crs-source-concept-releases-2026-08-04/"
+                    "legislative-entities/bundle-manifest.json"
+                ),
+                sha256=(
+                    "sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f00462618"
+                    "53293521544959fd"
+                ),
+                byte_length=2_744,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd"
+                ),
+            ),
+        ),
+        reader=CRS_SOURCE_CONCEPT_RELEASE_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"englishOnlyObservation", "sourceEvidence", "sourceIdentity"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="crs-legislative-subjects",
+        kind="vocabulary",
+        release_keys=("crs-legislative-subjects",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "research/evidence/crs-source-concept-releases-2026-08-04/"
+                    "legislative-subjects/bundle-manifest.json"
+                ),
+                construction_path=(
+                    "refspec/research/evidence/"
+                    "crs-source-concept-releases-2026-08-04/"
+                    "legislative-subjects/bundle-manifest.json"
+                ),
+                sha256=(
+                    "sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df6"
+                    "6708be27b55b12e7"
+                ),
+                byte_length=2_745,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7"
+                ),
+            ),
+        ),
+        reader=CRS_SOURCE_CONCEPT_RELEASE_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"englishOnlyObservation", "sourceEvidence", "sourceIdentity"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="crs-policy-areas",
+        kind="vocabulary",
+        release_keys=("crs-policy-areas",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "research/evidence/crs-source-concept-releases-2026-08-04/"
+                    "policy-areas/bundle-manifest.json"
+                ),
+                construction_path=(
+                    "refspec/research/evidence/"
+                    "crs-source-concept-releases-2026-08-04/"
+                    "policy-areas/bundle-manifest.json"
+                ),
+                sha256=(
+                    "sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f6638"
+                    "5170b56954dabeb8"
+                ),
+                byte_length=2_271,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8"
+                ),
+            ),
+        ),
+        reader=CRS_SOURCE_CONCEPT_RELEASE_READER,
+        identity_policy="source-scoped-identifier",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"englishOnlyObservation", "sourceEvidence", "sourceIdentity"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="epa-enterprise-vocabulary-label-tree-2026-08-03",
+        kind="vocabulary",
+        release_keys=("epa-enterprise-vocabulary-label-tree-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/epa_enterprise_vocabulary/"
+                    "epa-enterprise-vocabulary-tier-1005100-with-definitions.xml"
+                ),
+                sha256=(
+                    "sha256:beea0c4a099e07d3196903814f569ad781b081cc0b73ee47"
+                    "aff60d118a786df2"
+                ),
+                byte_length=647,
+                fmt="xml",
+                role="boundedPublisherLabelTree",
+                source_iri=(
+                    "https://ofmpub.epa.gov/sor_internet/registry/termreg/"
+                    "searchandretrieve/enterprisevocabulary/search.do?search=&"
+                    "searchString=&6578706f7274=1&d-8056443-e=13&"
+                    "tierTwoSelected=1005100&checkedIncludeDef=true&showDefs=true"
+                ),
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=EPA_ENTERPRISE_VOCABULARY_XML_READER,
+        identity_policy="source-position-observation",
+        rdf_source=_rdf_source_policy(
+            frozenset({"depth", "row", "publisherConceptIdentityAvailable"}),
+            label_language_inverse="atlas-en-to-source-untagged",
+            note_predicate_inverse=SKOS_SCOPE_NOTE,
+        ),
+    ),
+    SourceSpec(
+        name="fast-topical-current",
+        kind="vocabulary",
+        release_keys=("fast-topical-current",),
+        inputs=(
+            _registry_source_pin(
+                "FASTTopical.nt.zip",
+                "sha256:217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db",
+                55_099_212,
+                "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
+                fmt="zip-ntriples",
+                role="publisherBase",
+            ),
+            _registry_source_pin(
+                "FASTChanges2024-10-27.mrc",
+                "sha256:f53c640767cb1c4c0bce85b85a69e382780a65772d4deae30ab3a1a8fa96419a",
+                2_726_812,
+                "https://fast.oclc.org/fastChanges/FASTChanges2024-10-27.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+            _registry_source_pin(
+                "FASTChanges2024-12-04.mrc",
+                "sha256:06ae6714240ac1d8126cfeff5392feb8004f6a1d16e2bb392c854ecf47a6a011",
+                1_797_706,
+                "https://fast.oclc.org/fastChanges/FASTChanges2024-12-04.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+            _registry_source_pin(
+                "FASTChanges2025-05-01.mrc",
+                "sha256:0d505664fe5de155d58bd1c178e65112ee4b42067044b6a4cb14f516ef03f116",
+                3_827_847,
+                "https://fast.oclc.org/fastChanges/FASTChanges2025-05-01.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+            _registry_source_pin(
+                "FASTChanges2026-02-13.mrc",
+                "sha256:98c965420836f0f21aed18599f0216cc61b2f3c2b7ca06cc10f6b9cc1ad374e3",
+                10_220_096,
+                "https://fast.oclc.org/fastChanges/FASTChanges2026-02-13.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=FAST_TOPICAL_NATIVE_READER,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "altLabels",
+                    "broaderIds",
+                    "heading",
+                    "identityStatus",
+                    "legacyFstId",
+                    "numericId",
+                    "publisherIri",
+                }
+            ),
+            label_language_inverse="atlas-en-to-source-untagged",
+            relation_scope="member-endpoints",
+        ),
+    ),
+    SourceSpec(
+        name="icpsr-subject-thesaurus",
+        kind="vocabulary",
+        release_keys=("icpsr-subject-thesaurus",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "/Users/mikewolfd/Work/spicy-regs/output/"
+                    "refspec-vocabulary-portfolio/icpsr/2026-07-30/"
+                    "managed-release/managed-release.json"
+                ),
+                construction_path=(
+                    "spicy-regs/output/refspec-vocabulary-portfolio/icpsr/"
+                    "2026-07-30/managed-release/managed-release.json"
+                ),
+                sha256=(
+                    "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615"
+                    "999c881673ac12a"
+                ),
+                byte_length=6_267,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a"
+                ),
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=ICPSR_MANAGED_RELEASE_READER,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identityStatus",
+                    "indexTerm",
+                    "managedConcept",
+                    "sourceArtifactDigests",
+                    "sourcePaths",
+                    "sourceScheme",
+                    "xmlTerm",
+                }
+            ),
+            additional_relation_predicates=(
+                f"{ATLAS}thesaurusUse",
+                f"{ATLAS}thesaurusUsedFor",
+                f"{ATLAS}thesaurusRelated",
+            ),
+            label_language_inverse="atlas-en-to-source-untagged",
+            note_predicate_inverse=SKOS_SCOPE_NOTE,
+            relation_predicate_inverse=(
+                (f"{ATLAS}thesaurusRelated", f"{SKOS}related"),
+            ),
+            relation_scope="member-subject",
+        ),
+    ),
+    SourceSpec(
+        name="lcsh-eurovoc-alignment-endpoints-2026-08-06",
+        kind="vocabulary",
+        release_keys=("lcsh-eurovoc-alignment-endpoints-2026-08-06",),
+        inputs=(
+            _registry_source_pin(
+                "eurovoc-lcsh-alignment-20240711.rdf",
+                "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853",
+                332_124,
+                (
+                    "https://op.europa.eu/o/opportal-service/euvoc-download-handler?"
+                    "cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2F"
+                    "distribution%2Feurovoc_alignment_lcsh%2F20240711-0%2Frdf%2F"
+                    "skos_core_alignment%2Falign_EuroVoc_LCSH.rdf&"
+                    "fileName=align_EuroVoc_LCSH.rdf"
+                ),
+                fmt="xml",
+                role="publisherAlignment",
+            ),
+            _registry_source_pin(
+                "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz",
+                "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856",
+                140_187_915,
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                fmt="jsonld.gz",
+                role="publisherBulkSource",
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "authorityTypes",
+                    "broaderIris",
+                    "captureSelection",
+                    "lccn",
+                    "lineNumber",
+                    "recordByteLength",
+                    "recordDigest",
+                }
+            ),
+            relation_scope="member-endpoints",
+        ),
+    ),
     SourceSpec(
         name="agrovoc-c330-bounded-2026-08-03",
         kind="vocabulary",
@@ -4022,6 +8430,29 @@ SOURCES: tuple[SourceSpec, ...] = (
                 f"{DCAT}CatalogRecord",
             }
         ),
+        declared_claim_exclusions=(
+            DeclaredClaimExclusion(
+                name="importedVocabularyTermLabels",
+                reason=(
+                    "ELSST ships display labels for the PREDICATES its file uses "
+                    "-- dcterms:identifier as 'URN', owl:imports as 'Uses other "
+                    "schema:' -- so a browsing UI can render its own field names. "
+                    "The subjects are terms in vocabularies ELSST imports, never "
+                    "ELSST concepts (which all live under elsst.cessda.eu/id/6/), "
+                    "so this is a legend for the file's own schema rather than "
+                    "thesaurus content. Atlas asserts nothing about them. The "
+                    "file's owl:Ontology header is deliberately NOT declared "
+                    "here: Atlas adopts that IRI as its source release, so "
+                    "source-release-metadata compares it"
+                ),
+                subject_iri_prefixes=(
+                    DCTERMS,
+                    OWL,
+                    "http://rdf-vocabulary.ddialliance.org/xkos#",
+                    DCAT,
+                ),
+            ),
+        ),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS | {"metadata"},
             record_digest_input_paths=("ELSST_R6.ttl",),
@@ -4049,6 +8480,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         subset="eurovoc-main",
+        declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,
             record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
@@ -4076,6 +8508,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         subset="eurovoc-domains",
+        declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,
             record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
@@ -4129,46 +8562,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             }
         ),
         declared_claim_exclusions=(
-            DeclaredClaimExclusion(
-                name="publisherDatasetDescription",
-                reason=(
-                    "the pinned files carry the Publications Office's own "
-                    "description of the datasets they ship -- void:Linkset and "
-                    "void:Dataset statistics (including the blank-node "
-                    "void:classPartition counts), lime lexicalization sets, dcat "
-                    "catalogue, distribution and service records, the "
-                    "align:Ontology/align:Alignment header, and the EU authority "
-                    "entries those records cite. Every one of them describes a "
-                    "FILE, not a term: this comparison's claim is the "
-                    "EuroVoc-to-LCSH mapping statements, which relation-fidelity "
-                    "compares exactly and in both directions. Atlas asserts "
-                    "nothing about any of these subjects. The publisher's release "
-                    "works (cdm:work and friends) are deliberately NOT here: "
-                    "Atlas reuses the alignment release IRI as its own source "
-                    "release, so those claims are in scope and stay in the "
-                    "uncovered report until something reverses them"
-                ),
-                subject_types=frozenset(
-                    {
-                        f"{ALIGNMENT}Alignment",
-                        f"{ALIGNMENT}Ontology",
-                        f"{CDM}agent",
-                        f"{CDM}concept",
-                        f"{DCAT}Catalog",
-                        f"{DCAT}DataService",
-                        f"{DCAT}Dataset",
-                        f"{DCAT}Distribution",
-                        f"{LIME}LexicalizationSet",
-                        f"{MDR}DatasetArchetype",
-                        f"{MDR}DatasetRealization",
-                        f"{MDR}RDFDataset",
-                        f"{STMDR}SemanticTurkeyInstance",
-                        f"{VOID}Dataset",
-                        f"{VOID}DatasetDescription",
-                        f"{VOID}Linkset",
-                    }
-                ),
-            ),
+            _PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,
             DeclaredClaimExclusion(
                 name="cellarDocumentStoreResources",
                 reason=(
@@ -4191,74 +8585,6 @@ SOURCES: tuple[SourceSpec, ...] = (
                 "cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2F"
                 "eurovoc_alignment_lcsh%2F20240711-0%2Frdf%2Fskos_core_alignment%2F"
                 "align_EuroVoc_LCSH.rdf&fileName=align_EuroVoc_LCSH.rdf"
-            ),
-        ),
-    ),
-    SourceSpec(
-        name="federal-register-api-topics-2026-08-03",
-        kind="vocabulary",
-        release_keys=("federal-register-api-topics-2026-08-03",),
-        inputs=(
-            _registry_source_pin(
-                "federal-register-topics-zyte.json",
-                "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
-                920_705,
-                _FEDERAL_REGISTER_TOPICS_URL,
-                fmt="json",
-                role="publisherApiCapture",
-            ),
-        ),
-        reader=FEDERAL_REGISTER_TOPICS_JSON_READER,
-        identity_policy="source-local-record",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "collection",
-                    "record",
-                    "sourceOrdinal",
-                    "sourceRecordDigest",
-                }
-            ),
-            atlas_only_native_payload_fields=frozenset({"identityStatus"}),
-            additional_relation_predicates=(f"{ATLAS}thesaurusUse",),
-        ),
-    ),
-    SourceSpec(
-        name="gcmd-science-keywords-24-4",
-        kind="vocabulary",
-        release_keys=("gcmd-science-keywords-24-4",),
-        inputs=(
-            _registry_source_pin(
-                "gcmd-science-keywords-24.4.csv",
-                "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2",
-                504_190,
-                (
-                    "https://gcmd.earthdata.nasa.gov/kms/concepts/"
-                    "concept_scheme/sciencekeywords?format=csv"
-                ),
-                fmt="csv",
-            ),
-        ),
-        reader=GCMD_SCIENCE_KEYWORDS_CSV_READER,
-        identity_policy="source-scoped-identifier",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "publisherIdentifier",
-                    "category",
-                    "topic",
-                    "term",
-                    "variableLevel1",
-                    "variableLevel2",
-                    "variableLevel3",
-                    "detailedVariable",
-                    "sourceIdentity",
-                }
-            ),
-            atlas_only_native_payload_fields=frozenset(
-                {"hierarchyIsDescriptiveNotInferred"}
             ),
         ),
     ),
@@ -4420,9 +8746,6 @@ SOURCES: tuple[SourceSpec, ...] = (
             atlas_only_native_payload_fields=frozenset(
                 {"detachedAnnotationsNotJoined"}
             ),
-            additional_annotation_predicates=(
-                "http://synaptica.net/zthes/termNote",
-            ),
             additional_relation_predicates=(
                 "http://synaptica.net/skm/UF",
                 "http://synaptica.net/skm/Use",
@@ -4534,6 +8857,7 @@ def build_context(
     summary_path = distribution / CONSTRUCTION_SUMMARY
     units: list[DistributionUnit] = []
     summary_digest: str | None = None
+    construction_language_scope: Any = None
     manifest_digest: str | None = None
     pack_pins: dict[str, PackPin] = {}
     load_failures: list[str] = []
@@ -4598,6 +8922,9 @@ def build_context(
         except (OSError, TypeError, ValueError) as error:
             load_failures.append(f"cannot read {CONSTRUCTION_SUMMARY}: {error}")
         else:
+            construction_language_scope = (
+                payload.get("languageScope") if isinstance(payload, dict) else None
+            )
             releases = payload.get("releases") if isinstance(payload, dict) else None
             if not isinstance(releases, list):
                 load_failures.append(f"{CONSTRUCTION_SUMMARY}: releases must be an array")
@@ -4662,7 +8989,10 @@ def build_context(
     native_control_pairs: list[NativeControlPair] = []
     source_extract_pairs: list[SourceExtractPair] = []
     atlas_views: list[tuple[SourceSpec, AtlasView]] = []
-    publisher_cache: dict[tuple[Any, ...], PublisherView | str] = {}
+    publisher_cache: dict[
+        tuple[object, ...],
+        PublisherView | str,
+    ] = {}
     native_specs = [spec for spec in specs if spec.kind == "native-control"]
     native_control_publishers: dict[SourceSpec, NativeControlPublisherView] = {}
     if native_specs:
@@ -4700,6 +9030,10 @@ def build_context(
             )
             cache_key = (
                 spec.reader,
+                # API captures can share bytes while selecting different lists
+                # (four FCC units and two SAM units). Other readers keep main's
+                # cross-spec cache sharing, including the EuroVoc partitions.
+                spec.name if spec.reader == API_CAPTURE_JSON_READER else None,
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
@@ -4720,12 +9054,8 @@ def build_context(
                             additional_annotation_predicates=(
                                 additional_annotation_predicates
                             ),
-                            additional_relation_predicates=(
-                                additional_relation_predicates
-                            ),
-                            declared_claim_exclusions=(
-                                spec.declared_claim_exclusions
-                            ),
+                            additional_relation_predicates=additional_relation_predicates,
+                            declared_claim_exclusions=spec.declared_claim_exclusions,
                         )
                     else:
                         reader = _PUBLISHER_READERS.get(spec.reader)
@@ -4768,10 +9098,29 @@ def build_context(
             else frozenset()
         )
         try:
+            compact_native_payload = (
+                publisher is not None
+                and publisher.source_digest_is_native_payload_digest
+                and not publisher.expected_native_payloads
+                and spec.rdf_source is not None
+            )
             atlas = read_atlas_source(
                 distribution,
                 packs,
                 source_claim_subjects,
+                compact_normalized_claims=(
+                    publisher is not None and spec.reader != "rdf"
+                ),
+                compact_native_payload_fields=(
+                    spec.rdf_source.evaluated_native_payload_fields
+                    if compact_native_payload
+                    else None
+                ),
+                compact_native_payload_atlas_only_fields=(
+                    spec.rdf_source.atlas_only_native_payload_fields
+                    if compact_native_payload
+                    else frozenset()
+                ),
             )
         except Exception as error:  # noqa: BLE001 - continue with every later source
             load_failures.append(
@@ -4803,7 +9152,33 @@ def build_context(
                     )
                 )
         elif publisher is not None:
-            pairs.append(SourcePair(spec=spec, publisher=publisher, atlas=atlas))
+            pair = SourcePair(spec=spec, publisher=publisher, atlas=atlas)
+            language_exclusion = _language_exclusion_for_spec(spec)
+            if language_exclusion is not None:
+                pair = replace(
+                    pair,
+                    publisher=_apply_declared_language_exclusion(
+                        pair,
+                        language_exclusion,
+                    ),
+                )
+            pairs.append(pair)
+    language_scope_active = any(
+        _language_exclusion_for_spec(spec) is not None for spec in specs
+    )
+    if language_scope_active and pack_pins:
+        atlas_language_scope_evidence = _audit_atlas_language_scope(
+            distribution,
+            pack_pins,
+        )
+    elif language_scope_active:
+        atlas_language_scope_evidence = AtlasLanguageScopeEvidence(
+            scan_failures=(
+                "atlas-manifest.json declares no authenticated packs to inspect",
+            )
+        )
+    else:
+        atlas_language_scope_evidence = AtlasLanguageScopeEvidence()
     return Context(
         distribution=distribution,
         source_root=source_root,
@@ -4814,11 +9189,13 @@ def build_context(
         expectations=expectations,
         units=tuple(units),
         construction_summary_digest=summary_digest,
+        construction_language_scope=construction_language_scope,
         manifest_digest=manifest_digest,
         pack_pins=dict(sorted(pack_pins.items())),
         verified_pins=frozenset(verified_pins),
         pin_failures=tuple(pin_failures),
         load_failures=tuple(load_failures),
+        atlas_language_scope_evidence=atlas_language_scope_evidence,
         source_extract_pairs=tuple(source_extract_pairs),
         scoped_out_specs=scoped_out_specs,
     )
@@ -4867,6 +9244,71 @@ def check_load_errors(ctx: Context) -> CheckResult:
     )
 
 
+def check_language_scope(ctx: Context) -> CheckResult:
+    """Prove the declared English scope against source cells and every Atlas pack."""
+    declared_specs = tuple(
+        spec
+        for spec in ctx.specs
+        if _language_exclusion_for_spec(spec) is not None
+    )
+    if not declared_specs:
+        return _result(
+            "language-scope",
+            "no language-scope declaration applies to this run",
+            [],
+        )
+
+    failures: list[str] = []
+    if ctx.construction_language_scope != ENGLISH_LANGUAGE_SCOPE:
+        failures.append(
+            f"{CONSTRUCTION_SUMMARY}: languageScope differs -- expected "
+            f"{ENGLISH_LANGUAGE_SCOPE}, observed {ctx.construction_language_scope!r}"
+        )
+    pairs_by_spec = {pair.spec: pair for pair in ctx.pairs}
+    excluded = 0
+    for spec in declared_specs:
+        pair = pairs_by_spec.get(spec)
+        if pair is None:
+            failures.append(
+                f"{spec.name}: language-scope declaration could not be evaluated because the publisher comparison did not load"
+            )
+            continue
+        evidence = pair.publisher.language_exclusion_evidence
+        if evidence is None:
+            failures.append(
+                f"{spec.name}: language-scope declaration produced no source evidence"
+            )
+            continue
+        excluded += evidence.excluded_claim_count if evidence.applied else 0
+        failures.extend(
+            f"{spec.name}: {failure}" for failure in evidence.failures
+        )
+
+    atlas = ctx.atlas_language_scope_evidence
+    failures.extend(
+        f"Atlas language-scope scan failed: {failure}"
+        for failure in atlas.scan_failures
+    )
+    if atlas.non_english_literal_count:
+        failures.append(
+            "Atlas asserts "
+            f"{atlas.non_english_literal_count} explicitly tagged non-English or invalid-language literal claim(s) across the distribution; "
+            f"examples {list(atlas.non_english_literal_examples)}"
+        )
+    if atlas.noncanonical_semantic_literal_count:
+        failures.append(
+            "Atlas asserts "
+            f"{atlas.noncanonical_semantic_literal_count} label, definition, or note literal claim(s) without exact @en; "
+            f"examples {list(atlas.noncanonical_semantic_literal_examples)}"
+        )
+    return _result(
+        "language-scope",
+        f"{excluded} non-English publisher semantic literal claims declared and itemised; "
+        f"{atlas.non_english_literal_count} non-English Atlas literal claims observed",
+        failures,
+    )
+
+
 def check_configuration(ctx: Context) -> CheckResult:
     """Reject fail-open audit settings while allowing every data check to continue."""
     failures: list[str] = []
@@ -4909,7 +9351,9 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.identity_policy not in {
             "publisher-iri",
             "source-local-record",
+            "source-key-derived",
             "source-scoped-identifier",
+            "source-position-observation",
         }:
             failures.append(
                 f"{spec.name}: unsupported identity policy {spec.identity_policy!r}"
@@ -5318,18 +9762,20 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     aggregate_source_evidence_fields = frozenset(
         {"labelRoleNormalization", "metadata"}
     )
+    expected_payload_fields = policy.evaluated_native_payload_fields
     reader_native_fields = frozenset(
         field_name
         for payload in pair.publisher.expected_native_payloads.values()
         for field_name in payload
     )
+    if pair.publisher.source_digest_is_native_payload_digest:
+        reader_native_fields |= expected_payload_fields
     supported_resource_fields = (
         per_record_resource_fields
         | aggregate_relation_fields
         | aggregate_source_evidence_fields
         | reader_native_fields
     )
-    expected_payload_fields = policy.evaluated_native_payload_fields
     unsupported_declared_fields = sorted(
         expected_payload_fields - supported_resource_fields
     )
@@ -5355,15 +9801,63 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         set(pair.atlas.source_records)
         | set(pair.atlas.record_targets)
         | set(pair.atlas.native_payloads)
+        | set(pair.atlas.compact_native_payload_records)
     )
     for record in sorted(record_ids):
         target = pair.atlas.record_targets.get(record)
         payload = pair.atlas.native_payloads.get(record)
+        compact_payload = record in pair.atlas.compact_native_payload_records
         if target is None:
             if payload is None:
-                failures.append(
-                    f"{source}: targetless source record <{record}> has no native payload"
+                detail = (
+                    "has no native payload"
+                    if not compact_payload
+                    else "has no represented publisher resource"
                 )
+                failures.append(f"{source}: targetless source record <{record}> {detail}")
+                continue
+
+            publisher_relation_digest = payload.get("publisherRelationDigest")
+            expected_relation_payload = (
+                pair.publisher.expected_relation_payloads.get(
+                    publisher_relation_digest,
+                )
+                if isinstance(publisher_relation_digest, str)
+                else None
+            )
+            if expected_relation_payload is not None:
+                publisher_relation = payload.get("publisherRelation")
+                if not isinstance(publisher_relation, Mapping):
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelation is not an object"
+                    )
+                    continue
+                exact_relation_digest = _canonical_json_digest(publisher_relation)
+                if publisher_relation_digest != exact_relation_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelationDigest differs "
+                        "from its exact publisher relation payload"
+                    )
+                if payload != expected_relation_payload:
+                    failures.append(
+                        f"{source}: source record <{record}> transformed publisher relation "
+                        "payload differs from the independent source reconstruction"
+                    )
+                expected_locator = (
+                    "urn:ref:publisher-relation:"
+                    + publisher_relation_digest.removeprefix("sha256:")
+                )
+                if pair.atlas.record_source_locators.get(record) != expected_locator:
+                    failures.append(
+                        f"{source}: source record <{record}> relation locator differs -- "
+                        f"expected <{expected_locator}>"
+                    )
+                expected_digest = _canonical_json_digest(expected_relation_payload)
+                if pair.atlas.record_source_digests.get(record) != expected_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> transformed relation digest "
+                        f"differs -- expected {expected_digest}"
+                    )
                 continue
 
             publisher_relation = _payload_relation(payload.get("publisherRelation"))
@@ -5478,12 +9972,21 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             )
 
         resource_input_path = input_path_by_resource.get(target)
-        expected_digests = (
-            {pair.publisher.input_content_digests[resource_input_path]}
-            if resource_input_path in pair.publisher.input_content_digests
-            else default_digests
-            or set(pair.publisher.resource_input_digests.get(target, frozenset()))
+        compact_resource_digest = pair.publisher.resource_input_digest_values.get(
+            target
         )
+        if resource_input_path in pair.publisher.input_content_digests:
+            expected_digests = {
+                pair.publisher.input_content_digests[resource_input_path]
+            }
+        elif default_digests:
+            expected_digests = default_digests
+        elif compact_resource_digest is not None:
+            expected_digests = {compact_resource_digest}
+        else:
+            expected_digests = set(
+                pair.publisher.resource_input_digests.get(target, frozenset())
+            )
         observed_digest = pair.atlas.record_source_digests.get(record)
         if len(expected_digests) != 1:
             failures.append(
@@ -5496,8 +9999,29 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 f"{next(iter(expected_digests))}, observed {observed_digest!r}"
             )
 
-        if payload is None:
+        if payload is None and not compact_payload:
             failures.append(f"{source}: source record <{record}> has no native payload")
+            continue
+        if payload is None:
+            digest_difference = pair.atlas.native_payload_digest_differences.get(
+                record
+            )
+            if digest_difference is not None:
+                payload_digest, source_digest = digest_difference
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest "
+                    f"{payload_digest} differs from atlas:sourceDigest {source_digest!r}"
+                )
+            unexpected_fields, missing_fields = (
+                pair.atlas.native_payload_field_differences.get(record, ((), ()))
+            )
+            for field_name in unexpected_fields:
+                unexpected_payload_fields[field_name].append(record)
+            if missing_fields:
+                failures.append(
+                    f"{source}: source record <{record}> native payload omits independently "
+                    f"evaluated fields {list(missing_fields)}"
+                )
             continue
         for field_name in sorted(
             set(payload)
@@ -5512,6 +10036,11 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         expected_per_record_fields = per_record_resource_fields | frozenset(
             reader_expected_payload
         )
+        if (
+            pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_per_record_fields |= expected_payload_fields
         missing_fields = sorted(
             (expected_payload_fields & expected_per_record_fields) - set(payload)
         )
@@ -5541,16 +10070,23 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                     f"{source}: source record <{record}> topConceptOfIris differs -- expected "
                     f"{expected!r}, observed {payload.get('topConceptOfIris')!r}"
                 )
-        for field_name in sorted(
-            (expected_payload_fields & set(reader_expected_payload))
-            - per_record_resource_fields
-        ):
+        for field_name in sorted(expected_payload_fields & reader_expected_payload.keys()):
             expected = reader_expected_payload[field_name]
             if payload.get(field_name) != expected:
                 failures.append(
-                    f"{source}: source record <{record}> nativePayload.{field_name} "
-                    f"differs from publisher bytes -- expected {expected!r}, "
-                    f"observed {payload.get(field_name)!r}"
+                    f"{source}: source record <{record}> native payload {field_name} "
+                    f"differs -- expected {expected!r}, observed {payload.get(field_name)!r}"
+                )
+        if (
+            pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_payload_digest = next(iter(expected_digests))
+            observed_payload_digest = _canonical_json_digest(payload)
+            if observed_payload_digest != expected_payload_digest:
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest differs -- "
+                    f"expected {expected_payload_digest}, observed {observed_payload_digest}"
                 )
 
     if pair.spec.kind == "mapping":
@@ -6169,22 +10705,36 @@ def check_identifier_retention(ctx: Context) -> CheckResult:
         atlas_concepts = _atlas_publisher_concepts(pair)
         checked += len(atlas_concepts)
         if pair.spec.identity_policy == "publisher-iri":
-            minted = sorted(
+            unexpected = sorted(
                 resource
                 for resource in atlas_concepts
                 if resource.startswith("urn:ref:")
             )
-            for resource in minted:
+            for resource in unexpected:
                 failures.append(
                     f"{pair.spec.name}: Atlas concept <{resource}> carries a minted "
                     "RefSpec identifier where the publisher supplies its own IRI"
                 )
             continue
-        unexpected = sorted(
-            resource
-            for resource in atlas_concepts
-            if not resource.startswith("urn:ref:source-concept:v2:")
-        )
+        if pair.spec.identity_policy in {
+            "source-local-record",
+            "source-scoped-identifier",
+        }:
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if not resource.startswith("urn:ref:source-concept:v2:")
+            )
+        elif pair.spec.identity_policy == "source-position-observation":
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if not resource.startswith("urn:ref:epa-enterprise-vocabulary-row:")
+            )
+        else:
+            # The stock reader derives and compares the complete resource IRI
+            # from a publisher key. Traceability proves exact set equality.
+            unexpected = []
         for resource in unexpected:
             failures.append(
                 f"{pair.spec.name}: Atlas concept <{resource}> does not use the "
@@ -7281,6 +11831,394 @@ def _atlas_source_wide_literals(
     )
 
 
+_LANGUAGE_EXCLUSION_FIELDS = frozenset(
+    {
+        "schemaVersion",
+        "exclusionType",
+        "selection",
+        "predicateFamilies",
+        "countsBySourceAndLanguage",
+        "totalExcludedClaims",
+    }
+)
+_LANGUAGE_EXCLUSION_SELECTION = {
+    "countUnit": (
+        "unique auditor semantic literal claim after SourceSpec subset selection"
+    ),
+    "excludedClaimRule": (
+        "language tag is present and primary language subtag is not en"
+    ),
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+}
+
+
+def _language_exclusion_payload_parts(
+    declaration: DeclaredLanguageExclusion,
+    source: str,
+) -> tuple[
+    Mapping[str, tuple[str, ...]],
+    Mapping[str, Mapping[str, int]],
+    tuple[str, ...],
+]:
+    """Validate one authenticated count declaration without accepting drift."""
+    failures: list[str] = []
+    try:
+        payload = declaration.payload()
+    except (TypeError, ValueError) as error:
+        return {}, {}, (f"declaration payload is not valid JSON: {error}",)
+    if set(payload) != _LANGUAGE_EXCLUSION_FIELDS:
+        failures.append(
+            "declaration fields differ -- expected "
+            f"{sorted(_LANGUAGE_EXCLUSION_FIELDS)}, observed {sorted(payload)}"
+        )
+    if payload.get("schemaVersion") != "1.0":
+        failures.append("declaration schemaVersion must be '1.0'")
+    if payload.get("exclusionType") != "languageFamily":
+        failures.append("declaration exclusionType must be 'languageFamily'")
+    if payload.get("selection") != _LANGUAGE_EXCLUSION_SELECTION:
+        failures.append(
+            "declaration selection differs from the executable BCP 47 rule"
+        )
+
+    raw_families = payload.get("predicateFamilies")
+    predicate_families: dict[str, tuple[str, ...]] = {}
+    if not isinstance(raw_families, dict):
+        failures.append("declaration predicateFamilies must be an object")
+    else:
+        for family, predicates in raw_families.items():
+            if (
+                not isinstance(family, str)
+                or not family
+                or not isinstance(predicates, list)
+                or not predicates
+                or not all(isinstance(predicate, str) and predicate for predicate in predicates)
+                or len(set(predicates)) != len(predicates)
+            ):
+                failures.append(
+                    f"declaration predicate family {family!r} must contain unique IRI strings"
+                )
+                continue
+            predicate_families[family] = tuple(predicates)
+
+    raw_counts = payload.get("countsBySourceAndLanguage")
+    counts_by_source: dict[str, dict[str, dict[str, int]]] = {}
+    declared_total = 0
+    if not isinstance(raw_counts, dict):
+        failures.append("declaration countsBySourceAndLanguage must be an object")
+    else:
+        for source_name, language_rows in raw_counts.items():
+            if not isinstance(source_name, str) or not isinstance(language_rows, dict):
+                failures.append("declaration source count rows must be objects")
+                continue
+            parsed_languages: dict[str, dict[str, int]] = {}
+            for language, family_rows in language_rows.items():
+                if (
+                    not isinstance(language, str)
+                    or _BCP47.fullmatch(language) is None
+                    or language.casefold() == "en"
+                    or language.casefold().startswith("en-")
+                ):
+                    failures.append(
+                        f"declaration language {language!r} is not a valid non-English BCP 47 tag"
+                    )
+                    continue
+                if not isinstance(family_rows, dict) or not family_rows:
+                    failures.append(
+                        f"declaration count cell {source_name}/{language} must be a non-empty object"
+                    )
+                    continue
+                parsed_families: dict[str, int] = {}
+                for family, count in family_rows.items():
+                    if family not in predicate_families:
+                        failures.append(
+                            f"declaration count cell {source_name}/{language} uses unknown family {family!r}"
+                        )
+                    if (
+                        not isinstance(count, int)
+                        or isinstance(count, bool)
+                        or count <= 0
+                    ):
+                        failures.append(
+                            f"declaration count cell {source_name}/{language}/{family} must be a positive integer"
+                        )
+                        continue
+                    parsed_families[family] = count
+                    declared_total += count
+                parsed_languages[language] = parsed_families
+            counts_by_source[source_name] = parsed_languages
+    expected_total = payload.get("totalExcludedClaims")
+    if (
+        not isinstance(expected_total, int)
+        or isinstance(expected_total, bool)
+        or expected_total != declared_total
+    ):
+        failures.append(
+            "declaration totalExcludedClaims does not equal its source/language/family cells: "
+            f"expected {expected_total!r}, summed {declared_total}"
+        )
+    if source not in counts_by_source:
+        failures.append(f"declaration has no count row for source {source!r}")
+    return (
+        predicate_families,
+        counts_by_source.get(source, {}),
+        tuple(failures),
+    )
+
+
+def _language_semantic_literal_claims(
+    pair: SourcePair,
+) -> frozenset[tuple[str, str, str, LiteralValue]]:
+    """Resolve literal claims to the exact semantic families in the declaration."""
+    publisher = pair.publisher
+    rows: set[tuple[str, str, str, LiteralValue]] = set()
+    for family, predicate, values_by_subject in (
+        ("preferredLabels", SKOS_PREF_LABEL, publisher.pref_labels),
+        ("alternateLabels", SKOS_ALT_LABEL, publisher.alt_labels),
+        ("hiddenLabels", SKOS_HIDDEN_LABEL, publisher.hidden_labels),
+        ("notations", SKOS_NOTATION, publisher.notations),
+    ):
+        rows.update(
+            (family, subject, predicate, literal)
+            for subject, values in values_by_subject.items()
+            if subject in publisher.concepts
+            for literal in values
+        )
+    note_predicates = _source_note_predicates(pair)
+    rows.update(
+        (
+            "definitions" if predicate == SKOS_DEFINITION else "notes",
+            subject,
+            predicate,
+            literal,
+        )
+        for subject, predicate, literal in publisher.annotations
+        if subject in publisher.concepts
+        and (predicate == SKOS_DEFINITION or predicate in note_predicates)
+    )
+    rows.update(
+        ("memberMetadataLiterals", subject, predicate, literal)
+        for subject, predicate, literal in _publisher_member_metadata_literals(pair)
+    )
+    rows.update(
+        ("sourceSchemeLiterals", subject, predicate, literal)
+        for subject, predicate, literal in _publisher_source_scheme_literal_claims(pair)
+    )
+    rows.update(
+        ("sourceWideLiterals", subject, predicate, literal)
+        for subject, predicate, literal in _publisher_source_wide_literals(pair)
+    )
+    return frozenset(rows)
+
+
+def _normalized_language_counts(
+    counts: Mapping[str, Mapping[str, int]],
+) -> dict[str, dict[str, int]]:
+    """Compare BCP 47 tags case-insensitively while retaining receipt spellings."""
+    normalized: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for language, families in counts.items():
+        for family, count in families.items():
+            normalized[language.casefold()][family] += count
+    return {
+        language: dict(sorted(families.items()))
+        for language, families in sorted(normalized.items())
+    }
+
+
+def _apply_declared_language_exclusion(
+    pair: SourcePair,
+    declaration: DeclaredLanguageExclusion,
+) -> PublisherView:
+    """Set aside only exactly declared non-English semantic literal claims."""
+    predicate_families, expected_counts, payload_failures = (
+        _language_exclusion_payload_parts(declaration, pair.spec.name)
+    )
+    failures = list(payload_failures)
+    candidates = _language_semantic_literal_claims(pair)
+    selected: set[tuple[str, str, str, LiteralValue]] = set()
+    actual_counter: Counter[tuple[str, str]] = Counter()
+    declared_predicates = frozenset(
+        predicate
+        for predicates in predicate_families.values()
+        for predicate in predicates
+    )
+    invalid: list[str] = []
+    undeclared: list[str] = []
+    for family, subject, predicate, literal in sorted(
+        candidates,
+        key=lambda row: (
+            row[0],
+            row[1],
+            row[2],
+            row[3].language or "",
+            row[3].value,
+            row[3].datatype or "",
+        ),
+    ):
+        language = literal.language
+        if language is None:
+            continue
+        if _BCP47.fullmatch(language) is None:
+            invalid.append(
+                f"<{subject}> <{predicate}> {_literal_repr(literal)}"
+            )
+            continue
+        normalized = language.casefold()
+        if normalized == "en" or normalized.startswith("en-"):
+            continue
+        # The family is the existing auditor comparison that owns this claim.
+        # The payload's predicate families also form one closed predicate
+        # inventory. A publisher claim may be reached through two comparison
+        # roles (for example, a label on an explicit source scheme), so require
+        # both a declared role and a globally declared predicate without
+        # pretending the role/predicate lists are disjoint.
+        if family not in predicate_families or predicate not in declared_predicates:
+            undeclared.append(
+                f"{family}: <{subject}> <{predicate}> {_literal_repr(literal)}"
+            )
+            continue
+        selected.add((family, subject, predicate, literal))
+        actual_counter[(language, family)] += 1
+
+    if invalid:
+        failures.append(
+            f"{len(invalid)} explicitly tagged semantic literal claim(s) have invalid BCP 47 tags; examples {invalid[:5]}"
+        )
+    if undeclared:
+        failures.append(
+            f"{len(undeclared)} non-English semantic literal claim(s) use an undeclared predicate family; examples {undeclared[:5]}"
+        )
+    actual_counts: dict[str, dict[str, int]] = defaultdict(dict)
+    for (language, family), count in sorted(actual_counter.items()):
+        actual_counts[language][family] = count
+    expected_normalized = _normalized_language_counts(expected_counts)
+    actual_normalized = _normalized_language_counts(actual_counts)
+    if expected_normalized != actual_normalized:
+        failures.append(
+            "declared source/language/predicate-family cells differ from authenticated publisher bytes: "
+            f"expected {expected_normalized}, observed {actual_normalized}"
+        )
+
+    identity_rows = [
+        {
+            "datatype": literal.datatype,
+            "family": family,
+            "language": literal.language,
+            "predicate": predicate,
+            "subject": subject,
+            "value": literal.value,
+        }
+        for family, subject, predicate, literal in sorted(
+            selected,
+            key=lambda row: (
+                row[0],
+                row[1],
+                row[2],
+                row[3].language or "",
+                row[3].value,
+                row[3].datatype or "",
+            ),
+        )
+    ]
+    identity_digest = "sha256:" + hashlib.sha256(
+        json.dumps(
+            identity_rows,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    evidence = LanguageExclusionEvidence(
+        expected_counts_by_language={
+            language: dict(sorted(families.items()))
+            for language, families in sorted(expected_counts.items())
+        },
+        actual_counts_by_language={
+            language: dict(sorted(families.items()))
+            for language, families in sorted(actual_counts.items())
+        },
+        excluded_claim_count=len(selected),
+        excluded_claims_digest=identity_digest,
+        applied=not failures,
+        failures=tuple(failures),
+    )
+    if failures:
+        return replace(pair.publisher, language_exclusion_evidence=evidence)
+
+    excluded_labels: dict[str, set[tuple[str, LiteralValue]]] = defaultdict(set)
+    excluded_annotations: set[tuple[str, str, LiteralValue]] = set()
+    excluded_direct_literals: set[tuple[str, str, LiteralValue]] = set()
+    for family, subject, predicate, literal in selected:
+        if family in {"preferredLabels", "alternateLabels", "hiddenLabels"}:
+            excluded_labels[family].add((subject, literal))
+        elif family in {"definitions", "notes"}:
+            excluded_annotations.add((subject, predicate, literal))
+        excluded_direct_literals.add((subject, predicate, literal))
+
+    def filtered_values(
+        family: str,
+        values: Mapping[str, frozenset[LiteralValue]],
+    ) -> dict[str, frozenset[LiteralValue]]:
+        result: dict[str, frozenset[LiteralValue]] = {}
+        excluded = excluded_labels[family]
+        for subject, literals in values.items():
+            retained = frozenset(
+                literal
+                for literal in literals
+                if (subject, literal) not in excluded
+            )
+            if retained:
+                result[subject] = retained
+        return result
+
+    pref = filtered_values("preferredLabels", pair.publisher.pref_labels)
+    alt = filtered_values("alternateLabels", pair.publisher.alt_labels)
+    hidden = filtered_values("hiddenLabels", pair.publisher.hidden_labels)
+    # Source-scheme display literals use the same maps but a different semantic
+    # family, so remove their exact rows without touching English concept labels.
+    scheme_selected = {
+        (subject, predicate, literal)
+        for family, subject, predicate, literal in selected
+        if family == "sourceSchemeLiterals"
+    }
+    for values, predicate in (
+        (pref, SKOS_PREF_LABEL),
+        (alt, SKOS_ALT_LABEL),
+        (hidden, SKOS_HIDDEN_LABEL),
+    ):
+        for subject in tuple(values):
+            retained = frozenset(
+                literal
+                for literal in values[subject]
+                if (subject, predicate, literal) not in scheme_selected
+            )
+            if retained:
+                values[subject] = retained
+            else:
+                del values[subject]
+
+    return replace(
+        pair.publisher,
+        pref_labels=pref,
+        alt_labels=alt,
+        hidden_labels=hidden,
+        annotations=frozenset(
+            row
+            for row in pair.publisher.annotations
+            if row not in excluded_annotations
+        ),
+        literal_claims=frozenset(
+            row
+            for row in pair.publisher.literal_claims
+            if row not in excluded_direct_literals
+        ),
+        pref_label_count_all_languages=sum(len(values) for values in pref.values()),
+        alt_label_count_all_languages=sum(len(values) for values in alt.values()),
+        hidden_label_count_all_languages=sum(len(values) for values in hidden.values()),
+        language_exclusion_evidence=evidence,
+    )
+
+
 def _atlas_source_targets(pair: SourcePair) -> frozenset[str]:
     """Resources explicitly linked to publisher evidence by a source record."""
     return frozenset(pair.atlas.record_targets.values())
@@ -7292,10 +12230,28 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     Atlas-owned resources, rings, profiles, and governed schemes are deliberately
     absent from this view. The binding validator owns those claims.
     """
+    if pair.spec.reader in {
+        API_CAPTURE_JSON_READER,
+        CRS_SOURCE_CONCEPT_RELEASE_READER,
+    }:
+        # Structured JSON captures also describe value, structure, entity, and
+        # legal-identity resources. Their source records are the exact
+        # independent join; requiring skos:Concept here would discard every
+        # non-subject row.
+        return _atlas_source_targets(pair)
     return frozenset(
-        resource
-        for resource, types in pair.atlas.rdf_types.items()
-        if SKOS_CONCEPT in types
+        {
+            *(
+                resource
+                for resource, types in pair.atlas.rdf_types.items()
+                if SKOS_CONCEPT in types
+            ),
+            *(
+                subject
+                for subject, predicate, obj in pair.atlas.raw_source_iri_claims
+                if predicate == RDF_TYPE and obj == SKOS_CONCEPT
+            ),
+        }
     )
 
 
@@ -7830,6 +12786,175 @@ def check_scheme_organisation(ctx: Context) -> CheckResult:
     )
 
 
+# Field families for release-metadata reporting. Publishers describe a release
+# with dozens of near-synonymous predicates (work_title beside title,
+# work_date_creation beside date_creation), and one failure line per predicate
+# turns a characterised gap into a wall. These buckets are for READING only:
+# every count below is over exact claims, and the claim sets are compared whole.
+_RELEASE_METADATA_FAMILIES: tuple[tuple[str, str], ...] = (
+    # Agent needles come first on purpose: cdm:created_by names who made the
+    # release, not when, and "created" would otherwise capture it as a date.
+    ("created_by", "agent"),
+    ("creator", "agent"),
+    ("creates", "agent"),
+    ("published_by", "agent"),
+    ("publish", "agent"),
+    ("agent", "agent"),
+    ("title", "title"),
+    ("version", "version"),
+    ("identifier", "identity"),
+    ("datetime", "dates"),
+    ("date", "dates"),
+    ("issued", "dates"),
+    ("created", "dates"),
+    ("modified", "dates"),
+    ("frequency", "classification"),
+    ("type", "classification"),
+    ("language", "language"),
+    ("licen", "rights"),
+    ("rights", "rights"),
+    ("access", "rights"),
+    ("descri", "description"),
+    ("keyword", "description"),
+    ("editorial", "description"),
+    ("comment", "description"),
+    ("label", "description"),
+    ("import", "imports"),
+    ("member", "structure"),
+    ("expression", "structure"),
+    ("documentation", "structure"),
+    ("related", "structure"),
+    ("has", "structure"),
+    ("id", "identity"),
+)
+
+
+def _release_metadata_family(predicate: str) -> str:
+    """Bucket one release predicate into a readable field family."""
+    local = predicate.rsplit("#", 1)[-1].rsplit("/", 1)[-1].lower()
+    for needle, family in _RELEASE_METADATA_FAMILIES:
+        if needle in local:
+            return family
+    return "other"
+
+
+def _atlas_source_release_subjects(pair: SourcePair) -> frozenset[str]:
+    """Publisher release IRIs that Atlas reuses as its own source-release node.
+
+    Atlas does not mint a fresh identifier for a publisher release; it adopts
+    the publisher's own release IRI and hangs its provenance off it. That makes
+    every publisher claim about that IRI a claim Atlas is standing on, so it
+    belongs in a comparison rather than in a scope declaration -- an exclusion
+    covering it would be exactly the waiver this verifier must not grant.
+    """
+    return frozenset(
+        subject
+        for subject, types in pair.atlas.rdf_types.items()
+        if ATLAS_SOURCE_RELEASE in types
+    )
+
+
+def _publisher_release_metadata_claims(
+    pair: SourcePair,
+) -> tuple[
+    frozenset[tuple[str, str, str]],
+    frozenset[tuple[str, str, LiteralValue]],
+]:
+    """Every publisher claim about a release IRI Atlas adopted."""
+    subjects = _atlas_source_release_subjects(pair)
+    return (
+        frozenset(row for row in pair.publisher.iri_claims if row[0] in subjects),
+        frozenset(row for row in pair.publisher.literal_claims if row[0] in subjects),
+    )
+
+
+def _atlas_release_metadata_claims(
+    pair: SourcePair,
+) -> tuple[
+    frozenset[tuple[str, str, str]],
+    frozenset[tuple[str, str, LiteralValue]],
+]:
+    """Every source-shaped claim Atlas makes about a release IRI it adopted.
+
+    Atlas-minted predicates and Atlas class memberships are excluded: those are
+    the representation structure already declared in the receipt, not a
+    restatement of anything the publisher said.
+    """
+    subjects = _atlas_source_release_subjects(pair)
+    return (
+        frozenset(
+            row
+            for row in pair.atlas.all_raw_iri_claims
+            if row[0] in subjects
+            and not _is_atlas_representation_iri(row[1])
+            and not (row[1] == RDF_TYPE and _is_atlas_representation_iri(row[2]))
+        ),
+        frozenset(
+            row
+            for row in pair.atlas.all_raw_literal_claims
+            if row[0] in subjects and not _is_atlas_representation_iri(row[1])
+        ),
+    )
+
+
+def check_source_release_metadata(ctx: Context) -> CheckResult:
+    """Publisher release descriptions match what Atlas asserts about the same IRI.
+
+    Both directions, exact. Where a publisher describes its release in fifty
+    fields and Atlas restates two, this reports the gap as a difference rather
+    than leaving it in the uncovered pile -- the truth is that Atlas speaks
+    about that subject and drops most of what the publisher said about it.
+    """
+    failures = _incomplete_evaluation_failure(ctx, "source release metadata")
+    compared = 0
+    for pair in ctx.pairs:
+        subjects = _atlas_source_release_subjects(pair)
+        if not subjects:
+            continue
+        publisher_iri, publisher_literals = _publisher_release_metadata_claims(pair)
+        atlas_iri, atlas_literals = _atlas_release_metadata_claims(pair)
+        compared += len(atlas_iri) + len(atlas_literals)
+
+        missing: dict[str, list[str]] = defaultdict(list)
+        for subject, predicate, obj in sorted(publisher_iri - atlas_iri):
+            missing[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} <{obj}>"
+            )
+        for subject, predicate, literal in sorted(
+            publisher_literals - atlas_literals, key=_literal_claim_sort_key
+        ):
+            missing[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} {_literal_repr(literal)}"
+            )
+        for family, rows in sorted(missing.items()):
+            failures.append(
+                f"{pair.spec.name}: {len(rows)} publisher release claim(s) in the "
+                f"{family} family are missing from Atlas; examples {rows[:3]}"
+            )
+
+        added: dict[str, list[str]] = defaultdict(list)
+        for subject, predicate, obj in sorted(atlas_iri - publisher_iri):
+            added[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} <{obj}>"
+            )
+        for subject, predicate, literal in sorted(
+            atlas_literals - publisher_literals, key=_literal_claim_sort_key
+        ):
+            added[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} {_literal_repr(literal)}"
+            )
+        for family, rows in sorted(added.items()):
+            failures.append(
+                f"{pair.spec.name}: Atlas adds {len(rows)} release claim(s) in the "
+                f"{family} family, absent from publisher bytes; examples {rows[:3]}"
+            )
+    return _result(
+        "source-release-metadata",
+        f"{compared} Atlas release claims compared against publisher release descriptions",
+        failures,
+    )
+
+
 def _publisher_subject_types(view: PublisherView) -> dict[str, frozenset[str]]:
     """Index the rdf:type values the publisher's own bytes assert per subject."""
     types: dict[str, set[str]] = defaultdict(set)
@@ -7873,6 +12998,12 @@ def _declared_exclusion_subjects(
         *(subject for subject, _, _ in pair.publisher.iri_claims),
         *(subject for subject, _, _ in pair.publisher.literal_claims),
     }
+    # A release IRI Atlas adopted is never selectable by a declaration, however
+    # the declaration is worded: those claims belong to source-release-metadata,
+    # which reads every one of them in both directions. This is routing, not a
+    # waiver -- the claims stay compared, and the routing is reported on the
+    # family as ``routedToReleaseComparison`` rather than happening silently.
+    adopted_releases = _atlas_source_release_subjects(pair)
     resolved: list[tuple[DeclaredClaimExclusion, frozenset[str]]] = []
     for exclusion in exclusions:
         empty: frozenset[str] = frozenset()
@@ -7880,10 +13011,22 @@ def _declared_exclusion_subjects(
             (
                 exclusion,
                 frozenset(
-                    subject
-                    for subject in subjects
-                    if exclusion.selects(subject, types.get(subject, empty))
-                ),
+                    {
+                        *(
+                            subject
+                            for subject in subjects
+                            if exclusion.selects(subject, types.get(subject, empty))
+                        ),
+                        # Roots the reader selected out of the whole publisher
+                        # graph, which a subset selector may since have dropped
+                        # from this view. Without them the Atlas-side proof
+                        # would range over nothing and pass by vacancy.
+                        *pair.publisher.declared_out_of_scope_subjects.get(
+                            exclusion.name, ()
+                        ),
+                    }
+                )
+                - adopted_releases,
             )
         )
     return tuple(resolved)
@@ -7918,8 +13061,17 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
     if not resolved:
         return []
     compared = _compared_publisher_subjects(pair)
+    types = _publisher_subject_types(pair.publisher)
+    empty: frozenset[str] = frozenset()
+    adopted_releases = _atlas_source_release_subjects(pair)
     rows: list[dict[str, Any]] = []
     for exclusion, subjects in resolved:
+        # Only the subjects THIS declaration would otherwise have covered.
+        routed = sorted(
+            subject
+            for subject in adopted_releases
+            if exclusion.selects(subject, types.get(subject, empty))
+        )
         overlap = sorted(subjects & compared)
         selected = subjects - compared
         counts: dict[str, int] = defaultdict(int)
@@ -7962,6 +13114,7 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
                 "atlasClaimExamples": atlas_claims,
                 "comparedSubjectOverlapCount": len(overlap),
                 "comparedSubjectOverlapExamples": overlap[:5],
+                "routedToReleaseComparison": routed,
                 "status": "declared-out-of-scope" if holds else "violated",
                 "meaning": (
                     "publisher claims this release declares Atlas does not "
@@ -7972,6 +13125,57 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def _declared_language_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
+    """Itemise one claim-level language declaration and its paired Atlas proof."""
+    declaration = _language_exclusion_for_spec(pair.spec)
+    evidence = pair.publisher.language_exclusion_evidence
+    if declaration is None or evidence is None:
+        return []
+    payload = declaration.payload()
+    atlas_claims = sorted(
+        (
+            row
+            for row in pair.atlas.all_raw_literal_claims
+            if row[2].language is not None
+            and (
+                _BCP47.fullmatch(row[2].language) is None
+                or row[2].language.casefold() != "en"
+            )
+        ),
+        key=_literal_claim_sort_key,
+    )
+    holds = evidence.applied and not atlas_claims
+    return [
+        {
+            "name": declaration.name,
+            "reason": declaration.reason,
+            "exclusionType": payload.get("exclusionType"),
+            "schemaVersion": payload.get("schemaVersion"),
+            "payloadDigest": declaration.payload_sha256,
+            "selection": payload.get("selection"),
+            "predicateFamilies": payload.get("predicateFamilies"),
+            "expectedCountsByLanguage": evidence.expected_counts_by_language,
+            "actualCountsByLanguage": evidence.actual_counts_by_language,
+            "publisherClaimCount": evidence.excluded_claim_count,
+            "publisherClaimsDigest": evidence.excluded_claims_digest,
+            "atlasClaimCount": len(atlas_claims),
+            "atlasClaimExamples": [
+                [subject, predicate, _literal_repr(literal)]
+                for subject, predicate, literal in atlas_claims[:5]
+            ],
+            "failures": list(evidence.failures),
+            "status": "declared-out-of-scope" if holds else "violated",
+            "meaning": (
+                "only explicitly tagged publisher semantic literal claims outside "
+                "the BCP 47 English family; the authenticated source bytes, exact "
+                "source/language/predicate-family cells, and claim digest make the "
+                "set reconstructable, while every untagged, IRI, and English claim "
+                "stays in its normal comparison"
+            ),
+        }
+    ]
 
 
 def _publisher_claims_outside_comparison(
@@ -7986,6 +13190,13 @@ def _publisher_claims_outside_comparison(
     publisher_literals = set(pair.publisher.literal_claims) - excluded_literals
     supported_iri: set[tuple[str, str, str]] = set()
     supported_literals: set[tuple[str, str, LiteralValue]] = set()
+
+    # Release IRIs Atlas adopted are compared claim for claim by
+    # source-release-metadata, so they leave the uncovered accounting the only
+    # way anything ever should: because something now reads them.
+    release_iri, release_literals = _publisher_release_metadata_claims(pair)
+    supported_iri.update(release_iri)
+    supported_literals.update(release_literals)
 
     if pair.spec.kind == "mapping":
         supported_iri.update(pair.publisher.relations)
@@ -8251,6 +13462,9 @@ def check_source_claim_coverage(ctx: Context) -> CheckResult:
                 )
             )
         )
+        language_evidence = pair.publisher.language_exclusion_evidence
+        if language_evidence is not None and language_evidence.applied:
+            declared_out_of_scope += language_evidence.excluded_claim_count
         for detail in pair.publisher.unevaluated_claims:
             failures.append(
                 f"{pair.spec.name}: publisher claim could not enter an exact comparison: {detail}"
@@ -8376,6 +13590,7 @@ def check_claim_scope(ctx: Context) -> CheckResult:
 _CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_load_errors,
     check_configuration,
+    check_language_scope,
     check_claim_scope,
     check_distribution_coverage,
     check_publisher_input_pins,
@@ -8396,6 +13611,7 @@ _CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_reification_fidelity,
     check_count_reconciliation,
     check_scheme_organisation,
+    check_source_release_metadata,
     check_source_claim_coverage,
     check_source_defects,
 )
@@ -9097,6 +14313,41 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
             )
         )
 
+    release_publisher_iri, release_publisher_literals = (
+        _publisher_release_metadata_claims(pair)
+    )
+    release_atlas_iri, release_atlas_literals = _atlas_release_metadata_claims(pair)
+    release_publisher_claims = {
+        *(("iri", *row) for row in release_publisher_iri),
+        *(("literal", *row) for row in release_publisher_literals),
+    }
+    release_atlas_claims = {
+        *(("iri", *row) for row in release_atlas_iri),
+        *(("literal", *row) for row in release_atlas_literals),
+    }
+    families.append(
+        _claim_family(
+            name="sourceReleaseMetadata",
+            source_predicates=tuple(
+                sorted({row[1] for row in release_publisher_claims})
+            ),
+            atlas_predicates=tuple(sorted({row[1] for row in release_atlas_claims})),
+            source_claims=release_publisher_claims,
+            atlas_claims=release_atlas_claims,
+            checked_by="source-release-metadata",
+            sourcePredicateIdentityRetained=True,
+            adoptedReleaseIris=sorted(_atlas_source_release_subjects(pair)),
+            sourceFieldFamilies=dict(
+                sorted(
+                    Counter(
+                        _release_metadata_family(row[1])
+                        for row in release_publisher_claims
+                    ).items()
+                )
+            ),
+        )
+    )
+
     residual_iri, residual_literals = _publisher_claims_outside_comparison(pair)
     residual_atlas_iri, residual_atlas_literals = (
         _atlas_claims_outside_comparison(pair)
@@ -9163,6 +14414,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
             ),
         },
         *_declared_claim_exclusion_report(pair),
+        *_declared_language_exclusion_report(pair),
     ]
     family_statuses = {family["status"] for family in families}
     violated_exclusions = [
@@ -9520,13 +14772,25 @@ def _evaluate_claim_scope(ctx: Context) -> CheckResult:
             if family.get("status", "declared-out-of-scope") == "declared-out-of-scope":
                 continue
             if family["atlasClaimCount"]:
-                failures.append(
-                    f"{pair.spec.name}: declared exclusion {family['name']} does not "
-                    f"hold -- Atlas asserts {family['atlasClaimCount']} claim(s) about "
-                    f"subjects it declares out of scope; examples "
-                    f"{family['atlasClaimExamples'][:5]}"
+                if family.get("exclusionType") == "languageFamily":
+                    failures.append(
+                        f"{pair.spec.name}: declared language exclusion {family['name']} does not "
+                        f"hold -- Atlas asserts {family['atlasClaimCount']} non-English literal claim(s); examples "
+                        f"{family['atlasClaimExamples'][:5]}"
+                    )
+                else:
+                    failures.append(
+                        f"{pair.spec.name}: declared exclusion {family['name']} does not "
+                        f"hold -- Atlas asserts {family['atlasClaimCount']} claim(s) about "
+                        f"subjects it declares out of scope; examples "
+                        f"{family['atlasClaimExamples'][:5]}"
+                    )
+            if family.get("failures"):
+                failures.extend(
+                    f"{pair.spec.name}: declared language exclusion {family['name']} does not hold -- {failure}"
+                    for failure in family["failures"]
                 )
-            if family["comparedSubjectOverlapCount"]:
+            if family.get("comparedSubjectOverlapCount", 0):
                 failures.append(
                     f"{pair.spec.name}: declared exclusion {family['name']} covers "
                     f"{family['comparedSubjectOverlapCount']} subject(s) this "
@@ -9814,6 +15078,44 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
         "passed": all(result.passed for result in results),
         "manifestDigest": ctx.manifest_digest,
         "constructionSummaryDigest": ctx.construction_summary_digest,
+        "languageScope": {
+            "expectedConstructionStatement": ENGLISH_LANGUAGE_SCOPE,
+            "observedConstructionStatement": ctx.construction_language_scope,
+            "sourceDeclarationCount": sum(
+                _language_exclusion_for_spec(spec) is not None
+                for spec in ctx.specs
+            ),
+            "declaredPublisherClaimCount": sum(
+                (
+                    pair.publisher.language_exclusion_evidence.excluded_claim_count
+                    if pair.publisher.language_exclusion_evidence is not None
+                    and pair.publisher.language_exclusion_evidence.applied
+                    else 0
+                )
+                for pair in ctx.pairs
+            ),
+            "atlasNonEnglishLiteralClaimCount": (
+                ctx.atlas_language_scope_evidence.non_english_literal_count
+            ),
+            "atlasNonEnglishLiteralClaimsDigest": (
+                ctx.atlas_language_scope_evidence.non_english_literals_digest
+            ),
+            "atlasNonEnglishLiteralClaimExamples": list(
+                ctx.atlas_language_scope_evidence.non_english_literal_examples
+            ),
+            "atlasNoncanonicalSemanticLiteralClaimCount": (
+                ctx.atlas_language_scope_evidence.noncanonical_semantic_literal_count
+            ),
+            "atlasNoncanonicalSemanticLiteralClaimsDigest": (
+                ctx.atlas_language_scope_evidence.noncanonical_semantic_literals_digest
+            ),
+            "atlasNoncanonicalSemanticLiteralClaimExamples": list(
+                ctx.atlas_language_scope_evidence.noncanonical_semantic_literal_examples
+            ),
+            "atlasScanFailures": list(
+                ctx.atlas_language_scope_evidence.scan_failures
+            ),
+        },
         "expectations": {
             "minimumLabelSample": max(1, ctx.expectations.minimum_label_sample),
             "requestedMinimumLabelSample": ctx.expectations.minimum_label_sample,

@@ -162,6 +162,63 @@ adopted (strict-parser lint + FR determinism gate in CI now; shapes
 scale benchmark + differential-oracle policy at release tier,
 armed-idle until the runner).
 
+**PERFORMANCE CAMPAIGN — WHERE IT ACTUALLY LANDED (2026-08-13).**
+Acceptance went from **75.7 min / 23.6 GB to 18.5 min / 14.31 GiB
+measured** at full scale (29,283,283 quads), on the four owner-visible
+moves: the xone lift + gc.freeze + roles-fold, the byte-pass node
+digests, the two-index store with pooled terms (ae34392c — the −57% RSS
+that took the ">=32 GB self-hosted" runner spec off the release
+workflow), and the parse-observer read-folds, whose last two phases
+landed at 15b468c8 (310,282 `Graph.triples` calls → 16, artifact-invisible:
+`contract-dev` reproduces the pinned manifest and Parquet-view digests).
+**The store-query campaign is CLOSED and its residue is named:** the
+largest remaining non-SHACL cost is computation, not an undiscovered
+query loop, and the `atlas:sourceRecord` sweep stays on the graph by
+decision (the index holds the same 34,476 pairs in a different order,
+and the gate names the first unreconciled pair — folding it would move a
+contractual `firstIssue` to save 0.17s and one call). What remains is
+SHACL itself, ~78% of the run — and that floor is now MEASURED AND
+CLOSED. `research/residual-shacl` proved the generic lift pattern
+exhausted (lifting more made it WORSE, 17.38s → 17.72s).
+`research/shacl-floor` then attacked the named remainder and returned a
+**DON'T-TAKE with one correction**: a second SHACL implementation is NOT
+required, as the prior study claimed. The discovery hypothesis was right
+— the four sequence-path value lookups cost 1.838s against just 0.303s
+for the `sh:equals` evaluations themselves, 6× — but cashing it in is
+worth only 13.097s → 11.652s at staging (11.03%), and the explicit
+second-implementation ceiling buys **0.019s more than that**, inside the
+sample noise. Neither equivalent shape rewrite helped (`sh:or` for
+`sh:xone`: 0.042s SLOWER; materialized direct predicates: 0.292s
+slower), and focus-node hints were slower still. The honest floor:
+**9.449s of the 11.652s is pySHACL engine work**, with 2.154s in the
+lifts we already have. Projected to release scale the whole opportunity
+is ~35.7s of an 18.5-min run (~3.2%), extrapolated not measured, against
+an unmeasured full-scale memory cost for the required reverse type
+index. Verdict: keep the harness and evidence, add no production code,
+change no normative shapes. **The performance program is therefore
+DONE** — further gains need a different engine, which is the Jena/move-2
+door, already measured no-go.
+
+**OPEN — the machine-adjudication archive question, now MEASURED (owner
+call, not mine).** Evidence gathered 2026-08-13 against the artifact of
+record `output/atlas-3.1-full-2026-08-13`: a full streamed scan of all
+126 packs (29,283,283 lines read — the count proves the scan was
+complete) found **zero** occurrences of `rkaf:ResolverProofRecord`,
+`rkaf:comparisonProofRecord`, `rkaf:AILineage`,
+`rkaf:RelationComparisonContext`, `rkaf:ResolverProofIssuer`,
+`rkaf:comparisonOutcome`, or `rkaf:gatePass`. What enforces that empty
+set: ~390 validator lines (`_check_machine_adjudication`,
+validate.py:5459-5848), 7 shape mentions, and — as of 15b468c8 — **24 of
+the fact index's 67 allowlisted predicates**, added solely to fold a gate
+that has never once had a record to judge. The protocol is
+corpus-fixture-exercised only; its runtime was retired in 5ed56db5.
+Weighing against deletion, honestly: every term is UPSTREAM rkaf
+vocabulary, not Atlas-minted, so this is Atlas refusing malformed
+records a rulespec producer *could* emit — deleting it removes a
+consumer-visible refusal class rather than merely deleting Atlas's own
+scaffolding. That is the trade to decide; the measurement is no longer
+the unknown half.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
@@ -201,6 +258,38 @@ do that later"), do when the waves are done:**
   replicates the view first); instrument-then-optimize is the proven
   loop (bench_phases harness + /usr/bin/sample technique live on the
   spike branches).
+
+**RESEARCH FLEET — ELEVEN BRANCHES, all committed (2026-08-13).** Every
+codex 5.6-sol xhigh agent's work survives on its own branch; several were
+killed mid-run by an orchestration error (sibling agents suspended under
+memory pressure took their harness wrappers down) and carry a final `wip`
+commit marking exactly where they stopped. Resume from the wip, do not
+restart from scratch.
+| branch | state | what it holds |
+|---|---|---|
+| research/parse-substrate | complete | DON'T-TAKE study + prototype; the −57% RSS finding |
+| research/residual-shacl | complete | DON'T-TAKE; the lift pattern's measured floor |
+| research/shacl-sparql | complete | portable sh:sparql prototype, 26/26 cross-engine |
+| research/move2-compiler | complete, VERIFIED | option (b) proven. The cited rulespec commit 28b37d7b is absent upstream for a disclosed reason, not a fabricated one: the codex sandbox could not write `~/Work/rulespec/.git` (the same workspace-write limitation that blocked RefSpec's submodule commits), so it committed to a local mirror and exported `research/move2/rulespec-compiler.patch.gz` — digest `6c8c9579…4a6d` re-verified by hand, `git am` in a real worktree reproduces it. Its own report says so. Fix for next time: add the rulespec git dir to `sandbox_workspace_write.writable_roots`. |
+| research/fidelity-coverage | INTEGRATING | the inventory + payoff order (consumed by four batches) AND three unlanded SourceSpecs — mesh-descriptors, federal-register-api-topics, gcmd-science-keywords. I wrongly recorded this branch as code-free; cov-json caught it reconciling 28 declared specs against an assumed 31. An agent is integrating them onto current main. |
+| research/fidelity-definitions | complete | the carry/declare decision package |
+| research/fidelity-langbugs | MERGED e3fd49f1 | one BCP-47 predicate + English definitions/scope notes carried; cherry-picked (its base predates the substrate). Integration found a real defect: it stripped annotation whitespace on the parser path while asserting the claims path preserved it, and the reconciling test skipped in its worktree for want of a generated output/ tree. Both paths strip now — definitions enter node digests, so a stray publisher newline would have made node identity depend on which path built the release. |
+| feat/parse-substrate | MERGED ae34392c | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
+| research/graph-residual | MERGED 15b468c8 | the observer campaign's last two folds; 310,282 store calls → 16 |
+| research/shacl-floor | complete | DON'T-TAKE; the SHACL floor measured (9.449s of 11.652s is engine); corrects residual-shacl's "needs a second implementation" |
+| research/coverage-bulk | MERGED 18283ce5 | four bulk-vocabulary readers; campaign coverage 27/110 → 31/110 |
+| research/auditor-language-scope | MERGED 7a9d75c7 | NASA note-kind fix (19,312 false failure rows → 0) + a checked English scope declaration proving the distribution asserts no non-English literal anywhere. RED BY DESIGN against the 08-13 artifact, which predates the producer change; goes green only on a distribution rebuilt at e3fd49f1 or later. |
+| research/coverage-bulk | MERGED 18283ce5 | four bulk-vocabulary readers, 446,906 records; FAST verification 11.803 → 7.879 GiB, receipts byte-identical |
+| research/coverage-json | MERGED fa7839f4 | all 18 JSON/API-capture units; resolved the memory refactor across 11 conflict regions without weakening a comparison |
+| research/coverage-{csv-pdf,html-misc} | wip, NOT resumed | ~2,000 lines each, committed; both need the same integration-first resume |
+
+**ORCHESTRATION LESSONS (recorded so they are not relearned):** never
+SIGSTOP a codex agent — its harness wrapper exits and the agent dies;
+size the fleet to the machine (six xhigh agents plus a 14 GB validation
+on a 48 GB box drove 8.7 GB of swap and killed everything); wait-loops
+must match child PIDs, not name patterns (a codex prompt containing a
+path makes pgrep match forever); and RSS measured under swap pressure
+UNDERSTATES demand, so memory numbers require a quiet machine.
 
 **Spike evidence — COMMITTED AS BRANCHES (2026-08-12):**
 `spike/oxigraph-substrate` (f81b3749) and `spike/jena-shacl` (028dd63b).
@@ -673,6 +762,79 @@ measured under 60s; see the budget re-spec open item).
 11. SSSOM: nothing, until the 546c4940 trigger fires (a named external
     consumer). Then: derived TSV view from the build, exporter lessons
     recovered from `5ed56db5^`. Drop the unused `sssom` dev dependency now.
+
+**ENGINE-FLOOR RESEARCH CLOSED (2026-08-13, three codex 5.6-sol xhigh
+tracks; branches research/parse-substrate e4bce197,
+research/residual-shacl 3154b751, research/shacl-sparql 1c5f1d12).**
+1. *Residual SHACL — DON'T-TAKE, the lift pattern has reached its floor.*
+   The broad lift removed 353 of 615 constraint-parameter occurrences and
+   cut engine time 14.17s→6.61s at staging, but TOTAL time ROSE
+   17.38s→17.72s (+2.0%): the table checks cost more than the engine work
+   they replaced. Best isolated avenue (sh:class) saved 0.9%. What
+   remains is RDF traversal inside pySHACL — sh:xone on
+   MappingAssertionShape plus four sequence-path sh:equals shapes —
+   liftable only by writing a second SHACL implementation.
+2. *Parse substrate — DON'T-TAKE now, prototype PRESERVED.* Two-index
+   store + pooled terms: parse+store 20.71s→14.78s (−28.6%), peak RSS
+   1,380→567 MiB (−58.9%); complete semantic path 49.21s→33.71s
+   (−31.5%), RSS 1,434→617 MiB (−57.0%); identical verdicts on the real
+   shapes and all 130 corpus cases; index choice instrumented (OSP never
+   queried by this workload). Rejected on OWNERSHIP (8–12 days to own a
+   custom RDF store for ~6.6 min/release), not feasibility. Sharded
+   parallel parse rejected on measurement (slower AND larger).
+   **ORCHESTRATOR NOTE — the memory half may matter before the time
+   half:** peak RSS is what forces the ≥32 GB self-hosted runner in the
+   release-workflow spec; at these ratios full acceptance would fit in
+   ~9 GB, i.e. a standard hosted runner. Re-open this the day CI is
+   meant to own acceptance.
+3. *SHACL-SPARQL — portable, and the blocker's premises corrected.* All
+   four adjudication rules expressed as portable SPARQL 1.1 (164 lines,
+   115 of SPARQL); 26/26 fixture checks agree across pySHACL and Jena.
+   Jena is 250× inside validation / 82× end-to-end, but pySHACL's
+   ABSOLUTE time at bounded staging scale is 3.24 min — viable
+   once-per-release, so sh:sparql emission does NOT by itself force Jena
+   at bounded scale (it does at 32M quads: ~90 min estimated for these
+   four queries alone). Two corrections: the "~900 lines deleted" figure
+   is wrong (the adjudication block is 516 lines; these four rules are
+   ~128 — move 2 is CODE-NEUTRAL at first, its value is single-source
+   generation), and the staging artifact contains ZERO adjudication
+   records, so timings used a derived target-loaded view and production
+   deletion stays blocked on a target-bearing artifact plus the
+   AGENTS.md differential-oracle battery.
+
+**READ-FOLD LANDED (5feb5458):** `_AssertedFacts` extends the parse
+observer from placement to reads — Graph.triples calls across the four
+read-heavy gates 1,403,653→150 (−99.99%), those phases 5.76s→2.52s at
+staging, projected 236s→~63–103s at full scale, for +45 MB measured
+(~1.2 GB projected, ~5–6% of peak). No corpus observation moved. The
+source-record sweep deliberately stays on the graph (failure ORDER is
+observable). **Acceptance now projects to roughly 20 minutes** from the
+75.7 measured at the program's start.
+
+**FIDELITY BATCH 2 LANDED (ed4d5f9a) + THREE OWNER DECISIONS
+(2026-08-13):** uncovered claims 140→**0** (source-claim-coverage
+PASSES; 21,549 declared with per-predicate counts and Atlas-side zero
+proofs); a new source-release-metadata check found a previously
+invisible direction — Atlas asserting 18 dcterms:issued/identifier
+claims no publisher made; the 889,115 differences classified: **97.68%
+is one undeclared product scope** (publishers ship 40+ languages, Atlas
+keeps English), **zero fabrication anywhere** (every difference is an
+omission), 9,656 were an AUDITOR double-count (zthes:termNote is a
+kind-marker already compared by reification-fidelity), and the real
+builder findings are small and named (GEMET en-US 5,212 rows → 244 real
+lost synonyms; ELSST 181 timestamps). **Decisions: (1) DECLARE
+English-only** — scope stated normatively in the binding README and
+machine-readably in the build receipt, auditor declaration spec'd for
+the file's owner; **(2) CARRY English definitions + scope notes** —
+measured at +1,885 quads / ~82 KB compressed because the wire, compact,
+Parquet and search-view fields ALREADY EXIST (note: the famous 43,837 is
+30,621 definitions + 8,233 scope notes + 4,983 history notes across ALL
+languages; English is 1,884 claims, so the declaration must cover the
+remaining 41,953, history notes included); **(3) PURSUE move 2** on its
+own merits (single-source generation, killing the producer-vs-contract
+drift class), with Jena required only at full scale. Coverage 24→27/110
+(+42,651 records) with a systematic sourceDigest mismatch found across
+all three new sources — a real builder finding.
 
 ## Verification-gap proposals — validated verdicts (v3.8, 2026-08-12)
 

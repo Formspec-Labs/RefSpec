@@ -48,6 +48,8 @@ EUROVOC_SCHEMA = Namespace("http://eurovoc.europa.eu/schema#")
 PREF_LABEL_PREDICATE_IRI = str(SKOS.prefLabel)
 ALT_LABEL_PREDICATE_IRI = str(SKOS.altLabel)
 HIDDEN_LABEL_PREDICATE_IRI = str(SKOS.hiddenLabel)
+DEFINITION_PREDICATE_IRI = str(SKOS.definition)
+SCOPE_NOTE_PREDICATE_IRI = str(SKOS.scopeNote)
 SCHEME_MEMBERSHIP_PREDICATE_IRI = str(SKOS.inScheme)
 TOP_CONCEPT_OF_PREDICATE_IRI = str(SKOS.topConceptOf)
 HAS_TOP_CONCEPT_PREDICATE_IRI = str(SKOS.hasTopConcept)
@@ -92,6 +94,15 @@ class EuroVocIriRelation:
     subject_iri: str
     predicate_iri: str
     object_iri: str
+
+
+@dataclass(frozen=True, slots=True)
+class EuroVocLiteralAssertion:
+    """One authored literal assertion outside the SKOS label roles."""
+
+    subject_iri: str
+    property_iri: str
+    value: EuroVocLiteral
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,6 +160,7 @@ class EuroVocVocabulary:
     concept_schemes: tuple[EuroVocConceptScheme, ...]
     concepts: tuple[EuroVocConcept, ...]
     labels: tuple[EuroVocLabelExpression, ...]
+    annotations: tuple[EuroVocLiteralAssertion, ...]
     scheme_memberships: tuple[EuroVocIriRelation, ...]
     top_concept_of_relations: tuple[EuroVocIriRelation, ...]
     has_top_concept_relations: tuple[EuroVocIriRelation, ...]
@@ -256,6 +268,35 @@ def _iri_relations(
         sorted(
             relations,
             key=lambda item: (item.subject_iri, item.predicate_iri, item.object_iri),
+        )
+    )
+
+
+def _literal_assertions(
+    graph: Graph,
+    predicate_iris: tuple[str, ...],
+    *,
+    label: str,
+) -> tuple[EuroVocLiteralAssertion, ...]:
+    assertions: list[EuroVocLiteralAssertion] = []
+    for predicate_iri in predicate_iris:
+        for subject, value in graph.subject_objects(URIRef(predicate_iri)):
+            assertions.append(
+                EuroVocLiteralAssertion(
+                    subject_iri=_iri(subject, f"{label} subject"),
+                    property_iri=predicate_iri,
+                    value=_literal(value, label),
+                )
+            )
+    return tuple(
+        sorted(
+            assertions,
+            key=lambda item: (
+                item.subject_iri,
+                item.property_iri,
+                item.value.language_tag or "",
+                item.value.lexical_form,
+            ),
         )
     )
 
@@ -487,6 +528,11 @@ def _parse_eurovoc_rdf(
         concept_schemes=concept_schemes,
         concepts=concepts,
         labels=_label_expressions(graph),
+        annotations=_literal_assertions(
+            graph,
+            (DEFINITION_PREDICATE_IRI, SCOPE_NOTE_PREDICATE_IRI),
+            label="SKOS definition or scope note",
+        ),
         scheme_memberships=_iri_relations(graph, (SCHEME_MEMBERSHIP_PREDICATE_IRI,), label="skos:inScheme"),
         top_concept_of_relations=_iri_relations(graph, (TOP_CONCEPT_OF_PREDICATE_IRI,), label="skos:topConceptOf"),
         has_top_concept_relations=_iri_relations(graph, (HAS_TOP_CONCEPT_PREDICATE_IRI,), label="skos:hasTopConcept"),

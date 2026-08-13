@@ -107,7 +107,9 @@ The construction summary is not another semantic authority. It is a sealed
 index of how the authoritative RDF was built. For each source or mapping
 release it records the exact input pins, adapter recipe, endpoint dependencies,
 build key, source-accounting digest, owned RDF packs, and per-role logical
-record counts. Those counts are not the producer's own tally read back: the
+record counts. Its `languageScope` states the BCP 47 language families selected
+by the build, the normalized wire tag, and the disposition of publisher content
+outside that scope. Those counts are not the producer's own tally read back: the
 validator resolves every carrier in the asserted graph to the construction unit
 that owns it and recomputes them.
 
@@ -397,10 +399,12 @@ SKOS-XL labels are canonical. Every label:
 4. identifies its exact Atlas release; and
 5. identifies the source record from which it was produced.
 
-Atlas 3.1 is English-only. Producers MUST omit non-English source labels from
-the Atlas distribution and MUST NOT emit untagged label literals. The original
-source may remain multilingual outside the distribution and may be referenced
-by its exact locator and digest.
+Atlas carries English-language content; publisher content in other languages is
+deliberately not represented. The build selects the BCP 47 `en` language family,
+including tags such as `en-US` and `en-GB`, and normalizes selected language-tagged
+text to `en` on the wire. Producers MUST NOT emit untagged or non-English text
+literals. The original source may remain multilingual outside the distribution
+and may be referenced by its exact locator and digest.
 
 An Atlas resource MUST have at least one SKOS-XL label in any role. A source
 may publish an alternate-only term identity, so Atlas does not invent a
@@ -738,6 +742,15 @@ receipt is only a cache miss and triggers full validation. The cache directory
 must remain outside the distribution. If any pack or root input changes, the
 validator reparses the complete graph because the global checks above still
 need the cross-pack facts; per-pack receipts cannot safely replace those facts.
+
+The independent validator uses a binding-local two-index RDF store and pools
+immutable RDF terms within each parsed pack. The store keeps subject-
+predicate-object (SPO) and predicate-object-subject (POS) indexes; it answers
+object-only queries with a correct scan. The Atlas validator and the pinned
+SHACL shapes use the indexed patterns. Set
+`REFSPEC_ATLAS_RDF_STORE=memory` to restore stock `rdflib` `Memory` and stock
+term construction for differential diagnosis or immediate mitigation. The
+default value is `two-index`; any other value fails closed.
 
 A trusted writer satisfies `shacl-data` by validating the normalized source and
 evidence-backed mapping rows and their joins and reconciling the fixed

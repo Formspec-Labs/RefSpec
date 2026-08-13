@@ -16,6 +16,7 @@ from refspec.registry.eurovoc_lcsh_alignment import (
     EUROVOC_LCSH_ALIGNMENT_SHA256,
     EXPECTED_PREDICATE_COUNTS,
 )
+from refspec.registry.lcsh_topical import LcshTopicalLabel, LcshTopicalRecord
 
 SOURCE_ROOT = alignments.DEFAULT_SOURCE_ROOT
 REQUIRED_FILES = (
@@ -183,8 +184,8 @@ def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -
 def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_lccn(
     endpoint_release,
 ) -> None:
-    assert sum(len(resource.labels) for resource in endpoint_release.resources) == 7_522
-    assert endpoint_release.dropped_label_count == 86
+    assert sum(len(resource.labels) for resource in endpoint_release.resources) == 7_608
+    assert endpoint_release.dropped_label_count == 0
     assert all(
         label.language == "en"
         for resource in endpoint_release.resources
@@ -203,6 +204,31 @@ def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_
         resource.iri.startswith("http://id.loc.gov/authorities/subjects/")
         for resource in without_lccn
     )
+
+
+def test_lcsh_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
+    record = LcshTopicalRecord(
+        concept_iri="https://example.test/lcsh/one",
+        lccn=None,
+        preferred_label=LcshTopicalLabel(value="Main heading", language="en"),
+        variant_labels=(
+            LcshTopicalLabel(value="Main heading", language="en-Latn"),
+            LcshTopicalLabel(value="Search synonym", language="en-Latn"),
+            LcshTopicalLabel(value="Terme francais", language="fr"),
+        ),
+        broader_iris=(),
+        authority_types=("madsrdf:Authority",),
+        source_url="https://example.test/lcsh.ndjson",
+        line_number=1,
+        raw_line=b"{}",
+    )
+
+    labels = alignments._english_labels(record)
+
+    assert [(label.value, label.role, label.language) for label in labels] == [
+        ("Main heading", "preferred", "en"),
+        ("Search synonym", "alternate", "en"),
+    ]
 
 
 def test_lcsh_endpoint_release_preserves_all_authority_classes(endpoint_release) -> None:

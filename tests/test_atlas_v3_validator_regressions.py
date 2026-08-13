@@ -2753,6 +2753,104 @@ def test_placement_observation_from_the_parser_matches_a_store_walk() -> None:
     assert atlas_validate._check_graph_roles(graphs, asserted_placement=parsed).resource_count > 0
 
 
+def test_asserted_fact_index_answers_exactly_what_the_store_answers() -> None:
+    """The gates' read index is an accelerator, so it must be indistinguishable.
+
+    Every folded gate reads asserted objects through `_AssertedFacts` instead
+    of querying the 29M-quad store per carrier node. That is a cost change and
+    must be nothing else: for every indexed predicate and every asserted
+    subject the index has to return what `Graph.objects` returns, in the same
+    order, whether it was filled by the parser or by a store walk.
+    """
+
+    manifest = json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
+    graph_ids = atlas_validate._check_pack_manifest(manifest)
+    parsed = atlas_validate._AssertedPlacementObservation(
+        graph_id=graph_ids["asserted"],
+        projection_only_predicates=atlas_validate._projection_only_predicates(),
+    )
+    _, graphs = atlas_validate._parse_packed_dataset(
+        VALID_DISTRIBUTION,
+        manifest,
+        graph_ids,
+        asserted_placement=parsed,
+    )
+    asserted = graphs["asserted"]
+    indexed = parsed.facts
+    walked = atlas_validate._AssertedPlacementObservation.from_graph(asserted).facts
+    from_store = atlas_validate._AssertedFacts.for_graph(asserted)
+    subjects = set(asserted.subjects())
+
+    assert subjects
+    assert indexed.indexed and walked.indexed and not from_store.indexed
+    for predicate in atlas_validate._INDEXED_ASSERTED_PREDICATES:
+        for subject in subjects:
+            expected = tuple(asserted.objects(subject, predicate))
+            assert indexed.objects(subject, predicate) == expected
+            assert walked.objects(subject, predicate) == expected
+            assert from_store.objects(subject, predicate) == expected
+            assert indexed.value(subject, predicate) == (expected[0] if expected else None)
+            assert all(indexed.contains(subject, predicate, obj) for obj in expected)
+            assert not indexed.contains(subject, predicate, URIRef("urn:ref:absent"))
+        assert sorted(
+            (str(subject), str(obj)) for subject, obj in indexed.subject_objects(predicate)
+        ) == sorted((str(subject), str(obj)) for subject, obj in asserted.subject_objects(predicate))
+    for asserted_type in atlas_validate._INDEXED_ASSERTED_TYPES:
+        assert {subject for subject in subjects if indexed.has_type(subject, asserted_type)} == set(
+            asserted.subjects(RDF.type, asserted_type)
+        )
+        assert {subject for subject in subjects if from_store.has_type(subject, asserted_type)} == set(
+            asserted.subjects(RDF.type, asserted_type)
+        )
+    # A predicate no gate reads is not silently answered from the store: the
+    # index refuses, so the allowlist cannot drift out from under a check.
+    with pytest.raises(AssertionError):
+        indexed.objects(next(iter(subjects)), ATLAS.nativePayload)
+
+
+def test_folded_gates_read_the_index_rather_than_the_asserted_store() -> None:
+    """The index must replace the per-carrier store queries, not merely precede them."""
+
+    _, graphs, manifest = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    accounting = json.loads(
+        (VALID_DISTRIBUTION / "atlas-source-accounting.json").read_text(encoding="utf-8")
+    )
+    construction_summary = json.loads(
+        (VALID_DISTRIBUTION / atlas_validate.CONSTRUCTION_SUMMARY_FILE).read_text(
+            encoding="utf-8"
+        )
+    )
+    inventory = atlas_validate._check_graph_roles(graphs)
+    original_triples = Graph.triples
+
+    def reject_indexed_lookup(graph: Graph, triple: Any) -> Any:
+        subject, predicate, _ = triple
+        if subject is not None and predicate in atlas_validate._INDEXED_ASSERTED_PREDICATES:
+            raise AssertionError(
+                f"{predicate} on {subject} must come from the parse-observed index"
+            )
+        return original_triples(graph, triple)
+
+    assert inventory.facts is not None and inventory.facts.indexed
+    with pytest.MonkeyPatch.context() as patched:
+        patched.setattr(Graph, "triples", reject_indexed_lookup)
+        atlas_validate._check_profile_conformance(asserted, inventory)
+        atlas_validate._check_identifier_uniqueness(asserted, inventory)
+        atlas_validate._check_release_membership(asserted, inventory)
+        atlas_validate._check_label_integrity(asserted, inventory)
+        atlas_validate._check_evidence_bindings(asserted, inventory)
+        atlas_validate._validate_assertions(asserted, inventory)
+        atlas_validate._check_machine_adjudication(asserted, inventory)
+        atlas_validate._check_source_accounting(asserted, accounting, inventory)
+        atlas_validate._check_counts(manifest, graphs, inventory)
+        atlas_validate._check_construction_record_ownership(
+            asserted,
+            construction_summary,
+            asserted_facts=inventory.facts,
+        )
+
+
 def test_acceptance_does_not_walk_the_asserted_store_twice_for_placement(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2772,6 +2870,60 @@ def test_acceptance_does_not_walk_the_asserted_store_twice_for_placement(
 
     assert result["quadCount"] > 0
     assert original is not None
+
+
+def test_preparsed_validation_builds_observer_facts_from_the_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The resident-graph API has no parse observer, so it must build one."""
+
+    _, graphs, manifest = _load_valid_graphs()
+    accounting = json.loads(
+        (VALID_DISTRIBUTION / "atlas-source-accounting.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    acceptance = json.loads(
+        (VALID_DISTRIBUTION / "atlas-acceptance.json").read_text(encoding="utf-8")
+    )
+    producer_validation = json.loads(
+        (VALID_DISTRIBUTION / atlas_validate.PRODUCER_VALIDATION_FILE).read_text(
+            encoding="utf-8"
+        )
+    )
+    construction_summary = json.loads(
+        (VALID_DISTRIBUTION / atlas_validate.CONSTRUCTION_SUMMARY_FILE).read_text(
+            encoding="utf-8"
+        )
+    )
+    member_digests = atlas_validate._check_distribution_files(
+        VALID_DISTRIBUTION,
+        manifest,
+    )
+    original = atlas_validate._AssertedPlacementObservation.from_graph
+    observed: list[URIRef] = []
+
+    def traced(asserted: Graph) -> Any:
+        observed.append(asserted.identifier)
+        return original(asserted)
+
+    monkeypatch.setattr(
+        atlas_validate._AssertedPlacementObservation,
+        "from_graph",
+        staticmethod(traced),
+    )
+    result = atlas_validate.validate_preparsed_distribution(
+        manifest,
+        accounting,
+        acceptance,
+        graphs,
+        member_digests=member_digests,
+        producer_validation=producer_validation,
+        construction_summary=construction_summary,
+    )
+
+    assert result["quadCount"] > 0
+    assert observed == [graphs["asserted"].identifier]
 
 
 def test_acceptance_freezes_the_parsed_heap_only_for_the_semantic_phases(
@@ -2883,11 +3035,14 @@ def test_release_metadata_is_resolved_once_per_release(
         ATLAS.resourceProfile,
         ATLAS.inScheme,
     }
-    original_one = atlas_validate._one
+    # Counted on `_AssertedFacts.one`, which is where every single-object read
+    # in this check funnels: from the parse-observed index when there is one,
+    # and through `_one` against the store when there is not.
+    original_one = atlas_validate._AssertedFacts.one
     calls: dict[tuple[URIRef, URIRef], int] = {}
 
     def counted_one(
-        graph: Graph,
+        facts: Any,
         subject: URIRef,
         predicate: URIRef,
         *,
@@ -2896,9 +3051,9 @@ def test_release_metadata_is_resolved_once_per_release(
         if subject in releases and predicate in release_predicates:
             key = (subject, predicate)
             calls[key] = calls.get(key, 0) + 1
-        return original_one(graph, subject, predicate, code=code)
+        return original_one(facts, subject, predicate, code=code)
 
-    monkeypatch.setattr(atlas_validate, "_one", counted_one)
+    monkeypatch.setattr(atlas_validate._AssertedFacts, "one", counted_one)
     atlas_validate._check_release_membership(asserted, inventory)
 
     assert calls == {

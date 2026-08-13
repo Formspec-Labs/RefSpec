@@ -2844,13 +2844,19 @@ def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() 
 def test_recursive_english_normalization_covers_complete_elsst_profile() -> None:
     payload = {
         "nested": {
-            "skos:hiddenLabel": {"en": "Hidden", "fr": "Cache"},
+            "skos:hiddenLabel": {
+                "en": "Hidden",
+                "en-US": ["Hidden", "Color"],
+                "fr": "Cache",
+            },
             "skos:editorialNote": {"EN": ["Keep"], "de": ["Drop"]},
         },
         "ordinary": {"id": ["urn:test:not-a-language-map"]},
         "tagged": [
-            {"language": "EN", "value": "Keep"},
-            {"language": "fr", "value": "Drop"},
+            {"language": "EN", "role": "preferred", "value": "Keep"},
+            {"language": "en-US", "role": "preferred", "value": "Keep"},
+            {"language": "en-US", "role": "preferred", "value": "Color"},
+            {"language": "fr", "role": "preferred", "value": "Drop"},
         ],
     }
 
@@ -2861,20 +2867,23 @@ def test_recursive_english_normalization_covers_complete_elsst_profile() -> None
 
     assert normalized["nested"] == {
         "skos:editorialNote": {"en": ["Keep"]},
-        "skos:hiddenLabel": {"en": ["Hidden"]},
+        "skos:hiddenLabel": {"en": ["Hidden", "Color"]},
     }
     assert normalized["ordinary"] == {"id": ["urn:test:not-a-language-map"]}
-    assert normalized["tagged"] == [{"language": "en", "value": "Keep"}]
+    assert normalized["tagged"] == [
+        {"language": "en", "role": "preferred", "value": "Keep"},
+        {"language": "en", "role": "alternate", "value": "Color"},
+    ]
     assert {(row["path"], row["language"]) for row in dropped} == {
         ("nested/skos:editorialNote", "de"),
         ("nested/skos:hiddenLabel", "fr"),
-        ("tagged/1", "fr"),
+        ("tagged/3", "fr"),
     }
     maps, tags, violations = generator._audit_english_language_content(
         normalized,
         language_map_fields=generator.ELSST_LANGUAGE_MAP_FIELDS,
     )
-    assert (maps, tags, violations) == (2, 1, ())
+    assert (maps, tags, violations) == (2, 2, ())
 
 
 def test_english_normalization_fails_closed_for_unprofiled_language_field() -> None:
