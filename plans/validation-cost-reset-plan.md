@@ -895,7 +895,12 @@ measured at +1,885 quads / ~82 KB compressed because the wire, compact,
 Parquet and search-view fields ALREADY EXIST (note: the famous 43,837 is
 30,621 definitions + 8,233 scope notes + 4,983 history notes across ALL
 languages; English is 1,884 claims, so the declaration must cover the
-remaining 41,953, history notes included); **(3) PURSUE move 2** on its
+remaining 41,953, history notes included — **DONE 2026-08-13**: the
+checked declaration at `language-scope-exclusions.json` itemises 871,823
+excluded claims across 8 sources by language and predicate family
+(eurovoc-4.24 445,531; gemet-4.2.3 233,407; elsst-r6 192,292;
+eurovoc-domains 546; agrovoc 40; nalt 7; doe-osti and nasa 0), which
+subsumes the 41,953); **(3) PURSUE move 2** on its
 own merits (single-source generation, killing the producer-vs-contract
 drift class), with Jena required only at full scale. Coverage 24→27/110
 (+42,651 records) with a systematic sourceDigest mismatch found across
