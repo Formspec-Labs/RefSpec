@@ -1,0 +1,107 @@
+{
+  "binding": {
+    "corpusVersion": "3.1",
+    "gitCommit": "b2b36bee80be7d2918e419ab63975ca680a3f9d6",
+    "gitCommitDate": "2026-08-13T14:27:27-04:00"
+  },
+  "corpus": {
+    "caseCount": 132,
+    "expectedCounts": {
+      "invalid": 119,
+      "valid": 13
+    },
+    "firstIssueCounts": {
+      "<none>": 13,
+      "acceptance.gates": 1,
+      "dataset.adjudication": 6,
+      "dataset.adjudication-identity": 1,
+      "dataset.adjudication-independence": 7,
+      "dataset.adjudication-input": 6,
+      "dataset.adjudication-lattice": 2,
+      "dataset.adjudication-support": 2,
+      "dataset.assertion-identity": 1,
+      "dataset.counts": 1,
+      "dataset.derived": 2,
+      "dataset.derived-input": 1,
+      "dataset.derived-rule": 2,
+      "dataset.evidence-adoption": 1,
+      "dataset.evidence-identity": 2,
+      "dataset.graph-placement": 6,
+      "dataset.identifier-uniqueness": 2,
+      "dataset.native-payload": 1,
+      "dataset.native-payload-digest": 1,
+      "dataset.projection": 1,
+      "dataset.relation": 3,
+      "dataset.skos-integrity": 6,
+      "dataset.supersession": 1,
+      "json.schema": 3,
+      "pack.content": 1,
+      "profile.conformance": 1,
+      "rdf.blank-node": 1,
+      "rdf.canonical": 3,
+      "rdf.resource-limit": 1,
+      "rdf.term": 1,
+      "shacl.data": 48,
+      "source.accounting": 4
+    },
+    "shaclCaseCount": 48,
+    "shaclComponentCaseCount": 48,
+    "shaclComponentCounts": {
+      "ClassConstraintComponent": 4,
+      "ClosedConstraintComponent": 5,
+      "DatatypeConstraintComponent": 6,
+      "DisjointConstraintComponent": 1,
+      "EqualsConstraintComponent": 4,
+      "HasValueConstraintComponent": 2,
+      "InConstraintComponent": 6,
+      "LanguageInConstraintComponent": 2,
+      "LessThanOrEqualsConstraintComponent": 1,
+      "MaxCountConstraintComponent": 2,
+      "MinCountConstraintComponent": 9,
+      "MinLengthConstraintComponent": 1,
+      "NodeConstraintComponent": 3,
+      "PatternConstraintComponent": 2,
+      "XoneConstraintComponent": 7
+    },
+    "uniqueShaclComponents": [
+      "ClassConstraintComponent",
+      "ClosedConstraintComponent",
+      "DatatypeConstraintComponent",
+      "DisjointConstraintComponent",
+      "EqualsConstraintComponent",
+      "HasValueConstraintComponent",
+      "InConstraintComponent",
+      "LanguageInConstraintComponent",
+      "LessThanOrEqualsConstraintComponent",
+      "MaxCountConstraintComponent",
+      "MinCountConstraintComponent",
+      "MinLengthConstraintComponent",
+      "NodeConstraintComponent",
+      "PatternConstraintComponent",
+      "XoneConstraintComponent"
+    ]
+  },
+  "files": {
+    "bindings/atlas/3.1/fixtures/corpus.json": "b2d3363173d87214bb81ad49d1eab273f426153cb3baf656cecd4c70ef00b730",
+    "bindings/atlas/3.1/ontology/atlas.ttl": "cf56542bbc7455f22ffcbd94d574f216ebb27d1d6ec08c934d56f5f23cfd0c28",
+    "bindings/atlas/3.1/requirements.txt": "ec1b4952636dcc1fa2a52a6c586c7dee00e12f69ce37e29866855597482818cf",
+    "bindings/atlas/3.1/shapes/atlas.shacl.ttl": "af85315e9f6918d166ed24a0cef6d98820c4430c936178842382a3a1279c1abf"
+  },
+  "shapeGraph": {
+    "nodeShapeCount": 37,
+    "propertyShapeCount": 262,
+    "requiredTermOccurrences": {
+      "class": 65,
+      "closed": 23,
+      "datatype": 22,
+      "equals": 22,
+      "in": 19,
+      "minCount": 129,
+      "node": 48,
+      "pattern": 3,
+      "xone": 10
+    },
+    "sequencePathCount": 20,
+    "sequencePathsWithEqualsCount": 19
+  }
+}
