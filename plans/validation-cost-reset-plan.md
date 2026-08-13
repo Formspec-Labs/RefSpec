@@ -40,7 +40,14 @@ say is next, not from an archaeology exercise.
 **Artifact of record: `output/atlas-3.1-full-2026-08-13b/`**, built on the
 language-scope producer, acceptance-passed at 18.3 min / 13.83 GiB peak over
 29,286,753 quads. Its predecessor `output/atlas-3.1-full-2026-08-13/` and that
-one's seal remain valid and untouched; 13b is unsealed only because the signer
+one's seal remain valid and untouched — **verified, not assumed**: after the
+13b build, `verify-distribution-seal` against the 08-13 tree and the shared
+`output/parquet-view` still passes under the production signer
+atlas-release@refspec (4 members, 126 packs, 8 Parquet tables, 941,467,710
+bytes), which is what building 13b into its own `/distribution` and
+`/parquet-view` bought. Note for whoever builds next: a bare `--output` would
+have written the new view over `output/parquet-view` and broken that seal, as
+already happened once to 08-12c; 13b is unsealed only because the signer
 key is offline (see the seal block below — it is now one make target).
 
 **Sole in-flight work at the time of writing:** `research/coverage-patternrow`,
