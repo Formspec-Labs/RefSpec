@@ -1,0 +1,1147 @@
+{
+  "decompressed_bytes": 6614350936,
+  "distribution": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-full-2026-08-13b/distribution",
+  "manifest_sha256": "656e4cc79923398ce3f1546cc321e2c40d871bc8d0297c053ba59218877bd3db",
+  "output_directory": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs",
+  "pack_count": 126,
+  "packs": [
+    {
+      "bytes": 1102166,
+      "index": 0,
+      "manifest_path": "packs/sources/regulatory-native-regulations-gov-docket-agency-code/all.nq.zst",
+      "quads": 3932,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/000.nq",
+      "sha256": "02fcf54037312b7f730a7b059939a57a936d54a64f23d21a9634649556b663c9",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 221604514,
+      "index": 1,
+      "manifest_path": "packs/sources/fast-topical-current/3.nq.zst",
+      "quads": 1005200,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/001.nq",
+      "sha256": "030c55af1d6ab41122cc5da7a39464dd41b8c5b68d901fff53b43dff703b6548",
+      "wall_seconds": 0.296
+    },
+    {
+      "bytes": 7109865,
+      "index": 2,
+      "manifest_path": "packs/sources/crs-legislative-subjects/all.nq.zst",
+      "quads": 25437,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/002.nq",
+      "sha256": "0431956687b61142af4f5c910591a8d11368f5b713d3dc5fb951aae16266fb86",
+      "wall_seconds": 0.015
+    },
+    {
+      "bytes": 107197,
+      "index": 3,
+      "manifest_path": "packs/sources/fcc-ecfs-proceedings/all.nq.zst",
+      "quads": 342,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/003.nq",
+      "sha256": "071e3a6dc7a70844e38653d80c35e8dac74026a718673127f955a651605548e8",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 31100,
+      "index": 4,
+      "manifest_path": "packs/sources/fcc-ecfs-bureaus/all.nq.zst",
+      "quads": 112,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/004.nq",
+      "sha256": "083830c3f9d972d4711a850a0590f05563780fe0eff31414de0bb42612fc920a",
+      "wall_seconds": 0.003
+    },
+    {
+      "bytes": 220811272,
+      "index": 5,
+      "manifest_path": "packs/sources/fast-topical-current/1.nq.zst",
+      "quads": 1001778,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/005.nq",
+      "sha256": "0a4a3109a982554899c97840079f3ab727b8d6ff2c58076bb2b3dc8cb774158f",
+      "wall_seconds": 0.305
+    },
+    {
+      "bytes": 28901,
+      "index": 6,
+      "manifest_path": "packs/sources/nrc-adams-identifier-shapes-2026-08-03/all.nq.zst",
+      "quads": 96,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/006.nq",
+      "sha256": "0bbcb448a9ca827a453c202bbccc0d367056f8b21578b54c7e1de89cdb0c5789",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 219456556,
+      "index": 7,
+      "manifest_path": "packs/sources/fast-topical-current/e.nq.zst",
+      "quads": 995899,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/007.nq",
+      "sha256": "0d11ed2deaffade06c3fe7150c983094f2d019bccac38c102f2d31eaad82ff4c",
+      "wall_seconds": 0.309
+    },
+    {
+      "bytes": 1788441,
+      "index": 8,
+      "manifest_path": "packs/sources/regulatory-native-regulations-gov-document-agency-code/all.nq.zst",
+      "quads": 6332,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/008.nq",
+      "sha256": "0d5bf5996a81eb3b201de679dd1f37e53072efa3cc1b5277f6f07f11e410028b",
+      "wall_seconds": 0.006
+    },
+    {
+      "bytes": 12738977,
+      "index": 9,
+      "manifest_path": "packs/sources/psc-april-2025/all.nq.zst",
+      "quads": 49236,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/009.nq",
+      "sha256": "0f03675b4deb4ac3db5f0d4eeb911e9ccfd0083b3525e5c0673d178c84e8bda7",
+      "wall_seconds": 0.023
+    },
+    {
+      "bytes": 520922,
+      "index": 10,
+      "manifest_path": "packs/sources/fec-party/all.nq.zst",
+      "quads": 1919,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/010.nq",
+      "sha256": "0f3f780f64e52c204320f15b87be919949e8660d1ebd1ba62ed9dcc121384c60",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 25642,
+      "index": 11,
+      "manifest_path": "packs/sources/regulatory-native-federal-register-document-type/all.nq.zst",
+      "quads": 92,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/011.nq",
+      "sha256": "10eeccfd7575d31941709380f822cc68fab255af7408089bfbc64c2dccf0a94d",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 197726,
+      "index": 12,
+      "manifest_path": "packs/sources/gsdm-reviewed-domain-values-2026-08-03/all.nq.zst",
+      "quads": 826,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/012.nq",
+      "sha256": "11063d443a10aaa55f02f1cbdc1f82b2c44446daae8e4a65de16d01443cf4493",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 14205,
+      "index": 13,
+      "manifest_path": "packs/sources/regulatory-native-regulations-gov-docket-type/all.nq.zst",
+      "quads": 52,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/013.nq",
+      "sha256": "13b7a60feab640f30c312455867a7654989eb7b422c563fee041f3907d7c3f9c",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 14285,
+      "index": 14,
+      "manifest_path": "packs/sources/regulations-gov-docket-type/all.nq.zst",
+      "quads": 52,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/014.nq",
+      "sha256": "1be3dd3ac71b733922bc6df0931f32c1a6194fe6bc63997ac88b0dcec87e6860",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 38924,
+      "index": 15,
+      "manifest_path": "packs/sources/scotus-opinion-types/all.nq.zst",
+      "quads": 145,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/015.nq",
+      "sha256": "1cd15d3e18ffa96dbb4a8311f362fbe8dbe67128591f79389ab55cc9f6caa159",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 573255,
+      "index": 16,
+      "manifest_path": "packs/sources/billstatus-summary-version-codes/all.nq.zst",
+      "quads": 1860,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/016.nq",
+      "sha256": "1cfaabdb95ead7cfb0d34c2c10887545b99511a5eea4f9dff328e61e05518f68",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 571385,
+      "index": 17,
+      "manifest_path": "packs/sources/omb-a11-functional-classification/all.nq.zst",
+      "quads": 1972,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/017.nq",
+      "sha256": "1d7751e0b248af976a0c73cfe6f3e5a81bf0a9fd58b4d65cffaa0642255013eb",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 281538,
+      "index": 18,
+      "manifest_path": "packs/sources/ecfr-cfr-titles/all.nq.zst",
+      "quads": 1062,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/018.nq",
+      "sha256": "1e197dd9deb36660d10facd44345549f1d246525f4b04ea3d3bb099d160aa395",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 59626,
+      "index": 19,
+      "manifest_path": "packs/sources/regulatory-native-regulations-gov-attachment-format/all.nq.zst",
+      "quads": 212,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/019.nq",
+      "sha256": "1e8eb2c1e8b1e50d6cfd4157a57ec27f1f04488029486359ef5af98262e69d69",
+      "wall_seconds": 0.003
+    },
+    {
+      "bytes": 14367,
+      "index": 20,
+      "manifest_path": "packs/sources/regulatory-native-unified-agenda-rin-status/all.nq.zst",
+      "quads": 52,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/020.nq",
+      "sha256": "1eb394f56fea0e31b635ad4a949ae1d3f28ed7b0cd3f67866f9f66f3ce391369",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 1475873,
+      "index": 21,
+      "manifest_path": "packs/sources/nppes-data-dissemination-layout-v2-2026-08-03/all.nq.zst",
+      "quads": 6612,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/021.nq",
+      "sha256": "1fc4439b967802ef9efc9df6f268ba732728227bf0069065095d2281acc522b6",
+      "wall_seconds": 0.006
+    },
+    {
+      "bytes": 431507,
+      "index": 22,
+      "manifest_path": "packs/sources/crs-policy-areas/all.nq.zst",
+      "quads": 1484,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/022.nq",
+      "sha256": "25cceecefc98b2ab1540f174998584dd5f7e8384b752738a0f65eaf48797716a",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 8056,
+      "index": 23,
+      "manifest_path": "packs/sources/gao-topics-observed-on-gao-26-108505/all.nq.zst",
+      "quads": 33,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/023.nq",
+      "sha256": "278dc553614f97777188b89d30b0ffff2e0088102711125e1c59e9724b0ed5b5",
+      "wall_seconds": 0.003
+    },
+    {
+      "bytes": 150724,
+      "index": 24,
+      "manifest_path": "packs/sources/grants-gov-funding-categories/all.nq.zst",
+      "quads": 532,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/024.nq",
+      "sha256": "2a30bb9195c1d7c4af99d320f35a34db528e33b644e20d7f9ae24a4671821702",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 11395344,
+      "index": 25,
+      "manifest_path": "packs/sources/naics-2022/all.nq.zst",
+      "quads": 44637,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/025.nq",
+      "sha256": "2b55ae3e0095760821dbc1c22fc9e27e29674c9c79099acfec1d568511908c90",
+      "wall_seconds": 0.019
+    },
+    {
+      "bytes": 22463457,
+      "index": 26,
+      "manifest_path": "packs/sources/gcmd-science-keywords-24-4/all.nq.zst",
+      "quads": 83040,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/026.nq",
+      "sha256": "2e8756caf46b57db672955e0df32936037bcc98a995940259334f5429e679c64",
+      "wall_seconds": 0.037
+    },
+    {
+      "bytes": 21384076,
+      "index": 27,
+      "manifest_path": "packs/sources/courtlistener-jurisdictions-2026-08-03/all.nq.zst",
+      "quads": 72612,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/027.nq",
+      "sha256": "2fc9866b36ff8efe63d11d0c11be0d5271229cbc702c603cf30926e6e4e637ef",
+      "wall_seconds": 0.036
+    },
+    {
+      "bytes": 31606,
+      "index": 28,
+      "manifest_path": "packs/sources/ferc-sectors/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/028.nq",
+      "sha256": "302cf68fb35b3bcf5243da8d96980f3a9885466ae582d318a67a04d8f617597b",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 33863,
+      "index": 29,
+      "manifest_path": "packs/sources/sam-opportunities-opportunity-statuses/all.nq.zst",
+      "quads": 117,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/029.nq",
+      "sha256": "346376adf373d789d440e55cddc8f1fc75602861cd7fa3db52caeb482bba600c",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 37600,
+      "index": 30,
+      "manifest_path": "packs/sources/fec-committee-designation/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/030.nq",
+      "sha256": "375868df95d348d5e47f26fb99867d6d74f45805760e3bcfff721c365175436e",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 265142346,
+      "index": 31,
+      "manifest_path": "packs/sources/mesh-descriptors-2026/all.nq.zst",
+      "quads": 1268762,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/031.nq",
+      "sha256": "38134228bb99ecf35ccdd703c98479950aa1c36ab1f7bccf8588c6ffe8df3a86",
+      "wall_seconds": 0.374
+    },
+    {
+      "bytes": 49812,
+      "index": 32,
+      "manifest_path": "packs/sources/nalt-core-bounded-concepts-2026-08-03/all.nq.zst",
+      "quads": 178,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/032.nq",
+      "sha256": "3db70e7b9b86c19d0bbb1a9ce5b448b5f265dc912c852209093c06ed406913d1",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 20049,
+      "index": 33,
+      "manifest_path": "packs/sources/regulations-gov-submitter-type/all.nq.zst",
+      "quads": 72,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/033.nq",
+      "sha256": "3e9dbdb5a2fe119aef1be9172ed821acbc4c28c4ecbf6bec1a476fb080a34b25",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 235512,
+      "index": 34,
+      "manifest_path": "packs/sources/govinfo-collections/all.nq.zst",
+      "quads": 852,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/034.nq",
+      "sha256": "3ec5c8e96332d502ebaa22f09b7580c37970cbe2b18fbf7c92a5880ad58e5cc6",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 22632,
+      "index": 35,
+      "manifest_path": "packs/sources/ferc-security-levels/all.nq.zst",
+      "quads": 92,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/035.nq",
+      "sha256": "3f0dcb4ba262ee0fc8ee6ba65bf8306ba967024e778c583442df355cba8ebff1",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 266068,
+      "index": 36,
+      "manifest_path": "packs/sources/sam-assistance-eligible-applicant-types/all.nq.zst",
+      "quads": 892,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/036.nq",
+      "sha256": "3fc22a097be8485c93572596bdf57bdc1de3d467852cd25bcb236c4d5ed058a2",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 12269,
+      "index": 37,
+      "manifest_path": "packs/sources/govinfo-cfr-package-bounded-2026-08-03/all.nq.zst",
+      "quads": 37,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/037.nq",
+      "sha256": "3fe3214739fc2707fbc98a81cb32a0da2f0d0b0fe7ac54319c0cd9387d7cb4c1",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 186518,
+      "index": 38,
+      "manifest_path": "packs/sources/usaspending-award-types/all.nq.zst",
+      "quads": 672,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/038.nq",
+      "sha256": "4234d8eb2b50b616c71538a9b20cba5d6adf6af9b2a7795805aaef3184e245b6",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 52585,
+      "index": 39,
+      "manifest_path": "packs/sources/omb-a11-apportionment-categories/all.nq.zst",
+      "quads": 176,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/039.nq",
+      "sha256": "43ddda197a6a8aeb097f2ef1247d7dfff46b7d839dcb6cbecc07acba173cbe15",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 523041,
+      "index": 40,
+      "manifest_path": "packs/sources/ferc-docket-prefixes/all.nq.zst",
+      "quads": 2102,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/040.nq",
+      "sha256": "459a67a2ef1720f92f6516a1346123182dc583d366d4c60f348af0c9595cfe19",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 161896,
+      "index": 41,
+      "manifest_path": "packs/sources/federal-hierarchy-orgs-bounded-2026-08-03/all.nq.zst",
+      "quads": 560,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/041.nq",
+      "sha256": "4845d83d8eea5ccc32859628fde8059c0d657c46de29befd3dc461cbc537b49b",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 118170,
+      "index": 42,
+      "manifest_path": "packs/sources/nrc-adams-native-controls-bounded-2026-08-03/all.nq.zst",
+      "quads": 373,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/042.nq",
+      "sha256": "4942ea27f49ce9750a3e99c0acd39793c4f0f75ff9d0835af7c630efae333f88",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 16718034,
+      "index": 43,
+      "manifest_path": "packs/mappings/eurovoc-lcsh-alignment-20240711.nq.zst",
+      "quads": 60095,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/043.nq",
+      "sha256": "49bafd0c8336de47c4d7e14ced3a302ba999307206ca200491835d871b982e01",
+      "wall_seconds": 0.026
+    },
+    {
+      "bytes": 586835,
+      "index": 44,
+      "manifest_path": "packs/sources/uscourts-nature-of-suit/all.nq.zst",
+      "quads": 1965,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/044.nq",
+      "sha256": "4c91538c1b3812ee64325a4543b695d0d6161b73e7acc1c7237c5acfd7c0c6f9",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 37072,
+      "index": 45,
+      "manifest_path": "packs/sources/fec-organization-type/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/045.nq",
+      "sha256": "4db5f24abd80efab461eaee22014c3e23ca4ef939b4304831db0783bd187e975",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 141692,
+      "index": 46,
+      "manifest_path": "packs/sources/opm-plum-position-status-codes-2026-08-04/all.nq.zst",
+      "quads": 579,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/046.nq",
+      "sha256": "5020d570b42be673f1dadf91127ccc76972fbb74d7ada4f9c255b0c5b05060fd",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 1011305070,
+      "index": 47,
+      "manifest_path": "packs/sources/nasa-thesaurus-skos/all.nq.zst",
+      "quads": 4346689,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/047.nq",
+      "sha256": "507bd97b4a18b0091e4ee2de44826eb5ea382fcdde894d35422dfa4e9372e8af",
+      "wall_seconds": 1.357
+    },
+    {
+      "bytes": 319736989,
+      "index": 48,
+      "manifest_path": "packs/sources/fast-topical-current/5.nq.zst",
+      "quads": 1448386,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/048.nq",
+      "sha256": "51fccd9ad212ca649651e223242eba0798ca739ebc6783bd03512774ab484c0e",
+      "wall_seconds": 0.413
+    },
+    {
+      "bytes": 220927019,
+      "index": 49,
+      "manifest_path": "packs/sources/fast-topical-current/7.nq.zst",
+      "quads": 1002371,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/049.nq",
+      "sha256": "52afa280cbc12576c4e8b30389295355e5c9bf0ebd697f717acdc08eb22a3dbf",
+      "wall_seconds": 0.297
+    },
+    {
+      "bytes": 221189751,
+      "index": 50,
+      "manifest_path": "packs/sources/fast-topical-current/6.nq.zst",
+      "quads": 1003931,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/050.nq",
+      "sha256": "57234d05214e2b11b1015cc77cf4ec928d77fa0b37f38ae57a7518e43165300f",
+      "wall_seconds": 0.342
+    },
+    {
+      "bytes": 99583,
+      "index": 51,
+      "manifest_path": "packs/sources/fec-committee-type/all.nq.zst",
+      "quads": 347,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/051.nq",
+      "sha256": "58dbf1302bd4a9743b268f16af671214b75f5781cc5f7c02d1effd6da9ed0cbf",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 440848,
+      "index": 52,
+      "manifest_path": "packs/sources/sam-assistance-eligible-beneficiary-types/all.nq.zst",
+      "quads": 1472,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/052.nq",
+      "sha256": "59446368d6f7d152083e2e0d0050d6f7a271060bbd0994f9901283154f69d19f",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 2261623,
+      "index": 53,
+      "manifest_path": "packs/sources/regulatory-native-federal-register-agency-slug/all.nq.zst",
+      "quads": 7992,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/053.nq",
+      "sha256": "5ae4fa79769cbb829797460aabe6bed308ece51158fef1e7149e5cdb2b0638c6",
+      "wall_seconds": 0.007
+    },
+    {
+      "bytes": 36409,
+      "index": 54,
+      "manifest_path": "packs/sources/unified-agenda-priority-category/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/054.nq",
+      "sha256": "5dd0d9d2f944b8bec695080443f5f719bf606aee22a235e0962882d0ceb7a846",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 48287,
+      "index": 55,
+      "manifest_path": "packs/sources/billstatus-bill-types/all.nq.zst",
+      "quads": 172,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/055.nq",
+      "sha256": "5e335924ad4640aeda2e3edab3a70c31d249f1248ea915b77f9dc9300e58d31a",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 220376334,
+      "index": 56,
+      "manifest_path": "packs/sources/fast-topical-current/8.nq.zst",
+      "quads": 1000397,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/056.nq",
+      "sha256": "60d1cdafaa358a9b6c07cf72b09cd6a93cbce2a9a38fdea60645b5ec2220f5ec",
+      "wall_seconds": 0.281
+    },
+    {
+      "bytes": 13037,
+      "index": 57,
+      "manifest_path": "packs/sources/ferc-accession-number-formats/all.nq.zst",
+      "quads": 52,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/057.nq",
+      "sha256": "6203546103a227cb7fc08e7d33a330d40b30898145dd6a820b5b39d159006f2a",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 220726829,
+      "index": 58,
+      "manifest_path": "packs/sources/fast-topical-current/d.nq.zst",
+      "quads": 1001059,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/058.nq",
+      "sha256": "64305f55cf0559757149c2fea6e1413888f4bcb20efea10d912699a7df5ce18e",
+      "wall_seconds": 0.29
+    },
+    {
+      "bytes": 101222,
+      "index": 59,
+      "manifest_path": "packs/sources/census-data-flags/all.nq.zst",
+      "quads": 332,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/059.nq",
+      "sha256": "651eeb3b92cb1d7f19b34dc2c270c4d57909d24621c29f83825b4f4ebc7599cf",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 115997,
+      "index": 60,
+      "manifest_path": "packs/sources/nasa-technology-taxonomy-8817/all.nq.zst",
+      "quads": 403,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/060.nq",
+      "sha256": "66e41bc1e743873f14e79a1bbdbbd4cd953a4b1312236321587144085a4a6b73",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 112988,
+      "index": 61,
+      "manifest_path": "packs/sources/sam-opportunities-set-aside-codes/all.nq.zst",
+      "quads": 390,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/061.nq",
+      "sha256": "68b107875a999bcdc19f9eb14ecd4784922382f06a9c0dee639da7914033e14a",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 8921,
+      "index": 62,
+      "manifest_path": "packs/sources/sam-uei-bounded-public-entity-2026-08-03/all.nq.zst",
+      "quads": 37,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/062.nq",
+      "sha256": "69141a11ce1259d41241565feed65944bae6abed7e4c56545b0f9fcf8d4135bb",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 68833,
+      "index": 63,
+      "manifest_path": "packs/sources/sam-opportunities-notice-types/all.nq.zst",
+      "quads": 243,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/063.nq",
+      "sha256": "6afaa4056dde733320b949433b59e7c3d223403e1ef55739bcc5889d2c5dbf1f",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 14585,
+      "index": 64,
+      "manifest_path": "packs/sources/sam-cage-bounded-public-facility-2026-08-03/all.nq.zst",
+      "quads": 61,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/064.nq",
+      "sha256": "700d1edf83240f000cf96de5f18998c146c75f146dda579e037e189b0ef5b894",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 21705051,
+      "index": 65,
+      "manifest_path": "packs/sources/treasury-fast-book-accounts-parts-ii-iii-2026-07/all.nq.zst",
+      "quads": 89537,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/065.nq",
+      "sha256": "7117133ceed5edff4f828bf37cbc7548c2ea5963192811632955dee9cad19033",
+      "wall_seconds": 0.034
+    },
+    {
+      "bytes": 4198875,
+      "index": 66,
+      "manifest_path": "packs/sources/regulatory-native-federal-register-unresolved-agency-name/all.nq.zst",
+      "quads": 14312,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/066.nq",
+      "sha256": "773d39e6f83429ed65f1b0c37b5819f4d08357a08731fcb673f2f9e9fce39128",
+      "wall_seconds": 0.01
+    },
+    {
+      "bytes": 19616,
+      "index": 67,
+      "manifest_path": "packs/sources/regulatory-native-unified-agenda-major-flag/all.nq.zst",
+      "quads": 72,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/067.nq",
+      "sha256": "77e2a3700273083f2e0864aeb446e4da77f8f8027104d1a401f66586d14a0734",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 14993,
+      "index": 68,
+      "manifest_path": "packs/sources/gao-report-gao-26-108505/all.nq.zst",
+      "quads": 61,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/068.nq",
+      "sha256": "85385d80e21bb6a6a2be290c33349afec4429eb7a084632443095fa2cabb5c33",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 99265,
+      "index": 69,
+      "manifest_path": "packs/sources/grants-gov-eligibilities/all.nq.zst",
+      "quads": 352,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/069.nq",
+      "sha256": "863eb11ba9352b2ca1a5c4d7fe5c5ab40991b163fd946b0091b8d0bf05186701",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 35497,
+      "index": 70,
+      "manifest_path": "packs/sources/unified-agenda-rule-stage/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/070.nq",
+      "sha256": "86ff411965a295ecbef8e93e24f60a8a88ce86b414fd54d8ec03d438a9ee6fb6",
+      "wall_seconds": 0.003
+    },
+    {
+      "bytes": 192857563,
+      "index": 71,
+      "manifest_path": "packs/sources/eurovoc-4-24/all.nq.zst",
+      "quads": 858617,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/071.nq",
+      "sha256": "87167148e47c09db1fd76fc4fc483c64f723b155fc9024eb9a6cd70bc71dc1fe",
+      "wall_seconds": 0.238
+    },
+    {
+      "bytes": 8790,
+      "index": 72,
+      "manifest_path": "packs/sources/fcc-ecfs-access-statuses/all.nq.zst",
+      "quads": 32,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/072.nq",
+      "sha256": "900fd363843ffdbe5772a17b22425ca1039a926405462b2c2188f70f9852701c",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 221391935,
+      "index": 73,
+      "manifest_path": "packs/sources/fast-topical-current/f.nq.zst",
+      "quads": 1005055,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/073.nq",
+      "sha256": "93910413d34ac4b70b056aba578d6585d61aeb065155240cef93d1536c76b569",
+      "wall_seconds": 0.37
+    },
+    {
+      "bytes": 220793936,
+      "index": 74,
+      "manifest_path": "packs/sources/fast-topical-current/4.nq.zst",
+      "quads": 1001401,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/074.nq",
+      "sha256": "9aba10208b52f0754c00ca4abd37c6a0620ab70541e46bab637e3872e2e01062",
+      "wall_seconds": 0.301
+    },
+    {
+      "bytes": 190577,
+      "index": 75,
+      "manifest_path": "packs/sources/unified-agenda-timetable-action/all.nq.zst",
+      "quads": 692,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/075.nq",
+      "sha256": "9d1d0a481e238a15daf8c648075cb83bf27f02e6a786426f206ffb6f8b11472a",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 38766,
+      "index": 76,
+      "manifest_path": "packs/sources/nasbo-program-areas/all.nq.zst",
+      "quads": 145,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/076.nq",
+      "sha256": "9f8bb4210fffe2cdbe177dd325e37286deb26f7b870ed0e8e04049f3bac199f2",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 52506609,
+      "index": 77,
+      "manifest_path": "packs/sources/federal-register-api-topics-2026-08-03/all.nq.zst",
+      "quads": 205155,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/077.nq",
+      "sha256": "a0e48b62ded6bbb254fbe59563e18a2d58715846257cb7e9406a7a83f3e629ff",
+      "wall_seconds": 0.08
+    },
+    {
+      "bytes": 241269,
+      "index": 78,
+      "manifest_path": "packs/sources/omb-a11-object-classification/all.nq.zst",
+      "quads": 810,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/078.nq",
+      "sha256": "a111179fc5c4ec09db263a74dabbec61ada4df31b19b085967dbf5831dc98229",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 209481,
+      "index": 79,
+      "manifest_path": "packs/sources/billstatus-action-codes/all.nq.zst",
+      "quads": 732,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/079.nq",
+      "sha256": "a16bfd1eeaa0955a6fa26525308099b8a3404bbd9b3abb50b3aad0934534e890",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 36647,
+      "index": 80,
+      "manifest_path": "packs/sources/regulatory-native-regulations-gov-document-type/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/080.nq",
+      "sha256": "a79967598f73a886798b1faef6ea8138c8f6d031da54d96f36c1df8e6a5039b5",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 5843035,
+      "index": 81,
+      "manifest_path": "packs/sources/crs-legislative-entities/all.nq.zst",
+      "quads": 20566,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/081.nq",
+      "sha256": "a98f76c3e5106d97298bbeed116e5ae0310dbb12ceac810ba60eb768b6c57215",
+      "wall_seconds": 0.014
+    },
+    {
+      "bytes": 59129,
+      "index": 82,
+      "manifest_path": "packs/sources/oversight-report-types/all.nq.zst",
+      "quads": 212,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/082.nq",
+      "sha256": "a9ca58e831b61308bf9ff18b08d8d9b1180f231b8e8a159595cebe934578ad43",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 40390,
+      "index": 83,
+      "manifest_path": "packs/sources/fcc-ecfs-filing-types/all.nq.zst",
+      "quads": 138,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/083.nq",
+      "sha256": "acc8fa265496f00fb250ab785f8194e90f10938b49338dcd4d6520dbf95434cf",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 56750,
+      "index": 84,
+      "manifest_path": "packs/sources/treasury-fast-book-fund-types-parts-ii-iii-2026-07/all.nq.zst",
+      "quads": 221,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/084.nq",
+      "sha256": "af23a43326ed15335b9ffc66f75c83ad1d6c4c7d12b75b4413be3413e6450b93",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 221037547,
+      "index": 85,
+      "manifest_path": "packs/sources/fast-topical-current/9.nq.zst",
+      "quads": 1003399,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/085.nq",
+      "sha256": "afc855d8a02507358ae400920f9a77afc942d44621b09cdb52c91cfdbc391c82",
+      "wall_seconds": 0.294
+    },
+    {
+      "bytes": 221944567,
+      "index": 86,
+      "manifest_path": "packs/sources/fast-topical-current/c.nq.zst",
+      "quads": 1008712,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/086.nq",
+      "sha256": "b1ca37eb71ec574e0068b09ce2745bd170050103ee652fc807a815b9c97786ba",
+      "wall_seconds": 0.273
+    },
+    {
+      "bytes": 111097677,
+      "index": 87,
+      "manifest_path": "packs/sources/gemet-4-2-3/all.nq.zst",
+      "quads": 482058,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/087.nq",
+      "sha256": "b23d2f33fe26b0ebfa145ab9e385fa1b600bba4c513fe9373cfcbd6a50efc80c",
+      "wall_seconds": 0.161
+    },
+    {
+      "bytes": 31230,
+      "index": 88,
+      "manifest_path": "packs/sources/regulations-gov-document-type/all.nq.zst",
+      "quads": 112,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/088.nq",
+      "sha256": "b4a43913daddf91870aa164fa7556e8989060f04b64a0a957f32ea4c29f46e0f",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 87217,
+      "index": 89,
+      "manifest_path": "packs/sources/census-tiger-geoid-structure/all.nq.zst",
+      "quads": 292,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/089.nq",
+      "sha256": "b70227db76835a72debf44a76b1d0823b604225c6c35352eadcb46df8b8255eb",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 162387671,
+      "index": 90,
+      "manifest_path": "packs/sources/icpsr-subject-thesaurus/all.nq.zst",
+      "quads": 622566,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/090.nq",
+      "sha256": "b82868b49c05aa44c19a1405d86bb38f12b3892ae98e317982a4d2a59abdfdc2",
+      "wall_seconds": 0.166
+    },
+    {
+      "bytes": 31575,
+      "index": 91,
+      "manifest_path": "packs/sources/regulatory-native-unified-agenda-priority-category/all.nq.zst",
+      "quads": 112,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/091.nq",
+      "sha256": "b92f61d4bcda8b92778ebe119b544fd443691e701268273dca82d103511bf040",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 116034,
+      "index": 92,
+      "manifest_path": "packs/sources/oira-review-controls/all.nq.zst",
+      "quads": 412,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/092.nq",
+      "sha256": "bbe79e777cfb8e317386b7f274b2e5758afa3b9ea80285ad737144f4bd6edb46",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 1052862,
+      "index": 93,
+      "manifest_path": "packs/sources/regulatory-native-unified-agenda-agency-code/all.nq.zst",
+      "quads": 3832,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/093.nq",
+      "sha256": "bed366ee3e1f529c713c6032b65ddffd2c3e685c8f76d2324b2c8a40db599e70",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 272099,
+      "index": 94,
+      "manifest_path": "packs/sources/lda-filing-types/all.nq.zst",
+      "quads": 1012,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/094.nq",
+      "sha256": "c238cd0133a8925316858c55a33dcc4e849f04f14b2c83d01e03a781f18bdf88",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 30874,
+      "index": 95,
+      "manifest_path": "packs/sources/regulatory-native-unified-agenda-rule-stage/all.nq.zst",
+      "quads": 112,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/095.nq",
+      "sha256": "c4714434218a72f3b721deead7e1b56ab4fbb2642672a28d26fa3c4d9b18f282",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 810997948,
+      "index": 96,
+      "manifest_path": "packs/sources/doe-osti-semantic-thesaurus-2020/all.nq.zst",
+      "quads": 3552152,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/096.nq",
+      "sha256": "c5e5793bdce46b7b17cfedc24bc425cb796130f563774e67c95131081e1d904b",
+      "wall_seconds": 0.997
+    },
+    {
+      "bytes": 124337,
+      "index": 97,
+      "manifest_path": "packs/sources/pra-icr-controls/all.nq.zst",
+      "quads": 438,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/097.nq",
+      "sha256": "c5f579b73b7f156f58f273ff8c53c23d8beb7babfeb093d0f5eb5b9db48c6dc3",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 91080332,
+      "index": 98,
+      "manifest_path": "packs/sources/elsst-r6/all.nq.zst",
+      "quads": 391647,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/098.nq",
+      "sha256": "c788f614f91863db51e674ca29b837e22e7e1f6e65498d6c45d71d0fca908cf3",
+      "wall_seconds": 0.124
+    },
+    {
+      "bytes": 65133,
+      "index": 99,
+      "manifest_path": "packs/sources/nppes-npi-provider-sample-2026-08-03/all.nq.zst",
+      "quads": 87,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/099.nq",
+      "sha256": "c7e685678927094b95e965e2e997ecd268ca0d40166dd325d66b53a4e0e5fca9",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 34353,
+      "index": 100,
+      "manifest_path": "packs/sources/gao-cra-database-facets-2026-08-04/all.nq.zst",
+      "quads": 138,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/100.nq",
+      "sha256": "c8a3ce4c56c39360e0d6cc4d2a1251a482d6e3e036d749ef75380bce118fb366",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 102079,
+      "index": 101,
+      "manifest_path": "packs/sources/sam-assistance-assistance-types/all.nq.zst",
+      "quads": 352,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/101.nq",
+      "sha256": "d0df66d92162c06216560cedc0a2ab461027e1609e61d46d1e4db10196d65662",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 6222010,
+      "index": 102,
+      "manifest_path": "packs/sources/cbo-119th-congress-publications/all.nq.zst",
+      "quads": 25404,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/102.nq",
+      "sha256": "d3f124bd77c262dec874e035090004f8dea81c47d33ed4ca1d98b983757ecb03",
+      "wall_seconds": 0.011
+    },
+    {
+      "bytes": 865703,
+      "index": 103,
+      "manifest_path": "packs/sources/fac-api-field-dictionary-2026-08-03/all.nq.zst",
+      "quads": 3435,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/103.nq",
+      "sha256": "d4b2694e22efb013be0abff6a623919176d2e9b8c634867daee9cac0429da656",
+      "wall_seconds": 0.006
+    },
+    {
+      "bytes": 21304,
+      "index": 104,
+      "manifest_path": "packs/sources/usgs-gnis-identifiers/all.nq.zst",
+      "quads": 72,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/104.nq",
+      "sha256": "d9849e981c4665a7b7f602e3bb2dda0e32445d75896ede66504c2403ed4c3e00",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 270974,
+      "index": 105,
+      "manifest_path": "packs/catalog.nq.zst",
+      "quads": 1030,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/105.nq",
+      "sha256": "dd3d755c77c18a4f5d89c15ee1feb872838eb11100ea882ba27c4076e6b13fb2",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 11009,
+      "index": 106,
+      "manifest_path": "packs/sources/agrovoc-c330-bounded-2026-08-03/all.nq.zst",
+      "quads": 34,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/106.nq",
+      "sha256": "de3a1ebfc8bb4e5fbaf7475bc3071b9cfce77ba1c0223e7b6d863dc018814d7b",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 36874,
+      "index": 107,
+      "manifest_path": "packs/sources/fec-filing-frequency/all.nq.zst",
+      "quads": 132,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/107.nq",
+      "sha256": "dec874f2f23d6c4918f17958d2c905ed43cff21289acf1cc4c96c1da81b638bf",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 22263171,
+      "index": 108,
+      "manifest_path": "packs/sources/lcsh-eurovoc-alignment-endpoints-2026-08-06/all.nq.zst",
+      "quads": 95826,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/108.nq",
+      "sha256": "e1e790cc8f4782bea1df819d5607566711591026fe9827671cb0b86f73ff4b70",
+      "wall_seconds": 0.031
+    },
+    {
+      "bytes": 2768911,
+      "index": 109,
+      "manifest_path": "packs/sources/gsdm-online-data-dictionary-2026-08-03/all.nq.zst",
+      "quads": 9152,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/109.nq",
+      "sha256": "e40274eb8fb6e12826d3c71599684294b9bf09903cd874b17f5ec6352b63c743",
+      "wall_seconds": 0.01
+    },
+    {
+      "bytes": 11046,
+      "index": 110,
+      "manifest_path": "packs/sources/epa-comptox-substance-bounded-2026-08-03/all.nq.zst",
+      "quads": 47,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/110.nq",
+      "sha256": "e4b67b6df968b76bc3897f11cc283656c35d8c4af3c8eb66d7bbe2515a30f5b0",
+      "wall_seconds": 0.006
+    },
+    {
+      "bytes": 468854,
+      "index": 111,
+      "manifest_path": "packs/sources/lda-general-issue-codes/all.nq.zst",
+      "quads": 1750,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/111.nq",
+      "sha256": "e50fe5bfef6e52eebd3abda1329bcf8913e1359c46cc60ccc6c55aa9542df40f",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 97177117,
+      "index": 112,
+      "manifest_path": "packs/sources/opm-ehri-data-standards-2026-08-04/all.nq.zst",
+      "quads": 362535,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/112.nq",
+      "sha256": "e6e4eede2186918a735a73baccff0cb985db346f0f586fe840829f686d02ec85",
+      "wall_seconds": 0.118
+    },
+    {
+      "bytes": 12800321,
+      "index": 113,
+      "manifest_path": "packs/sources/federal-register-thesaurus-2025/all.nq.zst",
+      "quads": 52511,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/113.nq",
+      "sha256": "e71b363ac44fff511b8734a2d9d50e7d8c3638172f13cf30ad2edc6371cfb9a0",
+      "wall_seconds": 0.025
+    },
+    {
+      "bytes": 1183514,
+      "index": 114,
+      "manifest_path": "packs/sources/ferc-document-class-types/all.nq.zst",
+      "quads": 4477,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/114.nq",
+      "sha256": "e9eaa44622cd7c6d2aa5d9cd05099280128993172c0b23f3d92456aeab9f1f67",
+      "wall_seconds": 0.006
+    },
+    {
+      "bytes": 108537,
+      "index": 115,
+      "manifest_path": "packs/sources/sec-series-categories/all.nq.zst",
+      "quads": 379,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/115.nq",
+      "sha256": "ebf505c5372c8247a16e99dff714e49e6755455debb73ce7e1faa0c5dedaa6ea",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 221193557,
+      "index": 116,
+      "manifest_path": "packs/sources/fast-topical-current/a.nq.zst",
+      "quads": 1003033,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/116.nq",
+      "sha256": "ecf643f58f167abbee115674a773d41f458acc53658c4441ccc85b4efb95c570",
+      "wall_seconds": 0.236
+    },
+    {
+      "bytes": 43343,
+      "index": 117,
+      "manifest_path": "packs/sources/regulatory-native-federal-register-presidential-subtype/all.nq.zst",
+      "quads": 152,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/117.nq",
+      "sha256": "ee08c124ed77af3ac3e592078ad077e1c0f5ead094b087a9a297d8b3a8f20af0",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 220414365,
+      "index": 118,
+      "manifest_path": "packs/sources/fast-topical-current/2.nq.zst",
+      "quads": 1001106,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/118.nq",
+      "sha256": "f0a228281cfd7b1c3c5355eec6d39331d20e9d9413227456936a65620b7808fc",
+      "wall_seconds": 0.226
+    },
+    {
+      "bytes": 104314,
+      "index": 119,
+      "manifest_path": "packs/sources/eurovoc-domains-4-24/all.nq.zst",
+      "quads": 495,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/119.nq",
+      "sha256": "f36d018fa0cf36e6f85af1b01839d73fd15b97f969a22cc889bf4c0773cb77f9",
+      "wall_seconds": 0.005
+    },
+    {
+      "bytes": 45208,
+      "index": 120,
+      "manifest_path": "packs/sources/census-acs-geography-identifiers/all.nq.zst",
+      "quads": 152,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/120.nq",
+      "sha256": "f431b2015da89ccde8c592a5df1ca5f3a8bac302b7f8c5ef9fba4ab01c7e37eb",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 195957,
+      "index": 121,
+      "manifest_path": "packs/sources/census-function-items/all.nq.zst",
+      "quads": 672,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/121.nq",
+      "sha256": "f80e6103553fb52fba257180de6200246658e7240b0d6e0b6f9401e32c4f70e0",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 19667,
+      "index": 122,
+      "manifest_path": "packs/sources/unified-agenda-legal-authority-citation-types/all.nq.zst",
+      "quads": 72,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/122.nq",
+      "sha256": "fb9d095163a6c722cc58115d3647f92bd5503839e0d96ef8ec107f446e5c1588",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 220130056,
+      "index": 123,
+      "manifest_path": "packs/sources/fast-topical-current/b.nq.zst",
+      "quads": 997631,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/123.nq",
+      "sha256": "fc4e5f536650d397a8afe97427b2ccacff07afb8b0309faddc9fd35ddb5d90aa",
+      "wall_seconds": 0.258
+    },
+    {
+      "bytes": 25433,
+      "index": 124,
+      "manifest_path": "packs/sources/epa-enterprise-vocabulary-label-tree-2026-08-03/all.nq.zst",
+      "quads": 103,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/124.nq",
+      "sha256": "fcc3b191ec5e0ab624be793eeba2c251c3fb90387df9313ed941d7074a521533",
+      "wall_seconds": 0.004
+    },
+    {
+      "bytes": 220766156,
+      "index": 125,
+      "manifest_path": "packs/sources/fast-topical-current/0.nq.zst",
+      "quads": 1002802,
+      "scratch_path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-fullscale/build/engine-fullscale/packs/125.nq",
+      "sha256": "ff868103244c90d3764731608707027dfb0461898d15810ef0c91880038eedad",
+      "wall_seconds": 0.246
+    }
+  ],
+  "quad_count": 29286753,
+  "schema_version": 1,
+  "started_utc": "2026-08-13T21:33:39.854394+00:00",
+  "wall_seconds": 9.023
+}
