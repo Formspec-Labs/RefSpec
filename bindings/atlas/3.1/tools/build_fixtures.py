@@ -25,6 +25,12 @@ GENERATED_ROOTS = (FIXTURE_ROOT / "valid", FIXTURE_ROOT / "invalid")
 REVIEWER = URIRef("urn:ref:agent:atlas-fixture-reviewer")
 CREATED_AT = "2026-08-05T12:00:00+00:00"
 CONSTRUCTION_PROFILE = "atlas-3-release-local-construction-v1"
+LANGUAGE_SCOPE = {
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+    "unselectedPublisherContent": "notRepresented",
+    "wireLanguageTag": "en",
+}
 CONSTRUCTION_RECEIPT_PROFILE = "atlas-3-authenticated-construction-summary-v1"
 CONSTRUCTOR_PROFILE = (
     "atlas-3-source-and-evidence-backed-mapping-v1"
@@ -1820,6 +1826,7 @@ def _construction_summary(
             "inputInventoryDigest": atlas_validate.canonical_sha256(inputs),
             "key": unit.key,
             "kind": "sourceRelease",
+            "languageScope": LANGUAGE_SCOPE,
             "registrySource": str(unit.registry_source),
             "resourceProfile": unit.resource_profile,
             "scheme": str(unit.scheme),
@@ -1933,6 +1940,7 @@ def _construction_summary(
                 "contractDigest": binding["contractDigest"],
                 "catalogInputInventoryDigest": catalog_input_digest,
                 "constructionProfile": CONSTRUCTION_PROFILE,
+                "languageScope": LANGUAGE_SCOPE,
                 "releaseSchemeInventoryDigest": scheme_digest,
             }
         ),
@@ -1953,6 +1961,7 @@ def _construction_summary(
         "contractDigest": binding["contractDigest"],
         "catalog": catalog,
         "distributionId": distribution_id,
+        "languageScope": LANGUAGE_SCOPE,
         "profile": CONSTRUCTION_PROFILE,
         "releaseCount": len(release_rows),
         "releaseInventoryDigest": atlas_validate.canonical_sha256(release_rows),
@@ -2505,6 +2514,79 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             (label, SKOSXL.literalForm, Literal("Agence exemplaire", lang="fr"))
         )
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def non_english_definition(fixture: Fixture) -> None:
+        resource = next(fixture.asserted.subjects(ATLAS.definition, None))
+        definition = next(fixture.asserted.objects(resource, ATLAS.definition))
+        _remove_subject_predicate(fixture.asserted, resource, ATLAS.definition)
+        fixture.asserted.add(
+            (resource, ATLAS.definition, Literal(str(definition), lang="fr"))
+        )
+
+    def construction_language_scope_missing(fixture: Fixture) -> None:
+        def mutate(path: Path) -> None:
+            summary_path = path / "atlas-construction-summary.json"
+            summary = json.loads(summary_path.read_bytes())
+            summary.pop("languageScope")
+            payload = dict(summary)
+            payload.pop("canonicalPayloadDigest", None)
+            summary["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
+                payload,
+                terminal_lf=False,
+            )
+            summary_path.write_bytes(
+                atlas_validate.canonical_json_bytes(summary)
+            )
+
+            producer_path = path / "atlas-producer-validation.json"
+            producer = json.loads(producer_path.read_bytes())
+            producer["constructionSummary"]["digest"] = _sha256(
+                summary_path.read_bytes()
+            )
+            producer_bytes = atlas_validate.canonical_json_bytes(producer)
+            producer_path.write_bytes(producer_bytes)
+
+            acceptance_path = path / "atlas-acceptance.json"
+            acceptance = json.loads(acceptance_path.read_bytes())
+            acceptance["inputs"]["producerValidationDigest"] = _sha256(
+                producer_bytes
+            )
+            for gate in acceptance["gates"]:
+                gate["evidenceDigest"] = (
+                    atlas_validate.acceptance_gate_evidence_digest(
+                        gate["name"],
+                        inputs=acceptance["inputs"],
+                        validator=acceptance["validator"],
+                    )
+                )
+            acceptance_bytes = atlas_validate.canonical_json_bytes(acceptance)
+            acceptance_path.write_bytes(acceptance_bytes)
+
+            manifest_path = path / "atlas-manifest.json"
+            manifest = json.loads(manifest_path.read_bytes())
+            member_payloads = {
+                "acceptance": acceptance_bytes,
+                "constructionSummary": summary_path.read_bytes(),
+                "producerValidation": producer_bytes,
+            }
+            for member in manifest["members"]:
+                payload_bytes = member_payloads.get(member["role"])
+                if payload_bytes is not None:
+                    member["byteLength"] = len(payload_bytes)
+                    member["digest"] = _sha256(payload_bytes)
+            manifest_payload = dict(manifest)
+            manifest_payload.pop("canonicalPayloadDigest", None)
+            manifest["canonicalPayloadDigest"] = (
+                atlas_validate.canonical_sha256(
+                    manifest_payload,
+                    terminal_lf=False,
+                )
+            )
+            manifest_path.write_bytes(
+                atlas_validate.canonical_json_bytes(manifest)
+            )
+
+        fixture.post_write = mutate
 
     def duplicate_preferred_language(fixture: Fixture) -> None:
         resource = next(fixture.asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -4023,10 +4105,22 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             valid_supersession,
         ),
         ("manifest-unknown-field", ["json"], "json.schema", unknown_manifest_field),
+        (
+            "construction-language-scope-missing",
+            ["json"],
+            "json.schema",
+            construction_language_scope_missing,
+        ),
         ("dataset-digest-mismatch", ["dataset"], "pack.content", digest_mismatch),
         ("blank-node", ["rdf"], "rdf.blank-node", blank_node),
         ("label-missing-literal", ["shacl"], "shacl.data", label_missing_literal),
         ("non-english-label", ["shacl"], "shacl.data", non_english_label),
+        (
+            "non-english-definition",
+            ["shacl"],
+            "shacl.data",
+            non_english_definition,
+        ),
         ("duplicate-preferred-language", ["shacl"], "shacl.data", duplicate_preferred_language),
         ("mapping-missing-evidence", ["shacl", "dataset"], "shacl.data", missing_evidence),
         (

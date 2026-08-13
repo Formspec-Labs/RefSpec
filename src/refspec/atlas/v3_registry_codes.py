@@ -36,6 +36,7 @@ from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
 )
 from refspec.registry.infrastructure.source_identity import derive_uuid7
+from refspec.vocabulary import is_english_language_tag
 
 _SOURCE_TOKEN = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
@@ -278,13 +279,19 @@ def _bundle_items(
 ) -> tuple[_Item, ...]:
     items: list[_Item] = []
     for observation in observations:
-        labels = [
-            row for row in observation["labels"] if row.get("language") == "en" and row.get("role") == "preferred"
-        ]
-        if len(labels) != 1:
+        labels_by_value = {
+            str(row["value"]): row
+            for row in observation["labels"]
+            if isinstance(row, Mapping)
+            and isinstance(row.get("language"), str)
+            and is_english_language_tag(cast(str, row["language"]))
+            and row.get("role") == "preferred"
+        }
+        if len(labels_by_value) != 1:
             raise ValueError(
                 f"registry release {key} row {observation['sourcePath']} must have one preferred English label"
             )
+        label = next(iter(labels_by_value))
         identifiers = observation.get("identifiers", ())
         notations = tuple(
             str(identifier["value"])
@@ -295,7 +302,7 @@ def _bundle_items(
         retired = observation.get("retired")
         items.append(
             _Item(
-                label=str(labels[0]["value"]),
+                label=label,
                 source_path=str(observation["sourcePath"]),
                 notations=notations,
                 native_payload=observation,

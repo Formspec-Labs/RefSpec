@@ -5,6 +5,7 @@ from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
 
+from refspec.atlas import registry_claim_input as claim_adapter
 from refspec.atlas.registry_claim_input import (
     ATLAS_CLAIM_RECORD_TYPE,
     ATLAS_CLAIM_RECORD_VERSION,
@@ -95,6 +96,30 @@ def _input(tmp_path: Path) -> tuple[AtlasRegistryClaimInput, tuple[RegistryClaim
         ),
         _claim(
             5,
+            predicate="http://www.w3.org/2004/02/skos/core#definition",
+            lexical_value="Second definition",
+            language="en-GB",
+        ),
+        _claim(
+            6,
+            predicate="http://www.w3.org/2004/02/skos/core#scopeNote",
+            lexical_value="Scope note",
+            language="en-US",
+        ),
+        _claim(
+            7,
+            predicate="http://www.w3.org/2004/02/skos/core#historyNote",
+            lexical_value="History stays outside this carry",
+            language="en",
+        ),
+        _claim(
+            8,
+            predicate="http://www.w3.org/2004/02/skos/core#scopeNote",
+            lexical_value="Note en francais",
+            language="fr",
+        ),
+        _claim(
+            9,
             predicate="http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
             object_iri="http://www.w3.org/2004/02/skos/core#Concept",
         ),
@@ -178,6 +203,38 @@ def test_parser_free_adapter_round_trips_every_claim(tmp_path: Path) -> None:
     assert "gemet" not in source.casefold()
 
 
+def test_claim_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
+    predicate = "http://www.w3.org/2004/02/skos/core#prefLabel"
+    claims = (
+        _claim(1, predicate=predicate, lexical_value="organisation", language="en"),
+        _claim(
+            2,
+            predicate=predicate,
+            lexical_value="organisation",
+            language="en-GB",
+        ),
+        _claim(
+            3,
+            predicate=predicate,
+            lexical_value="organization",
+            language="en-US",
+        ),
+    )
+    rules = RegistryClaimResourceRules(
+        member_predicate="http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+        member_object_iri="http://www.w3.org/2004/02/skos/core#Concept",
+        resource_kind="Concept",
+        label_roles={predicate: "preferred"},
+    )
+
+    labels = claim_adapter._compatibility_labels(SUBJECT, claims, rules)
+
+    assert [(label.value, label.role, label.language) for label in labels] == [
+        ("organisation", "preferred", "en"),
+        ("organization", "alternate", "en"),
+    ]
+
+
 def test_declarative_resource_rules_build_a_normalized_subset(
     tmp_path: Path,
 ) -> None:
@@ -196,6 +253,12 @@ def test_declarative_resource_rules_build_a_normalized_subset(
             label_roles={
                 "http://www.w3.org/2004/02/skos/core#prefLabel": "preferred"
             },
+            definition_predicates={
+                "http://www.w3.org/2004/02/skos/core#definition"
+            },
+            note_predicates={
+                "http://www.w3.org/2004/02/skos/core#scopeNote"
+            },
             notation_predicates={
                 "http://www.w3.org/2004/02/skos/core#notation"
             },
@@ -212,6 +275,8 @@ def test_declarative_resource_rules_build_a_normalized_subset(
     assert resource.iri == SUBJECT
     assert resource.labels[0].value == "One"
     assert resource.notations == ("1",)
+    assert resource.definition == "  Exact definition  "
+    assert resource.notes == ("Scope note", "Second definition")
     assert resource.native_payload == {
         "broaderIris": [TARGET],
         "publisher": "Example",
@@ -339,7 +404,7 @@ def test_validator_collects_missing_added_datatype_direction_and_normalization(
     assert report.as_dict()["differenceCounts"] == {
         "added": 1,
         "changed": 3,
-        "missing": 1,
+        "missing": 5,
     }
     changed_fields = [
         difference.changed_fields

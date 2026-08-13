@@ -29,6 +29,7 @@ from refspec.atlas.v3_registry_selection import (
     wants_group,
 )
 from refspec.atlas.v3_source_data import (
+    LabelRole,
     RegistryInputPin,
     RegistryLabel,
     RegistryRelation,
@@ -106,6 +107,7 @@ from refspec.registry.nasa_thesaurus import (
 from refspec.registry.nasa_thesaurus import (
     USED_FOR_PREDICATE_IRI as NASA_USED_FOR,
 )
+from refspec.vocabulary import is_english_language_tag
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
@@ -113,6 +115,8 @@ MESH_2026_SOURCE_URL = "https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xml
 MESH_2026_SHA256 = "sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba"
 MESH_2026_BYTE_LENGTH = 312_952_703
 GEMET_DEFINITION = "http://www.w3.org/2004/02/skos/core#definition"
+_SKOS_DEFINITION = "http://www.w3.org/2004/02/skos/core#definition"
+_SKOS_SCOPE_NOTE = "http://www.w3.org/2004/02/skos/core#scopeNote"
 _EUROVOC_DOMAIN_OMITTED_NON_ENGLISH_LABEL_COUNT = 546
 _EUROVOC_CONCEPT_OMITTED_NON_ENGLISH_LABEL_COUNT = 400_480
 
@@ -145,7 +149,7 @@ EXPECTED_LABEL_COUNTS = {
     "eurovoc-domains-4.24": 21,
     "federal-register-thesaurus-2025": 1_138,
     "gcmd-science-keywords-24-4": 3_774,
-    "gemet-4.2.3": 5_645,
+    "gemet-4.2.3": 5_876,
     "mesh-descriptors-2026": 134_904,
     "nasa-thesaurus-skos": 27_125,
 }
@@ -184,18 +188,12 @@ def _input_pin(
     )
 
 
-def _english(language_tag: str | None, *, untagged_is_english: bool = False) -> bool:
-    if language_tag is None:
-        return untagged_is_english
-    return language_tag.casefold() == "en"
-
-
 def _literal_payload(value: Any) -> dict[str, str]:
     payload = {
         "value": value.lexical_form,
     }
     if value.language_tag is not None:
-        if not _english(value.language_tag):
+        if not is_english_language_tag(value.language_tag):
             raise ValueError("non-English literal cannot enter an Atlas native payload")
         payload["language"] = "en"
     if value.datatype_iri is not None:
@@ -232,10 +230,7 @@ def _normalize_skos_label_roles(
             retained.append(label)
             continue
         if previous.role == label.role:
-            raise ValueError(
-                "normalized registry labels repeat the same value and role: "
-                f"{label.value!r} ({label.role})"
-            )
+            continue
         conflicts.append(
             {
                 "language": "en",
@@ -247,6 +242,78 @@ def _normalize_skos_label_roles(
             }
         )
     return tuple(retained), tuple(conflicts)
+
+
+def _normalize_english_label_candidates(
+    candidates: Iterable[tuple[str, str | None, str, LabelRole, str]],
+    member_iris: Collection[str],
+    *,
+    untagged_is_english: bool = False,
+) -> tuple[dict[str, list[RegistryLabel]], int, int, int, int]:
+    """Normalize English-family labels with exact-English precedence."""
+
+    rows = tuple(row for row in candidates if row[0] in member_iris)
+
+    def is_base_english(language: str | None) -> bool:
+        return (language is None and untagged_is_english) or (
+            language is not None and language.casefold() == "en"
+        )
+
+    base_values: dict[str, set[str]] = defaultdict(set)
+    base_preferred: set[str] = set()
+    for subject_iri, language, value, role, _source_path in rows:
+        if not is_base_english(language):
+            continue
+        base_values[subject_iri].add(value)
+        if role == "preferred":
+            base_preferred.add(subject_iri)
+
+    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
+    seen: dict[str, set[tuple[str, str]]] = defaultdict(set)
+    dropped = 0
+    variant_count = 0
+    duplicate_count = 0
+    variant_synonym_count = 0
+    for _position, (subject_iri, language, value, role, source_path) in sorted(
+        enumerate(rows),
+        key=lambda row: (not is_base_english(row[1][1]), row[0]),
+    ):
+        if not is_english_language_tag(
+            language,
+            untagged_is_english=untagged_is_english,
+        ):
+            dropped += 1
+            continue
+        variant = not is_base_english(language)
+        if variant:
+            variant_count += 1
+        if variant and value in base_values[subject_iri]:
+            duplicate_count += 1
+            continue
+        if variant and role == "preferred" and subject_iri in base_preferred:
+            role = "alternate"
+        identity = (value, role)
+        if identity in seen[subject_iri]:
+            if variant:
+                duplicate_count += 1
+            continue
+        seen[subject_iri].add(identity)
+        if variant:
+            variant_synonym_count += 1
+        labels[subject_iri].append(
+            RegistryLabel(
+                value=value,
+                role=role,
+                source_path=source_path,
+            )
+        )
+    return (
+        labels,
+        dropped,
+        variant_count,
+        duplicate_count,
+        variant_synonym_count,
+    )
 
 
 def _direct_relations(
@@ -410,24 +477,31 @@ def _release(
 
 def _normalize_doe(parsed: DoeOstiThesaurus, source: RegistryInputPin) -> RegistryRelease:
     member_iris = {concept.concept_iri for concept in parsed.concepts}
-    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
-    dropped = 0
-    for row in parsed.labels:
-        if row.subject_iri not in member_iris:
-            continue
-        if not _english(row.value.language_tag):
-            dropped += 1
-            continue
-        labels[row.subject_iri].append(
-            RegistryLabel(
-                value=row.value.lexical_form,
-                role="preferred",
-                source_path=f"{row.subject_iri}::{row.value.language_tag}:skos:prefLabel",
+    (
+        labels,
+        dropped,
+        _variants,
+        _duplicates,
+        _synonyms,
+    ) = _normalize_english_label_candidates(
+        (
+            (
+                row.subject_iri,
+                row.value.language_tag,
+                row.value.lexical_form,
+                "preferred",
+                (
+                    f"{row.subject_iri}::{row.value.language_tag}:"
+                    "skos:prefLabel"
+                ),
             )
-        )
+            for row in parsed.labels
+        ),
+        member_iris,
+    )
     notes: dict[str, list[Any]] = defaultdict(list)
     for row in parsed.notes:
-        if row.subject_iri in member_iris and _english(row.value.language_tag):
+        if row.subject_iri in member_iris and is_english_language_tag(row.value.language_tag):
             notes[row.subject_iri].append(row)
 
     resources: list[RegistryResource] = []
@@ -488,24 +562,28 @@ def load_doe_osti_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRe
 
 def _normalize_elsst(parsed: ElsstVocabulary, source: RegistryInputPin) -> RegistryRelease:
     member_iris = {concept.concept_iri for concept in parsed.concepts}
-    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
-    dropped = 0
-    for row in parsed.labels:
-        if row.subject_iri not in member_iris:
-            continue
-        if not _english(row.value.language_tag):
-            dropped += 1
-            continue
-        labels[row.subject_iri].append(
-            RegistryLabel(
-                value=row.value.lexical_form.strip(),
-                role=row.role,
-                source_path=f"{row.subject_iri}::{row.property_iri}",
+    (
+        labels,
+        dropped,
+        _variants,
+        _duplicates,
+        _synonyms,
+    ) = _normalize_english_label_candidates(
+        (
+            (
+                row.subject_iri,
+                row.value.language_tag,
+                row.value.lexical_form.strip(),
+                row.role,
+                f"{row.subject_iri}::{row.property_iri}",
             )
-        )
+            for row in parsed.labels
+        ),
+        member_iris,
+    )
     notes: dict[str, list[Any]] = defaultdict(list)
     for row in parsed.notes:
-        if row.subject_iri in member_iris and _english(row.value.language_tag):
+        if row.subject_iri in member_iris and is_english_language_tag(row.value.language_tag):
             notes[row.subject_iri].append(row)
     notations: dict[str, list[str]] = defaultdict(list)
     for row in parsed.notations:
@@ -513,7 +591,10 @@ def _normalize_elsst(parsed: ElsstVocabulary, source: RegistryInputPin) -> Regis
             notations[row.subject_iri].append(row.value.lexical_form)
     metadata: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in parsed.metadata_literals:
-        if row.subject_iri in member_iris and (row.value.language_tag is None or _english(row.value.language_tag)):
+        if row.subject_iri in member_iris and (
+            row.value.language_tag is None
+            or is_english_language_tag(row.value.language_tag)
+        ):
             metadata[row.subject_iri].append({"propertyIri": row.property_iri, **_literal_payload(row.value)})
     deprecated = {
         row.subject_iri: row.value.lexical_form.casefold() == "true"
@@ -599,29 +680,40 @@ def _normalize_eurovoc(
     top_concept_of: dict[str, list[str]] = defaultdict(list)
     for row in parsed.top_concept_of_relations:
         top_concept_of[row.subject_iri].append(row.object_iri)
+    annotations: dict[str, dict[str, list[str]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for row in parsed.annotations:
+        value = row.value.lexical_form.strip()
+        if (
+            row.subject_iri in concept_iris | domain_iris
+            and value
+            and is_english_language_tag(row.value.language_tag)
+        ):
+            annotations[row.subject_iri][row.property_iri].append(value)
 
-    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
-    dropped_by_kind = {"concept": 0, "domain": 0}
-    for row in parsed.labels:
-        kind = (
-            "concept"
-            if row.subject_iri in concept_iris
-            else "domain"
-            if row.subject_iri in domain_iris
-            else None
+    label_candidates = tuple(
+        (
+            row.subject_iri,
+            row.value.language_tag,
+            row.value.lexical_form.strip(),
+            row.role,
+            f"{row.subject_iri}::{row.property_iri}",
         )
-        if kind is None:
-            continue
-        if not _english(row.value.language_tag):
-            dropped_by_kind[kind] += 1
-            continue
-        labels[row.subject_iri].append(
-            RegistryLabel(
-                value=row.value.lexical_form.strip(),
-                role=row.role,
-                source_path=f"{row.subject_iri}::{row.property_iri}",
-            )
-        )
+        for row in parsed.labels
+    )
+    concept_labels, concept_dropped, _variants, _duplicates, _synonyms = (
+        _normalize_english_label_candidates(label_candidates, concept_iris)
+    )
+    domain_labels, domain_dropped, _variants, _duplicates, _synonyms = (
+        _normalize_english_label_candidates(label_candidates, domain_iris)
+    )
+    labels: dict[str, list[RegistryLabel]] = defaultdict(list, concept_labels)
+    labels.update(domain_labels)
+    dropped_by_kind = {
+        "concept": concept_dropped,
+        "domain": domain_dropped,
+    }
 
     label_conflict_count = 0
 
@@ -637,42 +729,64 @@ def _normalize_eurovoc(
         "publisher": EUROVOC_RELEASE_4_24.publisher,
         "releaseVersion": EUROVOC_RELEASE_4_24.version,
     }
-    concept_resources = tuple(
-        RegistryResource(
-            iri=concept.concept_iri,
-            labels=normalized_labels(concept.concept_iri),
-            native_payload={
-                **common_payload,
-                "publisherConceptIri": concept.concept_iri,
-                "publisherResourceKind": "ThesaurusConcept",
-                "schemeIris": sorted(memberships[concept.concept_iri]),
-                "topConceptOfIris": sorted(top_concept_of[concept.concept_iri]),
-            },
-            source_locator=concept.concept_iri,
-            source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
-            notations=(concept.notation,),
-            status="active",
+    def resource_annotations(iri: str) -> tuple[str | None, tuple[str, ...]]:
+        definitions = sorted(
+            set(annotations[iri].get(_SKOS_DEFINITION, ()))
         )
-        for concept in parsed.concepts
-    )
-    domain_resources = tuple(
-        RegistryResource(
-            iri=domain.domain_iri,
-            labels=normalized_labels(domain.domain_iri),
-            native_payload={
-                **common_payload,
-                "publisherConceptIri": domain.domain_iri,
-                "publisherResourceKind": "Domain",
-                "schemeIris": sorted(memberships[domain.domain_iri]),
-                "topConceptOfIris": sorted(top_concept_of[domain.domain_iri]),
-            },
-            source_locator=domain.domain_iri,
-            source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
-            notations=(domain.code,),
-            status="active",
+        scope_notes = set(annotations[iri].get(_SKOS_SCOPE_NOTE, ()))
+        return (
+            definitions[0] if definitions else None,
+            tuple(sorted(scope_notes | set(definitions[1:]))),
         )
-        for domain in parsed.domains
-    )
+
+    concept_resources: list[RegistryResource] = []
+    for concept in parsed.concepts:
+        definition, notes = resource_annotations(concept.concept_iri)
+        concept_resources.append(
+            RegistryResource(
+                iri=concept.concept_iri,
+                labels=normalized_labels(concept.concept_iri),
+                native_payload={
+                    **common_payload,
+                    "publisherConceptIri": concept.concept_iri,
+                    "publisherResourceKind": "ThesaurusConcept",
+                    "schemeIris": sorted(memberships[concept.concept_iri]),
+                    "topConceptOfIris": sorted(
+                        top_concept_of[concept.concept_iri]
+                    ),
+                },
+                source_locator=concept.concept_iri,
+                source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
+                definition=definition,
+                notes=notes,
+                notations=(concept.notation,),
+                status="active",
+            )
+        )
+    domain_resources: list[RegistryResource] = []
+    for domain in parsed.domains:
+        definition, notes = resource_annotations(domain.domain_iri)
+        domain_resources.append(
+            RegistryResource(
+                iri=domain.domain_iri,
+                labels=normalized_labels(domain.domain_iri),
+                native_payload={
+                    **common_payload,
+                    "publisherConceptIri": domain.domain_iri,
+                    "publisherResourceKind": "Domain",
+                    "schemeIris": sorted(memberships[domain.domain_iri]),
+                    "topConceptOfIris": sorted(
+                        top_concept_of[domain.domain_iri]
+                    ),
+                },
+                source_locator=domain.domain_iri,
+                source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
+                definition=definition,
+                notes=notes,
+                notations=(domain.code,),
+                status="active",
+            )
+        )
     if label_conflict_count:
         raise ValueError(
             "EuroVoc 4.24 contains English labels assigned to multiple SKOS roles"
@@ -830,7 +944,9 @@ def _eurovoc_claim_resource_rules(
             "http://www.w3.org/2004/02/skos/core#hiddenLabel": "hidden",
             "http://www.w3.org/2004/02/skos/core#prefLabel": "preferred",
         },
+        definition_predicates={_SKOS_DEFINITION},
         excluded_member_claims=excluded_member_claims,
+        note_predicates={_SKOS_SCOPE_NOTE},
         notation_predicates={"http://www.w3.org/2004/02/skos/core#notation"},
         native_iri_predicates={
             "schemeIris": "http://www.w3.org/2004/02/skos/core#inScheme",
@@ -1049,32 +1165,39 @@ def load_eurovoc_4_24_releases(
 
 def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> RegistryRelease:
     member_iris = {concept.concept_iri for concept in parsed.concepts}
-    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
-    dropped = 0
-    for row in parsed.labels:
-        if row.subject_iri not in member_iris:
-            continue
-        if not _english(row.value.language_tag):
-            dropped += 1
-            continue
-        labels[row.subject_iri].append(
-            RegistryLabel(
-                value=row.value.lexical_form,
-                role=row.role,
-                source_path=f"{row.subject_iri}::{row.property_iri}",
+    (
+        labels,
+        dropped,
+        english_family_variant_labels,
+        english_family_duplicates,
+        english_family_variant_synonyms,
+    ) = _normalize_english_label_candidates(
+        (
+            (
+                row.subject_iri,
+                row.value.language_tag,
+                row.value.lexical_form,
+                row.role,
+                f"{row.subject_iri}::{row.property_iri}",
             )
-        )
+            for row in parsed.labels
+        ),
+        member_iris,
+    )
     notes: dict[str, list[Any]] = defaultdict(list)
     for row in parsed.notes:
-        if row.subject_iri in member_iris and _english(row.value.language_tag):
+        if row.subject_iri in member_iris and is_english_language_tag(row.value.language_tag):
             notes[row.subject_iri].append(row)
     notations: dict[str, list[str]] = defaultdict(list)
     for row in parsed.notations:
-        if row.subject_iri in member_iris and _english(row.value.language_tag):
+        if row.subject_iri in member_iris and is_english_language_tag(row.value.language_tag):
             notations[row.subject_iri].append(row.value.lexical_form)
     metadata: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in parsed.metadata_literals:
-        if row.subject_iri in member_iris and (row.value.language_tag is None or _english(row.value.language_tag)):
+        if row.subject_iri in member_iris and (
+            row.value.language_tag is None
+            or is_english_language_tag(row.value.language_tag)
+        ):
             metadata[row.subject_iri].append({"propertyIri": row.property_iri, **_literal_payload(row.value)})
 
     resources: list[RegistryResource] = []
@@ -1124,6 +1247,9 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
         relations=_direct_relations(parsed.semantic_relations, member_iris),
         dropped_label_count=dropped,
         metadata={
+            "englishFamilyDuplicateLabelCount": english_family_duplicates,
+            "englishFamilyVariantLabelCount": english_family_variant_labels,
+            "englishFamilyVariantSynonymCount": english_family_variant_synonyms,
             "labelRoleConflictCount": label_role_conflict_count,
             "labelRoleConflictRule": (
                 "skos-s13-preferred-alternate-hidden-precedence-v1"
@@ -1152,24 +1278,32 @@ def load_gemet_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelea
 
 def _normalize_nasa(parsed: NasaThesaurusVocabulary, source: RegistryInputPin) -> RegistryRelease:
     member_iris = {concept.concept_iri for concept in parsed.concepts}
-    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
-    dropped = 0
-    for row in parsed.labels:
-        if row.subject_iri not in member_iris:
-            continue
-        if not _english(row.value.language_tag, untagged_is_english=True):
-            dropped += 1
-            continue
-        labels[row.subject_iri].append(
-            RegistryLabel(
-                value=row.value.lexical_form,
-                role=row.role,
-                source_path=f"{row.subject_iri}::{row.property_iri}",
+    (
+        labels,
+        dropped,
+        _variants,
+        _duplicates,
+        _synonyms,
+    ) = _normalize_english_label_candidates(
+        (
+            (
+                row.subject_iri,
+                row.value.language_tag,
+                row.value.lexical_form,
+                row.role,
+                f"{row.subject_iri}::{row.property_iri}",
             )
-        )
+            for row in parsed.labels
+        ),
+        member_iris,
+        untagged_is_english=True,
+    )
     metadata: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in parsed.metadata_literals:
-        if row.subject_iri in member_iris and (row.value.language_tag is None or _english(row.value.language_tag)):
+        if row.subject_iri in member_iris and (
+            row.value.language_tag is None
+            or is_english_language_tag(row.value.language_tag)
+        ):
             metadata[row.subject_iri].append({"propertyIri": row.property_iri, **_literal_payload(row.value)})
     resources = tuple(
         RegistryResource(

@@ -35,6 +35,7 @@ RDF_FIXTURE = b"""@prefix ex: <https://example.test/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 ex:one a skos:Concept ;
   skos:prefLabel " One "@en ;
+  skos:prefLabel "Color"@en-US ;
   skos:prefLabel "Un"@fr ;
   skos:broader ex:two ;
   ex:empty ""^^xsd:dateTime ;
@@ -53,16 +54,24 @@ def test_rdf_export_preserves_terms_and_declares_omissions() -> None:
         recipe_id=RECIPE_ID,
     )
 
-    assert extraction.source_triple_count == 7
+    assert extraction.source_triple_count == 8
     assert extraction.omitted_non_english_literal_count == 1
     assert extraction.omitted_blank_node_claim_count == 2
     assert extraction.omitted_unsupported_term_count == 0
-    assert len(extraction.claims) == 4
+    assert len(extraction.claims) == 5
     preferred = next(
-        claim for claim in extraction.claims if claim.predicate == str(SKOS.prefLabel)
+        claim
+        for claim in extraction.claims
+        if claim.predicate == str(SKOS.prefLabel) and claim.language == "en"
     )
     assert preferred.lexical_value == " One "
     assert preferred.language == "en"
+    variant = next(
+        claim
+        for claim in extraction.claims
+        if claim.predicate == str(SKOS.prefLabel) and claim.language == "en-US"
+    )
+    assert variant.lexical_value == "Color"
     broader = next(
         claim for claim in extraction.claims if claim.predicate == str(SKOS.broader)
     )
