@@ -1,4 +1,4 @@
-.PHONY: generate check-generated lint lint-rdf-strict test test-package test-json-binding test-atlas-v3 \
+.PHONY: seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures contract-dev \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
@@ -323,3 +323,34 @@ verify-atlas-federal-register-thesaurus:
 		--expected-view-manifest-sha256 "$(ATLAS_FR_RELEASE_VIEW_SHA256)" \
 		--source-root "$(ATLAS_FR_RELEASE_SOURCE_ROOT)" \
 		--output "$(ATLAS_FR_RELEASE_RECEIPT)"
+
+# The fourth verb. `seal-distribution` is the ceremony step and is the ONLY
+# part of build -> prove -> sign -> serve that this repository cannot perform
+# on its own: the signer key is deliberately offline, so SEAL_KEY must be
+# supplied by whoever holds it. The tool refuses to sign a distribution that
+# carries no acceptance receipt, because the seal binds the acceptance digest
+# precisely so a consumer can tell "signed" from "signed AND proven".
+#
+#   make seal-distribution SEAL_ROOT=output/atlas-3.1-full-<date> SEAL_KEY=~/path/to/key
+#
+# `verify-distribution-seal` needs no key and checks the signature, all three
+# bound digests, closed membership and every pinned byte against
+# docs/seal-allowed-signers.
+SEAL_ROOT ?= output/atlas-3.1-full-2026-08-13b
+SEAL_SIGNER ?= atlas-release@refspec
+SEAL_ALLOWED_SIGNERS ?= docs/seal-allowed-signers
+
+seal-distribution:
+	@test -n "$(SEAL_KEY)" || { echo "SEAL_KEY is required (the offline signing key); nothing was signed"; exit 2; }
+	uv run --no-sync python tools/seal_distribution.py mint \
+		--distribution "$(SEAL_ROOT)/distribution" \
+		--parquet-view "$(SEAL_ROOT)/parquet-view" \
+		--private-key "$(SEAL_KEY)" \
+		--signer-identity "$(SEAL_SIGNER)"
+
+verify-distribution-seal:
+	uv run --no-sync python tools/seal_distribution.py verify \
+		--distribution "$(SEAL_ROOT)/distribution" \
+		--parquet-view "$(SEAL_ROOT)/parquet-view" \
+		--seal "$(SEAL_ROOT)/distribution-seal.json" \
+		--allowed-signers "$(SEAL_ALLOWED_SIGNERS)"
