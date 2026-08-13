@@ -70,6 +70,7 @@ inputs and checks still run.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import io
 import json
@@ -82,8 +83,10 @@ import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from itertools import chain
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from refspec.input_pin import read_verified_file_pin
 from refspec.registry.infrastructure.source_controlled_resource import LABEL_ROLES
@@ -102,7 +105,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 # artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-VERIFIER_VERSION = "atlas-source-fidelity/11"
+VERIFIER_VERSION = "atlas-source-fidelity/13"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
 
@@ -628,6 +631,22 @@ class PublisherView:
     declared_out_of_scope_subjects: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict
     )
+    # Stock non-RDF readers derive the source-record evidence address and the
+    # exact native payload independently from publisher bytes. RDF readers use
+    # the source IRI and the existing field-level inverse by default.
+    resource_locators: Mapping[str, str] = field(default_factory=dict)
+    expected_native_payloads: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
+    expected_relation_payloads: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
+    # High-cardinality stock readers can retain the one exact digest directly
+    # instead of allocating one frozenset per publisher resource.  The boolean
+    # additionally says that this digest authenticates the entire independently
+    # reconstructed native payload, not merely an input file.
+    resource_input_digest_values: Mapping[str, str] = field(default_factory=dict)
+    source_digest_is_native_payload_digest: bool = False
 
 
 @dataclass(frozen=True)
@@ -660,6 +679,15 @@ class AtlasView:
     native_top_concept_of_iris: Mapping[str, frozenset[str]]
     native_literal_claims: frozenset[tuple[str, str, LiteralValue]]
     native_relations: frozenset[tuple[str, str, str]]
+    compact_native_payload_records: frozenset[str]
+    native_payload_digest_differences: Mapping[
+        str,
+        tuple[str, str | None],
+    ]
+    native_payload_field_differences: Mapping[
+        str,
+        tuple[tuple[str, ...], tuple[str, ...]],
+    ]
     raw_source_iri_claims: frozenset[tuple[str, str, str]]
     raw_source_literal_claims: frozenset[tuple[str, str, LiteralValue]]
     all_raw_iri_claims: frozenset[tuple[str, str, str]]
@@ -828,6 +856,8 @@ class SourceSpec:
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
+    reader: str = "rdf"
+    identity_policy: str = "publisher-iri"
 
     def has_policy(self, name: str) -> bool:
         return name in self.policies
@@ -1595,7 +1625,7 @@ def _read_publisher_pin_set(
 
 
 def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
-    """Read and union every independently pinned RDF input for one comparison scope."""
+    """Read every independently pinned input with the spec's stock parser."""
     payloads = {
         pin: read_verified_file_pin(
             _resolve_source_pin(source_root, pin),
@@ -1605,6 +1635,11 @@ def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
         )
         for pin in spec.inputs
     }
+    if spec.reader != "rdf":
+        reader = _PUBLISHER_READERS.get(spec.reader)
+        if reader is None:
+            raise ValueError(f"unsupported publisher reader {spec.reader!r}")
+        return reader(spec, payloads)
     view = _select_publisher_view(
         _read_publisher_pin_set(
             spec.inputs,
@@ -1717,6 +1752,25 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
             view.declared_out_of_scope_blank_node_claims
         ),
         declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
+        resource_locators={
+            resource: locator
+            for resource, locator in view.resource_locators.items()
+            if resource in resources
+        },
+        expected_native_payloads={
+            resource: payload
+            for resource, payload in view.expected_native_payloads.items()
+            if resource in resources
+        },
+        expected_relation_payloads=view.expected_relation_payloads,
+        resource_input_digest_values={
+            resource: digest
+            for resource, digest in view.resource_input_digest_values.items()
+            if resource in resources
+        },
+        source_digest_is_native_payload_digest=(
+            view.source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -1808,6 +1862,25 @@ def _select_publisher_concepts(
             view.declared_out_of_scope_blank_node_claims
         ),
         declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
+        resource_locators={
+            resource: locator
+            for resource, locator in view.resource_locators.items()
+            if resource in resources
+        },
+        expected_native_payloads={
+            resource: payload
+            for resource, payload in view.expected_native_payloads.items()
+            if resource in resources
+        },
+        expected_relation_payloads=view.expected_relation_payloads,
+        resource_input_digest_values={
+            resource: digest
+            for resource, digest in view.resource_input_digest_values.items()
+            if resource in resources
+        },
+        source_digest_is_native_payload_digest=(
+            view.source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -2338,6 +2411,10 @@ def read_atlas_source(
     distribution: Path,
     packs: Sequence[str],
     source_claim_subjects: frozenset[str] = frozenset(),
+    *,
+    compact_normalized_claims: bool = False,
+    compact_native_payload_fields: frozenset[str] | None = None,
+    compact_native_payload_atlas_only_fields: frozenset[str] = frozenset(),
 ) -> AtlasView:
     """Read what the Atlas asserts for one source out of its distribution packs."""
     resources: set[str] = set()
@@ -2368,11 +2445,20 @@ def read_atlas_source(
     ] = defaultdict(set)
     native_relations: set[tuple[str, str, str]] = set()
     native_payloads: dict[str, Mapping[str, Any]] = {}
+    pending_native_payload_digests: dict[str, str] = {}
+    compact_native_payload_records: set[str] = set()
+    native_payload_digest_differences: dict[
+        str,
+        tuple[str, str | None],
+    ] = {}
+    native_payload_field_differences: dict[
+        str,
+        tuple[tuple[str, ...], tuple[str, ...]],
+    ] = {}
     checked_pack_transports: dict[str, tuple[str, int]] = {}
     record_targets: dict[str, str] = {}
     record_source_digests: dict[str, str] = {}
     structural_failures: list[str] = []
-    native_payload_values: dict[str, set[str]] = defaultdict(set)
     raw_source_iri_claims: set[tuple[str, str, str]] = set()
     raw_source_literal_claims: set[tuple[str, str, LiteralValue]] = set()
     all_raw_iri_claims: set[tuple[str, str, str]] = set()
@@ -2392,6 +2478,47 @@ def read_atlas_source(
             ATLAS_NATIVE_PAYLOAD,
         }
     )
+    compact_globally_parsed_predicates = frozenset(
+        {
+            RDF_TYPE,
+            RDF_SUBJECT,
+            RDF_PREDICATE,
+            RDF_OBJECT,
+            ATLAS_SOURCE_LOCATOR,
+            ATLAS_SOURCE_DIGEST,
+            ATLAS_REPRESENTS_RESOURCE,
+            ATLAS_NATIVE_PAYLOAD,
+        }
+    )
+    compact_source_parsed_predicates = frozenset(
+        {
+            SKOS_IN_SCHEME,
+            SKOSXL_PREF_LABEL,
+            SKOSXL_ALT_LABEL,
+            SKOSXL_HIDDEN_LABEL,
+            ATLAS_IN_SCHEME,
+            ATLAS_RESOURCE_PROFILE,
+            ATLAS_SEMANTIC_RING,
+            ATLAS_NOTATION,
+            ATLAS_DEFINITION,
+            ATLAS_NOTE,
+            *ATLAS_SOURCE_REPRESENTATION_STRUCTURE_PREDICATES,
+        }
+    )
+
+    def retain_raw_claim(quad: Quad) -> bool:
+        """Keep only claims not already retained in a parsed Atlas index."""
+        if not compact_normalized_claims:
+            return True
+        if quad.predicate in compact_globally_parsed_predicates:
+            return False
+        if quad.predicate == SKOSXL_LITERAL_FORM:
+            # Orphan forms are restored after every label edge is known.
+            return False
+        return not (
+            quad.subject in source_claim_subjects
+            and quad.predicate in compact_source_parsed_predicates
+        )
 
     def atlas_only_quad(quad: Quad) -> bool:
         if quad.predicate == SKOS_IN_SCHEME:
@@ -2426,11 +2553,17 @@ def read_atlas_source(
                     ),
                 )
                 iri_claim = (quad.subject, quad.predicate, quad.obj)
-                if quad.is_literal:
+                retain_raw = retain_raw_claim(quad)
+                if retain_raw and quad.is_literal:
                     all_raw_literal_claims.add(literal_claim)
-                else:
+                elif retain_raw:
                     all_raw_iri_claims.add(iri_claim)
-                if quad.subject in source_claim_subjects:
+                retain_source_raw = retain_raw or (
+                    compact_normalized_claims
+                    and quad.subject in source_claim_subjects
+                    and quad.predicate == RDF_TYPE
+                )
+                if retain_source_raw and quad.subject in source_claim_subjects:
                     if quad.is_literal:
                         raw_source_literal_claims.add(literal_claim)
                     else:
@@ -2519,6 +2652,17 @@ def read_atlas_source(
                             "atlas:sourceDigest values"
                         )
                     record_source_digests[quad.subject] = quad.obj
+                    pending_payload_digest = pending_native_payload_digests.pop(
+                        quad.subject,
+                        None,
+                    )
+                    if pending_payload_digest is not None:
+                        compact_native_payload_records.add(quad.subject)
+                        if pending_payload_digest != quad.obj:
+                            native_payload_digest_differences[quad.subject] = (
+                                pending_payload_digest,
+                                quad.obj,
+                            )
                 elif predicate == ATLAS_REPRESENTS_RESOURCE:
                     if quad.subject in record_targets and record_targets[quad.subject] != quad.obj:
                         structural_failures.append(
@@ -2526,11 +2670,6 @@ def read_atlas_source(
                         )
                     record_targets[quad.subject] = quad.obj
                 elif predicate == ATLAS_NATIVE_PAYLOAD:
-                    native_payload_values[quad.subject].add(quad.obj)
-                    if len(native_payload_values[quad.subject]) > 1:
-                        structural_failures.append(
-                            f"{pack}: source record <{quad.subject}> has contradictory atlas:nativePayload values"
-                        )
                     try:
                         payload = _json_without_duplicate_keys(
                             quad.obj.encode("utf-8"),
@@ -2546,7 +2685,52 @@ def read_atlas_source(
                             f"{pack}: source record <{quad.subject}> has non-object atlas:nativePayload JSON"
                         )
                         continue
-                    native_payloads[quad.subject] = payload
+                    if compact_native_payload_fields is not None:
+                        payload_digest = _canonical_json_digest(payload)
+                        prior_digest = pending_native_payload_digests.get(
+                            quad.subject
+                        )
+                        if prior_digest is not None and prior_digest != payload_digest:
+                            structural_failures.append(
+                                f"{pack}: source record <{quad.subject}> has contradictory "
+                                "atlas:nativePayload values"
+                            )
+                        source_digest = record_source_digests.get(quad.subject)
+                        if source_digest is None:
+                            pending_native_payload_digests[quad.subject] = (
+                                payload_digest
+                            )
+                        else:
+                            compact_native_payload_records.add(quad.subject)
+                            if source_digest != payload_digest:
+                                native_payload_digest_differences[quad.subject] = (
+                                    payload_digest,
+                                    source_digest,
+                                )
+                        unexpected_fields = tuple(
+                            sorted(
+                                set(payload)
+                                - compact_native_payload_fields
+                                - compact_native_payload_atlas_only_fields
+                            )
+                        )
+                        missing_fields = tuple(
+                            sorted(compact_native_payload_fields - set(payload))
+                        )
+                        if unexpected_fields or missing_fields:
+                            native_payload_field_differences[quad.subject] = (
+                                unexpected_fields,
+                                missing_fields,
+                            )
+                        continue
+                    prior_payload = native_payloads.get(quad.subject)
+                    if prior_payload is not None and prior_payload != payload:
+                        structural_failures.append(
+                            f"{pack}: source record <{quad.subject}> has contradictory "
+                            "atlas:nativePayload values"
+                        )
+                    else:
+                        native_payloads[quad.subject] = payload
                     scheme_iris = payload.get("schemeIris")
                     if isinstance(scheme_iris, list):
                         native_schemes[quad.subject] = frozenset(str(item) for item in scheme_iris)
@@ -2738,19 +2922,26 @@ def read_atlas_source(
                                 "nativePayload.publisherRelation"
                             )
                         else:
-                            subject = publisher_relation.get("subjectIri")
-                            predicate = publisher_relation.get("predicateIri")
-                            obj = publisher_relation.get("objectIri")
-                            if not all(
-                                isinstance(value, str) and ":" in value
-                                for value in (subject, predicate, obj)
-                            ):
+                            relation = _payload_relation(publisher_relation)
+                            editorial_transformation = payload.get(
+                                "editorialTransformation"
+                            )
+                            publisher_relation_digest = payload.get(
+                                "publisherRelationDigest"
+                            )
+                            source_shaped_relation = (
+                                isinstance(editorial_transformation, Mapping)
+                                and isinstance(publisher_relation_digest, str)
+                                and publisher_relation_digest
+                                == _canonical_json_digest(publisher_relation)
+                            )
+                            if relation is None and not source_shaped_relation:
                                 structural_failures.append(
                                     f"{pack}: source record <{quad.subject}> has invalid "
                                     "nativePayload.publisherRelation"
                                 )
-                            else:
-                                native_relations.add((subject, predicate, obj))
+                            elif relation is not None:
+                                native_relations.add(relation)
         except Exception as error:  # noqa: BLE001 - inspect every other pack in the comparison
             structural_failures.append(f"{pack}: could not be read: {type(error).__name__}: {error}")
 
@@ -2778,6 +2969,50 @@ def read_atlas_source(
                 f"label node <{label_node}> referenced as hidden label has {len(forms)} literal forms"
             )
         hidden[subject].update(forms)
+
+    for record, payload_digest in pending_native_payload_digests.items():
+        compact_native_payload_records.add(record)
+        native_payload_digest_differences[record] = (
+            payload_digest,
+            record_source_digests.get(record),
+        )
+
+    linked_label_nodes = {
+        *(node for _, node in pref_edges),
+        *(node for _, node in alt_edges),
+        *(node for _, node in hidden_edges),
+    }
+    if compact_normalized_claims:
+        for subject, forms in label_forms.items():
+            if subject in linked_label_nodes:
+                continue
+            rows = {
+                (subject, SKOSXL_LITERAL_FORM, literal)
+                for literal in forms
+            }
+            all_raw_literal_claims.update(rows)
+            if subject in source_claim_subjects:
+                raw_source_literal_claims.update(rows)
+
+        # The dedicated indexes above already retain source concepts, source
+        # records, and linked label nodes. Keep their exact publisher types in
+        # raw_source_iri_claims, but do not allocate the same high-cardinality
+        # type map a second time. Atlas-owned resources and source-release
+        # nodes remain classified here for residual-claim and release checks.
+        redundant_typed_subjects = (
+            set(source_claim_subjects)
+            | set(source_records)
+            | linked_label_nodes
+        )
+        rdf_types = defaultdict(
+            set,
+            {
+                subject: types
+                for subject, types in rdf_types.items()
+                if subject not in redundant_typed_subjects
+                or ATLAS_SOURCE_RELEASE in types
+            },
+        )
 
     # Some source labels are intentionally suppressed from the Atlas display role
     # to satisfy SKOS S13. Restore only the exact publisher role/value retained in
@@ -2810,7 +3045,11 @@ def read_atlas_source(
     relations = frozenset(relation_rows)
 
     # A comparison pack must not silently collapse multiple source records onto one resource.
-    record_claim_subjects = set(record_targets) | set(native_payloads)
+    record_claim_subjects = (
+        set(record_targets)
+        | set(native_payloads)
+        | compact_native_payload_records
+    )
     for record in sorted(record_claim_subjects - source_records):
         structural_failures.append(
             f"record-like subject <{record}> is not typed atlas:SourceRecord"
@@ -2859,55 +3098,137 @@ def read_atlas_source(
                 for claim_subject, predicate, literal in claims
             )
 
+    # Freeze each high-cardinality index and release its mutable predecessor
+    # before allocating the next one. This keeps return-value construction from
+    # becoming the peak-memory phase for the 441,127-record FAST comparison.
+    label_links = frozenset(
+        chain(
+            (
+                (subject, SKOSXL_PREF_LABEL, node)
+                for subject, node in pref_edges
+            ),
+            (
+                (subject, SKOSXL_ALT_LABEL, node)
+                for subject, node in alt_edges
+            ),
+            (
+                (subject, SKOSXL_HIDDEN_LABEL, node)
+                for subject, node in hidden_edges
+            ),
+        )
+    )
+    label_forms.clear()
+    pref_edges.clear()
+    alt_edges.clear()
+    hidden_edges.clear()
+    native_label_claims_by_record.clear()
+
+    relation_assertions = frozenset(reified)
+    reified.clear()
+    relation_rows.clear()
+
+    frozen_rdf_types = {
+        key: frozenset(value) for key, value in rdf_types.items()
+    }
+    rdf_types.clear()
+    frozen_resource_profiles = {
+        key: frozenset(value) for key, value in resource_profiles.items()
+    }
+    resource_profiles.clear()
+    frozen_semantic_rings = {
+        key: frozenset(value) for key, value in semantic_rings.items()
+    }
+    semantic_rings.clear()
+    frozen_atlas_scheme_iris = {
+        key: frozenset(value) for key, value in atlas_scheme_iris.items()
+    }
+    atlas_scheme_iris.clear()
+    frozen_pref_labels = {
+        key: frozenset(value) for key, value in pref.items()
+    }
+    pref.clear()
+    frozen_alt_labels = {
+        key: frozenset(value) for key, value in alt.items()
+    }
+    alt.clear()
+    frozen_hidden_labels = {
+        key: frozenset(value) for key, value in hidden.items()
+    }
+    hidden.clear()
+    frozen_notations = {
+        key: frozenset(value) for key, value in notations.items()
+    }
+    notations.clear()
+    frozen_definitions = {
+        key: frozenset(value) for key, value in definitions.items()
+    }
+    definitions.clear()
+    frozen_notes = {
+        key: frozenset(value) for key, value in notes.items()
+    }
+    notes.clear()
+
+    frozen_resources = frozenset(resources)
+    resources.clear()
+    frozen_releases = frozenset(releases)
+    releases.clear()
+    frozen_skos_schemes = frozenset(skos_schemes)
+    skos_schemes.clear()
+    frozen_memberships = frozenset(memberships)
+    memberships.clear()
+    frozen_source_records = frozenset(source_records)
+    source_records.clear()
+    record_locators = frozenset(
+        locator
+        for subject, locator in locator_by_subject.items()
+        if subject in frozen_source_records
+    )
+    record_locator_pairs = frozenset(
+        (target, locator_by_subject[record])
+        for record, target in record_targets.items()
+        if record in frozen_source_records and record in locator_by_subject
+    )
+
     return AtlasView(
-        resources=frozenset(resources),
-        releases=frozenset(releases),
-        rdf_types={key: frozenset(value) for key, value in rdf_types.items()},
-        resource_profiles={
-            key: frozenset(value) for key, value in resource_profiles.items()
-        },
-        semantic_rings={key: frozenset(value) for key, value in semantic_rings.items()},
-        atlas_scheme_iris={
-            key: frozenset(value) for key, value in atlas_scheme_iris.items()
-        },
-        skos_schemes=frozenset(skos_schemes),
-        pref_labels={key: frozenset(value) for key, value in pref.items()},
-        alt_labels={key: frozenset(value) for key, value in alt.items()},
-        hidden_labels={key: frozenset(value) for key, value in hidden.items()},
-        notations={key: frozenset(value) for key, value in notations.items()},
-        definitions={key: frozenset(value) for key, value in definitions.items()},
-        notes={key: frozenset(value) for key, value in notes.items()},
+        resources=frozen_resources,
+        releases=frozen_releases,
+        rdf_types=frozen_rdf_types,
+        resource_profiles=frozen_resource_profiles,
+        semantic_rings=frozen_semantic_rings,
+        atlas_scheme_iris=frozen_atlas_scheme_iris,
+        skos_schemes=frozen_skos_schemes,
+        pref_labels=frozen_pref_labels,
+        alt_labels=frozen_alt_labels,
+        hidden_labels=frozen_hidden_labels,
+        notations=frozen_notations,
+        definitions=frozen_definitions,
+        notes=frozen_notes,
         relations=relations,
-        memberships=frozenset(memberships),
-        source_records=frozenset(source_records),
-        record_locators=frozenset(
-            locator for subject, locator in locator_by_subject.items() if subject in source_records
-        ),
-        record_locator_pairs=frozenset(
-            (target, locator_by_subject[record])
-            for record, target in record_targets.items()
-            if record in source_records and record in locator_by_subject
-        ),
-        record_targets=dict(sorted(record_targets.items())),
-        record_source_locators=dict(sorted(locator_by_subject.items())),
-        record_source_digests=dict(sorted(record_source_digests.items())),
+        memberships=frozen_memberships,
+        source_records=frozen_source_records,
+        record_locators=record_locators,
+        record_locator_pairs=record_locator_pairs,
+        record_targets=record_targets,
+        record_source_locators=locator_by_subject,
+        record_source_digests=record_source_digests,
         native_payloads=dict(sorted(native_payloads.items())),
         native_scheme_iris=keyed_native,
         native_top_concept_of_iris=keyed_native_top_concepts,
         native_literal_claims=frozenset(keyed_native_literal_claims),
         native_relations=frozenset(native_relations),
+        compact_native_payload_records=frozenset(compact_native_payload_records),
+        native_payload_digest_differences=dict(
+            sorted(native_payload_digest_differences.items())
+        ),
+        native_payload_field_differences=dict(
+            sorted(native_payload_field_differences.items())
+        ),
         raw_source_iri_claims=frozenset(raw_source_iri_claims),
         raw_source_literal_claims=frozenset(raw_source_literal_claims),
         all_raw_iri_claims=frozenset(all_raw_iri_claims),
         all_raw_literal_claims=frozenset(all_raw_literal_claims),
-        label_links=frozenset(
-            {
-                *((subject, SKOSXL_PREF_LABEL, node) for subject, node in pref_edges),
-                *((subject, SKOSXL_ALT_LABEL, node) for subject, node in alt_edges),
-                *((subject, SKOSXL_HIDDEN_LABEL, node) for subject, node in hidden_edges),
-            }
-        ),
-        relation_assertions=frozenset(reified),
+        label_links=label_links,
+        relation_assertions=relation_assertions,
         structural_failures=tuple(structural_failures),
         checked_packs=tuple(packs),
         checked_pack_transports=dict(sorted(checked_pack_transports.items())),
@@ -3198,6 +3519,1271 @@ _GENERIC_SKOS_NATIVE_FIELDS = frozenset(
     {"publisherConceptIri", "schemeIris", "topConceptOfIris"}
 )
 
+
+@dataclass(frozen=True)
+class _StockVocabularyRecord:
+    """One publisher record read without importing its registry adapter."""
+
+    resource: str
+    preferred_labels: tuple[LiteralValue, ...]
+    alternate_labels: tuple[LiteralValue, ...]
+    notations: tuple[LiteralValue, ...]
+    annotations: tuple[tuple[str, LiteralValue], ...]
+    source_locator: str
+    source_digest: str
+    native_payload: Mapping[str, Any]
+
+
+def _stock_vocabulary_view(
+    records: Iterable[_StockVocabularyRecord],
+    relations: Collection[tuple[str, str, str]],
+    memberships: Collection[tuple[str, str]],
+    pins: Sequence[SourcePin],
+    *,
+    unevaluated_claims: Sequence[str] = (),
+    require_relation_members: bool = True,
+    retain_predicate_counts: bool = True,
+    retain_claim_sets: bool = True,
+    retain_expected_native_payloads: bool = True,
+    compact_resource_digests: bool = False,
+    expected_relation_payloads: Mapping[str, Mapping[str, Any]] | None = None,
+) -> PublisherView:
+    """Build the comparison view shared by stock XML, RDF, MARC, and JSON readers."""
+    concepts: set[str] = set()
+    pref_labels: dict[str, frozenset[LiteralValue]] = {}
+    alt_labels: dict[str, frozenset[LiteralValue]] = {}
+    notations: dict[str, frozenset[LiteralValue]] = {}
+    annotation_claims: set[tuple[str, str, LiteralValue]] = set()
+    literal_claims: set[tuple[str, str, LiteralValue]] = set()
+    iri_claims: set[tuple[str, str, str]] = set(relations) if retain_claim_sets else set()
+    if retain_claim_sets:
+        iri_claims.update(
+            (resource, SKOS_IN_SCHEME, scheme) for resource, scheme in memberships
+        )
+    predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
+    resource_input_digests: dict[str, frozenset[str]] = {}
+    resource_input_digest_values: dict[str, str] = {}
+    resource_locators: dict[str, str] = {}
+    expected_native_payloads: dict[str, Mapping[str, Any]] = {}
+    for record in records:
+        if record.resource in concepts:
+            raise ValueError(
+                f"stock source reader repeats resource {record.resource!r}"
+            )
+        concepts.add(record.resource)
+        preferred = frozenset(record.preferred_labels)
+        alternate = frozenset(record.alternate_labels)
+        notation_values = frozenset(record.notations)
+        if not preferred and not alternate:
+            raise ValueError(
+                f"stock source record {record.resource!r} has no asserted label"
+            )
+        pref_labels[record.resource] = preferred
+        alt_labels[record.resource] = alternate
+        notations[record.resource] = notation_values
+        # The member-IRI comparison treats the publisher's explicit Concept
+        # type as evidence distinct from concept-set identity.
+        iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
+        for predicate, values in (
+            (SKOS_PREF_LABEL, preferred),
+            (SKOS_ALT_LABEL, alternate),
+            (SKOS_NOTATION, notation_values),
+        ):
+            if retain_claim_sets:
+                literal_claims.update(
+                    (record.resource, predicate, literal) for literal in values
+                )
+            if retain_predicate_counts:
+                predicate_counts[(record.resource, predicate)] = len(values)
+        record_annotations = {
+            (record.resource, predicate, literal)
+            for predicate, literal in record.annotations
+        }
+        annotation_claims.update(record_annotations)
+        if retain_claim_sets:
+            literal_claims.update(record_annotations)
+        if retain_predicate_counts:
+            predicate_counts[(record.resource, RDF_TYPE)] = 1
+            for _, predicate, _ in record_annotations:
+                predicate_counts[(record.resource, predicate)] += 1
+        if compact_resource_digests:
+            resource_input_digest_values[record.resource] = record.source_digest
+        else:
+            resource_input_digests[record.resource] = frozenset(
+                {record.source_digest}
+            )
+        resource_locators[record.resource] = record.source_locator
+        if retain_expected_native_payloads:
+            expected_native_payloads[record.resource] = record.native_payload
+    unknown_relation_endpoints = sorted(
+        {
+            endpoint
+            for subject, _, obj in relations
+            for endpoint in ((subject, obj) if require_relation_members else (subject,))
+            if endpoint not in concepts
+        }
+    )
+    if unknown_relation_endpoints:
+        raise ValueError(
+            "stock source relations name unknown required resources: "
+            f"{unknown_relation_endpoints[:5]}"
+        )
+    if retain_predicate_counts:
+        for subject, predicate, _ in relations:
+            predicate_counts[(subject, predicate)] += 1
+        for subject, _ in memberships:
+            predicate_counts[(subject, SKOS_IN_SCHEME)] += 1
+    return PublisherView(
+        concepts=frozenset(concepts),
+        schemes=frozenset(),
+        pref_labels=pref_labels,
+        alt_labels=alt_labels,
+        hidden_labels={},
+        notations=notations,
+        annotations=frozenset(annotation_claims),
+        resource_annotations=frozenset(),
+        resource_annotation_target_claim_counts={},
+        literal_claims=frozenset(literal_claims),
+        iri_claims=frozenset(iri_claims),
+        reified_statements=frozenset(),
+        pref_label_count_all_languages=sum(len(values) for values in pref_labels.values()),
+        alt_label_count_all_languages=sum(len(values) for values in alt_labels.values()),
+        hidden_label_count_all_languages=0,
+        relations=frozenset(relations),
+        memberships=frozenset(memberships),
+        top_concept_of=frozenset(),
+        has_top_concept=frozenset(),
+        resource_predicate_counts=dict(predicate_counts),
+        defects=(),
+        resource_input_digests=resource_input_digests,
+        input_content_digests={pin.path: pin.sha256 for pin in pins},
+        unevaluated_claims=tuple(unevaluated_claims),
+        resource_locators=resource_locators,
+        expected_native_payloads=expected_native_payloads,
+        expected_relation_payloads=dict(expected_relation_payloads or {}),
+        resource_input_digest_values=resource_input_digest_values,
+        source_digest_is_native_payload_digest=True,
+    )
+
+
+EPA_ENTERPRISE_VOCABULARY_XML_READER = "epa-enterprise-vocabulary-xml-v1"
+_EPA_BROWSE_URL = (
+    "https://ofmpub.epa.gov/sor_internet/registry/termreg/searchandretrieve/"
+    "enterprisevocabulary/search.do?search=&tierTwoSelected=1005100&searchString="
+)
+
+
+def _read_epa_enterprise_vocabulary_xml(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read EPA's positional XML label tree with ElementTree."""
+    if len(spec.inputs) != 1:
+        raise ValueError("EPA Enterprise Vocabulary reader requires one XML input")
+    pin = spec.inputs[0]
+    payload = authenticated_payloads[pin]
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError("EPA Enterprise Vocabulary XML must not declare custom entities")
+    try:
+        root = ElementTree.fromstring(payload)
+    except ElementTree.ParseError as error:
+        raise ValueError(f"EPA Enterprise Vocabulary XML is malformed: {error}") from error
+    if root.tag != "EnterpriseVocabularyReport" or root.attrib:
+        raise ValueError(
+            "EPA Enterprise Vocabulary root must be an attribute-free "
+            "<EnterpriseVocabularyReport>"
+        )
+
+    records: list[_StockVocabularyRecord] = []
+    relations: set[tuple[str, str, str]] = set()
+    row_by_path: dict[str, str] = {}
+
+    def parse_row(element: ElementTree.Element, path: tuple[int, ...], depth: int) -> Mapping[str, Any]:
+        source_path = "/".join(f"Row[{index}]" for index in path)
+        if element.tag != "Row" or element.attrib:
+            raise ValueError(f"EPA {source_path} must be an attribute-free <Row>")
+        children_by_tag: dict[str, list[ElementTree.Element]] = defaultdict(list)
+        for child in element:
+            children_by_tag[child.tag].append(child)
+        allowed = {"Term", "Definitions", "ScopeNote", "ChildTerms"}
+        unexpected = sorted(set(children_by_tag) - allowed)
+        repeated = sorted(tag for tag, rows in children_by_tag.items() if len(rows) > 1)
+        if unexpected or repeated or len(children_by_tag.get("Term", ())) != 1:
+            raise ValueError(
+                f"EPA {source_path} shape differs; unexpected={unexpected}, "
+                f"repeated={repeated}, termCount={len(children_by_tag.get('Term', ()))}"
+            )
+        term = children_by_tag["Term"][0]
+        if term.attrib or not (term.text or "").strip():
+            raise ValueError(f"EPA {source_path} Term must be nonblank and attribute-free")
+        definition = children_by_tag.get("Definitions", [None])[0]
+        scope_note = children_by_tag.get("ScopeNote", [None])[0]
+        for label, node in (("Definitions", definition), ("ScopeNote", scope_note)):
+            if node is not None and (node.attrib or len(node)):
+                raise ValueError(f"EPA {source_path} {label} must contain only text")
+        child_container = children_by_tag.get("ChildTerms", [None])[0]
+        if child_container is not None and (
+            child_container.attrib or (child_container.text or "").strip()
+        ):
+            raise ValueError(f"EPA {source_path} ChildTerms shape differs")
+        child_payloads: list[Mapping[str, Any]] = []
+        if child_container is not None:
+            for index, child in enumerate(child_container):
+                if child.tag != "Row":
+                    raise ValueError(
+                        f"EPA {source_path} ChildTerms contains <{child.tag}>"
+                    )
+                child_payloads.append(parse_row(child, (*path, index), depth + 1))
+        row_payload: Mapping[str, Any] = {
+            "label": term.text or "",
+            "source_path": source_path,
+            "definitions_text": None if definition is None else (definition.text or ""),
+            "scope_note_text": None if scope_note is None else (scope_note.text or ""),
+            "child_terms": child_payloads,
+        }
+        resource = "urn:ref:epa-enterprise-vocabulary-row:" + urllib.parse.quote(
+            source_path,
+            safe="",
+        )
+        row_by_path[source_path] = resource
+        annotations: list[tuple[str, LiteralValue]] = []
+        definition_text = (row_payload["definitions_text"] or "").strip()
+        scope_note_text = (row_payload["scope_note_text"] or "").strip()
+        if definition_text:
+            annotations.append(
+                (SKOS_DEFINITION, _literal_value(definition_text, None, None))
+            )
+        if scope_note_text and scope_note_text != "\xa0":
+            annotations.append(
+                (SKOS_SCOPE_NOTE, _literal_value(scope_note_text, None, None))
+            )
+        native_payload = {
+            "depth": depth,
+            "row": row_payload,
+            "publisherConceptIdentityAvailable": False,
+        }
+        records.append(
+            _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(
+                    _literal_value((term.text or "").strip(), None, None),
+                ),
+                alternate_labels=(),
+                notations=(),
+                annotations=tuple(annotations),
+                source_locator=(
+                    _EPA_BROWSE_URL
+                    + "#"
+                    + urllib.parse.quote(source_path, safe="/")
+                ),
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+        )
+        for child in child_payloads:
+            child_path = child["source_path"]
+            child_resource = row_by_path.get(str(child_path))
+            if child_resource is None:
+                raise ValueError(f"EPA walk omitted child {child_path!r}")
+            relations.add((child_resource, f"{SKOS}broader", resource))
+        return row_payload
+
+    for index, child in enumerate(root):
+        parse_row(child, (index,), 0)
+    return _stock_vocabulary_view(records, relations, (), spec.inputs)
+
+
+LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER = "lcsh-alignment-endpoint-jsonld-v1"
+_LCSH_SCHEME = "http://id.loc.gov/authorities/subjects"
+_LCSH_CONTEXT = "http://id.loc.gov/authorities/subjects/context.json"
+_LCSH_ALIGNMENT_RELEASE = (
+    "http://publications.europa.eu/resource/dataset/"
+    "eurovoc_alignment_lcsh/20240711-0"
+)
+_LCSH_ALIGNMENT_PREDICATES = frozenset(
+    {f"{SKOS}exactMatch", f"{SKOS}closeMatch"}
+)
+
+
+def _jsonld_term_set(value: object, label: str) -> frozenset[str]:
+    if value is None:
+        return frozenset()
+    if isinstance(value, str):
+        return frozenset({value})
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return frozenset(value)
+    raise ValueError(f"{label} @type must be a string or string array")
+
+
+def _jsonld_references(value: object, label: str) -> tuple[Mapping[str, Any], ...]:
+    if value is None:
+        return ()
+    if isinstance(value, Mapping):
+        return (value,)
+    if isinstance(value, list) and all(isinstance(item, Mapping) for item in value):
+        return tuple(value)
+    raise ValueError(f"{label} must contain JSON-LD reference objects")
+
+
+def _jsonld_label(value: object, label: str) -> LiteralValue:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{label} must be a JSON-LD value object")
+    text = value.get("@value")
+    language = value.get("@language")
+    if not isinstance(text, str) or not text:
+        raise ValueError(f"{label} has no non-empty @value")
+    if not isinstance(language, str) or not language:
+        raise ValueError(f"{label} has no @language")
+    return _literal_value(text, language, None)
+
+
+def _read_lcsh_alignment_endpoint_jsonld(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Select official alignment objects, then stream their LOC JSON-LD records."""
+    import rdflib
+
+    alignment_pin = next(
+        (pin for pin in spec.inputs if pin.role == "publisherAlignment"),
+        None,
+    )
+    bulk_pin = next(
+        (pin for pin in spec.inputs if pin.role == "publisherBulkSource"),
+        None,
+    )
+    if alignment_pin is None or bulk_pin is None or len(spec.inputs) != 2:
+        raise ValueError(
+            "LCSH alignment endpoint reader requires one alignment and one bulk input"
+        )
+    alignment = rdflib.Graph()
+    try:
+        alignment.parse(
+            data=authenticated_payloads[alignment_pin],
+            format="xml",
+            publicID=alignment_pin.source_iri,
+        )
+    except Exception as error:
+        raise ValueError(f"LCSH selection alignment is malformed: {error}") from error
+    align_type = rdflib.URIRef(
+        "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#Alignment"
+    )
+    onto1 = rdflib.URIRef(
+        "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#onto1"
+    )
+    onto2 = rdflib.URIRef(
+        "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#onto2"
+    )
+    headers = set(alignment.subjects(rdflib.RDF.type, align_type))
+    if len(headers) != 1:
+        raise ValueError(
+            f"LCSH selection alignment must have one header, observed {len(headers)}"
+        )
+    header = next(iter(headers))
+    if set(map(str, alignment.objects(header, onto1))) != {"http://eurovoc.europa.eu"}:
+        raise ValueError("LCSH selection alignment onto1 is not EuroVoc")
+    if set(map(str, alignment.objects(header, onto2))) != {_LCSH_SCHEME}:
+        raise ValueError("LCSH selection alignment onto2 is not LCSH")
+    selected_iris: set[str] = set()
+    mapping_counts: Counter[str] = Counter()
+    for predicate in _LCSH_ALIGNMENT_PREDICATES:
+        for subject, obj in alignment.subject_objects(rdflib.URIRef(predicate)):
+            if not isinstance(subject, rdflib.URIRef) or not str(subject).startswith(
+                "http://eurovoc.europa.eu/"
+            ):
+                raise ValueError(f"LCSH selection has non-EuroVoc subject {subject!r}")
+            if not isinstance(obj, rdflib.URIRef) or not str(obj).startswith(
+                _LCSH_SCHEME + "/"
+            ):
+                raise ValueError(f"LCSH selection has non-LCSH object {obj!r}")
+            selected_iris.add(str(obj))
+            mapping_counts[predicate] += 1
+    production_alignment = alignment_pin.sha256 == (
+        "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853"
+    )
+    expected_counts = {f"{SKOS}closeMatch": 99, f"{SKOS}exactMatch": 1_904}
+    if production_alignment and dict(mapping_counts) != expected_counts:
+        raise ValueError(
+            "LCSH selection mapping counts differ: "
+            f"expected={expected_counts}, observed={dict(mapping_counts)}"
+        )
+    if production_alignment and len(selected_iris) != 1_966:
+        raise ValueError(
+            f"LCSH selection must name 1,966 distinct endpoints, observed {len(selected_iris)}"
+        )
+    if not selected_iris:
+        raise ValueError("LCSH selection alignment names no endpoints")
+    path_to_iri = {
+        "/authorities/subjects/" + iri.removeprefix(_LCSH_SCHEME + "/"): iri
+        for iri in selected_iris
+    }
+
+    records: list[_StockVocabularyRecord] = []
+    broader_by_resource: dict[str, tuple[str, ...]] = {}
+    selected: set[str] = set()
+    ignored_fields: Counter[str] = Counter()
+    try:
+        stream = gzip.GzipFile(
+            fileobj=io.BytesIO(authenticated_payloads[bulk_pin]),
+            mode="rb",
+        )
+        for line_number, line in enumerate(stream, start=1):
+            raw = line.rstrip(b"\r\n")
+            if not raw.strip():
+                continue
+            try:
+                document = json.loads(raw)
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError(
+                    f"LCSH bulk line {line_number} is not UTF-8 JSON: {error}"
+                ) from error
+            if not isinstance(document, Mapping):
+                raise ValueError(f"LCSH bulk line {line_number} is not an object")
+            resource = path_to_iri.get(document.get("@id"))
+            if resource is None:
+                continue
+            if resource in selected:
+                raise ValueError(f"LCSH bulk repeats selected authority {resource}")
+            if document.get("@context") != _LCSH_CONTEXT:
+                raise ValueError(f"LCSH {resource} uses an unexpected @context")
+            graph = document.get("@graph")
+            if not isinstance(graph, list) or not graph:
+                raise ValueError(f"LCSH {resource} has no non-empty @graph")
+            by_id: dict[str, Mapping[str, Any]] = {}
+            for node in graph:
+                if not isinstance(node, Mapping) or not isinstance(node.get("@id"), str):
+                    raise ValueError(f"LCSH {resource} has an invalid @graph node")
+                node_id = node["@id"]
+                if node_id in by_id:
+                    raise ValueError(f"LCSH {resource} repeats node {node_id!r}")
+                by_id[node_id] = node
+            authorities = [
+                node
+                for node in graph
+                if node.get("@id") == resource
+                and "madsrdf:Authority"
+                in _jsonld_term_set(node.get("@type"), f"LCSH {resource}")
+            ]
+            if len(authorities) != 1:
+                raise ValueError(
+                    f"LCSH {resource} must have one matching Authority node"
+                )
+            authority = authorities[0]
+            authority_types = tuple(
+                sorted(_jsonld_term_set(authority.get("@type"), f"LCSH {resource}"))
+            )
+            preferred = _jsonld_label(
+                authority.get("madsrdf:authoritativeLabel"),
+                f"LCSH {resource} authoritativeLabel",
+            )
+            if preferred.language is None or preferred.language.casefold() != "en":
+                raise ValueError(f"LCSH {resource} has no English preferred label")
+            broader = tuple(
+                sorted(
+                    {
+                        str(reference.get("@id"))
+                        for reference in _jsonld_references(
+                            authority.get("madsrdf:hasBroaderAuthority"),
+                            f"LCSH {resource} broader",
+                        )
+                        if isinstance(reference.get("@id"), str)
+                        and str(reference["@id"]).startswith(_LCSH_SCHEME + "/")
+                    }
+                )
+            )
+            variants: list[LiteralValue] = []
+            for reference in _jsonld_references(
+                authority.get("madsrdf:hasVariant"),
+                f"LCSH {resource} variants",
+            ):
+                variant_id = reference.get("@id")
+                if not isinstance(variant_id, str) or variant_id not in by_id:
+                    raise ValueError(
+                        f"LCSH {resource} variant reference is absent from @graph"
+                    )
+                label = _jsonld_label(
+                    by_id[variant_id].get("madsrdf:variantLabel"),
+                    f"LCSH {resource} variant {variant_id}",
+                )
+                if label.language is not None and label.language.casefold() == "en":
+                    variants.append(
+                        _literal_value(label.value.strip(), "en", None)
+                    )
+                else:
+                    ignored_fields["non-English variant label"] += 1
+            alternate = tuple(
+                sorted(
+                    {
+                        label
+                        for label in variants
+                        if label.value and label.value != preferred.value.strip()
+                    },
+                    key=lambda value: (value.language or "", value.value),
+                )
+            )
+            lccn = authority.get("identifiers:lccn")
+            if lccn is not None and (
+                not isinstance(lccn, str) or not lccn.strip()
+            ):
+                raise ValueError(f"LCSH {resource} has an invalid LCCN")
+            record_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+            native_payload = {
+                "authorityTypes": list(authority_types),
+                "broaderIris": list(broader),
+                "captureSelection": {
+                    "alignmentDigest": alignment_pin.sha256,
+                    "alignmentRelease": _LCSH_ALIGNMENT_RELEASE,
+                },
+                "lccn": lccn,
+                "lineNumber": line_number,
+                "recordByteLength": len(raw),
+                "recordDigest": record_digest,
+            }
+            records.append(
+                _StockVocabularyRecord(
+                    resource=resource,
+                    preferred_labels=(
+                        _literal_value(preferred.value.strip(), "en", None),
+                    ),
+                    alternate_labels=alternate,
+                    notations=(
+                        ()
+                        if lccn is None
+                        else (_literal_value(lccn, None, None),)
+                    ),
+                    annotations=(),
+                    source_locator=f"{bulk_pin.source_iri}#line-{line_number}",
+                    source_digest=_canonical_json_digest(native_payload),
+                    native_payload=native_payload,
+                )
+            )
+            selected.add(resource)
+            broader_by_resource[resource] = broader
+            used_authority_fields = {
+                "@id",
+                "@type",
+                "identifiers:lccn",
+                "madsrdf:authoritativeLabel",
+                "madsrdf:hasBroaderAuthority",
+                "madsrdf:hasVariant",
+            }
+            for field_name in set(authority) - used_authority_fields:
+                ignored_fields[f"authority field {field_name}"] += 1
+            used_node_ids = {
+                reference.get("@id")
+                for reference in _jsonld_references(
+                    authority.get("madsrdf:hasVariant"),
+                    f"LCSH {resource} variants",
+                )
+            }
+            for node_id, node in by_id.items():
+                if node_id == resource:
+                    continue
+                if node_id not in used_node_ids:
+                    ignored_fields["unrepresented JSON-LD graph node"] += len(node)
+                else:
+                    for field_name in set(node) - {"@id", "@type", "madsrdf:variantLabel"}:
+                        ignored_fields[f"variant field {field_name}"] += 1
+    except (OSError, EOFError) as error:
+        raise ValueError(f"LCSH bulk gzip is malformed: {error}") from error
+    missing = sorted(selected_iris - selected)
+    if missing:
+        raise ValueError(
+            f"LCSH bulk lacks {len(missing)} aligned authorities: {missing[:5]}"
+        )
+    relations = {
+        (resource, f"{SKOS}broader", broader)
+        for resource, broader_iris in broader_by_resource.items()
+        for broader in broader_iris
+        if broader in selected
+    }
+    unevaluated = tuple(
+        f"LCSH selected records contain {count} authenticated but unrepresented {field} claims"
+        for field, count in sorted(ignored_fields.items())
+        if count
+    )
+    return _stock_vocabulary_view(
+        records,
+        relations,
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+    )
+
+
+FAST_TOPICAL_NATIVE_READER = "fast-topical-ntriples-marc-v1"
+_FAST_IRI_BASE = "http://id.worldcat.org/fast/"
+_FAST_PREF_LABEL = f"{SKOS}prefLabel"
+_FAST_ALT_LABEL = f"{SKOS}altLabel"
+_FAST_BROADER = f"{SKOS}broader"
+_FAST_DEPRECATED = f"{OWL}deprecated"
+_FAST_IDENTIFIER = f"{DCTERMS}identifier"
+_FAST_MARC_ID = re.compile(r"^fst0*(\d+)$")
+_FAST_MARC_LINK = re.compile(r"\(OCoLC\)fst0*(\d+)")
+_FAST_HEADING_TAGS = frozenset(
+    {"100", "110", "111", "130", "147", "148", "150", "151", "155"}
+)
+_FAST_ALT_TAGS = frozenset(
+    {"400", "410", "411", "430", "447", "448", "450", "451", "455"}
+)
+_FAST_LINK_TAGS = frozenset(
+    {"500", "510", "511", "530", "547", "548", "550", "551", "555"}
+)
+_FAST_CONTENT_CODES = frozenset("abcdefghjklmnopqrstu")
+_FAST_SUBDIVISION_CODES = frozenset("vxyz")
+_FAST_CHANGE_COUNTS = {
+    "sha256:f53c640767cb1c4c0bce85b85a69e382780a65772d4deae30ab3a1a8fa96419a": 3_276,
+    "sha256:06ae6714240ac1d8126cfeff5392feb8004f6a1d16e2bb392c854ecf47a6a011": 2_153,
+    "sha256:0d505664fe5de155d58bd1c178e65112ee4b42067044b6a4cb14f516ef03f116": 4_350,
+    "sha256:98c965420836f0f21aed18599f0216cc61b2f3c2b7ca06cc10f6b9cc1ad374e3": 12_633,
+}
+
+
+def _fast_legacy_id(numeric_id: str) -> str:
+    return f"fst{int(numeric_id):08d}"
+
+
+def _fast_marc_numeric_id(record: Any) -> str:
+    fields = record.get_fields("001")
+    if len(fields) != 1:
+        raise ValueError("FAST MARC record must contain exactly one 001 field")
+    match = _FAST_MARC_ID.fullmatch(fields[0].value())
+    if match is None:
+        raise ValueError(f"FAST MARC 001 is malformed: {fields[0].value()!r}")
+    return str(int(match.group(1)))
+
+
+def _fast_render_marc_heading(field: Any) -> str:
+    rendered = ""
+    for subfield in field.subfields:
+        value = " ".join(subfield.value.split())
+        if not value:
+            continue
+        if subfield.code in _FAST_SUBDIVISION_CODES:
+            rendered += f"--{value}"
+        elif subfield.code in _FAST_CONTENT_CODES:
+            if rendered and not rendered.endswith((" ", "--")):
+                rendered += " "
+            rendered += value
+    if not rendered:
+        raise ValueError(f"FAST MARC {field.tag} has no heading content")
+    return rendered
+
+
+def _fast_marc_link_ids(field: Any) -> tuple[str, ...]:
+    ids: list[str] = []
+    for value in field.get_subfields("0"):
+        for match in _FAST_MARC_LINK.finditer(value):
+            numeric_id = str(int(match.group(1)))
+            if numeric_id not in ids:
+                ids.append(numeric_id)
+    return tuple(ids)
+
+
+def _fast_validate_marc_identity(record: Any, numeric_id: str) -> None:
+    if record.leader[6] != "z":
+        raise ValueError(f"FAST MARC {numeric_id} is not an authority record")
+    if not any(
+        value == "fast"
+        for field in record.get_fields("040")
+        for value in field.get_subfields("f")
+    ):
+        raise ValueError(f"FAST MARC {numeric_id} lacks 040 $f fast")
+    headings = [field for field in record.fields if field.tag in _FAST_HEADING_TAGS]
+    if len(headings) > 1:
+        raise ValueError(f"FAST MARC {numeric_id} has multiple 1XX headings")
+    uri_values = [
+        value
+        for field in record.get_fields("024")
+        for value in field.get_subfields("a")
+    ]
+    if uri_values != [f"{_FAST_IRI_BASE}{numeric_id}"]:
+        raise ValueError(f"FAST MARC {numeric_id} 024 does not match 001")
+
+
+def _fast_row_from_marc(record: Any, numeric_id: str) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    topical = record.get_fields("150")
+    if len(topical) != 1:
+        raise ValueError(f"FAST topical MARC {numeric_id} must have one 150")
+    alternate = tuple(
+        dict.fromkeys(
+            _fast_render_marc_heading(field)
+            for field in record.fields
+            if field.tag in _FAST_ALT_TAGS
+        )
+    )
+    broader: list[str] = []
+    for marc_field in record.fields:
+        if marc_field.tag not in _FAST_LINK_TAGS or not any(
+            value.startswith("g") for value in marc_field.get_subfields("w")
+        ):
+            continue
+        for target in _fast_marc_link_ids(marc_field):
+            if target not in broader:
+                broader.append(target)
+    return _fast_render_marc_heading(topical[0]), alternate, tuple(broader)
+
+
+def _read_fast_topical_native(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Rebuild the current FAST Topical snapshot with rdflib and pymarc."""
+    import rdflib
+    from pymarc import MARCReader
+    from rdflib.plugins.parsers.ntriples import W3CNTriplesParser
+
+    base_pins = [pin for pin in spec.inputs if pin.role == "publisherBase"]
+    change_pins = [pin for pin in spec.inputs if pin.role == "publisherChange"]
+    if len(base_pins) != 1 or not change_pins:
+        raise ValueError("FAST reader requires one base and chronological MARC changes")
+    base_pin = base_pins[0]
+    labels: dict[str, str] = {}
+    alternate: dict[str, list[str]] = defaultdict(list)
+    broader: dict[str, list[str]] = defaultdict(list)
+    deprecated: set[str] = set()
+    ignored_predicates: Counter[str] = Counter()
+
+    class FastSink:
+        def triple(self, subject: Any, predicate: Any, obj: Any) -> None:
+            subject_iri = str(subject)
+            if not subject_iri.startswith(_FAST_IRI_BASE):
+                return
+            numeric_id = subject_iri.removeprefix(_FAST_IRI_BASE)
+            if not numeric_id.isdigit():
+                return
+            predicate_iri = str(predicate)
+            if predicate_iri == _FAST_PREF_LABEL and isinstance(obj, rdflib.Literal):
+                labels.setdefault(numeric_id, str(obj))
+            elif predicate_iri == _FAST_ALT_LABEL and isinstance(obj, rdflib.Literal):
+                value = str(obj)
+                if value not in alternate[numeric_id]:
+                    alternate[numeric_id].append(value)
+            elif (
+                predicate_iri == _FAST_BROADER
+                and isinstance(obj, rdflib.URIRef)
+                and str(obj).startswith(_FAST_IRI_BASE)
+                and str(obj).removeprefix(_FAST_IRI_BASE).isdigit()
+            ):
+                target = str(int(str(obj).removeprefix(_FAST_IRI_BASE)))
+                if target not in broader[numeric_id]:
+                    broader[numeric_id].append(target)
+            elif predicate_iri == _FAST_IDENTIFIER and isinstance(obj, rdflib.Literal):
+                if str(obj) != numeric_id:
+                    raise ValueError(
+                        f"FAST identifier {obj!r} does not match {subject_iri}"
+                    )
+            elif predicate_iri == _FAST_DEPRECATED:
+                deprecated.add(numeric_id)
+            else:
+                ignored_predicates[predicate_iri] += 1
+
+    payload = authenticated_payloads[base_pin]
+    try:
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            nt_members = [
+                name for name in archive.namelist() if name.lower().endswith(".nt")
+            ]
+            if nt_members != ["FASTTopical.nt"]:
+                raise ValueError(f"FAST base ZIP members differ: {nt_members!r}")
+            with archive.open("FASTTopical.nt") as source:
+                W3CNTriplesParser(FastSink()).parse(source)
+    except (OSError, zipfile.BadZipFile) as error:
+        raise ValueError(f"FAST base ZIP is malformed: {error}") from error
+    rows: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {}
+    for numeric_id, heading in labels.items():
+        if numeric_id in deprecated:
+            continue
+        rows[numeric_id] = (
+            heading,
+            tuple(alternate.get(numeric_id, ())),
+            tuple(broader.get(numeric_id, ())),
+        )
+    if base_pin.sha256.endswith("217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db") and len(rows) != 440_612:
+        raise ValueError(f"FAST base active count differs: observed {len(rows)}")
+    ignored_marc_tags: Counter[str] = Counter()
+    for pin in change_pins:
+        reader = MARCReader(
+            io.BytesIO(authenticated_payloads[pin]),
+            to_unicode=True,
+            force_utf8=False,
+            utf8_handling="strict",
+            permissive=False,
+        )
+        record_count = 0
+        for record in reader:
+            record_count += 1
+            if record is None:
+                raise ValueError(f"{pin.path} contains an unreadable MARC record")
+            numeric_id = _fast_marc_numeric_id(record)
+            _fast_validate_marc_identity(record, numeric_id)
+            status = record.leader[5]
+            if status not in {"c", "n", "x", "d"}:
+                raise ValueError(
+                    f"FAST MARC {numeric_id} has unsupported status {status!r}"
+                )
+            is_topical = bool(record.get_fields("150"))
+            if status in {"x", "d"}:
+                if is_topical or numeric_id in rows:
+                    rows.pop(numeric_id, None)
+            elif is_topical:
+                rows[numeric_id] = _fast_row_from_marc(record, numeric_id)
+            elif numeric_id in rows:
+                rows.pop(numeric_id)
+            used_tags = {
+                "001",
+                "024",
+                "040",
+                *_FAST_HEADING_TAGS,
+                *_FAST_ALT_TAGS,
+                *_FAST_LINK_TAGS,
+            }
+            for marc_field in record.fields:
+                if marc_field.tag not in used_tags:
+                    ignored_marc_tags[marc_field.tag] += 1
+        expected_count = _FAST_CHANGE_COUNTS.get(pin.sha256)
+        if expected_count is not None and record_count != expected_count:
+            raise ValueError(
+                f"{pin.path} record count differs: expected {expected_count}, "
+                f"observed {record_count}"
+            )
+    if base_pin.sha256.endswith("217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db") and len(rows) != 441_127:
+        raise ValueError(f"FAST current active count differs: observed {len(rows)}")
+
+    active_ids = frozenset(rows)
+    relations = {
+        (
+            f"{_FAST_IRI_BASE}{numeric_id}",
+            _FAST_BROADER,
+            f"{_FAST_IRI_BASE}{target}",
+        )
+        for numeric_id, (_, _, targets) in rows.items()
+        for target in targets
+        if target in active_ids
+    }
+    labels.clear()
+    alternate.clear()
+    broader.clear()
+    deprecated.clear()
+    del active_ids
+
+    def stock_records() -> Iterator[_StockVocabularyRecord]:
+        for numeric_id, (heading, alt_labels, broader_ids) in rows.items():
+            resource = f"{_FAST_IRI_BASE}{numeric_id}"
+            preferred_value = heading.strip()
+            seen = {preferred_value}
+            output_alt: list[LiteralValue] = []
+            for value in alt_labels:
+                stripped = value.strip()
+                if stripped and stripped not in seen:
+                    seen.add(stripped)
+                    output_alt.append(_literal_value(stripped, None, None))
+            native_payload = {
+                "altLabels": list(alt_labels),
+                "broaderIds": list(broader_ids),
+                "heading": heading,
+                "identityStatus": "publisherIdentifierVerified",
+                "legacyFstId": _fast_legacy_id(numeric_id),
+                "numericId": numeric_id,
+                "publisherIri": resource,
+            }
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(
+                    _literal_value(preferred_value, None, None),
+                ),
+                alternate_labels=tuple(output_alt),
+                notations=(
+                    _literal_value(numeric_id, None, None),
+                    _literal_value(_fast_legacy_id(numeric_id), None, None),
+                ),
+                annotations=(),
+                source_locator=resource,
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+
+    unevaluated = tuple(
+        [
+            f"FAST base contains {count} authenticated but unrepresented {predicate} claims"
+            for predicate, count in sorted(ignored_predicates.items())
+            if count
+        ]
+        + [
+            f"FAST changes contain {count} authenticated but unrepresented MARC {tag} fields"
+            for tag, count in sorted(ignored_marc_tags.items())
+            if count
+        ]
+    )
+    return _stock_vocabulary_view(
+        stock_records(),
+        relations,
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+        retain_predicate_counts=False,
+        retain_claim_sets=False,
+        retain_expected_native_payloads=False,
+        compact_resource_digests=True,
+    )
+
+
+ICPSR_MANAGED_RELEASE_READER = "icpsr-managed-release-json-v1"
+
+
+def _json_without_duplicates(payload: bytes, label: str) -> Any:
+    """Parse JSON while rejecting duplicate object keys."""
+
+    def object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"{label} repeats field {key!r}")
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(payload, object_pairs_hook=object_pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"{label} is not UTF-8 JSON: {error}") from error
+
+
+def _verify_canonical_json_seal(value: Mapping[str, Any], label: str) -> None:
+    observed = value.get("canonicalPayloadDigest")
+    unsigned = dict(value)
+    unsigned.pop("canonicalPayloadDigest", None)
+    expected = _canonical_json_digest(unsigned)
+    if observed != expected:
+        raise ValueError(
+            f"{label} canonicalPayloadDigest differs: expected {expected}, "
+            f"observed {observed!r}"
+        )
+
+
+def _icpsr_index_identifier(value: Mapping[str, Any]) -> Mapping[str, Any]:
+    keys = {
+        "authorityUri": "authority_uri",
+        "effectiveAt": "effective_at",
+        "kind": "kind",
+        "observedAt": "observed_at",
+        "sourceDigest": "source_digest",
+        "sourceUri": "source_uri",
+        "value": "value",
+    }
+    if set(value) != set(keys):
+        raise ValueError(f"ICPSR managed identifier fields differ: {sorted(value)}")
+    return {target: value[source] for source, target in keys.items()}
+
+
+def _read_icpsr_managed_release(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Authenticate a managed release and compare its sealed concept records."""
+    if len(spec.inputs) != 1:
+        raise ValueError("ICPSR managed release reader requires one manifest input")
+    pin = spec.inputs[0]
+    manifest = _json_without_duplicates(authenticated_payloads[pin], pin.path)
+    if not isinstance(manifest, Mapping):
+        raise ValueError("ICPSR managed release manifest must be an object")
+    _verify_canonical_json_seal(manifest, "ICPSR managed release manifest")
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("ICPSR managed release artifacts must be an array")
+    manifest_path = Path(pin.path)
+    root = manifest_path.parent
+    artifact_payloads: dict[str, bytes] = {}
+    for index, descriptor in enumerate(artifacts):
+        if not isinstance(descriptor, Mapping):
+            raise ValueError(f"ICPSR artifact {index} must be an object")
+        relative_path = descriptor.get("path")
+        digest = descriptor.get("sha256")
+        byte_length = descriptor.get("byteLength")
+        if not isinstance(relative_path, str):
+            raise ValueError(f"ICPSR artifact {index} has no path")
+        path_parts = Path(relative_path).parts
+        if (
+            Path(relative_path).is_absolute()
+            or not path_parts
+            or any(part in {"", ".", ".."} for part in path_parts)
+        ):
+            raise ValueError(f"ICPSR artifact path is unsafe: {relative_path!r}")
+        artifact_path = root / relative_path
+        if artifact_path.is_symlink() or not artifact_path.is_file():
+            raise ValueError(f"ICPSR artifact is not a regular file: {relative_path}")
+        payload = artifact_path.read_bytes()
+        observed_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if len(payload) != byte_length or observed_digest != digest:
+            raise ValueError(
+                f"ICPSR artifact pin differs for {relative_path}: "
+                f"observed=({len(payload)}, {observed_digest})"
+            )
+        if relative_path in artifact_payloads:
+            raise ValueError(f"ICPSR artifact path repeats: {relative_path}")
+        artifact_payloads[relative_path] = payload
+    required = {
+        "records/concepts.jsonl",
+        "records/coverage.json",
+        "sources/index/manifest.json",
+        "sources/subject.xml",
+    }
+    missing_artifacts = sorted(required - artifact_payloads.keys())
+    if missing_artifacts:
+        raise ValueError(f"ICPSR managed release lacks artifacts: {missing_artifacts}")
+    coverage = _json_without_duplicates(
+        artifact_payloads["records/coverage.json"],
+        "ICPSR coverage",
+    )
+    if not isinstance(coverage, Mapping):
+        raise ValueError("ICPSR coverage must be an object")
+    _verify_canonical_json_seal(coverage, "ICPSR coverage")
+    release = manifest.get("release")
+    sources = manifest.get("sources")
+    counts = manifest.get("counts")
+    gaps = coverage.get("gaps")
+    if not all(isinstance(value, Mapping) for value in (release, sources, counts, gaps)):
+        raise ValueError("ICPSR manifest or coverage structural fields are missing")
+    scheme_iri = release.get("schemeIri")
+    if not isinstance(scheme_iri, str):
+        raise ValueError("ICPSR managed release has no scheme IRI")
+    index_manifest_digest = (
+        "sha256:"
+        + hashlib.sha256(artifact_payloads["sources/index/manifest.json"]).hexdigest()
+    )
+    subject_xml_digest = (
+        "sha256:"
+        + hashlib.sha256(artifact_payloads["sources/subject.xml"]).hexdigest()
+    )
+    if sources.get("indexManifestDigest") != index_manifest_digest:
+        raise ValueError("ICPSR index manifest digest differs from authenticated artifact")
+    if sources.get("xmlDigest") != subject_xml_digest:
+        raise ValueError("ICPSR subject XML digest differs from authenticated artifact")
+
+    concepts: list[Mapping[str, Any]] = []
+    for line_number, line in enumerate(
+        artifact_payloads["records/concepts.jsonl"].splitlines(),
+        start=1,
+    ):
+        if not line.strip():
+            continue
+        row = _json_without_duplicates(line, f"ICPSR concept line {line_number}")
+        if not isinstance(row, Mapping):
+            raise ValueError(f"ICPSR concept line {line_number} is not an object")
+        concepts.append(row)
+    expected_concepts = counts.get("concepts")
+    if expected_concepts != len(concepts):
+        raise ValueError(
+            f"ICPSR managed concept count differs: declared {expected_concepts!r}, "
+            f"observed {len(concepts)}"
+        )
+    raw_relations: list[tuple[str, str, str, Mapping[str, Any]]] = []
+    unresolved_relations = 0
+    for concept in concepts:
+        resource = concept.get("conceptIri")
+        source_label = concept.get("officialLabel")
+        local_number = concept.get("sourceLocalRecordNumber")
+        rows = concept.get("relations")
+        if (
+            not isinstance(resource, str)
+            or not isinstance(source_label, str)
+            or not isinstance(local_number, str)
+            or not isinstance(rows, list)
+        ):
+            raise ValueError("ICPSR managed concept identity or relations differ")
+        for relation in rows:
+            if not isinstance(relation, Mapping):
+                raise ValueError(f"ICPSR {resource} relation must be an object")
+            relation_name = relation.get("relation")
+            target = relation.get("targetConceptIri")
+            target_label = relation.get("targetLabel")
+            if not isinstance(relation_name, str) or not isinstance(target_label, str):
+                raise ValueError(f"ICPSR {resource} relation shape differs")
+            if relation.get("resolutionStatus") != "uriVerified":
+                unresolved_relations += 1
+                continue
+            if not isinstance(target, str):
+                raise ValueError(f"ICPSR {resource} verified relation has no target IRI")
+            raw_relations.append(
+                (
+                    resource,
+                    relation_name,
+                    target,
+                    {
+                        "relation": relation_name,
+                        "sourceLabel": source_label,
+                        "sourceLocalRecordNumber": local_number,
+                        "sourcePath": f"subject.xml#record={local_number}",
+                        "targetLabel": target_label,
+                    },
+                )
+            )
+    broader_graph: dict[str, set[str]] = defaultdict(set)
+    for subject, relation_name, target, _ in raw_relations:
+        if relation_name == "broader":
+            broader_graph[subject].add(target)
+        elif relation_name == "narrower":
+            broader_graph[target].add(subject)
+    ancestor_cache: dict[str, frozenset[str]] = {}
+
+    def ancestors(start: str) -> frozenset[str]:
+        cached = ancestor_cache.get(start)
+        if cached is not None:
+            return cached
+        found: set[str] = set()
+        pending = list(broader_graph.get(start, ()))
+        while pending:
+            target = pending.pop()
+            if target in found:
+                continue
+            found.add(target)
+            pending.extend(broader_graph.get(target, ()))
+        result = frozenset(found)
+        ancestor_cache[start] = result
+        return result
+
+    relation_predicates = {
+        "broader": f"{SKOS}broader",
+        "narrower": f"{SKOS}narrower",
+        "related": f"{SKOS}related",
+        "use": f"{ATLAS}thesaurusUse",
+        "usedFor": f"{ATLAS}thesaurusUsedFor",
+    }
+    relations: set[tuple[str, str, str]] = set()
+    relation_payloads: dict[str, Mapping[str, Any]] = {}
+    for subject, relation_name, target, source_payload in raw_relations:
+        predicate = relation_predicates.get(relation_name)
+        if predicate is None:
+            raise ValueError(f"ICPSR relation kind is unsupported: {relation_name!r}")
+        relations.add((subject, predicate, target))
+        if relation_name == "related" and (
+            target in ancestors(subject) or subject in ancestors(target)
+        ):
+            relation_digest = _canonical_json_digest(source_payload)
+            relation_payloads[relation_digest] = {
+                "editorialTransformation": {
+                    "fromPredicate": f"{SKOS}related",
+                    "reason": "SKOS-S27-hierarchy-path",
+                    "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+                    "toPredicate": f"{ATLAS}thesaurusRelated",
+                },
+                "publisherRelation": source_payload,
+                "publisherRelationDigest": relation_digest,
+            }
+    production_manifest = pin.sha256 == (
+        "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a"
+    )
+    if production_manifest and len(relation_payloads) != 22:
+        raise ValueError(
+            f"ICPSR S27 relation count differs: observed {len(relation_payloads)}"
+        )
+
+    def records() -> Iterator[_StockVocabularyRecord]:
+        for concept in concepts:
+            resource = str(concept["conceptIri"])
+            official_label = str(concept["officialLabel"])
+            official_role = concept.get("officialLabelRole")
+            xml_role = concept.get("xmlLabelRole")
+            identifiers = concept.get("identifiers")
+            if official_role not in {"preferred", "alternate"}:
+                raise ValueError(f"ICPSR {resource} official label role differs")
+            if xml_role not in {"preferred", "alternate"}:
+                raise ValueError(f"ICPSR {resource} XML label role differs")
+            if not isinstance(identifiers, list) or not all(
+                isinstance(item, Mapping) for item in identifiers
+            ):
+                raise ValueError(f"ICPSR {resource} identifiers differ")
+            relation_labels: dict[str, list[str]] = defaultdict(list)
+            for relation in concept["relations"]:
+                relation_labels[str(relation["relation"])].append(
+                    str(relation["targetLabel"])
+                )
+            xml_term = {
+                "broaderLabels": relation_labels["broader"],
+                "inputTimestamp": concept.get("inputTimestamp"),
+                "label": official_label,
+                "narrowerLabels": relation_labels["narrower"],
+                "preferred": xml_role == "preferred",
+                "relatedLabels": relation_labels["related"],
+                "scopeNotes": list(concept.get("scopeNotes", ())),
+                "sourceLocalRecordNumber": concept.get("sourceLocalRecordNumber"),
+                "updateTimestamp": concept.get("updateTimestamp"),
+                "useLabels": relation_labels["use"],
+                "usedForLabels": relation_labels["usedFor"],
+            }
+            index_term = {
+                "identifiers": [
+                    _icpsr_index_identifier(identifier)
+                    for identifier in identifiers
+                ],
+                "label": official_label,
+                "preferred": official_role == "preferred",
+                "source_letter": concept.get("sourceLetter"),
+            }
+            source_path = (
+                f"index/pages/{concept['sourceLetter']}#term={concept['publisherCode']}"
+            )
+            native_payload = {
+                "identityStatus": "publisherIdentifierVerified",
+                "indexTerm": index_term,
+                "managedConcept": dict(concept),
+                "sourceArtifactDigests": {
+                    "indexManifest": index_manifest_digest,
+                    "subjectXml": subject_xml_digest,
+                },
+                "sourcePaths": [
+                    source_path,
+                    f"subject.xml#record={concept['sourceLocalRecordNumber']}",
+                ],
+                "sourceScheme": scheme_iri,
+                "xmlTerm": xml_term,
+            }
+            label_literal = _literal_value(official_label, None, None)
+            notes = tuple(
+                (SKOS_SCOPE_NOTE, _literal_value(str(note), None, None))
+                for note in concept.get("scopeNotes", ())
+            )
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(label_literal,) if official_role == "preferred" else (),
+                alternate_labels=(label_literal,) if official_role == "alternate" else (),
+                notations=(),
+                annotations=notes,
+                source_locator=resource,
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+
+    index_only = gaps.get("indexOnlyTerms")
+    xml_only = gaps.get("xmlOnlyLabels")
+    if not isinstance(index_only, list) or not isinstance(xml_only, list):
+        raise ValueError("ICPSR coverage gap lists are missing")
+    unevaluated = (
+        f"ICPSR managed release declares {len(index_only)} index-only union members outside records/concepts.jsonl",
+        f"ICPSR managed release declares {len(xml_only)} XML-only union members outside records/concepts.jsonl",
+        f"ICPSR managed concepts contain {unresolved_relations} unresolved source-skew relations",
+        "ICPSR raw index HTML, subject XML, and indexed-expression artifacts are authenticated transitively but not reparsed by this managed-release reader",
+    )
+    return _stock_vocabulary_view(
+        records(),
+        relations,
+        (),
+        spec.inputs,
+        unevaluated_claims=unevaluated,
+        require_relation_members=False,
+        expected_relation_payloads=relation_payloads,
+    )
+
+
+_PUBLISHER_READERS: Mapping[
+    str,
+    Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
+] = {
+    EPA_ENTERPRISE_VOCABULARY_XML_READER: _read_epa_enterprise_vocabulary_xml,
+    FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
+    ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
+    LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
+}
+
 # Every Publications Office release ships the same dataset-description layer in
 # its metadata file, so the comparisons that read those files share one
 # declaration rather than several drifting copies of it.
@@ -3253,6 +4839,204 @@ _PUBLICATIONS_OFFICE_DATASET_DESCRIPTION = DeclaredClaimExclusion(
 
 
 SOURCES: tuple[SourceSpec, ...] = (
+    SourceSpec(
+        name="epa-enterprise-vocabulary-label-tree-2026-08-03",
+        kind="vocabulary",
+        release_keys=("epa-enterprise-vocabulary-label-tree-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/epa_enterprise_vocabulary/"
+                    "epa-enterprise-vocabulary-tier-1005100-with-definitions.xml"
+                ),
+                sha256=(
+                    "sha256:beea0c4a099e07d3196903814f569ad781b081cc0b73ee47"
+                    "aff60d118a786df2"
+                ),
+                byte_length=647,
+                fmt="xml",
+                role="boundedPublisherLabelTree",
+                source_iri=(
+                    "https://ofmpub.epa.gov/sor_internet/registry/termreg/"
+                    "searchandretrieve/enterprisevocabulary/search.do?search=&"
+                    "searchString=&6578706f7274=1&d-8056443-e=13&"
+                    "tierTwoSelected=1005100&checkedIncludeDef=true&showDefs=true"
+                ),
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=EPA_ENTERPRISE_VOCABULARY_XML_READER,
+        identity_policy="source-position-observation",
+        rdf_source=_rdf_source_policy(
+            frozenset({"depth", "row", "publisherConceptIdentityAvailable"}),
+            label_language_inverse="atlas-en-to-source-untagged",
+            note_predicate_inverse=SKOS_SCOPE_NOTE,
+        ),
+    ),
+    SourceSpec(
+        name="fast-topical-current",
+        kind="vocabulary",
+        release_keys=("fast-topical-current",),
+        inputs=(
+            _registry_source_pin(
+                "FASTTopical.nt.zip",
+                "sha256:217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db",
+                55_099_212,
+                "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
+                fmt="zip-ntriples",
+                role="publisherBase",
+            ),
+            _registry_source_pin(
+                "FASTChanges2024-10-27.mrc",
+                "sha256:f53c640767cb1c4c0bce85b85a69e382780a65772d4deae30ab3a1a8fa96419a",
+                2_726_812,
+                "https://fast.oclc.org/fastChanges/FASTChanges2024-10-27.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+            _registry_source_pin(
+                "FASTChanges2024-12-04.mrc",
+                "sha256:06ae6714240ac1d8126cfeff5392feb8004f6a1d16e2bb392c854ecf47a6a011",
+                1_797_706,
+                "https://fast.oclc.org/fastChanges/FASTChanges2024-12-04.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+            _registry_source_pin(
+                "FASTChanges2025-05-01.mrc",
+                "sha256:0d505664fe5de155d58bd1c178e65112ee4b42067044b6a4cb14f516ef03f116",
+                3_827_847,
+                "https://fast.oclc.org/fastChanges/FASTChanges2025-05-01.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+            _registry_source_pin(
+                "FASTChanges2026-02-13.mrc",
+                "sha256:98c965420836f0f21aed18599f0216cc61b2f3c2b7ca06cc10f6b9cc1ad374e3",
+                10_220_096,
+                "https://fast.oclc.org/fastChanges/FASTChanges2026-02-13.mrc",
+                fmt="marc",
+                role="publisherChange",
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=FAST_TOPICAL_NATIVE_READER,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "altLabels",
+                    "broaderIds",
+                    "heading",
+                    "identityStatus",
+                    "legacyFstId",
+                    "numericId",
+                    "publisherIri",
+                }
+            ),
+            label_language_inverse="atlas-en-to-source-untagged",
+            relation_scope="member-endpoints",
+        ),
+    ),
+    SourceSpec(
+        name="icpsr-subject-thesaurus",
+        kind="vocabulary",
+        release_keys=("icpsr-subject-thesaurus",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "/Users/mikewolfd/Work/spicy-regs/output/"
+                    "refspec-vocabulary-portfolio/icpsr/2026-07-30/"
+                    "managed-release/managed-release.json"
+                ),
+                construction_path=(
+                    "spicy-regs/output/refspec-vocabulary-portfolio/icpsr/"
+                    "2026-07-30/managed-release/managed-release.json"
+                ),
+                sha256=(
+                    "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615"
+                    "999c881673ac12a"
+                ),
+                byte_length=6_267,
+                fmt="managed-release-json",
+                role="publisherSource",
+                source_iri=(
+                    "urn:ref:source-artifact:"
+                    "f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a"
+                ),
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=ICPSR_MANAGED_RELEASE_READER,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identityStatus",
+                    "indexTerm",
+                    "managedConcept",
+                    "sourceArtifactDigests",
+                    "sourcePaths",
+                    "sourceScheme",
+                    "xmlTerm",
+                }
+            ),
+            additional_relation_predicates=(
+                f"{ATLAS}thesaurusUse",
+                f"{ATLAS}thesaurusUsedFor",
+                f"{ATLAS}thesaurusRelated",
+            ),
+            label_language_inverse="atlas-en-to-source-untagged",
+            note_predicate_inverse=SKOS_SCOPE_NOTE,
+            relation_predicate_inverse=(
+                (f"{ATLAS}thesaurusRelated", f"{SKOS}related"),
+            ),
+            relation_scope="member-subject",
+        ),
+    ),
+    SourceSpec(
+        name="lcsh-eurovoc-alignment-endpoints-2026-08-06",
+        kind="vocabulary",
+        release_keys=("lcsh-eurovoc-alignment-endpoints-2026-08-06",),
+        inputs=(
+            _registry_source_pin(
+                "eurovoc-lcsh-alignment-20240711.rdf",
+                "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853",
+                332_124,
+                (
+                    "https://op.europa.eu/o/opportal-service/euvoc-download-handler?"
+                    "cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2F"
+                    "distribution%2Feurovoc_alignment_lcsh%2F20240711-0%2Frdf%2F"
+                    "skos_core_alignment%2Falign_EuroVoc_LCSH.rdf&"
+                    "fileName=align_EuroVoc_LCSH.rdf"
+                ),
+                fmt="xml",
+                role="publisherAlignment",
+            ),
+            _registry_source_pin(
+                "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz",
+                "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856",
+                140_187_915,
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                fmt="jsonld.gz",
+                role="publisherBulkSource",
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        reader=LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "authorityTypes",
+                    "broaderIris",
+                    "captureSelection",
+                    "lccn",
+                    "lineNumber",
+                    "recordByteLength",
+                    "recordDigest",
+                }
+            ),
+            relation_scope="member-endpoints",
+        ),
+    ),
     SourceSpec(
         name="agrovoc-c330-bounded-2026-08-03",
         kind="vocabulary",
@@ -3867,7 +5651,7 @@ def build_context(
     source_extract_pairs: list[SourceExtractPair] = []
     atlas_views: list[tuple[SourceSpec, AtlasView]] = []
     publisher_cache: dict[
-        tuple[tuple[SourcePin, ...], tuple[str, ...], tuple[str, ...]],
+        tuple[object, ...],
         PublisherView | str,
     ] = {}
     native_specs = [spec for spec in specs if spec.kind == "native-control"]
@@ -3906,6 +5690,7 @@ def build_context(
                 else ()
             )
             cache_key = (
+                spec.reader,
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
@@ -3918,16 +5703,24 @@ def build_context(
             cached = publisher_cache.get(cache_key)
             if cached is None:
                 try:
-                    cached = _read_publisher_pin_set(
-                        spec.inputs,
-                        " + ".join(sorted(pin.path for pin in spec.inputs)),
-                        authenticated_payloads,
-                        additional_annotation_predicates=(
-                            additional_annotation_predicates
-                        ),
-                        additional_relation_predicates=additional_relation_predicates,
-                        declared_claim_exclusions=spec.declared_claim_exclusions,
-                    )
+                    if spec.reader == "rdf":
+                        cached = _read_publisher_pin_set(
+                            spec.inputs,
+                            " + ".join(sorted(pin.path for pin in spec.inputs)),
+                            authenticated_payloads,
+                            additional_annotation_predicates=(
+                                additional_annotation_predicates
+                            ),
+                            additional_relation_predicates=additional_relation_predicates,
+                            declared_claim_exclusions=spec.declared_claim_exclusions,
+                        )
+                    else:
+                        reader = _PUBLISHER_READERS.get(spec.reader)
+                        if reader is None:
+                            raise ValueError(
+                                f"unsupported publisher reader {spec.reader!r}"
+                            )
+                        cached = reader(spec, authenticated_payloads)
                 except Exception as error:  # noqa: BLE001 - keep reading independent sources
                     cached = f"{type(error).__name__}: {error}"
                 publisher_cache[cache_key] = cached
@@ -3962,10 +5755,29 @@ def build_context(
             else frozenset()
         )
         try:
+            compact_native_payload = (
+                publisher is not None
+                and publisher.source_digest_is_native_payload_digest
+                and not publisher.expected_native_payloads
+                and spec.rdf_source is not None
+            )
             atlas = read_atlas_source(
                 distribution,
                 packs,
                 source_claim_subjects,
+                compact_normalized_claims=(
+                    publisher is not None and spec.reader != "rdf"
+                ),
+                compact_native_payload_fields=(
+                    spec.rdf_source.evaluated_native_payload_fields
+                    if compact_native_payload
+                    else None
+                ),
+                compact_native_payload_atlas_only_fields=(
+                    spec.rdf_source.atlas_only_native_payload_fields
+                    if compact_native_payload
+                    else frozenset()
+                ),
             )
         except Exception as error:  # noqa: BLE001 - continue with every later source
             load_failures.append(
@@ -4100,6 +5912,15 @@ def check_configuration(ctx: Context) -> CheckResult:
         selector = spec.native_control
         if spec.kind not in COMPARISON_KINDS:
             failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
+        if spec.identity_policy not in {
+            "publisher-iri",
+            "source-local-record",
+            "source-scoped-identifier",
+            "source-position-observation",
+        }:
+            failures.append(
+                f"{spec.name}: unsupported identity policy {spec.identity_policy!r}"
+            )
         for pin in spec.inputs:
             if not pin.role:
                 failures.append(
@@ -4109,6 +5930,14 @@ def check_configuration(ctx: Context) -> CheckResult:
                 failures.append(
                     f"{spec.name}: publisher pin {pin.path!r} has no source IRI"
                 )
+        if (
+            spec.kind in RDF_COMPARISON_KINDS
+            and spec.reader != "rdf"
+            and spec.reader not in _PUBLISHER_READERS
+        ):
+            failures.append(
+                f"{spec.name}: no publisher reader is declared for {spec.reader!r}"
+            )
         if not spec.release_keys:
             failures.append(f"{spec.name}: comparison declares no construction-unit key")
         if len(spec.release_keys) != 1:
@@ -4496,12 +6325,20 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     aggregate_source_evidence_fields = frozenset(
         {"labelRoleNormalization", "metadata"}
     )
+    expected_payload_fields = policy.evaluated_native_payload_fields
+    reader_native_fields = frozenset(
+        field_name
+        for payload in pair.publisher.expected_native_payloads.values()
+        for field_name in payload
+    )
+    if pair.publisher.source_digest_is_native_payload_digest:
+        reader_native_fields |= expected_payload_fields
     supported_resource_fields = (
         per_record_resource_fields
         | aggregate_relation_fields
         | aggregate_source_evidence_fields
+        | reader_native_fields
     )
-    expected_payload_fields = policy.evaluated_native_payload_fields
     unsupported_declared_fields = sorted(
         expected_payload_fields - supported_resource_fields
     )
@@ -4527,15 +6364,63 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         set(pair.atlas.source_records)
         | set(pair.atlas.record_targets)
         | set(pair.atlas.native_payloads)
+        | set(pair.atlas.compact_native_payload_records)
     )
     for record in sorted(record_ids):
         target = pair.atlas.record_targets.get(record)
         payload = pair.atlas.native_payloads.get(record)
+        compact_payload = record in pair.atlas.compact_native_payload_records
         if target is None:
             if payload is None:
-                failures.append(
-                    f"{source}: targetless source record <{record}> has no native payload"
+                detail = (
+                    "has no native payload"
+                    if not compact_payload
+                    else "has no represented publisher resource"
                 )
+                failures.append(f"{source}: targetless source record <{record}> {detail}")
+                continue
+
+            publisher_relation_digest = payload.get("publisherRelationDigest")
+            expected_relation_payload = (
+                pair.publisher.expected_relation_payloads.get(
+                    publisher_relation_digest,
+                )
+                if isinstance(publisher_relation_digest, str)
+                else None
+            )
+            if expected_relation_payload is not None:
+                publisher_relation = payload.get("publisherRelation")
+                if not isinstance(publisher_relation, Mapping):
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelation is not an object"
+                    )
+                    continue
+                exact_relation_digest = _canonical_json_digest(publisher_relation)
+                if publisher_relation_digest != exact_relation_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelationDigest differs "
+                        "from its exact publisher relation payload"
+                    )
+                if payload != expected_relation_payload:
+                    failures.append(
+                        f"{source}: source record <{record}> transformed publisher relation "
+                        "payload differs from the independent source reconstruction"
+                    )
+                expected_locator = (
+                    "urn:ref:publisher-relation:"
+                    + publisher_relation_digest.removeprefix("sha256:")
+                )
+                if pair.atlas.record_source_locators.get(record) != expected_locator:
+                    failures.append(
+                        f"{source}: source record <{record}> relation locator differs -- "
+                        f"expected <{expected_locator}>"
+                    )
+                expected_digest = _canonical_json_digest(expected_relation_payload)
+                if pair.atlas.record_source_digests.get(record) != expected_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> transformed relation digest "
+                        f"differs -- expected {expected_digest}"
+                    )
                 continue
 
             publisher_relation = _payload_relation(payload.get("publisherRelation"))
@@ -4639,7 +6524,10 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 "a publisher concept in the selected pinned bytes"
             )
         locator = pair.atlas.record_source_locators.get(record)
-        expected_locator = locator_by_resource.get(target, policy.record_locator or target)
+        expected_locator = pair.publisher.resource_locators.get(
+            target,
+            locator_by_resource.get(target, policy.record_locator or target),
+        )
         if locator != expected_locator:
             failures.append(
                 f"{source}: source record <{record}> locator differs -- expected "
@@ -4647,12 +6535,21 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             )
 
         resource_input_path = input_path_by_resource.get(target)
-        expected_digests = (
-            {pair.publisher.input_content_digests[resource_input_path]}
-            if resource_input_path in pair.publisher.input_content_digests
-            else default_digests
-            or set(pair.publisher.resource_input_digests.get(target, frozenset()))
+        compact_resource_digest = pair.publisher.resource_input_digest_values.get(
+            target
         )
+        if resource_input_path in pair.publisher.input_content_digests:
+            expected_digests = {
+                pair.publisher.input_content_digests[resource_input_path]
+            }
+        elif default_digests:
+            expected_digests = default_digests
+        elif compact_resource_digest is not None:
+            expected_digests = {compact_resource_digest}
+        else:
+            expected_digests = set(
+                pair.publisher.resource_input_digests.get(target, frozenset())
+            )
         observed_digest = pair.atlas.record_source_digests.get(record)
         if len(expected_digests) != 1:
             failures.append(
@@ -4665,8 +6562,29 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 f"{next(iter(expected_digests))}, observed {observed_digest!r}"
             )
 
-        if payload is None:
+        if payload is None and not compact_payload:
             failures.append(f"{source}: source record <{record}> has no native payload")
+            continue
+        if payload is None:
+            digest_difference = pair.atlas.native_payload_digest_differences.get(
+                record
+            )
+            if digest_difference is not None:
+                payload_digest, source_digest = digest_difference
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest "
+                    f"{payload_digest} differs from atlas:sourceDigest {source_digest!r}"
+                )
+            unexpected_fields, missing_fields = (
+                pair.atlas.native_payload_field_differences.get(record, ((), ()))
+            )
+            for field_name in unexpected_fields:
+                unexpected_payload_fields[field_name].append(record)
+            if missing_fields:
+                failures.append(
+                    f"{source}: source record <{record}> native payload omits independently "
+                    f"evaluated fields {list(missing_fields)}"
+                )
             continue
         for field_name in sorted(
             set(payload)
@@ -4674,8 +6592,20 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             - policy.atlas_only_native_payload_fields
         ):
             unexpected_payload_fields[field_name].append(record)
+        reader_expected_payload = pair.publisher.expected_native_payloads.get(
+            target,
+            {},
+        )
+        expected_per_record_fields = per_record_resource_fields | frozenset(
+            reader_expected_payload
+        )
+        if (
+            pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_per_record_fields |= expected_payload_fields
         missing_fields = sorted(
-            (expected_payload_fields & per_record_resource_fields) - set(payload)
+            (expected_payload_fields & expected_per_record_fields) - set(payload)
         )
         if missing_fields:
             failures.append(
@@ -4702,6 +6632,24 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 failures.append(
                     f"{source}: source record <{record}> topConceptOfIris differs -- expected "
                     f"{expected!r}, observed {payload.get('topConceptOfIris')!r}"
+                )
+        for field_name in sorted(expected_payload_fields & reader_expected_payload.keys()):
+            expected = reader_expected_payload[field_name]
+            if payload.get(field_name) != expected:
+                failures.append(
+                    f"{source}: source record <{record}> native payload {field_name} "
+                    f"differs -- expected {expected!r}, observed {payload.get(field_name)!r}"
+                )
+        if (
+            pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_payload_digest = next(iter(expected_digests))
+            observed_payload_digest = _canonical_json_digest(payload)
+            if observed_payload_digest != expected_payload_digest:
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest differs -- "
+                    f"expected {expected_payload_digest}, observed {observed_payload_digest}"
                 )
 
     if pair.spec.kind == "mapping":
@@ -5313,22 +7261,48 @@ def check_concept_traceability(ctx: Context) -> CheckResult:
 
 
 def check_identifier_retention(ctx: Context) -> CheckResult:
-    """The publisher's own identifier is retained rather than minted."""
+    """Concept identity follows each source's explicit identity policy."""
     failures = _incomplete_evaluation_failure(ctx, "identifier retention", "vocabulary")
     checked = 0
     for pair in ctx.vocabularies():
         atlas_concepts = _atlas_publisher_concepts(pair)
-        minted = sorted(resource for resource in atlas_concepts if resource.startswith("urn:ref:"))
         checked += len(atlas_concepts)
-        for resource in minted:
+        if pair.spec.identity_policy == "publisher-iri":
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if resource.startswith("urn:ref:")
+            )
+            for resource in unexpected:
+                failures.append(
+                    f"{pair.spec.name}: Atlas concept <{resource}> carries a minted "
+                    "RefSpec identifier where the publisher supplies its own IRI"
+                )
+            continue
+        if pair.spec.identity_policy in {
+            "source-local-record",
+            "source-scoped-identifier",
+        }:
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if not resource.startswith("urn:ref:source-concept:v2:")
+            )
+        else:
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if not resource.startswith("urn:ref:epa-enterprise-vocabulary-row:")
+            )
+        for resource in unexpected:
             failures.append(
-                f"{pair.spec.name}: Atlas concept <{resource}> carries a minted RefSpec identifier "
-                f"where the publisher supplies its own IRI"
+                f"{pair.spec.name}: Atlas concept <{resource}> does not use the "
+                f"declared {pair.spec.identity_policy} identity form"
             )
 
     return _result(
         "identifier-retention",
-        f"{checked} concept identities checked; publisher IRIs retained verbatim",
+        f"{checked} concept identities checked against declared source identity policies",
         failures,
     )
 
@@ -6428,9 +8402,18 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     absent from this view. The binding validator owns those claims.
     """
     return frozenset(
-        resource
-        for resource, types in pair.atlas.rdf_types.items()
-        if SKOS_CONCEPT in types
+        {
+            *(
+                resource
+                for resource, types in pair.atlas.rdf_types.items()
+                if SKOS_CONCEPT in types
+            ),
+            *(
+                subject
+                for subject, predicate, obj in pair.atlas.raw_source_iri_claims
+                if predicate == RDF_TYPE and obj == SKOS_CONCEPT
+            ),
+        }
     )
 
 
@@ -9098,6 +11081,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
             {
                 "name": spec.name,
                 "kind": spec.kind,
+                "publisherReader": spec.reader,
+                "identityPolicy": spec.identity_policy,
                 "subset": spec.subset,
                 "includedPublisherConceptIris": sorted(spec.included_concept_iris),
                 "releaseKeys": list(spec.release_keys),
