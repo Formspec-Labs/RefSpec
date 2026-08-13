@@ -8859,6 +8859,142 @@ SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES = (
 )
 
 
+_FERC_SEARCH_PATTERN_PIN = SourcePin(
+    path="ferc-general-search-help.html",
+    sha256=(
+        "sha256:1f4b2883879602530c59095cc3d33fedbbf50a2d630e7bdf0226785259dd2b45"
+    ),
+    byte_length=7_447,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://elibrary.ferc.gov/eLibraryhelp/General_Search.htm",
+    construction_path=(
+        "output/registry-real-data-sources/ferc-general-search-help.html"
+    ),
+)
+_FERC_ACCESSIBILITY_PATTERN_PIN = SourcePin(
+    path="ferc-accessibility-tips.html",
+    sha256=(
+        "sha256:c9219bd08b8712e35389ff26f079a21e16d2b5fea68aaebf561bb9b203010688"
+    ),
+    byte_length=39_466,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://elibrary.ferc.gov/eLibrary/assets/Accessibility_Tips.html"
+    ),
+    construction_path=(
+        "output/registry-real-data-sources/ferc-accessibility-tips.html"
+    ),
+)
+
+
+def _ferc_pattern_source(
+    *,
+    name: str,
+    pin: SourcePin,
+    source_token: str,
+    region_pattern: str,
+    row_pattern: str,
+    source_path_root: str,
+    label_template: str,
+    native_value_field: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:18:32Z"
+    native_payload_template = {
+        native_value_field: "{code}",
+        "sourceArtifact": "{source_iri}",
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", label_template),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", label_template),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedControl",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(f"$.{source_path_root}[{{ordinal}}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (pin,), selector)
+
+
+FERC_HTML_PATTERN_ROW_SOURCES = (
+    _ferc_pattern_source(
+        name="ferc-sectors",
+        pin=_FERC_SEARCH_PATTERN_PIN,
+        source_token="ferc-sectors",
+        region_pattern=(
+            r"<li>Industry Sector</li>\s*<ul[^>]*>(?P<region>.*?)</ul>"
+        ),
+        row_pattern=r"<li>(?P<code>.*?)</li>",
+        source_path_root="sectors",
+        label_template="{code}",
+        native_value_field="value",
+        expected_count=6,
+    ),
+    _ferc_pattern_source(
+        name="ferc-security-levels",
+        pin=_FERC_SEARCH_PATTERN_PIN,
+        source_token="ferc-security-levels",
+        region_pattern=(
+            r"<li>Security Level</li>\s*<ul[^>]*>(?P<region>.*?)</ul>"
+        ),
+        row_pattern=r"<li>(?P<code>.*?)</li>",
+        source_path_root="security-levels",
+        label_template="{code}",
+        native_value_field="value",
+        expected_count=4,
+    ),
+    _ferc_pattern_source(
+        name="ferc-accession-number-formats",
+        pin=_FERC_ACCESSIBILITY_PATTERN_PIN,
+        source_token="ferc-accession-formats",
+        region_pattern=(
+            r'<td scope="row">Accession</td>\s*<td>(?P<region>[^<]+)</td>'
+        ),
+        row_pattern=r"(?:^|, or )(?P<code>[^,]+?)(?=, or |$)",
+        source_path_root="accessionFormats",
+        label_template="FERC accession number format {code}",
+        native_value_field="format",
+        expected_count=2,
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -8933,6 +9069,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *REGULATIONS_GOV_PATTERN_ROW_SOURCES,
     *SAM_ASSISTANCE_PATTERN_ROW_SOURCES,
     *SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES,
+    *FERC_HTML_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
