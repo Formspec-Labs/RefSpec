@@ -9479,6 +9479,133 @@ def _oversight_pattern_source() -> SourceSpec:
 OVERSIGHT_PATTERN_ROW_SOURCES = (_oversight_pattern_source(),)
 
 
+_UNIFIED_AGENDA_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/unified_agenda_codes/"
+        "reginfo-rin-data-ver10262011.xsd"
+    ),
+    sha256=(
+        "sha256:94fdcf4b382830cc44b9956c00439dc20a9643de402c298cee71293a14153b24"
+    ),
+    byte_length=22_730,
+    fmt="xml",
+    role="publisherSource",
+    source_iri=(
+        "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+    ),
+)
+
+
+def _unified_agenda_pattern_source(
+    *,
+    name: str,
+    element_name: str,
+    field_name: str,
+    identifier_kind: str,
+    row_pattern: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:15:15Z"
+    native_payload_template = {
+        "fieldName": field_name,
+        "identifier": {
+            "authority_uri": "https://www.reginfo.gov/",
+            "effective_at": None,
+            "kind": identifier_kind,
+            "observed_at": observed_at,
+            "source_digest": "{source_digest}",
+            "source_uri": "{source_iri}",
+            "value": "{code}",
+        },
+        "sourceArtifact": "{source_iri}",
+        "value": "{code}",
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_UNIFIED_AGENDA_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<xs:element name="'
+                    + re.escape(element_name)
+                    + r'".*?<xs:documentation>One of the following(?: options)?:\s*'
+                    r"(?P<region>.*?)\.</xs:documentation>"
+                ),
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("source_token", name),
+                ),
+                normalizers=(PatternFieldNormalizer("code", ("strip",)),),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{code}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{code}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=(
+            "xsdOutsideSelectedDocumentationAndRepeatedValues",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(f"$.{field_name}[{{ordinal}}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        name, (_UNIFIED_AGENDA_PATTERN_PIN,), selector
+    )
+
+
+UNIFIED_AGENDA_PATTERN_ROW_SOURCES = (
+    _unified_agenda_pattern_source(
+        name="unified-agenda-rule-stage",
+        element_name="RULE_STAGE",
+        field_name="ruleStage",
+        identifier_kind="ruleStageValue",
+        row_pattern=r'"(?P<code>[^"]+)"',
+        expected_count=6,
+    ),
+    _unified_agenda_pattern_source(
+        name="unified-agenda-priority-category",
+        element_name="PRIORITY_CATEGORY",
+        field_name="priorityCategory",
+        identifier_kind="priorityCategoryValue",
+        row_pattern=r'(?<!and )"(?P<code>[^"]+)"',
+        expected_count=6,
+    ),
+    _unified_agenda_pattern_source(
+        name="unified-agenda-timetable-action",
+        element_name="TTBL_ACTION",
+        field_name="timetableAction",
+        identifier_kind="timetableActionValue",
+        row_pattern=(
+            r"(?<!ANPRM Comment Period End)(?:^|, )"
+            r"(?P<code>.*?)(?=, |$)"
+        ),
+        expected_count=34,
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -9557,6 +9684,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *GRANTS_GOV_PATTERN_ROW_SOURCES,
     *OIRA_PATTERN_ROW_SOURCES,
     *OVERSIGHT_PATTERN_ROW_SOURCES,
+    *UNIFIED_AGENDA_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
