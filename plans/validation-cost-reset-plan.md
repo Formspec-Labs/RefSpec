@@ -1052,7 +1052,7 @@ product's weakest true claim.
 - [x] Per-phase table landed (see Measured evidence): 78% SHACL, 21% parse,
       integrity phases negligible; kill-5 resolved KEEP; no distribution on
       disk validates at HEAD.
-- [ ] REF-026 in `docs/decisions.md`: four verbs, seal design, kill-list
+- [x] REF-026 in `docs/decisions.md`: four verbs, seal design, kill-list (landed cce6f0ce; 4 references in the ledger — verified 2026-08-13)
       with engineering grounds, budget rule, and the rulespec boundary
       collapse. OWNER DECISION 2026-08-11: drafted AFTER the warrant-model
       decision so the entry records it; the SpicySearch seam stays open
@@ -1077,7 +1077,7 @@ product's weakest true claim.
 - [x] Fresh full build under HEAD's binding EXISTS
       (`output/atlas-3.0-full-2026-08-11`, 32M quads, producer validation
       "passed") — but see next item.
-- [ ] **BLOCKER for the first seal — warrant-model decision (semantic,
+- [x] [RESOLVED a64eee58 — option a1 landed, and the first seal has since been minted] **BLOCKER for the first seal — warrant-model decision (semantic,
       owner's call).** The fresh build violates HEAD's
       `atlas:EvidenceBindingShape` warrant `sh:xone` exactly as 08-10 did:
       bindings with `epistemicBasis=editorialAssertion`,
@@ -1118,7 +1118,7 @@ product's weakest true claim.
 - [x] Budget gate re-spec IMPLEMENTED (cd769d44 + follow-up): warn >60s,
       hard FAIL 240s runaway guard; 120s re-arms when the suite is next
       measured under 60s.
-- [ ] **Findings register (v3.6 — all open findings, owner-visible):**
+- [REGISTER — not a task; entries carry their own status] **Findings register (v3.6, owner-visible):**
       (a) The 46-case cross-mode SHACL parity breadth is UNPROTECTED — the
       committed test covers 6 mechanism cases; kill-5's protocol needs the
       full shacl.data set as the standing engine-parity corpus. Fix: a
@@ -1248,8 +1248,11 @@ product's weakest true claim.
       Jena exits 0 with violations (read sh:conforms), the assembled
       union view is not byte-stable (digest packs + pins, never the
       view), and an engine pin belongs inside bindingBundleDigest.
-- [ ] Reconcile the ledger's five-axis "duplication in model.py" note with
-      the code (one definition found; generator imports it).
+- [x] Reconciled 2026-08-13: there is NO duplication. One definition at
+      `bindings/atlas/3.1/tools/validate.py:473`, carrying an explicit
+      "nothing below restates it", read by the single accessor
+      `evidence_warrant_axis_values()`. The ledger's note referred to
+      ontology prose, not code; do not cite it as a code defect.
 - [x] **Next campaign SCOPED (v3.6, 2026-08-12; full map in the session's
       scoping report).** Ranked by payoff÷risk, sequenced 1→4 because each
       shrinks the next: (1) **Fixtures reframed** — kill-8 as written is
