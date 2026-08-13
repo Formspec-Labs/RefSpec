@@ -3074,6 +3074,49 @@ def test_literal_reification_round_trips_from_exact_native_literal_evidence(
     assert check.summary == "1 relation statement reifications reconstructed from Atlas"
 
 
+def test_literal_reification_marker_is_not_also_treated_as_annotation_text(
+    suite: Fixture,
+) -> None:
+    """A note-kind marker belongs to reification, not annotation text."""
+    base = "https://example.org/source.xml"
+    subject = f"{base}#c1"
+    predicate = "http://example.org/source/termNote"
+    marker = "Definition"
+    suite.write_publisher(
+        extra_triples=(
+            f'<{subject}> <{predicate}> "{marker}" .\n'
+            f"<{base}#Definition-c1> a <{RDF}Statement> ;\n"
+            f"  <{RDF}subject> <{subject}> ;\n"
+            f"  <{RDF}predicate> <{predicate}> ;\n"
+            f'  <{RDF}object> "{marker}" .'
+        )
+    )
+    suite.write_pack(
+        extra_native_payload_by_resource={
+            f"{EX}c1": {
+                "sourceAnnotations": [
+                    {
+                        "subjectIri": subject,
+                        "propertyIri": predicate,
+                        "value": marker,
+                    }
+                ]
+            }
+        }
+    )
+    policy = replace(
+        suite.spec.rdf_source,
+        literal_reification_id_rules=((predicate, marker, "Definition-"),),
+        reification_base_iri=base,
+        reification_predicates=(predicate,),
+    )
+    spec = replace(suite.spec, rdf_source=policy)
+    results = suite.run(spec=spec)
+
+    assert result(results, "annotation-fidelity").passed
+    assert result(results, "reification-fidelity").passed
+
+
 def test_literal_relation_object_cannot_match_an_atlas_iri_with_the_same_text(suite: Fixture) -> None:
     suite.write_publisher(
         drop_relation=(f"{EX}c1", f"{SKOS}related", f"{EX}c2"),

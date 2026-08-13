@@ -3624,9 +3624,6 @@ SOURCES: tuple[SourceSpec, ...] = (
             atlas_only_native_payload_fields=frozenset(
                 {"detachedAnnotationsNotJoined"}
             ),
-            additional_annotation_predicates=(
-                "http://synaptica.net/zthes/termNote",
-            ),
             additional_relation_predicates=(
                 "http://synaptica.net/skm/UF",
                 "http://synaptica.net/skm/Use",
