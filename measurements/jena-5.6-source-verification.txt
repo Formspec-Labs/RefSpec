@@ -1,0 +1,14 @@
+Apache Jena release: 5.6.0
+Git commit: 99267df18097141bd2ac27e2b14edc96226f0895
+jena-shacl files fetched through the GitHub API: 158
+Git blob SHA-1 mismatches: 0
+Compiled Java classes: 157
+
+This is not an exact Jena 5.6.0 distribution run. Shell network access was
+unavailable, the browser download service was unavailable, and no local 5.x
+distribution existed. The probe compiled the exact 5.6.0 SHACL Core engine,
+parser, and report sources over the verified Jena 6.2.0 base libraries. It
+excluded the SHACL Compact Syntax package, Imports.java, and two SHACL-SPARQL
+classes whose Jena 5 ARQ APIs no longer exist in Jena 6. None participates in
+the Atlas SHACL Core workload. Results are therefore an engine-code regression
+check, not a substitute for an exact 5.6.0 distribution measurement.

@@ -1,0 +1,11 @@
+Source: staging/view.nt (SHA-256 recorded in inputs.sha256)
+Generator: probes/amplify_label_fixture.py --copies 8
+Source label focus nodes: 24,974
+Output label focus nodes: 199,792
+Output triples: 808,673
+Output size: 150 MiB
+Output SHA-256: 74d766675ca3b99a939ab68af0b0ce13262cade3136ffeb669711cc6d6b801ac
+
+This non-verdict stress fixture copies the staging label records and retains
+the referenced release/source-record type triples. It increases focus-node
+pressure without exceeding the staging graph's quad count.

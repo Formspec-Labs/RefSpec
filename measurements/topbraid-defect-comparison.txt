@@ -1,0 +1,10 @@
+xone: 1 TopBraid result, 1 pySHACL result; canonical reports identical.
+cardinality: 1 TopBraid result, 1 pySHACL result; constraint component, focus,
+  path, value, and severity identical. Blank sourceShape identity differs.
+closed: 1 TopBraid result, 1 pySHACL result; canonical reports identical.
+both: 2 TopBraid results, 2 pySHACL results; constraint components, focus,
+  paths, values, and severities identical. Blank sourceShape identity differs.
+
+The comparison used the prior Jena spike's compare_reports.py and its existing
+pySHACL reports. All four comparisons were identical after ignoring blank
+sourceShape identity. Atlas records shaclComponents, not blank sourceShape IDs.
