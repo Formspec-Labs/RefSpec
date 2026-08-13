@@ -1,5 +1,8 @@
 Apache Jena release: 5.6.0
 Git commit: 99267df18097141bd2ac27e2b14edc96226f0895
+Published apache-jena-5.6.0.tar.gz SHA-512 (archive not downloaded):
+220ff50c3b6803c2cdade5479f8812700b281f4153fd73cdb83277b30f3d2c9e8a4a49d09717cfa7dde4fe5c7132a2aaaeeef3fbc474a6773b3d9deb5d63cbaa
+Digest source: https://archive.apache.org/dist/jena/binaries/apache-jena-5.6.0.tar.gz.sha512
 jena-shacl files fetched through the GitHub API: 158
 Git blob SHA-1 mismatches: 0
 Compiled Java classes: 157
