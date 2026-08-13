@@ -1,0 +1,954 @@
+{
+  "auditorVersion": "atlas-source-fidelity/11",
+  "constructionSummarySha256": "sha256:3a8075485231d564d00d559d0b406ca7d55eef742de159de66d289c8503512bd",
+  "distribution": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-full-2026-08-13",
+  "execution": {
+    "peakRssBytesObserved": 4499832832,
+    "peakRssLimitBytes": 6442450944,
+    "withinPeakRssLimit": true
+  },
+  "measurementScript": "prototype_measurements.py",
+  "measurementScriptSha256": "sha256:4cbbbd7ad11b43f8a53e1885a9cb56a2f0df482d7c27de67e707897060c96bda",
+  "measurementVersion": "fidelity-definitions/1",
+  "method": {
+    "atlasCarry": "An exact subject-and-literal match in atlas:definition or atlas:note. An IRI-valued publisher annotation is not counted as carried by those literal fields.",
+    "carryEstimate": "English-tagged skos:definition and skos:scopeNote values only. IRI-valued annotations are resolved through English rdf:value. One sorted definition per subject maps to atlas:definition; additional definitions and scope notes map to atlas:note.",
+    "parquetBytes": "Difference between current and proposed definition/notes-only Parquet tables, using the search view's schema types, 50,000-row groups, Zstandard level 19, data page v2, and no dictionary encoding for these two columns. Per-file footer overhead makes this an estimate, not an expected whole-artifact byte delta.",
+    "publisherAnnotationNumerator": "Unique claims using skos:definition, skos:scopeNote, skos:note, skos:example, skos:historyNote, skos:editorialNote, or rdfs:comment.",
+    "publisherSemanticClaimDenominator": "Unique IRI-subject literal and IRI-object RDF claims retained in the auditor's selected publisher view; blank-node claims are outside this denominator.",
+    "sourceScope": "The exact selected PublisherView for each named vocabulary SourceSpec in tools/verify_atlas_source_fidelity.py.",
+    "wireBytes": "Exact canonical N-Quads rendering under the Atlas 3.1 asserted graph, plus Zstandard level-19 compression of each source's incremental lines in isolation."
+  },
+  "sourceRoot": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/registry-real-data-sources",
+  "sources": [
+    {
+      "alias": "eurovoc",
+      "atlasDefinitionCount": 0,
+      "atlasNoteCount": 0,
+      "atlasPacks": [
+        {
+          "byteLength": 10274241,
+          "path": "sources/eurovoc-4-24/all.nq.zst",
+          "sha256": "sha256:e6a303ee9344b90d45d8cff58cff8f6cf2b9fe931abb45c218819194ce4af115"
+        }
+      ],
+      "atlasQuadCount": 856733,
+      "auditorReleaseKeys": [
+        "eurovoc-4.24"
+      ],
+      "auditorSourceName": "eurovoc-4.24",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 0,
+        "eligibleDirectLiteralClaimCount": 1884,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 1557,
+          "skos:scopeNote": 327
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 460581,
+        "incrementalCanonicalNQuadsZstd19Bytes": 81410,
+        "incrementalDefinitionQuadCount": 1555,
+        "incrementalNoteQuadCount": 329,
+        "incrementalTextUtf8Bytes": 235738,
+        "incrementalWireQuadCount": 1884,
+        "multiDefinitionSubjectCount": 2,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 673,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 77919,
+          "proposedDefinitionNotesColumnBytes": 78592,
+          "resourceRowCount": 7515
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 43837,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 8.37479,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {},
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 30621,
+          "publisherClaimCount": 30621,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 30621
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 4983,
+          "publisherClaimCount": 4983,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 4983
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 8233,
+          "publisherClaimCount": 8233,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 8233
+        }
+      },
+      "publisherConceptCount": 7515,
+      "publisherInputPins": [
+        {
+          "byteLength": 36011,
+          "path": "eurovoc-4.24-metadata.ttl",
+          "sha256": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+          "zipMember": null
+        },
+        {
+          "byteLength": 8567290,
+          "path": "eurovoc-4.24-skos-core.zip",
+          "sha256": "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+          "zipMember": "eurovoc_in_skos_core_concepts.rdf"
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "eurovoc-4.24-metadata.ttl": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+        "eurovoc-4.24-skos-core.zip": "sha256:6c362f79ad03e325ba1b4818f1ca3a847bb6167c2a8f7167e2e4df91305b6620"
+      },
+      "publisherSemanticClaimCount": 523440
+    },
+    {
+      "alias": "elsst",
+      "atlasDefinitionCount": 903,
+      "atlasNoteCount": 1004,
+      "atlasPacks": [
+        {
+          "byteLength": 5224385,
+          "path": "sources/elsst-r6/all.nq.zst",
+          "sha256": "sha256:09879e20364fa33ca69aed4065770d3a89192bc3df56e708c8f53e1951d16325"
+        }
+      ],
+      "atlasQuadCount": 391647,
+      "auditorReleaseKeys": [
+        "elsst-r6"
+      ],
+      "auditorSourceName": "elsst-r6",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 1086,
+        "eligibleDirectLiteralClaimCount": 1086,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 903,
+          "skos:scopeNote": 183
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 0,
+        "incrementalCanonicalNQuadsZstd19Bytes": 0,
+        "incrementalDefinitionQuadCount": 0,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 0,
+        "incrementalWireQuadCount": 0,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 46415,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 0,
+          "proposedDefinitionNotesColumnBytes": 46415,
+          "resourceRowCount": 3470
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 13097,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 5.461156,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {},
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 903,
+          "omittedClaimCount": 8204,
+          "publisherClaimCount": 9107,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 9107
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 688,
+          "omittedClaimCount": 3368,
+          "publisherClaimCount": 4056,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 4056
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 183,
+          "omittedClaimCount": 1525,
+          "publisherClaimCount": 1708,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 1708
+        }
+      },
+      "publisherConceptCount": 3470,
+      "publisherInputPins": [
+        {
+          "byteLength": 19915491,
+          "path": "ELSST_R6.ttl",
+          "sha256": "sha256:c362aec545db916ecb67af0eb9b8b4cecac1cb2118a717b69d8e6dad5591aa95",
+          "zipMember": null
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "ELSST_R6.ttl": "sha256:c362aec545db916ecb67af0eb9b8b4cecac1cb2118a717b69d8e6dad5591aa95"
+      },
+      "publisherSemanticClaimCount": 239821
+    },
+    {
+      "alias": "gemet",
+      "atlasDefinitionCount": 5134,
+      "atlasNoteCount": 3653,
+      "atlasPacks": [
+        {
+          "byteLength": 6060013,
+          "path": "sources/gemet-4-2-3/all.nq.zst",
+          "sha256": "sha256:cd36da1be412f1074e3125e8d120fb90a335a7bb18c12bf7f2d20018101bddb6"
+        }
+      ],
+      "atlasQuadCount": 480903,
+      "auditorReleaseKeys": [
+        "gemet-4.2.3"
+      ],
+      "auditorSourceName": "gemet-4.2.3",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 5236,
+        "eligibleDirectLiteralClaimCount": 5236,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 5134,
+          "skos:scopeNote": 102
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 4,
+        "incrementalCanonicalNQuadsBytes": 0,
+        "incrementalCanonicalNQuadsZstd19Bytes": 0,
+        "incrementalDefinitionQuadCount": 0,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 0,
+        "incrementalWireQuadCount": 0,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 291339,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 0,
+          "proposedDefinitionNotesColumnBytes": 291339,
+          "resourceRowCount": 5573
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 42135,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 13.019296,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {
+        "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#source": {
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 4547
+        }
+      },
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 5134,
+          "omittedClaimCount": 41227,
+          "publisherClaimCount": 46361,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 46361
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 126,
+          "omittedClaimCount": 648,
+          "publisherClaimCount": 774,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 774
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 102,
+          "omittedClaimCount": 260,
+          "publisherClaimCount": 362,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 362
+        }
+      },
+      "publisherConceptCount": 5573,
+      "publisherInputPins": [
+        {
+          "byteLength": 33332557,
+          "path": "gemet.rdf",
+          "sha256": "sha256:1b784b1a6387b8ec6c0d75ea5f0543970933172fcb0428a52de2c8ca536d20f1",
+          "zipMember": null
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "gemet.rdf": "sha256:1b784b1a6387b8ec6c0d75ea5f0543970933172fcb0428a52de2c8ca536d20f1"
+      },
+      "publisherSemanticClaimCount": 323635
+    },
+    {
+      "alias": "agrovoc",
+      "atlasDefinitionCount": 0,
+      "atlasNoteCount": 0,
+      "atlasPacks": [
+        {
+          "byteLength": 1398,
+          "path": "sources/agrovoc-c330-bounded-2026-08-03/all.nq.zst",
+          "sha256": "sha256:2e18ffbc0394c3ffac67edace1aa28ec21e846633f74b7192e852d9ff61c9010"
+        }
+      ],
+      "atlasQuadCount": 34,
+      "auditorReleaseKeys": [
+        "agrovoc-c330-bounded-2026-08-03"
+      ],
+      "auditorSourceName": "agrovoc-c330-bounded-2026-08-03",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 0,
+        "eligibleDirectLiteralClaimCount": 0,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 0,
+          "skos:scopeNote": 0
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 0,
+        "incrementalCanonicalNQuadsZstd19Bytes": 0,
+        "incrementalDefinitionQuadCount": 0,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 0,
+        "incrementalWireQuadCount": 0,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 651,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 0,
+          "proposedDefinitionNotesColumnBytes": 651,
+          "resourceRowCount": 1
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 0,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 0.0,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {},
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        }
+      },
+      "publisherConceptCount": 1,
+      "publisherInputPins": [
+        {
+          "byteLength": 5338,
+          "path": "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl",
+          "sha256": "sha256:6e66080437622f9ccff470ec930203ca125e3c1e778df9f43a3fe4d78d98df15",
+          "zipMember": null
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl": "sha256:6e66080437622f9ccff470ec930203ca125e3c1e778df9f43a3fe4d78d98df15"
+      },
+      "publisherSemanticClaimCount": 106
+    },
+    {
+      "alias": "nasa-thesaurus",
+      "atlasDefinitionCount": 0,
+      "atlasNoteCount": 0,
+      "atlasPacks": [
+        {
+          "byteLength": 48249331,
+          "path": "sources/nasa-thesaurus-skos/all.nq.zst",
+          "sha256": "sha256:b007a0bf325e68b4b3bee4e0bb39ce42f5c3e3bffe822a407a66705c610217d2"
+        }
+      ],
+      "atlasQuadCount": 4346689,
+      "auditorReleaseKeys": [
+        "nasa-thesaurus-skos"
+      ],
+      "auditorSourceName": "nasa-thesaurus-skos",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 0,
+        "eligibleDirectLiteralClaimCount": 0,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 0,
+          "skos:scopeNote": 0
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 0,
+        "incrementalCanonicalNQuadsZstd19Bytes": 0,
+        "incrementalDefinitionQuadCount": 0,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 0,
+        "incrementalWireQuadCount": 0,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 767,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 0,
+          "proposedDefinitionNotesColumnBytes": 767,
+          "resourceRowCount": 22622
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 0,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 0.0,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {
+        "http://synaptica.net/zthes/termNote": {
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 9656
+        }
+      },
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        }
+      },
+      "publisherConceptCount": 22622,
+      "publisherInputPins": [
+        {
+          "byteLength": 32943406,
+          "path": "thesaurus-SKOS.xml",
+          "sha256": "sha256:3cd92a0eb67c5656e4c740394abd2d27042ded79a4acf3e1286e73a7d863010f",
+          "zipMember": null
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "thesaurus-SKOS.xml": "sha256:3cd92a0eb67c5656e4c740394abd2d27042ded79a4acf3e1286e73a7d863010f"
+      },
+      "publisherSemanticClaimCount": 1137769
+    },
+    {
+      "alias": "osti",
+      "atlasDefinitionCount": 1638,
+      "atlasNoteCount": 152,
+      "atlasPacks": [
+        {
+          "byteLength": 39252891,
+          "path": "sources/doe-osti-semantic-thesaurus-2020/all.nq.zst",
+          "sha256": "sha256:d2d22ac4b0b4dfe026b3c3a579cc99dadd1b61fc493a1784374cddc504f32002"
+        }
+      ],
+      "atlasQuadCount": 3552152,
+      "auditorReleaseKeys": [
+        "doe-osti-semantic-thesaurus-2020"
+      ],
+      "auditorSourceName": "doe-osti-semantic-thesaurus-2020",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 1790,
+        "eligibleDirectLiteralClaimCount": 1790,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 1638,
+          "skos:scopeNote": 152
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 0,
+        "incrementalCanonicalNQuadsZstd19Bytes": 0,
+        "incrementalDefinitionQuadCount": 0,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 0,
+        "incrementalWireQuadCount": 0,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 70221,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 0,
+          "proposedDefinitionNotesColumnBytes": 70221,
+          "resourceRowCount": 23626
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 0,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 0.0,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {},
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 1638,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 1638,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 1638
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 152,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 152,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 152
+        }
+      },
+      "publisherConceptCount": 23626,
+      "publisherInputPins": [
+        {
+          "byteLength": 18087998,
+          "path": "osti-semantic-thesaurus-2020.rdf",
+          "sha256": "sha256:aeb9fb2d16caff675c7c9e12e0baff04ac4aded07488944acdf73ed859abe1d5",
+          "zipMember": null
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "osti-semantic-thesaurus-2020.rdf": "sha256:aeb9fb2d16caff675c7c9e12e0baff04ac4aded07488944acdf73ed859abe1d5"
+      },
+      "publisherSemanticClaimCount": 247184
+    },
+    {
+      "alias": "eurovoc-domains",
+      "atlasDefinitionCount": 0,
+      "atlasNoteCount": 0,
+      "atlasPacks": [
+        {
+          "byteLength": 5652,
+          "path": "sources/eurovoc-domains-4-24/all.nq.zst",
+          "sha256": "sha256:512c10be0af44609dd6accfcc58516f1cf5140ea9ac2ee6c621435cf98606fbc"
+        }
+      ],
+      "atlasQuadCount": 495,
+      "auditorReleaseKeys": [
+        "eurovoc-domains-4.24"
+      ],
+      "auditorSourceName": "eurovoc-domains-4.24",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 0,
+        "eligibleDirectLiteralClaimCount": 0,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 0,
+          "skos:scopeNote": 0
+        },
+        "eligibleIriClaimCount": 0,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 0,
+        "incrementalCanonicalNQuadsZstd19Bytes": 0,
+        "incrementalDefinitionQuadCount": 0,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 0,
+        "incrementalWireQuadCount": 0,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 651,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 0,
+          "proposedDefinitionNotesColumnBytes": 651,
+          "resourceRowCount": 21
+        },
+        "resolvedIriClaimCount": 0,
+        "unresolvedIriClaimCount": 0
+      },
+      "omittedListedAnnotationClaimCount": 0,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 0.0,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {},
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        }
+      },
+      "publisherConceptCount": 21,
+      "publisherInputPins": [
+        {
+          "byteLength": 36011,
+          "path": "eurovoc-4.24-metadata.ttl",
+          "sha256": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+          "zipMember": null
+        },
+        {
+          "byteLength": 8567290,
+          "path": "eurovoc-4.24-skos-core.zip",
+          "sha256": "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+          "zipMember": "eurovoc_in_skos_core_concepts.rdf"
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "eurovoc-4.24-metadata.ttl": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+        "eurovoc-4.24-skos-core.zip": "sha256:6c362f79ad03e325ba1b4818f1ca3a847bb6167c2a8f7167e2e4df91305b6620"
+      },
+      "publisherSemanticClaimCount": 653
+    },
+    {
+      "alias": "nalt",
+      "atlasDefinitionCount": 0,
+      "atlasNoteCount": 0,
+      "atlasPacks": [
+        {
+          "byteLength": 4032,
+          "path": "sources/nalt-core-bounded-concepts-2026-08-03/all.nq.zst",
+          "sha256": "sha256:ff29433eb330cd5055926a36ad64fea05882ce31462a8ed553b98ffab2650d41"
+        }
+      ],
+      "atlasQuadCount": 177,
+      "auditorReleaseKeys": [
+        "nalt-core-bounded-concepts-2026-08-03"
+      ],
+      "auditorSourceName": "nalt-core-bounded-concepts-2026-08-03",
+      "carryEnglishDefinitionAndScopeNote": {
+        "alreadyPresentWireQuadCount": 0,
+        "eligibleDirectLiteralClaimCount": 0,
+        "eligibleDirectLiteralClaimsByPredicate": {
+          "skos:definition": 0,
+          "skos:scopeNote": 0
+        },
+        "eligibleIriClaimCount": 2,
+        "emptyEnglishTextClaimCount": 0,
+        "incrementalCanonicalNQuadsBytes": 347,
+        "incrementalCanonicalNQuadsZstd19Bytes": 251,
+        "incrementalDefinitionQuadCount": 1,
+        "incrementalNoteQuadCount": 0,
+        "incrementalTextUtf8Bytes": 223,
+        "incrementalWireQuadCount": 1,
+        "multiDefinitionSubjectCount": 0,
+        "parquetDefinitionNotesColumnEstimate": {
+          "currentDefinitionNotesColumnBytes": 651,
+          "definitionConflictCount": 0,
+          "incrementalDefinitionNotesColumnBytes": 1079,
+          "proposedDefinitionNotesColumnBytes": 1730,
+          "resourceRowCount": 2
+        },
+        "resolvedIriClaimCount": 1,
+        "unresolvedIriClaimCount": 1
+      },
+      "omittedListedAnnotationClaimCount": 2,
+      "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 2.352941,
+      "publisherAdditionalAuditorAnnotationClaimsByPredicate": {},
+      "publisherAnnotationClaimsByPredicate": {
+        "rdfs:comment": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:definition": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 2,
+          "publisherClaimCount": 2,
+          "publisherIriClaimCount": 2,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:editorialNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:example": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:historyNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:note": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        },
+        "skos:scopeNote": {
+          "atlasExactLiteralCarryCount": 0,
+          "omittedClaimCount": 0,
+          "publisherClaimCount": 0,
+          "publisherIriClaimCount": 0,
+          "publisherLiteralClaimCount": 0
+        }
+      },
+      "publisherConceptCount": 2,
+      "publisherInputPins": [
+        {
+          "byteLength": 3238,
+          "path": "tests/fixtures/nalt_core/nalt-core-127295-top-concept.ttl",
+          "sha256": "sha256:ff37a0cb2d33a080c6d55b0bcf338673cbc26db6ea48a094761edc02c0e4e2ee",
+          "zipMember": null
+        },
+        {
+          "byteLength": 5523,
+          "path": "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl",
+          "sha256": "sha256:a038aff09a7ae825ea947a3f564748b3702ef36fe53cdc117cb22fc0aa8b3691",
+          "zipMember": null
+        }
+      ],
+      "publisherParsedContentDigests": {
+        "tests/fixtures/nalt_core/nalt-core-127295-top-concept.ttl": "sha256:ff37a0cb2d33a080c6d55b0bcf338673cbc26db6ea48a094761edc02c0e4e2ee",
+        "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl": "sha256:a038aff09a7ae825ea947a3f564748b3702ef36fe53cdc117cb22fc0aa8b3691"
+      },
+      "publisherSemanticClaimCount": 85
+    }
+  ],
+  "totals": {
+    "atlasDefinitionCount": 7675,
+    "atlasNoteCount": 4809,
+    "atlasQuadCount": 9628830,
+    "carryEnglishDefinitionAndScopeNote": {
+      "incrementalCanonicalNQuadsBytes": 460928,
+      "incrementalCanonicalNQuadsZstd19BytesPerSourceSum": 81661,
+      "incrementalDefinitionQuadCount": 1556,
+      "incrementalNoteQuadCount": 329,
+      "incrementalParquetDefinitionNotesColumnBytesPerSourceSum": 78998,
+      "incrementalTextUtf8Bytes": 235961,
+      "incrementalWireQuadCount": 1885
+    },
+    "omittedListedAnnotationClaimCount": 99071,
+    "omittedListedAnnotationsPercentOfPublisherSemanticClaims": 4.006603,
+    "publisherListedAnnotationClaimCount": 107997,
+    "publisherSemanticClaimCount": 2472693
+  }
+}
