@@ -1963,6 +1963,8 @@ def _parse_nquads_preserving_lexical_forms(
     finally:
         if input_source.auto_close:
             input_source.close()
+        if parser.term_pool is not None:
+            parser.term_pool.clear()
     return parser.graph_counts
 
 

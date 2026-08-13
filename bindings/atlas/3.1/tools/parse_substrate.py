@@ -55,7 +55,7 @@ class _CachedLiteral(Literal):
 
 @dataclass(slots=True)
 class TermPool:
-    """Reuse URI and literal objects for one dataset parse."""
+    """Reuse URI and literal objects within one RDF pack parse."""
 
     iris: dict[str, URIRef] = field(default_factory=dict)
     literals: dict[tuple[str, str | None, URIRef | None], Literal] = field(
@@ -91,6 +91,12 @@ class TermPool:
             self.literals[key] = term
         return term
 
+    def clear(self) -> None:
+        """Release lookup tables after a pack while the graph keeps its terms."""
+
+        self.iris.clear()
+        self.literals.clear()
+
 
 @dataclass(slots=True)
 class _ContextIndex:
@@ -98,7 +104,7 @@ class _ContextIndex:
 
     graph: Graph
     spo: dict[Any, dict[Any, dict[Any, None]]] = field(default_factory=dict)
-    pos: dict[Any, dict[Any, dict[Any, None]]] = field(default_factory=dict)
+    pos: dict[Any, dict[Any, set[Any]]] = field(default_factory=dict)
     size: int = 0
 
 
@@ -157,7 +163,7 @@ class TwoIndexStore(Store):
         if obj in objects:
             return
         objects[obj] = None
-        index.pos.setdefault(predicate, {}).setdefault(obj, {})[subject] = None
+        index.pos.setdefault(predicate, {}).setdefault(obj, set()).add(subject)
         index.size += 1
 
     def _context_rows(
@@ -280,7 +286,7 @@ class TwoIndexStore(Store):
                 if not index.spo[subject]:
                     del index.spo[subject]
                 subjects = index.pos[predicate][obj]
-                del subjects[subject]
+                subjects.remove(subject)
                 if not subjects:
                     del index.pos[predicate][obj]
                 if not index.pos[predicate]:

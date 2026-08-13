@@ -740,7 +740,7 @@ validator reparses the complete graph because the global checks above still
 need the cross-pack facts; per-pack receipts cannot safely replace those facts.
 
 The independent validator uses a binding-local two-index RDF store and pools
-immutable RDF terms within each parsed dataset. The store keeps subject-
+immutable RDF terms within each parsed pack. The store keeps subject-
 predicate-object (SPO) and predicate-object-subject (POS) indexes; it answers
 object-only queries with a correct scan. The Atlas validator and the pinned
 SHACL shapes use the indexed patterns. Set
