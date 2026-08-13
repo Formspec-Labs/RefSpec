@@ -1,0 +1,92 @@
+{
+  "artifact": {
+    "manifestSha256": "53f5b233b95618074612c8331ff2b47cd696e75c5ab4731ced3d5caa95b9cd2f",
+    "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution",
+    "quadCount": 1013723
+  },
+  "environment": {
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "pyshacl": "0.31.0",
+    "python": "3.12.9",
+    "rdflib": "7.5.0",
+    "rdfStore": "two-index"
+  },
+  "fullValidation": {
+    "graphTriplesCalls": 6482296,
+    "peakRssMiB": 599.75,
+    "phases": [
+      {"graphTriplesCalls": 0, "phase": "load-manifest", "wallSeconds": 0.084131},
+      {"graphTriplesCalls": 0, "phase": "check-closed-distribution", "wallSeconds": 0.007123},
+      {"graphTriplesCalls": 0, "phase": "check-source-accounting", "wallSeconds": 0.948303},
+      {"graphTriplesCalls": 1, "phase": "parse-rdf-packs", "wallSeconds": 15.988637},
+      {"graphTriplesCalls": 155, "phase": "load-binding-graphs", "wallSeconds": 0.03183},
+      {"graphTriplesCalls": 6146362, "phase": "run-shacl", "wallSeconds": 17.121752},
+      {"graphTriplesCalls": 2154, "phase": "check-graph-roles", "wallSeconds": 0.357382},
+      {"graphTriplesCalls": 0, "phase": "check-profile-and-identifier-semantics", "wallSeconds": 0.031177},
+      {"graphTriplesCalls": 0, "phase": "check-release-and-label-semantics", "wallSeconds": 0.185315},
+      {"graphTriplesCalls": 149, "phase": "check-evidence-and-assertions", "wallSeconds": 2.099498},
+      {"graphTriplesCalls": 117460, "phase": "check-machine-adjudication", "wallSeconds": 0.358476},
+      {"graphTriplesCalls": 0, "phase": "check-skos-semantics", "wallSeconds": 0.179774},
+      {"graphTriplesCalls": 0, "phase": "check-derived-graph", "wallSeconds": 0.000037},
+      {"graphTriplesCalls": 23192, "phase": "check-payload-and-node-digests", "wallSeconds": 0.241008},
+      {"graphTriplesCalls": 1, "phase": "check-accounting-and-counts", "wallSeconds": 0.170064},
+      {"graphTriplesCalls": 0, "phase": "check-reasoning-isolation", "wallSeconds": 0.0001},
+      {"graphTriplesCalls": 0, "phase": "check-acceptance", "wallSeconds": 0.004631},
+      {"graphTriplesCalls": 192822, "phase": "check-construction-record-ownership", "wallSeconds": 0.621667}
+    ],
+    "revision": "ae34392c1e354c652c7e3e0c2dd9172ed16cae33",
+    "sampleCount": 1,
+    "totalSeconds": 38.431016,
+    "topNonShaclNonParsePredicates": {
+      "check-construction-record-ownership": {
+        "https://refspec.org/ns/atlas/v3#evidenceSourceRecord": 58730,
+        "https://refspec.org/ns/atlas/v3#inRelease": 34476,
+        "https://refspec.org/ns/atlas/v3#inSourceRelease": 70235,
+        "https://rulespec.org/ns/v1#bindsAssertion": 29365
+      },
+      "check-machine-adjudication": {
+        "https://rulespec.org/ns/v1#assertionOrigin": 29365,
+        "https://rulespec.org/ns/v1#attestorKind": 29365,
+        "https://rulespec.org/ns/v1#epistemicBasis": 29365,
+        "https://rulespec.org/ns/v1#evidenceRole": 29365
+      },
+      "check-payload-and-node-digests": {
+        "https://refspec.org/ns/atlas/v3#nativePayload": 11505,
+        "https://refspec.org/ns/atlas/v3#sourceDigest": 11505
+      }
+    }
+  },
+  "parseOnly": {
+    "noFactIndex": {
+      "indexedOccurrenceCount": 0,
+      "parseSeconds": 16.030077,
+      "peakRssMiB": 561.859,
+      "sampleCount": 1
+    },
+    "readFoldIndex": {
+      "indexedOccurrenceCount": 826127,
+      "indexedPredicateCount": 43,
+      "indexedTypeCount": 2,
+      "parseSeconds": 15.832619,
+      "peakRssMiB": 599.016,
+      "sampleCount": 1
+    }
+  },
+  "sample": {
+    "counts": {
+      "crossRingRelationAssertions": 0,
+      "derivedRelations": 0,
+      "identifiers": 0,
+      "labels": 24974,
+      "mappingAssertions": 2003,
+      "nativeRelationAssertions": 27362,
+      "projectedRelations": 0,
+      "relationAssertions": 29365,
+      "releases": 3,
+      "resources": 9502,
+      "sourceAssignments": 0,
+      "sourceRecords": 11505
+    },
+    "packCount": 5
+  }
+}
