@@ -27,32 +27,26 @@ integration is actively negative without a long-lived JVM driver
 unchanged: no-go today, parity asset banked, ~100× SHACL-SPARQL stands
 as move 2's pre-commit blocker.
 
-**State of the tree.** HEAD `b9545930` on branch
-`atlas-v3-binding-and-relation-research` (nothing pushed; no upstream).
-The working tree is DIRTY with the in-flight "Wave 0+A" changes (an agent
-was mid-wave when the session ended; its uncommitted edits are:
-`.python-version` new; Makefile build-invocation unification;
-docs/seal-design.md negative-space + stale seal-1 schema fix;
-src/refspec/seal.py docstrings; bindings/atlas/3.1/README.md +
-ATLAS_US_EU_COMPARISON.md (11→13 gate count) + README.md + docs/decisions.md
-prose; tools/verify_atlas_source_fidelity.py stale default;
-ci.yml/release.yml touches). The Wave 0+A agent died ON THE GATES STEP
-with all edits reportedly complete — so FIRST ACTION is not re-editing
-but GATING: `make lint && make check-generated && uv run --no-sync
-pytest -q -n auto`, plus a bounded FR build via the changed Makefile
-target (`make release-atlas-federal-register-thesaurus`) whose manifest
-digest WILL move (env unification put the builder on the project env) —
-update the two Makefile FR pins from it, run the verify target, then
-commit by explicit path. If a gate fails, `git diff` against the brief in
-"v3.8/v3.9" below to find the half-done edit (the brief:
-unify the two builder invocations into the project env — Makefile targets
-that run tools/generate_atlas_v3_full.py switch from
---with-requirements to bare `uv run`; pin .python-version; add the missing
-`build_registry_source_manifest.py --write` line to `make generate`; the
-docs items are P3 as listed in v3.8; the auditor default fix is P1's
-1-line item). Gate with `make lint && make check-generated && make test`,
-then commit by explicit path per the repo's convention (every commit this
-program ends with the Co-Authored-By Claude trailer).
+**State of the tree (REWRITTEN 2026-08-13 — the block that used to sit here
+described a dirty mid-wave tree from 08-12 and was badly stale).** HEAD is on
+branch `atlas-v3-binding-and-relation-research`; nothing is pushed and there is
+no upstream. **The working tree is CLEAN and every gate is green**: `make lint`,
+`make check-generated`, `make test-atlas-v3` (132 cases, 119 invalid), and
+`pytest -q -n auto` at 2,604 passed / 87 skipped. `make contract-dev` reproduces
+its pinned digests and the FR release verifies against the Makefile pins. There
+is no half-finished edit to recover — start from whatever the sections below
+say is next, not from an archaeology exercise.
+
+**Artifact of record: `output/atlas-3.1-full-2026-08-13b/`**, built on the
+language-scope producer, acceptance-passed at 18.3 min / 13.83 GiB peak over
+29,286,753 quads. Its predecessor `output/atlas-3.1-full-2026-08-13/` and that
+one's seal remain valid and untouched; 13b is unsealed only because the signer
+key is offline (see the seal block below — it is now one make target).
+
+**Sole in-flight work at the time of writing:** `research/coverage-patternrow`,
+implementing the `pattern-row-v2` reader that the coverage-dry design says
+covers 42 of the 61 remaining fidelity units. Everything else this session
+either merged or reached a recorded verdict.
 
 **What is DONE and committed (27 commits, cd769d44..b9545930).** The
 entire reset through the 3.1 atomic wire replacement: seal (format 2,
