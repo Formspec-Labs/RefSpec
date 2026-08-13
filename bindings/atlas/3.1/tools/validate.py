@@ -66,6 +66,13 @@ from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 from jsonschema import _utils as jsonschema_utils
 from jsonschema import validators as jsonschema_validators
 from owlrl import DeductiveClosure, OWLRL_Semantics
+from parse_substrate import (
+    MEMORY_STORE,
+    RDF_STORE_ENV,
+    TWO_INDEX_STORE,
+    TermPool,
+    TwoIndexStore,
+)
 from pyshacl import validate as shacl_validate
 from pyshacl.rdfutil import inoculate
 from rdf_canonical import (
@@ -80,7 +87,16 @@ from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS, SH, SKOS, XSD
 from rdflib.parser import create_input_source
 from rdflib.plugins.parsers.nquads import NQuadsParser
-from rdflib.plugins.parsers.ntriples import URI, ParseError, r_literal, r_tail, r_wspace, unquote, uriquote
+from rdflib.plugins.parsers.ntriples import (
+    URI,
+    ParseError,
+    r_literal,
+    r_tail,
+    r_uriref,
+    r_wspace,
+    unquote,
+    uriquote,
+)
 from referencing import Registry, Resource
 
 try:  # Python 3.14+
@@ -141,6 +157,7 @@ CONTRACT_PATHS = (
 BINDING_TOOL_PATHS = (
     Path("requirements.txt"),
     Path("tools/build_fixtures.py"),
+    Path("tools/parse_substrate.py"),
     Path("tools/rdf_canonical.py"),
     Path("tools/validate.py"),
 )
@@ -1838,14 +1855,24 @@ class _LexicalNQuadsParser(NQuadsParser):
         *args: Any,
         subject_observer: Callable[[URIRef, URIRef], None] | None = None,
         asserted_placement: _AssertedPlacementObservation | None = None,
+        term_pool: TermPool | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.graph_counts: Counter[URIRef] = Counter()
         self.subject_observer = subject_observer
         self.asserted_placement = asserted_placement
+        self.term_pool = term_pool
         self.observed_subject: URIRef | None = None
         self.observed_subject_graphs: set[URIRef] = set()
+
+    def uriref(self) -> URIRef | bool:
+        if not self.peek("<"):
+            return False
+        lexical = uriquote(unquote(self.eat(r_uriref).group(1)))
+        if self.term_pool is None:
+            return URI(lexical)
+        return self.term_pool.iri(lexical)
 
     def literal(self) -> Literal | bool:
         if not self.peek('"'):
@@ -1853,13 +1880,27 @@ class _LexicalNQuadsParser(NQuadsParser):
         lexical, language, datatype = self.eat(r_literal).groups()
         if language and datatype:
             raise ParseError("Can't have both a language and a datatype")
-        datatype_node = URI(uriquote(unquote(datatype))) if datatype else None
-        return Literal(
-            unquote(lexical),
-            lang=language or None,
+        datatype_node = self.uriref_from_lexical(datatype) if datatype else None
+        lexical = unquote(lexical)
+        language = language or None
+        if self.term_pool is None:
+            return Literal(
+                lexical,
+                lang=language,
+                datatype=datatype_node,
+                normalize=False,
+            )
+        return self.term_pool.literal(
+            lexical,
+            lang=language,
             datatype=datatype_node,
-            normalize=False,
         )
+
+    def uriref_from_lexical(self, lexical: str) -> URIRef:
+        value = uriquote(unquote(lexical))
+        if self.term_pool is None:
+            return URI(value)
+        return self.term_pool.iri(value)
 
     def parseline(self, bnode_context: Any = None) -> None:
         """Parse one statement into the sink, observing subjects and placement."""
@@ -1915,12 +1956,15 @@ def _parse_nquads_preserving_lexical_forms(
     parser = _LexicalNQuadsParser(
         subject_observer=subject_observer,
         asserted_placement=asserted_placement,
+        term_pool=getattr(dataset, "_refspec_term_pool", None),
     )
     try:
         parser.parse(input_source, dataset)
     finally:
         if input_source.auto_close:
             input_source.close()
+        if parser.term_pool is not None:
+            parser.term_pool.clear()
     return parser.graph_counts
 
 
@@ -2247,7 +2291,7 @@ def _binding_tool_paths() -> tuple[Path, ...]:
     """Resolve BINDING_TOOL_PATHS against this binding.
 
     A function rather than a constant so a caller can point the tool inventory
-    at a different copy of these four files -- which is how the cache test
+    at a different copy of these files -- which is how the cache test
     proves that an edited validator cannot be answered from the old
     validator's receipt without editing the installed validator itself.
     """
@@ -2761,6 +2805,27 @@ def _check_distribution_files(
     return member_digests
 
 
+def _new_dataset() -> Dataset:
+    """Create the selected RDF store and its matching term-construction path.
+
+    ``two-index`` is the production default. Setting
+    ``REFSPEC_ATLAS_RDF_STORE=memory`` restores stock rdflib ``Memory`` and
+    stock RDF terms for immediate mitigation and differential checks.
+    """
+
+    selected = os.environ.get(RDF_STORE_ENV, TWO_INDEX_STORE)
+    if selected == MEMORY_STORE:
+        return Dataset()
+    if selected == TWO_INDEX_STORE:
+        dataset = Dataset(store=TwoIndexStore())
+        dataset._refspec_term_pool = TermPool()
+        return dataset
+    _fail(
+        "configuration.rdf-store",
+        f"{RDF_STORE_ENV} must be {TWO_INDEX_STORE!r} or {MEMORY_STORE!r}",
+    )
+
+
 def _parse_dataset(
     path: Path,
     manifest: Mapping[str, Any],
@@ -2768,7 +2833,7 @@ def _parse_dataset(
     expected_digest: str | None = None,
 ) -> tuple[Dataset, dict[str, Graph]]:
     line_count = _check_serialized_nquads_profile(path, expected_digest=expected_digest)
-    dataset = Dataset()
+    dataset = _new_dataset()
     try:
         counts = _parse_nquads_preserving_lexical_forms(dataset, path)
     except AtlasValidationError:
@@ -2897,7 +2962,7 @@ def _parse_packed_dataset(
     off the same bytes; see each observation's own docstring.
     """
 
-    dataset = Dataset()
+    dataset = _new_dataset()
     subject_owners: dict[str, dict[URIRef, str]] = {
         role: {} for role in graph_ids
     }
@@ -9039,7 +9104,7 @@ def smoke_check(root: Path) -> dict[str, Any]:
         _fail("smoke.sample", "no pack and dependency closure fits the smoke sample budget")
 
     _STATUS.phase("smoke-parse-sampled-packs")
-    dataset = Dataset()
+    dataset = _new_dataset()
     subject_owners: dict[str, dict[URIRef, str]] = {role: {} for role in graph_ids}
     sampled_quads = 0
     for position, pack in enumerate(sample, start=1):
@@ -9164,7 +9229,7 @@ def _check_registry_descriptors(
         or any(not line or line != line.strip() for line in lines)
     ):
         _fail("registry.descriptors", "registry descriptor N-Quads are not sorted and unique")
-    dataset = Dataset()
+    dataset = _new_dataset()
     try:
         _parse_nquads_preserving_lexical_forms(dataset, REGISTRY_DESCRIPTOR_DATASET_PATH)
     except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
