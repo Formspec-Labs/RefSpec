@@ -1,0 +1,13 @@
+Generator: probes/amplify_label_fixture.py
+Source: staging/view.nt (SHA-256 recorded in inputs.sha256)
+Shapes: only-label-standalone.ttl (SHA-256 recorded in inputs.sha256)
+
+copies  focus_nodes  triples  sha256
+1       24,974       109,401  3fb896d6a64fd59d5eade729ecadf4085333919554ded38e1b5ea296fe4e2d2d
+2       49,948       209,297  ab86dc2ac7558a1d7f0d23a037813a85239ecf0f7adfae3e2544edfa9eb406be
+4       99,896       409,089  7c7e783ca9ca153efab59c5a77ce305afda7bee4e45a8cf7bf53dcdee3550dad
+8       199,792      808,673  74d766675ca3b99a939ab68af0b0ce13262cade3136ffeb669711cc6d6b801ac
+
+Each run used a fresh process, a fresh empty TDB2 directory where applicable,
+`-Xmx4g`, and a 240-second process-group deadline. TDB2 size is `du -sk` after
+validation. The fixture retains referenced release/source-record type triples.
