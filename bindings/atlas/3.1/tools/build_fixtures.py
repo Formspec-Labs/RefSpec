@@ -1815,7 +1815,7 @@ def _construction_summary(
         base_payload = {
             "adapterRecipeDigest": adapter_digest,
             "atlasRelease": str(unit.atlas_release),
-            "bindingBundleDigest": binding["bindingBundleDigest"],
+            "contractDigest": binding["contractDigest"],
             "constructionProfile": CONSTRUCTION_PROFILE,
             "inputInventoryDigest": atlas_validate.canonical_sha256(inputs),
             "key": unit.key,
@@ -1930,7 +1930,7 @@ def _construction_summary(
     catalog = {
         "buildKey": atlas_validate.canonical_sha256(
             {
-                "bindingBundleDigest": binding["bindingBundleDigest"],
+                "contractDigest": binding["contractDigest"],
                 "catalogInputInventoryDigest": catalog_input_digest,
                 "constructionProfile": CONSTRUCTION_PROFILE,
                 "releaseSchemeInventoryDigest": scheme_digest,
@@ -1950,7 +1950,7 @@ def _construction_summary(
     )
     summary = {
         "assertedInventoryDigest": asserted_inventory,
-        "bindingBundleDigest": binding["bindingBundleDigest"],
+        "contractDigest": binding["contractDigest"],
         "catalog": catalog,
         "distributionId": distribution_id,
         "profile": CONSTRUCTION_PROFILE,
@@ -1983,6 +1983,7 @@ def _write_case(
     *,
     baseline_asserted: Graph,
     binding_digests: dict[str, str],
+    corpus_digest: str,
     distribution_id: str,
 ) -> None:
     path.mkdir(parents=True, exist_ok=True)
@@ -2051,6 +2052,7 @@ def _write_case(
     }
     validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
     acceptance = {
+        "corpusDigest": corpus_digest,
         "distributionId": distribution_id,
         "evaluatedAt": CREATED_AT,
         "gates": [
@@ -4505,24 +4507,22 @@ RECEIPT_VERSION = "1.0"
 
 # Everything read to produce the corpus. The binding already maintains these
 # lists for its own pinning, so the receipt reuses them rather than minting a
-# second, driftable inventory: `BINDING_BUNDLE_PATHS` is the semantic contract
+# second, driftable inventory: `CONTRACT_PATHS` is the semantic contract
 # and `BINDING_TOOL_PATHS` is the programs that read it. The receipt needs
 # both, because its question is narrower than the manifest's -- not "what does
 # conformance mean here" but "what determines these exact bytes", and a
 # builder edit or a library bump changes the bytes without touching the
-# contract. Two adjustments: `fixtures/corpus.json` is dropped because it is an
-# *output* (the builder passes freshly computed bytes to `_binding_digests` as
-# an override rather than reading the committed file), and the adapter under
-# `src/` is added because `_write_case` pins its digest into every case.
-RECEIPT_OUTPUT_RELATIVE = Path("fixtures/corpus.json")
+# contract. One adjustment: the adapter under `src/` is added because
+# `_write_case` pins its digest into every case. `fixtures/corpus.json` appears
+# in neither list, and no longer needs excluding -- it is this builder's
+# *output*, and REF-029 moved it out of the contract for that reason.
 RECEIPT_EXTERNAL_INPUTS = (Path("src/refspec/atlas/v3_source_data.py"),)
 
 
 def _receipt_input_paths() -> list[Path]:
     paths = [
         atlas_validate.BINDING_ROOT / relative
-        for relative in (*atlas_validate.BINDING_BUNDLE_PATHS, *atlas_validate.BINDING_TOOL_PATHS)
-        if relative != RECEIPT_OUTPUT_RELATIVE
+        for relative in (*atlas_validate.CONTRACT_PATHS, *atlas_validate.BINDING_TOOL_PATHS)
     ]
     paths.extend(sorted(atlas_validate.SCHEMA_ROOT.glob("*.schema.json")))
     paths.extend(atlas_validate.REPOSITORY_ROOT / relative for relative in RECEIPT_EXTERNAL_INPUTS)
@@ -4628,15 +4628,15 @@ def _derive_shacl_components(
 ) -> dict[str, list[str]]:
     """Record what each `shacl.data` case really reports, by running it.
 
-    Chicken and egg, resolved by a probe. ``fixtures/corpus.json`` is a sealed
-    binding member, so its bytes are inside every case's binding digests: a
-    case cannot be written until the corpus is final, and the corpus is not
-    final until the cases have been validated. So the `shacl.data` cases are
-    built once against a components-free corpus, asked what they report, and
-    thrown away. The component list names the shapes a mutation violates, not
-    any digest, so it survives the rebuild the real corpus forces -- and the
-    corpus runner re-checks every recorded list on every run, which is what
-    turns that reasoning into a proof rather than an assumption.
+    Chicken and egg, resolved by a probe. ``fixtures/corpus.json`` is recorded
+    into every case's acceptance record as its proof identity: a case cannot be
+    written until the corpus is final, and the corpus is not final until the
+    cases have been validated. So the `shacl.data` cases are built once against
+    a components-free corpus, asked what they report, and thrown away. The
+    component list names the shapes a mutation violates, not any digest, so it
+    survives the rebuild the real corpus forces -- and the corpus runner
+    re-checks every recorded list on every run, which is what turns that
+    reasoning into a proof rather than an assumption.
     """
 
     selected = [
@@ -4651,12 +4651,14 @@ def _derive_shacl_components(
         shutil.rmtree(probe_root)
     (probe_root / "invalid").mkdir(parents=True)
     try:
-        # Pinned to the binding assets exactly as they sit on disk, with no
-        # corpus override: a probe case is thrown away, so it only has to get
-        # past the digest gate to reach SHACL, and pinning what
-        # `validate_distribution` will itself recompute is the one way to be
-        # sure it does -- whatever `fixtures/corpus.json` currently says.
+        # Pinned to the binding assets exactly as they sit on disk: a probe
+        # case is thrown away, so it only has to get past the digest gate to
+        # reach SHACL, and pinning what `validate_distribution` will itself
+        # recompute is the one way to be sure it does. The recorded corpus
+        # digest is never re-derived by the reader, so the committed corpus is
+        # a fine stand-in for one throwaway case.
         probe_digests = atlas_validate._binding_digests()
+        probe_corpus_digest = atlas_validate.corpus_digest()
         components: dict[str, list[str]] = {}
         for name, mutation in selected:
             fixture = copy.deepcopy(base)
@@ -4669,6 +4671,7 @@ def _derive_shacl_components(
                 fixture,
                 baseline_asserted=base.asserted,
                 binding_digests=probe_digests,
+                corpus_digest=probe_corpus_digest,
                 distribution_id=f"urn:ref:atlas-fixture:distribution:{name}",
             )
             try:
@@ -4712,15 +4715,17 @@ def build(*, check: bool) -> None:
     corpus = _corpus_document(mutations, _derive_shacl_components(mutations, base))
     corpus_bytes = atlas_validate.canonical_json_bytes(corpus)
     (temporary_root / "corpus.json").write_bytes(corpus_bytes)
-    binding_digests = atlas_validate._binding_digests(
-        content_overrides={Path("fixtures/corpus.json"): corpus_bytes}
-    )
+    binding_digests = atlas_validate._binding_digests()
+    # The corpus about to be written, not the one on disk: these cases are
+    # proved by the corpus they are members of.
+    corpus_digest = _sha256(corpus_bytes)
 
     _write_case(
         temporary_root / "valid" / "all-resource-profiles",
         copy.deepcopy(base),
         baseline_asserted=base.asserted,
         binding_digests=binding_digests,
+        corpus_digest=corpus_digest,
         distribution_id="urn:ref:atlas-fixture:distribution:all-resource-profiles",
     )
     for name, _, expected_or_issue, mutation in mutations:
@@ -4735,6 +4740,7 @@ def build(*, check: bool) -> None:
             fixture,
             baseline_asserted=base.asserted,
             binding_digests=binding_digests,
+            corpus_digest=corpus_digest,
             distribution_id=f"urn:ref:atlas-fixture:distribution:{name}",
         )
 

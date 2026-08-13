@@ -50,7 +50,7 @@ def _counts() -> dict[str, int]:
 def _binding() -> dict[str, str]:
     return {
         "acceptanceSchemaDigest": DIGEST,
-        "bindingBundleDigest": DIGEST,
+        "contractDigest": DIGEST,
         "manifestSchemaDigest": DIGEST,
         "ontologyDigest": DIGEST,
         "shapesDigest": DIGEST,

@@ -3,6 +3,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "corpusDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
     "distributionId": {
       "$ref": "common.schema.json#/$defs/absoluteIri"
     },
@@ -43,7 +46,7 @@
             "atlasDigest": {
               "$ref": "common.schema.json#/$defs/digest"
             },
-            "bindingBundleDigest": {
+            "contractDigest": {
               "$ref": "common.schema.json#/$defs/digest"
             },
         "manifestSchemaDigest": {
@@ -68,7 +71,7 @@
           "required": [
             "atlasDigest",
             "sourceAccountingDigest",
-            "bindingBundleDigest",
+            "contractDigest",
             "ontologyDigest",
         "shapesDigest",
         "manifestSchemaDigest",
@@ -109,6 +112,7 @@
     "distributionId",
     "evaluatedAt",
     "validator",
+    "corpusDigest",
     "inputs",
     "gates",
     "verdict"

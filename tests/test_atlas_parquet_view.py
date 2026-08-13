@@ -237,7 +237,7 @@ def _fixture_distribution(
     binding_digest = "sha256:" + "a" * 64
     summary: dict[str, object] = {
         "assertedInventoryDigest": empty_inventory_digest,
-        "bindingBundleDigest": binding_digest,
+        "contractDigest": binding_digest,
         "distributionId": "urn:test:atlas-distribution",
         "type": "AtlasConstructionSummary",
         "version": "3.1",
@@ -253,7 +253,7 @@ def _fixture_distribution(
     }
     manifest: dict[str, object] = {
         "binding": {
-            "bindingBundleDigest": binding_digest,
+            "contractDigest": binding_digest,
             "ontologyDigest": "sha256:" + "b" * 64,
         },
         "counts": {},

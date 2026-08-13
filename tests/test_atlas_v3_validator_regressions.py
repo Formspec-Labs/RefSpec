@@ -2371,7 +2371,7 @@ def test_validation_cache_key_includes_binding_and_validator_identity(tmp_path: 
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
     original = atlas_validate._validation_cache_key(manifest)
-    manifest["binding"]["bindingBundleDigest"] = "sha256:" + "0" * 64
+    manifest["binding"]["contractDigest"] = "sha256:" + "0" * 64
 
     assert atlas_validate._validation_cache_key(manifest) != original
 
@@ -2395,7 +2395,7 @@ def test_a_validator_only_change_invalidates_the_validation_cache(
 ) -> None:
     """A new refusal must not be answered from the old validator's acceptance.
 
-    `bindingBundleDigest` deliberately excludes the tools, because conformance
+    `contractDigest` deliberately excludes the tools, because conformance
     identity must not move when a program changes. The cache key must not make
     the same exclusion: a hit returns before every procedural check runs, so an
     acceptance computed by a validator that lacked a refusal would still be
@@ -2429,9 +2429,9 @@ def test_a_validator_only_change_invalidates_the_validation_cache(
 
     # The contract did not move: the corpus stays valid under both validators.
     assert (
-        atlas_validate._binding_digests()["bindingBundleDigest"]
+        atlas_validate._binding_digests()["contractDigest"]
         == json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))["binding"][
-            "bindingBundleDigest"
+            "contractDigest"
         ]
     )
 

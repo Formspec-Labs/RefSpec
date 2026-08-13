@@ -506,7 +506,7 @@ def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
 
     result = _sandboxed_check(root)
 
-    # atlas.ttl determines the corpus through bindingBundleDigest, so a changed
+    # atlas.ttl determines the corpus through contractDigest, so a changed
     # byte must re-derive rather than trust the receipt.
     assert "receipt matches" not in result.stdout
     assert result.returncode != 0
@@ -529,7 +529,7 @@ def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Pa
 
 
 def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> None:
-    """`bindingBundleDigest` pins what conformance means, not what computed it.
+    """`contractDigest` pins what conformance means, not what computed it.
 
     Every case's manifest and acceptance record carries this digest, so
     whatever it covers must be reissued across all 110 cases whenever it moves.
@@ -539,20 +539,53 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
     through VALIDATOR_ID/VALIDATOR_VERSION.
     """
 
-    baseline = atlas_validate._binding_digests()["bindingBundleDigest"]
+    baseline = atlas_validate._binding_digests()["contractDigest"]
 
     for contract in ("ontology/atlas.ttl", "shapes/atlas.shacl.ttl"):
         changed = (BINDING_ROOT / contract).read_bytes() + b"\n# contract comment\n"
         digests = atlas_validate._binding_digests(content_overrides={Path(contract): changed})
-        assert digests["bindingBundleDigest"] != baseline, f"{contract} must reissue the corpus"
+        assert digests["contractDigest"] != baseline, f"{contract} must reissue the corpus"
 
-    # The tools are not bundled at all, so the bundle cannot even be asked
+    # The tools are not in the contract at all, so it cannot even be asked
     # about them -- an edit to one leaves every fixture valid.
     for tool in atlas_validate.BINDING_TOOL_PATHS:
-        with pytest.raises(atlas_validate.AtlasValidationError, match="not bundled"):
+        with pytest.raises(atlas_validate.AtlasValidationError, match="not in the contract"):
             atlas_validate._binding_digests(content_overrides={tool: b"# edited tool\n"})
 
-    assert Path("README.md") not in atlas_validate.BINDING_BUNDLE_PATHS
+    assert Path("README.md") not in atlas_validate.CONTRACT_PATHS
+
+
+def test_growing_the_conformance_corpus_leaves_the_contract_where_it_was() -> None:
+    """Contract identity and proof identity are two different questions.
+
+    `fixtures/corpus.json` used to sit inside the contract digest, so adding one
+    conformance case moved `binding.contractDigest` in every manifest, every
+    acceptance record and every construction summary on disk -- breaking the
+    external manifest pins and invalidating a signed release for a contract
+    that had not changed a byte. The corpus is what proves the VALIDATOR, so it
+    is recorded where the validation event is described: beside the validator
+    identity in the acceptance record (REF-029).
+    """
+
+    assert Path("fixtures/corpus.json") not in atlas_validate.CONTRACT_PATHS
+    with pytest.raises(atlas_validate.AtlasValidationError, match="not in the contract"):
+        atlas_validate._binding_digests(
+            content_overrides={Path("fixtures/corpus.json"): b'{"cases": []}'}
+        )
+
+    acceptance = json.loads(
+        (VALID_DISTRIBUTION / "atlas-acceptance.json").read_text(encoding="utf-8")
+    )
+    manifest = json.loads(
+        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    assert acceptance["corpusDigest"] == atlas_validate.corpus_digest()
+    assert acceptance["validator"] == {
+        "name": atlas_validate.VALIDATOR_ID,
+        "version": atlas_validate.VALIDATOR_VERSION,
+    }
+    assert "corpusDigest" not in manifest["binding"]
+    assert "corpusDigest" not in acceptance["inputs"]
 
 
 def test_the_hoisted_longest_test_still_exists() -> None:

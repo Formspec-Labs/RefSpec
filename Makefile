@@ -1,5 +1,5 @@
 .PHONY: generate check-generated lint lint-rdf-strict test test-package test-json-binding test-atlas-v3 \
-	atlas-v3-fixtures \
+	atlas-v3-fixtures contract-dev \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
 	determinism-atlas-federal-register-thesaurus benchmark-atlas-shacl-scale \
@@ -181,11 +181,11 @@ audit-atlas-v3-source-fidelity:
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
 ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.1-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= 4aa18d1823397d4a05892f11d80caf15d24aa197145f0af56c3c5b36bddfca78
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= b795363f24f426a5f654e92583279ff312ee01b90512b5318678eeab7f0ab11a
 # The served Parquet view is a separate sealed artifact with its own external
 # pin; the seal payload binds both digests, and the view manifest names this
 # distribution manifest back.
-ATLAS_FR_RELEASE_VIEW_SHA256 ?= 7a307e6ed258b77be4286ebe4e040e19a6a068e4166455e14e7740625ed71760
+ATLAS_FR_RELEASE_VIEW_SHA256 ?= e66eb3078f601fef05bcab532d08f21c45568304297f657d778663142449e413
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
@@ -251,6 +251,50 @@ stage-atlas-mapping-topology:
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/validate.py \
 		--distribution "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
+
+# The contract-iteration inner loop, ~45s. Edit the ontology, the shapes, a
+# schema or the conformance corpus, then run this one target: it re-derives the
+# fixture corpus if the receipt says it is stale, proves the whole binding
+# against it, builds one bounded real distribution, smoke-parses that, verifies
+# it end to end against the publisher PDF, and prints the two digests the
+# release pins carry. Four commands that were always run in this order, and one
+# of them (the digests) was always read off the tree by hand afterwards.
+#
+# Its own scratch root, never $(ATLAS_FR_RELEASE_ROOT): this loop runs while the
+# contract is in motion, so it must not overwrite the release artifact that the
+# external pins and the seal describe. Its two expected digests are read off the
+# tree it just built, deliberately -- mid-iteration there is no pin to check
+# against yet, and surfacing the new ones is the point.
+# `verify-atlas-federal-register-thesaurus` stays the gate that checks the
+# release artifact against the committed pins.
+ATLAS_CONTRACT_DEV_ROOT ?= output/atlas-3.1-contract-dev
+
+contract-dev:
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/build_fixtures.py --check
+	$(MAKE) test-atlas-v3
+	rm -rf "$(ATLAS_CONTRACT_DEV_ROOT)"
+	$(MAKE) release-atlas-federal-register-thesaurus \
+		ATLAS_FR_RELEASE_ROOT="$(ATLAS_CONTRACT_DEV_ROOT)"
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/validate.py \
+		--smoke "$(ATLAS_CONTRACT_DEV_ROOT)/distribution" --quiet
+	@manifest_sha256=$$(shasum -a 256 \
+		"$(ATLAS_CONTRACT_DEV_ROOT)/distribution/atlas-manifest.json" | cut -d' ' -f1); \
+	view_sha256=$$(shasum -a 256 \
+		"$(ATLAS_CONTRACT_DEV_ROOT)/parquet-view/view-manifest.json" | cut -d' ' -f1); \
+	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
+		python tools/verify_federal_register_thesaurus_distribution.py \
+		--distribution "$(ATLAS_CONTRACT_DEV_ROOT)/distribution" \
+		--expected-manifest-sha256 "$$manifest_sha256" \
+		--parquet-view "$(ATLAS_CONTRACT_DEV_ROOT)/parquet-view" \
+		--expected-view-manifest-sha256 "$$view_sha256" \
+		--source-root "$(ATLAS_FR_RELEASE_SOURCE_ROOT)" \
+		--output "$(ATLAS_CONTRACT_DEV_ROOT)-verification-receipt.json" >/dev/null; \
+	echo; \
+	echo "contract-dev: bounded artifact rebuilt and verified."; \
+	echo "  ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= $$manifest_sha256"; \
+	echo "  ATLAS_FR_RELEASE_VIEW_SHA256 ?= $$view_sha256"
 
 # The shapes-change scale gate. Times the SHACL phase alone against a built
 # distribution and fails past 3x the recorded baseline

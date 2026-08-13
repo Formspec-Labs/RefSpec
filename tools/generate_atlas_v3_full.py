@@ -159,28 +159,6 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
-    {
-        "acceptanceSchemaDigest": (
-            "sha256:37b6c2e11c57b2ef8e1aba685bd9ffe7c6d044fce306a2f0a9897a92006f1847"
-        ),
-        "bindingBundleDigest": (
-            "sha256:f7769ecb69e44bfa2852648991588b66d0514166d77cc2a336b5dd71e9883100"
-        ),
-        "manifestSchemaDigest": (
-            "sha256:aaabe8e229b283d79967813a12fade207b586f450dc1d8377a760740560c7ee2"
-        ),
-        "ontologyDigest": (
-            "sha256:cf56542bbc7455f22ffcbd94d574f216ebb27d1d6ec08c934d56f5f23cfd0c28"
-        ),
-        "shapesDigest": (
-            "sha256:724aefcf349c51b74af75387c638365502db2f4638e27aa16e5f241090c8d48c"
-        ),
-        "sourceAccountingSchemaDigest": (
-            "sha256:b2d5e0b40e27c081d66dcae382ff2a0e387254acb540b4b90a88eb6b569f4f36"
-        ),
-    }
-)
 _GENERATED_CARRIER_IRI_PREFIXES = (
     "urn:ref:atlas-assertion:",
     "urn:ref:atlas-evidence:",
@@ -3396,7 +3374,15 @@ def _validate_compiled_producer_rows(
 
     if not releases and not mapping_releases:
         raise ValueError("producer row validation requires source releases")
-    binding_profile = dict(_COMPILED_PRODUCER_BINDING_PINS)
+    # Derived, not asserted. This used to be a table of six digests compiled
+    # into this file, which the builder then compared against the binding it
+    # had just hashed -- the producer agreeing with itself, at the price of a
+    # `--repin` edit for every binding change. The digests below are read off
+    # the binding files this build is about to validate against, and RECORDED.
+    # The tripwire that matters is the independent validator's: it recomputes
+    # them from the binding on ITS disk and refuses a manifest that disagrees
+    # (`_check_binding_pins`). That is two parties comparing; this was one.
+    binding_profile = ATLAS_VALIDATE._binding_digests()
     english_only_scan = _english_only_scan(releases)
     profile_policies = ATLAS_VALIDATE._profile_policies()
     relation_policies = ATLAS_VALIDATE._relation_policies()
@@ -4150,10 +4136,10 @@ def _validate_compiled_producer_output(
 ) -> dict[str, Any]:
     """Close the proof over fixed constructors without rewalking every quad."""
 
-    if dict(producer_validation.binding_profile) != dict(
-        _COMPILED_PRODUCER_BINDING_PINS
-    ):
-        raise ValueError("compiled producer binding receipt differs")
+    if dict(producer_validation.binding_profile) != ATLAS_VALIDATE._binding_digests():
+        raise ValueError(
+            "the binding changed on disk between row validation and output validation"
+        )
     if graphs.projection or graphs.derived:
         raise ValueError(
             "compiled producer requires empty projection and derived graphs"
@@ -6286,7 +6272,7 @@ _COMPACT_ROLE_COUNT_FIELDS = MappingProxyType(
 def _construction_base_build_keys(
     seeds: Sequence[ReleaseConstructionSeed],
     *,
-    binding_bundle_digest: str,
+    contract_digest: str,
 ) -> dict[str, dict[str, Any]]:
     """Derive deterministic pre-parse keys for every release-local unit."""
 
@@ -6309,7 +6295,7 @@ def _construction_base_build_keys(
             {
                 "adapterRecipeDigest": adapter_recipe_digest,
                 "atlasRelease": seed.atlas_release_iri,
-                "bindingBundleDigest": binding_bundle_digest,
+                "contractDigest": contract_digest,
                 "constructionProfile": _CONSTRUCTION_SUMMARY_PROFILE,
                 "inputInventoryDigest": input_inventory_digest,
                 "key": seed.key,
@@ -6356,12 +6342,12 @@ def _construction_summary(
         raise ValueError("construction plans or seeds repeat a release key")
     if set(plans_by_key) != set(seeds_by_key):
         raise ValueError("construction plans and seeds name different release units")
-    binding_bundle_digest = binding.get("bindingBundleDigest")
-    if not isinstance(binding_bundle_digest, str):
-        raise TypeError("candidate binding has no bundle digest")
+    contract_digest = binding.get("contractDigest")
+    if not isinstance(contract_digest, str):
+        raise TypeError("candidate binding has no contract digest")
     base_keys = _construction_base_build_keys(
         seeds,
-        binding_bundle_digest=binding_bundle_digest,
+        contract_digest=contract_digest,
     )
     accounting_rows = {
         row["sourceRelease"]: row for row in accounting.get("inputs", ())
@@ -6530,7 +6516,7 @@ def _construction_summary(
     catalog = {
         "buildKey": _canonical_digest(
             {
-                "bindingBundleDigest": binding_bundle_digest,
+                "contractDigest": contract_digest,
                 "catalogInputInventoryDigest": catalog_input_digest,
                 "constructionProfile": _CONSTRUCTION_SUMMARY_PROFILE,
                 "releaseSchemeInventoryDigest": release_scheme_inventory_digest,
@@ -6552,7 +6538,7 @@ def _construction_summary(
     )
     summary: dict[str, Any] = {
         "assertedInventoryDigest": asserted_inventory_digest,
-        "bindingBundleDigest": binding_bundle_digest,
+        "contractDigest": contract_digest,
         "catalog": catalog,
         "distributionId": _distribution_id(accounting),
         "profile": _CONSTRUCTION_SUMMARY_PROFILE,
@@ -6619,13 +6605,15 @@ def _producer_validation_receipt(
     ):
         raise ValueError("producer validation report identity differs")
     binding_profile = report.get("bindingProfile")
-    if binding_profile != dict(_COMPILED_PRODUCER_BINDING_PINS):
-        raise ValueError("producer validation binding profile differs")
-    if any(
-        binding.get(field) != digest
-        for field, digest in _COMPILED_PRODUCER_BINDING_PINS.items()
-    ):
-        raise ValueError("candidate binding differs from the producer binding profile")
+    if not isinstance(binding_profile, Mapping) or not binding_profile:
+        raise ValueError("producer validation report records no binding profile")
+    # The candidate's binding block is hashed off disk again here, at the end of
+    # a build that can run for half an hour. Comparing it against the profile
+    # this build actually validated against is what catches a binding edited
+    # underneath a running build -- a real disagreement between two readings,
+    # unlike the compiled pin table this replaced.
+    if any(binding.get(field) != digest for field, digest in binding_profile.items()):
+        raise ValueError("the binding changed on disk during this build")
     if (
         not isinstance(report.get("sourceReleaseCount"), int)
         or report["sourceReleaseCount"] < 1
@@ -6686,11 +6674,6 @@ def _check_producer_validation_receipt(
     )
     if report.get("assertedInventoryDigest") != asserted_inventory_digest:
         raise ValueError("producer asserted inventory digest differs")
-    if any(
-        manifest["binding"].get(field) != digest
-        for field, digest in _COMPILED_PRODUCER_BINDING_PINS.items()
-    ):
-        raise ValueError("candidate binding differs from the producer binding profile")
     if report.get("counts") != manifest.get("counts"):
         raise ValueError("producer counts differ from the candidate manifest")
     if report.get("sourceAccountingDigest") != _sha256_file(accounting_path):
@@ -6828,6 +6811,11 @@ def _write_candidate_distribution(
     validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
     distribution_id = _distribution_id(graphs.accounting)
     acceptance = {
+        # Proof identity, recorded beside the validator identity it qualifies:
+        # which validator ran, and which conformance corpus that validator was
+        # answerable to. Deliberately not part of `binding.contractDigest` --
+        # growing the corpus must not invalidate an artifact already on disk.
+        "corpusDigest": ATLAS_VALIDATE.corpus_digest(),
         "distributionId": distribution_id,
         "evaluatedAt": created_at,
         "gates": [
@@ -7688,43 +7676,6 @@ def build_distribution(
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
-def _repin_binding_profile() -> int:
-    """Rewrite this file's binding-profile pins to the binding on disk.
-
-    The pins exist to fail closed when the binding moves under the producer, so
-    repinning stays a deliberate act -- nothing calls this during a build, and
-    `make test` still refuses a stale pin. What it removes is the hand-editing
-    of six digests.
-
-    The implementation self pin this used to rewrite alongside them is gone. It
-    digested this file with its own pin masked out and then published the
-    result into the wire, where the reader compared it against the same
-    constant -- a tautology whose only real effect was that every edit to this
-    file failed the next build until someone repinned it. Deleting it is what
-    ends the repin tax; what is left changes only when the binding does.
-    """
-
-    source = Path(__file__)
-    raw = source.read_bytes()
-    observed = ATLAS_VALIDATE._binding_digests()
-    rewritten = 0
-    for field, current in sorted(_COMPILED_PRODUCER_BINDING_PINS.items()):
-        fresh = observed[field]
-        if fresh == current:
-            continue
-        needle = f'"{current}"'.encode("ascii")
-        if raw.count(needle) != 1:
-            raise SystemExit(f"cannot repin {field}: {current} is not uniquely written in this file")
-        raw = raw.replace(needle, f'"{fresh}"'.encode("ascii"), 1)
-        print(f"repinned {field}\n  {current}\n  -> {fresh}")
-        rewritten += 1
-    if rewritten:
-        source.write_bytes(raw)
-    else:
-        print("pins already current; nothing rewritten")
-    return 0
-
-
 def main() -> int:
     global _STATUS
 
@@ -7739,14 +7690,6 @@ def main() -> int:
         "--quiet",
         action="store_true",
         help="suppress human-facing status lines on stderr",
-    )
-    parser.add_argument(
-        "--repin",
-        action="store_true",
-        help=(
-            "rewrite this producer's binding profile pins to the binding "
-            "currently on disk, after you have reviewed that change"
-        ),
     )
     parser.add_argument(
         "--registry-claim-input",
@@ -7776,8 +7719,6 @@ def main() -> int:
         ),
     )
     args = parser.parse_args()
-    if args.repin:
-        return _repin_binding_profile()
     registry_claim_inputs: dict[str, AtlasRegistryClaimInput] = {}
     for key, path, digest in args.registry_claim_input or ():
         if key in registry_claim_inputs:

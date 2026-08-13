@@ -317,9 +317,6 @@
     "assertedInventoryDigest": {
       "$ref": "common.schema.json#/$defs/digest"
     },
-    "bindingBundleDigest": {
-      "$ref": "common.schema.json#/$defs/digest"
-    },
     "canonicalPayloadDigest": {
       "$ref": "common.schema.json#/$defs/digest"
     },
@@ -357,6 +354,9 @@
       ],
       "type": "object"
     },
+    "contractDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
     "distributionId": {
       "$ref": "common.schema.json#/$defs/absoluteIri"
     },
@@ -393,7 +393,7 @@
     "version",
     "profile",
     "distributionId",
-    "bindingBundleDigest",
+    "contractDigest",
     "assertedInventoryDigest",
     "sourceAccountingDigest",
     "catalog",

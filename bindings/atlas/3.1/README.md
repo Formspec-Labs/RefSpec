@@ -52,20 +52,34 @@ Every schema uses JSON Schema Draft 2020-12 and is closed to unknown fields.
 
 The manifest pins the exact ontology, SHACL shapes, core JSON Schemas, validator
 version, every RDF pack, and all four supporting JSON files — in 3.1 that is
-the whole distribution, in one hop. Its `bindingBundleDigest` additionally
+the whole distribution, in one hop. Its `contractDigest` additionally
 covers a sorted path, length, and digest
 inventory of the ontology, shapes, every schema, registry profile map,
-conformance-corpus declaration, coverage proof, and real-registry descriptor
+coverage proof, and real-registry descriptor
 dataset and proof, so a supporting binding asset cannot change invisibly.
 
-`bindingBundleDigest` covers what conformance MEANS, and nothing else. The
+`contractDigest` covers what conformance MEANS, and nothing else. The
 programs that read that meaning — `requirements.txt`, the fixture builder, the
 shared canonical RDF renderer, and this independent validator — are pinned
 separately and deliberately are NOT in it: folding them in made a one-line edit
 to a program reissue every fixture for a contract that had not moved. Which
 program produced a verdict is pinned by name and number instead, through the
 manifest's `binding.validatorVersion` and the acceptance record's `validator`
-name and version. The tool inventory is pinned where its identity matters rather than
+name and version.
+
+`fixtures/corpus.json` is not in it either, and for the same reason read the
+other way round: the conformance corpus is the PROOF that this validator
+behaves as the rules say, not one of the rules. While it sat in the contract
+digest, adding a single conformance case moved every manifest, acceptance
+record and construction summary on disk, breaking their external pins and
+invalidating a signed release for a contract that had not moved. Proof identity
+is recorded where the validation event is described instead: the acceptance
+record's `corpusDigest`, beside the `validator` identity it qualifies. A reader
+recomputes `contractDigest` from the binding on its own disk and refuses a
+disagreement; `corpusDigest` is recorded and never re-derived, so a grown
+corpus leaves every artifact already on disk valid.
+
+The tool inventory is pinned where its identity matters rather than
 where conformance is defined: `fixtures-receipt.json` records it, with the
 interpreter and dependency versions, to decide whether the committed corpus
 still describes its inputs, and the private validation cache key records the

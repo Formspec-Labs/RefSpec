@@ -137,7 +137,7 @@ def _verified_parquet_input() -> VerifiedAtlasParquetSourceMetadata:
         root=Path("/test/distribution"),
         manifest={
             "binding": {
-                "bindingBundleDigest": _digest("1"),
+                "contractDigest": _digest("1"),
                 "ontologyDigest": _digest("2"),
             },
             "canonicalPayloadDigest": _digest("3"),

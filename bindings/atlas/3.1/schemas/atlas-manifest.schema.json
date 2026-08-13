@@ -64,7 +64,7 @@
         "acceptanceSchemaDigest": {
           "$ref": "common.schema.json#/$defs/digest"
         },
-        "bindingBundleDigest": {
+        "contractDigest": {
           "$ref": "common.schema.json#/$defs/digest"
         },
         "manifestSchemaDigest": {
@@ -88,7 +88,7 @@
       },
       "required": [
         "version",
-        "bindingBundleDigest",
+        "contractDigest",
         "ontologyDigest",
         "shapesDigest",
         "manifestSchemaDigest",

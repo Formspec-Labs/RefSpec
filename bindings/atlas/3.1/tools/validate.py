@@ -99,12 +99,21 @@ PROFILE_MAP_PATH = BINDING_ROOT / "registry-resource-profiles.json"
 REGISTRY_COVERAGE_PATH = BINDING_ROOT / "tests" / "registry-coverage.json"
 REGISTRY_DESCRIPTOR_PROOF_PATH = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTOR_DATASET_PATH = BINDING_ROOT / "tests" / "registry-descriptors.nq"
-# The semantic contract: what a distribution is validated *against*. Changing
-# any of these changes what conformance means, so every fixture must be
-# reissued against the new meaning -- that is the point of pinning them into
-# each manifest and acceptance record.
-BINDING_BUNDLE_PATHS = (
-    Path("fixtures/corpus.json"),
+# The semantic contract: the RULES a distribution is validated *against*.
+# Changing any of these changes what conformance means, so every fixture must
+# be reissued against the new meaning -- that is the point of pinning them into
+# each manifest and acceptance record as `contractDigest`.
+#
+# `fixtures/corpus.json` is deliberately NOT here, and that is the whole
+# distinction this list now draws. The corpus is the PROOF that this validator
+# behaves as the rules say; it is not one of the rules. While it sat in this
+# list, adding a single conformance case moved the contract digest, which moved
+# every manifest, acceptance record and construction summary on disk, which
+# broke the external manifest pins and invalidated a signed release -- for a
+# contract that had not moved a byte. Proof identity lives where the proof is
+# described instead: `corpus_digest()` is recorded in each acceptance record,
+# beside the validator identity it qualifies. See REF-029.
+CONTRACT_PATHS = (
     Path("ontology/atlas.ttl"),
     Path("registry-resource-profiles.json"),
     Path("shapes/atlas.shacl.ttl"),
@@ -119,9 +128,9 @@ BINDING_BUNDLE_PATHS = (
 # which validator produced a verdict is already declared, by name and number,
 # through VALIDATOR_ID/VALIDATOR_VERSION in every manifest and acceptance
 # record and checked by _check_binding_pins. Folding their source into
-# bindingBundleDigest said the same thing a second way and made every edit to
-# a tool reissue all 110 cases for a contract that had not moved. README.md is
-# in neither list: it is prose, and prose settles nothing.
+# contractDigest said the same thing a second way and made every edit to
+# a tool reissue the whole corpus for a contract that had not moved. README.md
+# is in neither list: it is prose, and prose settles nothing.
 #
 # Conformance identity must not move when a program changes, but a *cached
 # verdict* is only as good as the program that computed it: a new refusal added
@@ -1894,34 +1903,48 @@ def _binding_digests(
     *,
     content_overrides: Mapping[Path, bytes] | None = None,
 ) -> dict[str, str]:
-    bundle_paths = [
-        *BINDING_BUNDLE_PATHS,
+    contract_paths = [
+        *CONTRACT_PATHS,
         *(path.relative_to(BINDING_ROOT) for path in sorted(SCHEMA_ROOT.glob("*.schema.json"))),
     ]
     overrides = dict(content_overrides or {})
-    unknown_overrides = set(overrides) - set(bundle_paths)
+    unknown_overrides = set(overrides) - set(contract_paths)
     if unknown_overrides:
-        _fail("binding.digest", f"binding content override is not bundled: {min(unknown_overrides)}")
-    bundle_payloads = {
+        _fail("binding.digest", f"binding content override is not in the contract: {min(unknown_overrides)}")
+    contract_payloads = {
         relative: overrides.get(relative, (BINDING_ROOT / relative).read_bytes())
-        for relative in sorted(set(bundle_paths), key=lambda path: path.as_posix())
+        for relative in sorted(set(contract_paths), key=lambda path: path.as_posix())
     }
-    bundle_rows = [
+    contract_rows = [
         {
             "byteLength": len(payload),
             "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
             "path": relative.as_posix(),
         }
-        for relative, payload in bundle_payloads.items()
+        for relative, payload in contract_payloads.items()
     ]
     return {
-        "bindingBundleDigest": canonical_sha256(bundle_rows, terminal_lf=False),
+        "contractDigest": canonical_sha256(contract_rows, terminal_lf=False),
         "ontologyDigest": file_sha256(ONTOLOGY_PATH),
         "shapesDigest": file_sha256(SHAPES_PATH),
         "manifestSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["manifest"]),
         "sourceAccountingSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["sourceAccounting"]),
         "acceptanceSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["acceptance"]),
     }
+
+
+def corpus_digest() -> str:
+    """Digest the conformance corpus that proves this validator's behaviour.
+
+    Proof identity, not contract identity. An acceptance record says which
+    validator ran; this says which corpus that validator was answerable to when
+    it ran. It is RECORDED into the acceptance record and deliberately not
+    re-derived by `_check_binding_pins`: growing the corpus must leave every
+    artifact on disk valid, because nothing a new test case says changes what
+    those artifacts were validated against.
+    """
+
+    return file_sha256(CORPUS_PATH)
 
 
 def _binding_tool_paths() -> tuple[Path, ...]:
@@ -6541,7 +6564,7 @@ def _check_construction_summary_identity(
     )
     expected_envelope = {
         "assertedInventoryDigest": asserted_inventory_digest,
-        "bindingBundleDigest": manifest["binding"]["bindingBundleDigest"],
+        "contractDigest": manifest["binding"]["contractDigest"],
         "distributionId": manifest["distributionId"],
         "sourceAccountingDigest": member_digests["atlas-source-accounting.json"],
     }
@@ -6611,7 +6634,7 @@ def _check_construction_summary_identity(
                 if "atlasRelease" in release
                 else {}
             ),
-            "bindingBundleDigest": construction_summary["bindingBundleDigest"],
+            "contractDigest": construction_summary["contractDigest"],
             "constructionProfile": construction_summary["profile"],
             "inputInventoryDigest": release["inputInventoryDigest"],
             "key": key,
@@ -6733,7 +6756,7 @@ def _check_construction_summary_identity(
         _fail("construction.release", "catalog release-scheme inventory digest differs")
     expected_catalog_key = _construction_digest(
         {
-            "bindingBundleDigest": construction_summary["bindingBundleDigest"],
+            "contractDigest": construction_summary["contractDigest"],
             "catalogInputInventoryDigest": catalog_input_digest,
             "constructionProfile": construction_summary["profile"],
             "releaseSchemeInventoryDigest": release_scheme_inventory_digest,
@@ -7927,7 +7950,7 @@ def _validation_cache_identity(manifest: Mapping[str, Any]) -> dict[str, Any]:
     """Return the immutable identity of one complete semantic validation.
 
     Everything a verdict depends on, which is strictly more than what
-    conformance *means*. The contract half is the manifest and its bundle
+    conformance *means*. The contract half is the manifest and its contract
     digest. The program half is ``toolsDigest`` and ``runtime``: a cache hit
     returns before the procedural checks -- supersession lineage, cardinality,
     every ``dataset.*`` gate -- have run even once, so a validator that grew a
@@ -7938,7 +7961,7 @@ def _validation_cache_identity(manifest: Mapping[str, Any]) -> dict[str, Any]:
     """
 
     return {
-        "bindingBundleDigest": manifest["binding"]["bindingBundleDigest"],
+        "contractDigest": manifest["binding"]["contractDigest"],
         "format": CACHE_FORMAT,
         "manifestDigest": manifest["canonicalPayloadDigest"],
         "runtime": binding_runtime(),

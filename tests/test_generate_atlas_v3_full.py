@@ -67,7 +67,7 @@ def _compiled_test_report(
     if isinstance(graphs.asserted, generator._MutationTrackedGraph):
         graphs.sealed_asserted_revision = graphs.asserted.revision
     return {
-        "bindingProfile": dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+        "bindingProfile": generator.ATLAS_VALIDATE._binding_digests(),
         "constructorProfile": generator._COMPILED_PRODUCER_PROFILE,
         "counts": generator._counts(graphs),
         "mode": generator._COMPILED_PRODUCER_MODE,
@@ -308,6 +308,74 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
         "requiredForIndependentConsumers": True,
         "validator": "bindings/atlas/3.1/tools/validate.py:validate_distribution",
     }
+
+
+def test_the_builder_derives_its_binding_block_instead_of_asserting_a_pin(
+    tmp_path: Path,
+) -> None:
+    """The producer records the binding it read; it does not agree with itself.
+
+    Until REF-029 this module carried six compiled digests and refused to build
+    when the binding on disk disagreed with them -- the producer checking the
+    producer, paid for with a `--repin` edit every time an ontology comment
+    moved. The digests are now read off the binding files this build validates
+    against and RECORDED on the wire unchanged. The comparison worth making is
+    the independent validator's, against the binding on ITS disk; that one is
+    untouched (see `_check_binding_pins`).
+    """
+
+    graphs = _receipted_test_graphs()
+
+    _, manifest = generator._write_candidate_distribution(
+        tmp_path / "distribution",
+        graphs,
+        releases=(_test_release_plan(),),
+        compiled_validation=_compiled_test_report(graphs),
+        construction_seeds=(_test_construction_seed(),),
+        created_at=_TEST_CREATED_AT,
+    )
+
+    assert not hasattr(generator, "_COMPILED_PRODUCER_BINDING_PINS")
+    assert manifest["binding"] == {
+        "validatorVersion": "3.1",
+        "version": "3.1",
+        **generator.ATLAS_VALIDATE._binding_digests(),
+    }
+    # Contract identity is in the manifest; proof identity is in the receipt.
+    acceptance = json.loads(
+        (tmp_path / "distribution" / "atlas-acceptance.json").read_bytes()
+    )
+    assert acceptance["corpusDigest"] == generator.ATLAS_VALIDATE.corpus_digest()
+    assert "corpusDigest" not in manifest["binding"]
+    assert "contractDigest" in manifest["binding"]
+
+
+def test_a_binding_edited_under_a_running_build_is_refused(tmp_path: Path) -> None:
+    """The one comparison the deleted pin table was standing in for.
+
+    A full build runs for ~25 minutes. The binding is hashed once when the
+    compiled producer validates its rows and again when the manifest is
+    written, so an ontology edited in between is two different readings of the
+    same file -- a real disagreement, unlike a constant compiled into this
+    program comparing itself against itself.
+    """
+
+    graphs = _receipted_test_graphs()
+    compiled_validation = _compiled_test_report(graphs)
+    compiled_validation["bindingProfile"] = {
+        **compiled_validation["bindingProfile"],
+        "ontologyDigest": "sha256:" + "0" * 64,
+    }
+
+    with pytest.raises(ValueError, match="binding changed on disk"):
+        generator._write_candidate_distribution(
+            tmp_path / "distribution",
+            graphs,
+            releases=(_test_release_plan(),),
+            compiled_validation=compiled_validation,
+            construction_seeds=(_test_construction_seed(),),
+            created_at=_TEST_CREATED_AT,
+        )
 
 
 def test_pack_write_receipt_matches_both_exact_byte_forms(tmp_path: Path) -> None:

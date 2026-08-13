@@ -164,9 +164,9 @@ class VerifiedAtlasParquetSourceMetadata:
         construction = next(member for member in self.manifest["members"] if member["role"] == "constructionSummary")
         return {
             "assertedInventoryDigest": asserted["inventoryDigest"],
-            "bindingBundleDigest": self.manifest["binding"]["bindingBundleDigest"],
             "canonicalPayloadDigest": self.manifest["canonicalPayloadDigest"],
             "constructionSummaryDigest": construction["digest"],
+            "contractDigest": self.manifest["binding"]["contractDigest"],
             "distributionId": self.manifest["distributionId"],
             "manifestSha256": self.manifest_digest,
             "ontologyDigest": self.manifest["binding"]["ontologyDigest"],
@@ -229,7 +229,7 @@ def verify_atlas_parquet_source_metadata(
         raise AtlasParquetViewError("construction summary asserted inventory digest differs")
     if construction_summary.get("distributionId") != manifest["distributionId"]:
         raise AtlasParquetViewError("construction summary distribution identifier differs")
-    if construction_summary.get("bindingBundleDigest") != manifest["binding"].get("bindingBundleDigest"):
+    if construction_summary.get("contractDigest") != manifest["binding"].get("contractDigest"):
         raise AtlasParquetViewError("construction summary binding digest differs")
 
     pack_ids = {pack.get("packId") for pack in packs}
