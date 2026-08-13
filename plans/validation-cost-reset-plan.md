@@ -236,7 +236,7 @@ restart from scratch.
 | research/parse-substrate | complete | DON'T-TAKE study + prototype; the −57% RSS finding |
 | research/residual-shacl | complete | DON'T-TAKE; the lift pattern's measured floor |
 | research/shacl-sparql | complete | portable sh:sparql prototype, 26/26 cross-engine |
-| research/move2-compiler | complete | option (b) proven; note its cited rulespec commit 28b37d7b does NOT exist upstream — re-verify that half |
+| research/move2-compiler | complete, VERIFIED | option (b) proven. The cited rulespec commit 28b37d7b is absent upstream for a disclosed reason, not a fabricated one: the codex sandbox could not write `~/Work/rulespec/.git` (the same workspace-write limitation that blocked RefSpec's submodule commits), so it committed to a local mirror and exported `research/move2/rulespec-compiler.patch.gz` — digest `6c8c9579…4a6d` re-verified by hand, `git am` in a real worktree reproduces it. Its own report says so. Fix for next time: add the rulespec git dir to `sandbox_workspace_write.writable_roots`. |
 | research/fidelity-coverage | complete | 24→27 units, the inventory + payoff order |
 | research/fidelity-definitions | complete | the carry/declare decision package |
 | research/fidelity-langbugs | complete | b079de13: one BCP-47 predicate + definitions carried |
