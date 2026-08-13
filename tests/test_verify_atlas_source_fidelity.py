@@ -40,6 +40,7 @@ from tools.verify_atlas_source_fidelity import (
     JSON_RECORD_SELECTOR_READER,
     LDA_GENERAL_ISSUE_JSON_READER,
     MESH_DESCRIPTOR_XML_READER,
+    OOXML_RELATIONAL_READER,
     PATTERN_ROW_READER,
     XML_RECORD_SELECTOR_READER,
     CheckResult,
@@ -53,6 +54,9 @@ from tools.verify_atlas_source_fidelity import (
     JsonRecordSelector,
     LiteralValue,
     NativeControlSelector,
+    OoxmlRelationalSelector,
+    OoxmlTable,
+    OoxmlTableField,
     PatternDerivedField,
     PatternFieldNormalizer,
     PatternRowPattern,
@@ -894,6 +898,7 @@ def _add_single_record_stock_source(
     xml_record: XmlRecordSelector | None = None,
     json_record: JsonRecordSelector | None = None,
     csv_record: CsvRecordSelector | None = None,
+    ooxml_relational: OoxmlRelationalSelector | None = None,
     definition: str | None = None,
 ) -> SourceSpec:
     """Add one stock-reader pair whose expected Atlas values are explicit."""
@@ -917,6 +922,7 @@ def _add_single_record_stock_source(
         xml_record=xml_record,
         json_record=json_record,
         csv_record=csv_record,
+        ooxml_relational=ooxml_relational,
         identity_policy=identity_policy,
         policies=frozenset(
             {
@@ -1487,6 +1493,114 @@ def _add_csv_record_selector_source(
     )
 
 
+def _tiny_ooxml_workbook() -> bytes:
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "xl/workbook.xml",
+            (
+                '<workbook xmlns="http://schemas.openxmlformats.org/'
+                'spreadsheetml/2006/main" xmlns:r="http://schemas.'
+                'openxmlformats.org/officeDocument/2006/relationships">'
+                '<sheets><sheet name="Codes" sheetId="1" r:id="rId1"/>'
+                "</sheets></workbook>"
+            ),
+        )
+        archive.writestr(
+            "xl/_rels/workbook.xml.rels",
+            (
+                '<Relationships xmlns="http://schemas.openxmlformats.org/'
+                'package/2006/relationships"><Relationship Id="rId1" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/'
+                '2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+                "</Relationships>"
+            ),
+        )
+        archive.writestr(
+            "xl/worksheets/sheet1.xml",
+            (
+                '<worksheet xmlns="http://schemas.openxmlformats.org/'
+                'spreadsheetml/2006/main"><sheetData>'
+                '<row r="1"><c r="A1" t="inlineStr"><is><t>Code</t></is></c>'
+                '<c r="B1" t="inlineStr"><is><t>Label</t></is></c></row>'
+                '<row r="2"><c r="A2" t="inlineStr"><is><t>A</t></is></c>'
+                '<c r="B2" t="inlineStr"><is><t>Alpha</t></is></c></row>'
+                "</sheetData></worksheet>"
+            ),
+        )
+    return payload.getvalue()
+
+
+def _add_ooxml_relational_source(
+    suite: Fixture,
+    *,
+    atlas_label: str,
+) -> SourceSpec:
+    source_iri = "https://publisher.example/codes.xlsx"
+    native_payload = {"key": "A", "label": "Alpha"}
+    template = json.dumps(
+        {"key": "{code}", "label": "{label}"},
+        separators=(",", ":"),
+    )
+    return _add_single_record_stock_source(
+        suite,
+        name="tiny-ooxml-relational",
+        filename="codes.xlsx",
+        fmt="xlsx",
+        source_iri=source_iri,
+        source_bytes=_tiny_ooxml_workbook(),
+        reader=OOXML_RELATIONAL_READER,
+        identity_policy="source-key-derived",
+        resource="urn:example:ooxml-record:A",
+        source_locator=source_iri + "#A",
+        source_digest=_native_payload_digest(native_payload),
+        native_payload=native_payload,
+        evaluated_native_fields=frozenset(native_payload),
+        atlas_only_native_fields=frozenset(),
+        atlas_label=atlas_label,
+        notation="A",
+        ooxml_relational=OoxmlRelationalSelector(
+            input_role="publisherSource",
+            expected_sheets=("Codes",),
+            tables=(
+                OoxmlTable(
+                    name="codes",
+                    sheet="Codes",
+                    header_row=1,
+                    expected_header=("Code", "Label"),
+                    fields=(
+                        OoxmlTableField("code", 0, "code-text"),
+                        OoxmlTableField("label", 1, "stripped-text"),
+                    ),
+                    expected_rows=1,
+                ),
+            ),
+            primary_table="codes",
+            union_tables=(),
+            filters=(),
+            sort_by=(),
+            group_by=(),
+            joins=(),
+            aggregates=(),
+            derived_fields=(),
+            row_key="code",
+            identity_mode="publisher-key",
+            identity_template="urn:example:ooxml-record:{code}",
+            source_path_template="rows[{ordinal}]",
+            source_locator_template="{input_source_iri}#{code}",
+            claim_map=(
+                ("preferred_label", "label"),
+                ("notation", "code"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=template,
+            native_payload_fields=("key", "label"),
+            expected_count=1,
+            declared_unevaluated_fields=(),
+        ),
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Baseline
 # --------------------------------------------------------------------------------------
@@ -1723,6 +1837,28 @@ def test_csv_record_selector_reader_passes_and_catches_fault(
     atlas_label: str,
 ) -> None:
     spec = _add_csv_record_selector_source(suite, atlas_label=atlas_label)
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+    if atlas_label == "Alpha":
+        assert failed(results) == set(), [
+            item.failures for item in results if not item.passed
+        ]
+    else:
+        label_check = result(results, "label-fidelity")
+        assert not label_check.passed
+        assert any("'Rewritten'" in failure for failure in label_check.failures)
+
+
+@pytest.mark.parametrize("atlas_label", ["Alpha", "Rewritten"])
+def test_ooxml_relational_reader_passes_and_catches_fault(
+    suite: Fixture,
+    atlas_label: str,
+) -> None:
+    spec = _add_ooxml_relational_source(suite, atlas_label=atlas_label)
     results = verify(
         suite.distribution,
         suite.source_root,

@@ -77,6 +77,7 @@ import html
 import io
 import json
 import logging
+import posixpath
 import re
 import string
 import sys
@@ -87,7 +88,7 @@ import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -1132,6 +1133,116 @@ class CsvRecordSelector:
 
 
 @dataclass(frozen=True)
+class OoxmlDerivedField:
+    """One stock derived-field operation in an OOXML table or result row."""
+
+    field: str
+    operation: str
+    inputs: tuple[str, ...] = ()
+    template: str | None = None
+    pattern: str | None = None
+    group: str | None = None
+    cases: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class OoxmlTableField:
+    """One typed worksheet column projected into a relational row."""
+
+    field: str
+    column: int
+    cell_type: str
+
+
+@dataclass(frozen=True)
+class OoxmlRowValidator:
+    """One stock validation rule for every row in a declared table."""
+
+    field: str
+    validation: str
+
+
+@dataclass(frozen=True)
+class OoxmlTable:
+    """A pinned worksheet header and typed row projection."""
+
+    name: str
+    sheet: str
+    header_row: int
+    expected_header: tuple[Any, ...]
+    fields: tuple[OoxmlTableField, ...]
+    expected_rows: int
+    constants: tuple[tuple[str, Any], ...] = ()
+    derived_fields: tuple[OoxmlDerivedField, ...] = ()
+    validators: tuple[OoxmlRowValidator, ...] = ()
+    collapse_header_whitespace: bool = False
+
+
+@dataclass(frozen=True)
+class OoxmlRowFilter:
+    """A generic equality, emptiness, or regex filter."""
+
+    field: str
+    operation: str
+    value: str | None = None
+
+
+@dataclass(frozen=True)
+class OoxmlJoin:
+    """A declared lookup from primary rows to another worksheet table."""
+
+    alias: str
+    table: str
+    left_fields: tuple[str, ...]
+    right_fields: tuple[str, ...]
+    cardinality: str
+    require_all_right: bool = False
+
+
+@dataclass(frozen=True)
+class OoxmlAggregate:
+    """A declared group or joined-row aggregate."""
+
+    field: str
+    operation: str
+    source: str
+    value_field: str | None = None
+    key_field: str | None = None
+    offset: int = 0
+    template_json: str | None = None
+
+
+@dataclass(frozen=True)
+class OoxmlRelationalSelector:
+    """Declarative workbook pins, tables, joins, grouping, identity, and claims."""
+
+    input_role: str
+    expected_sheets: tuple[str, ...]
+    tables: tuple[OoxmlTable, ...]
+    primary_table: str
+    union_tables: tuple[str, ...]
+    filters: tuple[OoxmlRowFilter, ...]
+    sort_by: tuple[str, ...]
+    group_by: tuple[str, ...]
+    joins: tuple[OoxmlJoin, ...]
+    aggregates: tuple[OoxmlAggregate, ...]
+    derived_fields: tuple[OoxmlDerivedField, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_path_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
+    expected_count: int
+    declared_unevaluated_fields: tuple[str, ...]
+    identity_token: str | None = None
+    recorded_at: str | None = None
+    is_skos_concept: bool = False
+
+
+@dataclass(frozen=True)
 class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
@@ -1152,6 +1263,7 @@ class SourceSpec:
     xml_record: XmlRecordSelector | None = None
     json_record: JsonRecordSelector | None = None
     csv_record: CsvRecordSelector | None = None
+    ooxml_relational: OoxmlRelationalSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2232,6 +2344,7 @@ PATTERN_ROW_READER = "pattern-row-v2/2.0"
 XML_RECORD_SELECTOR_READER = "xml-record-selector-v1/1.0"
 JSON_RECORD_SELECTOR_READER = "json-record-selector-v2/2.0"
 CSV_RECORD_SELECTOR_READER = "csv-record-selector-v2/2.0"
+OOXML_RELATIONAL_READER = "ooxml-relational-v1/1.0"
 LDA_GENERAL_ISSUE_JSON_READER = "lda-general-issue-json-v1/1.0"
 LDA_FILING_TYPE_JSON_READER = "lda-filing-type-json-v1/1.0"
 ECFR_TITLES_JSON_READER = "ecfr-titles-json-v1/1.0"
@@ -2263,6 +2376,7 @@ SPEC_SCOPED_RECORD_READERS = frozenset(
         LDA_FILING_TYPE_JSON_READER,
         LDA_GENERAL_ISSUE_JSON_READER,
         NASA_TAXONOMY_JSON_READER,
+        OOXML_RELATIONAL_READER,
         PATTERN_ROW_READER,
         SAM_CAGE_JSON_READER,
         SAM_UEI_JSON_READER,
@@ -3865,6 +3979,540 @@ def _read_csv_record_selector(
         payloads,
         unevaluated_claims=tuple(
             f"authenticated publisher CSV field is explicitly unevaluated: {field}"
+            for field in selector.declared_unevaluated_fields
+        ),
+    )
+
+
+_OOXML_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+_OOXML_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+_OOXML_PACKAGE_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+
+def _ooxml_member_path(base: str, target: str) -> str:
+    """Resolve an OOXML relationship target without permitting ZIP traversal."""
+    path = target.removeprefix("/")
+    if not target.startswith("/"):
+        path = posixpath.normpath(posixpath.join(posixpath.dirname(base), target))
+    if path.startswith("../") or path == ".." or not path.startswith("xl/"):
+        raise ValueError(f"OOXML relationship target escapes the workbook: {target!r}")
+    return path
+
+
+def _ooxml_shared_strings(archive: zipfile.ZipFile) -> tuple[str, ...]:
+    """Read the standard shared-string table, including rich-text runs."""
+    if "xl/sharedStrings.xml" not in archive.namelist():
+        return ()
+    root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+    return tuple(
+        "".join(node.text or "" for node in item.iter(f"{{{_OOXML_MAIN}}}t"))
+        for item in root.findall(f"{{{_OOXML_MAIN}}}si")
+    )
+
+
+def _ooxml_workbook_sheets(
+    archive: zipfile.ZipFile,
+) -> tuple[tuple[str, str], ...]:
+    """Return workbook sheet names and resolved worksheet members in order."""
+    workbook_path = "xl/workbook.xml"
+    relations_path = "xl/_rels/workbook.xml.rels"
+    workbook = ElementTree.fromstring(archive.read(workbook_path))
+    relations = ElementTree.fromstring(archive.read(relations_path))
+    targets = {
+        relation.attrib["Id"]: _ooxml_member_path(
+            workbook_path,
+            relation.attrib["Target"],
+        )
+        for relation in relations.findall(f"{{{_OOXML_PACKAGE_REL}}}Relationship")
+        if relation.attrib.get("TargetMode") != "External"
+        and relation.attrib.get("Type", "").endswith("/worksheet")
+    }
+    sheets: list[tuple[str, str]] = []
+    for sheet in workbook.findall(f".//{{{_OOXML_MAIN}}}sheet"):
+        relationship_id = sheet.attrib.get(f"{{{_OOXML_REL}}}id")
+        if relationship_id not in targets:
+            raise ValueError(f"OOXML worksheet {sheet.attrib.get('name')!r} has no target")
+        sheets.append((sheet.attrib["name"], targets[relationship_id]))
+    return tuple(sheets)
+
+
+def _ooxml_column_index(reference: str) -> int:
+    match = re.match(r"^([A-Z]+)[1-9][0-9]*$", reference)
+    if match is None:
+        raise ValueError(f"OOXML cell reference is malformed: {reference!r}")
+    value = 0
+    for character in match.group(1):
+        value = value * 26 + ord(character) - ord("A") + 1
+    return value - 1
+
+
+def _ooxml_cell_value(
+    cell: ElementTree.Element,
+    shared_strings: Sequence[str],
+) -> Any:
+    cell_type = cell.attrib.get("t", "n")
+    if cell_type == "inlineStr":
+        return "".join(
+            node.text or "" for node in cell.iter(f"{{{_OOXML_MAIN}}}t")
+        )
+    value_node = cell.find(f"{{{_OOXML_MAIN}}}v")
+    if value_node is None or value_node.text is None:
+        return None
+    value = value_node.text
+    if cell_type == "s":
+        try:
+            return shared_strings[int(value)]
+        except (IndexError, ValueError) as error:
+            raise ValueError("OOXML shared-string index is invalid") from error
+    if cell_type in {"str", "e", "d"}:
+        if cell_type == "e":
+            raise ValueError(f"OOXML formula cell contains error value {value!r}")
+        return value
+    if cell_type == "b":
+        if value not in {"0", "1"}:
+            raise ValueError(f"OOXML boolean cell is malformed: {value!r}")
+        return value == "1"
+    try:
+        number = float(value)
+    except ValueError as error:
+        raise ValueError(f"OOXML numeric cell is malformed: {value!r}") from error
+    return int(number) if number.is_integer() else number
+
+
+def _ooxml_sheet_rows(
+    archive: zipfile.ZipFile,
+    member: str,
+    shared_strings: Sequence[str],
+) -> Iterator[tuple[int, list[Any]]]:
+    """Stream worksheet rows and clear parsed XML nodes as they are consumed."""
+    with archive.open(member) as handle:
+        for _, element in ElementTree.iterparse(handle, events=("end",)):
+            if element.tag != f"{{{_OOXML_MAIN}}}row":
+                continue
+            row_number = int(element.attrib.get("r", "0"))
+            values: list[Any] = []
+            for cell in element.findall(f"{{{_OOXML_MAIN}}}c"):
+                reference = cell.attrib.get("r")
+                if reference is None:
+                    raise ValueError("OOXML cell has no coordinate")
+                column = _ooxml_column_index(reference)
+                if column >= len(values):
+                    values.extend([None] * (column + 1 - len(values)))
+                values[column] = _ooxml_cell_value(cell, shared_strings)
+            yield row_number, values
+            element.clear()
+
+
+def _ooxml_cell_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _ooxml_typed_value(value: Any, cell_type: str, label: str) -> Any:
+    """Apply a declared worksheet cell type without guessing from a source name."""
+    if cell_type == "raw":
+        return value
+    if cell_type == "cell-text":
+        return _ooxml_cell_text(value)
+    if cell_type == "text":
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"{label} must be non-empty text")
+        return value
+    if cell_type == "stripped-text":
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{label} must be non-empty text")
+        return value.strip()
+    if cell_type == "code-text":
+        text = _ooxml_cell_text(value).strip()
+        if not text:
+            raise ValueError(f"{label} must be a non-empty code")
+        return text
+    if cell_type == "optional-text":
+        if value is None:
+            return None
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{label} must be text or an empty cell")
+        return value.strip()
+    if cell_type == "optional-cell-text":
+        text = _ooxml_cell_text(value).strip()
+        return text or None
+    if cell_type == "optional-code3":
+        if value is None:
+            return None
+        text = _ooxml_cell_text(value).strip()
+        if not text.isdigit() or len(text) > 3:
+            raise ValueError(f"{label} must be an empty or three-digit code")
+        return text.zfill(3)
+    if cell_type in {"date", "optional-date"}:
+        if value is None and cell_type == "optional-date":
+            return None
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return (
+                datetime(1899, 12, 30, tzinfo=UTC)
+                + timedelta(days=float(value))
+            ).date().isoformat()
+        if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}(?:T.*)?", value):
+            return value[:10]
+        raise ValueError(f"{label} must be an Excel or ISO date")
+    raise ValueError(f"{label} has unsupported OOXML cell type {cell_type!r}")
+
+
+def _apply_ooxml_derived(
+    fields: dict[str, Any],
+    declaration: OoxmlDerivedField,
+    label: str,
+) -> None:
+    values = [fields.get(name) for name in declaration.inputs]
+    if declaration.operation == "template":
+        if declaration.template is None:
+            raise ValueError(f"{label} template-derived field lacks a template")
+        result: Any = _render_pattern_text(declaration.template, fields)
+    elif declaration.operation == "strip":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} strip-derived field requires one text input")
+        result = values[0].strip()
+    elif declaration.operation == "first-nonempty":
+        result = next((value for value in values if value not in (None, "")), None)
+        if result is None:
+            raise ValueError(f"{label} first-nonempty field found no value")
+    elif declaration.operation == "regex-capture":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} regex-capture requires one text input")
+        if declaration.pattern is None or declaration.group is None:
+            raise ValueError(f"{label} regex-capture lacks a pattern or group")
+        match = re.fullmatch(declaration.pattern, values[0])
+        if match is None:
+            raise ValueError(f"{label} input did not match its declared shape")
+        result = match.group(declaration.group)
+    elif declaration.operation == "regex-map":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} regex-map requires one text input")
+        matches = [mapped for pattern, mapped in declaration.cases if re.fullmatch(pattern, values[0])]
+        if len(matches) != 1:
+            raise ValueError(f"{label} regex-map selected {len(matches)} cases")
+        result = matches[0]
+    elif declaration.operation == "sha256":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} sha256 requires one text input")
+        result = hashlib.sha256(values[0].encode("utf-8")).hexdigest()
+    elif declaration.operation == "url-quote":
+        if len(values) != 1 or not isinstance(values[0], str):
+            raise ValueError(f"{label} url-quote requires one text input")
+        result = urllib.parse.quote(values[0], safe="")
+    elif declaration.operation == "excel-date":
+        if len(values) != 1:
+            raise ValueError(f"{label} excel-date requires one input")
+        result = _ooxml_typed_value(values[0], "date", label)
+    else:
+        raise ValueError(
+            f"{label} uses unsupported OOXML derived operation "
+            f"{declaration.operation!r}"
+        )
+    if declaration.field in fields:
+        raise ValueError(f"{label} derived field repeats {declaration.field!r}")
+    fields[declaration.field] = result
+
+
+def _validate_ooxml_row(
+    fields: Mapping[str, Any],
+    declaration: OoxmlRowValidator,
+    ordinal: int,
+    label: str,
+) -> None:
+    value = fields.get(declaration.field)
+    if declaration.validation == "sequence-one-based":
+        valid = str(value) == str(ordinal + 1)
+    elif declaration.validation.startswith("regex:"):
+        valid = isinstance(value, str) and re.fullmatch(
+            declaration.validation.removeprefix("regex:"), value
+        ) is not None
+    else:
+        raise ValueError(
+            f"{label} has unsupported OOXML row validation "
+            f"{declaration.validation!r}"
+        )
+    if not valid:
+        raise ValueError(
+            f"{label} field {declaration.field!r} failed "
+            f"{declaration.validation} validation"
+        )
+
+
+def _read_ooxml_table(
+    archive: zipfile.ZipFile,
+    sheet_members: Mapping[str, str],
+    shared_strings: Sequence[str],
+    table: OoxmlTable,
+    spec_name: str,
+) -> list[dict[str, Any]]:
+    member = sheet_members.get(table.sheet)
+    if member is None:
+        raise ValueError(f"{spec_name} table {table.name!r} names an unknown sheet")
+    header_seen = False
+    rows: list[dict[str, Any]] = []
+    for row_number, values in _ooxml_sheet_rows(archive, member, shared_strings):
+        if row_number == table.header_row:
+            observed = tuple(_ooxml_cell_text(value) for value in values)
+            if table.collapse_header_whitespace:
+                observed = tuple(" ".join(value.split()) for value in observed)
+            expected = tuple(str(value) for value in table.expected_header)
+            if observed[: len(expected)] != expected or any(observed[len(expected) :]):
+                raise ValueError(f"{spec_name} sheet {table.sheet!r} header changed")
+            header_seen = True
+            continue
+        if row_number <= table.header_row or not any(value is not None for value in values):
+            continue
+        fields = dict(table.constants)
+        for declaration in table.fields:
+            raw = values[declaration.column] if declaration.column < len(values) else None
+            fields[declaration.field] = _ooxml_typed_value(
+                raw,
+                declaration.cell_type,
+                f"{spec_name}.{table.name}[{row_number}].{declaration.field}",
+            )
+        for declaration in table.derived_fields:
+            _apply_ooxml_derived(
+                fields,
+                declaration,
+                f"{spec_name}.{table.name}[{row_number}]",
+            )
+        ordinal = len(rows)
+        for declaration in table.validators:
+            _validate_ooxml_row(
+                fields,
+                declaration,
+                ordinal,
+                f"{spec_name}.{table.name}[{row_number}]",
+            )
+        fields["worksheet_row"] = row_number
+        rows.append(fields)
+    if not header_seen:
+        raise ValueError(f"{spec_name} sheet {table.sheet!r} has no declared header row")
+    if len(rows) != table.expected_rows:
+        raise ValueError(
+            f"{spec_name} table {table.name!r} expected {table.expected_rows} "
+            f"rows, found {len(rows)}"
+        )
+    return rows
+
+
+def _ooxml_filter_matches(row: Mapping[str, Any], item: OoxmlRowFilter) -> bool:
+    value = row.get(item.field)
+    if item.operation == "equals":
+        return value == item.value
+    if item.operation == "not-equals":
+        return value != item.value
+    if item.operation == "is-empty":
+        return value in (None, "")
+    if item.operation == "is-not-empty":
+        return value not in (None, "")
+    if item.operation == "regex":
+        return isinstance(value, str) and item.value is not None and re.fullmatch(item.value, value) is not None
+    raise ValueError(f"unsupported OOXML row filter {item.operation!r}")
+
+
+def _render_ooxml_aggregate_rows(
+    rows: Sequence[Mapping[str, Any]],
+    template_json: str | None,
+    label: str,
+) -> list[Any]:
+    if template_json is None:
+        raise ValueError(f"{label} aggregate lacks a JSON template")
+    template = _json_without_duplicate_keys(template_json.encode(), label)
+    return [_render_pattern_value(template, row) for row in rows]
+
+
+def _read_ooxml_relational(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Read OOXML with stock ZIP/XML and execute one declared relational plan."""
+    selector = spec.ooxml_relational
+    if selector is None:
+        raise ValueError(f"{spec.name} has no OOXML relational selector")
+    pin, payload = _pin_with_role(spec, payloads, selector.input_role)
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(payload))
+    except zipfile.BadZipFile as error:
+        raise ValueError(f"{spec.name} input is not an OOXML ZIP") from error
+    with archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)) or any(
+            name.startswith("/") or ".." in Path(name).parts for name in names
+        ):
+            raise ValueError(f"{spec.name} OOXML ZIP member names are unsafe")
+        sheets = _ooxml_workbook_sheets(archive)
+        if tuple(name for name, _ in sheets) != selector.expected_sheets:
+            raise ValueError(f"{spec.name} workbook sheets changed")
+        sheet_members = dict(sheets)
+        missing_members = sorted(set(sheet_members.values()) - set(names))
+        if missing_members:
+            raise ValueError(f"{spec.name} workbook omits worksheet members {missing_members}")
+        shared_strings = _ooxml_shared_strings(archive)
+        table_rows = {
+            table.name: _read_ooxml_table(
+                archive,
+                sheet_members,
+                shared_strings,
+                table,
+                spec.name,
+            )
+            for table in selector.tables
+        }
+
+    primary = table_rows.get(selector.primary_table)
+    if primary is None:
+        raise ValueError(f"{spec.name} names an unknown primary OOXML table")
+    primary = list(primary)
+    for table_name in selector.union_tables:
+        union_rows = table_rows.get(table_name)
+        if union_rows is None:
+            raise ValueError(f"{spec.name} names an unknown OOXML union table")
+        primary.extend(union_rows)
+    filtered = [
+        row
+        for row in primary
+        if all(_ooxml_filter_matches(row, item) for item in selector.filters)
+    ]
+    if selector.sort_by:
+        filtered.sort(key=lambda row: tuple(str(row.get(field, "")) for field in selector.sort_by))
+
+    if selector.group_by:
+        groups_by_key: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+        for row in filtered:
+            groups_by_key[tuple(row.get(field) for field in selector.group_by)].append(row)
+        groups = list(groups_by_key.values())
+    else:
+        groups = [[row] for row in filtered]
+
+    join_indexes: dict[str, dict[tuple[Any, ...], list[dict[str, Any]]]] = {}
+    for join in selector.joins:
+        rows = table_rows.get(join.table)
+        if rows is None:
+            raise ValueError(f"{spec.name} join {join.alias!r} names an unknown table")
+        index: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+        for row in rows:
+            index[tuple(row.get(field) for field in join.right_fields)].append(row)
+        join_indexes[join.alias] = index
+
+    records: list[_ApiCaptureRecord] = []
+    matched_join_keys: dict[str, set[tuple[Any, ...]]] = defaultdict(set)
+    for ordinal, group_rows in enumerate(groups):
+        fields = dict(group_rows[0])
+        joined: dict[str, list[dict[str, Any]]] = {}
+        for join in selector.joins:
+            left_keys = {
+                tuple(row.get(field) for field in join.left_fields)
+                for row in group_rows
+            }
+            if len(left_keys) != 1:
+                raise ValueError(f"{spec.name} grouped rows disagree on join {join.alias!r}")
+            key = next(iter(left_keys))
+            matches = join_indexes[join.alias].get(key, [])
+            if join.cardinality == "one" and len(matches) != 1:
+                raise ValueError(
+                    f"{spec.name} join {join.alias!r} expected one row, found {len(matches)}"
+                )
+            if join.cardinality not in {"one", "many"}:
+                raise ValueError(f"{spec.name} join cardinality is unsupported")
+            joined[join.alias] = matches
+            if matches:
+                matched_join_keys[join.alias].add(key)
+
+        for aggregate in selector.aggregates:
+            source_rows = (
+                group_rows if aggregate.source == "primary" else joined.get(aggregate.source)
+            )
+            if source_rows is None:
+                raise ValueError(f"{spec.name} aggregate names unknown source {aggregate.source!r}")
+            if aggregate.operation == "rows":
+                value: Any = _render_ooxml_aggregate_rows(
+                    source_rows,
+                    aggregate.template_json,
+                    f"{spec.name}.{aggregate.field}",
+                )
+            elif aggregate.operation == "count-offset":
+                value = len(source_rows) + aggregate.offset
+            elif aggregate.operation == "distinct-list":
+                if aggregate.value_field is None:
+                    raise ValueError(f"{spec.name} distinct-list aggregate has no field")
+                value = sorted({row.get(aggregate.value_field) for row in source_rows})
+            elif aggregate.operation == "count-by":
+                if aggregate.key_field is None:
+                    raise ValueError(f"{spec.name} count-by aggregate has no key field")
+                counts = Counter(str(row.get(aggregate.key_field)) for row in source_rows)
+                value = {key: counts[key] for key in sorted(counts)}
+            elif aggregate.operation == "one":
+                values = _render_ooxml_aggregate_rows(
+                    source_rows,
+                    aggregate.template_json,
+                    f"{spec.name}.{aggregate.field}",
+                )
+                if len(values) != 1:
+                    raise ValueError(f"{spec.name} one aggregate did not receive one row")
+                value = values[0]
+            else:
+                raise ValueError(
+                    f"{spec.name} aggregate operation is unsupported: "
+                    f"{aggregate.operation!r}"
+                )
+            fields[aggregate.field] = value
+
+        for declaration in selector.derived_fields:
+            _apply_ooxml_derived(fields, declaration, f"{spec.name}[{ordinal}]")
+        fields.update(
+            {
+                "ordinal": ordinal,
+                "input_source_iri": pin.source_iri or "",
+                "input_sha256": pin.sha256,
+            }
+        )
+        fields["source_path"] = _render_pattern_text(
+            selector.source_path_template,
+            fields,
+        )
+        records.append(
+            _selector_record(
+                spec=spec,
+                fields=fields,
+                row_key=selector.row_key,
+                identity_mode=selector.identity_mode,
+                identity_template=selector.identity_template,
+                identity_token=selector.identity_token,
+                recorded_at=selector.recorded_at,
+                source_locator_template=selector.source_locator_template,
+                claim_map=selector.claim_map,
+                native_payload_template_json=selector.native_payload_template_json,
+                native_payload_fields=selector.native_payload_fields,
+                is_skos_concept=selector.is_skos_concept,
+            )
+        )
+
+    for join in selector.joins:
+        if join.require_all_right:
+            unmatched = set(join_indexes[join.alias]) - matched_join_keys[join.alias]
+            if unmatched:
+                raise ValueError(
+                    f"{spec.name} join {join.alias!r} left {len(unmatched)} right-side keys unused"
+                )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} OOXML result rows, "
+            f"found {len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(
+            f"authenticated publisher OOXML field is explicitly unevaluated: {field}"
             for field in selector.declared_unevaluated_fields
         ),
     )
@@ -9044,6 +9692,7 @@ _PUBLISHER_READERS: Mapping[
     LDA_FILING_TYPE_JSON_READER: _read_lda_filing_type_capture,
     LDA_GENERAL_ISSUE_JSON_READER: _read_lda_general_issue_capture,
     NASA_TAXONOMY_JSON_READER: _read_nasa_capture,
+    OOXML_RELATIONAL_READER: _read_ooxml_relational,
     SAM_CAGE_JSON_READER: _read_sam_cage_capture,
     SAM_UEI_JSON_READER: _read_sam_uei_capture,
     USASPENDING_AWARD_TYPES_JSON_READER: _read_usaspending_capture,
@@ -13832,6 +14481,716 @@ CSV_RECORD_SELECTOR_SOURCES = (
 )
 
 
+_NAICS_HEADER = (
+    "Seq. No.",
+    "2022 NAICS US Code",
+    "2022 NAICS US Title",
+)
+_PSC_HEADER = (
+    "PSC CODE",
+    "PRODUCT AND SERVICE CODE NAME",
+    "START DATE",
+    "END DATE",
+    "PRODUCT AND SERVICE CODE FULL NAME (DESCRIPTION)",
+    "PRODUCT AND SERVICE CODE INCLUDES",
+    "PRODUCT AND SERVICE CODE EXCLUDES",
+    "PRODUCT AND SERVICE CODE NOTES",
+    "Parent PSC Code",
+    "PSC Category: Service (S)/Product (P)",
+    "Level 1 Category Code",
+    "Level 1 Category",
+    "Level 2 Category Code",
+    "Level 2 Category",
+)
+_NAICS_PSC_IDENTITY_CASES = (
+    (r"\d{2}-\d{2}", "sector"),
+    (r"\d{2}", "sector"),
+    (r"\d{3}", "subsector"),
+    (r"\d{4}", "industryGroup"),
+    (r"\d{5}", "naicsIndustry"),
+    (r"\d{6}", "nationalIndustry"),
+)
+
+
+def _naics_ooxml_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "2-6-digit_2022_Codes.xlsx",
+        "sha256:be12ba41002803359f49181c9bf33a03fbd08578f4f4a4c0bbad7aadaaea0316",
+        82_460,
+        "https://www.census.gov/naics/2022NAICS/2-6%20digit_2022_Codes.xlsx",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "facet": "{facet}",
+            "identifiers": [
+                {
+                    "authorityUri": "https://www.census.gov/naics/",
+                    "effectiveAt": None,
+                    "kind": "naicsCode",
+                    "observedAt": "2026-08-03T20:00:00Z",
+                    "sourceDigest": "{input_sha256}",
+                    "sourceUri": "{input_source_iri}",
+                    "value": "{code}",
+                }
+            ],
+            "identityStatus": "publisherCodeSourceLocalIri",
+            "publisherLabel": "{label}",
+            "resourceName": "naicsCodes",
+            "use": "deterministicMetadata",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=("tbl_2022_title_description_coun",),
+        tables=(
+            OoxmlTable(
+                name="codes",
+                sheet="tbl_2022_title_description_coun",
+                header_row=1,
+                expected_header=_NAICS_HEADER,
+                fields=(
+                    OoxmlTableField("sequence", 0, "code-text"),
+                    OoxmlTableField("code", 1, "code-text"),
+                    OoxmlTableField("label", 2, "stripped-text"),
+                ),
+                expected_rows=2_125,
+                validators=(
+                    OoxmlRowValidator("sequence", "sequence-one-based"),
+                ),
+                collapse_header_whitespace=True,
+            ),
+        ),
+        primary_table="codes",
+        union_tables=(),
+        filters=(),
+        sort_by=(),
+        group_by=(),
+        joins=(),
+        aggregates=(),
+        derived_fields=(
+            OoxmlDerivedField(
+                "facet",
+                "regex-map",
+                inputs=("code",),
+                cases=_NAICS_PSC_IDENTITY_CASES,
+            ),
+        ),
+        row_key="code",
+        identity_mode="registry-source-key",
+        identity_template="{code}",
+        identity_token="naics-2022",
+        recorded_at="2026-08-03T20:00:00Z",
+        source_path_template="{input_source_iri}#code={code}",
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=2_125,
+        declared_unevaluated_fields=(),
+    )
+    return SourceSpec(
+        name="naics-2022",
+        kind="vocabulary",
+        release_keys=("naics-2022",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+def _psc_ooxml_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "PSC-April-2025-wayback.xlsx",
+        "sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4",
+        462_762,
+        "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "facet": "{facet}",
+            "identifiers": [
+                {
+                    "authorityUri": "https://www.acquisition.gov/psc-manual/all",
+                    "effectiveAt": "{start_date}",
+                    "kind": "pscCode",
+                    "observedAt": "2026-08-04T01:17:18Z",
+                    "sourceDigest": "{input_sha256}",
+                    "sourceUri": "{input_source_iri}",
+                    "value": "{code}",
+                }
+            ],
+            "identityStatus": "publisherCodeSourceLocalIri",
+            "publisherLabel": "{label}",
+            "resourceName": "pscCodes",
+            "use": "deterministicMetadata",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=("PSC for 042025", "Category Managers"),
+        tables=(
+            OoxmlTable(
+                name="codes",
+                sheet="PSC for 042025",
+                header_row=1,
+                expected_header=_PSC_HEADER,
+                fields=(
+                    OoxmlTableField("code", 0, "code-text"),
+                    OoxmlTableField("label", 1, "optional-cell-text"),
+                    OoxmlTableField("start_date_raw", 2, "raw"),
+                    OoxmlTableField("end_date_raw", 3, "raw"),
+                    OoxmlTableField("parent_category", 8, "optional-cell-text"),
+                    OoxmlTableField("level_one_category", 11, "optional-cell-text"),
+                ),
+                expected_rows=6_108,
+            ),
+        ),
+        primary_table="codes",
+        union_tables=(),
+        filters=(
+            OoxmlRowFilter("code", "regex", r"[A-Z0-9]{4}"),
+            OoxmlRowFilter("end_date_raw", "is-empty"),
+        ),
+        sort_by=(),
+        group_by=(),
+        joins=(),
+        aggregates=(),
+        derived_fields=(
+            OoxmlDerivedField(
+                "facet",
+                "first-nonempty",
+                inputs=("level_one_category", "parent_category"),
+            ),
+            OoxmlDerivedField(
+                "start_date",
+                "excel-date",
+                inputs=("start_date_raw",),
+            ),
+        ),
+        row_key="code",
+        identity_mode="registry-source-key",
+        identity_template="{code}",
+        identity_token="psc-2025",
+        recorded_at="2026-08-04T01:17:18Z",
+        source_path_template="{input_source_iri}#code={code}",
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=2_344,
+        declared_unevaluated_fields=(
+            "inactive PSC rows with an end date",
+            "descriptions, includes, excludes, notes, and category codes outside the selected active-row payload",
+            "Category Managers worksheet",
+        ),
+    )
+    return SourceSpec(
+        name="psc-april-2025",
+        kind="vocabulary",
+        release_keys=("psc-april-2025",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+_FAST_BOOK_SHEETS = (
+    "Intro Part II",
+    "Part II",
+    "Intro Part III",
+    "Part III",
+    "Changes",
+)
+_FAST_BOOK_PART_II_HEADER = (
+    "AID",
+    "Main",
+    "X-YEAR",
+    "TAS",
+    "Agency",
+    "Title",
+    "Legislation",
+    "Fund Type",
+    "Independent Agencies",
+    "Last update",
+)
+_FAST_BOOK_PART_III_HEADER = (
+    "AID",
+    "Main",
+    "X-YEAR",
+    "TAS",
+    "Agency",
+    "Title",
+    "Fund Type",
+    "Independent Agencies",
+    "Last update",
+)
+_FAST_BOOK_TAS_PATTERN = r"(?P<aid>\d{3})(?:X| )(?P<main>\d{4}(?:\.\d{3})?) ?"
+
+
+def _fast_book_table(
+    *,
+    name: str,
+    sheet: str,
+    part: str,
+    expected_header: tuple[str, ...],
+    expected_rows: int,
+) -> OoxmlTable:
+    is_part_two = part == "II"
+    return OoxmlTable(
+        name=name,
+        sheet=sheet,
+        header_row=2,
+        expected_header=expected_header,
+        fields=(
+            OoxmlTableField("treasury_account_symbol", 3, "stripped-text"),
+            OoxmlTableField("agency_name", 4, "stripped-text"),
+            OoxmlTableField("account_title", 5, "stripped-text"),
+            *(
+                (OoxmlTableField("legislation", 6, "optional-text"),)
+                if is_part_two
+                else ()
+            ),
+            OoxmlTableField(
+                "fund_type",
+                7 if is_part_two else 6,
+                "stripped-text",
+            ),
+            OoxmlTableField(
+                "independent_agency_identifier",
+                8 if is_part_two else 7,
+                "optional-code3",
+            ),
+            OoxmlTableField(
+                "last_updated",
+                9 if is_part_two else 8,
+                "optional-date",
+            ),
+        ),
+        expected_rows=expected_rows,
+        constants=(
+            ("part", part),
+            *(((("legislation", None),)) if not is_part_two else ()),
+        ),
+        derived_fields=(
+            OoxmlDerivedField(
+                "agency_identifier",
+                "regex-capture",
+                inputs=("treasury_account_symbol",),
+                pattern=_FAST_BOOK_TAS_PATTERN,
+                group="aid",
+            ),
+            OoxmlDerivedField(
+                "main_account",
+                "regex-capture",
+                inputs=("treasury_account_symbol",),
+                pattern=_FAST_BOOK_TAS_PATTERN,
+                group="main",
+            ),
+        ),
+    )
+
+
+def _fast_book_tables() -> tuple[OoxmlTable, ...]:
+    return (
+        _fast_book_table(
+            name="part_ii",
+            sheet="Part II",
+            part="II",
+            expected_header=_FAST_BOOK_PART_II_HEADER,
+            expected_rows=3_442,
+        ),
+        _fast_book_table(
+            name="part_iii",
+            sheet="Part III",
+            part="III",
+            expected_header=_FAST_BOOK_PART_III_HEADER,
+            expected_rows=140,
+        ),
+    )
+
+
+_FAST_BOOK_ROW_TEMPLATE = json.dumps(
+    {
+        "account_title": "{account_title}",
+        "agency_identifier": "{agency_identifier}",
+        "agency_name": "{agency_name}",
+        "fund_type": "{fund_type}",
+        "independent_agency_identifier": "{independent_agency_identifier}",
+        "last_updated": "{last_updated}",
+        "legislation": "{legislation}",
+        "main_account": "{main_account}",
+        "part": "{part}",
+        "treasury_account_symbol": "{treasury_account_symbol}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _fast_book_ooxml_source(*, fund_types: bool) -> SourceSpec:
+    pin = SourcePin(
+        path=(
+            "tests/fixtures/treasury_tas_fast_book/"
+            "fast-book-part-ii-iii-2026-07-31.xlsx"
+        ),
+        sha256="sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461",
+        byte_length=420_508,
+        fmt="xlsx",
+        role="publisherWorkbookPartsIIAndIII",
+        source_iri="https://tfx.treasury.gov/media/60111/download?inline=",
+    )
+    if fund_types:
+        name = "treasury-fast-book-fund-types-parts-ii-iii-2026-07"
+        native_template = json.dumps(
+            {
+                "accountCountsByPart": "{account_counts_by_part}",
+                "fundType": "{fund_type}",
+                "parts": "{parts}",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        selector = OoxmlRelationalSelector(
+            input_role="publisherWorkbookPartsIIAndIII",
+            expected_sheets=_FAST_BOOK_SHEETS,
+            tables=_fast_book_tables(),
+            primary_table="part_ii",
+            union_tables=("part_iii",),
+            filters=(),
+            sort_by=("fund_type",),
+            group_by=("fund_type",),
+            joins=(),
+            aggregates=(
+                OoxmlAggregate(
+                    "parts",
+                    "distinct-list",
+                    "primary",
+                    value_field="part",
+                ),
+                OoxmlAggregate(
+                    "account_counts_by_part",
+                    "count-by",
+                    "primary",
+                    key_field="part",
+                ),
+            ),
+            derived_fields=(
+                OoxmlDerivedField(
+                    "fund_hash",
+                    "sha256",
+                    inputs=("fund_type",),
+                ),
+            ),
+            row_key="fund_type",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:treasury-fast-book:fund-type:{fund_hash}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "fund_type"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=11,
+            declared_unevaluated_fields=(
+                "Intro Part II, Intro Part III, and Changes worksheets",
+            ),
+        )
+    else:
+        name = "treasury-fast-book-accounts-parts-ii-iii-2026-07"
+        native_template = json.dumps(
+            {
+                "duplicatePublisherRowCount": "{duplicate_count}",
+                "publishedRows": "{published_rows}",
+                "treasuryAccountSymbol": "{treasury_account_symbol}",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        selector = OoxmlRelationalSelector(
+            input_role="publisherWorkbookPartsIIAndIII",
+            expected_sheets=_FAST_BOOK_SHEETS,
+            tables=_fast_book_tables(),
+            primary_table="part_ii",
+            union_tables=("part_iii",),
+            filters=(),
+            sort_by=("treasury_account_symbol",),
+            group_by=("treasury_account_symbol",),
+            joins=(),
+            aggregates=(
+                OoxmlAggregate(
+                    "published_rows",
+                    "rows",
+                    "primary",
+                    template_json=_FAST_BOOK_ROW_TEMPLATE,
+                ),
+                OoxmlAggregate(
+                    "duplicate_count",
+                    "count-offset",
+                    "primary",
+                    offset=-1,
+                ),
+            ),
+            derived_fields=(
+                OoxmlDerivedField(
+                    "quoted_tas",
+                    "url-quote",
+                    inputs=("treasury_account_symbol",),
+                ),
+                OoxmlDerivedField(
+                    "preferred_label",
+                    "template",
+                    template="{agency_name} — {account_title}",
+                ),
+            ),
+            row_key="treasury_account_symbol",
+            identity_mode="publisher-key",
+            identity_template="urn:ref:treasury-account:{quoted_tas}",
+            source_path_template="{input_source_iri}",
+            source_locator_template="{input_source_iri}",
+            claim_map=(
+                ("preferred_label", "preferred_label"),
+                ("source_path", "source_path"),
+            ),
+            native_payload_template_json=native_template,
+            native_payload_fields=tuple(json.loads(native_template)),
+            expected_count=3_581,
+            declared_unevaluated_fields=(
+                "Intro Part II, Intro Part III, and Changes worksheets",
+                "publisher convenience-cell inconsistencies are retained as source residue; the TAS cell is authoritative",
+            ),
+        )
+    return SourceSpec(
+        name=name,
+        kind="vocabulary",
+        release_keys=(name,),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+_EHRI_SHEETS = ("AllDataElements", "CurrentValues", "PastValues")
+_EHRI_ELEMENT_HEADER = (
+    "Name",
+    "Description",
+    "Data Format",
+    "Data Length",
+    "Valid Values",
+    "Current Values",
+    "Past Values",
+)
+_EHRI_VALUE_HEADER = (
+    "Name",
+    "Code",
+    "Explanation",
+    "From Date",
+    "Through Date",
+)
+_EHRI_FIELD_TEMPLATE = json.dumps(
+    {
+        "current_values": "{current_values}",
+        "data_format": "{data_format}",
+        "data_length": "{data_length}",
+        "description": "{description}",
+        "name": "{name}",
+        "past_values": "{past_values}",
+        "valid_values": "{valid_values}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+_EHRI_VALUE_TEMPLATE = json.dumps(
+    {
+        "code": "{code}",
+        "explanation": "{explanation}",
+        "from_date": "{from_date}",
+        "name": "{name}",
+        "through_date": "{through_date}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _ehri_value_table(name: str, sheet: str, expected_rows: int) -> OoxmlTable:
+    return OoxmlTable(
+        name=name,
+        sheet=sheet,
+        header_row=1,
+        expected_header=_EHRI_VALUE_HEADER,
+        fields=tuple(
+            OoxmlTableField(field, column, "cell-text")
+            for column, field in enumerate(
+                ("name", "code", "explanation", "from_date", "through_date")
+            )
+        ),
+        expected_rows=expected_rows,
+    )
+
+
+def _opm_ehri_ooxml_source() -> SourceSpec:
+    pin = _registry_source_pin(
+        "EHRI-Data-Standards-20260804.xlsx",
+        "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc",
+        1_154_183,
+        "https://data.opm.gov/data-standards/ehri-data-standards",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "currentValue": "{current_value}",
+            "field": "{field_record}",
+            "identityScope": {"code": "{code}", "field": "{name}"},
+            "identityStatus": "sourceLocalFieldCode",
+            "isCurrentValue": True,
+            "pastLifecycle": "{past_lifecycle}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=_EHRI_SHEETS,
+        tables=(
+            OoxmlTable(
+                name="fields",
+                sheet="AllDataElements",
+                header_row=1,
+                expected_header=_EHRI_ELEMENT_HEADER,
+                fields=tuple(
+                    OoxmlTableField(field, column, "cell-text")
+                    for column, field in enumerate(
+                        (
+                            "name",
+                            "description",
+                            "data_format",
+                            "data_length",
+                            "valid_values",
+                            "current_values",
+                            "past_values",
+                        )
+                    )
+                ),
+                expected_rows=534,
+            ),
+            _ehri_value_table("current", "CurrentValues", 17_263),
+            _ehri_value_table("past", "PastValues", 16_425),
+        ),
+        primary_table="current",
+        union_tables=(),
+        filters=(),
+        sort_by=(),
+        group_by=(),
+        joins=(
+            OoxmlJoin(
+                "field",
+                "fields",
+                ("name",),
+                ("name",),
+                "one",
+            ),
+            OoxmlJoin(
+                "past",
+                "past",
+                ("name", "code"),
+                ("name", "code"),
+                "many",
+            ),
+        ),
+        aggregates=(
+            OoxmlAggregate(
+                "current_value",
+                "one",
+                "primary",
+                template_json=_EHRI_VALUE_TEMPLATE,
+            ),
+            OoxmlAggregate(
+                "field_record",
+                "one",
+                "field",
+                template_json=_EHRI_FIELD_TEMPLATE,
+            ),
+            OoxmlAggregate(
+                "past_lifecycle",
+                "rows",
+                "past",
+                template_json=_EHRI_VALUE_TEMPLATE,
+            ),
+        ),
+        derived_fields=(
+            OoxmlDerivedField(
+                "preferred_label",
+                "strip",
+                inputs=("explanation",),
+            ),
+        ),
+        row_key="source_path",
+        identity_mode="registry-source-key",
+        identity_template="{name}\u001f{code}",
+        identity_token="opm-ehri",
+        recorded_at="2026-08-04T00:00:00Z",
+        source_path_template="{input_source_iri}#CurrentValues/{ordinal}",
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "preferred_label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=17_263,
+        declared_unevaluated_fields=(
+            "field definitions with no current controlled values",
+            "past-only field/code identities are lifecycle context, not current members",
+        ),
+    )
+    return SourceSpec(
+        name="opm-ehri-data-standards-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-ehri-data-standards-2026-08-04",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
+OOXML_RELATIONAL_SOURCES = (
+    _naics_ooxml_source(),
+    _psc_ooxml_source(),
+    _fast_book_ooxml_source(fund_types=False),
+    _fast_book_ooxml_source(fund_types=True),
+    _opm_ehri_ooxml_source(),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -13925,6 +15284,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *XML_RECORD_SELECTOR_SOURCES,
     *JSON_RECORD_SELECTOR_SOURCES,
     *CSV_RECORD_SELECTOR_SOURCES,
+    *OOXML_RELATIONAL_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -15861,6 +17221,14 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.reader != CSV_RECORD_SELECTOR_READER and spec.csv_record is not None:
             failures.append(
                 f"{spec.name}: non-CSV reader must not declare a CSV selector"
+            )
+        if spec.reader == OOXML_RELATIONAL_READER and spec.ooxml_relational is None:
+            failures.append(
+                f"{spec.name}: OOXML relational reader has no declarative selector"
+            )
+        if spec.reader != OOXML_RELATIONAL_READER and spec.ooxml_relational is not None:
+            failures.append(
+                f"{spec.name}: non-OOXML reader must not declare an OOXML selector"
             )
         if spec.source_extract is not None:
             if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:
