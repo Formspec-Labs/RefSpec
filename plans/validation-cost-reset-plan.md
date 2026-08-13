@@ -271,15 +271,17 @@ restart from scratch.
 | research/residual-shacl | complete | DON'T-TAKE; the lift pattern's measured floor |
 | research/shacl-sparql | complete | portable sh:sparql prototype, 26/26 cross-engine |
 | research/move2-compiler | complete, VERIFIED | option (b) proven. The cited rulespec commit 28b37d7b is absent upstream for a disclosed reason, not a fabricated one: the codex sandbox could not write `~/Work/rulespec/.git` (the same workspace-write limitation that blocked RefSpec's submodule commits), so it committed to a local mirror and exported `research/move2/rulespec-compiler.patch.gz` — digest `6c8c9579…4a6d` re-verified by hand, `git am` in a real worktree reproduces it. Its own report says so. Fix for next time: add the rulespec git dir to `sandbox_workspace_write.writable_roots`. |
-| research/fidelity-coverage | complete | 24→27 units, the inventory + payoff order |
+| research/fidelity-coverage | INTEGRATING | the inventory + payoff order (consumed by four batches) AND three unlanded SourceSpecs — mesh-descriptors, federal-register-api-topics, gcmd-science-keywords. I wrongly recorded this branch as code-free; cov-json caught it reconciling 28 declared specs against an assumed 31. An agent is integrating them onto current main. |
 | research/fidelity-definitions | complete | the carry/declare decision package |
-| research/fidelity-langbugs | complete | b079de13: one BCP-47 predicate + definitions carried |
+| research/fidelity-langbugs | MERGED e3fd49f1 | one BCP-47 predicate + English definitions/scope notes carried; cherry-picked (its base predates the substrate). Integration found a real defect: it stripped annotation whitespace on the parser path while asserting the claims path preserved it, and the reconciling test skipped in its worktree for want of a generated output/ tree. Both paths strip now — definitions enter node digests, so a stray publisher newline would have made node identity depend on which path built the release. |
 | feat/parse-substrate | MERGED ae34392c | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
 | research/graph-residual | MERGED 15b468c8 | the observer campaign's last two folds; 310,282 store calls → 16 |
 | research/shacl-floor | complete | DON'T-TAKE; the SHACL floor measured (9.449s of 11.652s is engine); corrects residual-shacl's "needs a second implementation" |
 | research/coverage-bulk | MERGED 18283ce5 | four bulk-vocabulary readers; campaign coverage 27/110 → 31/110 |
-| research/auditor-language-scope | wip | NASA double-count FIXED (5e833c18); language mechanism unfinished |
-| research/coverage-{bulk,json,csv-pdf,html-misc} | wip | first SourceSpecs authored + committed per batch |
+| research/auditor-language-scope | MERGED 7a9d75c7 | NASA note-kind fix (19,312 false failure rows → 0) + a checked English scope declaration proving the distribution asserts no non-English literal anywhere. RED BY DESIGN against the 08-13 artifact, which predates the producer change; goes green only on a distribution rebuilt at e3fd49f1 or later. |
+| research/coverage-bulk | MERGED 18283ce5 | four bulk-vocabulary readers, 446,906 records; FAST verification 11.803 → 7.879 GiB, receipts byte-identical |
+| research/coverage-json | MERGED fa7839f4 | all 18 JSON/API-capture units; resolved the memory refactor across 11 conflict regions without weakening a comparison |
+| research/coverage-{csv-pdf,html-misc} | wip, NOT resumed | ~2,000 lines each, committed; both need the same integration-first resume |
 
 **ORCHESTRATION LESSONS (recorded so they are not relearned):** never
 SIGSTOP a codex agent — its harness wrapper exits and the agent dies;
