@@ -28,9 +28,11 @@ rediscovered:
 * An Atlas resource for a vocabulary source **is** the publisher's own IRI. The
   data join is IRI identity, not a minted key and not a digest. Source locators
   are adapter-specific evidence addresses and are checked independently. The one
-  exception is a ``source-extract`` comparison, where the publisher ships no IRIs
-  at all: there the join is the source-local identity the Atlas record itself
-  declares in ``atlas:nativePayload``, and the comparison says so in the receipt.
+  exceptions are checked row sources whose publishers ship no IRIs:
+  ``source-extract`` joins on the source-local identity in
+  ``atlas:nativePayload``, while ``source-list`` compares the complete multiset of
+  publisher labels and notations. Each comparison states that narrower join in
+  the receipt.
 * ``atlas:sourceDigest`` is source-specific: some adapters retain a publisher
   file or archive-member digest, while others digest a constructed native
   relation. The verifier checks the applicable digest rule, but never treats a
@@ -82,8 +84,10 @@ import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from refspec.input_pin import read_verified_file_pin
 from refspec.registry.infrastructure.source_controlled_resource import LABEL_ROLES
@@ -102,7 +106,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 # artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-VERIFIER_VERSION = "atlas-source-fidelity/11"
+VERIFIER_VERSION = "atlas-source-fidelity/12"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
 
@@ -744,6 +748,36 @@ class SourceExtractSelector:
 
 
 @dataclass(frozen=True)
+class SourceListSelector:
+    """One exact row set read directly from authenticated publisher bytes.
+
+    These sources publish small code lists or bounded record tables without RDF.
+    A stock parser reads the publisher's declared row fields, and the auditor
+    compares that complete row multiset with the dedicated Atlas pack. Most
+    documentation tables expose only labels and notations; a selector may also
+    require a publisher resource IRI and exact scalar fields retained in
+    ``atlas:nativePayload``.
+    """
+
+    reader: str
+    extraction: str
+    expected_record_count: int
+    source_assertion: str
+    label_language: str = "en"
+    input_path: str | None = None
+    table_headers: tuple[str, ...] = ()
+    table_index: int | None = None
+    data_row_start: int = 1
+    label_column: int = 0
+    notation_columns: tuple[int, ...] = ()
+    split_pattern: str | None = None
+    ignored_single_cell_rows: tuple[str, ...] = ()
+    compare_resource_iri: bool = False
+    native_payload_fields: tuple[str, ...] = ()
+    normalize_whitespace: bool = True
+
+
+@dataclass(frozen=True)
 class RdfSourcePolicy:
     """Independent source-record provenance policy for one RDF adapter."""
 
@@ -817,7 +851,7 @@ class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
     name: str
-    kind: str  # "vocabulary", "mapping", "native-control", or "source-extract"
+    kind: str  # vocabulary, mapping, native-control, source-extract, or source-list
     release_keys: tuple[str, ...]
     inputs: tuple[SourcePin, ...]
     policies: frozenset[str] = frozenset()
@@ -828,6 +862,7 @@ class SourceSpec:
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
+    source_list: SourceListSelector | None = None
 
     def has_policy(self, name: str) -> bool:
         return name in self.policies
@@ -891,6 +926,34 @@ class SourceExtractPair:
 
 
 @dataclass(frozen=True)
+class SourceListRow:
+    """One publisher row at the comparison boundary."""
+
+    label: LiteralValue
+    notations: tuple[str, ...]
+    resource_iri: str | None = None
+    native_attributes: tuple[tuple[str, str | None], ...] = ()
+
+
+@dataclass(frozen=True)
+class SourceListPublisherView:
+    """A complete row multiset read from one pinned non-RDF source."""
+
+    rows: tuple[SourceListRow, ...]
+    source_assertion: str
+    failures: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SourceListPair:
+    """Pinned publisher rows and the Atlas pack that represents them."""
+
+    spec: SourceSpec
+    publisher: SourceListPublisherView
+    atlas: AtlasView
+
+
+@dataclass(frozen=True)
 class KeyedAtlasExtractView:
     """Atlas claims re-keyed from minted resource IRIs to source-local identities."""
 
@@ -933,6 +996,7 @@ class Context:
     pin_failures: tuple[str, ...]
     load_failures: tuple[str, ...]
     source_extract_pairs: tuple[SourceExtractPair, ...] = ()
+    source_list_pairs: tuple[SourceListPair, ...] = ()
     # Specs this run deliberately did not evaluate. They stay visible so the
     # coverage arithmetic can report their construction units as scoped out
     # instead of silently counting them covered or failing them unread.
@@ -955,6 +1019,7 @@ class Context:
                 *(pair.spec for pair in self.pairs),
                 *(pair.spec for pair in self.native_control_pairs),
                 *(pair.spec for pair in self.source_extract_pairs),
+                *(pair.spec for pair in self.source_list_pairs),
             ]
         )
 
@@ -2044,6 +2109,398 @@ _SOURCE_EXTRACT_READERS: Mapping[
         _read_federal_register_thesaurus_2025_extract
     ),
 }
+
+
+SOURCE_LIST_READER = "pinned-publisher-row-list-v1"
+
+
+class _FlatHtmlTableReader(HTMLParser):
+    """Read flat HTML tables without interpreting page-specific registry rules."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.tables: list[list[tuple[str, ...]]] = []
+        self._table_depth = 0
+        self._rows: list[tuple[str, ...]] | None = None
+        self._row: list[str] | None = None
+        self._cell_chunks: list[str] | None = None
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        del attrs
+        if tag == "table":
+            self._table_depth += 1
+            if self._table_depth == 1:
+                self._rows = []
+            return
+        if self._table_depth != 1:
+            return
+        if tag == "tr":
+            self._row = []
+        elif tag in {"td", "th"} and self._row is not None:
+            self._cell_chunks = []
+
+    def handle_data(self, data: str) -> None:
+        if self._cell_chunks is not None:
+            self._cell_chunks.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "table":
+            if self._table_depth == 1 and self._rows is not None:
+                self.tables.append(self._rows)
+                self._rows = None
+            self._table_depth = max(0, self._table_depth - 1)
+            return
+        if self._table_depth != 1:
+            return
+        if tag in {"td", "th"} and self._cell_chunks is not None:
+            if self._row is not None:
+                self._row.append(" ".join("".join(self._cell_chunks).split()))
+            self._cell_chunks = None
+        elif tag == "tr" and self._row is not None:
+            if self._rows is not None:
+                self._rows.append(tuple(self._row))
+            self._row = None
+
+
+def _source_list_failure_view(
+    selector: SourceListSelector,
+    failures: Sequence[str],
+) -> SourceListPublisherView:
+    return SourceListPublisherView(
+        rows=(),
+        source_assertion=selector.source_assertion,
+        failures=tuple(failures),
+    )
+
+
+def _source_list_input(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> tuple[SourcePin, bytes]:
+    pins = [
+        pin
+        for pin in spec.inputs
+        if selector.input_path is None or pin.path == selector.input_path
+    ]
+    if len(pins) != 1:
+        raise ValueError(
+            f"source-list extraction selects {len(pins)} inputs; expected exactly one"
+        )
+    pin = pins[0]
+    return pin, authenticated_payloads[pin]
+
+
+def _source_list_row(
+    label: str,
+    notations: Iterable[str],
+    selector: SourceListSelector,
+    *,
+    resource_iri: str | None = None,
+    native_attributes: Mapping[str, str | None] | None = None,
+) -> SourceListRow:
+    normalized_label = " ".join(label.split()) if selector.normalize_whitespace else label
+    normalized_notations = tuple(
+        sorted(
+            {
+                " ".join(value.split()) if selector.normalize_whitespace else value
+                for value in notations
+                if value.strip()
+            }
+        )
+    )
+    if not normalized_label:
+        raise ValueError("publisher row has an empty label")
+    return SourceListRow(
+        label=_literal_value(normalized_label, selector.label_language, None),
+        notations=normalized_notations,
+        resource_iri=resource_iri,
+        native_attributes=tuple(
+            (
+                name,
+                " ".join(value.split())
+                if value is not None and selector.normalize_whitespace
+                else value,
+            )
+            for name, value in sorted((native_attributes or {}).items())
+        ),
+    )
+
+
+def _read_html_table_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"{pin.path} is not UTF-8 HTML") from error
+    parser = _FlatHtmlTableReader()
+    parser.feed(text)
+    parser.close()
+    if selector.table_index is not None:
+        try:
+            table = parser.tables[selector.table_index]
+        except IndexError as error:
+            raise ValueError(
+                f"HTML table index {selector.table_index} is absent; "
+                f"observed {len(parser.tables)} tables"
+            ) from error
+        if selector.table_headers and (
+            not table or table[0] != selector.table_headers
+        ):
+            observed = table[0] if table else ()
+            raise ValueError(
+                f"HTML table {selector.table_index} headers differ -- expected "
+                f"{selector.table_headers!r}, observed {observed!r}"
+            )
+    elif selector.table_headers:
+        tables = [
+            table
+            for table in parser.tables
+            if table and table[0] == selector.table_headers
+        ]
+        if len(tables) != 1:
+            raise ValueError(
+                f"expected one HTML table headed {selector.table_headers!r}, "
+                f"observed {len(tables)}"
+        )
+        table = tables[0]
+    else:
+        raise ValueError("HTML table extraction declares neither headers nor an index")
+
+    rows: list[SourceListRow] = []
+    for ordinal, cells in enumerate(table[selector.data_row_start :]):
+        if len(cells) == 1 and cells[0] in selector.ignored_single_cell_rows:
+            continue
+        if selector.split_pattern is not None:
+            if len(cells) != 1:
+                raise ValueError(
+                    f"HTML row {ordinal} must contain one split cell, observed {cells!r}"
+                )
+            match = re.fullmatch(selector.split_pattern, cells[0])
+            if match is None:
+                raise ValueError(
+                    f"HTML row {ordinal} does not match {selector.split_pattern!r}: "
+                    f"{cells[0]!r}"
+                )
+            rows.append(
+                _source_list_row(
+                    match.group("label"),
+                    (match.group("notation"),),
+                    selector,
+                )
+            )
+            continue
+        required_columns = (selector.label_column, *selector.notation_columns)
+        if any(column < 0 or column >= len(cells) for column in required_columns):
+            raise ValueError(
+                f"HTML row {ordinal} has {len(cells)} cells; required columns are "
+                f"{required_columns}"
+            )
+        rows.append(
+            _source_list_row(
+                cells[selector.label_column],
+                (cells[column] for column in selector.notation_columns),
+                selector,
+            )
+        )
+    return SourceListPublisherView(
+        rows=tuple(rows),
+        source_assertion=selector.source_assertion,
+    )
+
+
+def _markdown_table_rows(text: str, headers: tuple[str, ...]) -> list[tuple[str, ...]]:
+    lines = text.splitlines()
+    def cells(line: str) -> tuple[str, ...]:
+        stripped = line.strip()
+        if not stripped.startswith("|") or not stripped.endswith("|"):
+            raise ValueError(f"malformed Markdown table row: {line!r}")
+        return tuple(cell.strip() for cell in stripped[1:-1].split("|"))
+
+    matches = [
+        index
+        for index, line in enumerate(lines)
+        if line.strip().startswith("|")
+        and line.strip().endswith("|")
+        and cells(line) == headers
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"expected one Markdown table headed {headers!r}, observed {len(matches)}"
+        )
+    index = matches[0] + 1
+    if index >= len(lines):
+        raise ValueError("Markdown table has no separator")
+
+    separator = cells(lines[index])
+    if len(separator) != len(headers) or any(
+        re.fullmatch(r":?-{3,}:?", cell) is None for cell in separator
+    ):
+        raise ValueError("Markdown table separator does not match its header")
+    index += 1
+    result: list[tuple[str, ...]] = []
+    while index < len(lines) and lines[index].strip().startswith("|"):
+        row = cells(lines[index])
+        if len(row) != len(headers):
+            raise ValueError(
+                f"Markdown table row has {len(row)} cells, expected {len(headers)}"
+            )
+        result.append(row)
+        index += 1
+    return result
+
+
+def _read_markdown_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"{pin.path} is not UTF-8 Markdown") from error
+    if selector.extraction == "billstatus-bill-types":
+        match = re.search(
+            r"^Bill type \(Possible values are ([^)]+)\)\.[ \t]*$",
+            text,
+            re.MULTILINE,
+        )
+        if match is None:
+            raise ValueError("BILLSTATUS bill-type sentence is absent or changed")
+        values = re.split(r",\s*(?:and\s+)?", match.group(1))
+        rows = tuple(_source_list_row(value, (value,), selector) for value in values)
+        return SourceListPublisherView(rows, selector.source_assertion)
+
+    table = _markdown_table_rows(text, selector.table_headers)
+    rows: list[SourceListRow] = []
+    for cells in table:
+        clean = tuple(
+            re.sub(r"^\*\*(.*?)\*\*$", r"\1", value).strip()
+            for value in cells
+        )
+        rows.append(
+            _source_list_row(
+                clean[selector.label_column],
+                (clean[column] for column in selector.notation_columns),
+                selector,
+            )
+        )
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_cbo_publication_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError("CBO XML must not declare custom entities")
+    try:
+        root = ElementTree.fromstring(payload)
+    except ElementTree.ParseError as error:
+        raise ValueError(f"{pin.path} is not well-formed XML") from error
+    if root.tag != "response":
+        raise ValueError(f"CBO XML root must be 'response', observed {root.tag!r}")
+    rows: list[SourceListRow] = []
+    seen_keys: set[str] = set()
+    for ordinal, item in enumerate(root):
+        if item.tag != "item":
+            raise ValueError(f"CBO root child {ordinal} is not an item")
+        if tuple(child.tag for child in item) != (
+            "Title",
+            "Date",
+            "Link",
+            "Description",
+            "Bill_Number",
+        ):
+            raise ValueError(f"CBO item {ordinal} fields changed")
+        key = item.get("key")
+        title = (item.findtext("Title") or "").strip()
+        link = (item.findtext("Link") or "").strip()
+        publication = re.fullmatch(r"https://www\.cbo\.gov/publication/(\d+)", link)
+        if not key or key in seen_keys:
+            raise ValueError(f"CBO item {ordinal} has a missing or repeated key")
+        if not title or publication is None:
+            raise ValueError(f"CBO item {ordinal} lacks an exact title or publication URL")
+        seen_keys.add(key)
+        bill_number = (item.findtext("Bill_Number") or "").strip()
+        rows.append(
+            _source_list_row(
+                title,
+                (),
+                selector,
+                resource_iri=link,
+                native_attributes={
+                    "billNumber": bill_number or None,
+                    "date": (item.findtext("Date") or "").strip(),
+                    "description": (item.findtext("Description") or "").strip(),
+                    "feedItemKey": key,
+                },
+            )
+        )
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_source_list(
+    spec: SourceSpec,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    """Dispatch one declared non-RDF row extraction without importing an adapter."""
+    selector = spec.source_list
+    if selector is None:
+        return SourceListPublisherView((), "", ("source-list selector is missing",))
+    if selector.reader != SOURCE_LIST_READER:
+        return _source_list_failure_view(
+            selector,
+            [f"unsupported source-list reader {selector.reader!r}"],
+        )
+    readers: Mapping[
+        str,
+        Callable[
+            [SourceSpec, SourceListSelector, Mapping[SourcePin, bytes]],
+            SourceListPublisherView,
+        ],
+    ] = {
+        "html-table": _read_html_table_source_list,
+        "html-table-split": _read_html_table_source_list,
+        "markdown-table": _read_markdown_source_list,
+        "billstatus-bill-types": _read_markdown_source_list,
+        "cbo-publication-xml": _read_cbo_publication_source_list,
+    }
+    reader = readers.get(selector.extraction)
+    if reader is None:
+        return _source_list_failure_view(
+            selector,
+            [f"unsupported source-list extraction {selector.extraction!r}"],
+        )
+    try:
+        view = reader(spec, selector, authenticated_payloads)
+    except Exception as error:  # noqa: BLE001 - report every later source too
+        return _source_list_failure_view(
+            selector,
+            [f"{type(error).__name__}: {error}"],
+        )
+    failures = list(view.failures)
+    if len(view.rows) != selector.expected_record_count:
+        failures.append(
+            f"publisher row count differs -- expected {selector.expected_record_count}, "
+            f"observed {len(view.rows)}"
+        )
+    return SourceListPublisherView(
+        rows=view.rows,
+        source_assertion=view.source_assertion,
+        failures=tuple(failures),
+    )
 
 
 def _extract_native_control_value(
@@ -3252,7 +3709,294 @@ _PUBLICATIONS_OFFICE_DATASET_DESCRIPTION = DeclaredClaimExclusion(
 )
 
 
+def _repository_source_pin(
+    path: str,
+    sha256: str,
+    byte_length: int,
+    source_iri: str,
+    *,
+    fmt: str,
+    role: str = "publisherSource",
+) -> SourcePin:
+    """Declare publisher bytes pinned directly from a repository fixture."""
+    return SourcePin(
+        path=path,
+        sha256=sha256,
+        byte_length=byte_length,
+        fmt=fmt,
+        role=role,
+        source_iri=source_iri,
+    )
+
+
+_BILLSTATUS_GUIDE_PIN = _repository_source_pin(
+    "tests/fixtures/billstatus_codes/billstatus-xml-user-guide-2026-08-03.md",
+    "sha256:a10909696b2ed2244d75c76e75fa32bc3e4eb926deab7e4e00592a6a01c3ad3a",
+    38_802,
+    "https://raw.githubusercontent.com/usgpo/bill-status/master/BILLSTATUS-XML_User_User-Guide.md",
+    fmt="markdown",
+)
+
+
+LONG_TAIL_SOURCE_LISTS: tuple[SourceSpec, ...] = (
+    SourceSpec(
+        name="billstatus-action-codes",
+        kind="source-list",
+        release_keys=("billstatus-action-codes",),
+        inputs=(_BILLSTATUS_GUIDE_PIN,),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="markdown-table",
+            expected_record_count=36,
+            source_assertion="action-code value and description",
+            table_headers=("Code", "Text in the `<actionCode>` Element"),
+            label_column=1,
+            notation_columns=(0,),
+        ),
+    ),
+    SourceSpec(
+        name="billstatus-bill-types",
+        kind="source-list",
+        release_keys=("billstatus-bill-types",),
+        inputs=(_BILLSTATUS_GUIDE_PIN,),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="billstatus-bill-types",
+            expected_record_count=8,
+            source_assertion="bill-type possible value",
+        ),
+    ),
+    SourceSpec(
+        name="billstatus-summary-version-codes",
+        kind="source-list",
+        release_keys=("billstatus-summary-version-codes",),
+        inputs=(_BILLSTATUS_GUIDE_PIN,),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="markdown-table",
+            expected_record_count=88,
+            source_assertion="summary version code, chamber, and action description",
+            table_headers=(
+                "LOC Summaries `<versionCode>`",
+                "Chamber",
+                "Text in the `<actionDesc>` Element",
+            ),
+            label_column=2,
+            notation_columns=(0, 1),
+        ),
+    ),
+    SourceSpec(
+        name="cbo-119th-congress-publications",
+        kind="source-list",
+        release_keys=("cbo-119th-congress-publications",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/cbo_topic_codes/cbo-119congress-cost-estimates-2026-08-04.xml",
+                "sha256:edc957a1115320f1c0da4b02c33d1af146a3c508592ee20b4909e0a8db44d968",
+                375_365,
+                "https://www.cbo.gov/rss/119congress-cost-estimates.xml",
+                fmt="xml",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="cbo-publication-xml",
+            expected_record_count=1_058,
+            source_assertion=(
+                "publication URL identity, title, date, description, feed key, and bill number"
+            ),
+            compare_resource_iri=True,
+            native_payload_fields=(
+                "billNumber",
+                "date",
+                "description",
+                "feedItemKey",
+            ),
+            normalize_whitespace=False,
+        ),
+    ),
+    SourceSpec(
+        name="census-data-flags",
+        kind="source-list",
+        release_keys=("census-data-flags",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/census_gov_finance_codes/census-aspep-data-flag-codes-2026-08-03.html",
+                "sha256:ef47e5a56d2997b4a05f1a3d5c6d112c92735bc876990ae03038020d07b19c39",
+                323_893,
+                "https://www.census.gov/programs-surveys/apes/technical-documentation/code-lists/data-flags.html",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=16,
+            source_assertion="data-flag code and description",
+            table_headers=("Reported Data",),
+            label_column=1,
+            notation_columns=(0,),
+            ignored_single_cell_rows=("Imputed Data",),
+        ),
+    ),
+    SourceSpec(
+        name="census-function-items",
+        kind="source-list",
+        release_keys=("census-function-items",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/census_gov_finance_codes/census-aspep-function-item-codes-2026-08-03.html",
+                "sha256:77b6ddf18572165b6e4526042dacba9fcff80b79cc7f21f1193db3210730dcb3",
+                321_793,
+                "https://www.census.gov/programs-surveys/apes/technical-documentation/code-lists/data-function.html",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table-split",
+            expected_record_count=33,
+            source_assertion="function item code and label",
+            table_index=0,
+            data_row_start=0,
+            split_pattern=r"(?P<notation>\d{3}) = (?P<label>.+)",
+        ),
+    ),
+    SourceSpec(
+        name="courtlistener-jurisdictions-2026-08-03",
+        kind="source-list",
+        release_keys=("courtlistener-jurisdictions-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "courtlistener-jurisdictions-zyte.html",
+                "sha256:883446028b029078c032bfe7c3545f9e109bb328c79ec486fbbbdbf35580b292",
+                3_156_029,
+                "https://www.courtlistener.com/help/api/jurisdictions/",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=3_359,
+            source_assertion=(
+                "court name, platform abbreviation, and citation abbreviation"
+            ),
+            table_headers=(
+                "Name",
+                "Count",
+                "Jurisdiction",
+                "Homepage",
+                "Abbreviation",
+                "Citation Abbreviation",
+                "Start Date",
+                "End Date",
+                "In Use",
+                "Modified",
+            ),
+            label_column=0,
+            notation_columns=(4, 5),
+        ),
+    ),
+    SourceSpec(
+        name="fec-committee-type",
+        kind="source-list",
+        release_keys=("fec-committee-type",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/fec_committee_codes/fec-committee-type-code-descriptions-2026-08-03.html",
+                "sha256:84e9f16628fd2475750cd89a3947f2c737a5f66c8ced04aea6b1118ac2aecaa4",
+                28_121,
+                "https://www.fec.gov/campaign-finance-data/committee-type-code-descriptions/",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=16,
+            source_assertion="committee-type code and name",
+            table_headers=("Committee type code", "Committee type", "Explanation"),
+            label_column=1,
+            notation_columns=(0,),
+        ),
+    ),
+    SourceSpec(
+        name="fec-party",
+        kind="source-list",
+        release_keys=("fec-party",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/fec_committee_codes/fec-party-code-descriptions-2026-08-03.html",
+                "sha256:e17420381df0e5709449a8c9702600fde97503ea378ef357beef4c40ed6a6b09",
+                29_578,
+                "https://www.fec.gov/campaign-finance-data/party-code-descriptions/",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=95,
+            source_assertion="party code and description",
+            table_headers=("Party code", "Party code description", "Notes"),
+            label_column=1,
+            notation_columns=(0,),
+        ),
+    ),
+    SourceSpec(
+        name="grants-gov-eligibilities",
+        kind="source-list",
+        release_keys=("grants-gov-eligibilities",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/grants_gov_codes/grants-gov-status-codes-2026-08-03.html",
+                "sha256:bcbe4c44f8c1743eeaa26ab9f350c53214238c31d807057f248af8dd96cd5f85",
+                46_093,
+                "https://www.grants.gov/api/status-codes",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=17,
+            source_assertion="eligibility code and description",
+            table_headers=("Code", "Description"),
+            table_index=1,
+            label_column=1,
+            notation_columns=(0,),
+        ),
+    ),
+    SourceSpec(
+        name="grants-gov-funding-categories",
+        kind="source-list",
+        release_keys=("grants-gov-funding-categories",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/grants_gov_codes/grants-gov-status-codes-2026-08-03.html",
+                "sha256:bcbe4c44f8c1743eeaa26ab9f350c53214238c31d807057f248af8dd96cd5f85",
+                46_093,
+                "https://www.grants.gov/api/status-codes",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=26,
+            source_assertion="funding-category code and description",
+            table_headers=("Code", "Description"),
+            table_index=2,
+            label_column=1,
+            notation_columns=(0,),
+        ),
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
+    *LONG_TAIL_SOURCE_LISTS,
     SourceSpec(
         name="agrovoc-c330-bounded-2026-08-03",
         kind="vocabulary",
@@ -3865,6 +4609,7 @@ def build_context(
     pairs: list[SourcePair] = []
     native_control_pairs: list[NativeControlPair] = []
     source_extract_pairs: list[SourceExtractPair] = []
+    source_list_pairs: list[SourceListPair] = []
     atlas_views: list[tuple[SourceSpec, AtlasView]] = []
     publisher_cache: dict[
         tuple[tuple[SourcePin, ...], tuple[str, ...], tuple[str, ...]],
@@ -3996,6 +4741,14 @@ def build_context(
                         atlas=atlas,
                     )
                 )
+        elif spec.kind == "source-list":
+            source_list_pairs.append(
+                SourceListPair(
+                    spec=spec,
+                    publisher=_read_source_list(spec, authenticated_payloads),
+                    atlas=atlas,
+                )
+            )
         elif publisher is not None:
             pairs.append(SourcePair(spec=spec, publisher=publisher, atlas=atlas))
     return Context(
@@ -4014,6 +4767,7 @@ def build_context(
         pin_failures=tuple(pin_failures),
         load_failures=tuple(load_failures),
         source_extract_pairs=tuple(source_extract_pairs),
+        source_list_pairs=tuple(source_list_pairs),
         scoped_out_specs=scoped_out_specs,
     )
 
@@ -4025,7 +4779,7 @@ def build_context(
 
 RDF_COMPARISON_KINDS = frozenset({"vocabulary", "mapping"})
 COMPARISON_KINDS = frozenset(
-    {*RDF_COMPARISON_KINDS, "native-control", "source-extract"}
+    {*RDF_COMPARISON_KINDS, "native-control", "source-extract", "source-list"}
 )
 
 
@@ -4040,6 +4794,8 @@ def _not_evaluated(ctx: Context, kind: str | None = None) -> list[str]:
         loaded = {pair.spec for pair in ctx.native_control_pairs}
     elif kind == "source-extract":
         loaded = {pair.spec for pair in ctx.source_extract_pairs}
+    elif kind == "source-list":
+        loaded = {pair.spec for pair in ctx.source_list_pairs}
     else:
         loaded = {pair.spec for pair in ctx.pairs}
     return sorted(spec.name for spec in declared if spec not in loaded)
@@ -4141,7 +4897,23 @@ def check_configuration(ctx: Context) -> CheckResult:
                 failures.append(
                     f"{spec.name}: source-extract comparison declares no publisher artifact pin"
                 )
-        if spec.kind == "source-extract":
+        if spec.kind == "source-list" and spec.source_list is None:
+            failures.append(f"{spec.name}: source-list comparison has no selector")
+        if spec.kind != "source-list" and spec.source_list is not None:
+            failures.append(
+                f"{spec.name}: {spec.kind!r} comparison must not declare a source-list selector"
+            )
+        if spec.source_list is not None:
+            if spec.source_list.reader != SOURCE_LIST_READER:
+                failures.append(
+                    f"{spec.name}: no source-list reader is declared for "
+                    f"{spec.source_list.reader!r}"
+                )
+            if spec.rdf_source is not None:
+                failures.append(
+                    f"{spec.name}: source-list comparison must not declare RDF source policy"
+                )
+        if spec.kind in {"source-extract", "source-list"}:
             continue
         if selector is not None:
             expected_release_keys = (selector.construction_key,)
@@ -4273,6 +5045,7 @@ def check_distribution_coverage(ctx: Context) -> CheckResult:
             "mapping": "mapping",
             "native-control": "sourceRelease",
             "source-extract": "sourceRelease",
+            "source-list": "sourceRelease",
         }.get(spec.kind)
         if expected_kind is None:
             failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
@@ -5269,6 +6042,130 @@ def check_source_extract_fidelity(ctx: Context) -> CheckResult:
     return _result(
         "source-extract-fidelity",
         f"{compared_concepts} extract concepts compared with the Atlas packs that represent them",
+        failures,
+    )
+
+
+def _atlas_source_list_rows(pair: SourceListPair) -> tuple[tuple[SourceListRow, ...], tuple[str, ...]]:
+    """Read label/notation rows from one dedicated Atlas source pack."""
+    failures: list[str] = []
+    rows: list[SourceListRow] = []
+    selector = pair.spec.source_list
+    if selector is None:
+        return (), ("source-list selector is missing",)
+    for record in sorted(pair.atlas.native_payloads):
+        target = pair.atlas.record_targets.get(record)
+        if target is None:
+            failures.append(
+                f"source record <{record}> has native data but represents no resource"
+            )
+            continue
+        labels = pair.atlas.pref_labels.get(target, frozenset())
+        expected_language_labels = {
+            label
+            for label in labels
+            if label.language == selector.label_language and label.datatype is None
+        }
+        if len(labels) != 1 or len(expected_language_labels) != 1:
+            failures.append(
+                f"resource <{target}> must have exactly one preferred label in "
+                f"{selector.label_language!r}; observed "
+                f"{sorted(_literal_repr(label) for label in labels)}"
+            )
+            continue
+        label = next(iter(expected_language_labels))
+        if selector.normalize_whitespace:
+            label = _literal_value(
+                " ".join(label.value.split()),
+                label.language,
+                label.datatype,
+            )
+        notations = tuple(
+            sorted(literal.value for literal in pair.atlas.notations.get(target, ()))
+        )
+        payload = pair.atlas.native_payloads[record]
+        missing_fields = [
+            name for name in selector.native_payload_fields if name not in payload
+        ]
+        if missing_fields:
+            failures.append(
+                f"resource <{target}> native data lacks declared fields {missing_fields}"
+            )
+            continue
+        native_attributes: list[tuple[str, str | None]] = []
+        invalid_fields: list[str] = []
+        for name in sorted(selector.native_payload_fields):
+            value = payload[name]
+            if value is not None and not isinstance(value, str):
+                invalid_fields.append(name)
+                continue
+            native_attributes.append(
+                (
+                    name,
+                    " ".join(value.split())
+                    if isinstance(value, str) and selector.normalize_whitespace
+                    else value,
+                )
+            )
+        if invalid_fields:
+            failures.append(
+                f"resource <{target}> native fields must be strings or null: {invalid_fields}"
+            )
+            continue
+        rows.append(
+            SourceListRow(
+                label=label,
+                notations=notations,
+                resource_iri=target if selector.compare_resource_iri else None,
+                native_attributes=tuple(native_attributes),
+            )
+        )
+    return tuple(rows), tuple(failures)
+
+
+def _source_list_row_repr(row: SourceListRow) -> str:
+    return (
+        f"resourceIri={row.resource_iri!r}, label={_literal_repr(row.label)}, "
+        f"notations={list(row.notations)!r}, "
+        f"nativeAttributes={dict(row.native_attributes)!r}"
+    )
+
+
+def check_source_list_fidelity(ctx: Context) -> CheckResult:
+    """Compare complete publisher row multisets with Atlas labels and notations."""
+    failures = _incomplete_evaluation_failure(
+        ctx,
+        "source-list fidelity",
+        "source-list",
+    )
+    compared_rows = 0
+    for pair in ctx.source_list_pairs:
+        source = pair.spec.name
+        failures.extend(f"{source}: {detail}" for detail in pair.publisher.failures)
+        atlas_rows, atlas_failures = _atlas_source_list_rows(pair)
+        failures.extend(f"{source}: {detail}" for detail in atlas_failures)
+        publisher_counts = Counter(pair.publisher.rows)
+        atlas_counts = Counter(atlas_rows)
+        compared_rows += sum((publisher_counts & atlas_counts).values())
+        for row, count in sorted(
+            (publisher_counts - atlas_counts).items(),
+            key=lambda item: _source_list_row_repr(item[0]),
+        ):
+            failures.append(
+                f"{source}: publisher row missing from Atlas ({count} occurrence(s)): "
+                f"{_source_list_row_repr(row)}"
+            )
+        for row, count in sorted(
+            (atlas_counts - publisher_counts).items(),
+            key=lambda item: _source_list_row_repr(item[0]),
+        ):
+            failures.append(
+                f"{source}: Atlas row not asserted by the publisher ({count} occurrence(s)): "
+                f"{_source_list_row_repr(row)}"
+            )
+    return _result(
+        "source-list-fidelity",
+        f"{compared_rows} publisher label/notation rows compared with dedicated Atlas packs",
         failures,
     )
 
@@ -7722,6 +8619,7 @@ _CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_rdf_provenance_fidelity,
     check_native_control_fidelity,
     check_source_extract_fidelity,
+    check_source_list_fidelity,
     check_concept_traceability,
     check_identifier_retention,
     check_label_fidelity,
@@ -8861,6 +9759,172 @@ def _source_extract_claim_scope(
     }
 
 
+def _counted_source_list_claims(rows: Sequence[SourceListRow]) -> set[tuple[str, int]]:
+    """Keep duplicate publisher rows visible to the receipt's set arithmetic."""
+    return {
+        (_source_list_row_repr(row), occurrence)
+        for row, count in Counter(rows).items()
+        for occurrence in range(count)
+    }
+
+
+def _source_list_claim_scope(
+    spec: SourceSpec,
+    pair: SourceListPair | None,
+    evaluation_failures: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Describe the exact publisher row claims one source-list reader owns."""
+    if pair is None or spec.source_list is None:
+        return {
+            "status": "not-evaluated",
+            "claimFamilies": [],
+            "intentionallyExcludedFamilies": [],
+            "unexpectedPublisherPredicates": [],
+        }
+    atlas_rows, _ = _atlas_source_list_rows(pair)
+    source_rows = pair.publisher.rows
+    source_labels = {
+        (_literal_repr(label), occurrence)
+        for label, count in Counter(row.label for row in source_rows).items()
+        for occurrence in range(count)
+    }
+    atlas_labels = {
+        (_literal_repr(label), occurrence)
+        for label, count in Counter(row.label for row in atlas_rows).items()
+        for occurrence in range(count)
+    }
+    source_notations = {
+        (notations, occurrence)
+        for notations, count in Counter(row.notations for row in source_rows).items()
+        for occurrence in range(count)
+    }
+    atlas_notations = {
+        (notations, occurrence)
+        for notations, count in Counter(row.notations for row in atlas_rows).items()
+        for occurrence in range(count)
+    }
+    families = [
+        _claim_family(
+            name="publisherRows",
+            source_predicates=(),
+            atlas_predicates=(ATLAS_NATIVE_PAYLOAD, ATLAS_REPRESENTS_RESOURCE),
+            source_claims=_counted_source_list_claims(source_rows),
+            atlas_claims=_counted_source_list_claims(atlas_rows),
+            checked_by="source-list-fidelity",
+            sourceAssertion=pair.publisher.source_assertion,
+            rowMultiplicityCompared=True,
+        ),
+        _claim_family(
+            name="preferredLabels",
+            source_predicates=(),
+            atlas_predicates=(SKOSXL_PREF_LABEL, SKOSXL_LITERAL_FORM),
+            source_claims=source_labels,
+            atlas_claims=atlas_labels,
+            checked_by="source-list-fidelity",
+            languageSelection=spec.source_list.label_language,
+            lexicalFormRetained=True,
+        ),
+        _claim_family(
+            name="notations",
+            source_predicates=(),
+            atlas_predicates=(ATLAS_NOTATION,),
+            source_claims=source_notations,
+            atlas_claims=atlas_notations,
+            checked_by="source-list-fidelity",
+            rowGroupingRetained=True,
+        ),
+    ]
+    if spec.source_list.compare_resource_iri:
+        source_identities = {
+            (identity, occurrence)
+            for identity, count in Counter(
+                row.resource_iri for row in source_rows
+            ).items()
+            for occurrence in range(count)
+        }
+        atlas_identities = {
+            (identity, occurrence)
+            for identity, count in Counter(
+                row.resource_iri for row in atlas_rows
+            ).items()
+            for occurrence in range(count)
+        }
+        families.append(
+            _claim_family(
+                name="resourceIdentities",
+                source_predicates=(),
+                atlas_predicates=(ATLAS_REPRESENTS_RESOURCE,),
+                source_claims=source_identities,
+                atlas_claims=atlas_identities,
+                checked_by="source-list-fidelity",
+                publisherIriRetained=True,
+            )
+        )
+    if spec.source_list.native_payload_fields:
+        source_attributes = {
+            (attributes, occurrence)
+            for attributes, count in Counter(
+                row.native_attributes for row in source_rows
+            ).items()
+            for occurrence in range(count)
+        }
+        atlas_attributes = {
+            (attributes, occurrence)
+            for attributes, count in Counter(
+                row.native_attributes for row in atlas_rows
+            ).items()
+            for occurrence in range(count)
+        }
+        families.append(
+            _claim_family(
+                name="nativePayloadAttributes",
+                source_predicates=(),
+                atlas_predicates=(ATLAS_NATIVE_PAYLOAD,),
+                source_claims=source_attributes,
+                atlas_claims=atlas_attributes,
+                checked_by="source-list-fidelity",
+                fields=list(spec.source_list.native_payload_fields),
+                scalarValuesCompared=True,
+            )
+        )
+    statuses = {family["status"] for family in families}
+    status = (
+        "differences-found"
+        if statuses & {"differences-found", "unrepresented"}
+        or pair.publisher.failures
+        or evaluation_failures
+        else "exact"
+    )
+    return {
+        "status": status,
+        "claimFamilies": families,
+        "intentionallyExcludedFamilies": [
+            {
+                "name": "publisherFieldsOutsideDeclaredRowShape",
+                "reason": (
+                    "the SourceSpec names the exact publisher fields this Atlas unit "
+                    "represents; other page or record fields are authenticated but do not "
+                    "enter this row comparison"
+                ),
+            },
+            {
+                "name": "atlasRepresentationStructure",
+                "reason": (
+                    "classes, rings, profiles, releases, schemes, source records, "
+                    "and rkaf evidence bindings are Atlas-minted"
+                ),
+            },
+        ],
+        "unexpectedPublisherPredicates": [],
+        "comparisonBasis": {
+            "reader": spec.source_list.reader,
+            "extraction": spec.source_list.extraction,
+            "independentReparseOfPublisherBytes": True,
+            "sourceAssertion": spec.source_list.source_assertion,
+        },
+    }
+
+
 def _cached_comparison_claim_scope(
     ctx: Context,
     spec: SourceSpec,
@@ -8878,7 +9942,7 @@ def _cached_comparison_claim_scope(
 def _evaluate_claim_scope(ctx: Context) -> CheckResult:
     """Fail closed on unhandled publisher predicates or known lossy representations."""
     failures = _incomplete_evaluation_failure(ctx, "claim-scope review")
-    for kind in ("native-control", "source-extract"):
+    for kind in ("native-control", "source-extract", "source-list"):
         failures.extend(
             _incomplete_evaluation_failure(ctx, "claim-scope review", kind)
         )
@@ -8946,6 +10010,22 @@ def _evaluate_claim_scope(ctx: Context) -> CheckResult:
                 failures.append(
                     f"{pair.spec.name}: {family['name']} differs from its declared "
                     "checked-extract scope"
+                )
+    source_list_fidelity = check_source_list_fidelity(ctx)
+    for pair in ctx.source_list_pairs:
+        prefix = f"{pair.spec.name}:"
+        pair_failures = [
+            failure
+            for failure in source_list_fidelity.failures
+            if failure.startswith(prefix)
+        ]
+        scope = _source_list_claim_scope(pair.spec, pair, pair_failures)
+        checked += len(scope["claimFamilies"])
+        for family in scope["claimFamilies"]:
+            if family["status"] in {"differences-found", "unrepresented"}:
+                failures.append(
+                    f"{pair.spec.name}: {family['name']} differs from its declared "
+                    "publisher-row scope"
                 )
     return _result(
         "claim-scope",
@@ -9017,6 +10097,7 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
     source_extracts_by_spec = {
         pair.spec: pair for pair in ctx.source_extract_pairs
     }
+    source_lists_by_spec = {pair.spec: pair for pair in ctx.source_list_pairs}
     atlas_by_spec = dict(ctx.atlas_views)
 
     def spec_failures(check_name: str, spec: SourceSpec) -> list[str]:
@@ -9042,6 +10123,12 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                 spec,
                 source_extracts_by_spec.get(spec),
                 spec_failures("source-extract-fidelity", spec),
+            )
+        if spec.kind == "source-list":
+            return _source_list_claim_scope(
+                spec,
+                source_lists_by_spec.get(spec),
+                spec_failures("source-list-fidelity", spec),
             )
         return _cached_comparison_claim_scope(ctx, spec, pairs_by_spec.get(spec))
 
@@ -9106,6 +10193,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                     if spec.kind == "native-control"
                     else spec in source_extracts_by_spec
                     if spec.kind == "source-extract"
+                    else spec in source_lists_by_spec
+                    if spec.kind == "source-list"
                     else spec in pairs_by_spec
                 ),
                 "atlasLoaded": atlas is not None,
@@ -9148,6 +10237,21 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                         "relationPredicate": spec.source_extract.relation_predicate,
                     }
                     if spec.source_extract is not None
+                    else None
+                ),
+                "sourceList": (
+                    {
+                        "reader": spec.source_list.reader,
+                        "extraction": spec.source_list.extraction,
+                        "expectedRecordCount": spec.source_list.expected_record_count,
+                        "sourceAssertion": spec.source_list.source_assertion,
+                        "compareResourceIri": spec.source_list.compare_resource_iri,
+                        "nativePayloadFields": list(
+                            spec.source_list.native_payload_fields
+                        ),
+                        "normalizeWhitespace": spec.source_list.normalize_whitespace,
+                    }
+                    if spec.source_list is not None
                     else None
                 ),
                 "nativeControl": (

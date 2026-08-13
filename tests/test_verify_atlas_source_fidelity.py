@@ -32,6 +32,7 @@ import pytest
 
 from tools.verify_atlas_source_fidelity import (
     CHECK_NAMES,
+    SOURCE_LIST_READER,
     CheckResult,
     DeclaredClaimExclusion,
     Expectations,
@@ -39,6 +40,7 @@ from tools.verify_atlas_source_fidelity import (
     LiteralValue,
     NativeControlSelector,
     RdfSourcePolicy,
+    SourceListSelector,
     SourcePin,
     SourceSpec,
     check_source_defects,
@@ -370,6 +372,119 @@ def _plain_literal_quad(subject: str, predicate: str, value: str) -> str:
     return f'<{subject}> <{predicate}> "{escaped}" <{GRAPH}> .'
 
 
+def _run_source_list_fixture(
+    root: Path,
+    *,
+    atlas_beta_label: str = "Beta",
+) -> list:
+    """Build one source-list pair without calling a registry parser."""
+    distribution = root / "source-list-distribution"
+    source_root = root / "source-list-sources"
+    pack_path = distribution / "packs" / "sources" / "tiny-list" / "all.nq.zst"
+    pack_path.parent.mkdir(parents=True)
+    source_root.mkdir(parents=True)
+    source_path = source_root / "tiny-list.html"
+    source_path.write_text(
+        "<table><tr><th>Code</th><th>Label</th></tr>"
+        "<tr><td>A</td><td>Alpha</td></tr>"
+        "<tr><td>B</td><td>Beta</td></tr></table>",
+        encoding="utf-8",
+    )
+    source_payload = source_path.read_bytes()
+    source_pin = SourcePin(
+        path=source_path.name,
+        sha256="sha256:" + hashlib.sha256(source_payload).hexdigest(),
+        byte_length=len(source_payload),
+        fmt="html",
+        role="publisherSource",
+        source_iri="urn:example:publisher:tiny-list",
+    )
+    spec = SourceSpec(
+        name="tiny-list",
+        kind="source-list",
+        release_keys=("tiny-list",),
+        inputs=(source_pin,),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=2,
+            source_assertion="code and label",
+            table_headers=("Code", "Label"),
+            label_column=1,
+            notation_columns=(0,),
+        ),
+    )
+    lines: list[str] = []
+    for index, (notation, label) in enumerate(
+        (("A", "Alpha"), ("B", atlas_beta_label))
+    ):
+        resource = f"urn:example:list:{index}"
+        record = f"urn:example:list-record:{index}"
+        label_node = f"urn:example:list-label:{index}"
+        lines.extend(
+            [
+                _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+                _quad(record, f"{ATLAS}sourceLocator", source_pin.source_iri or ""),
+                _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_pin.sha256),
+                _quad(record, f"{ATLAS}representsResource", resource),
+                _plain_literal_quad(record, f"{ATLAS}nativePayload", "{}"),
+                _quad(resource, f"{SKOSXL}prefLabel", label_node),
+                _quad(label_node, f"{SKOSXL}literalForm", label, literal=True),
+                _plain_literal_quad(resource, f"{ATLAS}notation", notation),
+            ]
+        )
+    transport = zstd.compress(("\n".join(lines) + "\n").encode("utf-8"))
+    pack_path.write_bytes(transport)
+    (distribution / "atlas-construction-summary.json").write_text(
+        json.dumps(
+            {
+                "releases": [
+                    {
+                        "key": "tiny-list",
+                        "kind": "sourceRelease",
+                        "inputs": [
+                            {
+                                "path": source_pin.path,
+                                "sha256": source_pin.sha256,
+                                "byteLength": source_pin.byte_length,
+                                "role": source_pin.role,
+                                "sourceIri": source_pin.source_iri,
+                            }
+                        ],
+                        "rdfPacks": [
+                            {"path": "packs/sources/tiny-list/all.nq.zst"}
+                        ],
+                        "recordCounts": {"resources": 2, "labels": 2},
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (distribution / "atlas-manifest.json").write_text(
+        json.dumps(
+            {
+                "packs": [
+                    {
+                        "path": "packs/sources/tiny-list/all.nq.zst",
+                        "transport": {
+                            "byteLength": len(transport),
+                            "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    return verify(
+        distribution,
+        source_root,
+        Expectations(minimum_label_sample=1),
+        (spec,),
+    )
+
+
 def _add_native_control(
     suite: Fixture,
     *,
@@ -610,6 +725,29 @@ def test_faithful_pair_passes_every_check(suite: Fixture) -> None:
     results = suite.run()
     assert len(results) == len(CHECK_NAMES)
     assert failed(results) == set(), [item.failures for item in results if not item.passed]
+
+
+def test_source_list_reader_accepts_a_faithful_publisher_pair(tmp_path: Path) -> None:
+    check = result(_run_source_list_fixture(tmp_path), "source-list-fidelity")
+    assert check.passed, check.failures
+    assert check.summary.startswith("2 publisher label/notation rows")
+
+
+def test_source_list_reader_catches_a_rewritten_label(tmp_path: Path) -> None:
+    check = result(
+        _run_source_list_fixture(tmp_path, atlas_beta_label="Rewritten Beta"),
+        "source-list-fidelity",
+    )
+    assert not check.passed
+    assert any(
+        "publisher row missing from Atlas" in failure and "'Beta'@en" in failure
+        for failure in check.failures
+    )
+    assert any(
+        "Atlas row not asserted by the publisher" in failure
+        and "'Rewritten Beta'@en" in failure
+        for failure in check.failures
+    )
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
