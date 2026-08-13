@@ -61,70 +61,28 @@ supersessions of REF-015/018/019/020/021. Artifact of record:
 `output/atlas-3.1-full-2026-08-12b` (built clean post-hygiene, 13 gates
 passed, smoked). FR pins in the Makefile verify today.
 
-**What is NEXT, in order (briefs in v3.8/v3.9 below):**
-0. [DONE] Wave 0+A gated + committed (5c1b585d); Wave B + Tier-1
-   engine-neutral refactors + byte-pass LANDED (107d8558): recipeDigest /
-   EVIDENCE_WARRANTS (shapes ARE the table; attestorKind 1/6) /
-   declaredMemberCount deleted; langtag rule (corpus 130); leg-framed
-   seal sentences; report handling engine-neutral incl. the
-   sh:sourceShape decoupling; byte-pass node digests (narrow retention,
-   graph fallback, parity test) + the native-payload double-encode
-   dedup over 590,561 records. **SEAL-READY CANDIDATE:
-   `output/atlas-3.1-full-2026-08-12c`, distributionId
-   `urn:ref:atlas:distribution:3.1-full-development:8239dbfa…967a3`,
-   manifest sha256 `68fd4797…59478` — built 23:49, producer-validated,
-   smoked.** New residues for a later pass: (i)
-   producer_validation.semanticConstruction has no producer left
-   (reuse-subsystem orphan) — deletion candidate, wire-visible; (ii)
-   the byte-pass full-scale saving is unconfirmed (needs one full
-   validate_distribution acceptance run; staging showed evidence-phase
-   −22.5%).
-1. [DONE — see 0]
-2. **Wave B — ONE rebuild** (any corpus/binding change invalidates every
-   on-disk artifact via bindingBundleDigest, so cluster): delete
-   `recipeDigest` (verifierless self-agreement; validate.py:6543 compares
-   two producer-written copies; sole channel binding python/library
-   versions into the seal), delete `EVIDENCE_WARRANTS` (the shapes-parsed
-   `_evidence_warrant_branch_table` becomes THE table; resolve
-   attestorKind toward SHACL — 1/6 branches pin it, Python's 6/6
-   over-constrains, zero verdict changes verified), delete
-   `declaredMemberCount` (builder writes len(dispositions), validator
-   asserts len==it — tautology in a signed wire), add the lowercase
-   langtag rule (one regex line in rdf_canonical.py `_LANGUAGE_TAG` +
-   mint guard + corpus case + the frozen differential-suite invariant at
-   test_atlas_v3_canonical_line_grammar.py ~:487/:559 must gain the
-   divergence entry), seal-design sentences naming pipeline legs 1-2 as
-   what the signature does NOT cover. Then rebuild
-   (`uv run python tools/generate_atlas_v3_full.py --output
-   output/atlas-3.1-full-<date> --quiet`, ~25 min), smoke it, update FR
-   pins, commit.
-3. [DONE b08fda84, 2026-08-13] **Wave C LANDED — the program's last
-   executable wave.** The rkaf blind spot was two orders larger than
-   estimated (4,119,672 falsely-uncovered rows, not ~24,892 — that
-   figure was one pack's share); post-fix 32,648 genuine gaps (−99.21%).
-   --only flag with honest not-evaluated arithmetic; the FR SourceSpec
-   makes the artifact of record the FIRST EXACT unit (six exact-set
-   families over 705 concepts, honestly flagged as a frozen restatement,
-   not an independent PDF re-parse); plus a latent catalog-exemption
-   prefix bug fixed. **LEG 2's MEASURED BASELINE (receipt against the
-   seal-ready candidate, 10m22s not multi-hour): 24/110 units covered,
-   1 exact, 23 differing, 86 uncovered, 9/24 checks passing.** That is
-   the successor project's true starting line. Follow-up flags in the
-   register: the 231 MB unbounded receipt; 10,985 atlas:recordStatus
-   literals dominating the Atlas-side residue (Atlas-minted, belongs in
-   the structure set). ORIGINAL BRIEF (for reference): in tools/verify_atlas_source_fidelity.py
-   fix the rkaf-namespace blind spot (`atlas_classified_subjects` ~:6136
-   tests only startswith(ATLAS); ~5 lines; clears 96% of false-uncovered),
-   add an `--only` scope flag, author a SourceSpec for
-   federal-register-thesaurus-2025 (without it the FR artifact is
-   structurally unauditable). Then RUN the audit against Wave B's
-   artifact: `make audit-atlas-v3-source-fidelity
-   ATLAS_V3_AUDIT_ROOT=<artifact>` — expect multi-hour; the receipt is
-   the deliverable.
-4. Engine-neutral validator refactors (from the Jena spike, small):
-   derive violation components from the report graph's
-   sh:sourceConstraintComponent instead of the regex over pySHACL's text;
-   adopt report-canonicalization (sort focusNode/resultPath/component).
+**What is NEXT (REWRITTEN 2026-08-13 — the numbered wave list that used to
+sit here was entirely DONE and read as though it were pending; the historical
+detail survives in the sections below).** In order:
+
+1. **Merge `research/coverage-patternrow`** when it reports — the
+   `pattern-row-v2` reader for 42 of the 61 open fidelity units. Gate with
+   `make lint` + `pytest tests/test_verify_atlas_source_fidelity.py -q` (238
+   pass today; additions must raise it, never lower it), and verify structurally
+   with `ast` rather than by eye if any merge conflicts (that trap has bitten
+   twice in this file).
+2. **The remaining five reader kinds** from the coverage-dry design:
+   `xml-record-selector-v1` (4 units), `csv-record-selector-v2` (3),
+   `ooxml-relational-v1` (5), `nrc-adams-multi-artifact-v1` (2),
+   `json-record-selector-v2` (1). Five of the six generalise a reader that
+   already exists; none is a research question any more.
+3. **Seal 13b** — owner's step, one command, see the seal block above.
+4. **Nothing else is open in this repository.** The performance program, the
+   SHACL-engine question, the language-scope wave, and the fidelity auditor's
+   structural gaps all have recorded verdicts. Do not reopen the engine question
+   without one of the four triggers listed below; do not re-derive the memory or
+   time floors, which are measured.
+
 
 **CONTRACT-VELOCITY WAVE LANDED (521ed20c) + REF-029 ratified:** the
 repin tax is deleted (derived-and-recorded binding digests), contract
