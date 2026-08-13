@@ -230,9 +230,14 @@ digests, by design), releaseCount 110, 29,286,753 quads (+3,470). Smoke passed
 over 8 sampled packs. **The gate the rebuild existed for is GREEN:**
 observedConstructionStatement == expectedConstructionStatement exactly, and the
 whole-distribution scan returns atlasNonEnglishLiteralClaimCount 0,
-atlasNoncanonicalSemanticLiteralClaimCount 0, atlasScanFailures []. STILL OWED
-on this artifact: (i) full acceptance validation (14.31 GiB — deferred for a
-quiet machine; three research agents were running), (ii) a vocabulary-scoped
+atlasNoncanonicalSemanticLiteralClaimCount 0, atlasScanFailures []. **ACCEPTANCE PASSED
+2026-08-13**: the full 13-gate validate_distribution completed in 1,098.77s
+(18.3 min) at a 13.83 GiB peak — 29,286,753 quads, 588,409 resources, 984,431
+labels, 560,429 relation assertions (553,540 native, 2,003 mapping, 1
+cross-ring), 590,561 source records, 4,669 identifiers, 109 releases, 5,939
+inferred mappings. So the acceptance cost is confirmed on the NEW producer, not
+just the old artifact: 18.3 min / 13.83 GiB against the previously recorded
+18.5 min / 14.31 GiB. STILL OWED on this artifact: (i) a vocabulary-scoped
 audit to exercise the PUBLISHER-side declaration itemisation, which the
 1-record FCC-scoped proof above left at declaredPublisherClaimCount 0, and
 (iii) re-pin + seal if this becomes the artifact of record.
