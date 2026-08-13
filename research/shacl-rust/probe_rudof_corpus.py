@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -14,7 +16,7 @@ from typing import Any
 
 from pyshacl import validate as pyshacl_validate
 from pyshacl.rdfutil import inoculate
-from rdflib import Dataset, Graph, Literal, Namespace, RDF, URIRef
+from rdflib import RDF, Dataset, Graph, Literal, Namespace, URIRef
 
 try:  # Python 3.14+
     from compression import zstd
@@ -33,7 +35,7 @@ def _sha256(path: Path) -> str:
 def _read_report(stdout: str) -> tuple[bool | None, list[str]]:
     try:
         report = Graph().parse(data=stdout, format="turtle")
-    except Exception:
+    except Exception:  # noqa: BLE001 - a malformed candidate report is probe data
         return None, []
     report_node = next(report.subjects(RDF.type, SH.ValidationReport), None)
     conforms: bool | None = None
@@ -180,11 +182,22 @@ def _probe_case(
     binding_root: Path,
     ontology_view: Graph,
     shapes: Graph,
+    atlas_validate: Any,
     case: dict[str, Any],
 ) -> dict[str, Any]:
     case_root = binding_root / "fixtures" / case["path"]
     manifest = json.loads((case_root / "atlas-manifest.json").read_bytes())
     dataset, graphs = _load_role_graphs(case_root, manifest)
+    graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
+    reference_dataset, reference_graphs = atlas_validate._parse_packed_dataset(
+        case_root,
+        manifest,
+        graph_ids,
+    )
+    for role in ("asserted", "projection", "derived"):
+        if set(graphs[role]) != set(reference_graphs[role]):
+            raise ValueError(f"{case_root}: probe and production parsers differ for {role}")
+    del reference_dataset
     role_results: list[dict[str, Any]] = []
     with tempfile.TemporaryDirectory(prefix=f"rudof-corpus-{case['id']}-") as temporary:
         for role in ROLE_ORDER:
@@ -223,6 +236,7 @@ def _probe_case(
         "id": case["id"],
         "path": case["path"],
         "projectionExcluded": True,
+        "productionParserParity": True,
         "roleResults": role_results,
     }
     if not agreement and not candidate_error:
@@ -243,6 +257,8 @@ def main() -> None:
 
     rudof = args.rudof.resolve()
     binding_root = args.binding_root.resolve()
+    sys.path.insert(0, str(binding_root / "tools"))
+    atlas_validate = importlib.import_module("validate")
     corpus_path = binding_root / "fixtures" / "corpus.json"
     shapes_path = binding_root / "shapes" / "atlas.shacl.ttl"
     ontology_path = binding_root / "ontology" / "atlas.ttl"
@@ -259,11 +275,11 @@ def main() -> None:
     shapes = Graph().parse(shapes_path, format="turtle")
     started = time.monotonic()
     results = [
-        _probe_case(rudof, binding_root, ontology_view, shapes, case)
+        _probe_case(rudof, binding_root, ontology_view, shapes, atlas_validate, case)
         for case in shacl_cases
     ]
     valid_controls = [
-        _probe_case(rudof, binding_root, ontology_view, shapes, case)
+        _probe_case(rudof, binding_root, ontology_view, shapes, atlas_validate, case)
         for case in valid_cases
     ]
     divergences = [result["id"] for result in results if not result["agreement"]]
@@ -283,6 +299,11 @@ def main() -> None:
             ),
             "ontologyInputTripleCount": len(ontology),
             "ontologyViewTripleCount": len(ontology_view),
+            "productionParserComparisonCount": (len(results) + len(valid_controls)) * 3,
+            "productionParserParity": all(
+                result["productionParserParity"]
+                for result in [*results, *valid_controls]
+            ),
             "roleOrder": list(ROLE_ORDER),
         },
         "ontologySha256": _sha256(ontology_path),

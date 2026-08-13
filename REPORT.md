@@ -75,6 +75,10 @@ projection. For each fixture, the probe:
 5. excludes `projection` and stops at the first nonconforming role, matching
    Atlas's role order.
 
+The harness also compares its parsed `asserted`, `projection`, and `derived`
+triple sets with Atlas's lexical-preserving production parser. All 183 role
+comparisons across the 48 refusals and 13 valid controls are exact.
+
 Rudof receives the full normative shapes and resolves all focus nodes itself;
 the probe applies no shape or focus-node filter. This matches the production
 validator's normative audit meaning, without copying its pySHACL-only batching

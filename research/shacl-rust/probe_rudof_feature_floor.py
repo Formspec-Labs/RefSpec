@@ -13,8 +13,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from rdflib import Graph, Literal, Namespace, RDF
-
+from rdflib import RDF, Graph, Literal, Namespace
 
 SH = Namespace("http://www.w3.org/ns/shacl#")
 COMPONENT_PATTERN = re.compile(r"(?:https?://www\.w3\.org/ns/shacl#|sh:)([A-Za-z]+ConstraintComponent)")
@@ -23,7 +22,7 @@ COMPONENT_PATTERN = re.compile(r"(?:https?://www\.w3\.org/ns/shacl#|sh:)([A-Za-z
 def _report_summary(stdout: str) -> tuple[bool | None, list[str]]:
     try:
         report = Graph().parse(data=stdout, format="turtle")
-    except Exception:
+    except Exception:  # noqa: BLE001 - a malformed candidate report is probe data
         return None, sorted(set(COMPONENT_PATTERN.findall(stdout)))
     conforms: bool | None = None
     report_node = next(report.subjects(RDF.type, SH.ValidationReport), None)
