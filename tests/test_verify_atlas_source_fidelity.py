@@ -1851,6 +1851,54 @@ def test_graph_structure_accepts_a_digested_source_shaped_editorial_relation(
     )
 
 
+def test_compact_native_payload_index_keeps_exact_digests_and_field_faults(
+    suite: Fixture,
+) -> None:
+    source_subjects = frozenset(CONCEPTS)
+    expected_fields = frozenset({"schemeIris"})
+    expected_payload = {"schemeIris": [SCHEME]}
+    expected_digest = "sha256:" + hashlib.sha256(
+        json.dumps(
+            expected_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    suite.write_pack(source_digest=expected_digest)
+    faithful = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+        source_subjects,
+        compact_normalized_claims=True,
+        compact_native_payload_fields=expected_fields,
+    )
+
+    assert not faithful.native_payloads
+    assert faithful.compact_native_payload_records == frozenset(
+        f"urn:ref:atlas-source-record:{resource.rsplit('/', 1)[-1]}"
+        for resource in CONCEPTS
+    )
+    assert not faithful.native_payload_digest_differences
+    assert not faithful.native_payload_field_differences
+
+    suite.write_pack(
+        extra_native_payload={"unexpectedField": "fault"},
+        source_digest=expected_digest,
+    )
+    fault = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+        source_subjects,
+        compact_normalized_claims=True,
+        compact_native_payload_fields=expected_fields,
+    )
+
+    assert set(fault.native_payload_field_differences.values()) == {
+        (("unexpectedField",), ())
+    }
+    assert len(fault.native_payload_digest_differences) == len(CONCEPTS)
+
+
 def test_graph_structure_reports_a_pack_that_differs_from_its_manifest_pin(
     suite: Fixture,
 ) -> None:

@@ -83,6 +83,7 @@ import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from itertools import chain
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
@@ -104,7 +105,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 # artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-VERIFIER_VERSION = "atlas-source-fidelity/12"
+VERIFIER_VERSION = "atlas-source-fidelity/13"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
 
@@ -640,6 +641,12 @@ class PublisherView:
     expected_relation_payloads: Mapping[str, Mapping[str, Any]] = field(
         default_factory=dict
     )
+    # High-cardinality stock readers can retain the one exact digest directly
+    # instead of allocating one frozenset per publisher resource.  The boolean
+    # additionally says that this digest authenticates the entire independently
+    # reconstructed native payload, not merely an input file.
+    resource_input_digest_values: Mapping[str, str] = field(default_factory=dict)
+    source_digest_is_native_payload_digest: bool = False
 
 
 @dataclass(frozen=True)
@@ -672,6 +679,15 @@ class AtlasView:
     native_top_concept_of_iris: Mapping[str, frozenset[str]]
     native_literal_claims: frozenset[tuple[str, str, LiteralValue]]
     native_relations: frozenset[tuple[str, str, str]]
+    compact_native_payload_records: frozenset[str]
+    native_payload_digest_differences: Mapping[
+        str,
+        tuple[str, str | None],
+    ]
+    native_payload_field_differences: Mapping[
+        str,
+        tuple[tuple[str, ...], tuple[str, ...]],
+    ]
     raw_source_iri_claims: frozenset[tuple[str, str, str]]
     raw_source_literal_claims: frozenset[tuple[str, str, LiteralValue]]
     all_raw_iri_claims: frozenset[tuple[str, str, str]]
@@ -1747,6 +1763,14 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
             if resource in resources
         },
         expected_relation_payloads=view.expected_relation_payloads,
+        resource_input_digest_values={
+            resource: digest
+            for resource, digest in view.resource_input_digest_values.items()
+            if resource in resources
+        },
+        source_digest_is_native_payload_digest=(
+            view.source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -1849,6 +1873,14 @@ def _select_publisher_concepts(
             if resource in resources
         },
         expected_relation_payloads=view.expected_relation_payloads,
+        resource_input_digest_values={
+            resource: digest
+            for resource, digest in view.resource_input_digest_values.items()
+            if resource in resources
+        },
+        source_digest_is_native_payload_digest=(
+            view.source_digest_is_native_payload_digest
+        ),
     )
 
 
@@ -2379,6 +2411,10 @@ def read_atlas_source(
     distribution: Path,
     packs: Sequence[str],
     source_claim_subjects: frozenset[str] = frozenset(),
+    *,
+    compact_normalized_claims: bool = False,
+    compact_native_payload_fields: frozenset[str] | None = None,
+    compact_native_payload_atlas_only_fields: frozenset[str] = frozenset(),
 ) -> AtlasView:
     """Read what the Atlas asserts for one source out of its distribution packs."""
     resources: set[str] = set()
@@ -2409,11 +2445,20 @@ def read_atlas_source(
     ] = defaultdict(set)
     native_relations: set[tuple[str, str, str]] = set()
     native_payloads: dict[str, Mapping[str, Any]] = {}
+    pending_native_payload_digests: dict[str, str] = {}
+    compact_native_payload_records: set[str] = set()
+    native_payload_digest_differences: dict[
+        str,
+        tuple[str, str | None],
+    ] = {}
+    native_payload_field_differences: dict[
+        str,
+        tuple[tuple[str, ...], tuple[str, ...]],
+    ] = {}
     checked_pack_transports: dict[str, tuple[str, int]] = {}
     record_targets: dict[str, str] = {}
     record_source_digests: dict[str, str] = {}
     structural_failures: list[str] = []
-    native_payload_values: dict[str, set[str]] = defaultdict(set)
     raw_source_iri_claims: set[tuple[str, str, str]] = set()
     raw_source_literal_claims: set[tuple[str, str, LiteralValue]] = set()
     all_raw_iri_claims: set[tuple[str, str, str]] = set()
@@ -2433,6 +2478,47 @@ def read_atlas_source(
             ATLAS_NATIVE_PAYLOAD,
         }
     )
+    compact_globally_parsed_predicates = frozenset(
+        {
+            RDF_TYPE,
+            RDF_SUBJECT,
+            RDF_PREDICATE,
+            RDF_OBJECT,
+            ATLAS_SOURCE_LOCATOR,
+            ATLAS_SOURCE_DIGEST,
+            ATLAS_REPRESENTS_RESOURCE,
+            ATLAS_NATIVE_PAYLOAD,
+        }
+    )
+    compact_source_parsed_predicates = frozenset(
+        {
+            SKOS_IN_SCHEME,
+            SKOSXL_PREF_LABEL,
+            SKOSXL_ALT_LABEL,
+            SKOSXL_HIDDEN_LABEL,
+            ATLAS_IN_SCHEME,
+            ATLAS_RESOURCE_PROFILE,
+            ATLAS_SEMANTIC_RING,
+            ATLAS_NOTATION,
+            ATLAS_DEFINITION,
+            ATLAS_NOTE,
+            *ATLAS_SOURCE_REPRESENTATION_STRUCTURE_PREDICATES,
+        }
+    )
+
+    def retain_raw_claim(quad: Quad) -> bool:
+        """Keep only claims not already retained in a parsed Atlas index."""
+        if not compact_normalized_claims:
+            return True
+        if quad.predicate in compact_globally_parsed_predicates:
+            return False
+        if quad.predicate == SKOSXL_LITERAL_FORM:
+            # Orphan forms are restored after every label edge is known.
+            return False
+        return not (
+            quad.subject in source_claim_subjects
+            and quad.predicate in compact_source_parsed_predicates
+        )
 
     def atlas_only_quad(quad: Quad) -> bool:
         if quad.predicate == SKOS_IN_SCHEME:
@@ -2467,11 +2553,17 @@ def read_atlas_source(
                     ),
                 )
                 iri_claim = (quad.subject, quad.predicate, quad.obj)
-                if quad.is_literal:
+                retain_raw = retain_raw_claim(quad)
+                if retain_raw and quad.is_literal:
                     all_raw_literal_claims.add(literal_claim)
-                else:
+                elif retain_raw:
                     all_raw_iri_claims.add(iri_claim)
-                if quad.subject in source_claim_subjects:
+                retain_source_raw = retain_raw or (
+                    compact_normalized_claims
+                    and quad.subject in source_claim_subjects
+                    and quad.predicate == RDF_TYPE
+                )
+                if retain_source_raw and quad.subject in source_claim_subjects:
                     if quad.is_literal:
                         raw_source_literal_claims.add(literal_claim)
                     else:
@@ -2560,6 +2652,17 @@ def read_atlas_source(
                             "atlas:sourceDigest values"
                         )
                     record_source_digests[quad.subject] = quad.obj
+                    pending_payload_digest = pending_native_payload_digests.pop(
+                        quad.subject,
+                        None,
+                    )
+                    if pending_payload_digest is not None:
+                        compact_native_payload_records.add(quad.subject)
+                        if pending_payload_digest != quad.obj:
+                            native_payload_digest_differences[quad.subject] = (
+                                pending_payload_digest,
+                                quad.obj,
+                            )
                 elif predicate == ATLAS_REPRESENTS_RESOURCE:
                     if quad.subject in record_targets and record_targets[quad.subject] != quad.obj:
                         structural_failures.append(
@@ -2567,11 +2670,6 @@ def read_atlas_source(
                         )
                     record_targets[quad.subject] = quad.obj
                 elif predicate == ATLAS_NATIVE_PAYLOAD:
-                    native_payload_values[quad.subject].add(quad.obj)
-                    if len(native_payload_values[quad.subject]) > 1:
-                        structural_failures.append(
-                            f"{pack}: source record <{quad.subject}> has contradictory atlas:nativePayload values"
-                        )
                     try:
                         payload = _json_without_duplicate_keys(
                             quad.obj.encode("utf-8"),
@@ -2587,7 +2685,52 @@ def read_atlas_source(
                             f"{pack}: source record <{quad.subject}> has non-object atlas:nativePayload JSON"
                         )
                         continue
-                    native_payloads[quad.subject] = payload
+                    if compact_native_payload_fields is not None:
+                        payload_digest = _canonical_json_digest(payload)
+                        prior_digest = pending_native_payload_digests.get(
+                            quad.subject
+                        )
+                        if prior_digest is not None and prior_digest != payload_digest:
+                            structural_failures.append(
+                                f"{pack}: source record <{quad.subject}> has contradictory "
+                                "atlas:nativePayload values"
+                            )
+                        source_digest = record_source_digests.get(quad.subject)
+                        if source_digest is None:
+                            pending_native_payload_digests[quad.subject] = (
+                                payload_digest
+                            )
+                        else:
+                            compact_native_payload_records.add(quad.subject)
+                            if source_digest != payload_digest:
+                                native_payload_digest_differences[quad.subject] = (
+                                    payload_digest,
+                                    source_digest,
+                                )
+                        unexpected_fields = tuple(
+                            sorted(
+                                set(payload)
+                                - compact_native_payload_fields
+                                - compact_native_payload_atlas_only_fields
+                            )
+                        )
+                        missing_fields = tuple(
+                            sorted(compact_native_payload_fields - set(payload))
+                        )
+                        if unexpected_fields or missing_fields:
+                            native_payload_field_differences[quad.subject] = (
+                                unexpected_fields,
+                                missing_fields,
+                            )
+                        continue
+                    prior_payload = native_payloads.get(quad.subject)
+                    if prior_payload is not None and prior_payload != payload:
+                        structural_failures.append(
+                            f"{pack}: source record <{quad.subject}> has contradictory "
+                            "atlas:nativePayload values"
+                        )
+                    else:
+                        native_payloads[quad.subject] = payload
                     scheme_iris = payload.get("schemeIris")
                     if isinstance(scheme_iris, list):
                         native_schemes[quad.subject] = frozenset(str(item) for item in scheme_iris)
@@ -2827,6 +2970,50 @@ def read_atlas_source(
             )
         hidden[subject].update(forms)
 
+    for record, payload_digest in pending_native_payload_digests.items():
+        compact_native_payload_records.add(record)
+        native_payload_digest_differences[record] = (
+            payload_digest,
+            record_source_digests.get(record),
+        )
+
+    linked_label_nodes = {
+        *(node for _, node in pref_edges),
+        *(node for _, node in alt_edges),
+        *(node for _, node in hidden_edges),
+    }
+    if compact_normalized_claims:
+        for subject, forms in label_forms.items():
+            if subject in linked_label_nodes:
+                continue
+            rows = {
+                (subject, SKOSXL_LITERAL_FORM, literal)
+                for literal in forms
+            }
+            all_raw_literal_claims.update(rows)
+            if subject in source_claim_subjects:
+                raw_source_literal_claims.update(rows)
+
+        # The dedicated indexes above already retain source concepts, source
+        # records, and linked label nodes. Keep their exact publisher types in
+        # raw_source_iri_claims, but do not allocate the same high-cardinality
+        # type map a second time. Atlas-owned resources and source-release
+        # nodes remain classified here for residual-claim and release checks.
+        redundant_typed_subjects = (
+            set(source_claim_subjects)
+            | set(source_records)
+            | linked_label_nodes
+        )
+        rdf_types = defaultdict(
+            set,
+            {
+                subject: types
+                for subject, types in rdf_types.items()
+                if subject not in redundant_typed_subjects
+                or ATLAS_SOURCE_RELEASE in types
+            },
+        )
+
     # Some source labels are intentionally suppressed from the Atlas display role
     # to satisfy SKOS S13. Restore only the exact publisher role/value retained in
     # native evidence before comparing the source claim set.
@@ -2858,7 +3045,11 @@ def read_atlas_source(
     relations = frozenset(relation_rows)
 
     # A comparison pack must not silently collapse multiple source records onto one resource.
-    record_claim_subjects = set(record_targets) | set(native_payloads)
+    record_claim_subjects = (
+        set(record_targets)
+        | set(native_payloads)
+        | compact_native_payload_records
+    )
     for record in sorted(record_claim_subjects - source_records):
         structural_failures.append(
             f"record-like subject <{record}> is not typed atlas:SourceRecord"
@@ -2907,55 +3098,137 @@ def read_atlas_source(
                 for claim_subject, predicate, literal in claims
             )
 
+    # Freeze each high-cardinality index and release its mutable predecessor
+    # before allocating the next one. This keeps return-value construction from
+    # becoming the peak-memory phase for the 441,127-record FAST comparison.
+    label_links = frozenset(
+        chain(
+            (
+                (subject, SKOSXL_PREF_LABEL, node)
+                for subject, node in pref_edges
+            ),
+            (
+                (subject, SKOSXL_ALT_LABEL, node)
+                for subject, node in alt_edges
+            ),
+            (
+                (subject, SKOSXL_HIDDEN_LABEL, node)
+                for subject, node in hidden_edges
+            ),
+        )
+    )
+    label_forms.clear()
+    pref_edges.clear()
+    alt_edges.clear()
+    hidden_edges.clear()
+    native_label_claims_by_record.clear()
+
+    relation_assertions = frozenset(reified)
+    reified.clear()
+    relation_rows.clear()
+
+    frozen_rdf_types = {
+        key: frozenset(value) for key, value in rdf_types.items()
+    }
+    rdf_types.clear()
+    frozen_resource_profiles = {
+        key: frozenset(value) for key, value in resource_profiles.items()
+    }
+    resource_profiles.clear()
+    frozen_semantic_rings = {
+        key: frozenset(value) for key, value in semantic_rings.items()
+    }
+    semantic_rings.clear()
+    frozen_atlas_scheme_iris = {
+        key: frozenset(value) for key, value in atlas_scheme_iris.items()
+    }
+    atlas_scheme_iris.clear()
+    frozen_pref_labels = {
+        key: frozenset(value) for key, value in pref.items()
+    }
+    pref.clear()
+    frozen_alt_labels = {
+        key: frozenset(value) for key, value in alt.items()
+    }
+    alt.clear()
+    frozen_hidden_labels = {
+        key: frozenset(value) for key, value in hidden.items()
+    }
+    hidden.clear()
+    frozen_notations = {
+        key: frozenset(value) for key, value in notations.items()
+    }
+    notations.clear()
+    frozen_definitions = {
+        key: frozenset(value) for key, value in definitions.items()
+    }
+    definitions.clear()
+    frozen_notes = {
+        key: frozenset(value) for key, value in notes.items()
+    }
+    notes.clear()
+
+    frozen_resources = frozenset(resources)
+    resources.clear()
+    frozen_releases = frozenset(releases)
+    releases.clear()
+    frozen_skos_schemes = frozenset(skos_schemes)
+    skos_schemes.clear()
+    frozen_memberships = frozenset(memberships)
+    memberships.clear()
+    frozen_source_records = frozenset(source_records)
+    source_records.clear()
+    record_locators = frozenset(
+        locator
+        for subject, locator in locator_by_subject.items()
+        if subject in frozen_source_records
+    )
+    record_locator_pairs = frozenset(
+        (target, locator_by_subject[record])
+        for record, target in record_targets.items()
+        if record in frozen_source_records and record in locator_by_subject
+    )
+
     return AtlasView(
-        resources=frozenset(resources),
-        releases=frozenset(releases),
-        rdf_types={key: frozenset(value) for key, value in rdf_types.items()},
-        resource_profiles={
-            key: frozenset(value) for key, value in resource_profiles.items()
-        },
-        semantic_rings={key: frozenset(value) for key, value in semantic_rings.items()},
-        atlas_scheme_iris={
-            key: frozenset(value) for key, value in atlas_scheme_iris.items()
-        },
-        skos_schemes=frozenset(skos_schemes),
-        pref_labels={key: frozenset(value) for key, value in pref.items()},
-        alt_labels={key: frozenset(value) for key, value in alt.items()},
-        hidden_labels={key: frozenset(value) for key, value in hidden.items()},
-        notations={key: frozenset(value) for key, value in notations.items()},
-        definitions={key: frozenset(value) for key, value in definitions.items()},
-        notes={key: frozenset(value) for key, value in notes.items()},
+        resources=frozen_resources,
+        releases=frozen_releases,
+        rdf_types=frozen_rdf_types,
+        resource_profiles=frozen_resource_profiles,
+        semantic_rings=frozen_semantic_rings,
+        atlas_scheme_iris=frozen_atlas_scheme_iris,
+        skos_schemes=frozen_skos_schemes,
+        pref_labels=frozen_pref_labels,
+        alt_labels=frozen_alt_labels,
+        hidden_labels=frozen_hidden_labels,
+        notations=frozen_notations,
+        definitions=frozen_definitions,
+        notes=frozen_notes,
         relations=relations,
-        memberships=frozenset(memberships),
-        source_records=frozenset(source_records),
-        record_locators=frozenset(
-            locator for subject, locator in locator_by_subject.items() if subject in source_records
-        ),
-        record_locator_pairs=frozenset(
-            (target, locator_by_subject[record])
-            for record, target in record_targets.items()
-            if record in source_records and record in locator_by_subject
-        ),
-        record_targets=dict(sorted(record_targets.items())),
-        record_source_locators=dict(sorted(locator_by_subject.items())),
-        record_source_digests=dict(sorted(record_source_digests.items())),
+        memberships=frozen_memberships,
+        source_records=frozen_source_records,
+        record_locators=record_locators,
+        record_locator_pairs=record_locator_pairs,
+        record_targets=record_targets,
+        record_source_locators=locator_by_subject,
+        record_source_digests=record_source_digests,
         native_payloads=dict(sorted(native_payloads.items())),
         native_scheme_iris=keyed_native,
         native_top_concept_of_iris=keyed_native_top_concepts,
         native_literal_claims=frozenset(keyed_native_literal_claims),
         native_relations=frozenset(native_relations),
+        compact_native_payload_records=frozenset(compact_native_payload_records),
+        native_payload_digest_differences=dict(
+            sorted(native_payload_digest_differences.items())
+        ),
+        native_payload_field_differences=dict(
+            sorted(native_payload_field_differences.items())
+        ),
         raw_source_iri_claims=frozenset(raw_source_iri_claims),
         raw_source_literal_claims=frozenset(raw_source_literal_claims),
         all_raw_iri_claims=frozenset(all_raw_iri_claims),
         all_raw_literal_claims=frozenset(all_raw_literal_claims),
-        label_links=frozenset(
-            {
-                *((subject, SKOSXL_PREF_LABEL, node) for subject, node in pref_edges),
-                *((subject, SKOSXL_ALT_LABEL, node) for subject, node in alt_edges),
-                *((subject, SKOSXL_HIDDEN_LABEL, node) for subject, node in hidden_edges),
-            }
-        ),
-        relation_assertions=frozenset(reified),
+        label_links=label_links,
+        relation_assertions=relation_assertions,
         structural_failures=tuple(structural_failures),
         checked_packs=tuple(packs),
         checked_pack_transports=dict(sorted(checked_pack_transports.items())),
@@ -3270,6 +3543,9 @@ def _stock_vocabulary_view(
     unevaluated_claims: Sequence[str] = (),
     require_relation_members: bool = True,
     retain_predicate_counts: bool = True,
+    retain_claim_sets: bool = True,
+    retain_expected_native_payloads: bool = True,
+    compact_resource_digests: bool = False,
     expected_relation_payloads: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> PublisherView:
     """Build the comparison view shared by stock XML, RDF, MARC, and JSON readers."""
@@ -3279,12 +3555,14 @@ def _stock_vocabulary_view(
     notations: dict[str, frozenset[LiteralValue]] = {}
     annotation_claims: set[tuple[str, str, LiteralValue]] = set()
     literal_claims: set[tuple[str, str, LiteralValue]] = set()
-    iri_claims: set[tuple[str, str, str]] = {*relations}
-    iri_claims.update(
-        (resource, SKOS_IN_SCHEME, scheme) for resource, scheme in memberships
-    )
+    iri_claims: set[tuple[str, str, str]] = set(relations) if retain_claim_sets else set()
+    if retain_claim_sets:
+        iri_claims.update(
+            (resource, SKOS_IN_SCHEME, scheme) for resource, scheme in memberships
+        )
     predicate_counts: dict[tuple[str, str], int] = defaultdict(int)
     resource_input_digests: dict[str, frozenset[str]] = {}
+    resource_input_digest_values: dict[str, str] = {}
     resource_locators: dict[str, str] = {}
     expected_native_payloads: dict[str, Mapping[str, Any]] = {}
     for record in records:
@@ -3303,15 +3581,18 @@ def _stock_vocabulary_view(
         pref_labels[record.resource] = preferred
         alt_labels[record.resource] = alternate
         notations[record.resource] = notation_values
+        # The member-IRI comparison treats the publisher's explicit Concept
+        # type as evidence distinct from concept-set identity.
         iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
         for predicate, values in (
             (SKOS_PREF_LABEL, preferred),
             (SKOS_ALT_LABEL, alternate),
             (SKOS_NOTATION, notation_values),
         ):
-            literal_claims.update(
-                (record.resource, predicate, literal) for literal in values
-            )
+            if retain_claim_sets:
+                literal_claims.update(
+                    (record.resource, predicate, literal) for literal in values
+                )
             if retain_predicate_counts:
                 predicate_counts[(record.resource, predicate)] = len(values)
         record_annotations = {
@@ -3319,16 +3600,21 @@ def _stock_vocabulary_view(
             for predicate, literal in record.annotations
         }
         annotation_claims.update(record_annotations)
-        literal_claims.update(record_annotations)
+        if retain_claim_sets:
+            literal_claims.update(record_annotations)
         if retain_predicate_counts:
             predicate_counts[(record.resource, RDF_TYPE)] = 1
             for _, predicate, _ in record_annotations:
                 predicate_counts[(record.resource, predicate)] += 1
-        resource_input_digests[record.resource] = frozenset(
-            {record.source_digest}
-        )
+        if compact_resource_digests:
+            resource_input_digest_values[record.resource] = record.source_digest
+        else:
+            resource_input_digests[record.resource] = frozenset(
+                {record.source_digest}
+            )
         resource_locators[record.resource] = record.source_locator
-        expected_native_payloads[record.resource] = record.native_payload
+        if retain_expected_native_payloads:
+            expected_native_payloads[record.resource] = record.native_payload
     unknown_relation_endpoints = sorted(
         {
             endpoint
@@ -3375,6 +3661,8 @@ def _stock_vocabulary_view(
         resource_locators=resource_locators,
         expected_native_payloads=expected_native_payloads,
         expected_relation_payloads=dict(expected_relation_payloads or {}),
+        resource_input_digest_values=resource_input_digest_values,
+        source_digest_is_native_payload_digest=True,
     )
 
 
@@ -4073,6 +4361,11 @@ def _read_fast_topical_native(
         for target in targets
         if target in active_ids
     }
+    labels.clear()
+    alternate.clear()
+    broader.clear()
+    deprecated.clear()
+    del active_ids
 
     def stock_records() -> Iterator[_StockVocabularyRecord]:
         for numeric_id, (heading, alt_labels, broader_ids) in rows.items():
@@ -4129,6 +4422,9 @@ def _read_fast_topical_native(
         spec.inputs,
         unevaluated_claims=unevaluated,
         retain_predicate_counts=False,
+        retain_claim_sets=False,
+        retain_expected_native_payloads=False,
+        compact_resource_digests=True,
     )
 
 
@@ -5459,10 +5755,29 @@ def build_context(
             else frozenset()
         )
         try:
+            compact_native_payload = (
+                publisher is not None
+                and publisher.source_digest_is_native_payload_digest
+                and not publisher.expected_native_payloads
+                and spec.rdf_source is not None
+            )
             atlas = read_atlas_source(
                 distribution,
                 packs,
                 source_claim_subjects,
+                compact_normalized_claims=(
+                    publisher is not None and spec.reader != "rdf"
+                ),
+                compact_native_payload_fields=(
+                    spec.rdf_source.evaluated_native_payload_fields
+                    if compact_native_payload
+                    else None
+                ),
+                compact_native_payload_atlas_only_fields=(
+                    spec.rdf_source.atlas_only_native_payload_fields
+                    if compact_native_payload
+                    else frozenset()
+                ),
             )
         except Exception as error:  # noqa: BLE001 - continue with every later source
             load_failures.append(
@@ -6010,18 +6325,20 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     aggregate_source_evidence_fields = frozenset(
         {"labelRoleNormalization", "metadata"}
     )
+    expected_payload_fields = policy.evaluated_native_payload_fields
     reader_native_fields = frozenset(
         field_name
         for payload in pair.publisher.expected_native_payloads.values()
         for field_name in payload
     )
+    if pair.publisher.source_digest_is_native_payload_digest:
+        reader_native_fields |= expected_payload_fields
     supported_resource_fields = (
         per_record_resource_fields
         | aggregate_relation_fields
         | aggregate_source_evidence_fields
         | reader_native_fields
     )
-    expected_payload_fields = policy.evaluated_native_payload_fields
     unsupported_declared_fields = sorted(
         expected_payload_fields - supported_resource_fields
     )
@@ -6047,15 +6364,20 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         set(pair.atlas.source_records)
         | set(pair.atlas.record_targets)
         | set(pair.atlas.native_payloads)
+        | set(pair.atlas.compact_native_payload_records)
     )
     for record in sorted(record_ids):
         target = pair.atlas.record_targets.get(record)
         payload = pair.atlas.native_payloads.get(record)
+        compact_payload = record in pair.atlas.compact_native_payload_records
         if target is None:
             if payload is None:
-                failures.append(
-                    f"{source}: targetless source record <{record}> has no native payload"
+                detail = (
+                    "has no native payload"
+                    if not compact_payload
+                    else "has no represented publisher resource"
                 )
+                failures.append(f"{source}: targetless source record <{record}> {detail}")
                 continue
 
             publisher_relation_digest = payload.get("publisherRelationDigest")
@@ -6213,12 +6535,21 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             )
 
         resource_input_path = input_path_by_resource.get(target)
-        expected_digests = (
-            {pair.publisher.input_content_digests[resource_input_path]}
-            if resource_input_path in pair.publisher.input_content_digests
-            else default_digests
-            or set(pair.publisher.resource_input_digests.get(target, frozenset()))
+        compact_resource_digest = pair.publisher.resource_input_digest_values.get(
+            target
         )
+        if resource_input_path in pair.publisher.input_content_digests:
+            expected_digests = {
+                pair.publisher.input_content_digests[resource_input_path]
+            }
+        elif default_digests:
+            expected_digests = default_digests
+        elif compact_resource_digest is not None:
+            expected_digests = {compact_resource_digest}
+        else:
+            expected_digests = set(
+                pair.publisher.resource_input_digests.get(target, frozenset())
+            )
         observed_digest = pair.atlas.record_source_digests.get(record)
         if len(expected_digests) != 1:
             failures.append(
@@ -6231,8 +6562,29 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 f"{next(iter(expected_digests))}, observed {observed_digest!r}"
             )
 
-        if payload is None:
+        if payload is None and not compact_payload:
             failures.append(f"{source}: source record <{record}> has no native payload")
+            continue
+        if payload is None:
+            digest_difference = pair.atlas.native_payload_digest_differences.get(
+                record
+            )
+            if digest_difference is not None:
+                payload_digest, source_digest = digest_difference
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest "
+                    f"{payload_digest} differs from atlas:sourceDigest {source_digest!r}"
+                )
+            unexpected_fields, missing_fields = (
+                pair.atlas.native_payload_field_differences.get(record, ((), ()))
+            )
+            for field_name in unexpected_fields:
+                unexpected_payload_fields[field_name].append(record)
+            if missing_fields:
+                failures.append(
+                    f"{source}: source record <{record}> native payload omits independently "
+                    f"evaluated fields {list(missing_fields)}"
+                )
             continue
         for field_name in sorted(
             set(payload)
@@ -6247,6 +6599,11 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         expected_per_record_fields = per_record_resource_fields | frozenset(
             reader_expected_payload
         )
+        if (
+            pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_per_record_fields |= expected_payload_fields
         missing_fields = sorted(
             (expected_payload_fields & expected_per_record_fields) - set(payload)
         )
@@ -6282,6 +6639,17 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 failures.append(
                     f"{source}: source record <{record}> native payload {field_name} "
                     f"differs -- expected {expected!r}, observed {payload.get(field_name)!r}"
+                )
+        if (
+            pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_payload_digest = next(iter(expected_digests))
+            observed_payload_digest = _canonical_json_digest(payload)
+            if observed_payload_digest != expected_payload_digest:
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest differs -- "
+                    f"expected {expected_payload_digest}, observed {observed_payload_digest}"
                 )
 
     if pair.spec.kind == "mapping":
@@ -8034,9 +8402,18 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     absent from this view. The binding validator owns those claims.
     """
     return frozenset(
-        resource
-        for resource, types in pair.atlas.rdf_types.items()
-        if SKOS_CONCEPT in types
+        {
+            *(
+                resource
+                for resource, types in pair.atlas.rdf_types.items()
+                if SKOS_CONCEPT in types
+            ),
+            *(
+                subject
+                for subject, predicate, obj in pair.atlas.raw_source_iri_claims
+                if predicate == RDF_TYPE and obj == SKOS_CONCEPT
+            ),
+        }
     )
 
 
