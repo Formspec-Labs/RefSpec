@@ -674,6 +674,79 @@ measured under 60s; see the budget re-spec open item).
     consumer). Then: derived TSV view from the build, exporter lessons
     recovered from `5ed56db5^`. Drop the unused `sssom` dev dependency now.
 
+**ENGINE-FLOOR RESEARCH CLOSED (2026-08-13, three codex 5.6-sol xhigh
+tracks; branches research/parse-substrate e4bce197,
+research/residual-shacl 3154b751, research/shacl-sparql 1c5f1d12).**
+1. *Residual SHACL — DON'T-TAKE, the lift pattern has reached its floor.*
+   The broad lift removed 353 of 615 constraint-parameter occurrences and
+   cut engine time 14.17s→6.61s at staging, but TOTAL time ROSE
+   17.38s→17.72s (+2.0%): the table checks cost more than the engine work
+   they replaced. Best isolated avenue (sh:class) saved 0.9%. What
+   remains is RDF traversal inside pySHACL — sh:xone on
+   MappingAssertionShape plus four sequence-path sh:equals shapes —
+   liftable only by writing a second SHACL implementation.
+2. *Parse substrate — DON'T-TAKE now, prototype PRESERVED.* Two-index
+   store + pooled terms: parse+store 20.71s→14.78s (−28.6%), peak RSS
+   1,380→567 MiB (−58.9%); complete semantic path 49.21s→33.71s
+   (−31.5%), RSS 1,434→617 MiB (−57.0%); identical verdicts on the real
+   shapes and all 130 corpus cases; index choice instrumented (OSP never
+   queried by this workload). Rejected on OWNERSHIP (8–12 days to own a
+   custom RDF store for ~6.6 min/release), not feasibility. Sharded
+   parallel parse rejected on measurement (slower AND larger).
+   **ORCHESTRATOR NOTE — the memory half may matter before the time
+   half:** peak RSS is what forces the ≥32 GB self-hosted runner in the
+   release-workflow spec; at these ratios full acceptance would fit in
+   ~9 GB, i.e. a standard hosted runner. Re-open this the day CI is
+   meant to own acceptance.
+3. *SHACL-SPARQL — portable, and the blocker's premises corrected.* All
+   four adjudication rules expressed as portable SPARQL 1.1 (164 lines,
+   115 of SPARQL); 26/26 fixture checks agree across pySHACL and Jena.
+   Jena is 250× inside validation / 82× end-to-end, but pySHACL's
+   ABSOLUTE time at bounded staging scale is 3.24 min — viable
+   once-per-release, so sh:sparql emission does NOT by itself force Jena
+   at bounded scale (it does at 32M quads: ~90 min estimated for these
+   four queries alone). Two corrections: the "~900 lines deleted" figure
+   is wrong (the adjudication block is 516 lines; these four rules are
+   ~128 — move 2 is CODE-NEUTRAL at first, its value is single-source
+   generation), and the staging artifact contains ZERO adjudication
+   records, so timings used a derived target-loaded view and production
+   deletion stays blocked on a target-bearing artifact plus the
+   AGENTS.md differential-oracle battery.
+
+**READ-FOLD LANDED (5feb5458):** `_AssertedFacts` extends the parse
+observer from placement to reads — Graph.triples calls across the four
+read-heavy gates 1,403,653→150 (−99.99%), those phases 5.76s→2.52s at
+staging, projected 236s→~63–103s at full scale, for +45 MB measured
+(~1.2 GB projected, ~5–6% of peak). No corpus observation moved. The
+source-record sweep deliberately stays on the graph (failure ORDER is
+observable). **Acceptance now projects to roughly 20 minutes** from the
+75.7 measured at the program's start.
+
+**FIDELITY BATCH 2 LANDED (ed4d5f9a) + THREE OWNER DECISIONS
+(2026-08-13):** uncovered claims 140→**0** (source-claim-coverage
+PASSES; 21,549 declared with per-predicate counts and Atlas-side zero
+proofs); a new source-release-metadata check found a previously
+invisible direction — Atlas asserting 18 dcterms:issued/identifier
+claims no publisher made; the 889,115 differences classified: **97.68%
+is one undeclared product scope** (publishers ship 40+ languages, Atlas
+keeps English), **zero fabrication anywhere** (every difference is an
+omission), 9,656 were an AUDITOR double-count (zthes:termNote is a
+kind-marker already compared by reification-fidelity), and the real
+builder findings are small and named (GEMET en-US 5,212 rows → 244 real
+lost synonyms; ELSST 181 timestamps). **Decisions: (1) DECLARE
+English-only** — scope stated normatively in the binding README and
+machine-readably in the build receipt, auditor declaration spec'd for
+the file's owner; **(2) CARRY English definitions + scope notes** —
+measured at +1,885 quads / ~82 KB compressed because the wire, compact,
+Parquet and search-view fields ALREADY EXIST (note: the famous 43,837 is
+30,621 definitions + 8,233 scope notes + 4,983 history notes across ALL
+languages; English is 1,884 claims, so the declaration must cover the
+remaining 41,953, history notes included); **(3) PURSUE move 2** on its
+own merits (single-source generation, killing the producer-vs-contract
+drift class), with Jena required only at full scale. Coverage 24→27/110
+(+42,651 records) with a systematic sourceDigest mismatch found across
+all three new sources — a real builder finding.
+
 ## Verification-gap proposals — validated verdicts (v3.8, 2026-08-12)
 
 Adversarial opus validation of the six P-proposals; full report in session.
