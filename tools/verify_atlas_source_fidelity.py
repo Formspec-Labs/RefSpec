@@ -78,6 +78,7 @@ import io
 import json
 import logging
 import re
+import string
 import sys
 import threading
 import urllib.parse
@@ -933,19 +934,65 @@ class AtlasLanguageScopeEvidence:
 
 
 @dataclass(frozen=True)
-class HtmlCodeListSelector:
-    """Declarative extraction and identity rules for one HTML code list."""
+class PatternFieldNormalizer:
+    """One bounded, named normalization applied to a captured row field."""
 
-    section_pattern: str
+    field: str
+    operations: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PatternDerivedField:
+    """One value derived from row fields by a fixed reader operation."""
+
+    field: str
+    operation: str
+    template_json: str
+    prefix: str = ""
+
+
+@dataclass(frozen=True)
+class PatternRowFilter:
+    """Keep or reject a row by applying one declared regular expression."""
+
+    field: str
+    pattern: str
+    include: bool = True
+
+
+@dataclass(frozen=True)
+class PatternRowPattern:
+    """Select rows from an exact set of authenticated UTF-8 inputs."""
+
+    input_pattern: str
+    region_pattern: str
     row_pattern: str
-    resource_name: str
-    source_token: str
-    identifier_kind: str
-    authority_iri: str
-    observed_at: str
-    observation_namespace: str
+    expected_input_count: int
+    expected_region_count: int
+    expected_row_count: int
+    constants: tuple[tuple[str, Any], ...] = ()
+    normalizers: tuple[PatternFieldNormalizer, ...] = ()
+    row_filters: tuple[PatternRowFilter, ...] = ()
+    native_payload_template_json: str | None = None
+    native_payload_fields: tuple[str, ...] = ()
+    derived_fields: tuple[PatternDerivedField, ...] = ()
+
+
+@dataclass(frozen=True)
+class PatternRowSelector:
+    """Declarative row, identity, locator, claim, count, and residue rules."""
+
+    patterns: tuple[PatternRowPattern, ...]
+    row_key: str
+    identity_mode: str
+    identity_template: str
+    source_locator_template: str
+    claim_map: tuple[tuple[str, str], ...]
+    native_payload_template_json: str
+    native_payload_fields: tuple[str, ...]
     expected_count: int
-    use: str = "deterministicMetadata"
+    declared_unevaluated_fields: tuple[str, ...]
+    derived_fields: tuple[PatternDerivedField, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -965,7 +1012,7 @@ class SourceSpec:
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
     source_extract: SourceExtractSelector | None = None
-    html_code_list: HtmlCodeListSelector | None = None
+    pattern_row: PatternRowSelector | None = None
     reader: str = "rdf"
     identity_policy: str = "publisher-iri"
 
@@ -2043,7 +2090,7 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
 
 
 API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
-HTML_CODE_LIST_READER = "html-code-list-v1/1.0"
+PATTERN_ROW_READER = "pattern-row-v2/2.0"
 
 
 @dataclass(frozen=True)
@@ -2268,128 +2315,674 @@ def _html_fragment_text(value: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(without_tags)).strip()
 
 
-def _read_html_code_list(
+_EXACT_PATTERN_FIELD = re.compile(r"^\{([A-Za-z_][A-Za-z0-9_]*)\}$")
+_PATTERN_CLAIMS = frozenset(
+    {
+        "alternate_label",
+        "definition",
+        "identity_hint",
+        "notation",
+        "observed_at",
+        "preferred_label",
+        "source_path",
+    }
+)
+
+
+def _pattern_template_fields(template: str) -> frozenset[str]:
+    """Return the named fields referenced by one bounded format template."""
+    fields: set[str] = set()
+    try:
+        parsed = string.Formatter().parse(template)
+        for _, field_name, _, _ in parsed:
+            if field_name is None:
+                continue
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", field_name):
+                raise ValueError(
+                    f"pattern-row template field must be one plain name: {field_name!r}"
+                )
+            fields.add(field_name)
+    except ValueError as error:
+        raise ValueError(f"invalid pattern-row template {template!r}: {error}") from error
+    return frozenset(fields)
+
+
+def _render_pattern_text(template: str, fields: Mapping[str, Any]) -> str:
+    """Render one text template and reject missing or non-scalar values."""
+    try:
+        value = template.format_map(fields)
+    except (KeyError, ValueError) as error:
+        raise ValueError(f"could not render pattern-row template {template!r}: {error}") from error
+    if not isinstance(value, str):  # pragma: no cover - str.format_map promises text
+        raise ValueError(f"pattern-row template did not render text: {template!r}")
+    return value
+
+
+def _render_pattern_value(value: Any, fields: Mapping[str, Any]) -> Any:
+    """Render a JSON-shaped value while preserving whole-field JSON types."""
+    if isinstance(value, str):
+        exact = _EXACT_PATTERN_FIELD.fullmatch(value)
+        if exact is not None:
+            field_name = exact.group(1)
+            if field_name not in fields:
+                raise ValueError(f"pattern-row template names unknown field {field_name!r}")
+            return fields[field_name]
+        return _render_pattern_text(value, fields)
+    if isinstance(value, list):
+        return [_render_pattern_value(item, fields) for item in value]
+    if isinstance(value, Mapping):
+        return {
+            str(key): _render_pattern_value(child, fields)
+            for key, child in value.items()
+        }
+    return value
+
+
+def _pattern_json_template_fields(template_json: str, label: str) -> frozenset[str]:
+    """Parse a JSON template and return every referenced row field."""
+    try:
+        value = _json_without_duplicate_keys(template_json.encode("utf-8"), label)
+    except (UnicodeError, ValueError) as error:
+        raise ValueError(f"{label} is not valid JSON: {error}") from error
+    fields: set[str] = set()
+
+    def visit(item: Any) -> None:
+        if isinstance(item, str):
+            fields.update(_pattern_template_fields(item))
+        elif isinstance(item, list):
+            for child in item:
+                visit(child)
+        elif isinstance(item, Mapping):
+            for child in item.values():
+                visit(child)
+
+    visit(value)
+    return frozenset(fields)
+
+
+def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
+    """Apply one stock, source-independent field normalization."""
+    if operation == "none-if-empty":
+        if value is None or (isinstance(value, str) and not value):
+            return None
+        return value
+    if operation.startswith("none-if-equals:"):
+        sentinel = operation.removeprefix("none-if-equals:")
+        return None if value == sentinel else value
+    if operation == "presence-boolean":
+        return value is not None
+    if operation.startswith("boolean-values:"):
+        try:
+            true_value, false_value = operation.removeprefix(
+                "boolean-values:"
+            ).split(":", 1)
+        except ValueError as error:
+            raise ValueError(
+                f"{label} boolean-values normalization requires true and false text"
+            ) from error
+        if value == true_value:
+            return True
+        if value == false_value:
+            return False
+        raise ValueError(
+            f"{label} expected {true_value!r} or {false_value!r}, observed {value!r}"
+        )
+    if not isinstance(value, str):
+        raise ValueError(
+            f"{label} normalization {operation!r} requires text, observed "
+            f"{type(value).__name__}"
+        )
+    if operation == "strip":
+        return value.strip()
+    if operation == "rstrip":
+        return value.rstrip()
+    if operation.startswith("rstrip-chars:"):
+        characters = operation.removeprefix("rstrip-chars:")
+        if not characters:
+            raise ValueError(f"{label} rstrip-chars normalization has no characters")
+        return value.rstrip(characters)
+    if operation == "collapse-whitespace":
+        return " ".join(value.split())
+    if operation == "html-visible-text":
+        return _html_fragment_text(value)
+    if operation == "remove-html-sup":
+        return re.sub(r"<sup\b[^>]*>.*?</sup>", "", value, flags=re.DOTALL)
+    if operation == "html-unescape":
+        return html.unescape(value)
+    if operation == "markdown-bold":
+        match = re.fullmatch(r"\*\*(.+)\*\*", value.strip())
+        if match is None:
+            raise ValueError(f"{label} is not one bold Markdown value: {value!r}")
+        return match.group(1).strip()
+    if operation == "casefold":
+        return value.casefold()
+    if operation == "integer":
+        try:
+            return int(value)
+        except ValueError as error:
+            raise ValueError(f"{label} is not an integer: {value!r}") from error
+    raise ValueError(f"{label} declares unsupported normalization {operation!r}")
+
+
+def _fixed_width_layout_column(value: Any, label: str) -> str:
+    """Read one declared column from a bounded fixed-width row block."""
+    required = {
+        "block",
+        "column",
+        "continuationMinIndent",
+        "footerPattern",
+        "header",
+        "pageTitle",
+        "revisionPattern",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ValueError(
+            f"{label} fixed-width layout requires {sorted(required)}"
+        )
+    if (
+        not all(
+            isinstance(value[field], str)
+            for field in (
+                "block",
+                "column",
+                "footerPattern",
+                "header",
+                "pageTitle",
+                "revisionPattern",
+            )
+        )
+        or not isinstance(value["continuationMinIndent"], int)
+        or value["column"] not in {"title", "description"}
+    ):
+        raise ValueError(f"{label} fixed-width layout parameters have invalid types")
+    header = value["header"]
+    title_column = header.find("Title")
+    description_column = header.find("Description")
+    if title_column <= 0 or description_column <= title_column:
+        raise ValueError(f"{label} fixed-width header has invalid column positions")
+    try:
+        footer_pattern = re.compile(value["footerPattern"])
+        revision_pattern = re.compile(value["revisionPattern"])
+    except re.error as error:
+        raise ValueError(f"{label} fixed-width metadata pattern is invalid") from error
+
+    columns: dict[str, list[str]] = {"title": [], "description": []}
+    active_column: str | None = None
+    page_continuation_window = False
+
+    def add_fixed_width_line(line: str) -> None:
+        nonlocal active_column
+        title = line[title_column:description_column].strip()
+        description = line[description_column:].strip()
+        if title:
+            columns["title"].append(title)
+            active_column = "title"
+        if description:
+            columns["description"].append(description)
+            active_column = "description"
+
+    lines = value["block"].splitlines()
+    if not lines:
+        raise ValueError(f"{label} fixed-width row block is empty")
+    add_fixed_width_line(lines[0])
+    if active_column is None:
+        raise ValueError(f"{label} fixed-width row has no title or description")
+
+    for line in lines[1:]:
+        stripped = line.strip()
+        if not stripped:
+            page_continuation_window = False
+            continue
+        if footer_pattern.fullmatch(stripped) is not None:
+            continue
+        if stripped == value["pageTitle"]:
+            continue
+        if revision_pattern.fullmatch(stripped) is not None:
+            page_continuation_window = True
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if page_continuation_window:
+            if indent < value["continuationMinIndent"] or active_column is None:
+                raise ValueError(
+                    f"{label} fixed-width page continuation has invalid indentation"
+                )
+            columns[active_column].append(stripped)
+            continue
+        if indent not in {title_column, description_column}:
+            raise ValueError(
+                f"{label} fixed-width row has an unrecognized continuation: "
+                f"{stripped!r}"
+            )
+        add_fixed_width_line(line)
+
+    return " ".join(columns[value["column"]])
+
+
+def _pattern_claims(
+    selector: PatternRowSelector,
+    fields: Mapping[str, Any],
+) -> Mapping[str, tuple[str, ...]]:
+    """Render the declared claim map without accepting hidden claim kinds."""
+    claims: dict[str, list[str]] = defaultdict(list)
+    for claim, template in selector.claim_map:
+        if claim not in _PATTERN_CLAIMS:
+            raise ValueError(f"pattern-row claim map names unsupported claim {claim!r}")
+        value = _render_pattern_text(template, fields)
+        claims[claim].append(value)
+    return {claim: tuple(values) for claim, values in claims.items()}
+
+
+def _read_pattern_rows(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    """Read a configured HTML code-list region without source-specific code."""
-    selector = spec.html_code_list
+    """Read declared UTF-8 row patterns without source-name dispatch."""
+    selector = spec.pattern_row
     if selector is None:
-        raise ValueError(f"{spec.name} has no HTML code-list selector")
-    pin, payload = _single_pin(spec, payloads)
-    if pin.source_iri is None:
-        raise ValueError(f"{spec.name} publisher input has no source IRI")
+        raise ValueError(f"{spec.name} has no pattern-row selector")
+    if not selector.patterns:
+        raise ValueError(f"{spec.name} pattern-row selector declares no input patterns")
+    if selector.identity_mode not in {
+        "publisher-iri",
+        "source-key-derived",
+        "source-local-record",
+    }:
+        raise ValueError(
+            f"{spec.name} pattern-row identity mode is unsupported: "
+            f"{selector.identity_mode!r}"
+        )
+    claim_names = [claim for claim, _ in selector.claim_map]
+    required_claims = {"preferred_label", "source_path"}
+    missing_claims = required_claims - set(claim_names)
+    if selector.identity_mode == "source-local-record":
+        missing_claims |= {"observed_at"} - set(claim_names)
+    if missing_claims:
+        raise ValueError(
+            f"{spec.name} pattern-row claim map omits {sorted(missing_claims)}"
+        )
+    if claim_names.count("preferred_label") != 1:
+        raise ValueError(f"{spec.name} pattern-row requires one preferred_label claim")
+    if claim_names.count("source_path") != 1:
+        raise ValueError(f"{spec.name} pattern-row requires one source_path claim")
+
     try:
-        text = payload.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise ValueError(f"{spec.name} publisher input is not UTF-8 HTML") from error
-
-    try:
-        section_pattern = re.compile(selector.section_pattern, re.DOTALL)
-        row_pattern = re.compile(selector.row_pattern, re.DOTALL)
-    except re.error as error:
-        raise ValueError(f"{spec.name} has an invalid HTML selector: {error}") from error
-    if "section" not in section_pattern.groupindex:
-        raise ValueError(f"{spec.name} section pattern must define a 'section' group")
-    required_row_groups = {"code", "label"}
-    missing_groups = required_row_groups - set(row_pattern.groupindex)
-    if missing_groups:
+        payload_template = _json_without_duplicate_keys(
+            selector.native_payload_template_json.encode("utf-8"),
+            f"{spec.name} native payload template",
+        )
+    except (UnicodeError, ValueError) as error:
+        raise ValueError(f"{spec.name} native payload template is invalid: {error}") from error
+    if not isinstance(payload_template, Mapping):
+        raise ValueError(f"{spec.name} native payload template must be an object")
+    if set(payload_template) != set(selector.native_payload_fields):
         raise ValueError(
-            f"{spec.name} row pattern is missing groups {sorted(missing_groups)}"
+            f"{spec.name} native payload field declaration differs from its template -- "
+            f"declared {sorted(selector.native_payload_fields)}, observed "
+            f"{sorted(payload_template)}"
         )
 
-    sections = list(section_pattern.finditer(text))
-    if len(sections) != 1:
-        raise ValueError(
-            f"{spec.name} expected one configured HTML section, found {len(sections)}"
+    declared_template_fields: set[str] = set()
+    for template in (
+        selector.row_key,
+        selector.identity_template,
+        selector.source_locator_template,
+        *(template for _, template in selector.claim_map),
+    ):
+        declared_template_fields.update(_pattern_template_fields(template))
+    declared_template_fields.update(
+        _pattern_json_template_fields(
+            selector.native_payload_template_json,
+            f"{spec.name} native payload template",
         )
-    rows = list(row_pattern.finditer(sections[0].group("section")))
-    if len(rows) != selector.expected_count:
-        raise ValueError(
-            f"{spec.name} expected {selector.expected_count} code rows, found {len(rows)}"
+    )
+    for pattern_index, declaration in enumerate(selector.patterns):
+        if declaration.native_payload_template_json is None:
+            if declaration.native_payload_fields:
+                raise ValueError(
+                    f"{spec.name} pattern {pattern_index} declares native payload fields "
+                    "without a pattern payload template"
+                )
+            continue
+        pattern_payload = _json_without_duplicate_keys(
+            declaration.native_payload_template_json.encode("utf-8"),
+            f"{spec.name} pattern {pattern_index} native payload template",
         )
-
-    records: list[_ApiCaptureRecord] = []
-    seen_codes: set[str] = set()
-    for ordinal, match in enumerate(rows):
-        code = _html_fragment_text(match.group("code"))
-        label = _html_fragment_text(match.group("label"))
-        description_value = match.groupdict().get("description") or ""
-        description = _html_fragment_text(description_value)
-        if not code or not label:
-            raise ValueError(f"{spec.name}[{ordinal}] has an empty code or label")
-        if code in seen_codes:
-            raise ValueError(f"{spec.name} repeats publisher code {code!r}")
-        seen_codes.add(code)
-
-        source_path = f"$.{selector.resource_name}.{code}"
-        identifier = {
-            "value": code,
-            "kind": selector.identifier_kind,
-            "authorityUri": selector.authority_iri,
-            "sourceUri": pin.source_iri,
-            "sourcePath": source_path,
-            "observedAt": selector.observed_at,
-            "sourceDigest": pin.sha256,
-        }
-        observation_identity = {
-            "resourceName": selector.resource_name,
-            "sourceArtifact": pin.source_iri,
-            "sourcePath": source_path,
-            "value": code,
-        }
-        observation_id = (
-            f"urn:ref:source-observation:{selector.observation_namespace}:"
-            + hashlib.sha256(_canonical_json_bytes(observation_identity)).hexdigest()
+        if not isinstance(pattern_payload, Mapping):
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} native payload template "
+                "must be an object"
+            )
+        if set(pattern_payload) != set(declaration.native_payload_fields):
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} native payload field declaration "
+                f"differs from its template -- declared "
+                f"{sorted(declaration.native_payload_fields)}, observed "
+                f"{sorted(pattern_payload)}"
+            )
+        declared_template_fields.update(
+            _pattern_json_template_fields(
+                declaration.native_payload_template_json,
+                f"{spec.name} pattern {pattern_index} native payload template",
+            )
         )
-        native_payload = {
-            "id": observation_id,
-            "sourceArtifact": pin.source_iri,
-            "sourcePath": source_path,
-            "sourceOrdinal": ordinal,
-            "labels": [
-                {
-                    "value": label,
-                    "language": "en",
-                    "role": "preferred",
-                }
-            ],
-            "identifiers": [identifier],
-            "uses": [selector.use],
-            "conceptIdentityClaimed": False,
-            "description": description,
-        }
-        resource = _source_concept_iri(
-            token=selector.source_token,
-            recorded_at=selector.observed_at,
-            source_locator=pin.source_iri,
-            source_path=source_path,
-            notations=(code,),
-            identity_hint=observation_id,
-        )
-        records.append(
-            _ApiCaptureRecord(
-                resource=resource,
-                preferred_label=label,
-                notations=(code,),
-                source_locator=pin.source_iri,
-                source_digest=(
-                    "sha256:"
-                    + hashlib.sha256(_canonical_json_bytes(native_payload)).hexdigest()
-                ),
-                native_payload=native_payload,
-                definition=description or None,
+    for derived in (
+        *selector.derived_fields,
+        *(derived for pattern in selector.patterns for derived in pattern.derived_fields),
+    ):
+        declared_template_fields.update(
+            _pattern_json_template_fields(
+                derived.template_json,
+                f"{spec.name} derived field {derived.field!r}",
             )
         )
 
-    selected_section = sections[0]
-    outside_section = text[: selected_section.start()] + text[selected_section.end() :]
-    unevaluated_claims = (
-        (
-            "authenticated HTML outside the configured code-list section is not represented; "
-            "the selected code, label, and description cells are compared exactly"
-        ),
-    ) if _html_fragment_text(outside_section) else ()
+    records: list[_ApiCaptureRecord] = []
+    seen_keys: set[str] = set()
+    for pattern_index, declaration in enumerate(selector.patterns):
+        pattern_payload_template = payload_template
+        if declaration.native_payload_template_json is not None:
+            parsed_pattern_payload = _json_without_duplicate_keys(
+                declaration.native_payload_template_json.encode("utf-8"),
+                f"{spec.name} pattern {pattern_index} native payload template",
+            )
+            if not isinstance(parsed_pattern_payload, Mapping):  # validated above
+                raise ValueError(
+                    f"{spec.name} pattern {pattern_index} native payload template "
+                    "must be an object"
+                )
+            pattern_payload_template = parsed_pattern_payload
+        try:
+            input_pattern = re.compile(declaration.input_pattern)
+            region_pattern = re.compile(
+                declaration.region_pattern,
+                re.DOTALL | re.MULTILINE,
+            )
+            row_pattern = re.compile(
+                declaration.row_pattern,
+                re.DOTALL | re.MULTILINE,
+            )
+            compiled_filters = tuple(
+                (row_filter, re.compile(row_filter.pattern))
+                for row_filter in declaration.row_filters
+            )
+        except re.error as error:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} has invalid regular expression: {error}"
+            ) from error
+        if "region" not in region_pattern.groupindex:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} region must define a 'region' group"
+            )
+        selected_inputs = [
+            (pin, match)
+            for pin in spec.inputs
+            if (match := input_pattern.fullmatch(pin.path)) is not None
+        ]
+        if len(selected_inputs) != declaration.expected_input_count:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} expected "
+                f"{declaration.expected_input_count} inputs, found {len(selected_inputs)}"
+            )
+        pattern_row_count = 0
+        for pin, input_match in selected_inputs:
+            if pin.source_iri is None:
+                raise ValueError(f"{spec.name} publisher input has no source IRI")
+            try:
+                text = payloads[pin].decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError(f"{spec.name} input {pin.path!r} is not UTF-8") from error
+            regions = list(region_pattern.finditer(text))
+            if len(regions) != declaration.expected_region_count:
+                raise ValueError(
+                    f"{spec.name} pattern {pattern_index} input {pin.path!r} expected "
+                    f"{declaration.expected_region_count} regions, found {len(regions)}"
+                )
+            for region_ordinal, region in enumerate(regions):
+                row_matches = list(row_pattern.finditer(region.group("region")))
+                for match_ordinal, match in enumerate(row_matches):
+                    constants = dict(declaration.constants)
+                    if len(constants) != len(declaration.constants):
+                        raise ValueError(
+                            f"{spec.name} pattern {pattern_index} repeats a constant name"
+                        )
+                    fields: dict[str, Any] = {
+                        "input_path": pin.path,
+                        "input_role": pin.role or "",
+                        "source_iri": pin.source_iri,
+                        "source_digest": pin.sha256,
+                        "input_ordinal": spec.inputs.index(pin),
+                        "region_ordinal": region_ordinal,
+                        "match_ordinal": match_ordinal,
+                        "match_ordinal_one_based": match_ordinal + 1,
+                        "pattern_ordinal": pattern_row_count,
+                        "pattern_ordinal_one_based": pattern_row_count + 1,
+                        "ordinal": len(records),
+                        "ordinal_one_based": len(records) + 1,
+                        **constants,
+                    }
+                    captured_sets = (
+                        input_match.groupdict(),
+                        {
+                            key: value
+                            for key, value in region.groupdict().items()
+                            if key != "region"
+                        },
+                        match.groupdict(),
+                    )
+                    captured_names: set[str] = set()
+                    for captured in captured_sets:
+                        overlaps = set(fields) & set(captured)
+                        if overlaps:
+                            raise ValueError(
+                                f"{spec.name} pattern {pattern_index} captures duplicate fields "
+                                f"{sorted(overlaps)}"
+                            )
+                        fields.update(captured)
+                        captured_names.update(captured)
+                    for normalizer in declaration.normalizers:
+                        if normalizer.field not in fields:
+                            raise ValueError(
+                                f"{spec.name} normalizes unknown field {normalizer.field!r}"
+                            )
+                        for operation in normalizer.operations:
+                            fields[normalizer.field] = _normalize_pattern_field(
+                                fields[normalizer.field],
+                                operation,
+                                f"{spec.name} field {normalizer.field!r}",
+                            )
+                    keep = True
+                    for row_filter, compiled_filter in compiled_filters:
+                        value = fields.get(row_filter.field)
+                        matched = isinstance(value, str) and (
+                            compiled_filter.fullmatch(value) is not None
+                        )
+                        if matched != row_filter.include:
+                            keep = False
+                    if not keep:
+                        continue
+                    for derived in (
+                        *selector.derived_fields,
+                        *declaration.derived_fields,
+                    ):
+                        if derived.field in fields:
+                            raise ValueError(
+                                f"{spec.name} derived field repeats {derived.field!r}"
+                            )
+                        template = _json_without_duplicate_keys(
+                            derived.template_json.encode("utf-8"),
+                            f"{spec.name} derived field {derived.field!r}",
+                        )
+                        rendered = _render_pattern_value(template, fields)
+                        if derived.operation == "canonical-json-sha256":
+                            fields[derived.field] = derived.prefix + hashlib.sha256(
+                                _canonical_json_bytes(rendered)
+                            ).hexdigest()
+                        elif derived.operation == "template":
+                            if not isinstance(rendered, str):
+                                raise ValueError(
+                                    f"{spec.name} template-derived field "
+                                    f"{derived.field!r} is not text"
+                                )
+                            fields[derived.field] = derived.prefix + rendered
+                        elif derived.operation == "uri-component":
+                            if not isinstance(rendered, str):
+                                raise ValueError(
+                                    f"{spec.name} URI-component field "
+                                    f"{derived.field!r} is not text"
+                                )
+                            fields[derived.field] = derived.prefix + urllib.parse.quote(
+                                rendered,
+                                safe="",
+                            )
+                        elif derived.operation == "uuid7":
+                            if (
+                                not isinstance(rendered, Mapping)
+                                or set(rendered) != {"recordedAt", "seed"}
+                                or not isinstance(rendered["recordedAt"], str)
+                                or not isinstance(rendered["seed"], Mapping)
+                            ):
+                                raise ValueError(
+                                    f"{spec.name} UUIDv7 field {derived.field!r} "
+                                    "requires recordedAt text and a seed object"
+                                )
+                            fields[derived.field] = derived.prefix + _source_uuid7(
+                                rendered["recordedAt"],
+                                rendered["seed"],
+                            )
+                        elif derived.operation == "source-local-resource-iri":
+                            if (
+                                not isinstance(rendered, Mapping)
+                                or set(rendered)
+                                != {"namespace", "recordedAt", "sourceIri", "sourceKey"}
+                                or not all(isinstance(value, str) for value in rendered.values())
+                            ):
+                                raise ValueError(
+                                    f"{spec.name} source-local identity field "
+                                    f"{derived.field!r} requires namespace, recordedAt, "
+                                    "sourceIri, and sourceKey text"
+                                )
+                            fields[derived.field] = derived.prefix + _source_local_resource_iri(
+                                rendered["namespace"],
+                                rendered["recordedAt"],
+                                rendered["sourceIri"],
+                                rendered["sourceKey"],
+                            )
+                        elif derived.operation == "fixed-width-layout-column":
+                            fields[derived.field] = (
+                                derived.prefix
+                                + _fixed_width_layout_column(
+                                    rendered,
+                                    f"{spec.name} fixed-width field {derived.field!r}",
+                                )
+                            )
+                        else:
+                            raise ValueError(
+                                f"{spec.name} derived field {derived.field!r} uses "
+                                f"unsupported operation {derived.operation!r}"
+                            )
+                    used_fields = {
+                        *declared_template_fields,
+                        *(row_filter.field for row_filter in declaration.row_filters),
+                    }
+                    unaccounted = captured_names - used_fields - set(
+                        selector.declared_unevaluated_fields
+                    )
+                    if unaccounted:
+                        raise ValueError(
+                            f"{spec.name} pattern {pattern_index} captures fields without a "
+                            f"claim or explicit residue declaration: {sorted(unaccounted)}"
+                        )
+
+                    key = _render_pattern_text(selector.row_key, fields)
+                    if not key:
+                        raise ValueError(f"{spec.name} pattern-row key is empty")
+                    if key in seen_keys:
+                        raise ValueError(f"{spec.name} repeats publisher row key {key!r}")
+                    seen_keys.add(key)
+                    claims = _pattern_claims(selector, fields)
+                    label = claims["preferred_label"][0]
+                    if not label:
+                        raise ValueError(f"{spec.name} row {key!r} has an empty label")
+                    source_path = claims["source_path"][0]
+                    source_locator = _render_pattern_text(
+                        selector.source_locator_template,
+                        fields,
+                    )
+                    notations = tuple(
+                        dict.fromkeys(
+                            value for value in claims.get("notation", ()) if value
+                        )
+                    )
+                    if selector.identity_mode == "source-local-record":
+                        observed_at = claims["observed_at"][0]
+                        identity_hint = claims.get("identity_hint", (label,))[0]
+                        seed = {
+                            "source": source_locator,
+                            "path": source_path,
+                            "notations": list(notations),
+                            "identityHint": identity_hint,
+                        }
+                        identity_fields = {
+                            **fields,
+                            "source_uuid7": _source_uuid7(observed_at, seed),
+                        }
+                        resource = _render_pattern_text(
+                            selector.identity_template,
+                            identity_fields,
+                        )
+                    else:
+                        resource = _render_pattern_text(
+                            selector.identity_template,
+                            fields,
+                        )
+                    native_payload = _render_pattern_value(
+                        pattern_payload_template, fields
+                    )
+                    if not isinstance(native_payload, Mapping):
+                        raise ValueError(
+                            f"{spec.name} row {key!r} native payload is not an object"
+                        )
+                    definitions = claims.get("definition", ())
+                    if len(definitions) > 1:
+                        raise ValueError(
+                            f"{spec.name} row {key!r} declares multiple definitions"
+                        )
+                    records.append(
+                        _ApiCaptureRecord(
+                            resource=resource,
+                            preferred_label=label,
+                            alternate_labels=claims.get("alternate_label", ()),
+                            notations=notations,
+                            source_locator=source_locator,
+                            source_digest=(
+                                "sha256:"
+                                + hashlib.sha256(
+                                    _canonical_json_bytes(native_payload)
+                                ).hexdigest()
+                            ),
+                            native_payload=native_payload,
+                            definition=(
+                                definitions[0]
+                                if definitions and definitions[0]
+                                else None
+                            ),
+                        )
+                    )
+                    pattern_row_count += 1
+        if pattern_row_count != declaration.expected_row_count:
+            raise ValueError(
+                f"{spec.name} pattern {pattern_index} expected "
+                f"{declaration.expected_row_count} rows, found {pattern_row_count}"
+            )
+    if len(records) != selector.expected_count:
+        raise ValueError(
+            f"{spec.name} expected {selector.expected_count} total pattern rows, "
+            f"found {len(records)}"
+        )
+    unevaluated_claims = tuple(
+        f"authenticated publisher field or region is explicitly unevaluated: {field_name}"
+        for field_name in selector.declared_unevaluated_fields
+    )
     return _api_capture_view(
         records,
         spec,
@@ -7503,7 +8096,7 @@ _PUBLISHER_READERS: Mapping[
     FAST_TOPICAL_NATIVE_READER: _read_fast_topical_native,
     FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
     GCMD_SCIENCE_KEYWORDS_CSV_READER: _read_gcmd_science_keywords_csv,
-    HTML_CODE_LIST_READER: _read_html_code_list,
+    PATTERN_ROW_READER: _read_pattern_rows,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
     LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
     MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
@@ -7571,7 +8164,7 @@ def _fec_inline_section_pattern(column_name: str, field_label: str) -> str:
         + r"\s*</td>\s*<td[^>]*>\s*"
         + re.escape(field_label)
         + r"\s*</td>\s*(?:<td[^>]*>.*?</td>\s*){3}"
-        + r"<td[^>]*>(?P<section>.*?)</td>\s*"
+        + r"<td[^>]*>(?P<region>.*?)</td>\s*"
         + r"<td[^>]*>.*?</td>\s*</tr>"
     )
 
@@ -7627,133 +8220,4069 @@ _FEC_INLINE_ROW_PATTERN = (
     r"(?:^|<br\s*/?>)\s*(?P<code>[A-Z])\s*=\s*"
     r"(?P<label>.*?)(?=<br\s*/?>|$)"
 )
-_FEC_TABLE_SECTION_PATTERN = r"<table[^>]*>(?P<section>.*?)</table>"
+_FEC_TABLE_SECTION_PATTERN = r"<table[^>]*>(?P<region>.*?)</table>"
 _FEC_TABLE_ROW_PATTERN = (
     r"<tr>\s*<td[^>]*>\s*(?P<code>[A-Z]{1,3}|[A-Z]/[A-Z])\s*</td>\s*"
     r"<td[^>]*>(?P<label>.*?)</td>\s*"
     r"<td[^>]*>(?P<description>.*?)</td>\s*</tr>"
 )
-_FEC_HTML_CODE_LIST_DECLARATIONS = (
+_FEC_PATTERN_ROW_DECLARATIONS = (
     (
         "fec-committee-designation",
         _FEC_MASTER_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_fec_inline_section_pattern(
+        _fec_inline_section_pattern(
                 "CMTE_DSGN", "Committee designation"
             ),
-            row_pattern=_FEC_INLINE_ROW_PATTERN,
-            resource_name="committeeDesignation",
-            source_token="fec-committee-designation",
-            identifier_kind="committeeDesignationCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=6,
-        ),
+        _FEC_INLINE_ROW_PATTERN,
+        "committeeDesignation",
+        "fec-committee-designation",
+        "committeeDesignationCode",
+        6,
     ),
     (
         "fec-filing-frequency",
         _FEC_MASTER_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_fec_inline_section_pattern(
+        _fec_inline_section_pattern(
                 "CMTE_FILING_FREQ", "Filing frequency"
             ),
-            row_pattern=_FEC_INLINE_ROW_PATTERN,
-            resource_name="filingFrequency",
-            source_token="fec-filing-frequency",
-            identifier_kind="filingFrequencyCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=6,
-        ),
+        _FEC_INLINE_ROW_PATTERN,
+        "filingFrequency",
+        "fec-filing-frequency",
+        "filingFrequencyCode",
+        6,
     ),
     (
         "fec-organization-type",
         _FEC_MASTER_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_fec_inline_section_pattern(
+        _fec_inline_section_pattern(
                 "ORG_TP", "Interest group category"
             ),
-            row_pattern=_FEC_INLINE_ROW_PATTERN,
-            resource_name="organizationType",
-            source_token="fec-organization-type",
-            identifier_kind="organizationTypeCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=6,
-        ),
+        _FEC_INLINE_ROW_PATTERN,
+        "organizationType",
+        "fec-organization-type",
+        "organizationTypeCode",
+        6,
     ),
     (
         "fec-committee-type",
         _FEC_COMMITTEE_TYPE_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_FEC_TABLE_SECTION_PATTERN,
-            row_pattern=_FEC_TABLE_ROW_PATTERN,
-            resource_name="committeeType",
-            source_token="fec-committee-type",
-            identifier_kind="committeeTypeCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=16,
-        ),
+        _FEC_TABLE_SECTION_PATTERN,
+        _FEC_TABLE_ROW_PATTERN,
+        "committeeType",
+        "fec-committee-type",
+        "committeeTypeCode",
+        16,
     ),
     (
         "fec-party",
         _FEC_PARTY_PIN,
-        HtmlCodeListSelector(
-            section_pattern=_FEC_TABLE_SECTION_PATTERN,
-            row_pattern=_FEC_TABLE_ROW_PATTERN,
-            resource_name="party",
-            source_token="fec-party",
-            identifier_kind="partyCode",
-            authority_iri="https://www.fec.gov/",
-            observed_at="2026-08-03T19:24:00Z",
-            observation_namespace="fec-committee-codes",
-            expected_count=95,
-        ),
+        _FEC_TABLE_SECTION_PATTERN,
+        _FEC_TABLE_ROW_PATTERN,
+        "party",
+        "fec-party",
+        "partyCode",
+        95,
     ),
 )
 
 
-def _html_code_list_source_spec(
+def _pattern_row_source_spec(
     name: str,
-    pin: SourcePin,
-    selector: HtmlCodeListSelector,
+    inputs: tuple[SourcePin, ...],
+    selector: PatternRowSelector,
 ) -> SourceSpec:
+    native_payload_fields = {
+        *selector.native_payload_fields,
+        *(
+            field_name
+            for pattern in selector.patterns
+            for field_name in pattern.native_payload_fields
+        ),
+    }
     return SourceSpec(
         name=name,
         kind="vocabulary",
         release_keys=(name,),
-        inputs=(pin,),
-        reader=HTML_CODE_LIST_READER,
-        html_code_list=selector,
-        identity_policy="source-local-record",
+        inputs=inputs,
+        reader=PATTERN_ROW_READER,
+        pattern_row=selector,
+        identity_policy=selector.identity_mode,
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "conceptIdentityClaimed",
-                    "description",
-                    "id",
-                    "identifiers",
-                    "labels",
-                    "sourceArtifact",
-                    "sourceOrdinal",
-                    "sourcePath",
-                    "uses",
-                }
-            )
+            frozenset(native_payload_fields)
         ),
     )
 
 
-FEC_HTML_CODE_LIST_SOURCES = tuple(
-    _html_code_list_source_spec(*declaration)
-    for declaration in _FEC_HTML_CODE_LIST_DECLARATIONS
+def _fec_pattern_row_source(
+    name: str,
+    pin: SourcePin,
+    region_pattern: str,
+    row_pattern: str,
+    resource_name: str,
+    source_token: str,
+    identifier_kind: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:24:00Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "description": "{description}",
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.fec.gov/",
+                "kind": "{identifier_kind}",
+                "observedAt": "{observed_at}",
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {
+                "language": "en",
+                "role": "preferred",
+                "value": "{label}",
+            }
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("description", ""),
+                    ("identifier_kind", identifier_kind),
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                )
+                if "description" not in re.compile(row_pattern).groupindex
+                else (
+                    ("identifier_kind", identifier_kind),
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer("description", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("definition", "{description}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("authenticatedHtmlOutsideSelectedRegion",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}.{code}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": "{resource_name}",
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:fec-committee-codes:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (pin,), selector)
+
+
+FEC_PATTERN_ROW_SOURCES = tuple(
+    _fec_pattern_row_source(*declaration)
+    for declaration in _FEC_PATTERN_ROW_DECLARATIONS
 )
+
+
+_BILLSTATUS_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/billstatus_codes/"
+        "billstatus-xml-user-guide-2026-08-03.md"
+    ),
+    sha256=(
+        "sha256:a10909696b2ed2244d75c76e75fa32bc3e4eb926deab7e4e00592a6a01c3ad3a"
+    ),
+    byte_length=38_802,
+    fmt="markdown",
+    role="publisherSource",
+    source_iri=(
+        "https://raw.githubusercontent.com/usgpo/bill-status/master/"
+        "BILLSTATUS-XML_User_User-Guide.md"
+    ),
+)
+
+
+def _billstatus_identifier_template(kind: str, value: str) -> Mapping[str, Any]:
+    """Declare one exact ControlledIdentifier-shaped BILLSTATUS field."""
+    return {
+        "authority_uri": "https://www.govinfo.gov/bulkdata/BILLSTATUS/",
+        "effective_at": None,
+        "kind": kind,
+        "observed_at": "{observed_at}",
+        "source_digest": "{source_digest}",
+        "source_uri": "{source_iri}",
+        "value": value,
+    }
+
+
+def _billstatus_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    source_token: str,
+    completeness: str,
+    region_pattern: str,
+    row_pattern: str,
+    expected_count: int,
+    identifiers: tuple[Mapping[str, Any], ...],
+    row_key: str,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:29:08Z"
+    native_payload_template = {
+        "completeness": completeness,
+        "identifiers": list(identifiers),
+        "is_general_subject_concept": False,
+        "publisher_label": "{label}",
+        "resource_name": resource_name,
+        "sourceArtifact": "{source_iri}",
+        "source_url": "{source_iri}",
+        "use": "deterministicMetadata",
+    }
+    notation_claims = tuple(
+        ("notation", str(identifier["value"])) for identifier in identifiers
+    )
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_BILLSTATUS_PATTERN_PIN.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("strip",)),
+                    PatternFieldNormalizer("label", ("strip",)),
+                    *(
+                        (PatternFieldNormalizer("chamber", ("strip",)),)
+                        if "chamber" in re.compile(row_pattern).groupindex
+                        else ()
+                    ),
+                ),
+            ),
+        ),
+        row_key=row_key,
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            *notation_claims,
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{label}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("markdownOutsideSelectedRegion",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}[{ordinal}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_BILLSTATUS_PATTERN_PIN,), selector)
+
+
+BILLSTATUS_PATTERN_ROW_SOURCES = (
+    _billstatus_pattern_source(
+        name="billstatus-action-codes",
+        resource_name="actionCodes",
+        source_token="billstatus-action-codes",
+        completeness="openCourtesyList",
+        region_pattern=(
+            r"^# 3\. Action Code Element Possible Values\s*$"
+            r"(?P<region>.*?)(?=^# 4\. Actions Type Element Possible Values\s*$)"
+        ),
+        row_pattern=(
+            r"^\|\s*\*\*(?P<code>[A-Z0-9]{4,6})\*\*\s*\|"
+            r"\s*(?P<label>[^|\n]+?)\s*\|\s*$"
+        ),
+        expected_count=36,
+        identifiers=(_billstatus_identifier_template("actionCode", "{code}"),),
+        row_key="{code}",
+    ),
+    _billstatus_pattern_source(
+        name="billstatus-bill-types",
+        resource_name="billTypes",
+        source_token="billstatus-bill-types",
+        completeness="closedEnumeration",
+        region_pattern=(
+            r"^Bill type \(Possible values are (?P<region>[^)]+)\)\.[ \t]*$"
+        ),
+        row_pattern=(
+            r"(?:^|,\s*(?:and\s+)?)(?P<label>(?P<code>[A-Z]{1,7}))"
+            r"(?=,|$)"
+        ),
+        expected_count=8,
+        identifiers=(_billstatus_identifier_template("billTypeCode", "{code}"),),
+        row_key="{code}",
+    ),
+    _billstatus_pattern_source(
+        name="billstatus-summary-version-codes",
+        resource_name="summaryVersionCodes",
+        source_token="billstatus-summary-version-codes",
+        completeness="closedEnumeration",
+        region_pattern=(
+            r"^# 5\. Mapping of LOC Summaries Version Codes and\s+Action "
+            r"Description Text\s*$"
+            r"(?P<region>.*?)(?=^# 6\. Title Type Possible Values\s*$)"
+        ),
+        row_pattern=(
+            r"^\|\s*\*\*(?P<code>[0-9]{2})\*\*\s*\|"
+            r"\s*(?P<chamber>HOUSE|SENATE|BOTH)\s*\|"
+            r"\s*(?P<label>[^|\n]+?)\s*\|\s*$"
+        ),
+        expected_count=88,
+        identifiers=(
+            _billstatus_identifier_template("billVersionCode", "{code}"),
+            _billstatus_identifier_template("billVersionChamber", "{chamber}"),
+        ),
+        row_key="{code}:{chamber}",
+    ),
+)
+
+
+_REGULATIONS_GOV_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/regulations_gov_codes/"
+        "regulations-gov-openapi-v4-2026-08-03.yaml"
+    ),
+    sha256=(
+        "sha256:be43c866f5ca424a456bde36ea03cb9326c454ef4e1894a13df80b6dc6e22488"
+    ),
+    byte_length=60_826,
+    fmt="yaml",
+    role="publisherSource",
+    source_iri="https://open.gsa.gov/api/regulationsgov/v4/openapi.yaml",
+)
+
+
+def _regulations_gov_pattern_source(
+    *,
+    name: str,
+    schema_name: str,
+    resource_name: str,
+    identifier_kind: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:13:12Z"
+    native_payload_template = {
+        "identifiers": [
+            {
+                "authority_uri": "https://open.gsa.gov/api/regulationsgov/",
+                "effective_at": None,
+                "kind": identifier_kind,
+                "observed_at": observed_at,
+                "source_digest": "{source_digest}",
+                "source_uri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "is_general_subject_concept": False,
+        "publisher_label": "{label}",
+        "resource_name": resource_name,
+        "sourceArtifact": "{source_iri}",
+        "source_url": "{source_iri}",
+        "use": "deterministicMetadata",
+    }
+    source_token = name
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_REGULATIONS_GOV_PATTERN_PIN.path),
+                region_pattern=(
+                    r"\n {4}"
+                    + re.escape(schema_name)
+                    + r":\n {6}type: string\n"
+                    r" {6}description: [^\n]+\n"
+                    r" {6}enum:\n"
+                    r"(?P<region>(?: {8}- [^\n]*\n)+)"
+                ),
+                row_pattern=(
+                    r"^ {8}- (?P<label>(?P<code>[^\n]+))$"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("rstrip",)),
+                    PatternFieldNormalizer("label", ("rstrip",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{label}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("yamlOutsideSelectedEnumBlock",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}[{ordinal}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_REGULATIONS_GOV_PATTERN_PIN,), selector)
+
+
+REGULATIONS_GOV_PATTERN_ROW_SOURCES = tuple(
+    _regulations_gov_pattern_source(
+        name=name,
+        schema_name=schema_name,
+        resource_name=resource_name,
+        identifier_kind=identifier_kind,
+        expected_count=expected_count,
+    )
+    for name, schema_name, resource_name, identifier_kind, expected_count in (
+        (
+            "regulations-gov-docket-type",
+            "DocketType",
+            "docketType",
+            "docketTypeCode",
+            2,
+        ),
+        (
+            "regulations-gov-document-type",
+            "DocumentType",
+            "documentType",
+            "documentTypeCode",
+            5,
+        ),
+        (
+            "regulations-gov-submitter-type",
+            "SubmitterType",
+            "submitterType",
+            "submitterTypeCode",
+            3,
+        ),
+    )
+)
+
+
+_SAM_ASSISTANCE_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/sam_assistance_listing_codes/"
+        "sam-assistance-listings-api-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:6ea76d040e2190b02cad8192f50dbe00d39f01f5366f893cd24b6491dfdeeffd"
+    ),
+    byte_length=210_611,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://open.gsa.gov/api/assistance-listings-api/",
+)
+_SAM_ASSISTANCE_TABLE_ROW_PATTERN = (
+    r"<tr>\s*<td>(?P<code>.*?)</td>\s*"
+    r"<td>(?P<label>.*?)</td>\s*</tr>"
+)
+
+
+def _sam_assistance_region_pattern(heading_id: str) -> str:
+    return (
+        r'<h[1-6][^>]*id="'
+        + re.escape(heading_id)
+        + r'"[^>]*>(?P<region>.*?)(?=<h[1-6][^>]*id=")'
+    )
+
+
+def _sam_assistance_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    identifier_kind: str,
+    identifier_source_iri: str,
+    patterns: tuple[tuple[str, int, str | None], ...],
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:28:13Z"
+    native_payload_template = {
+        "category": "{category}",
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://open.gsa.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": identifier_source_iri,
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {
+                "language": "en",
+                "role": "preferred",
+                "value": "{label}",
+            }
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            PatternRowPattern(
+                input_pattern=re.escape(_SAM_ASSISTANCE_PATTERN_PIN.path),
+                region_pattern=_sam_assistance_region_pattern(heading_id),
+                row_pattern=_SAM_ASSISTANCE_TABLE_ROW_PATTERN,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=count,
+                constants=(
+                    ("category", category),
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", name),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            )
+            for heading_id, count, category in patterns
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedReferenceTables",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}.{code}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": "{resource_name}",
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:sam-assistance-listings:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_SAM_ASSISTANCE_PATTERN_PIN,), selector)
+
+
+SAM_ASSISTANCE_PATTERN_ROW_SOURCES = (
+    _sam_assistance_pattern_source(
+        name="sam-assistance-assistance-types",
+        resource_name="assistanceTypes",
+        identifier_kind="assistanceTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/assistance-listings-api/"
+            "#assistance-types-by-code"
+        ),
+        patterns=(
+            ("financial-assistance", 10, "financial"),
+            ("non-financial-assistance", 7, "nonFinancial"),
+        ),
+        expected_count=17,
+    ),
+    _sam_assistance_pattern_source(
+        name="sam-assistance-eligible-applicant-types",
+        resource_name="eligibleApplicantTypes",
+        identifier_kind="applicantEntityTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/assistance-listings-api/"
+            "#eligible-award-applicant-types"
+        ),
+        patterns=(("eligible-award-applicant-types", 44, None),),
+        expected_count=44,
+    ),
+    _sam_assistance_pattern_source(
+        name="sam-assistance-eligible-beneficiary-types",
+        resource_name="eligibleBeneficiaryTypes",
+        identifier_kind="beneficiaryEntityTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/assistance-listings-api/"
+            "#eligible-beneficiary-types"
+        ),
+        patterns=(("eligible-beneficiary-types", 73, None),),
+        expected_count=73,
+    ),
+)
+
+
+_SAM_OPPORTUNITIES_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/sam_opportunities_codes/"
+        "sam-get-opportunities-public-api-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:448b85ab4a22e33d139295cb1d6a3a6384b685a936d8c645dd12e69ed938fa62"
+    ),
+    byte_length=46_217,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://open.gsa.gov/api/get-opportunities-public-api/",
+)
+_SAM_OPPORTUNITIES_CODE_ROW = (
+    r"(?:^|<br\s*/?>)\s*(?P<code>[a-z])\s*=\s*"
+    r"(?P<label>.*?)(?=<br\s*/?>|$)"
+)
+
+
+def _sam_opportunities_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    identifier_kind: str,
+    identifier_source_iri: str,
+    patterns: tuple[tuple[str, str, int, bool], ...],
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:18:48Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://open.gsa.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": identifier_source_iri,
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {
+                "language": "en",
+                "role": "preferred",
+                "value": "{label}",
+            }
+        ],
+        "retired": "{retired}",
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            PatternRowPattern(
+                input_pattern=re.escape(_SAM_OPPORTUNITIES_PATTERN_PIN.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("retired", retired),
+                    ("source_token", name),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            )
+            for region_pattern, row_pattern, count, retired in patterns
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedControlRows",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}.{code}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": "{resource_name}",
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:sam-opportunities:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_SAM_OPPORTUNITIES_PATTERN_PIN,), selector)
+
+
+SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES = (
+    _sam_opportunities_pattern_source(
+        name="sam-opportunities-notice-types",
+        resource_name="noticeTypes",
+        identifier_kind="noticeTypeCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/get-opportunities-public-api/"
+            "#get-opportunities-request-parameters"
+        ),
+        patterns=(
+            (
+                (
+                    r"<td>ptype</td>\s*<td>Procurement Type\..*?<br\s*/?>\s*"
+                    r"(?P<region>.*?)(?=<br\s*/?>\s*Note: Below services are now retired)"
+                ),
+                _SAM_OPPORTUNITIES_CODE_ROW,
+                9,
+                False,
+            ),
+            (
+                (
+                    r"Note: Below services are now retired:\s*<br\s*/?>\s*"
+                    r"(?P<region>.*?)(?=<br\s*/?>\s*<br\s*/?>\s*Use Justification)"
+                ),
+                _SAM_OPPORTUNITIES_CODE_ROW,
+                2,
+                True,
+            ),
+        ),
+        expected_count=11,
+    ),
+    _sam_opportunities_pattern_source(
+        name="sam-opportunities-opportunity-statuses",
+        resource_name="opportunityStatuses",
+        identifier_kind="opportunityStatusCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/get-opportunities-public-api/"
+            "#get-opportunities-request-parameters"
+        ),
+        patterns=(
+            (
+                (
+                    r"<td>status \(Coming Soon\)</td>\s*<td>.*?Accepts following:\s*"
+                    r"(?P<region>.*?)</td>"
+                ),
+                r"(?:^|,\s*)(?P<label>(?P<code>[a-z]+))(?=,|$)",
+                5,
+                False,
+            ),
+        ),
+        expected_count=5,
+    ),
+    _sam_opportunities_pattern_source(
+        name="sam-opportunities-set-aside-codes",
+        resource_name="setAsideCodes",
+        identifier_kind="setAsideCode",
+        identifier_source_iri=(
+            "https://open.gsa.gov/api/get-opportunities-public-api/"
+            "#set-aside-values"
+        ),
+        patterns=(
+            (
+                r'<h3 id="set-aside-values">.*?<table>(?P<region>.*?)</table>',
+                (
+                    r"<tr>\s*<td>(?P<code>[A-Za-z0-9]+)</td>\s*"
+                    r"<td>(?P<label>.*?)</td>\s*</tr>"
+                ),
+                18,
+                False,
+            ),
+        ),
+        expected_count=18,
+    ),
+)
+
+
+_FERC_SEARCH_PATTERN_PIN = SourcePin(
+    path="ferc-general-search-help.html",
+    sha256=(
+        "sha256:1f4b2883879602530c59095cc3d33fedbbf50a2d630e7bdf0226785259dd2b45"
+    ),
+    byte_length=7_447,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://elibrary.ferc.gov/eLibraryhelp/General_Search.htm",
+    construction_path=(
+        "output/registry-real-data-sources/ferc-general-search-help.html"
+    ),
+)
+_FERC_ACCESSIBILITY_PATTERN_PIN = SourcePin(
+    path="ferc-accessibility-tips.html",
+    sha256=(
+        "sha256:c9219bd08b8712e35389ff26f079a21e16d2b5fea68aaebf561bb9b203010688"
+    ),
+    byte_length=39_466,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://elibrary.ferc.gov/eLibrary/assets/Accessibility_Tips.html"
+    ),
+    construction_path=(
+        "output/registry-real-data-sources/ferc-accessibility-tips.html"
+    ),
+)
+
+
+def _ferc_pattern_source(
+    *,
+    name: str,
+    pin: SourcePin,
+    source_token: str,
+    region_pattern: str,
+    row_pattern: str,
+    source_path_root: str,
+    label_template: str,
+    native_value_field: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:18:32Z"
+    native_payload_template = {
+        native_value_field: "{code}",
+        "sourceArtifact": "{source_iri}",
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", label_template),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", label_template),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedControl",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(f"$.{source_path_root}[{{ordinal}}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (pin,), selector)
+
+
+FERC_HTML_PATTERN_ROW_SOURCES = (
+    _ferc_pattern_source(
+        name="ferc-sectors",
+        pin=_FERC_SEARCH_PATTERN_PIN,
+        source_token="ferc-sectors",
+        region_pattern=(
+            r"<li>Industry Sector</li>\s*<ul[^>]*>(?P<region>.*?)</ul>"
+        ),
+        row_pattern=r"<li>(?P<code>.*?)</li>",
+        source_path_root="sectors",
+        label_template="{code}",
+        native_value_field="value",
+        expected_count=6,
+    ),
+    _ferc_pattern_source(
+        name="ferc-security-levels",
+        pin=_FERC_SEARCH_PATTERN_PIN,
+        source_token="ferc-security-levels",
+        region_pattern=(
+            r"<li>Security Level</li>\s*<ul[^>]*>(?P<region>.*?)</ul>"
+        ),
+        row_pattern=r"<li>(?P<code>.*?)</li>",
+        source_path_root="security-levels",
+        label_template="{code}",
+        native_value_field="value",
+        expected_count=4,
+    ),
+    _ferc_pattern_source(
+        name="ferc-accession-number-formats",
+        pin=_FERC_ACCESSIBILITY_PATTERN_PIN,
+        source_token="ferc-accession-formats",
+        region_pattern=(
+            r'<td scope="row">Accession</td>\s*<td>(?P<region>[^<]+)</td>'
+        ),
+        row_pattern=r"(?:^|, or )(?P<code>[^,]+?)(?=, or |$)",
+        source_path_root="accessionFormats",
+        label_template="FERC accession number format {code}",
+        native_value_field="format",
+        expected_count=2,
+    ),
+)
+
+
+_GRANTS_GOV_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/grants_gov_codes/"
+        "grants-gov-status-codes-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:bcbe4c44f8c1743eeaa26ab9f350c53214238c31d807057f248af8dd96cd5f85"
+    ),
+    byte_length=46_093,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.grants.gov/api/status-codes",
+)
+
+
+def _grants_gov_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    heading: str,
+    identifier_kind: str,
+    use: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:28:12Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.grants.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": [use],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_GRANTS_GOV_PATTERN_PIN.path),
+                region_pattern=(
+                    re.escape(heading)
+                    + r".*?<table[^>]*>.*?<tbody>(?P<region>.*?)</tbody>\s*</table>"
+                ),
+                row_pattern=(
+                    r"<tr>\s*<td>(?P<code>.*?)</td>\s*"
+                    r"<td>(?P<label>.*?)</td>\s*</tr>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", name),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedCodeTable",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(f"$.{resource_name}.{{code}}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": resource_name,
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:grants-gov-codes:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_GRANTS_GOV_PATTERN_PIN,), selector)
+
+
+GRANTS_GOV_PATTERN_ROW_SOURCES = (
+    _grants_gov_pattern_source(
+        name="grants-gov-eligibilities",
+        resource_name="eligibilities",
+        heading="Eligibility Codes (&quot;eligibilities&quot;):",
+        identifier_kind="eligibilityCode",
+        use="deterministicMetadata",
+        expected_count=17,
+    ),
+    _grants_gov_pattern_source(
+        name="grants-gov-funding-categories",
+        resource_name="fundingCategories",
+        heading="Category Codes (&quot;fundingCategories&quot;):",
+        identifier_kind="fundingCategoryCode",
+        use="sourceAssignedEvidence",
+        expected_count=26,
+    ),
+)
+
+
+_OIRA_PATTERN_INPUTS = (
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76/"
+            "reviewStatus.html"
+        ),
+        "sha256:bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76",
+        405,
+        (
+            "https://www.reginfo.gov/public/do/"
+            "eoAdvancedSearch?eoStatusCode=CD#eoStatusCode"
+        ),
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76/"
+            "reviewStatus.html"
+        ),
+    ),
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a/"
+            "ruleStage.html"
+        ),
+        "sha256:90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a",
+        1_390,
+        (
+            "https://www.reginfo.gov/public/do/"
+            "eoAdvancedSearch?eoStatusCode=CD#ruleStages"
+        ),
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a/"
+            "ruleStage.html"
+        ),
+    ),
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef/"
+            "concludedAction.html"
+        ),
+        "sha256:a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef",
+        570,
+        (
+            "https://www.reginfo.gov/public/do/"
+            "eoAdvancedSearch?eoStatusCode=CD#concludedActionCode"
+        ),
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef/"
+            "concludedAction.html"
+        ),
+    ),
+    _registry_source_pin(
+        (
+            "oira-controls/sha256/"
+            "9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea/"
+            "meetingStatus.html"
+        ),
+        "sha256:9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea",
+        379,
+        "https://www.reginfo.gov/public/do/eom12866Search#meetingType",
+        fmt="html",
+        construction_path=(
+            "output/registry-real-data-sources/oira-controls/sha256/"
+            "9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea/"
+            "meetingStatus.html"
+        ),
+    ),
+)
+_OIRA_PATTERN_DECLARATIONS = (
+    (
+        _OIRA_PATTERN_INPUTS[0],
+        "reviewStatusCode",
+        (
+            r"(?P<region><label\b.*</label>\s*(?:&nbsp;\s*)*"
+            r"<label\b.*</label>)"
+        ),
+        (
+            r"<label\b[^>]*>\s*<input\b[^>]*name=\"eoStatusCode\"[^>]*"
+            r"value=\"(?P<code>[^\"]+)\"[^>]*/>(?P<label>[^<]*)</label>"
+        ),
+        2,
+    ),
+    (
+        _OIRA_PATTERN_INPUTS[1],
+        "ruleStageCode",
+        r"(?P<region>[\s\S]+)",
+        (
+            r"<label\b[^>]*>\s*<input\b[^>]*name=\"ruleStages\"[^>]*"
+            r"value=\"(?P<code>[^\"]+)\"[^>]*/>"
+            r"(?:<input\s+type=\"hidden\"[^>]*/>)?(?P<label>[^<]*)</label>"
+        ),
+        6,
+    ),
+    (
+        _OIRA_PATTERN_INPUTS[2],
+        "concludedActionCode",
+        r"<select\b[^>]*>(?P<region>.*?)</select>",
+        r'<option\s+value="(?P<code>[^"]*)"[^>]*>(?P<label>[^<]*)</option>',
+        9,
+    ),
+    (
+        _OIRA_PATTERN_INPUTS[3],
+        "meetingStatusCode",
+        r"<select\b[^>]*>(?P<region>.*?)</select>",
+        r'<option\s+value="(?P<code>[^"]*)"[^>]*>(?P<label>[^<]*)</option>',
+        3,
+    ),
+)
+
+
+def _oira_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:13:02Z"
+    resource_id = "oira-eo-12866-review-and-meeting-codes-2026-08-03"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.reginfo.gov/",
+                "kind": "{identifier_kind}",
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{pattern_ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("identifier_kind", identifier_kind),
+                    ("observed_at", observed_at),
+                    ("source_token", "oira-review-controls"),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+                row_filters=(PatternRowFilter("code", r".+", True),),
+            )
+            for (
+                pin,
+                identifier_kind,
+                region_pattern,
+                row_pattern,
+                expected_count,
+            ) in _OIRA_PATTERN_DECLARATIONS
+        ),
+        row_key="{source_iri}#{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=20,
+        declared_unevaluated_fields=("controlMarkupAndPlaceholderOptions",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$[{pattern_ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [
+                            {
+                                "authorityUri": "https://www.reginfo.gov/",
+                                "kind": "{identifier_kind}",
+                                "value": "{code}",
+                            }
+                        ],
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "oira-review-controls", _OIRA_PATTERN_INPUTS, selector
+    )
+
+
+OIRA_PATTERN_ROW_SOURCES = (_oira_pattern_source(),)
+
+
+_OVERSIGHT_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/oversight_report_types/"
+        "oversight-reports-federal-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:8f1f8b29a5ecb224e19505ccdb24edf59b785273a60e807dc95355ffbc1785dd"
+    ),
+    byte_length=110_293,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.oversight.gov/reports/federal",
+)
+
+
+def _oversight_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:25:24Z"
+    resource_id = "oversight-gov-federal-report-types"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.oversight.gov/",
+                "kind": "oversightReportTypeId",
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{identifier_source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_OVERSIGHT_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<select[^>]*name="field_report_type\[\]"[^>]*'
+                    r'id="edit-field-report-type--2"[^>]*>'
+                    r"(?P<region>.*?)</select>"
+                ),
+                row_pattern=(
+                    r'<option\s+value="(?P<code>[^"]+)"[^>]*>'
+                    r"(?P<label>.*?)</option>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=10,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("source_token", "oversight-report-types"),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=10,
+        declared_unevaluated_fields=("htmlOutsideReportTypeSelect",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("filters.reportType.options[{ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="identifier_source_path",
+                operation="template",
+                template_json=json.dumps("{source_path}.value"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [
+                            {
+                                "authorityUri": "https://www.oversight.gov/",
+                                "kind": "oversightReportTypeId",
+                                "value": "{code}",
+                            }
+                        ],
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "oversight-report-types", (_OVERSIGHT_PATTERN_PIN,), selector
+    )
+
+
+OVERSIGHT_PATTERN_ROW_SOURCES = (_oversight_pattern_source(),)
+
+
+_SEC_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/sec_series_categories/"
+        "sec-rules-regulations-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:2f39c9d08f0dc55462e30fbda57315fd5159d47a4894dd113dc0bf226112c1b1"
+    ),
+    byte_length=70_936,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.sec.gov/rules-regulations",
+)
+
+
+def _sec_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:25:10Z"
+    source_digest_hex = _SEC_PATTERN_PIN.sha256.removeprefix("sha256:")
+    source_artifact = (
+        "urn:ref:sec-source-artifact:rules-regulations:" + source_digest_hex
+    )
+    common_native_payload = {
+        "collection": "{collection}",
+        "conceptIdentityClaimed": False,
+        "id": "{record_id}",
+        "identifiers": [],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": source_artifact,
+        "sourceObservedAt": observed_at,
+        "sourceOrdinal": "{pattern_ordinal_one_based}",
+        "sourcePath": "{source_path}",
+        "sourceUrl": "{source_iri}",
+        "targetPath": "{target_path}",
+        "uses": ["navigation"],
+    }
+    side_payload = dict(common_native_payload)
+    card_payload = {**common_native_payload, "description": "{description}"}
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_SEC_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<ul class="usa-sidenav">(?P<region>.*?)</ul>.*?'
+                    r'<ul class="usa-sidenav">.*?</ul>'
+                ),
+                row_pattern=(
+                    r'<a href="(?P<target_path>[^"]+)"[^>]*>\s*'
+                    r"<span>(?P<label>.*?)</span>\s*</a>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=13,
+                constants=(
+                    ("collection", "sideNavigation"),
+                    ("description", ""),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer("target_path", ("html-unescape",)),
+                ),
+                row_filters=(
+                    PatternRowFilter(
+                        "target_path", r"/rules-regulations", False
+                    ),
+                ),
+                native_payload_template_json=_canonical_json_bytes(
+                    side_payload
+                ).decode("utf-8"),
+                native_payload_fields=tuple(sorted(side_payload)),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_SEC_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r'<div class="subpage-card">\s*'
+                    r'<h2 class="subpage-card__headline">\s*'
+                    r'<a class="subpage-card__headline__link" '
+                    r'href="(?P<target_path>[^"]+)">(?P<label>.*?)</a>\s*'
+                    r"</h2>\s*<p class=\"subpage-card__body\">"
+                    r"(?P<description>.*?)</p>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=6,
+                constants=(("collection", "subpageCard"),),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer(
+                        "description", ("html-visible-text",)
+                    ),
+                    PatternFieldNormalizer("target_path", ("html-unescape",)),
+                ),
+                native_payload_template_json=_canonical_json_bytes(
+                    card_payload
+                ).decode("utf-8"),
+                native_payload_fields=tuple(sorted(card_payload)),
+            ),
+        ),
+        row_key="{source_path}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:sec-series-categories:{source_uuid7}",
+        source_locator_template=source_artifact,
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("definition", "{description}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{record_id}"),
+        ),
+        native_payload_template_json="{}",
+        native_payload_fields=(),
+        expected_count=19,
+        declared_unevaluated_fields=(
+            "secondNavigationCopyAndHtmlOutsideSelectedCollections",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(
+                    "{collection}[{pattern_ordinal_one_based}]"
+                ),
+            ),
+            PatternDerivedField(
+                field="record_id",
+                operation="template",
+                template_json=json.dumps(
+                    "urn:ref:sec-source-record:"
+                    + source_digest_hex
+                    + ":{collection}:%2Frules-regulations:"
+                    "{pattern_ordinal_one_based}"
+                ),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "sec-series-categories", (_SEC_PATTERN_PIN,), selector
+    )
+
+
+SEC_PATTERN_ROW_SOURCES = (_sec_pattern_source(),)
+
+
+_SCOTUS_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/scotus_opinion_types/"
+        "scotus-opinions-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:26d9c70afb7ee7b66678eea7eb32851c74a10ee8e60249ffc5433a45a82b2bd5"
+    ),
+    byte_length=42_237,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.supremecourt.gov/opinions/opinions.aspx",
+)
+
+
+def _scotus_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:15:13Z"
+    source_digest_hex = _SCOTUS_PATTERN_PIN.sha256.removeprefix("sha256:")
+    common_native_payload = {
+        "conceptIdentityClaimed": False,
+        "facet": "{facet}",
+        "id": "{record_id}",
+        "identifiers": [],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{source_ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    navigation_payload = {
+        **common_native_payload,
+        "navigationHref": "{navigation_href}",
+    }
+    stage_payload = {**common_native_payload, "stageOrder": "{stage_order}"}
+    navigation_declarations = (
+        ("hypOpinion", "opinionType", 0),
+        ("hypRelating", "opinionType", 1),
+        ("hypInChamber", "opinionType", 2),
+        ("hypusreports", "reporterSeries", 3),
+    )
+    stage_declarations = (
+        ("slip opinion format", "Slip opinion", 1, 0, 4),
+        ("preliminary prints", "Preliminary print", 2, 1, 5),
+        ("bound volumes", "Bound volume", 3, 2, 6),
+    )
+    patterns = tuple(
+        PatternRowPattern(
+            input_pattern=re.escape(_SCOTUS_PATTERN_PIN.path),
+            region_pattern=(
+                r'<ul class="sidenav-list">(?P<region>.*?)</ul>'
+            ),
+            row_pattern=(
+                r'<a id="[^"]*_' + re.escape(suffix) + r'" '
+                r'href="(?P<navigation_href>[^"]+)">(?P<label>.*?)</a>'
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=1,
+            constants=(
+                ("facet", facet),
+                (
+                    "record_id",
+                    "urn:ref:scotus-opinion-type:"
+                    + source_digest_hex
+                    + f":{facet}:{source_ordinal}",
+                ),
+                ("source_ordinal", source_ordinal),
+                ("source_path", f"sidenav.categories[{source_ordinal}]"),
+            ),
+            normalizers=(
+                PatternFieldNormalizer("label", ("html-visible-text",)),
+                PatternFieldNormalizer(
+                    "navigation_href", ("html-unescape",)
+                ),
+            ),
+            native_payload_template_json=_canonical_json_bytes(
+                navigation_payload
+            ).decode("utf-8"),
+            native_payload_fields=tuple(sorted(navigation_payload)),
+        )
+        for suffix, facet, source_ordinal in navigation_declarations
+    ) + tuple(
+        PatternRowPattern(
+            input_pattern=re.escape(_SCOTUS_PATTERN_PIN.path),
+            region_pattern=(
+                r'<div id="ctl00_ctl00_MainEditable_mainContent_RadEditor1">'
+                r"(?P<region>.*?)</div>"
+            ),
+            row_pattern=re.escape(phrase),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=1,
+            constants=(
+                ("facet", "packageVersionStage"),
+                ("label", label),
+                (
+                    "record_id",
+                    "urn:ref:scotus-opinion-type:"
+                    + source_digest_hex
+                    + f":packageVersionStage:{record_ordinal}",
+                ),
+                ("source_ordinal", source_ordinal),
+                ("source_path", "content.paragraphs[5]"),
+                ("stage_order", stage_order),
+            ),
+            native_payload_template_json=_canonical_json_bytes(
+                stage_payload
+            ).decode("utf-8"),
+            native_payload_fields=tuple(sorted(stage_payload)),
+        )
+        for (
+            phrase,
+            label,
+            stage_order,
+            record_ordinal,
+            source_ordinal,
+        ) in stage_declarations
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{record_id}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:scotus-opinion-types:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{record_id}"),
+        ),
+        native_payload_template_json="{}",
+        native_payload_fields=(),
+        expected_count=7,
+        declared_unevaluated_fields=(
+            "htmlOutsideSelectedNavigationAndVersionPhrases",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "scotus-opinion-types", (_SCOTUS_PATTERN_PIN,), selector
+    )
+
+
+SCOTUS_PATTERN_ROW_SOURCES = (_scotus_pattern_source(),)
+
+
+_CENSUS_FINANCE_PATTERN_DECLARATIONS = (
+    (
+        "census-function-items",
+        SourcePin(
+            path=(
+                "tests/fixtures/census_gov_finance_codes/"
+                "census-aspep-function-item-codes-2026-08-03.html"
+            ),
+            sha256=(
+                "sha256:77b6ddf18572165b6e4526042dacba9fcff80b79cc7f21f1193db3210730dcb3"
+            ),
+            byte_length=321_793,
+            fmt="html",
+            role="publisherSource",
+            source_iri=(
+                "https://www.census.gov/programs-surveys/apes/"
+                "technical-documentation/code-lists/data-function.html"
+            ),
+        ),
+        "census-aspep-function-item-codes-2026-08-03",
+        "census-aspep-function-items",
+        "censusFunctionItemCode",
+        r"<table[^>]*>(?P<region>.*?)</table>",
+        (
+            r"<tr>\s*<td[^>]*>\s*(?P<code>\d{3})\s*=\s*"
+            r"(?P<label>.*?)</td>\s*</tr>"
+        ),
+        33,
+    ),
+    (
+        "census-data-flags",
+        SourcePin(
+            path=(
+                "tests/fixtures/census_gov_finance_codes/"
+                "census-aspep-data-flag-codes-2026-08-03.html"
+            ),
+            sha256=(
+                "sha256:ef47e5a56d2997b4a05f1a3d5c6d112c92735bc876990ae03038020d07b19c39"
+            ),
+            byte_length=323_893,
+            fmt="html",
+            role="publisherSource",
+            source_iri=(
+                "https://www.census.gov/programs-surveys/apes/"
+                "technical-documentation/code-lists/data-flags.html"
+            ),
+        ),
+        "census-aspep-data-flag-codes-2026-08-03",
+        "census-aspep-data-flags",
+        "censusDataFlagCode",
+        r"<table[^>]*>(?P<region>.*?)</table>",
+        (
+            r"<tr>\s*<td[^>]*>\s*(?P<code>[A-Z])\s*</td>\s*"
+            r"<td[^>]*>(?P<label>.*?)</td>\s*</tr>"
+        ),
+        16,
+    ),
+)
+
+
+def _census_finance_pattern_source(
+    *,
+    name: str,
+    pin: SourcePin,
+    resource_id: str,
+    source_token: str,
+    identifier_kind: str,
+    region_pattern: str,
+    row_pattern: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:15:00Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.census.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(pin.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(("observed_at", observed_at),),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=f"urn:ref:source-concept:v2:{source_token}:{{source_uuid7}}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedCodeRows",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.rows[{ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [
+                            {
+                                "authorityUri": "https://www.census.gov/",
+                                "kind": identifier_kind,
+                                "observedAt": observed_at,
+                                "sourceDigest": "{source_digest}",
+                                "sourcePath": "{source_path}",
+                                "sourceUri": "{source_iri}",
+                                "value": "{code}",
+                            }
+                        ],
+                        "publisherLabel": "{label}",
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourceOrdinal": "{ordinal}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (pin,), selector)
+
+
+CENSUS_FINANCE_PATTERN_ROW_SOURCES = tuple(
+    _census_finance_pattern_source(
+        name=name,
+        pin=pin,
+        resource_id=resource_id,
+        source_token=source_token,
+        identifier_kind=identifier_kind,
+        region_pattern=region_pattern,
+        row_pattern=row_pattern,
+        expected_count=expected_count,
+    )
+    for (
+        name,
+        pin,
+        resource_id,
+        source_token,
+        identifier_kind,
+        region_pattern,
+        row_pattern,
+        expected_count,
+    ) in _CENSUS_FINANCE_PATTERN_DECLARATIONS
+)
+
+
+_NASBO_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/census_gov_finance_codes/"
+        "nasbo-ser-program-area-chapters-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:cff509abccd46a7bba32e5261164a430934db29004024c2b66d389d83ef9ba57"
+    ),
+    byte_length=189_899,
+    fmt="html",
+    role="publisherSource",
+    source_iri=(
+        "https://www.nasbo.org/mainsite/reports-data/state-expenditure-report"
+    ),
+)
+
+
+def _nasbo_pattern_source() -> SourceSpec:
+    observed_at = "2026-08-03T19:15:00Z"
+    resource_id = "nasbo-ser-program-area-chapters-2026-08-03"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_NASBO_PATTERN_PIN.path),
+                region_pattern=(
+                    r"<h2>Chapters</h2>.*?<table[^>]*>(?P<region>.*?)</table>"
+                ),
+                row_pattern=(
+                    r"<p class=\"card-description text-break font-size-md\"[^>]*>"
+                    r"(?:<strong>|<span[^>]*>)(?P<label>.*?)"
+                    r"(?:</strong>|</span>)</p>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=7,
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+                row_filters=(PatternRowFilter("label", r".+", True),),
+            ),
+        ),
+        row_key="{label}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:nasbo-program-areas:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=7,
+        declared_unevaluated_fields=("htmlOutsideSelectedChapterTitles",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.rows[{ordinal}]"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "identifiers": [],
+                        "publisherLabel": "{label}",
+                        "resourceId": resource_id,
+                        "sourceArtifact": "{source_iri}",
+                        "sourceOrdinal": "{ordinal}",
+                    }
+                ).decode("utf-8"),
+                prefix=f"urn:ref:source-observation:{resource_id}:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "nasbo-program-areas", (_NASBO_PATTERN_PIN,), selector
+    )
+
+
+NASBO_PATTERN_ROW_SOURCES = (_nasbo_pattern_source(),)
+
+
+_PRA_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/pra_icr_codes/pra-search-2026-08-03.html",
+    sha256=(
+        "sha256:7f1e24bbe278c67171a71c9e85d50bf7c886646ae25c835194bda5a6e9d4fa4e"
+    ),
+    byte_length=174_551,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.reginfo.gov/public/do/PRASearch",
+)
+
+
+def _pra_identifier_payload(
+    value: str,
+    kind: str,
+    source_path: str,
+) -> dict[str, str]:
+    return {
+        "authorityUri": "https://www.reginfo.gov/",
+        "kind": kind,
+        "observedAt": "2026-08-03T19:13:39Z",
+        "sourceDigest": "{source_digest}",
+        "sourcePath": source_path,
+        "sourceUri": "{source_iri}",
+        "value": value,
+    }
+
+
+def _pra_observation_id_field(
+    resource_id: str,
+    identifiers: list[dict[str, str]],
+    *,
+    source_artifact: str = "{source_iri}",
+) -> PatternDerivedField:
+    identity_identifiers = [
+        {
+            "authorityUri": identifier["authorityUri"],
+            "kind": identifier["kind"],
+            "value": identifier["value"],
+        }
+        for identifier in identifiers
+    ]
+    return PatternDerivedField(
+        field="observation_id",
+        operation="canonical-json-sha256",
+        template_json=_canonical_json_bytes(
+            {
+                "identifiers": identity_identifiers,
+                "resourceId": resource_id,
+                "sourceArtifact": source_artifact,
+                "sourcePath": "{source_path}",
+            }
+        ).decode("utf-8"),
+        prefix=f"urn:ref:source-observation:{resource_id}:",
+    )
+
+
+def _pra_native_payload(
+    identifiers: list[dict[str, str]],
+) -> tuple[str, tuple[str, ...]]:
+    payload = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": identifiers,
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    return _canonical_json_bytes(payload).decode("utf-8"), tuple(sorted(payload))
+
+
+def _pra_pattern_source() -> SourceSpec:
+    resource_id = "pra-icr-search-controlled-values-2026-08-03"
+    authority = "https://www.reginfo.gov/"
+    observed_at = "2026-08-03T19:13:39Z"
+
+    single_identifier = _pra_identifier_payload(
+        "{identifier_1}", "{identifier_1_kind}", "{source_path}/@value"
+    )
+    paired_identifiers = [
+        _pra_identifier_payload(
+            "{identifier_1}", "{identifier_1_kind}", "{identifier_1_path}"
+        ),
+        _pra_identifier_payload(
+            "{identifier_2}", "{identifier_2_kind}", "{identifier_2_path}"
+        ),
+    ]
+    single_payload, payload_fields = _pra_native_payload([single_identifier])
+    paired_payload, paired_payload_fields = _pra_native_payload(paired_identifiers)
+
+    def source_path(template: str) -> PatternDerivedField:
+        return PatternDerivedField(
+            field="source_path",
+            operation="template",
+            template_json=json.dumps(template),
+        )
+
+    def identity_identifier(value: str, kind: str) -> dict[str, str]:
+        return {"authorityUri": authority, "kind": kind, "value": value}
+
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r'<input id="ombControlNumber"'
+                    r'(?=[^>]*\bname="(?P<identifier_1>[^"]*)")'
+                    r'(?=[^>]*\bmaxlength="(?P<identifier_2>\d+)")[^>]*>'
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+                constants=(
+                    ("label", "OMB Control Number"),
+                    ("identifier_1_kind", "ombControlNumberFieldId"),
+                    ("identifier_1_path", 'input[@id="ombControlNumber"]/@name'),
+                    ("identifier_2_kind", "ombControlNumberMaxLength"),
+                    (
+                        "identifier_2_path",
+                        'input[@id="ombControlNumber"]/@maxlength',
+                    ),
+                ),
+                native_payload_template_json=paired_payload,
+                native_payload_fields=paired_payload_fields,
+                derived_fields=(
+                    source_path('input[@id="ombControlNumber"]'),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier(
+                                "{identifier_1}", "ombControlNumberFieldId"
+                            ),
+                            identity_identifier(
+                                "{identifier_2}", "ombControlNumberMaxLength"
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<select id="requestType"[^>]*>(?P<region>.*?)</select>'
+                ),
+                row_pattern=(
+                    r'<option value="(?P<identifier_1>[^"]*)">'
+                    r"(?P<label>[^<]*)</option>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=10,
+                constants=(
+                    ("identifier_1_kind", "requestTypeCode"),
+                    ("identifier_2", ""),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
+                ),
+                row_filters=(PatternRowFilter("identifier_1", r"[A-Z]{2}"),),
+                native_payload_template_json=single_payload,
+                native_payload_fields=payload_fields,
+                derived_fields=(
+                    source_path(
+                        'select[@id="requestType"]/option[@value="{identifier_1}"]'
+                    ),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier(
+                                "{identifier_1}", "requestTypeCode"
+                            )
+                        ],
+                    ),
+                ),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=(
+                    r'<select id="icrStatus"[^>]*>(?P<region>.*?)</select>'
+                ),
+                row_pattern=(
+                    r'<option value="(?P<identifier_1>[^"]*)"[^>]*>'
+                    r"(?P<label>[^<]*)</option>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=5,
+                constants=(
+                    ("identifier_1_kind", "icrStatusCode"),
+                    ("identifier_2", ""),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
+                ),
+                row_filters=(PatternRowFilter("identifier_1", r"[A-Z]{2}"),),
+                native_payload_template_json=single_payload,
+                native_payload_fields=payload_fields,
+                derived_fields=(
+                    source_path(
+                        'select[@id="icrStatus"]/option[@value="{identifier_1}"]'
+                    ),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier("{identifier_1}", "icrStatusCode")
+                        ],
+                    ),
+                ),
+            ),
+            PatternRowPattern(
+                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r'<td[^>]*style="font-weight:600;">\s*'
+                    r"(?P<label>[^<]+?)\s*</td>\s*<td[^>]*>\s*Between\s*"
+                    r'<input id="(?P<identifier_1>low\w+)"[^>]*/>.*?'
+                    r'<input id="(?P<identifier_2>high\w+)"[^>]*/>'
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=5,
+                constants=(
+                    ("identifier_1_kind", "burdenMeasureLowFieldId"),
+                    ("identifier_2_kind", "burdenMeasureHighFieldId"),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
+                ),
+                native_payload_template_json=paired_payload,
+                native_payload_fields=paired_payload_fields,
+                derived_fields=(
+                    source_path(
+                        'input[@id="{identifier_1}"]|input[@id="{identifier_2}"]'
+                    ),
+                    PatternDerivedField(
+                        field="identifier_1_path",
+                        operation="template",
+                        template_json=json.dumps("{source_path}/@id"),
+                    ),
+                    PatternDerivedField(
+                        field="identifier_2_path",
+                        operation="template",
+                        template_json=json.dumps("{source_path}/@id"),
+                    ),
+                    _pra_observation_id_field(
+                        resource_id,
+                        [
+                            identity_identifier(
+                                "{identifier_1}", "burdenMeasureLowFieldId"
+                            ),
+                            identity_identifier(
+                                "{identifier_2}", "burdenMeasureHighFieldId"
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+        ),
+        row_key="{source_path}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:pra-icr-controls:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_1}"),
+            ("notation", "{identifier_2}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", observed_at),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=single_payload,
+        native_payload_fields=payload_fields,
+        expected_count=21,
+        declared_unevaluated_fields=("htmlOutsideSelectedControls",),
+    )
+    return _pattern_row_source_spec("pra-icr-controls", (_PRA_PATTERN_PIN,), selector)
+
+
+PRA_PATTERN_ROW_SOURCES = (_pra_pattern_source(),)
+
+
+_EPA_COMPTOX_PATTERN_PIN = _registry_source_pin(
+    "comptox-DTXSID7020182.normalized.html",
+    "sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803",
+    334_109,
+    "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
+    fmt="html",
+    role="boundedPublisherSubstancePage",
+    construction_path=(
+        "output/registry-real-data-sources/"
+        "comptox-DTXSID7020182.normalized.html"
+    ),
+)
+
+
+def _epa_comptox_pattern_source() -> SourceSpec:
+    native_payload = {
+        "casrn": "{casrn}",
+        "dtxcid": "{dtxcid}",
+        "dtxsid": "{dtxsid}",
+        "preferredName": "{label}",
+        "sourceUri": "{source_iri}",
+        "tscaInventoryStatus": None,
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_EPA_COMPTOX_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r"\A(?=[\s\S]*\b(?P<dtxsid>DTXSID\d{6,9})\b)"
+                    r"(?=[\s\S]*\b(?P<dtxcid>DTXCID\d{4,9})\b)"
+                    r'(?=[\s\S]*casrn:"(?P<casrn>\d{2,7}-\d{2}-\d)")'
+                    r'(?=[\s\S]*preferredName:"(?P<label>[^"\\]+)")'
+                    r"[\s\S]*?<title>CompTox Chemicals Dashboard</title>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+            ),
+        ),
+        row_key="{dtxsid}",
+        identity_mode="source-key-derived",
+        identity_template="urn:ref:epa-substance:{dtxsid}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "{input_path}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=1,
+        declared_unevaluated_fields=("htmlOutsideCompToxIdentifiers",),
+    )
+    return _pattern_row_source_spec(
+        "epa-comptox-substance-bounded-2026-08-03",
+        (_EPA_COMPTOX_PATTERN_PIN,),
+        selector,
+    )
+
+
+EPA_COMPTOX_PATTERN_ROW_SOURCES = (_epa_comptox_pattern_source(),)
+
+
+_FAC_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/fac_dictionary/fac-api-dictionary-2026-08-03.html",
+    sha256=(
+        "sha256:95799a6f28b2f9a4d48bb0a88a1429381f2bc6e0677a9ec3a6608aa46a5a369c"
+    ),
+    byte_length=74_851,
+    fmt="html",
+    role="publisherFieldDictionary",
+    source_iri="https://www.fac.gov/api/dictionary/",
+)
+
+_FAC_ENDPOINT_ROWS = (
+    ("general", "gen", 63),
+    ("federal_awards", "cfda", 22),
+    ("notes_to_sefa", "notes", 10),
+    ("findings", "findings", 15),
+    ("findings_text", "findingstext", 7),
+    ("corrective_action_plans", "captext", 7),
+    ("passthrough", "passthrough", 7),
+    ("secondary_auditors", "cpas", 14),
+    ("additional_ueis", "ueis", 5),
+    ("additional_eins", "eins", 5),
+    ("resubmission", "____", 8),
+)
+
+
+def _fac_region_pattern(endpoint: str) -> str:
+    return (
+        rf'<h3 id="endpoint-{re.escape(endpoint)}">.*?'
+        r'<table class="usa-table">(?P<region>.*?)</table>'
+    )
+
+
+def _fac_row_pattern(*, exclude_duplicate: bool = False) -> str:
+    row_prefix = (
+        r"(?!<td>FACACCEPTEDDATE</td>\s*"
+        r'<th scope="row">fac_accepted_date</th>)'
+        if exclude_duplicate
+        else ""
+    )
+    return (
+        r"<tr>\s*"
+        + row_prefix
+        + r"<td>(?P<legacy_census_field>.*?)</td>\s*"
+        r'<th scope="row">(?P<gsa_field>.*?)</th>\s*'
+        r"<td>(?P<data_type>.*?)</td>\s*</tr>"
+    )
+
+
+def _fac_pattern_source() -> SourceSpec:
+    normalizers = (
+        PatternFieldNormalizer(
+            "legacy_census_field",
+            ("html-visible-text", "none-if-equals:____"),
+        ),
+        PatternFieldNormalizer("gsa_field", ("html-visible-text",)),
+        PatternFieldNormalizer("data_type", ("html-visible-text",)),
+    )
+    patterns: list[PatternRowPattern] = []
+    for endpoint, formerly_endpoint, count in _FAC_ENDPOINT_ROWS:
+        patterns.append(
+            PatternRowPattern(
+                input_pattern=re.escape(_FAC_PATTERN_PIN.path),
+                region_pattern=_fac_region_pattern(endpoint),
+                row_pattern=_fac_row_pattern(exclude_duplicate=endpoint == "general"),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=count - (1 if endpoint == "general" else 0),
+                constants=(
+                    ("endpoint", endpoint),
+                    ("formerly_endpoint", formerly_endpoint),
+                ),
+                normalizers=normalizers,
+            )
+        )
+    patterns.append(
+        PatternRowPattern(
+            input_pattern=re.escape(_FAC_PATTERN_PIN.path),
+            region_pattern=(
+                r'<h3 id="endpoint-general">.*?'
+                r'<table class="usa-table">(?P<region>.*?'
+                r"<tr>\s*<td>FACACCEPTEDDATE</td>\s*"
+                r'<th scope="row">fac_accepted_date</th>\s*'
+                r"<td>DATE</td>\s*</tr>)"
+            ),
+            row_pattern=(
+                r"<tr>\s*<td>(?P<legacy_census_field>FACACCEPTEDDATE)</td>\s*"
+                r'<th scope="row">(?P<gsa_field>fac_accepted_date)</th>\s*'
+                r"<td>(?P<data_type>DATE)</td>\s*</tr>"
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=1,
+            constants=(
+                ("endpoint", "general"),
+                ("formerly_endpoint", "gen"),
+            ),
+            normalizers=normalizers,
+        )
+    )
+
+    native_payload = {
+        "data_type": "{data_type}",
+        "endpoint": "{endpoint}",
+        "formerly_endpoint": "{formerly_endpoint}",
+        "gsa_field": "{gsa_field}",
+        "identifiers": [
+            {
+                "authority_uri": "https://www.fac.gov/",
+                "effective_at": None,
+                "kind": "facApiFieldName",
+                "observed_at": "2026-08-03T19:25:31Z",
+                "source_digest": "{source_digest}",
+                "source_uri": "{field_source_uri}",
+                "value": "{gsa_field}",
+            }
+        ],
+        "is_general_subject_concept": False,
+        "legacy_census_field": "{legacy_census_field}",
+        "source_url": "{field_source_uri}",
+        "use": "deterministicMetadata",
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(patterns),
+        row_key="{endpoint}:{gsa_field}",
+        identity_mode="source-key-derived",
+        identity_template="urn:ref:fac-api-field:{endpoint}:{encoded_gsa_field}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{gsa_field}"),
+            ("notation", "{gsa_field}"),
+            (
+                "definition",
+                "FAC {data_type} field on the {endpoint} endpoint",
+            ),
+            ("source_path", "{input_path}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=163,
+        declared_unevaluated_fields=(
+            "duplicateGeneralFacAcceptedDate",
+            "htmlOutsideEndpointFieldTables",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="encoded_gsa_field",
+                operation="uri-component",
+                template_json=json.dumps("{gsa_field}"),
+            ),
+            PatternDerivedField(
+                field="field_source_uri",
+                operation="template",
+                template_json=json.dumps("{source_iri}#endpoint-{endpoint}"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "fac-api-field-dictionary-2026-08-03",
+        (_FAC_PATTERN_PIN,),
+        selector,
+    )
+
+
+FAC_PATTERN_ROW_SOURCES = (_fac_pattern_source(),)
+
+
+_CENSUS_ACS_GEO_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/census_geo_codes/acs-variables-2026-08-03.html",
+    sha256=(
+        "sha256:cc018ff0aa9b5e9c73d57f537d281add5211fc47f2e3023940dbd0498386b416"
+    ),
+    byte_length=5_326,
+    fmt="html",
+    role="publisherPageContainingPinnedSpan",
+    source_iri="https://api.census.gov/data/2024/acs/acs1/spp/variables.html",
+)
+
+_CENSUS_TIGER_GEOID_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html",
+    sha256=(
+        "sha256:61cfc7b6b8b4b5a20365e8a71985b7151e7e90b937f747db83f2a8d53b801f49"
+    ),
+    byte_length=5_920,
+    fmt="html",
+    role="publisherPageContainingPinnedSpan",
+    source_iri=(
+        "https://www.census.gov/programs-surveys/geography/guidance/"
+        "geo-identifiers.html"
+    ),
+)
+
+_CENSUS_GEO_RESOURCE_ID = "census-geo-identifier-authority-2026-08-03"
+_CENSUS_TIGER_AUTHORITY = (
+    "https://www.census.gov/programs-surveys/geography/technical-documentation/"
+    "complete-technical-documentation/tiger-geo-line.html"
+)
+
+
+def _census_geo_identifier_payload() -> dict[str, Any]:
+    return {
+        "authorityUri": "{identifier_authority}",
+        "kind": "{identifier_kind}",
+        "observedAt": "{identifier_observed_at}",
+        "sourceDigest": "{record_source_digest}",
+        "sourcePath": "{source_path}",
+        "sourceUri": "{identifier_source_uri}",
+        "value": "{identifier_value}",
+    }
+
+
+def _census_geo_native_payload(extra: Mapping[str, Any]) -> tuple[str, tuple[str, ...]]:
+    payload = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [_census_geo_identifier_payload()],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_artifact}",
+        "sourceOrdinal": "{match_ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+        **extra,
+    }
+    return _canonical_json_bytes(payload).decode("utf-8"), tuple(sorted(payload))
+
+
+def _census_geo_pattern_derivations(source_path_template: str) -> tuple[PatternDerivedField, ...]:
+    return (
+        PatternDerivedField(
+            field="source_path",
+            operation="template",
+            template_json=json.dumps(source_path_template),
+        ),
+        _pra_observation_id_field(
+            _CENSUS_GEO_RESOURCE_ID,
+            [
+                {
+                    "authorityUri": "{identifier_authority}",
+                    "kind": "{identifier_kind}",
+                    "value": "{identifier_value}",
+                }
+            ],
+            source_artifact="{source_artifact}",
+        ),
+    )
+
+
+_ACS_PATTERN_ROW = (
+    r'<tr>\s*<td><a name="(?P<identifier_value>[^"]+)"[^>]*>[^<]*</a></td>'
+    r"<td>(?P<label>.*?)</td><td>(?P<universe>.*?)</td>"
+    r"<td>(?P<required>.*?)</td><td>(?P<attributes>.*?)</td>"
+    r"<td>(?P<limit>.*?)</td><td>(?P<predicate_type>.*?)</td>"
+    r"<td>(?P<group>.*?)</td>\s*</tr>"
+)
+
+_ACS_FIELD_NORMALIZERS = (
+    PatternFieldNormalizer("label", ("strip",)),
+    PatternFieldNormalizer("universe", ("strip", "none-if-empty")),
+    PatternFieldNormalizer("required", ("strip",)),
+    PatternFieldNormalizer("predicate_type", ("html-visible-text",)),
+    PatternFieldNormalizer("group", ("collapse-whitespace",)),
+)
+
+
+def _census_acs_pattern_source() -> SourceSpec:
+    geography_artifact = _CENSUS_ACS_GEO_PATTERN_PIN.source_iri + "#geography-and-predicate-variables"
+    estimates_artifact = _CENSUS_ACS_GEO_PATTERN_PIN.source_iri + "#s0201-estimate-variables"
+    geography_region = (
+        r"(?P<region><table>[\s\S]*?"
+        r'<a name="in"[\s\S]*?</tr>)'
+    )
+    estimates_region = (
+        r'(?P<region><tr>\s*<td><a name="S0201_001E"[\s\S]+)'
+    )
+    common_constants = (
+        ("identifier_authority", _CENSUS_ACS_GEO_PATTERN_PIN.source_iri),
+        ("identifier_source_uri", geography_artifact),
+        ("identifier_observed_at", "2026-08-03T19:17:10Z"),
+        ("recorded_at", "2026-08-03T19:24:00Z"),
+        (
+            "record_source_digest",
+            "sha256:66ac97d792d55cbb0ace1d4a26305a7c0fe704db94f83f2bade342f6c743e025",
+        ),
+        ("source_artifact", geography_artifact),
+    )
+    acs_payload, acs_payload_fields = _census_geo_native_payload(
+        {
+            "group": "{group}",
+            "predicateType": "{predicate_type}",
+            "product": "acs1",
+            "required": "{required}",
+            "universe": "{universe}",
+            "vintage": "2024",
+        }
+    )
+    patterns = (
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
+            region_pattern=geography_region,
+            row_pattern=_ACS_PATTERN_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=2,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "acsApiPredicateParameterName"),
+            ),
+            normalizers=_ACS_FIELD_NORMALIZERS,
+            row_filters=(PatternRowFilter("identifier_value", r"(?:for|in)"),),
+            native_payload_template_json=acs_payload,
+            native_payload_fields=acs_payload_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "variablesTable.row.{identifier_value}"
+            ),
+        ),
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
+            region_pattern=geography_region,
+            row_pattern=_ACS_PATTERN_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=3,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "acsVariableName"),
+            ),
+            normalizers=_ACS_FIELD_NORMALIZERS,
+            row_filters=(
+                PatternRowFilter(
+                    "identifier_value",
+                    r"(?:COUNTY|GEO_ID|GEOCOMP)",
+                ),
+            ),
+            native_payload_template_json=acs_payload,
+            native_payload_fields=acs_payload_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "variablesTable.row.{identifier_value}"
+            ),
+        ),
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
+            region_pattern=estimates_region,
+            row_pattern=_ACS_PATTERN_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=2,
+            constants=(
+                ("identifier_authority", _CENSUS_ACS_GEO_PATTERN_PIN.source_iri),
+                ("identifier_kind", "acsVariableName"),
+                ("identifier_source_uri", estimates_artifact),
+                ("identifier_observed_at", "2026-08-03T19:17:10Z"),
+                ("recorded_at", "2026-08-03T19:24:00Z"),
+                (
+                    "record_source_digest",
+                    "sha256:4d386957911b76830b53b64e47df1c5e0fb98bcca6253c0e32f722ce2ae520b7",
+                ),
+                ("source_artifact", estimates_artifact),
+            ),
+            normalizers=_ACS_FIELD_NORMALIZERS,
+            native_payload_template_json=acs_payload,
+            native_payload_fields=acs_payload_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "variablesTable.row.{identifier_value}"
+            ),
+        ),
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{source_artifact}:{identifier_value}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:census-acs-geography:{source_uuid7}"
+        ),
+        source_locator_template="{source_artifact}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_value}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{recorded_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=acs_payload,
+        native_payload_fields=acs_payload_fields,
+        expected_count=7,
+        declared_unevaluated_fields=(
+            "attributes",
+            "excludedAcsSpanRows",
+            "fullPageOutsidePinnedSpans",
+            "limit",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "census-acs-geography-identifiers",
+        (_CENSUS_ACS_GEO_PATTERN_PIN,),
+        selector,
+    )
+
+
+def _census_tiger_pattern_source() -> SourceSpec:
+    guidance = _CENSUS_TIGER_GEOID_PATTERN_PIN.source_iri
+    structure_artifact = guidance + "#geoid-structure-table"
+    example_artifact = guidance + "#geoid-download-example-table"
+    structure_payload, structure_fields = _census_geo_native_payload(
+        {
+            "areaType": "{label}",
+            "exampleGeographicArea": "{example_area}",
+            "exampleGeoid": "{example_geoid}",
+            "numberOfDigits": "{digits}",
+            "product": "tigerLineGeoid",
+        }
+    )
+    example_payload, example_fields = _census_geo_native_payload(
+        {
+            "exampleGeographicArea": "{label}",
+            "product": "dataCensusGovGeoId",
+        }
+    )
+    common_constants = (
+        ("identifier_authority", _CENSUS_TIGER_AUTHORITY),
+        ("identifier_source_uri", guidance),
+        ("identifier_observed_at", "2026-08-03T19:20:00Z"),
+        ("recorded_at", "2026-08-03T19:24:00Z"),
+    )
+    patterns = (
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_TIGER_GEOID_PATTERN_PIN.path),
+            region_pattern=(
+                r'<table class="datatablewide"[^>]*>(?P<region>.*?)</table>'
+            ),
+            row_pattern=(
+                r"<tr>\s*<td scope=\"row\"[^>]*>(?P<label>.*?)</td>\s*"
+                r"<td[^>]*>(?P<identifier_value>.*?)</td>\s*"
+                r"<td[^>]*>(?P<digits>.*?)</td>\s*"
+                r"<td[^>]*>(?P<example_area>.*?)</td>\s*"
+                r"<td[^>]*>(?P<example_geoid>.*?)</td>\s*</tr>"
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=11,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "tigerGeoidComposition"),
+                (
+                    "record_source_digest",
+                    "sha256:5886829a89ffe3381333572948a4ed6db3ee1ae0d53b6462d491186596d1aedb",
+                ),
+                ("source_artifact", structure_artifact),
+            ),
+            normalizers=(
+                PatternFieldNormalizer(
+                    "label", ("remove-html-sup", "html-visible-text")
+                ),
+                PatternFieldNormalizer("identifier_value", ("html-visible-text",)),
+                PatternFieldNormalizer("digits", ("html-visible-text",)),
+                PatternFieldNormalizer("example_area", ("html-visible-text",)),
+                PatternFieldNormalizer("example_geoid", ("html-visible-text",)),
+            ),
+            native_payload_template_json=structure_payload,
+            native_payload_fields=structure_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "geoidStructureTable.row.{match_ordinal}"
+            ),
+        ),
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_TIGER_GEOID_PATTERN_PIN.path),
+            region_pattern=(
+                r'<table class="datatable"[^>]*>(?P<region>.*?)</table>'
+            ),
+            row_pattern=(
+                r"<tr>\s*<td scope=\"row\"[^>]*>"
+                r"(?P<identifier_value>.*?)</td>\s*"
+                r"<td[^>]*>(?P<label>.*?)</td>\s*</tr>"
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=3,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "tigerGeoidExampleValue"),
+                (
+                    "record_source_digest",
+                    "sha256:2b9d6087100846298ed8aa56cc8164e8fdeb360bd5ee19d42667ce94ca88597a",
+                ),
+                ("source_artifact", example_artifact),
+            ),
+            normalizers=(
+                PatternFieldNormalizer("identifier_value", ("html-visible-text",)),
+                PatternFieldNormalizer("label", ("html-visible-text",)),
+            ),
+            row_filters=(
+                PatternRowFilter("identifier_value", r"0500000US\d{5}"),
+            ),
+            native_payload_template_json=example_payload,
+            native_payload_fields=example_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "geoidExampleTable.row.{match_ordinal}"
+            ),
+        ),
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{source_artifact}:{source_path}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:census-tiger-geoid:{source_uuid7}"
+        ),
+        source_locator_template="{source_artifact}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_value}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{recorded_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=structure_payload,
+        native_payload_fields=structure_fields,
+        expected_count=14,
+        declared_unevaluated_fields=(
+            "exampleTableHeaderRow",
+            "fullPageOutsidePinnedSpans",
+            "structureTableFootnotes",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "census-tiger-geoid-structure",
+        (_CENSUS_TIGER_GEOID_PATTERN_PIN,),
+        selector,
+    )
+
+
+CENSUS_GEO_PATTERN_ROW_SOURCES = (
+    _census_acs_pattern_source(),
+    _census_tiger_pattern_source(),
+)
+
+
+_GAO_CRA_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/gao_cra_facets/"
+        "gao-cra-database-real-capture-2026-08-04.html"
+    ),
+    sha256=(
+        "sha256:50c6a5a94627a09539ddfb991397a22e257e2d1ec1f25e1206be5214322d9c12"
+    ),
+    byte_length=130_944,
+    fmt="html",
+    role="publisherSearchFacets",
+    source_iri=(
+        "https://www.gao.gov/legal/congressional-review-act/"
+        "search-database-of-rules?priority=all&processed=1&type=all"
+    ),
+)
+
+
+def _gao_cra_pattern_source() -> SourceSpec:
+    native_payload = {
+        "facet_name": "{facet_name}",
+        "identifiers": [
+            {
+                "authority_uri": "https://www.gao.gov/",
+                "effective_at": None,
+                "kind": "{identifier_kind}",
+                "observed_at": "2026-08-04T04:35:23Z",
+                "source_digest": "{source_digest}",
+                "source_uri": "{source_iri}",
+                "value": "{identifier_value}",
+            }
+        ],
+        "is_default": "{checked}",
+        "is_general_subject_concept": False,
+        "publisher_label": "{label}",
+        "source_url": "{source_iri}",
+        "use": "deterministicMetadata",
+    }
+    payload_json = _canonical_json_bytes(native_payload).decode("utf-8")
+    payload_fields = tuple(sorted(native_payload))
+    patterns = tuple(
+        PatternRowPattern(
+            input_pattern=re.escape(_GAO_CRA_PATTERN_PIN.path),
+            region_pattern=(
+                rf'<fieldset[^>]*id="edit-{re.escape(facet_name)}--wrapper"[^>]*>'
+                r"(?P<region>.*?)</fieldset>"
+            ),
+            row_pattern=(
+                rf'<input[^>]*name="{re.escape(facet_name)}"[^>]*'
+                r'value="(?P<identifier_value>[^"]+)"'
+                r'(?P<checked>\s+checked="checked")?[^>]*/>\s*'
+                r'<label[^>]*>(?P<label>.*?)</label>'
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=3,
+            constants=(
+                ("facet_name", facet_name),
+                ("identifier_kind", identifier_kind),
+            ),
+            normalizers=(
+                PatternFieldNormalizer("checked", ("presence-boolean",)),
+                PatternFieldNormalizer("label", ("html-visible-text",)),
+            ),
+            native_payload_template_json=payload_json,
+            native_payload_fields=payload_fields,
+            derived_fields=(
+                PatternDerivedField(
+                    field="encoded_identifier_value",
+                    operation="uri-component",
+                    template_json=json.dumps("{identifier_value}"),
+                ),
+            ),
+        )
+        for facet_name, identifier_kind in (
+            ("priority", "craPriorityFacetValue"),
+            ("type", "craTypeFacetValue"),
+        )
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{facet_name}:{identifier_value}",
+        identity_mode="source-key-derived",
+        identity_template=(
+            "urn:ref:gao-cra-facet:{facet_name}:{encoded_identifier_value}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_value}"),
+            ("source_path", "{input_path}"),
+        ),
+        native_payload_template_json=payload_json,
+        native_payload_fields=payload_fields,
+        expected_count=6,
+        declared_unevaluated_fields=("htmlOutsidePriorityAndTypeFacets",),
+    )
+    return _pattern_row_source_spec(
+        "gao-cra-database-facets-2026-08-04",
+        (_GAO_CRA_PATTERN_PIN,),
+        selector,
+    )
+
+
+_GAO_PRODUCT_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/gao_topics/"
+        "gao-product-gao-26-108505-2026-08-04.html"
+    ),
+    sha256=(
+        "sha256:c50268888ddb9c7cae2277d55229394b6434ba7503d79a61cb3ff3775a0683fd"
+    ),
+    byte_length=107_634,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.gao.gov/products/gao-26-108505",
+)
+
+_GAO_PRODUCT_PATTERN_ROW = (
+    r"\A(?=[\s\S]*<link[^>]+rel=\"canonical\"[^>]+"
+    r'href="(?P<canonical_url>[^"]+)")'
+    r"(?=[\s\S]*<h1[^>]*>(?P<label>.*?)</h1>)"
+    r"(?=[\s\S]*<section[^>]+class=\"[^\"]*block-post-title-info[^\"]*\""
+    r"[^>]*>[\s\S]*?<strong[^>]*>(?P<product_report_number>.*?)</strong>"
+    r"[\s\S]*?Published:\s*May 12, 2026)"
+    r"(?=[\s\S]*<div class=\"views-field views-field-field-topic\">"
+    r"[\s\S]*?<a href=\"(?P<topic_path>/topics/[a-z0-9-]+)\"[^>]*>"
+    r"(?P<topic_label>.*?)</a>)"
+    r"[\s\S]*?<head>"
+)
+
+
+def _gao_report_pattern_source() -> SourceSpec:
+    native_payload = {
+        "canonicalUrl": "{canonical_url}",
+        "productReportNumber": "{product_report_number}",
+        "productTitle": "{label}",
+        "publicationDate": "2026-05-12",
+        "sourceArtifact": "{source_iri}",
+        "sourcePath": "product",
+        "topicAssignments": [
+            {
+                "label": "{topic_label}",
+                "recordIri": "{topic_record_iri}",
+                "sourceOrdinal": 0,
+                "topicPath": "{topic_path}",
+            }
+        ],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_GAO_PRODUCT_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=_GAO_PRODUCT_PATTERN_ROW,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer(
+                        "product_report_number", ("html-visible-text",)
+                    ),
+                    PatternFieldNormalizer("topic_label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{canonical_url}",
+        identity_mode="publisher-iri",
+        identity_template="{canonical_url}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "product"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=1,
+        declared_unevaluated_fields=("htmlOutsideProductIdentityAndTopics",),
+        derived_fields=(
+            PatternDerivedField(
+                field="topic_record_iri",
+                operation="template",
+                template_json=json.dumps(
+                    "urn:ref:gao-topic-assignment:"
+                    "c50268888ddb9c7cae2277d55229394b6434ba7503d79a61cb3ff3775a0683fd:"
+                    "{product_report_number}:0"
+                ),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "gao-report-gao-26-108505",
+        (_GAO_PRODUCT_PATTERN_PIN,),
+        selector,
+    )
+
+
+def _gao_topic_pattern_source() -> SourceSpec:
+    native_payload = {
+        "conceptIdentityClaimedByPublisher": False,
+        "observedOnProduct": "{product_report_number}",
+        "sourceArtifact": "{source_iri}",
+        "sourcePath": "{source_path}",
+        "topicPath": "{topic_path}",
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_GAO_PRODUCT_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=_GAO_PRODUCT_PATTERN_ROW,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer(
+                        "product_report_number", ("html-visible-text",)
+                    ),
+                    PatternFieldNormalizer("topic_label", ("html-visible-text",)),
+                ),
+                derived_fields=(
+                    PatternDerivedField(
+                        field="source_path",
+                        operation="template",
+                        template_json=json.dumps(
+                            "topics.viewsRow[{match_ordinal}].viewsFieldFieldTopic"
+                        ),
+                    ),
+                    PatternDerivedField(
+                        field="topic_uuid",
+                        operation="uuid7",
+                        template_json=_canonical_json_bytes(
+                            {
+                                "recordedAt": "2026-08-04T00:18:00Z",
+                                "seed": {
+                                    "sourceArtifact": "{source_iri}",
+                                    "sourcePath": "{source_path}",
+                                    "sourceValue": "{topic_path}",
+                                },
+                            }
+                        ).decode("utf-8"),
+                    ),
+                ),
+            ),
+        ),
+        row_key="{topic_path}",
+        identity_mode="source-key-derived",
+        identity_template="urn:ref:source-concept:v2:gao-topics:{topic_uuid}",
+        source_locator_template="{source_iri}#topic={match_ordinal}",
+        claim_map=(
+            ("preferred_label", "{topic_label}"),
+            ("source_path", "{source_path}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=1,
+        declared_unevaluated_fields=(
+            "canonical_url",
+            "htmlOutsideProductIdentityAndTopics",
+            "label",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "gao-topics-observed-on-gao-26-108505",
+        (_GAO_PRODUCT_PATTERN_PIN,),
+        selector,
+    )
+
+
+GAO_PATTERN_ROW_SOURCES = (
+    _gao_cra_pattern_source(),
+    _gao_report_pattern_source(),
+    _gao_topic_pattern_source(),
+)
+
+
+_OMB_A11_DOCUMENT_URL = "https://www.whitehouse.gov/wp-content/uploads/2025/08/a11.pdf"
+_OMB_A11_DOCUMENT_PIN = SourcePin(
+    path="omb-a11-2025-wayback.pdf",
+    sha256="sha256:7b0e6a3b018f6beea1c4b55ff377821fbd16def96354df5b319b2642ecd604c1",
+    byte_length=15_124_998,
+    fmt="pdf",
+    role="publisherSource",
+    source_iri=_OMB_A11_DOCUMENT_URL,
+    construction_path="output/registry-real-data-sources/omb-a11-2025-wayback.pdf",
+)
+_OMB_A11_FUNCTION_PIN = SourcePin(
+    path=(
+        "tests/fixtures/omb_a11_budget_codes/"
+        "exhibit-79a-functional-classification-2025.txt"
+    ),
+    sha256="sha256:0a8f141ffbbd83b4d9de7e099249ff6eb4eed53c688b14afbde3e9a2f0e496bb",
+    byte_length=3_635,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "0a8f141ffbbd83b4d9de7e099249ff6eb4eed53c688b14afbde3e9a2f0e496bb"
+    ),
+)
+_OMB_A11_OBJECT_PIN = SourcePin(
+    path=(
+        "tests/fixtures/omb_a11_budget_codes/"
+        "exhibit-83a-object-classification-2025.txt"
+    ),
+    sha256="sha256:3714b8b88982f87dc491061d316bc89dbc2151a97b3aa7b3add1726738b4b325",
+    byte_length=1_886,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "3714b8b88982f87dc491061d316bc89dbc2151a97b3aa7b3add1726738b4b325"
+    ),
+)
+_OMB_A11_APPORTIONMENT_PIN = SourcePin(
+    path=(
+        "tests/fixtures/omb_a11_budget_codes/"
+        "section-120-13-apportionment-categories-2025.txt"
+    ),
+    sha256="sha256:e0e4f4d718add1b21d5106f454e45e3c30a0a5896a964032b3dc249b1aeb871a",
+    byte_length=3_377,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "e0e4f4d718add1b21d5106f454e45e3c30a0a5896a964032b3dc249b1aeb871a"
+    ),
+)
+
+
+def _omb_a11_identifier(kind: str, value: str) -> Mapping[str, Any]:
+    return {
+        "authority_uri": "https://www.whitehouse.gov/omb/",
+        "effective_at": None,
+        "kind": kind,
+        "observed_at": "2026-08-03T19:18:00Z",
+        "source_digest": "{source_digest}",
+        "source_uri": _OMB_A11_DOCUMENT_URL,
+        "value": value,
+    }
+
+
+def _omb_a11_payload(
+    *,
+    resource_name: str,
+    category: str,
+    label: str,
+    identifiers: Sequence[Mapping[str, Any]],
+) -> Mapping[str, Any]:
+    return {
+        "category": category,
+        "fiscal_year_edition": "OMB Circular No. A–11 (2025)",
+        "identifiers": list(identifiers),
+        "is_general_subject_concept": False,
+        "publisher_label": label,
+        "resource_name": resource_name,
+        "sourceArtifact": _OMB_A11_DOCUMENT_URL,
+        "source_url": _OMB_A11_DOCUMENT_URL,
+        "use": "deterministicMetadata",
+    }
+
+
+def _omb_a11_source_path(resource_name: str) -> PatternDerivedField:
+    return PatternDerivedField(
+        field="source_path",
+        operation="template",
+        template_json=json.dumps(f"$.{resource_name}[{{match_ordinal}}]"),
+    )
+
+
+def _omb_a11_selector(
+    *,
+    patterns: tuple[PatternRowPattern, ...],
+    resource_name: str,
+    source_token: str,
+    native_payload: Mapping[str, Any],
+    expected_count: int,
+    claim_map: tuple[tuple[str, str], ...],
+    derived_fields: tuple[PatternDerivedField, ...] = (),
+) -> PatternRowSelector:
+    return PatternRowSelector(
+        patterns=patterns,
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=f"urn:ref:source-concept:v2:{source_token}:{{source_uuid7}}",
+        source_locator_template=_OMB_A11_DOCUMENT_URL,
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("observed_at", "2026-08-03T19:18:00Z"),
+            ("identity_hint", "{label}"),
+            ("source_path", "{source_path}"),
+            *claim_map,
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=(
+            f"{resource_name} page headings, grouping labels, and narrative",
+        ),
+        derived_fields=derived_fields,
+    )
+
+
+_OMB_A11_FUNCTION_ROW = (
+    r"^(?P<code>\d{3}(?:[–-]\d{3})?)[ \t]+"
+    r"(?P<label>[^\n]+(?:\n(?!(?:\d{3}(?:[–-]\d{3})?)[ \t]|"
+    r"MULTIPLE FUNCTIONS[ \t]*$)[^\n]+)*)"
+)
+_OMB_A11_MAJOR_FUNCTION = r"(?=[^a-z]*[A-Z])[^a-z]+"
+
+
+def _omb_a11_function_source() -> SourceSpec:
+    major_payload = _omb_a11_payload(
+        resource_name="functionalClassification",
+        category="majorFunction",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("budgetFunctionCode", "{code}"),
+        ),
+    )
+    subfunction_payload = _omb_a11_payload(
+        resource_name="functionalClassification",
+        category="subfunction",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("budgetSubfunctionCode", "{code}"),
+        ),
+    )
+
+    def pattern(
+        *,
+        include_major: bool,
+        expected_count: int,
+        native_payload: Mapping[str, Any],
+    ) -> PatternRowPattern:
+        return PatternRowPattern(
+            input_pattern=re.escape(_OMB_A11_FUNCTION_PIN.path),
+            region_pattern=r"Functional Classification\s+(?P<region>[\s\S]+)",
+            row_pattern=_OMB_A11_FUNCTION_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=expected_count,
+            normalizers=(
+                PatternFieldNormalizer("label", ("collapse-whitespace",)),
+            ),
+            row_filters=(
+                PatternRowFilter(
+                    field="label",
+                    pattern=_OMB_A11_MAJOR_FUNCTION,
+                    include=include_major,
+                ),
+            ),
+            native_payload_template_json=_canonical_json_bytes(
+                native_payload
+            ).decode("utf-8"),
+            native_payload_fields=tuple(sorted(native_payload)),
+        )
+
+    selector = _omb_a11_selector(
+        patterns=(
+            pattern(
+                include_major=True,
+                expected_count=20,
+                native_payload=major_payload,
+            ),
+            pattern(
+                include_major=False,
+                expected_count=78,
+                native_payload=subfunction_payload,
+            ),
+        ),
+        resource_name="functionalClassification",
+        source_token="omb-a11-functional-classification",
+        native_payload=major_payload,
+        expected_count=98,
+        claim_map=(("notation", "{code}"),),
+        derived_fields=(_omb_a11_source_path("functionalClassification"),),
+    )
+    return _pattern_row_source_spec(
+        "omb-a11-functional-classification",
+        (_OMB_A11_DOCUMENT_PIN, _OMB_A11_FUNCTION_PIN),
+        selector,
+    )
+
+
+def _omb_a11_object_source() -> SourceSpec:
+    native_payload = _omb_a11_payload(
+        resource_name="objectClassification",
+        category="objectClass",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("objectClassScheduleCode", "{code}"),
+            _omb_a11_identifier("objectClassAppendixCode", "{appendix_code}"),
+        ),
+    )
+    selector = _omb_a11_selector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_OMB_A11_OBJECT_PIN.path),
+                region_pattern=r"Standard Titles(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r"^(?P<prefix>[X9])(?P<digits_prefix>\d{2})"
+                    r"(?P<digit_last>\d)[ \t]+(?P<label>[^\n]+)"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=38,
+                normalizers=(
+                    PatternFieldNormalizer(
+                        "label", ("rstrip-chars:*", "strip")
+                    ),
+                ),
+                native_payload_template_json=_canonical_json_bytes(
+                    native_payload
+                ).decode("utf-8"),
+                native_payload_fields=tuple(sorted(native_payload)),
+            ),
+        ),
+        resource_name="objectClassification",
+        source_token="omb-a11-object-classification",
+        native_payload=native_payload,
+        expected_count=38,
+        claim_map=(
+            ("notation", "{code}"),
+            ("notation", "{appendix_code}"),
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="code",
+                operation="template",
+                template_json=json.dumps("{prefix}{digits_prefix}{digit_last}"),
+            ),
+            PatternDerivedField(
+                field="appendix_code",
+                operation="template",
+                template_json=json.dumps("{digits_prefix}.{digit_last}"),
+            ),
+            _omb_a11_source_path("objectClassification"),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "omb-a11-object-classification",
+        (_OMB_A11_DOCUMENT_PIN, _OMB_A11_OBJECT_PIN),
+        selector,
+    )
+
+
+def _omb_a11_apportionment_line_pattern(
+    code: str,
+    source_ordinal: int,
+    native_payload: Mapping[str, Any],
+) -> PatternRowPattern:
+    return PatternRowPattern(
+        input_pattern=re.escape(_OMB_A11_APPORTIONMENT_PIN.path),
+        region_pattern=(
+            r"non-apportioned budgetary resources are shown using one of four "
+            r"apportionment lines[^\n]*—(?P<region>[\s\S]*?)Agencies must report"
+        ),
+        row_pattern=(
+            rf"(?P<code>{re.escape(code)}),\s+(?P<label>.*?)"
+            r"(?:,?\s+and)?(?=,?\s+618[0-3],|\s*\Z)"
+        ),
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=1,
+        constants=(
+            ("range", ""),
+            ("source_path", f"$.apportionmentCategories[{source_ordinal}]"),
+        ),
+        normalizers=(
+            PatternFieldNormalizer(
+                "label", ("collapse-whitespace", "rstrip-chars:,", "strip")
+            ),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+    )
+
+
+def _omb_a11_apportionment_source() -> SourceSpec:
+    category_payload = _omb_a11_payload(
+        resource_name="apportionmentCategories",
+        category="apportionmentCategory",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("apportionmentCategoryCode", "{code}"),
+            _omb_a11_identifier("apportionmentLineRange", "{range}"),
+        ),
+    )
+    line_payload = _omb_a11_payload(
+        resource_name="apportionmentCategories",
+        category="nonApportionedLine",
+        label="{label}",
+        identifiers=(
+            _omb_a11_identifier("apportionmentLineCode", "{code}"),
+        ),
+    )
+    category_pattern = PatternRowPattern(
+        input_pattern=re.escape(_OMB_A11_APPORTIONMENT_PIN.path),
+        region_pattern=r"(?P<region>[\s\S]+)",
+        row_pattern=(
+            r"Category\s+(?P<code>AB|A|B|C)\s+apportions\s+budgetary\s+"
+            r"resources\s+(?P<description>.+?)\.\s*.*?Lines?\s+"
+            r"(?P<line_start>\d{4})\s+"
+            r"(?:t\s*h\s*r\s*o\s*u\s*g\s*h|thru)\s+"
+            r"(?P<line_end>\d{4})"
+        ),
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=4,
+        normalizers=(
+            PatternFieldNormalizer("description", ("collapse-whitespace",)),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            category_payload
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(category_payload)),
+        derived_fields=(
+            PatternDerivedField(
+                field="label",
+                operation="template",
+                template_json=json.dumps(
+                    "Category {code} apportions budgetary resources {description}."
+                ),
+            ),
+            PatternDerivedField(
+                field="range",
+                operation="template",
+                template_json=json.dumps("{line_start}-{line_end}"),
+            ),
+            _omb_a11_source_path("apportionmentCategories"),
+        ),
+    )
+    selector = _omb_a11_selector(
+        patterns=(
+            category_pattern,
+            *(
+                _omb_a11_apportionment_line_pattern(
+                    code,
+                    source_ordinal,
+                    line_payload,
+                )
+                for source_ordinal, code in enumerate(
+                    ("6180", "6181", "6182", "6183"),
+                    start=4,
+                )
+            ),
+        ),
+        resource_name="apportionmentCategories",
+        source_token="omb-a11-apportionment-categories",
+        native_payload=category_payload,
+        expected_count=8,
+        claim_map=(
+            ("notation", "{code}"),
+            ("notation", "{range}"),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "omb-a11-apportionment-categories",
+        (_OMB_A11_DOCUMENT_PIN, _OMB_A11_APPORTIONMENT_PIN),
+        selector,
+    )
+
+
+OMB_A11_PATTERN_ROW_SOURCES = (
+    _omb_a11_function_source(),
+    _omb_a11_object_source(),
+    _omb_a11_apportionment_source(),
+)
+
+
+_USCOURTS_NOS_DOCUMENT_URL = (
+    "https://www.uscourts.gov/sites/default/files/js_044_code_descriptions.pdf"
+)
+_USCOURTS_NOS_DOCUMENT_PIN = SourcePin(
+    path="js_044_code_descriptions.pdf",
+    sha256="sha256:aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95",
+    byte_length=316_187,
+    fmt="pdf",
+    role="publisherSource",
+    source_iri=_USCOURTS_NOS_DOCUMENT_URL,
+    construction_path="output/registry-real-data-sources/js_044_code_descriptions.pdf",
+)
+_USCOURTS_NOS_TEXT_PIN = SourcePin(
+    path=(
+        "tests/fixtures/nature_of_suit_codes/"
+        "js_044_code_descriptions.layout.txt"
+    ),
+    sha256="sha256:dcb5ac0d1da85ad597d1e7ae07e91b6b8193e6eb19ae6403a050607eebfde1f2",
+    byte_length=32_211,
+    fmt="text",
+    role="publisherPdfTextExtraction",
+    source_iri=(
+        "urn:ref:derived-artifact:"
+        "dcb5ac0d1da85ad597d1e7ae07e91b6b8193e6eb19ae6403a050607eebfde1f2"
+    ),
+)
+_USCOURTS_NOS_RESOURCE_ID = "uscourts-nature-of-suit-codes-js-044"
+_USCOURTS_NOS_ROW_PATTERN = (
+    r"(?P<row_block>^[ ]{0,4}(?P<code>\d{3})[ ]{2,}[^\n]*"
+    r"(?:\n(?![ ]{0,4}\d{3}[ ]{2,})[^\n]*)*)"
+)
+_USCOURTS_NOS_SECTIONS = (
+    ("nos-section-0001", ("Contract",), ("Real Property",), 12),
+    ("nos-section-0002", ("Real Property",), ("Torts/Personal Injury",), 6),
+    ("nos-section-0003", ("Torts/Personal Injury",), ("Personal Property",), 13),
+    ("nos-section-0004", ("Personal Property",), ("Civil Rights",), 4),
+    ("nos-section-0005", ("Civil Rights",), ("Prisoner Petitions",), 7),
+    (
+        "nos-section-0006",
+        ("Prisoner Petitions", "Habeas Corpus"),
+        ("Other",),
+        4,
+    ),
+    (
+        "nos-section-0007",
+        ("Other", "Prisoner Petitions"),
+        ("Forfeiture/Penalty",),
+        4,
+    ),
+    ("nos-section-0008", ("Forfeiture/Penalty",), ("Labor",), 2),
+    ("nos-section-0009", ("Labor",), ("Immigration",), 6),
+    ("nos-section-0010", ("Immigration",), ("Bankruptcy",), 2),
+    ("nos-section-0011", ("Bankruptcy",), ("Intellectual Property Rights",), 2),
+    (
+        "nos-section-0012",
+        ("Intellectual Property Rights",),
+        ("Social Security",),
+        5,
+    ),
+    ("nos-section-0013", ("Social Security",), ("Federal Tax Suits",), 5),
+    ("nos-section-0014", ("Federal Tax Suits",), ("Other Statutes",), 2),
+    (
+        "nos-section-0015",
+        ("Other Statutes",),
+        ("Other Statutes (Continued)",),
+        15,
+    ),
+    ("nos-section-0016", ("Other Statutes (Continued)",), (), 4),
+)
+
+
+def _uscourts_nos_section_pattern(
+    section_id: str,
+    headings: tuple[str, ...],
+    next_headings: tuple[str, ...],
+    expected_count: int,
+) -> PatternRowPattern:
+    heading_pattern = "".join(
+        rf"^[ ]+{re.escape(heading)}[ \t]*$\n" for heading in headings
+    )
+    end_pattern = (
+        rf"^[ ]+{re.escape(next_headings[0])}[ \t]*$"
+        if next_headings
+        else r"^Note:"
+    )
+    return PatternRowPattern(
+        input_pattern=re.escape(_USCOURTS_NOS_TEXT_PIN.path),
+        region_pattern=(
+            heading_pattern
+            + r"(?P<header>^[ ]*Code[^\n]*Title[^\n]*Description[^\n]*)\n"
+            + rf"(?P<region>[\s\S]*?)(?={end_pattern})"
+        ),
+        row_pattern=_USCOURTS_NOS_ROW_PATTERN,
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=expected_count,
+        constants=(("section_id", section_id),),
+    )
+
+
+def _uscourts_nos_layout_field(field: str, column: str) -> PatternDerivedField:
+    return PatternDerivedField(
+        field=field,
+        operation="fixed-width-layout-column",
+        template_json=_canonical_json_bytes(
+            {
+                "block": "{row_block}",
+                "column": column,
+                "continuationMinIndent": 5,
+                "footerPattern": r"Page \d+ of \d+",
+                "header": "{header}",
+                "pageTitle": "Civil Nature of Suit Code Descriptions",
+                "revisionPattern": r"\(Rev\. \d{{2}}/\d{{2}}\)",
+            }
+        ).decode("utf-8"),
+    )
+
+
+def _uscourts_nos_pattern_source() -> SourceSpec:
+    source_path = "entries[{ordinal_one_based}]"
+    identifier = {
+        "authorityUri": "https://www.uscourts.gov/",
+        "kind": "uscourtsNatureOfSuitCode",
+        "observedAt": "2026-08-03T00:00:00Z",
+        "sourceDigest": "{source_digest}",
+        "sourcePath": "{source_path}",
+        "sourceUri": _USCOURTS_NOS_DOCUMENT_URL,
+        "value": "{code}",
+    }
+    native_payload = {
+        "code": "{code}",
+        "conceptIdentityClaimed": False,
+        "description": "{description}",
+        "id": "{observation_id}",
+        "identifiers": [identifier],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sectionId": "{section_id}",
+        "sourceArtifact": _USCOURTS_NOS_DOCUMENT_URL,
+        "sourceOrdinal": "{ordinal_one_based}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(
+            _uscourts_nos_section_pattern(*section)
+            for section in _USCOURTS_NOS_SECTIONS
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:uscourts-nature-of-suit:{source_uuid7}"
+        ),
+        source_locator_template=_USCOURTS_NOS_DOCUMENT_URL,
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("definition", "{description}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "2026-08-03T00:00:00Z"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=93,
+        declared_unevaluated_fields=(
+            "page metadata, authored section headings, and document note",
+        ),
+        derived_fields=(
+            _uscourts_nos_layout_field("label", "title"),
+            _uscourts_nos_layout_field("description", "description"),
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(source_path),
+            ),
+            _pra_observation_id_field(
+                _USCOURTS_NOS_RESOURCE_ID,
+                [identifier],
+                source_artifact=_USCOURTS_NOS_DOCUMENT_URL,
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "uscourts-nature-of-suit",
+        (_USCOURTS_NOS_DOCUMENT_PIN, _USCOURTS_NOS_TEXT_PIN),
+        selector,
+    )
+
+
+USCOURTS_NOS_PATTERN_ROW_SOURCES = (_uscourts_nos_pattern_source(),)
+
+
+_COURTLISTENER_PATTERN_PIN = _registry_source_pin(
+    "courtlistener-jurisdictions-zyte.html",
+    "sha256:883446028b029078c032bfe7c3545f9e109bb328c79ec486fbbbdbf35580b292",
+    3_156_029,
+    "https://www.courtlistener.com/help/api/jurisdictions/",
+    fmt="html",
+)
+_COURTLISTENER_ROW_PATTERN = (
+    r"<tr>\s*"
+    r"<td>(?P<name>.*?)</td>\s*"
+    r"<td>(?P<count>.*?)</td>\s*"
+    r"<td>(?P<jurisdiction_type>.*?)</td>\s*"
+    r"<td(?P<homepage_attributes>[^>]*)>(?P<homepage>.*?)</td>\s*"
+    r"<td>(?P<court_id>.*?)</td>\s*"
+    r"<td>(?P<citation_abbreviation>.*?)</td>\s*"
+    r"<td>(?P<start_date>.*?)</td>\s*"
+    r"<td>(?P<end_date>.*?)</td>\s*"
+    r"<td>(?P<in_use>.*?)</td>\s*"
+    r"<td>(?P<modified>.*?)</td>\s*"
+    r"</tr>"
+)
+_COURTLISTENER_NORMALIZERS = (
+    *(
+        PatternFieldNormalizer(field, ("html-visible-text",))
+        for field in (
+            "name",
+            "count",
+            "jurisdiction_type",
+            "homepage",
+            "court_id",
+            "citation_abbreviation",
+            "start_date",
+            "end_date",
+            "in_use",
+            "modified",
+        )
+    ),
+    PatternFieldNormalizer("in_use", ("boolean-values:Yes:No",)),
+)
+
+
+def _courtlistener_identifier(kind: str, value: str) -> Mapping[str, Any]:
+    return {
+        "authorityUri": "https://www.courtlistener.com/",
+        "effectiveAt": None,
+        "kind": kind,
+        "observedAt": "2026-08-03T00:00:00Z",
+        "sourceDigest": "{source_digest}",
+        "sourceUri": "{source_iri}",
+        "value": value,
+    }
+
+
+_COURTLISTENER_COURT_ID = _courtlistener_identifier(
+    "courtlistenerCourtId", "{court_id}"
+)
+_COURTLISTENER_JURISDICTION_ID = _courtlistener_identifier(
+    "courtlistenerJurisdictionType", "{jurisdiction_type}"
+)
+_COURTLISTENER_CITATION_ID = _courtlistener_identifier(
+    "courtlistenerCitationAbbreviation", "{citation_abbreviation}"
+)
+
+
+def _courtlistener_payload(
+    identifiers: Sequence[Mapping[str, Any]],
+    *,
+    jurisdiction_type: str | None,
+    citation_abbreviation: str | None,
+) -> Mapping[str, Any]:
+    return {
+        "citationAbbreviation": citation_abbreviation,
+        "endDate": "{end_date}",
+        "identifiers": list(identifiers),
+        "identityStatus": "publisherPlatformIdentifier",
+        "inUse": "{in_use}",
+        "jurisdictionType": jurisdiction_type,
+        "modified": "{modified}",
+        "name": "{name}",
+        "sourceOrdinal": "{match_ordinal}",
+        "startDate": "{start_date}",
+    }
+
+
+def _courtlistener_pattern(
+    *,
+    row_filters: tuple[PatternRowFilter, ...],
+    expected_count: int,
+    native_payload: Mapping[str, Any],
+) -> PatternRowPattern:
+    return PatternRowPattern(
+        input_pattern=re.escape(_COURTLISTENER_PATTERN_PIN.path),
+        region_pattern=(
+            r'<table class="settings-table table">.*?'
+            r"<tbody>(?P<region>.*?)</tbody>"
+        ),
+        row_pattern=_COURTLISTENER_ROW_PATTERN,
+        expected_input_count=1,
+        expected_region_count=1,
+        expected_row_count=expected_count,
+        normalizers=_COURTLISTENER_NORMALIZERS,
+        row_filters=row_filters,
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+    )
+
+
+def _courtlistener_pattern_source() -> SourceSpec:
+    complete_payload = _courtlistener_payload(
+        (
+            _COURTLISTENER_COURT_ID,
+            _COURTLISTENER_JURISDICTION_ID,
+            _COURTLISTENER_CITATION_ID,
+        ),
+        jurisdiction_type="{jurisdiction_type}",
+        citation_abbreviation="{citation_abbreviation}",
+    )
+    missing_citation_payload = _courtlistener_payload(
+        (_COURTLISTENER_COURT_ID, _COURTLISTENER_JURISDICTION_ID),
+        jurisdiction_type="{jurisdiction_type}",
+        citation_abbreviation=None,
+    )
+    missing_both_payload = _courtlistener_payload(
+        (_COURTLISTENER_COURT_ID,),
+        jurisdiction_type=None,
+        citation_abbreviation=None,
+    )
+    present = PatternRowFilter(field="jurisdiction_type", pattern=r".+")
+    citation_present = PatternRowFilter(
+        field="citation_abbreviation", pattern=r".+"
+    )
+    selector = PatternRowSelector(
+        patterns=(
+            _courtlistener_pattern(
+                row_filters=(present, citation_present),
+                expected_count=2_061,
+                native_payload=complete_payload,
+            ),
+            _courtlistener_pattern(
+                row_filters=(
+                    present,
+                    PatternRowFilter(
+                        field="citation_abbreviation",
+                        pattern=r".+",
+                        include=False,
+                    ),
+                ),
+                expected_count=1_297,
+                native_payload=missing_citation_payload,
+            ),
+            _courtlistener_pattern(
+                row_filters=(
+                    PatternRowFilter(
+                        field="jurisdiction_type", pattern=r".+", include=False
+                    ),
+                    PatternRowFilter(
+                        field="citation_abbreviation", pattern=r".+", include=False
+                    ),
+                ),
+                expected_count=1,
+                native_payload=missing_both_payload,
+            ),
+        ),
+        row_key="{court_id}",
+        identity_mode="source-key-derived",
+        identity_template="{resource_iri}",
+        source_locator_template="{source_iri}#abbreviation={encoded_court_id}",
+        claim_map=(
+            ("preferred_label", "{name}"),
+            ("notation", "{court_id}"),
+            ("notation", "{citation_abbreviation}"),
+            ("source_path", "{source_iri}#abbreviation={encoded_court_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(complete_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(complete_payload)),
+        expected_count=3_359,
+        declared_unevaluated_fields=(
+            "count",
+            "homepage",
+            "homepage_attributes",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="encoded_court_id",
+                operation="uri-component",
+                template_json=json.dumps("{court_id}"),
+            ),
+            PatternDerivedField(
+                field="resource_iri",
+                operation="source-local-resource-iri",
+                template_json=_canonical_json_bytes(
+                    {
+                        "namespace": "courtlistener",
+                        "recordedAt": "2026-08-03T00:00:00Z",
+                        "sourceIri": "{source_iri}",
+                        "sourceKey": "{court_id}",
+                    }
+                ).decode("utf-8"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "courtlistener-jurisdictions-2026-08-03",
+        (_COURTLISTENER_PATTERN_PIN,),
+        selector,
+    )
+
+
+COURTLISTENER_PATTERN_ROW_SOURCES = (_courtlistener_pattern_source(),)
 
 
 SOURCES: tuple[SourceSpec, ...] = (
@@ -7825,7 +12354,27 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
         ),
     ),
-    *FEC_HTML_CODE_LIST_SOURCES,
+    *BILLSTATUS_PATTERN_ROW_SOURCES,
+    *FEC_PATTERN_ROW_SOURCES,
+    *REGULATIONS_GOV_PATTERN_ROW_SOURCES,
+    *SAM_ASSISTANCE_PATTERN_ROW_SOURCES,
+    *SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES,
+    *FERC_HTML_PATTERN_ROW_SOURCES,
+    *GRANTS_GOV_PATTERN_ROW_SOURCES,
+    *OIRA_PATTERN_ROW_SOURCES,
+    *OVERSIGHT_PATTERN_ROW_SOURCES,
+    *SEC_PATTERN_ROW_SOURCES,
+    *SCOTUS_PATTERN_ROW_SOURCES,
+    *CENSUS_FINANCE_PATTERN_ROW_SOURCES,
+    *NASBO_PATTERN_ROW_SOURCES,
+    *PRA_PATTERN_ROW_SOURCES,
+    *EPA_COMPTOX_PATTERN_ROW_SOURCES,
+    *FAC_PATTERN_ROW_SOURCES,
+    *CENSUS_GEO_PATTERN_ROW_SOURCES,
+    *GAO_PATTERN_ROW_SOURCES,
+    *OMB_A11_PATTERN_ROW_SOURCES,
+    *USCOURTS_NOS_PATTERN_ROW_SOURCES,
+    *COURTLISTENER_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -9386,7 +13935,7 @@ def build_context(
                 (
                     spec.name
                     if spec.reader
-                    in {API_CAPTURE_JSON_READER, HTML_CODE_LIST_READER}
+                    in {API_CAPTURE_JSON_READER, PATTERN_ROW_READER}
                     else None
                 ),
                 spec.inputs,
@@ -9747,6 +14296,14 @@ def check_configuration(ctx: Context) -> CheckResult:
         if spec.kind != "source-extract" and spec.source_extract is not None:
             failures.append(
                 f"{spec.name}: {spec.kind!r} comparison must not declare a source-extract selector"
+            )
+        if spec.reader == PATTERN_ROW_READER and spec.pattern_row is None:
+            failures.append(
+                f"{spec.name}: pattern-row reader has no declarative selector"
+            )
+        if spec.reader != PATTERN_ROW_READER and spec.pattern_row is not None:
+            failures.append(
+                f"{spec.name}: non-pattern reader must not declare a pattern-row selector"
             )
         if spec.source_extract is not None:
             if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:
@@ -12588,7 +17145,7 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     if pair.spec.reader in {
         API_CAPTURE_JSON_READER,
         CRS_SOURCE_CONCEPT_RELEASE_READER,
-        HTML_CODE_LIST_READER,
+        PATTERN_ROW_READER,
     }:
         # Structured JSON captures also describe value, structure, entity, and
         # legal-identity resources. Their source records are the exact
