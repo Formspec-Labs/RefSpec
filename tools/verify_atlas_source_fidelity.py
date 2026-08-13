@@ -4823,6 +4823,9 @@ def _stock_vocabulary_view(
     compact_resource_digests: bool = False,
     expected_relation_payloads: Mapping[str, Mapping[str, Any]] | None = None,
     source_digest_is_native_payload_digest: bool = True,
+    additional_literal_claims: Collection[
+        tuple[str, str, LiteralValue]
+    ] = (),
 ) -> PublisherView:
     """Build the comparison view shared by stock XML, RDF, MARC, and JSON readers."""
     concepts: set[str] = set()
@@ -4830,7 +4833,9 @@ def _stock_vocabulary_view(
     alt_labels: dict[str, frozenset[LiteralValue]] = {}
     notations: dict[str, frozenset[LiteralValue]] = {}
     annotation_claims: set[tuple[str, str, LiteralValue]] = set()
-    literal_claims: set[tuple[str, str, LiteralValue]] = set()
+    literal_claims: set[tuple[str, str, LiteralValue]] = set(
+        additional_literal_claims
+    )
     iri_claims: set[tuple[str, str, str]] = set(relations) if retain_claim_sets else set()
     if retain_claim_sets:
         iri_claims.update(
@@ -6198,6 +6203,13 @@ def _read_crs_source_concept_release(
         (),
         spec.inputs,
         unevaluated_claims=unevaluated,
+        additional_literal_claims=(
+            (
+                str(release_id),
+                f"{DCTERMS}identifier",
+                _literal_value(str(release_id), None, None),
+            ),
+        ),
     )
 
 
