@@ -237,10 +237,21 @@ labels, 560,429 relation assertions (553,540 native, 2,003 mapping, 1
 cross-ring), 590,561 source records, 4,669 identifiers, 109 releases, 5,939
 inferred mappings. So the acceptance cost is confirmed on the NEW producer, not
 just the old artifact: 18.3 min / 13.83 GiB against the previously recorded
-18.5 min / 14.31 GiB. STILL OWED on this artifact: (i) a vocabulary-scoped
-audit to exercise the PUBLISHER-side declaration itemisation, which the
-1-record FCC-scoped proof above left at declaredPublisherClaimCount 0, and
-(iii) re-pin + seal if this becomes the artifact of record.
+18.5 min / 14.31 GiB. **ACCEPTANCE AND THE DECLARATION ARE BOTH PROVEN ON 13b.** Acceptance:
+1,098.77s (18.3 min) at 13.83 GiB peak, all gates, 29,286,753 quads / 588,409
+resources / 984,431 labels / 560,429 relation assertions / 590,561 source
+records / 109 releases / 5,939 inferred mappings. Publisher-side declaration:
+a `--only eurovoc-domains-4.24` audit consumed the declaration and reported
+declaredPublisherClaimCount 546 — exactly the count itemised for that source in
+`language-scope-exclusions.json` — with sourceDeclarationCount 1,
+atlasNonEnglishLiteralClaimCount 0, zero scan failures, and the construction
+statement matching. ONLY ONE THING REMAINS ON THIS ARTIFACT: minting its seal,
+which needs the offline signer key and is therefore the owner's step. All seal
+inputs are staged — manifest sha256 `656e4cc79923398ce3f1546cc321e2c40d871bc8d0297c053ba59218877bd3db`,
+parquet view manifest sha256 `22a23316cdb16fb01f93bcc3a9bdfaddecaa0f871bf3d8d3f914445b786540c5`,
+acceptance receipt written by the run above; `create_seal(root, private_key_path,
+signer_identity, parquet_view_path=…)` in src/refspec/seal.py is the entry point
+and `docs/seal-allowed-signers` already pins atlas-release@refspec.
 
 **ENGINE QUESTION CLOSED WITH REOPEN CRITERIA (2026-08-13,
 research/shacl-engine-survey + research/shacl-rust).** The two cells the plan
@@ -268,8 +279,20 @@ and buys at most the SHACL share of 48 cases.
 Rust was tested too, not merely surveyed: rudof_cli 0.3.8 (published 2026-08-13)
 PARSES the real shapes (376 IR entries, including the sequence-path
 `(rdf:object / atlas:inRelease)` carrying `Equals: atlas:targetRelease`) and
-emits real SHACL reports, with an oxrdf-backed default backend. Its corpus
-parity is still unproven. Two candidate claims were also debunked:
+emits real SHACL reports, with an oxrdf-backed default backend. **It was then
+actually run against the corpus and came far closer than expected: it passes
+the executable feature floor, returns the correct INVALID verdict for all 48
+SHACL-owned refusals, passes all 13 valid controls, and reproduces the exact
+`shaclComponents` set for 45 of 48.** The three misses are not errors — for
+`sh:node`, pySHACL includes the inner result while rudof reports only the outer
+`NodeConstraintComponent`; both comply with SHACL Core, but only pySHACL matches
+Atlas's contractual component lists, so the exact-parity gate fails and the
+study stopped before staging cost. Binary tested: rudof_cli 0.3.8, macOS arm64,
+sha256 `a1ebe0120fd7b270e4cb452678394fbfa69f0ed8c8be50e7872599875ae6d3be`. Note
+what this means: the gap is REPORTING GRANULARITY ON ONE COMPONENT, not
+capability — if Atlas ever normalised shaclComponents across the sh:node
+boundary, this candidate would clear the gate. Two candidate claims were also
+debunked:
 `oxigraph-cloud`'s advertised rudof-over-Oxigraph pairing actually serializes
 every quad into one in-memory N-Triples string and DROPS GRAPH NAMES (fatal for
 a quad-based Atlas), and `oxirs-shacl`'s W3C integration test does not fail when
@@ -285,6 +308,22 @@ or OxiRS publishes independent conformance evidence plus a direct compact-store
 validation path that can be pinned and reproduced offline; (d) pySHACL/RDFLib
 gains an integer-ID or encoded-store execution interface that batches discovery
 without rebuilding Python terms per lookup.
+
+**THE REMAINING 61 UNITS COST SIX READERS, NOT 61 (research/coverage-dry,
+2026-08-13).** Authoritative inventory derived by ast-parsing the SOURCES tuple,
+expanding the 14 generated `NATIVE_CONTROL_SOURCES` rows, and subtracting from
+the sealed construction summary: 49 of 110 covered, 61 open. (My own regex-based
+count of 35/75 was wrong precisely because the 14 `regulatory-native-*` units
+are generated, not literal — they were already covered.) The minimum reader set,
+with five of six generalising a reader that already exists:
+`pattern-row-v2` 42-46 units | `xml-record-selector-v1` 4 |
+`json-record-selector-v2` 1 | `csv-record-selector-v2` 3 |
+`ooxml-relational-v1` 5 | `nrc-adams-multi-artifact-v1` 2. Six is argued as a
+lower bound: pattern rows cannot safely parse structured XML/JSON/CSV/OOXML, and
+NRC's six-input semantic union cannot be expressed in the single-input
+pattern-row algorithm without inventing a workflow language in configuration.
+PROVEN, not just designed: the FEC HTML family — 5 units from one declarative
+reader — is merged at 4982c0be, taking coverage to 54/110.
 
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
