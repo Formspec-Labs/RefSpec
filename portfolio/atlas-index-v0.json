@@ -27,8 +27,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:a7a8666f749295b7b4ce071b99de6c1233ac72b4515a16698a88aaac43772a5f",
-  "indexId": "urn:ref:atlas-index:a7a8666f749295b7b4ce071b99de6c1233ac72b4515a16698a88aaac43772a5f",
+  "indexDigest": "sha256:ff5f8b1c8aca57314896be4fe9a670695e818199bd83c76e09f65b988e37ec49",
+  "indexId": "urn:ref:atlas-index:ff5f8b1c8aca57314896be4fe9a670695e818199bd83c76e09f65b988e37ec49",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -1089,13 +1089,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/ferc_elibrary_codes.py",
-          "sha256": "sha256:cc58c4eaf720d535ad30bb716729147209a2197b833957d9c79e7b5b22b84207"
+          "sha256": "sha256:38430a7c15732d5da7e9974f1b916161f3efa3d6c59510da5bcd207dcf7da5a2"
         }
       ],
       "release": null,
       "resourceId": "ferc-elibrary-identifiers",
-      "rowDigest": "sha256:e06fcc749ba86254a6bb410e327d34f48af9b976b5ae99dde85eb8290519521a",
-      "rowId": "urn:ref:atlas-index-row:e06fcc749ba86254a6bb410e327d34f48af9b976b5ae99dde85eb8290519521a",
+      "rowDigest": "sha256:522036411521709224c44eb47c35b86fa8c1f8d024fb900be1ef486fdf1ad76d",
+      "rowId": "urn:ref:atlas-index-row:522036411521709224c44eb47c35b86fa8c1f8d024fb900be1ef486fdf1ad76d",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1117,13 +1117,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/ferc_elibrary_codes.py",
-          "sha256": "sha256:cc58c4eaf720d535ad30bb716729147209a2197b833957d9c79e7b5b22b84207"
+          "sha256": "sha256:38430a7c15732d5da7e9974f1b916161f3efa3d6c59510da5bcd207dcf7da5a2"
         }
       ],
       "release": null,
       "resourceId": "ferc-elibrary-native-controls",
-      "rowDigest": "sha256:5f6643f83eeb95e19ff3c55d2ca79f4749fe6d53a13b39a0c3a56fbfeead1f4d",
-      "rowId": "urn:ref:atlas-index-row:5f6643f83eeb95e19ff3c55d2ca79f4749fe6d53a13b39a0c3a56fbfeead1f4d",
+      "rowDigest": "sha256:880e9b6752e81c00c8cf03b1e236a1885139aeae5abc4c0e8d7198f969a17669",
+      "rowId": "urn:ref:atlas-index-row:880e9b6752e81c00c8cf03b1e236a1885139aeae5abc4c0e8d7198f969a17669",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },

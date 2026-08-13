@@ -326,13 +326,34 @@ def _identifier_values(code: Any) -> tuple[str, ...]:
     return tuple(str(identifier.value) for identifier in code.identifiers)
 
 
+def _stamp_source_artifact(native: dict[str, Any], source_iri: str) -> dict[str, Any]:
+    """Record the artifact a record came from, and the medium it was read through.
+
+    PDF is not a data format. Reading a code list out of one means reconstructing
+    columns from a text layer that encodes typography rather than structure, and
+    every unit sourced that way in this registry has shown it: ligatures and
+    U+2010 hyphens copied verbatim, four-column tables arriving space-joined,
+    description cells merged across rows. Those are properties of the medium, not
+    mistakes a consumer can be expected to anticipate. Stamping the medium makes
+    the caveat travel with the data instead of living in a reviewer's memory --
+    a consumer that sees `sourceMedium: pdf` knows to treat the text with more
+    suspicion than it would a JSON field. Derived from the artifact itself so a
+    new PDF-backed unit cannot forget to declare it.
+    """
+
+    native["sourceArtifact"] = source_iri
+    if source_iri.split("?", 1)[0].rstrip("/").lower().endswith(".pdf"):
+        native["sourceMedium"] = "pdf"
+    return native
+
+
 def _code_items(codes: Iterable[Any], *, resource_name: str, source_iri: str) -> tuple[_Item, ...]:
     items: list[_Item] = []
     for ordinal, code in enumerate(codes):
         notations = _identifier_values(code)
         label = str(code.publisher_label)
         native = _json_value(code)
-        native["sourceArtifact"] = source_iri
+        _stamp_source_artifact(native, source_iri)
         definition = getattr(code, "description", None)
         items.append(
             _Item(
@@ -723,10 +744,9 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
             label=row.text,
             source_path=f"$.rows[{ordinal}]",
             notations=(),
-            native_payload={
-                **_json_value(row),
-                "sourceArtifact": class_capture.source_url,
-            },
+            native_payload=_stamp_source_artifact(
+                _json_value(row), class_capture.source_url
+            ),
         )
         for ordinal, row in enumerate(class_capture.rows)
     )
@@ -759,10 +779,9 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
             label=row.definition,
             source_path=f"$.rows[{ordinal}]",
             notations=(row.prefix,),
-            native_payload={
-                **_json_value(row),
-                "sourceArtifact": docket_capture.source_url,
-            },
+            native_payload=_stamp_source_artifact(
+                _json_value(row), docket_capture.source_url
+            ),
             definition=row.definition,
             status=row.status,
         )

@@ -129,10 +129,24 @@ class FercAssignmentError(FercResourceError):
 
 @dataclass(frozen=True, slots=True)
 class FercPublishedClassTypeRow:
-    """One publisher row retained from the January 2025 FERC PDF."""
+    """One publisher row retained from the January 2025 FERC PDF.
+
+    The PDF publishes four columns -- Category, Library, Classification, Type
+    Description -- and pypdf's text extraction joins them with single spaces and
+    no delimiter. Retaining only that joined line, as this row once did, loses
+    the column boundaries irrecoverably: nothing downstream can tell where
+    "E, G, O, H, Gen" stops and "Applicant Correspondence" starts. Both are
+    bounded vocabularies, so the split is decidable, and the parser now performs
+    it. ``text`` is kept beside the parts as the provenance of record -- it is
+    exactly what the page yielded -- so a consumer can always re-derive the
+    split or check ours.
+    """
 
     category: Literal["Issuance", "Submittal"]
     text: str
+    library: str
+    classification: str
+    type_description: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +202,86 @@ class FercPublishedReferenceFormatsCapture:
     accession_formats: tuple[str, ...]
 
 
+# The Library column's published vocabulary, longest alternative first so the
+# regex cannot stop early and leave "…, Gen" at the head of the classification.
+_CLASS_TYPE_LIBRARY = (
+    r"(?:E, G, O, H, RM, Gen|E, G, O, H, Gen|E, G, O, Gen|H, E and RM|E, G, O, H"
+    r"|E, G, H|E, G, O|H, O, G,?|Gen, RM|G, H|G, O|H, G|E, G|Gen|RM|E|G|H|O)"
+)
+_CLASS_TYPE_ROW = re.compile(
+    rf"^(?P<category>Issuance|Submittal) (?P<library>{_CLASS_TYPE_LIBRARY}) (?P<rest>.+)$"
+)
+# The Classification column's published vocabulary. Sorted longest-first at use
+# so "FERC Report/Study" wins over a hypothetical "FERC Report" prefix.
+_CLASS_TYPE_CLASSIFICATIONS = (
+    "Affirmation",
+    "Agreement/Understanding/Contract",
+    "ALJ Issuance",
+    "Applicant Correspondence",
+    "Application/Petition/Request",
+    "Approved Designation",
+    "Briefing/Arguments of Law",
+    "Comments/Protest",
+    "Court Related Documents",
+    "Deposition Document",
+    "Drawing/Maps",
+    "Exhibit",
+    "FERC Comment",
+    "FERC Correspondence With Applicant",
+    "FERC Correspondence With Government Agencies",
+    "FERC Correspondence with Tribal Governments",
+    "FERC Memo",
+    "FERC Report/Study",
+    "Informational Correspondence",
+    "Interrogatory/Data Request",
+    "Intervention",
+    "Litigation Correspondence",
+    "Notice",
+    "Order/Opinion",
+    "Other Submittal",
+    "Pleading/Motion",
+    "Report/Form",
+    "Status Report",
+    "Subpoena",
+    "Testimony",
+    "Top Sheet",
+    "Transcript",
+)
+
+
+def _split_class_type_row(line: str) -> FercPublishedClassTypeRow:
+    """Recover the PDF's four columns from one space-joined extracted line.
+
+    Both middle columns are closed vocabularies, so this is a decidable split
+    rather than a heuristic. Anything that does not split is drift and must
+    fail loudly: a silent fallback to the joined line would reintroduce exactly
+    the information loss this function exists to remove.
+    """
+
+    match = _CLASS_TYPE_ROW.match(line)
+    if match is None:
+        raise FercSourceDriftError(f"FERC class/type row has no known Library column: {line!r}")
+    rest = match.group("rest")
+    for classification in sorted(_CLASS_TYPE_CLASSIFICATIONS, key=len, reverse=True):
+        if rest == classification:
+            description = classification
+            break
+        if rest.startswith(f"{classification} "):
+            description = rest[len(classification) + 1 :]
+            break
+    else:
+        raise FercSourceDriftError(
+            f"FERC class/type row has no known Classification column: {line!r}"
+        )
+    return FercPublishedClassTypeRow(
+        category=match.group("category"),  # type: ignore[arg-type]
+        text=line,
+        library=match.group("library"),
+        classification=classification,
+        type_description=description,
+    )
+
+
 def parse_ferc_class_type_pdf(payload: bytes) -> FercPublishedClassTypeCapture:
     """Read every class/type table row from FERC's pinned January 2025 PDF."""
 
@@ -204,10 +298,8 @@ def parse_ferc_class_type_pdf(payload: bytes) -> FercPublishedClassTypeCapture:
         text = page.extract_text() or ""
         for raw_line in text.splitlines():
             line = " ".join(raw_line.split())
-            if line.startswith("Issuance "):
-                rows.append(FercPublishedClassTypeRow(category="Issuance", text=line))
-            elif line.startswith("Submittal "):
-                rows.append(FercPublishedClassTypeRow(category="Submittal", text=line))
+            if line.startswith(("Issuance ", "Submittal ")):
+                rows.append(_split_class_type_row(line))
     if len(reader.pages) != 7 or len(rows) != FERC_CLASS_TYPE_PDF_ROW_COUNT:
         raise FercSourceDriftError(
             f"FERC class/type PDF shape drifted: pages={len(reader.pages)}, rows={len(rows)}"
