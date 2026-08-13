@@ -2460,7 +2460,11 @@ def _read_pattern_rows(
         raise ValueError(f"{spec.name} has no pattern-row selector")
     if not selector.patterns:
         raise ValueError(f"{spec.name} pattern-row selector declares no input patterns")
-    if selector.identity_mode not in {"publisher-iri", "source-local-record"}:
+    if selector.identity_mode not in {
+        "publisher-iri",
+        "source-key-derived",
+        "source-local-record",
+    }:
         raise ValueError(
             f"{spec.name} pattern-row identity mode is unsupported: "
             f"{selector.identity_mode!r}"
@@ -10534,6 +10538,71 @@ def _pra_pattern_source() -> SourceSpec:
 PRA_PATTERN_ROW_SOURCES = (_pra_pattern_source(),)
 
 
+_EPA_COMPTOX_PATTERN_PIN = _registry_source_pin(
+    "comptox-DTXSID7020182.normalized.html",
+    "sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803",
+    334_109,
+    "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
+    fmt="html",
+    role="boundedPublisherSubstancePage",
+    construction_path=(
+        "output/registry-real-data-sources/"
+        "comptox-DTXSID7020182.normalized.html"
+    ),
+)
+
+
+def _epa_comptox_pattern_source() -> SourceSpec:
+    native_payload = {
+        "casrn": "{casrn}",
+        "dtxcid": "{dtxcid}",
+        "dtxsid": "{dtxsid}",
+        "preferredName": "{label}",
+        "sourceUri": "{source_iri}",
+        "tscaInventoryStatus": None,
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_EPA_COMPTOX_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=(
+                    r"\A(?=[\s\S]*\b(?P<dtxsid>DTXSID\d{6,9})\b)"
+                    r"(?=[\s\S]*\b(?P<dtxcid>DTXCID\d{4,9})\b)"
+                    r'(?=[\s\S]*casrn:"(?P<casrn>\d{2,7}-\d{2}-\d)")'
+                    r'(?=[\s\S]*preferredName:"(?P<label>[^"\\]+)")'
+                    r"[\s\S]*?<title>CompTox Chemicals Dashboard</title>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+            ),
+        ),
+        row_key="{dtxsid}",
+        identity_mode="source-key-derived",
+        identity_template="urn:ref:epa-substance:{dtxsid}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "{input_path}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=1,
+        declared_unevaluated_fields=("htmlOutsideCompToxIdentifiers",),
+    )
+    return _pattern_row_source_spec(
+        "epa-comptox-substance-bounded-2026-08-03",
+        (_EPA_COMPTOX_PATTERN_PIN,),
+        selector,
+    )
+
+
+EPA_COMPTOX_PATTERN_ROW_SOURCES = (_epa_comptox_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -10618,6 +10687,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *CENSUS_FINANCE_PATTERN_ROW_SOURCES,
     *NASBO_PATTERN_ROW_SOURCES,
     *PRA_PATTERN_ROW_SOURCES,
+    *EPA_COMPTOX_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
