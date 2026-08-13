@@ -24,6 +24,7 @@ def _dataset(store: Memory | TwoIndexStore):
         (URIRef("urn:s:1"), URIRef("urn:p:1"), URIRef("urn:o:1")),
         (URIRef("urn:s:1"), URIRef("urn:p:2"), Literal("value", lang="en")),
         (URIRef("urn:s:2"), URIRef("urn:p:1"), URIRef("urn:o:1")),
+        (URIRef("urn:s:1"), URIRef("urn:p:1"), URIRef("urn:o:2")),
     )
     for triple in triples:
         first.add(triple)
@@ -56,6 +57,10 @@ def test_two_index_matches_memory_for_every_bound_position_pattern() -> None:
                     expected_graph.triples(pattern)
                 )
         assert len(actual_graph) == len(expected_graph)
+
+    assert tuple(actual_first.objects(URIRef("urn:s:1"), URIRef("urn:p:1"))) == tuple(
+        expected_first.objects(URIRef("urn:s:1"), URIRef("urn:p:1"))
+    )
 
     assert set(actual.quads((None, None, None, None))) == set(
         expected.quads((None, None, None, None))

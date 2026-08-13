@@ -97,8 +97,8 @@ class _ContextIndex:
     """The subject-led and predicate-led indexes for one graph context."""
 
     graph: Graph
-    spo: dict[Any, dict[Any, set[Any]]] = field(default_factory=dict)
-    pos: dict[Any, dict[Any, set[Any]]] = field(default_factory=dict)
+    spo: dict[Any, dict[Any, dict[Any, None]]] = field(default_factory=dict)
+    pos: dict[Any, dict[Any, dict[Any, None]]] = field(default_factory=dict)
     size: int = 0
 
 
@@ -153,11 +153,11 @@ class TwoIndexStore(Store):
         index = self._index(context, create=True)
         assert index is not None
 
-        objects = index.spo.setdefault(subject, {}).setdefault(predicate, set())
+        objects = index.spo.setdefault(subject, {}).setdefault(predicate, {})
         if obj in objects:
             return
-        objects.add(obj)
-        index.pos.setdefault(predicate, {}).setdefault(obj, set()).add(subject)
+        objects[obj] = None
+        index.pos.setdefault(predicate, {}).setdefault(obj, {})[subject] = None
         index.size += 1
 
     def _context_rows(
@@ -274,13 +274,13 @@ class TwoIndexStore(Store):
                 self._context_rows(index, triple_pattern)
             ):
                 objects = index.spo[subject][predicate]
-                objects.remove(obj)
+                del objects[obj]
                 if not objects:
                     del index.spo[subject][predicate]
                 if not index.spo[subject]:
                     del index.spo[subject]
                 subjects = index.pos[predicate][obj]
-                subjects.remove(subject)
+                del subjects[subject]
                 if not subjects:
                     del index.pos[predicate][obj]
                 if not index.pos[predicate]:
