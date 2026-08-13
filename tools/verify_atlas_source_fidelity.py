@@ -8063,7 +8063,7 @@ def _pattern_row_source_spec(
         inputs=inputs,
         reader=PATTERN_ROW_READER,
         pattern_row=selector,
-        identity_policy="source-local-record",
+        identity_policy=selector.identity_mode,
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
             frozenset(selector.native_payload_fields)
@@ -8189,6 +8189,177 @@ FEC_PATTERN_ROW_SOURCES = tuple(
 )
 
 
+_BILLSTATUS_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/billstatus_codes/"
+        "billstatus-xml-user-guide-2026-08-03.md"
+    ),
+    sha256=(
+        "sha256:a10909696b2ed2244d75c76e75fa32bc3e4eb926deab7e4e00592a6a01c3ad3a"
+    ),
+    byte_length=38_802,
+    fmt="markdown",
+    role="publisherSource",
+    source_iri=(
+        "https://raw.githubusercontent.com/usgpo/bill-status/master/"
+        "BILLSTATUS-XML_User_User-Guide.md"
+    ),
+)
+
+
+def _billstatus_identifier_template(kind: str, value: str) -> Mapping[str, Any]:
+    """Declare one exact ControlledIdentifier-shaped BILLSTATUS field."""
+    return {
+        "authority_uri": "https://www.govinfo.gov/bulkdata/BILLSTATUS/",
+        "effective_at": None,
+        "kind": kind,
+        "observed_at": "{observed_at}",
+        "source_digest": "{source_digest}",
+        "source_uri": "{source_iri}",
+        "value": value,
+    }
+
+
+def _billstatus_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    source_token: str,
+    completeness: str,
+    region_pattern: str,
+    row_pattern: str,
+    expected_count: int,
+    identifiers: tuple[Mapping[str, Any], ...],
+    row_key: str,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:29:08Z"
+    native_payload_template = {
+        "completeness": completeness,
+        "identifiers": list(identifiers),
+        "is_general_subject_concept": False,
+        "publisher_label": "{label}",
+        "resource_name": resource_name,
+        "sourceArtifact": "{source_iri}",
+        "source_url": "{source_iri}",
+        "use": "deterministicMetadata",
+    }
+    notation_claims = tuple(
+        ("notation", str(identifier["value"])) for identifier in identifiers
+    )
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_BILLSTATUS_PATTERN_PIN.path),
+                region_pattern=region_pattern,
+                row_pattern=row_pattern,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("strip",)),
+                    PatternFieldNormalizer("label", ("strip",)),
+                    *(
+                        (PatternFieldNormalizer("chamber", ("strip",)),)
+                        if "chamber" in re.compile(row_pattern).groupindex
+                        else ()
+                    ),
+                ),
+            ),
+        ),
+        row_key=row_key,
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            *notation_claims,
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{label}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("markdownOutsideSelectedRegion",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}[{ordinal}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_BILLSTATUS_PATTERN_PIN,), selector)
+
+
+BILLSTATUS_PATTERN_ROW_SOURCES = (
+    _billstatus_pattern_source(
+        name="billstatus-action-codes",
+        resource_name="actionCodes",
+        source_token="billstatus-action-codes",
+        completeness="openCourtesyList",
+        region_pattern=(
+            r"^# 3\. Action Code Element Possible Values\s*$"
+            r"(?P<region>.*?)(?=^# 4\. Actions Type Element Possible Values\s*$)"
+        ),
+        row_pattern=(
+            r"^\|\s*\*\*(?P<code>[A-Z0-9]{4,6})\*\*\s*\|"
+            r"\s*(?P<label>[^|\n]+?)\s*\|\s*$"
+        ),
+        expected_count=36,
+        identifiers=(_billstatus_identifier_template("actionCode", "{code}"),),
+        row_key="{code}",
+    ),
+    _billstatus_pattern_source(
+        name="billstatus-bill-types",
+        resource_name="billTypes",
+        source_token="billstatus-bill-types",
+        completeness="closedEnumeration",
+        region_pattern=(
+            r"^Bill type \(Possible values are (?P<region>[^)]+)\)\.[ \t]*$"
+        ),
+        row_pattern=(
+            r"(?:^|,\s*(?:and\s+)?)(?P<label>(?P<code>[A-Z]{1,7}))"
+            r"(?=,|$)"
+        ),
+        expected_count=8,
+        identifiers=(_billstatus_identifier_template("billTypeCode", "{code}"),),
+        row_key="{code}",
+    ),
+    _billstatus_pattern_source(
+        name="billstatus-summary-version-codes",
+        resource_name="summaryVersionCodes",
+        source_token="billstatus-summary-version-codes",
+        completeness="closedEnumeration",
+        region_pattern=(
+            r"^# 5\. Mapping of LOC Summaries Version Codes and\s+Action "
+            r"Description Text\s*$"
+            r"(?P<region>.*?)(?=^# 6\. Title Type Possible Values\s*$)"
+        ),
+        row_pattern=(
+            r"^\|\s*\*\*(?P<code>[0-9]{2})\*\*\s*\|"
+            r"\s*(?P<chamber>HOUSE|SENATE|BOTH)\s*\|"
+            r"\s*(?P<label>[^|\n]+?)\s*\|\s*$"
+        ),
+        expected_count=88,
+        identifiers=(
+            _billstatus_identifier_template("billVersionCode", "{code}"),
+            _billstatus_identifier_template("billVersionChamber", "{chamber}"),
+        ),
+        row_key="{code}:{chamber}",
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -8258,6 +8429,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
         ),
     ),
+    *BILLSTATUS_PATTERN_ROW_SOURCES,
     *FEC_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
