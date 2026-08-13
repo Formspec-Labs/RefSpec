@@ -1,0 +1,67 @@
+{
+  "candidates": [
+    {
+      "commitShort": "cad3840",
+      "featureSourceFinding": "The tagged source contains implementations and W3C test entries for every Atlas feature-floor family. This was not verified by running the engine.",
+      "name": "rudof",
+      "releaseDate": "2026-08-13",
+      "runtimeFinding": "not run: no executable or cached source was present, and candidate acquisition failed because network name resolution was unavailable",
+      "status": "documented-only",
+      "urls": {
+        "release": "https://github.com/rudof-project/rudof/releases/tag/0.3.8",
+        "source": "https://github.com/rudof-project/rudof/tree/0.3.8",
+        "w3cHarness": "https://github.com/rudof-project/rudof/blob/0.3.8/shacl/tests/shacl_testsuite.rs"
+      },
+      "version": "0.3.8",
+      "w3cEvidence": "The harness compares produced and expected validation reports and returns an error on a mismatch. The audited source does not publish an aggregate result for the pinned suite, so this is harness evidence, not a conformance result."
+    },
+    {
+      "commit": "590a9aa40d4d6f66fca58f707715d15a760d707e",
+      "featureSourceFinding": "The published source contains implementations for every Atlas feature-floor family, including sequence paths and a native IndexedGraph backend. This was not verified by running the engine.",
+      "name": "shacl-rust",
+      "releaseDate": "2026-07-31",
+      "runtimeFinding": "not run: no executable or cached crate was present, and candidate acquisition failed because network name resolution was unavailable",
+      "status": "documented-only",
+      "urls": {
+        "cargoManifest": "https://docs.rs/crate/shacl-rust/0.2.11/source/Cargo.toml",
+        "indexedGraph": "https://docs.rs/crate/shacl-rust/0.2.11/source/src/indexed_graph.rs",
+        "sourceIdentity": "https://docs.rs/crate/shacl-rust/0.2.11/source/.cargo_vcs_info.json"
+      },
+      "version": "0.2.11",
+      "w3cEvidence": "No aggregate W3C SHACL test-suite result was found in the audited package sources."
+    },
+    {
+      "featureSourceFinding": "The repository tag contains modules for the Atlas feature-floor families and property paths. This was not verified by running the engine.",
+      "name": "oxirs-shacl",
+      "publishedCrate": {
+        "releaseDate": "2026-06-06",
+        "version": "0.3.1"
+      },
+      "repositoryTag": {
+        "commitShort": "8a32274",
+        "releaseDate": "2026-07-28",
+        "version": "0.4.1"
+      },
+      "runtimeFinding": "not run: no executable or cached crate was present, and candidate acquisition failed because network name resolution was unavailable",
+      "status": "documented-only",
+      "urls": {
+        "publishedCrate": "https://docs.rs/crate/oxirs-shacl/0.3.1",
+        "release": "https://github.com/cool-japan/oxirs/releases/tag/v0.4.1",
+        "w3cHarness": "https://github.com/cool-japan/oxirs/blob/v0.4.1/engine/oxirs-shacl/tests/w3c_test_suite_integration.rs"
+      },
+      "w3cEvidence": "The v0.4.1 integration test asserts only that tests were discovered and categorized; it prints failures, skips, and errors but does not require their counts to be zero."
+    }
+  ],
+  "integrationExample": {
+    "commit": "95d0613a9467d810b5d615930968d757b36669a8",
+    "finding": "The current oxigraph-cloud implementation serializes every Oxigraph quad to one in-memory N-Triples string, drops graph names, and reparses the string into Rudof RdfData. It is not a direct Rust-engine-over-Rust-store path.",
+    "name": "oxigraph-cloud",
+    "status": "rejected",
+    "urls": {
+      "design": "https://github.com/chapeaux/oxigraph-cloud/blob/95d0613a9467d810b5d615930968d757b36669a8/docs/03-rudof-shacl-integration.md",
+      "implementation": "https://github.com/chapeaux/oxigraph-cloud/blob/95d0613a9467d810b5d615930968d757b36669a8/crates/oxigraph-shacl/src/validator.rs"
+    }
+  },
+  "retrievedAt": "2026-08-13",
+  "runtimeAcquisitionEvidence": "environment.json"
+}

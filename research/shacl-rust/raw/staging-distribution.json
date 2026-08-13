@@ -1,0 +1,114 @@
+{
+  "bindingIdentity": {
+    "currentShapesPath": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust/bindings/atlas/3.1/shapes/atlas.shacl.ttl",
+    "currentShapesSha256": "af85315e9f6918d166ed24a0cef6d98820c4430c936178842382a3a1279c1abf",
+    "distributionShapesSha256": "724aefcf349c51b74af75387c638365502db2f4638e27aa16e5f241090c8d48c",
+    "shapesMatch": false
+  },
+  "distribution": {
+    "assertedQuadCount": 1013723,
+    "contentByteLength": 231649831,
+    "manifestPath": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/atlas-manifest.json",
+    "manifestSha256": "53f5b233b95618074612c8331ff2b47cd696e75c5ab4731ced3d5caa95b9cd2f",
+    "packCount": 5,
+    "transportByteLength": 12732804
+  },
+  "integrity": {
+    "allMemberDigestsMatch": true,
+    "allPackTransportDigestsMatch": true,
+    "members": [
+      {
+        "actualByteLength": 2302699,
+        "actualSha256": "9e53ef95c85fed4ec7a291fd636195da94c7230434506f93919001bfebe6fc53",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 2302699,
+        "expectedSha256": "9e53ef95c85fed4ec7a291fd636195da94c7230434506f93919001bfebe6fc53",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/atlas-source-accounting.json",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 3041,
+        "actualSha256": "91e24758b986f8133aefb8d2ee1e4fd73d337b624a3b34b146279b9e0b242776",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 3041,
+        "expectedSha256": "91e24758b986f8133aefb8d2ee1e4fd73d337b624a3b34b146279b9e0b242776",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/atlas-acceptance.json",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 1650,
+        "actualSha256": "3788ef700135c4613a775daf22094089c66f05268430ef77022127b3321e5b22",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 1650,
+        "expectedSha256": "3788ef700135c4613a775daf22094089c66f05268430ef77022127b3321e5b22",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/atlas-producer-validation.json",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 16564,
+        "actualSha256": "e6b44ef679fc6d650648f89c7acc1f42951ead7d148968580bdb0c0f0a5f84a8",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 16564,
+        "expectedSha256": "e6b44ef679fc6d650648f89c7acc1f42951ead7d148968580bdb0c0f0a5f84a8",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/atlas-construction-summary.json",
+        "sha256Matches": true
+      }
+    ],
+    "packTransports": [
+      {
+        "actualByteLength": 788580,
+        "actualSha256": "d55f384116b7aa5bee85c6ff8e0e2f6b1ae6ca0b5dad4b71277e5294ccba2fe4",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 788580,
+        "expectedSha256": "d55f384116b7aa5bee85c6ff8e0e2f6b1ae6ca0b5dad4b71277e5294ccba2fe4",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/packs/mappings/eurovoc-lcsh-alignment-20240711.nq.zst",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 1631799,
+        "actualSha256": "cce0c35fbf0d5806c4656f4bdc607add91a1a571c25c8ec525fc1f835a55030d",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 1631799,
+        "expectedSha256": "cce0c35fbf0d5806c4656f4bdc607add91a1a571c25c8ec525fc1f835a55030d",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/packs/sources/lcsh-eurovoc-alignment-endpoints-2026-08-06/all.nq.zst",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 32532,
+        "actualSha256": "4afd8b497e6cddee913ba85d3600e6d2a20047bf5951b4acfc763b3635103544",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 32532,
+        "expectedSha256": "4afd8b497e6cddee913ba85d3600e6d2a20047bf5951b4acfc763b3635103544",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/packs/catalog.nq.zst",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 10274241,
+        "actualSha256": "e6a303ee9344b90d45d8cff58cff8f6cf2b9fe931abb45c218819194ce4af115",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 10274241,
+        "expectedSha256": "e6a303ee9344b90d45d8cff58cff8f6cf2b9fe931abb45c218819194ce4af115",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/packs/sources/eurovoc-4-24/all.nq.zst",
+        "sha256Matches": true
+      },
+      {
+        "actualByteLength": 5652,
+        "actualSha256": "512c10be0af44609dd6accfcc58516f1cf5140ea9ac2ee6c621435cf98606fbc",
+        "byteLengthMatches": true,
+        "exists": true,
+        "expectedByteLength": 5652,
+        "expectedSha256": "512c10be0af44609dd6accfcc58516f1cf5140ea9ac2ee6c621435cf98606fbc",
+        "path": "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-mapping-topology-staging/distribution/packs/sources/eurovoc-domains-4-24/all.nq.zst",
+        "sha256Matches": true
+      }
+    ]
+  }
+}
