@@ -369,6 +369,55 @@ not flattened — 77 active (Table 1's 73 + Table 2's 4) and 18 discontinued
 en-dash in IC; and the third column survives in nativePayload with multi-value
 cells intact ("E, G, H, O" for ZZ, "E, G, O, H, Gen" for CE and PA).
 
+**ALL FOUR PDF UNITS REVIEWED AGAINST THEIR SOURCE DOCUMENTS (2026-08-13).**
+These units are unauditable by machine — an authenticated PDF pin compares no
+publisher rows — so each was checked by hand. Method, stated honestly: pages
+were RENDERED AND READ VISUALLY for structure (tables, columns, headers,
+truncations); every DEFECT came from BYTE INSPECTION, because ligatures and
+U+2010 hyphens render identically to their ASCII forms and cannot be seen. The
+four are not one problem; they are four different ones, in increasing severity:
+
+1. `ferc-docket-prefixes` — FAITHFUL. All 95 prefixes, zero set difference; the
+   source's three tables preserved rather than flattened (77 active = Table 1's
+   73 + Table 2's 4; 18 discontinued = Table 3); definitions verbatim; the
+   Library column carried in nativePayload with multi-value cells intact
+   ("E, G, H, O"). Carries the source's own typography unnormalized: 54
+   ligatures, 94 U+2010 hyphens.
+2. `ferc-document-class-types` — CONTENT FAITHFUL, STRUCTURE LOST. 235 distinct
+   records, and the extractor correctly rejected the repeated mid-table headers
+   and blank spacers. But the source's FOUR columns are stored as one flat
+   concatenated string — "Submittal E, G, O, H, Gen Applicant Correspondence
+   Deficiency Letter/Data Response" — space-joined with no delimiters, so the
+   Library / Classification / Type Description boundaries are UNRECOVERABLE. Its
+   sibling unit parses its columns properly; these two disagree.
+3. `unified-agenda-legal-authority-citation-types` — EDITORIAL INFERENCE FROM
+   PROSE. The source is the RISC Preamble, whose Section V lists TWELVE
+   abbreviations (ANPRM, CFR, E.O., FR, FY, NPRM, Legal Authority, Pub. L., RFA,
+   RIN, Seq. No., U.S.C.). Atlas carries THREE — E.O., Pub. L., U.S.C. — and
+   asserts `kind: "legalAuthorityCitationType"` for each. THE SOURCE NEVER MAKES
+   THAT CLASSIFICATION; it is Atlas's own judgment, and the selection criterion
+   is nowhere declared. The PDF supplies a rich definition for every
+   abbreviation; Atlas carries NONE (zero atlas:definition or atlas:note quads).
+4. `usgs-gnis-identifiers` — MIXED, AND THE MOST SERIOUS. Three identifier
+   fields taken from a 21+ field format table. `feature_id` IS transcribed —
+   with the source's ligature normalized (so this unit normalizes what unit 1
+   does not) and the trailing "See Appendix 3, number 1." dropped. But
+   `state_numeric` and `county_numeric` carry "Two-digit code for the state…"
+   and "Three-digit code for the county…" — **strings that do not appear in the
+   cited PDF anywhere**, verified by independent text extraction. They are
+   accurate paraphrases synthesised from the table's Type and Length columns
+   (the source's own description cells there are merged with state_name /
+   county_name and are about the NAME fields), but they are Atlas-authored text
+   published under that document's sourceDigest. A consumer treating these as
+   publisher wording would be wrong.
+
+CROSS-CUTTING: ligature handling is INCONSISTENT across PDF units (1 keeps, 4
+normalizes), and the four units use four different extraction philosophies —
+faithful table transcription, lossy row flattening, editorial inference from
+prose, and synthesised description text. Any fix should settle the policy once,
+not per unit. NOTE none of this is visible to the current gates: all four pass
+acceptance, SHACL, canonical byte grammar and strict-parser lint.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
