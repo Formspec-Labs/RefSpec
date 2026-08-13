@@ -177,13 +177,27 @@ query loop, and the `atlas:sourceRecord` sweep stays on the graph by
 decision (the index holds the same 34,476 pairs in a different order,
 and the gate names the first unreconciled pair — folding it would move a
 contractual `firstIssue` to save 0.17s and one call). What remains is
-SHACL itself, ~78% of the run: `research/residual-shacl` proved the
-generic lift pattern exhausted (lifting more made it WORSE, 17.38s →
-17.72s), and `research/shacl-floor` is testing whether the named
-remainder — the `sh:xone` on `atlas:MappingAssertionShape`, the four
-sequence-path `sh:equals` shapes, and the focus-node discovery feeding
-them — is a real floor or a discovery problem the fact index can already
-answer.
+SHACL itself, ~78% of the run — and that floor is now MEASURED AND
+CLOSED. `research/residual-shacl` proved the generic lift pattern
+exhausted (lifting more made it WORSE, 17.38s → 17.72s).
+`research/shacl-floor` then attacked the named remainder and returned a
+**DON'T-TAKE with one correction**: a second SHACL implementation is NOT
+required, as the prior study claimed. The discovery hypothesis was right
+— the four sequence-path value lookups cost 1.838s against just 0.303s
+for the `sh:equals` evaluations themselves, 6× — but cashing it in is
+worth only 13.097s → 11.652s at staging (11.03%), and the explicit
+second-implementation ceiling buys **0.019s more than that**, inside the
+sample noise. Neither equivalent shape rewrite helped (`sh:or` for
+`sh:xone`: 0.042s SLOWER; materialized direct predicates: 0.292s
+slower), and focus-node hints were slower still. The honest floor:
+**9.449s of the 11.652s is pySHACL engine work**, with 2.154s in the
+lifts we already have. Projected to release scale the whole opportunity
+is ~35.7s of an 18.5-min run (~3.2%), extrapolated not measured, against
+an unmeasured full-scale memory cost for the required reverse type
+index. Verdict: keep the harness and evidence, add no production code,
+change no normative shapes. **The performance program is therefore
+DONE** — further gains need a different engine, which is the Jena/move-2
+door, already measured no-go.
 
 **OPEN — the machine-adjudication archive question, now MEASURED (owner
 call, not mine).** Evidence gathered 2026-08-13 against the artifact of
@@ -262,7 +276,8 @@ restart from scratch.
 | research/fidelity-langbugs | complete | b079de13: one BCP-47 predicate + definitions carried |
 | feat/parse-substrate | MERGED ae34392c | parse_substrate.py + validator wiring; corpus 130/130 identical; seam is REFSPEC_ATLAS_RDF_STORE=two-index|memory |
 | research/graph-residual | MERGED 15b468c8 | the observer campaign's last two folds; 310,282 store calls → 16 |
-| research/shacl-floor | running | attacks the named SHACL floor (xone + four sequence-path sh:equals + discovery) |
+| research/shacl-floor | complete | DON'T-TAKE; the SHACL floor measured (9.449s of 11.652s is engine); corrects residual-shacl's "needs a second implementation" |
+| research/coverage-bulk | MERGED 18283ce5 | four bulk-vocabulary readers; campaign coverage 27/110 → 31/110 |
 | research/auditor-language-scope | wip | NASA double-count FIXED (5e833c18); language mechanism unfinished |
 | research/coverage-{bulk,json,csv-pdf,html-misc} | wip | first SourceSpecs authored + committed per batch |
 
