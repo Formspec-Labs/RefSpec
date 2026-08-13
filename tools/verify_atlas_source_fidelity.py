@@ -78,12 +78,15 @@ import re
 import sys
 import threading
 import urllib.parse
+import uuid
 import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 from refspec.input_pin import read_verified_file_pin
 from refspec.registry.infrastructure.source_controlled_resource import LABEL_ROLES
@@ -613,6 +616,12 @@ class PublisherView:
     resource_input_digests: Mapping[str, frozenset[str]]
     input_content_digests: Mapping[str, str]
     unevaluated_claims: tuple[str, ...] = ()
+    # Stock non-RDF readers derive these fields from authenticated publisher
+    # rows. RDF readers leave them empty and use RdfSourcePolicy instead.
+    resource_locators: Mapping[str, str] = field(default_factory=dict)
+    expected_native_payloads: Mapping[str, Mapping[str, Any]] = field(
+        default_factory=dict
+    )
     # Blank-node claims a declared exclusion accounts for, by exclusion name.
     # They never reach ``iri_claims``/``literal_claims`` (both require an IRI
     # subject), so the exclusion report counts them from here instead of losing
@@ -820,6 +829,8 @@ class SourceSpec:
     kind: str  # "vocabulary", "mapping", "native-control", or "source-extract"
     release_keys: tuple[str, ...]
     inputs: tuple[SourcePin, ...]
+    reader: str = "rdf"
+    identity_policy: str = "publisher-iri"
     policies: frozenset[str] = frozenset()
     subset: str = "all"
     included_concept_iris: frozenset[str] = frozenset()
@@ -1595,7 +1606,7 @@ def _read_publisher_pin_set(
 
 
 def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
-    """Read and union every independently pinned RDF input for one comparison scope."""
+    """Read every independently pinned input with the spec's stock parser."""
     payloads = {
         pin: read_verified_file_pin(
             _resolve_source_pin(source_root, pin),
@@ -1605,6 +1616,11 @@ def read_publisher_inputs(source_root: Path, spec: SourceSpec) -> PublisherView:
         )
         for pin in spec.inputs
     }
+    if spec.reader != "rdf":
+        reader = _PUBLISHER_READERS.get(spec.reader)
+        if reader is None:
+            raise ValueError(f"unsupported publisher reader {spec.reader!r}")
+        return reader(spec, payloads)
     view = _select_publisher_view(
         _read_publisher_pin_set(
             spec.inputs,
@@ -1713,6 +1729,16 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
         },
         input_content_digests=view.input_content_digests,
         unevaluated_claims=view.unevaluated_claims,
+        resource_locators={
+            resource: locator
+            for resource, locator in view.resource_locators.items()
+            if resource in resources
+        },
+        expected_native_payloads={
+            resource: payload
+            for resource, payload in view.expected_native_payloads.items()
+            if resource in resources
+        },
         declared_out_of_scope_blank_node_claims=(
             view.declared_out_of_scope_blank_node_claims
         ),
@@ -1804,6 +1830,16 @@ def _select_publisher_concepts(
         },
         input_content_digests=view.input_content_digests,
         unevaluated_claims=view.unevaluated_claims,
+        resource_locators={
+            resource: locator
+            for resource, locator in view.resource_locators.items()
+            if resource in resources
+        },
+        expected_native_payloads={
+            resource: payload
+            for resource, payload in view.expected_native_payloads.items()
+            if resource in resources
+        },
         declared_out_of_scope_blank_node_claims=(
             view.declared_out_of_scope_blank_node_claims
         ),
@@ -1823,6 +1859,1279 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
         return result
 
     return json.loads(payload, object_pairs_hook=reject_duplicates)
+
+
+API_CAPTURE_JSON_READER = "api-capture-json-v1/1.0"
+
+
+@dataclass(frozen=True)
+class _ApiCaptureRecord:
+    """One source row reconstructed with only stock JSON/XML operations."""
+
+    resource: str
+    preferred_label: str
+    notations: tuple[str, ...]
+    source_locator: str
+    source_digest: str
+    native_payload: Mapping[str, Any]
+    is_skos_concept: bool = False
+    alternate_labels: tuple[str, ...] = ()
+    definition: str | None = None
+    relations: tuple[tuple[str, str], ...] = ()
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _required_text(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label} must be non-empty text")
+    return value
+
+
+def _mapping_rows(value: Any, label: str) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list) or any(not isinstance(row, Mapping) for row in value):
+        raise ValueError(f"{label} must be an array of objects")
+    return list(value)
+
+
+def _single_pin(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> tuple[SourcePin, bytes]:
+    if len(spec.inputs) != 1:
+        raise ValueError(f"{spec.name} requires exactly one publisher input")
+    pin = spec.inputs[0]
+    return pin, payloads[pin]
+
+
+def _pin_with_role(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+    role: str,
+) -> tuple[SourcePin, bytes]:
+    matches = [(pin, payloads[pin]) for pin in spec.inputs if pin.role == role]
+    if len(matches) != 1:
+        raise ValueError(f"{spec.name} requires exactly one {role!r} input")
+    return matches[0]
+
+
+def _source_uuid7(recorded_at: str, seed: Mapping[str, Any]) -> str:
+    """Reconstruct the source-local UUIDv7 from its published inputs.
+
+    This is an independent spelling of UUIDv7 bit placement. It deliberately
+    does not import the registry's source-identity helper.
+    """
+    instant = datetime.fromisoformat(recorded_at)
+    timestamp_ms = int(instant.astimezone(UTC).timestamp() * 1000)
+    random_bits = int.from_bytes(hashlib.sha256(_canonical_json_bytes(seed)).digest())
+    random_bits >>= 182
+    random_a = random_bits >> 62
+    random_b = random_bits & ((1 << 62) - 1)
+    value = (
+        (timestamp_ms << 80)
+        | (0x7 << 76)
+        | (random_a << 64)
+        | (0b10 << 62)
+        | random_b
+    )
+    return str(uuid.UUID(int=value))
+
+
+def _source_concept_iri(
+    *,
+    token: str,
+    recorded_at: str,
+    source_locator: str,
+    source_path: str,
+    notations: Sequence[str],
+    identity_hint: str,
+) -> str:
+    seed = {
+        "source": source_locator,
+        "path": source_path,
+        "notations": list(notations),
+        "identityHint": identity_hint,
+    }
+    return f"urn:ref:source-concept:v2:{token}:{_source_uuid7(recorded_at, seed)}"
+
+
+def _source_observation_id(
+    *,
+    resource_id: str,
+    source_artifact: str,
+    source_path: str,
+    identifiers: Sequence[Mapping[str, Any]],
+    package_version: str | None = None,
+) -> str:
+    identity: dict[str, Any] = {
+        "resourceId": resource_id,
+        "sourceArtifact": source_artifact,
+        "sourcePath": source_path,
+        "identifiers": [
+            {
+                "value": item["value"],
+                "kind": item["kind"],
+                "authorityUri": item["authorityUri"],
+            }
+            for item in identifiers
+        ],
+    }
+    if package_version is not None:
+        identity = {"packageVersion": package_version, **identity}
+    digest = hashlib.sha256(_canonical_json_bytes(identity)).hexdigest()
+    return f"urn:ref:source-observation:{resource_id}:{digest}"
+
+
+def _api_capture_view(
+    records: Sequence[_ApiCaptureRecord],
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+    *,
+    unevaluated_claims: Sequence[str] = (),
+) -> PublisherView:
+    concepts: set[str] = set()
+    pref_labels: dict[str, frozenset[LiteralValue]] = {}
+    alt_labels: dict[str, frozenset[LiteralValue]] = {}
+    notations: dict[str, frozenset[LiteralValue]] = {}
+    annotations: set[tuple[str, str, LiteralValue]] = set()
+    literal_claims: set[tuple[str, str, LiteralValue]] = set()
+    iri_claims: set[tuple[str, str, str]] = set()
+    relations: set[tuple[str, str, str]] = set()
+    predicate_counts: Counter[tuple[str, str]] = Counter()
+    input_digests = {
+        pin.path: "sha256:" + hashlib.sha256(payload).hexdigest()
+        for pin, payload in payloads.items()
+    }
+    resource_digests: dict[str, frozenset[str]] = {}
+    locators: dict[str, str] = {}
+    native_payloads: dict[str, Mapping[str, Any]] = {}
+    for record in records:
+        if record.resource in concepts:
+            raise ValueError(f"{spec.name} repeats resource {record.resource!r}")
+        concepts.add(record.resource)
+        preferred = _literal_value(record.preferred_label, "en", None)
+        alternates = frozenset(
+            _literal_value(value, "en", None) for value in record.alternate_labels
+        )
+        notation_values = frozenset(
+            _literal_value(value, None, None) for value in record.notations
+        )
+        pref_labels[record.resource] = frozenset({preferred})
+        alt_labels[record.resource] = alternates
+        notations[record.resource] = notation_values
+        literal_claims.add((record.resource, SKOS_PREF_LABEL, preferred))
+        predicate_counts[(record.resource, SKOS_PREF_LABEL)] += 1
+        if record.is_skos_concept:
+            iri_claims.add((record.resource, RDF_TYPE, SKOS_CONCEPT))
+            predicate_counts[(record.resource, RDF_TYPE)] += 1
+        for value in alternates:
+            literal_claims.add((record.resource, SKOS_ALT_LABEL, value))
+            predicate_counts[(record.resource, SKOS_ALT_LABEL)] += 1
+        for value in notation_values:
+            literal_claims.add((record.resource, SKOS_NOTATION, value))
+            predicate_counts[(record.resource, SKOS_NOTATION)] += 1
+        if record.definition is not None:
+            value = _literal_value(record.definition, "en", None)
+            annotations.add((record.resource, SKOS_DEFINITION, value))
+            literal_claims.add((record.resource, SKOS_DEFINITION, value))
+            predicate_counts[(record.resource, SKOS_DEFINITION)] += 1
+        for predicate, target in record.relations:
+            relations.add((record.resource, predicate, target))
+            iri_claims.add((record.resource, predicate, target))
+            predicate_counts[(record.resource, predicate)] += 1
+        resource_digests[record.resource] = frozenset({record.source_digest})
+        locators[record.resource] = record.source_locator
+        native_payloads[record.resource] = record.native_payload
+    return PublisherView(
+        concepts=frozenset(concepts),
+        schemes=frozenset(),
+        pref_labels=pref_labels,
+        alt_labels=alt_labels,
+        hidden_labels={},
+        notations=notations,
+        annotations=frozenset(annotations),
+        resource_annotations=frozenset(),
+        resource_annotation_target_claim_counts={},
+        literal_claims=frozenset(literal_claims),
+        iri_claims=frozenset(iri_claims),
+        reified_statements=frozenset(),
+        pref_label_count_all_languages=len(records),
+        alt_label_count_all_languages=sum(len(row.alternate_labels) for row in records),
+        hidden_label_count_all_languages=0,
+        relations=frozenset(relations),
+        memberships=frozenset(),
+        top_concept_of=frozenset(),
+        has_top_concept=frozenset(),
+        resource_predicate_counts=dict(predicate_counts),
+        defects=(),
+        resource_input_digests=resource_digests,
+        input_content_digests=input_digests,
+        unevaluated_claims=tuple(unevaluated_claims),
+        resource_locators=locators,
+        expected_native_payloads=native_payloads,
+    )
+
+
+def _code_identifier(
+    *,
+    value: str,
+    kind: str,
+    authority: str,
+    pin: SourcePin,
+    observed_at: str,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "kind": kind,
+        "authority_uri": authority,
+        "source_uri": pin.source_iri,
+        "observed_at": observed_at,
+        "effective_at": None,
+        "source_digest": pin.sha256,
+    }
+
+
+def _read_lda_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    rows = _mapping_rows(data, spec.name)
+    if spec.name == "lda-general-issue-codes":
+        token, resource_name = "lda-general-issues", "generalIssueCodes"
+        identifier_kind, use = "generalIssueCode", "sourceAssignedEvidence"
+    else:
+        token, resource_name = "lda-filing-types", "filingTypes"
+        identifier_kind, use = "filingTypeCode", "deterministicMetadata"
+    recorded_at = "2026-07-30T12:45:14Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, row in enumerate(rows):
+        if set(row) != {"value", "name"}:
+            raise ValueError(f"{spec.name}[{ordinal}] has an unexpected field set")
+        code = _required_text(row["value"], f"{spec.name}[{ordinal}].value")
+        label = _required_text(row["name"], f"{spec.name}[{ordinal}].name")
+        source_path = f"$.{resource_name}[{ordinal}]"
+        resource = _source_concept_iri(
+            token=token,
+            recorded_at=recorded_at,
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=(code,),
+            identity_hint=label,
+        )
+        native = {
+            "identifiers": [
+                _code_identifier(
+                    value=code,
+                    kind=identifier_kind,
+                    authority="https://lda.gov/",
+                    pin=pin,
+                    observed_at=recorded_at,
+                )
+            ],
+            "is_general_subject_concept": False,
+            "publisher_label": label,
+            "resource_name": resource_name,
+            "source_url": pin.source_iri,
+            "use": use,
+            "sourceArtifact": pin.source_iri,
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+                is_skos_concept=(spec.name == "lda-general-issue-codes"),
+            )
+        )
+    return _api_capture_view(records, spec, payloads)
+
+
+def _read_ecfr_titles_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    rows = _mapping_rows(data.get("titles"), f"{spec.name}.titles")
+    recorded_at = "2026-08-03T19:15:00Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, row in enumerate(rows):
+        number = row.get("number")
+        if not isinstance(number, int) or isinstance(number, bool):
+            raise ValueError(f"{spec.name}.titles[{ordinal}].number must be an integer")
+        label = _required_text(row.get("name"), f"{spec.name}.titles[{ordinal}].name")
+        notation = str(number)
+        source_path = f"$.titles[{ordinal}]"
+        resource = _source_concept_iri(
+            token="ecfr-cfr-titles",
+            recorded_at=recorded_at,
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=(notation,),
+            identity_hint=label,
+        )
+        native = {
+            "title_number": number,
+            "name": label,
+            "latest_amended_on": row.get("latest_amended_on"),
+            "latest_issue_date": row.get("latest_issue_date"),
+            "up_to_date_as_of": row.get("up_to_date_as_of"),
+            "reserved": row.get("reserved"),
+            "identifiers": [
+                _code_identifier(
+                    value=notation,
+                    kind="ecfrCfrTitleNumber",
+                    authority="https://www.ecfr.gov/developers/documentation/api/v1",
+                    pin=pin,
+                    observed_at=recorded_at,
+                )
+            ],
+            "is_general_subject_concept": False,
+            "sourceArtifact": pin.source_iri,
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(notation,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=("eCFR response-level metadata is authenticated but not represented",),
+    )
+
+
+def _camel_identifier(
+    *,
+    value: str,
+    kind: str,
+    authority: str,
+    pin: SourcePin,
+    source_path: str,
+    observed_at: str,
+    source_field: str,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "kind": kind,
+        "authorityUri": authority,
+        "sourceUri": pin.source_iri,
+        "sourcePath": f"{source_path}.{source_field}",
+        "observedAt": observed_at,
+        "sourceDigest": pin.sha256,
+    }
+
+
+def _read_govinfo_collections_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    rows = _mapping_rows(data.get("collections"), f"{spec.name}.collections")
+    observed_at = "2026-08-03T19:15:00Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, row in enumerate(rows):
+        code = _required_text(
+            row.get("collectionCode"),
+            f"{spec.name}.collections[{ordinal}].collectionCode",
+        )
+        label = _required_text(
+            row.get("collectionName"),
+            f"{spec.name}.collections[{ordinal}].collectionName",
+        )
+        source_path = f"$[{ordinal}]"
+        identifiers = [
+            _camel_identifier(
+                value=code,
+                kind="govInfoCollectionCode",
+                authority="https://www.govinfo.gov/developers",
+                pin=pin,
+                source_path=source_path,
+                observed_at=observed_at,
+                source_field="collectionCode",
+            )
+        ]
+        observation_id = _source_observation_id(
+            resource_id="govinfo-collections-2026-08-03",
+            source_artifact=pin.source_iri or "",
+            source_path=source_path,
+            identifiers=identifiers,
+        )
+        native = {
+            "id": observation_id,
+            "sourceArtifact": pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": ordinal,
+            "labels": [{"value": label, "language": "en", "role": "preferred"}],
+            "identifiers": identifiers,
+            "uses": ["deterministicMetadata"],
+            "conceptIdentityClaimed": False,
+        }
+        resource = _source_concept_iri(
+            token="govinfo-collections",
+            recorded_at=observed_at,
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=(code,),
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=("GovInfo collection package and granule counts are not represented",),
+    )
+
+
+def _read_usaspending_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    categories = {
+        "contracts": "awardTypeCode",
+        "idvs": "awardTypeCode",
+        "grants": "assistanceTypeCode",
+        "loans": "assistanceTypeCode",
+        "other_financial_assistance": "assistanceTypeCode",
+        "direct_payments": "assistanceTypeCode",
+    }
+    if set(data) != set(categories):
+        raise ValueError(f"{spec.name} has an unexpected category set")
+    observed_at = "2026-08-03T19:25:21Z"
+    records: list[_ApiCaptureRecord] = []
+    ordinal = 0
+    for category, identifier_kind in categories.items():
+        rows = data[category]
+        if not isinstance(rows, Mapping):
+            raise ValueError(f"{spec.name}.{category} must be an object")
+        for raw_code, raw_label in rows.items():
+            code = _required_text(raw_code, f"{spec.name}.{category} code")
+            label = _required_text(raw_label, f"{spec.name}.{category}.{code}")
+            source_path = f"$.awardTypes[{ordinal}]"
+            resource = _source_concept_iri(
+                token="usaspending-award-types",
+                recorded_at=observed_at,
+                source_locator=pin.source_iri or "",
+                source_path=source_path,
+                notations=(code,),
+                identity_hint=label,
+            )
+            native = {
+                "category": category,
+                "identifiers": [
+                    _code_identifier(
+                        value=code,
+                        kind=identifier_kind,
+                        authority="https://www.usaspending.gov/",
+                        pin=pin,
+                        observed_at=observed_at,
+                    )
+                ],
+                "is_general_subject_concept": False,
+                "publisher_label": label,
+                "resource_name": "awardTypes",
+                "source_url": pin.source_iri,
+                "use": "deterministicMetadata",
+                "sourceArtifact": pin.source_iri,
+            }
+            records.append(
+                _ApiCaptureRecord(
+                    resource=resource,
+                    preferred_label=label,
+                    notations=(code,),
+                    source_locator=pin.source_iri or "",
+                    source_digest=pin.sha256,
+                    native_payload=native,
+                )
+            )
+            ordinal += 1
+    return _api_capture_view(records, spec, payloads)
+
+
+def _equals_lines(value: Any, label: str) -> list[tuple[str, str]]:
+    if value is None:
+        return []
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be text or null")
+    result: list[tuple[str, str]] = []
+    for line in value.splitlines():
+        if not line.strip():
+            continue
+        if " = " not in line:
+            raise ValueError(f"{label} has a malformed domain row {line!r}")
+        code, text = line.split(" = ", 1)
+        result.append((_required_text(code, label), _required_text(text, label)))
+    return result
+
+
+def _read_gsdm_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    root = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(root, Mapping) or not isinstance(root.get("document"), Mapping):
+        raise ValueError(f"{spec.name} must contain one document object")
+    document = root["document"]
+    raw_rows = document.get("rows")
+    if not isinstance(raw_rows, list) or any(not isinstance(row, list) for row in raw_rows):
+        raise ValueError(f"{spec.name}.document.rows must be an array of arrays")
+    rows = list(raw_rows)
+    targets = {"ActionType", "AssistanceType", "ContractAwardType"}
+    records: list[_ApiCaptureRecord] = []
+    seen_elements: set[str] = set()
+    for row_number, row in enumerate(rows):
+        # The publisher represents each dictionary row as an 18-column array.
+        values = list(row)
+        if len(values) != 18:
+            raise ValueError(f"{spec.name}.document.rows[{row_number}] has {len(values)} columns")
+        element = values[0]
+        if element not in targets:
+            continue
+        if not isinstance(element, str) or element in seen_elements:
+            raise ValueError(f"{spec.name} repeats reviewed element {element!r}")
+        seen_elements.add(element)
+        description_by_code = dict(
+            _equals_lines(values[5], f"{spec.name}.{element}.codeDescriptions")
+        )
+        domain_text = values[4]
+        if not isinstance(domain_text, str):
+            raise ValueError(f"{spec.name}.{element}.domainValues must be text")
+        group = ""
+        parsed: list[tuple[str, str, str]] = []
+        for line in domain_text.splitlines():
+            if not line.strip():
+                continue
+            if line.endswith(":") and " = " not in line:
+                group = line[:-1].strip().lower()
+                continue
+            for code, label in _equals_lines(line, f"{spec.name}.{element}.domainValues"):
+                parsed.append((group, code, label))
+        for domain_group, code, label in parsed:
+            group_token = domain_group or "default"
+            resource = (
+                "urn:ref:gsdm:domain-value:"
+                f"{urllib.parse.quote(element, safe='')}:"
+                f"{urllib.parse.quote(group_token, safe='')}:"
+                f"{urllib.parse.quote(code, safe='')}"
+            )
+            code_description = description_by_code.get(code)
+            native = {
+                "gsdmElement": element,
+                "domainGroup": domain_group,
+                "code": code,
+                "label": label,
+                "codeDescription": code_description,
+            }
+            records.append(
+                _ApiCaptureRecord(
+                    resource=resource,
+                    preferred_label=label,
+                    notations=(code,),
+                    source_locator=pin.source_iri or "",
+                    source_digest=pin.sha256,
+                    native_payload=native,
+                    definition=code_description,
+                )
+            )
+    if seen_elements != targets or len(records) != 40:
+        raise ValueError(
+            f"{spec.name} reviewed domain selection drifted: "
+            f"elements={sorted(seen_elements)}, records={len(records)}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "the other 454 authenticated GSDM dictionary rows are outside this reviewed release",
+        ),
+    )
+
+
+def _read_nasa_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    child_matches = [
+        (pin, payload)
+        for pin, payload in payloads.items()
+        if (pin.source_iri or "").endswith("/8817")
+    ]
+    root_matches = [
+        (pin, payload)
+        for pin, payload in payloads.items()
+        if (pin.source_iri or "").endswith("/taxonomies")
+    ]
+    if len(child_matches) != 1 or len(root_matches) != 1:
+        raise ValueError(f"{spec.name} requires one roots capture and one 8817 capture")
+    child_pin, child_payload = child_matches[0]
+    _, root_payload = root_matches[0]
+    child = _json_without_duplicate_keys(child_payload, f"{spec.name} children")
+    roots = _json_without_duplicate_keys(root_payload, f"{spec.name} roots")
+    if not isinstance(child, Mapping) or not isinstance(roots, Mapping):
+        raise ValueError(f"{spec.name} inputs must be JSON objects")
+    root_rows = _mapping_rows(roots.get("taxonomyRoots"), f"{spec.name}.taxonomyRoots")
+    selected = [row for row in root_rows if row.get("taxonomyRootId") == 8817]
+    if len(selected) != 1 or child.get("taxonomyRootId") != 8817:
+        raise ValueError(f"{spec.name} does not contain the declared taxonomy root 8817")
+    if child.get("taxonomyRoot") != selected[0]:
+        raise ValueError(f"{spec.name} root index and children capture disagree")
+    rows = _mapping_rows(child.get("children"), f"{spec.name}.children")
+    observed_at = "2026-08-03T19:03:22Z"
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, wrapper in enumerate(rows):
+        content = wrapper.get("content")
+        if not isinstance(content, Mapping):
+            raise ValueError(f"{spec.name}.children[{ordinal}].content must be an object")
+        code = _required_text(content.get("code"), f"{spec.name}.children[{ordinal}].code")
+        label = _required_text(content.get("title"), f"{spec.name}.children[{ordinal}].title")
+        node_id = str(content.get("taxonomyNodeId"))
+        source_path = f"$.children[{ordinal}].content"
+        identifiers = [
+            _camel_identifier(
+                value=code,
+                kind="taxonomyNodeCode",
+                authority="https://techport.nasa.gov/",
+                pin=child_pin,
+                source_path=source_path.removesuffix(".content"),
+                observed_at=observed_at,
+                source_field="content",
+            ),
+            _camel_identifier(
+                value=node_id,
+                kind="publisherRecordId",
+                authority="https://techport.nasa.gov/",
+                pin=child_pin,
+                source_path=source_path.removesuffix(".content"),
+                observed_at=observed_at,
+                source_field="content",
+            ),
+        ]
+        observation_id = _source_observation_id(
+            resource_id="nasa-technology-taxonomy-8817-top-level-2026-08-03",
+            source_artifact=child_pin.source_iri or "",
+            source_path=source_path,
+            identifiers=identifiers,
+            package_version="nasa-technology-taxonomy-package-v1",
+        )
+        native = {
+            "id": observation_id,
+            "sourceArtifact": child_pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": ordinal,
+            "labels": [{"value": label, "language": "en", "role": "preferred"}],
+            "identifiers": identifiers,
+            "uses": ["deterministicMetadata", "mappingReference"],
+            "conceptIdentityClaimed": False,
+        }
+        resource = _source_concept_iri(
+            token="nasa-techport-taxonomy",
+            recorded_at=observed_at,
+            source_locator=child_pin.source_iri or "",
+            source_path=source_path,
+            notations=(code, node_id),
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=(code, node_id),
+                source_locator=child_pin.source_iri or "",
+                source_digest=child_pin.sha256,
+                native_payload=native,
+                is_skos_concept=True,
+            )
+        )
+    if len(records) != 17:
+        raise ValueError(f"{spec.name} expected 17 top-level nodes, observed {len(records)}")
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "NASA root release metadata is authenticated and cross-checked but not represented per node",
+        ),
+    )
+
+
+def _fcc_identifier(
+    value: Any,
+    kind: str,
+    pin: SourcePin,
+    source_path: str,
+) -> dict[str, Any]:
+    return {
+        "value": str(value),
+        "kind": kind,
+        "authorityUri": "https://www.fcc.gov/ecfs/",
+        "sourceUri": pin.source_iri,
+        "sourcePath": source_path,
+        "observedAt": "2026-08-03T19:20:00Z",
+        "sourceDigest": pin.sha256,
+    }
+
+
+def _read_fcc_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    filings = _mapping_rows(data.get("filing"), f"{spec.name}.filing")
+    distinct: dict[str, tuple[str, str, int, list[dict[str, Any]]]] = {}
+
+    def retain(
+        key: str,
+        label: str,
+        source_path: str,
+        source_ordinal: int,
+        identifiers: list[dict[str, Any]],
+    ) -> None:
+        candidate = (label, source_path, source_ordinal, identifiers)
+        prior = distinct.get(key)
+        if prior is None:
+            distinct[key] = candidate
+        elif prior[0] != label or [item["value"] for item in prior[3]] != [
+            item["value"] for item in identifiers
+        ]:
+            raise ValueError(f"{spec.name} carries conflicting rows for {key!r}")
+
+    for ordinal, filing in enumerate(filings):
+        if spec.name == "fcc-ecfs-filing-types":
+            row = filing.get("submissiontype")
+            if not isinstance(row, Mapping):
+                raise ValueError(f"{spec.name}.filing[{ordinal}].submissiontype is invalid")
+            code = row.get("abbreviation", row.get("type"))
+            code = _required_text(code, f"{spec.name}.filing[{ordinal}] abbreviation")
+            label = _required_text(row.get("description"), f"{spec.name}.filing[{ordinal}] description")
+            path = f"$.filing[{ordinal}].submissiontype"
+            retain(
+                code,
+                label,
+                path,
+                ordinal,
+                [
+                    _fcc_identifier(code, "filingTypeAbbreviation", pin, path),
+                    _fcc_identifier(row.get("id"), "publisherRecordId", pin, path),
+                ],
+            )
+        elif spec.name == "fcc-ecfs-access-statuses":
+            row = filing.get("viewingstatus")
+            if not isinstance(row, Mapping):
+                raise ValueError(f"{spec.name}.filing[{ordinal}].viewingstatus is invalid")
+            key = str(row.get("id"))
+            label = _required_text(row.get("description"), f"{spec.name}.filing[{ordinal}] description")
+            path = f"$.filing[{ordinal}].viewingstatus"
+            retain(key, label, path, ordinal, [_fcc_identifier(key, "accessStatusId", pin, path)])
+        else:
+            proceedings = _mapping_rows(
+                filing.get("proceedings"), f"{spec.name}.filing[{ordinal}].proceedings"
+            )
+            for proceeding_ordinal, row in enumerate(proceedings):
+                path = f"$.filing[{ordinal}].proceedings[{proceeding_ordinal}]"
+                source_ordinal = ordinal * 1000 + proceeding_ordinal
+                bureau_code = _required_text(row.get("bureau_code"), f"{path}.bureau_code")
+                if spec.name == "fcc-ecfs-bureaus":
+                    label = _required_text(row.get("bureau_name"), f"{path}.bureau_name")
+                    retain(
+                        bureau_code,
+                        label,
+                        path,
+                        source_ordinal,
+                        [_fcc_identifier(bureau_code, "bureauCode", pin, path)],
+                    )
+                else:
+                    number = _required_text(row.get("name"), f"{path}.name")
+                    label = _required_text(row.get("description"), f"{path}.description")
+                    retain(
+                        number,
+                        label,
+                        path,
+                        source_ordinal,
+                        [
+                            _fcc_identifier(number, "proceedingNumber", pin, path),
+                            _fcc_identifier(row.get("id_proceeding"), "publisherRecordId", pin, path),
+                            _fcc_identifier(bureau_code, "bureauCode", pin, path),
+                        ],
+                    )
+    config = {
+        "fcc-ecfs-filing-types": ("fcc-ecfs-filing-types-2026-08-03", 6),
+        "fcc-ecfs-access-statuses": ("fcc-ecfs-access-statuses-2026-08-03", 1),
+        "fcc-ecfs-bureaus": ("fcc-ecfs-bureaus-2026-08-03", 5),
+        "fcc-ecfs-proceedings": ("fcc-ecfs-proceedings-2026-08-03", 15),
+    }
+    resource_id, expected_count = config[spec.name]
+    if len(distinct) != expected_count:
+        raise ValueError(f"{spec.name} expected {expected_count} distinct rows, observed {len(distinct)}")
+    records: list[_ApiCaptureRecord] = []
+    for _, (label, source_path, source_ordinal, identifiers) in distinct.items():
+        observation_id = _source_observation_id(
+            resource_id=resource_id,
+            source_artifact=pin.source_iri or "",
+            source_path=source_path,
+            identifiers=identifiers,
+            package_version="fcc-ecfs-controlled-list-package-v1",
+        )
+        native = {
+            "id": observation_id,
+            "sourceArtifact": pin.source_iri,
+            "sourcePath": source_path,
+            "sourceOrdinal": source_ordinal,
+            "labels": [{"value": label, "language": "en", "role": "preferred"}],
+            "identifiers": identifiers,
+            "uses": ["deterministicMetadata"],
+            "conceptIdentityClaimed": False,
+        }
+        notation_values = tuple(item["value"] for item in identifiers)
+        resource = _source_concept_iri(
+            token=spec.name,
+            recorded_at="2026-08-03T19:20:00Z",
+            source_locator=pin.source_iri or "",
+            source_path=source_path,
+            notations=notation_values,
+            identity_hint=observation_id,
+        )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=label,
+                notations=notation_values,
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "FCC filing fields outside submissiontype, viewingstatus, and proceedings are authenticated but not represented",
+        ),
+    )
+
+
+def _read_federal_hierarchy_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    parsed: list[tuple[SourcePin, int, Mapping[str, Any], str]] = []
+    input_totals: list[str] = []
+    for pin in spec.inputs:
+        data = _json_without_duplicate_keys(payloads[pin], pin.path)
+        if not isinstance(data, Mapping) or set(data) != {"totalrecords", "orglist"}:
+            raise ValueError(f"{pin.path} has an unexpected Federal Hierarchy shape")
+        rows = _mapping_rows(data["orglist"], f"{pin.path}.orglist")
+        observed_at = (
+            "2026-08-03T22:19:12Z"
+            if "fhorgtype=Sub-Tier" in (pin.source_iri or "")
+            else "2026-08-03T22:19:03Z"
+        )
+        input_totals.append(
+            f"{pin.path} totalrecords={data['totalrecords']!r} (bounded page returned {len(rows)})"
+        )
+        parsed.extend((pin, ordinal, row, observed_at) for ordinal, row in enumerate(rows))
+    resource_ids = {str(row.get("fhorgid")) for _, _, row, _ in parsed}
+    records: list[_ApiCaptureRecord] = []
+    for pin, ordinal, row, observed_at in parsed:
+        fhorgid = str(row.get("fhorgid"))
+        label = _required_text(row.get("fhorgname"), f"{pin.path}.orglist[{ordinal}].fhorgname")
+        parent_id = str(row.get("fhdeptindagencyorgid"))
+        parent_history = _mapping_rows(
+            row.get("fhorgparenthistory"),
+            f"{pin.path}.orglist[{ordinal}].fhorgparenthistory",
+        )
+        if not parent_history:
+            raise ValueError(f"{pin.path}.orglist[{ordinal}] has no parent history")
+        parent = parent_history[0]
+        identifiers = [
+            _code_identifier(
+                value=fhorgid,
+                kind="fhOrgId",
+                authority="https://sam.gov/",
+                pin=pin,
+                observed_at=observed_at,
+            ),
+            _code_identifier(
+                value=_required_text(row.get("agencycode"), f"{pin.path}.agencycode"),
+                kind="fpdsAgencyCode",
+                authority="https://www.fpds.gov/",
+                pin=pin,
+                observed_at=observed_at,
+            ),
+        ]
+        old_code = row.get("oldfpdsofficecode")
+        if old_code is not None:
+            identifiers.append(
+                _code_identifier(
+                    value=_required_text(old_code, f"{pin.path}.oldfpdsofficecode"),
+                    kind="oldFpdsOfficeCode",
+                    authority="https://www.fpds.gov/",
+                    pin=pin,
+                    observed_at=observed_at,
+                )
+            )
+        cgac_rows = row.get("cgaclist")
+        if not isinstance(cgac_rows, list):
+            raise ValueError(f"{pin.path}.orglist[{ordinal}].cgaclist must be an array")
+        if cgac_rows:
+            cgac_row = cgac_rows[0]
+            if not isinstance(cgac_row, Mapping):
+                raise ValueError(f"{pin.path}.orglist[{ordinal}].cgaclist[0] is invalid")
+            identifiers.append(
+                _code_identifier(
+                    value=_required_text(cgac_row.get("cgac"), f"{pin.path}.cgac"),
+                    kind="cgacCode",
+                    authority="https://www.fiscal.treasury.gov/",
+                    pin=pin,
+                    observed_at=observed_at,
+                )
+            )
+        full_parent_path_id = _required_text(
+            parent.get("fhfullparentpathid"), f"{pin.path}.fhfullparentpathid"
+        )
+        identifiers.append(
+            _code_identifier(
+                value=full_parent_path_id,
+                kind="fhFullParentPathId",
+                authority="https://sam.gov/",
+                pin=pin,
+                observed_at=observed_at,
+            )
+        )
+        native = {
+            "fhorgid": fhorgid,
+            "fhorgname": label,
+            "fhorgtype": row.get("fhorgtype"),
+            "status": row.get("status"),
+            "identifiers": identifiers,
+            "parent_fhorgid": parent_id,
+            "parent_org_name": row.get("fhagencyorgname"),
+            "full_parent_path_id": full_parent_path_id,
+            "full_parent_path_name": parent.get("fhfullparentpathname"),
+            "source_ordinal": ordinal,
+        }
+        relations: tuple[tuple[str, str], ...] = ()
+        if parent_id != fhorgid and parent_id in resource_ids:
+            relations = ((f"{ATLAS}parentEntity", f"urn:ref:federal-hierarchy-org:{parent_id}"),)
+        records.append(
+            _ApiCaptureRecord(
+                resource=f"urn:ref:federal-hierarchy-org:{fhorgid}",
+                preferred_label=label,
+                notations=(),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+                relations=relations,
+            )
+        )
+    if len(records) != 20:
+        raise ValueError(f"{spec.name} expected 20 organizations, observed {len(records)}")
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=tuple(input_totals),
+    )
+
+
+def _element_text(element: ElementTree.Element, path: str, label: str) -> str:
+    found = element.find(path)
+    return _required_text(found.text if found is not None else None, label).strip()
+
+
+def _read_govinfo_package_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    summary_pin, summary_payload = _pin_with_role(spec, payloads, "publisherPackageSummary")
+    fixity_pin, fixity_payload = _pin_with_role(spec, payloads, "publisherPackageFixity")
+    raw = _json_without_duplicate_keys(summary_payload, f"{spec.name} summary")
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"{spec.name} summary must be a JSON object")
+    observed_at = "2026-08-03T19:15:00Z"
+    package_id = _required_text(raw.get("packageId"), f"{spec.name}.packageId")
+    summary_identifiers = [
+        _code_identifier(
+            value=package_id,
+            kind="govInfoPackageId",
+            authority="https://www.govinfo.gov/developers",
+            pin=summary_pin,
+            observed_at=observed_at,
+        ),
+        _code_identifier(
+            value=_required_text(raw.get("suDocClassNumber"), f"{spec.name}.suDocClassNumber"),
+            kind="suDocClassNumber",
+            authority="https://www.govinfo.gov/developers",
+            pin=summary_pin,
+            observed_at=observed_at,
+        ),
+    ]
+    summary = {
+        "package_id": package_id,
+        "collection_code": raw.get("collectionCode"),
+        "collection_name": raw.get("collectionName"),
+        "title_number": int(_required_text(raw.get("titleNumber"), f"{spec.name}.titleNumber")),
+        "date_issued": raw.get("dateIssued"),
+        "last_modified": raw.get("lastModified"),
+        "doc_class": raw.get("docClass"),
+        "document_type": raw.get("documentType"),
+        "category": raw.get("category"),
+        "sudoc_class_number": raw.get("suDocClassNumber"),
+        "details_link": raw.get("detailsLink"),
+        "granules_link": raw.get("granulesLink"),
+        "download_links": raw.get("download"),
+        "identifiers": summary_identifiers,
+        "is_general_subject_concept": False,
+    }
+    root = ElementTree.fromstring(fixity_payload)
+    namespace = root.tag.removesuffix("premis")
+    xsi_type = "{http://www.w3.org/2001/XMLSchema-instance}type"
+    fixity_records: list[dict[str, Any]] = []
+    for obj in root.findall(f"{namespace}object"):
+        if obj.get(xsi_type) != "file":
+            continue
+        fixity = obj.find(
+            f"{namespace}objectCharacteristics/{namespace}fixity"
+        )
+        if fixity is None:
+            continue
+        object_id = _element_text(
+            obj,
+            f"{namespace}objectIdentifier/{namespace}objectIdentifierValue",
+            "PREMIS object identifier",
+        )
+        algorithm = _element_text(
+            fixity,
+            f"{namespace}messageDigestAlgorithm",
+            "PREMIS digest algorithm",
+        )
+        digest = _element_text(
+            fixity,
+            f"{namespace}messageDigest",
+            "PREMIS message digest",
+        ).lower()
+        original_name = _element_text(obj, f"{namespace}originalName", "PREMIS original name")
+        location = _element_text(
+            obj,
+            (
+                f"{namespace}storage/{namespace}contentLocation/"
+                f"{namespace}contentLocationValue"
+            ),
+            "PREMIS content location",
+        ).rsplit(" ", 1)[-1]
+        fixity_records.append(
+            {
+                "object_identifier_value": object_id,
+                "original_name": original_name,
+                "content_location_uri": location,
+                "algorithm": algorithm,
+                "digest": digest,
+                "identifiers": [
+                    _code_identifier(
+                        value=digest,
+                        kind="govInfoPremisSha256Fixity",
+                        authority="https://www.govinfo.gov/developers",
+                        pin=fixity_pin,
+                        observed_at=observed_at,
+                    )
+                ],
+                "is_general_subject_concept": False,
+            }
+        )
+    fixity_payload_value = {
+        "package_id": package_id,
+        "retrieved_at": observed_at,
+        "source_sha256": fixity_pin.sha256,
+        "source_byte_length": fixity_pin.byte_length,
+        "records": fixity_records,
+    }
+    native = {"summary": summary, "fixity": fixity_payload_value}
+    record = _ApiCaptureRecord(
+        resource=f"urn:ref:govinfo-cfr-package:{package_id}",
+        preferred_label=f"{raw.get('documentType')}: {package_id}",
+        notations=(),
+        source_locator=_required_text(raw.get("detailsLink"), f"{spec.name}.detailsLink"),
+        source_digest=summary_pin.sha256,
+        native_payload=native,
+    )
+    return _api_capture_view(
+        [record],
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "GovInfo summary authorship, pagination, part range, and migration fields are authenticated but not represented",
+            "PREMIS characteristics other than file SHA-256 fixity and location are authenticated but not represented",
+        ),
+    )
+
+
+def _sam_identifier(
+    *,
+    value: str,
+    kind: str,
+    authority: str,
+    pin: SourcePin,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "kind": kind,
+        "authorityUri": authority,
+        "sourceUri": pin.source_iri,
+        "observedAt": "2026-08-03T22:19:50Z",
+        "effectiveAt": None,
+        "sourceDigest": pin.sha256,
+    }
+
+
+def _read_sam_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    data = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{spec.name} must be a JSON object")
+    rows = _mapping_rows(data.get("entityData"), f"{spec.name}.entityData")
+    if len(rows) != 1 or not isinstance(rows[0].get("entityRegistration"), Mapping):
+        raise ValueError(f"{spec.name} requires one public entity registration")
+    registration = rows[0]["entityRegistration"]
+    uei = _required_text(registration.get("ueiSAM"), f"{spec.name}.ueiSAM")
+    cage = _required_text(registration.get("cageCode"), f"{spec.name}.cageCode")
+    label = _required_text(
+        registration.get("legalBusinessName"), f"{spec.name}.legalBusinessName"
+    )
+    if spec.name.startswith("sam-uei-"):
+        resource = f"urn:ref:sam-entity:uei:{uei}"
+        native = {
+            "identifier": _sam_identifier(
+                value=uei,
+                kind="samUniqueEntityId",
+                authority="https://sam.gov/entity-registration",
+                pin=pin,
+            ),
+            "legalBusinessName": label,
+            "registrationStatus": str(registration.get("registrationStatus")).lower(),
+            "immediateParentUei": None,
+            "highestLevelOwnerUei": None,
+            "accessClassification": "public",
+        }
+        relations: tuple[tuple[str, str], ...] = ()
+    else:
+        resource = f"urn:ref:dla-cage-facility:{cage}"
+        native = {
+            "identifier": _sam_identifier(
+                value=cage,
+                kind="dlaCageCode",
+                authority=(
+                    "https://www.dla.mil/Working-With-DLA/Applications/Details/"
+                    "Article/2920893/cage-code-commercial-and-government-entity-code/"
+                ),
+                pin=pin,
+            ),
+            "facilityName": label,
+            "cageStatus": "notObserved",
+            "associatedUei": uei,
+            "accessClassification": "public",
+        }
+        relations = ((f"{ATLAS}relatedEntity", f"urn:ref:sam-entity:uei:{uei}"),)
+    record = _ApiCaptureRecord(
+        resource=resource,
+        preferred_label=label,
+        notations=(),
+        source_locator=pin.source_iri or "",
+        source_digest=pin.sha256,
+        native_payload=native,
+        relations=relations,
+    )
+    return _api_capture_view(
+        [record],
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "SAM registration lifecycle and API paging fields are authenticated but outside this bounded identity record",
+        ),
+    )
+
+
+def _read_api_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    readers: Mapping[
+        str,
+        Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
+    ] = {
+        "lda-general-issue-codes": _read_lda_capture,
+        "lda-filing-types": _read_lda_capture,
+        "ecfr-cfr-titles": _read_ecfr_titles_capture,
+        "govinfo-collections": _read_govinfo_collections_capture,
+        "usaspending-award-types": _read_usaspending_capture,
+        "gsdm-reviewed-domain-values-2026-08-03": _read_gsdm_capture,
+        "nasa-technology-taxonomy-8817": _read_nasa_capture,
+        "fcc-ecfs-filing-types": _read_fcc_capture,
+        "fcc-ecfs-access-statuses": _read_fcc_capture,
+        "fcc-ecfs-bureaus": _read_fcc_capture,
+        "fcc-ecfs-proceedings": _read_fcc_capture,
+        "federal-hierarchy-orgs-bounded-2026-08-03": (
+            _read_federal_hierarchy_capture
+        ),
+        "govinfo-cfr-package-bounded-2026-08-03": _read_govinfo_package_capture,
+        "sam-uei-bounded-public-entity-2026-08-03": _read_sam_capture,
+        "sam-cage-bounded-public-facility-2026-08-03": _read_sam_capture,
+    }
+    reader = readers.get(spec.name)
+    if reader is None:
+        raise ValueError(f"{API_CAPTURE_JSON_READER} does not support {spec.name!r}")
+    return reader(spec, payloads)
+
+
+_PUBLISHER_READERS: Mapping[
+    str,
+    Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
+] = {API_CAPTURE_JSON_READER: _read_api_capture}
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
@@ -2928,6 +4237,7 @@ def _registry_source_pin(
     fmt: str = "turtle",
     zip_member: str | None = None,
     role: str = "publisherSource",
+    construction_path: str | None = None,
 ) -> SourcePin:
     """Declare one local publisher file and its exact construction-summary identity."""
     return SourcePin(
@@ -2938,7 +4248,11 @@ def _registry_source_pin(
         zip_member=zip_member,
         role=role,
         source_iri=source_iri,
-        construction_path=f"refspec/output/registry-real-data-sources/{filename}",
+        construction_path=(
+            construction_path
+            if construction_path is not None
+            else f"refspec/output/registry-real-data-sources/{filename}"
+        ),
     )
 
 
@@ -3253,6 +4567,567 @@ _PUBLICATIONS_OFFICE_DATASET_DESCRIPTION = DeclaredClaimExclusion(
 
 
 SOURCES: tuple[SourceSpec, ...] = (
+    SourceSpec(
+        name="lda-general-issue-codes",
+        kind="vocabulary",
+        release_keys=("lda-general-issue-codes",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/lda-general-issue-codes-2026-07-30.json",
+                sha256="sha256:e1820ef17f3e63048ae50e526c2f56e507b2cf60d720fc227c76ee7c3610d5bf",
+                byte_length=3_596,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://lda.gov/api/v1/constants/filing/"
+                    "lobbyingactivityissues/"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "publisher_label",
+                    "resource_name",
+                    "sourceArtifact",
+                    "source_url",
+                    "use",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="lda-filing-types",
+        kind="vocabulary",
+        release_keys=("lda-filing-types",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/lda-filing-types-2026-07-30.json",
+                sha256="sha256:49fbd39383b0be63fb474878aa229d4e397880a30c2e0dac1a0905bc660a3149",
+                byte_length=2_803,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://lda.gov/api/v1/constants/filing/filingtypes/",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "publisher_label",
+                    "resource_name",
+                    "sourceArtifact",
+                    "source_url",
+                    "use",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="ecfr-cfr-titles",
+        kind="vocabulary",
+        release_keys=("ecfr-cfr-titles",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "ecfr-cfr-titles-2026-08-03.json"
+                ),
+                sha256="sha256:a5985527fc0b07ac95d2cb5d7c867cfd0ddbc2712708e271edbe4ad742001781",
+                byte_length=8_033,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://www.ecfr.gov/api/versioner/v1/titles.json",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "latest_amended_on",
+                    "latest_issue_date",
+                    "name",
+                    "reserved",
+                    "sourceArtifact",
+                    "title_number",
+                    "up_to_date_as_of",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="govinfo-collections",
+        kind="vocabulary",
+        release_keys=("govinfo-collections",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "govinfo-collections-2026-08-03.json"
+                ),
+                sha256="sha256:82cd4191d6abf88c0c1443284e8466a380a7841889cfe79cf19e92864b0dc347",
+                byte_length=4_803,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://api.govinfo.gov/collections",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="usaspending-award-types",
+        kind="vocabulary",
+        release_keys=("usaspending-award-types",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/usaspending_gsdm_codes/"
+                    "usaspending-award-types-2026-08-03.json"
+                ),
+                sha256="sha256:682269b46e0cf200c7002ca7d55ba3da3de8dc345958d579ec98e579fc6782e7",
+                byte_length=1_271,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://api.usaspending.gov/api/v2/references/award_types/"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "category",
+                    "identifiers",
+                    "is_general_subject_concept",
+                    "publisher_label",
+                    "resource_name",
+                    "sourceArtifact",
+                    "source_url",
+                    "use",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="gsdm-reviewed-domain-values-2026-08-03",
+        kind="vocabulary",
+        release_keys=("gsdm-reviewed-domain-values-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "gsdm-data-dictionary-2026-08-03.json",
+                "sha256:3d0f2e3a952297050db5c2a4addf40765460a49d499427da1b57ef3c7edea3c3",
+                358_054,
+                "https://api.usaspending.gov/api/v2/references/data_dictionary/",
+                fmt="json",
+                role="completeOnlineDataDictionary",
+                construction_path=(
+                    "output/registry-real-data-sources/"
+                    "gsdm-data-dictionary-2026-08-03.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {"code", "codeDescription", "domainGroup", "gsdmElement", "label"}
+            )
+        ),
+    ),
+    SourceSpec(
+        name="nasa-technology-taxonomy-8817",
+        kind="vocabulary",
+        release_keys=("nasa-technology-taxonomy-8817",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/nasa_technology_taxonomy/"
+                    "techport-taxonomy-8817-children-2026-08-03.json"
+                ),
+                sha256="sha256:4e0ed6f5edee5b7e80c8789e4c3ef39c337a1f27de4cddede431feb94d314932",
+                byte_length=3_408,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://techport.nasa.gov/api/taxonomies/8817",
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/nasa_technology_taxonomy/"
+                    "techport-taxonomy-roots-2026-08-03.json"
+                ),
+                sha256="sha256:c0c4b8e154f337be41f59b6b61bdd3b6b673b33bd49e5904b780e640391cbb07",
+                byte_length=143,
+                fmt="json",
+                role="publisherSource",
+                source_iri="https://techport.nasa.gov/api/taxonomies",
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-filing-types",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-filing-types",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-access-statuses",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-access-statuses",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-bureaus",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-bureaus",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="fcc-ecfs-proceedings",
+        kind="vocabulary",
+        release_keys=("fcc-ecfs-proceedings",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_ecfs_codes/"
+                    "fcc-ecfs-filings-2026-08-03.json"
+                ),
+                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
+                byte_length=51_284,
+                fmt="json",
+                role="publisherSource",
+                source_iri=(
+                    "https://publicapi.fcc.gov/ecfs/filings?"
+                    "limit=25&sort=date_disseminated,DESC"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "sourceArtifact",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="federal-hierarchy-orgs-bounded-2026-08-03",
+        kind="vocabulary",
+        release_keys=("federal-hierarchy-orgs-bounded-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "fh-orgs-default-page.json",
+                "sha256:582d409dd3743646dd6ec58acfa2bc8f346168f69b044cd6dd48e06f0c9cba49",
+                9_270,
+                "https://api.sam.gov/prod/federalorganizations/v1/orgs",
+                fmt="json",
+                role="boundedPublisherOrganizationPage",
+                construction_path=(
+                    "output/registry-real-data-sources/fh-orgs-default-page.json"
+                ),
+            ),
+            _registry_source_pin(
+                "fh-orgs-sub-tier-page.json",
+                "sha256:601b9e7323cd4e6b1fbde3799533cbfb5c1f88d78039df84a24b6d60533eccd7",
+                9_476,
+                (
+                    "https://api.sam.gov/prod/federalorganizations/v1/"
+                    "orgs?fhorgtype=Sub-Tier"
+                ),
+                fmt="json",
+                role="boundedPublisherOrganizationPage",
+                construction_path=(
+                    "output/registry-real-data-sources/fh-orgs-sub-tier-page.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "fhorgid",
+                    "fhorgname",
+                    "fhorgtype",
+                    "full_parent_path_id",
+                    "full_parent_path_name",
+                    "identifiers",
+                    "parent_fhorgid",
+                    "parent_org_name",
+                    "source_ordinal",
+                    "status",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}parentEntity",),
+        ),
+    ),
+    SourceSpec(
+        name="govinfo-cfr-package-bounded-2026-08-03",
+        kind="vocabulary",
+        release_keys=("govinfo-cfr-package-bounded-2026-08-03",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "govinfo-package-summary-cfr-2023-title1-vol1-2026-08-03.json"
+                ),
+                sha256="sha256:705a28865a4fba746e8deb4aff05a21bbd63534201e74c5320f56d505ca3d79e",
+                byte_length=1_532,
+                fmt="json",
+                role="publisherPackageSummary",
+                source_iri=(
+                    "https://api.govinfo.gov/packages/"
+                    "CFR-2023-title1-vol1/summary"
+                ),
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/govinfo_collections/"
+                    "govinfo-premis-cfr-2023-title1-vol1-mini-2026-08-03.xml"
+                ),
+                sha256="sha256:afeba6d9e48f502c911ef0ec1400accdbaa5cad5d7d056672dce6a54d1326417",
+                byte_length=4_268,
+                fmt="xml",
+                role="publisherPackageFixity",
+                source_iri=(
+                    "https://api.govinfo.gov/packages/"
+                    "CFR-2023-title1-vol1/premis"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset({"fixity", "summary"})),
+    ),
+    SourceSpec(
+        name="sam-uei-bounded-public-entity-2026-08-03",
+        kind="vocabulary",
+        release_keys=("sam-uei-bounded-public-entity-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "sam-entity-3m-public.json",
+                "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
+                1_076,
+                (
+                    "https://api.sam.gov/entity-information/v4/entities?"
+                    "ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
+                ),
+                fmt="json",
+                role="boundedPublicEntityResponse",
+                construction_path=(
+                    "output/registry-real-data-sources/sam-entity-3m-public.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "accessClassification",
+                    "highestLevelOwnerUei",
+                    "identifier",
+                    "immediateParentUei",
+                    "legalBusinessName",
+                    "registrationStatus",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="sam-cage-bounded-public-facility-2026-08-03",
+        kind="vocabulary",
+        release_keys=("sam-cage-bounded-public-facility-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "sam-entity-3m-public.json",
+                "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
+                1_076,
+                (
+                    "https://api.sam.gov/entity-information/v4/entities?"
+                    "ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
+                ),
+                fmt="json",
+                role="boundedPublicEntityResponse",
+                construction_path=(
+                    "output/registry-real-data-sources/sam-entity-3m-public.json"
+                ),
+            ),
+        ),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "accessClassification",
+                    "associatedUei",
+                    "cageStatus",
+                    "facilityName",
+                    "identifier",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}relatedEntity",),
+        ),
+    ),
     SourceSpec(
         name="agrovoc-c330-bounded-2026-08-03",
         kind="vocabulary",
@@ -3866,10 +5741,7 @@ def build_context(
     native_control_pairs: list[NativeControlPair] = []
     source_extract_pairs: list[SourceExtractPair] = []
     atlas_views: list[tuple[SourceSpec, AtlasView]] = []
-    publisher_cache: dict[
-        tuple[tuple[SourcePin, ...], tuple[str, ...], tuple[str, ...]],
-        PublisherView | str,
-    ] = {}
+    publisher_cache: dict[tuple[Any, ...], PublisherView | str] = {}
     native_specs = [spec for spec in specs if spec.kind == "native-control"]
     native_control_publishers: dict[SourceSpec, NativeControlPublisherView] = {}
     if native_specs:
@@ -3906,6 +5778,7 @@ def build_context(
                 else ()
             )
             cache_key = (
+                spec.reader,
                 spec.inputs,
                 additional_annotation_predicates,
                 additional_relation_predicates,
@@ -3918,16 +5791,28 @@ def build_context(
             cached = publisher_cache.get(cache_key)
             if cached is None:
                 try:
-                    cached = _read_publisher_pin_set(
-                        spec.inputs,
-                        " + ".join(sorted(pin.path for pin in spec.inputs)),
-                        authenticated_payloads,
-                        additional_annotation_predicates=(
-                            additional_annotation_predicates
-                        ),
-                        additional_relation_predicates=additional_relation_predicates,
-                        declared_claim_exclusions=spec.declared_claim_exclusions,
-                    )
+                    if spec.reader == "rdf":
+                        cached = _read_publisher_pin_set(
+                            spec.inputs,
+                            " + ".join(sorted(pin.path for pin in spec.inputs)),
+                            authenticated_payloads,
+                            additional_annotation_predicates=(
+                                additional_annotation_predicates
+                            ),
+                            additional_relation_predicates=(
+                                additional_relation_predicates
+                            ),
+                            declared_claim_exclusions=(
+                                spec.declared_claim_exclusions
+                            ),
+                        )
+                    else:
+                        reader = _PUBLISHER_READERS.get(spec.reader)
+                        if reader is None:
+                            raise ValueError(
+                                f"unsupported publisher reader {spec.reader!r}"
+                            )
+                        cached = reader(spec, authenticated_payloads)
                 except Exception as error:  # noqa: BLE001 - keep reading independent sources
                     cached = f"{type(error).__name__}: {error}"
                 publisher_cache[cache_key] = cached
@@ -4100,6 +5985,14 @@ def check_configuration(ctx: Context) -> CheckResult:
         selector = spec.native_control
         if spec.kind not in COMPARISON_KINDS:
             failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
+        if spec.identity_policy not in {
+            "publisher-iri",
+            "source-local-record",
+            "source-key-derived",
+        }:
+            failures.append(
+                f"{spec.name}: unsupported identity policy {spec.identity_policy!r}"
+            )
         for pin in spec.inputs:
             if not pin.role:
                 failures.append(
@@ -4109,6 +6002,14 @@ def check_configuration(ctx: Context) -> CheckResult:
                 failures.append(
                     f"{spec.name}: publisher pin {pin.path!r} has no source IRI"
                 )
+        if (
+            spec.kind in RDF_COMPARISON_KINDS
+            and spec.reader != "rdf"
+            and spec.reader not in _PUBLISHER_READERS
+        ):
+            failures.append(
+                f"{spec.name}: no publisher reader is declared for {spec.reader!r}"
+            )
         if not spec.release_keys:
             failures.append(f"{spec.name}: comparison declares no construction-unit key")
         if len(spec.release_keys) != 1:
@@ -4496,10 +6397,16 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     aggregate_source_evidence_fields = frozenset(
         {"labelRoleNormalization", "metadata"}
     )
+    reader_native_fields = frozenset(
+        field_name
+        for payload in pair.publisher.expected_native_payloads.values()
+        for field_name in payload
+    )
     supported_resource_fields = (
         per_record_resource_fields
         | aggregate_relation_fields
         | aggregate_source_evidence_fields
+        | reader_native_fields
     )
     expected_payload_fields = policy.evaluated_native_payload_fields
     unsupported_declared_fields = sorted(
@@ -4639,7 +6546,10 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 "a publisher concept in the selected pinned bytes"
             )
         locator = pair.atlas.record_source_locators.get(record)
-        expected_locator = locator_by_resource.get(target, policy.record_locator or target)
+        expected_locator = pair.publisher.resource_locators.get(
+            target,
+            locator_by_resource.get(target, policy.record_locator or target),
+        )
         if locator != expected_locator:
             failures.append(
                 f"{source}: source record <{record}> locator differs -- expected "
@@ -4674,8 +6584,15 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             - policy.atlas_only_native_payload_fields
         ):
             unexpected_payload_fields[field_name].append(record)
+        reader_expected_payload = pair.publisher.expected_native_payloads.get(
+            target,
+            {},
+        )
+        expected_per_record_fields = per_record_resource_fields | frozenset(
+            reader_expected_payload
+        )
         missing_fields = sorted(
-            (expected_payload_fields & per_record_resource_fields) - set(payload)
+            (expected_payload_fields & expected_per_record_fields) - set(payload)
         )
         if missing_fields:
             failures.append(
@@ -4702,6 +6619,17 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 failures.append(
                     f"{source}: source record <{record}> topConceptOfIris differs -- expected "
                     f"{expected!r}, observed {payload.get('topConceptOfIris')!r}"
+                )
+        for field_name in sorted(
+            (expected_payload_fields & set(reader_expected_payload))
+            - per_record_resource_fields
+        ):
+            expected = reader_expected_payload[field_name]
+            if payload.get(field_name) != expected:
+                failures.append(
+                    f"{source}: source record <{record}> nativePayload.{field_name} "
+                    f"differs from publisher bytes -- expected {expected!r}, "
+                    f"observed {payload.get(field_name)!r}"
                 )
 
     if pair.spec.kind == "mapping":
@@ -5313,22 +7241,46 @@ def check_concept_traceability(ctx: Context) -> CheckResult:
 
 
 def check_identifier_retention(ctx: Context) -> CheckResult:
-    """The publisher's own identifier is retained rather than minted."""
+    """Concept identity follows each source's explicit identity policy."""
     failures = _incomplete_evaluation_failure(ctx, "identifier retention", "vocabulary")
     checked = 0
     for pair in ctx.vocabularies():
         atlas_concepts = _atlas_publisher_concepts(pair)
-        minted = sorted(resource for resource in atlas_concepts if resource.startswith("urn:ref:"))
         checked += len(atlas_concepts)
-        for resource in minted:
-            failures.append(
-                f"{pair.spec.name}: Atlas concept <{resource}> carries a minted RefSpec identifier "
-                f"where the publisher supplies its own IRI"
+        if pair.spec.identity_policy == "publisher-iri":
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if resource.startswith("urn:ref:")
             )
+            expectation = "publisher supplies its own IRI"
+        elif pair.spec.identity_policy == "source-local-record":
+            unexpected = sorted(
+                resource
+                for resource in atlas_concepts
+                if not resource.startswith("urn:ref:source-concept:v2:")
+            )
+            expectation = "source-local-record identity requires source-concept:v2"
+        else:
+            # The stock reader derives and compares the complete resource IRI
+            # from a publisher key. Traceability proves exact set equality.
+            unexpected = []
+            expectation = "source-key-derived identity"
+        for resource in unexpected:
+            if pair.spec.identity_policy == "publisher-iri":
+                failures.append(
+                    f"{pair.spec.name}: Atlas concept <{resource}> carries a minted "
+                    "RefSpec identifier where the publisher supplies its own IRI"
+                )
+            else:
+                failures.append(
+                    f"{pair.spec.name}: Atlas concept <{resource}> violates the "
+                    f"declared identity policy ({expectation})"
+                )
 
     return _result(
         "identifier-retention",
-        f"{checked} concept identities checked; publisher IRIs retained verbatim",
+        f"{checked} concept identities checked against declared source identity policies",
         failures,
     )
 
@@ -6427,6 +8379,11 @@ def _atlas_publisher_concepts(pair: SourcePair) -> frozenset[str]:
     Atlas-owned resources, rings, profiles, and governed schemes are deliberately
     absent from this view. The binding validator owns those claims.
     """
+    if pair.spec.reader != "rdf":
+        # JSON/API captures also describe value, structure, entity, and legal-
+        # identity resources. Their source records are the exact independent
+        # join; requiring skos:Concept here would discard every non-subject row.
+        return _atlas_source_targets(pair)
     return frozenset(
         resource
         for resource, types in pair.atlas.rdf_types.items()
@@ -9098,6 +11055,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
             {
                 "name": spec.name,
                 "kind": spec.kind,
+                "publisherReader": spec.reader,
+                "identityPolicy": spec.identity_policy,
                 "subset": spec.subset,
                 "includedPublisherConceptIris": sorted(spec.included_concept_iris),
                 "releaseKeys": list(spec.release_keys),

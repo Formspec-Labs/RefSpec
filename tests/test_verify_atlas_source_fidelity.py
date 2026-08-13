@@ -31,6 +31,7 @@ from pathlib import Path
 import pytest
 
 from tools.verify_atlas_source_fidelity import (
+    API_CAPTURE_JSON_READER,
     CHECK_NAMES,
     CheckResult,
     DeclaredClaimExclusion,
@@ -601,6 +602,131 @@ def _repin_native_capture(suite: Fixture, spec: SourceSpec) -> SourceSpec:
     return replace(spec, inputs=new_inputs)
 
 
+def _add_api_capture_json_source(
+    suite: Fixture,
+    *,
+    atlas_label: str = "Agriculture",
+) -> SourceSpec:
+    """Add one LDA JSON row and the independently expected Atlas record."""
+    source_iri = (
+        "https://lda.gov/api/v1/constants/filing/lobbyingactivityissues/"
+    )
+    source_bytes = json.dumps(
+        [{"value": "AGR", "name": "Agriculture"}],
+        separators=(",", ":"),
+    ).encode()
+    source_path = suite.source_root / "lda-general-issues.json"
+    source_path.write_bytes(source_bytes)
+    source_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    pin = SourcePin(
+        path=source_path.name,
+        sha256=source_digest,
+        byte_length=len(source_bytes),
+        fmt="json",
+        role="publisherSource",
+        source_iri=source_iri,
+    )
+    resource = (
+        "urn:ref:source-concept:v2:lda-general-issues:"
+        "019fb30e-b790-7c09-986e-3c53706a707b"
+    )
+    native_payload = {
+        "identifiers": [
+            {
+                "value": "AGR",
+                "kind": "generalIssueCode",
+                "authority_uri": "https://lda.gov/",
+                "source_uri": source_iri,
+                "observed_at": "2026-07-30T12:45:14Z",
+                "effective_at": None,
+                "source_digest": source_digest,
+            }
+        ],
+        "is_general_subject_concept": False,
+        "publisher_label": "Agriculture",
+        "resource_name": "generalIssueCodes",
+        "source_url": source_iri,
+        "use": "sourceAssignedEvidence",
+        "sourceArtifact": source_iri,
+    }
+    spec = SourceSpec(
+        name="lda-general-issue-codes",
+        kind="vocabulary",
+        release_keys=("lda-general-issue-codes",),
+        inputs=(pin,),
+        reader=API_CAPTURE_JSON_READER,
+        identity_policy="source-local-record",
+        policies=frozenset(
+            {
+                "english-label-selection",
+                "english-annotation-selection",
+                "skos-note-to-atlas-note",
+                "top-concept-source-shape-inverse",
+            }
+        ),
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=frozenset(native_payload)
+        ),
+    )
+    record = "urn:example:source-record:lda-general-issue-codes"
+    label = "urn:example:label:lda-general-issue-codes"
+    lines = [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", source_iri),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _plain_literal_quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps(native_payload, separators=(",", ":")),
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", label),
+        _quad(label, f"{SKOSXL}literalForm", atlas_label, literal=True),
+        _plain_literal_quad(resource, f"{ATLAS}notation", "AGR"),
+    ]
+    pack_relative = "sources/lda-general-issue-codes/all.nq.zst"
+    pack_path = suite.distribution / "packs" / pack_relative
+    pack_path.parent.mkdir(parents=True)
+    transport = zstd.compress(("\n".join(lines) + "\n").encode())
+    pack_path.write_bytes(transport)
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["releases"].append(
+        {
+            "key": "lda-general-issue-codes",
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": pin.path,
+                    "sha256": pin.sha256,
+                    "byteLength": pin.byte_length,
+                    "role": pin.role,
+                    "sourceIri": pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{pack_relative}"}],
+            "recordCounts": {"resources": 1, "labels": 1},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{pack_relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return spec
+
+
 # --------------------------------------------------------------------------------------
 # Baseline
 # --------------------------------------------------------------------------------------
@@ -610,6 +736,40 @@ def test_faithful_pair_passes_every_check(suite: Fixture) -> None:
     results = suite.run()
     assert len(results) == len(CHECK_NAMES)
     assert failed(results) == set(), [item.failures for item in results if not item.passed]
+
+
+def test_api_capture_json_reader_faithful_pair_passes_every_check(
+    suite: Fixture,
+) -> None:
+    spec = _add_api_capture_json_source(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec, spec),
+    )
+
+    assert failed(results) == set(), [
+        item.failures for item in results if not item.passed
+    ]
+
+
+def test_api_capture_json_reader_catches_rewritten_label(suite: Fixture) -> None:
+    spec = _add_api_capture_json_source(suite, atlas_label="Farming")
+
+    label_check = result(
+        verify(
+            suite.distribution,
+            suite.source_root,
+            Expectations(minimum_label_sample=1),
+            (suite.spec, spec),
+        ),
+        "label-fidelity",
+    )
+
+    assert not label_check.passed
+    assert any("'Farming'" in failure for failure in label_check.failures)
 
 
 def test_native_control_matches_raw_parquet_capture_and_atlas(suite: Fixture) -> None:
