@@ -2406,6 +2406,9 @@ def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
         if value is None or (isinstance(value, str) and not value):
             return None
         return value
+    if operation.startswith("none-if-equals:"):
+        sentinel = operation.removeprefix("none-if-equals:")
+        return None if value == sentinel else value
     if not isinstance(value, str):
         raise ValueError(
             f"{label} normalization {operation!r} requires text, observed "
@@ -2700,6 +2703,16 @@ def _read_pattern_rows(
                                     f"{derived.field!r} is not text"
                                 )
                             fields[derived.field] = derived.prefix + rendered
+                        elif derived.operation == "uri-component":
+                            if not isinstance(rendered, str):
+                                raise ValueError(
+                                    f"{spec.name} URI-component field "
+                                    f"{derived.field!r} is not text"
+                                )
+                            fields[derived.field] = derived.prefix + urllib.parse.quote(
+                                rendered,
+                                safe="",
+                            )
                         else:
                             raise ValueError(
                                 f"{spec.name} derived field {derived.field!r} uses "
@@ -10603,6 +10616,175 @@ def _epa_comptox_pattern_source() -> SourceSpec:
 EPA_COMPTOX_PATTERN_ROW_SOURCES = (_epa_comptox_pattern_source(),)
 
 
+_FAC_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/fac_dictionary/fac-api-dictionary-2026-08-03.html",
+    sha256=(
+        "sha256:95799a6f28b2f9a4d48bb0a88a1429381f2bc6e0677a9ec3a6608aa46a5a369c"
+    ),
+    byte_length=74_851,
+    fmt="html",
+    role="publisherFieldDictionary",
+    source_iri="https://www.fac.gov/api/dictionary/",
+)
+
+_FAC_ENDPOINT_ROWS = (
+    ("general", "gen", 63),
+    ("federal_awards", "cfda", 22),
+    ("notes_to_sefa", "notes", 10),
+    ("findings", "findings", 15),
+    ("findings_text", "findingstext", 7),
+    ("corrective_action_plans", "captext", 7),
+    ("passthrough", "passthrough", 7),
+    ("secondary_auditors", "cpas", 14),
+    ("additional_ueis", "ueis", 5),
+    ("additional_eins", "eins", 5),
+    ("resubmission", "____", 8),
+)
+
+
+def _fac_region_pattern(endpoint: str) -> str:
+    return (
+        rf'<h3 id="endpoint-{re.escape(endpoint)}">.*?'
+        r'<table class="usa-table">(?P<region>.*?)</table>'
+    )
+
+
+def _fac_row_pattern(*, exclude_duplicate: bool = False) -> str:
+    row_prefix = (
+        r"(?!<td>FACACCEPTEDDATE</td>\s*"
+        r'<th scope="row">fac_accepted_date</th>)'
+        if exclude_duplicate
+        else ""
+    )
+    return (
+        r"<tr>\s*"
+        + row_prefix
+        + r"<td>(?P<legacy_census_field>.*?)</td>\s*"
+        r'<th scope="row">(?P<gsa_field>.*?)</th>\s*'
+        r"<td>(?P<data_type>.*?)</td>\s*</tr>"
+    )
+
+
+def _fac_pattern_source() -> SourceSpec:
+    normalizers = (
+        PatternFieldNormalizer(
+            "legacy_census_field",
+            ("html-visible-text", "none-if-equals:____"),
+        ),
+        PatternFieldNormalizer("gsa_field", ("html-visible-text",)),
+        PatternFieldNormalizer("data_type", ("html-visible-text",)),
+    )
+    patterns: list[PatternRowPattern] = []
+    for endpoint, formerly_endpoint, count in _FAC_ENDPOINT_ROWS:
+        patterns.append(
+            PatternRowPattern(
+                input_pattern=re.escape(_FAC_PATTERN_PIN.path),
+                region_pattern=_fac_region_pattern(endpoint),
+                row_pattern=_fac_row_pattern(exclude_duplicate=endpoint == "general"),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=count - (1 if endpoint == "general" else 0),
+                constants=(
+                    ("endpoint", endpoint),
+                    ("formerly_endpoint", formerly_endpoint),
+                ),
+                normalizers=normalizers,
+            )
+        )
+    patterns.append(
+        PatternRowPattern(
+            input_pattern=re.escape(_FAC_PATTERN_PIN.path),
+            region_pattern=(
+                r'<h3 id="endpoint-general">.*?'
+                r'<table class="usa-table">(?P<region>.*?'
+                r"<tr>\s*<td>FACACCEPTEDDATE</td>\s*"
+                r'<th scope="row">fac_accepted_date</th>\s*'
+                r"<td>DATE</td>\s*</tr>)"
+            ),
+            row_pattern=(
+                r"<tr>\s*<td>(?P<legacy_census_field>FACACCEPTEDDATE)</td>\s*"
+                r'<th scope="row">(?P<gsa_field>fac_accepted_date)</th>\s*'
+                r"<td>(?P<data_type>DATE)</td>\s*</tr>"
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=1,
+            constants=(
+                ("endpoint", "general"),
+                ("formerly_endpoint", "gen"),
+            ),
+            normalizers=normalizers,
+        )
+    )
+
+    native_payload = {
+        "data_type": "{data_type}",
+        "endpoint": "{endpoint}",
+        "formerly_endpoint": "{formerly_endpoint}",
+        "gsa_field": "{gsa_field}",
+        "identifiers": [
+            {
+                "authority_uri": "https://www.fac.gov/",
+                "effective_at": None,
+                "kind": "facApiFieldName",
+                "observed_at": "2026-08-03T19:25:31Z",
+                "source_digest": "{source_digest}",
+                "source_uri": "{field_source_uri}",
+                "value": "{gsa_field}",
+            }
+        ],
+        "is_general_subject_concept": False,
+        "legacy_census_field": "{legacy_census_field}",
+        "source_url": "{field_source_uri}",
+        "use": "deterministicMetadata",
+    }
+    selector = PatternRowSelector(
+        patterns=tuple(patterns),
+        row_key="{endpoint}:{gsa_field}",
+        identity_mode="source-key-derived",
+        identity_template="urn:ref:fac-api-field:{endpoint}:{encoded_gsa_field}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{gsa_field}"),
+            ("notation", "{gsa_field}"),
+            (
+                "definition",
+                "FAC {data_type} field on the {endpoint} endpoint",
+            ),
+            ("source_path", "{input_path}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=163,
+        declared_unevaluated_fields=(
+            "duplicateGeneralFacAcceptedDate",
+            "htmlOutsideEndpointFieldTables",
+        ),
+        derived_fields=(
+            PatternDerivedField(
+                field="encoded_gsa_field",
+                operation="uri-component",
+                template_json=json.dumps("{gsa_field}"),
+            ),
+            PatternDerivedField(
+                field="field_source_uri",
+                operation="template",
+                template_json=json.dumps("{source_iri}#endpoint-{endpoint}"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "fac-api-field-dictionary-2026-08-03",
+        (_FAC_PATTERN_PIN,),
+        selector,
+    )
+
+
+FAC_PATTERN_ROW_SOURCES = (_fac_pattern_source(),)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -10688,6 +10870,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *NASBO_PATTERN_ROW_SOURCES,
     *PRA_PATTERN_ROW_SOURCES,
     *EPA_COMPTOX_PATTERN_ROW_SOURCES,
+    *FAC_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
