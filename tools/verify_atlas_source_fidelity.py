@@ -8360,6 +8360,143 @@ BILLSTATUS_PATTERN_ROW_SOURCES = (
 )
 
 
+_REGULATIONS_GOV_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/regulations_gov_codes/"
+        "regulations-gov-openapi-v4-2026-08-03.yaml"
+    ),
+    sha256=(
+        "sha256:be43c866f5ca424a456bde36ea03cb9326c454ef4e1894a13df80b6dc6e22488"
+    ),
+    byte_length=60_826,
+    fmt="yaml",
+    role="publisherSource",
+    source_iri="https://open.gsa.gov/api/regulationsgov/v4/openapi.yaml",
+)
+
+
+def _regulations_gov_pattern_source(
+    *,
+    name: str,
+    schema_name: str,
+    resource_name: str,
+    identifier_kind: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:13:12Z"
+    native_payload_template = {
+        "identifiers": [
+            {
+                "authority_uri": "https://open.gsa.gov/api/regulationsgov/",
+                "effective_at": None,
+                "kind": identifier_kind,
+                "observed_at": observed_at,
+                "source_digest": "{source_digest}",
+                "source_uri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "is_general_subject_concept": False,
+        "publisher_label": "{label}",
+        "resource_name": resource_name,
+        "sourceArtifact": "{source_iri}",
+        "source_url": "{source_iri}",
+        "use": "deterministicMetadata",
+    }
+    source_token = name
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_REGULATIONS_GOV_PATTERN_PIN.path),
+                region_pattern=(
+                    r"\n {4}"
+                    + re.escape(schema_name)
+                    + r":\n {6}type: string\n"
+                    r" {6}description: [^\n]+\n"
+                    r" {6}enum:\n"
+                    r"(?P<region>(?: {8}- [^\n]*\n)+)"
+                ),
+                row_pattern=(
+                    r"^ {8}- (?P<label>(?P<code>[^\n]+))$"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", source_token),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("rstrip",)),
+                    PatternFieldNormalizer("label", ("rstrip",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{label}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("yamlOutsideSelectedEnumBlock",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps("$.{resource_name}[{ordinal}]"),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_REGULATIONS_GOV_PATTERN_PIN,), selector)
+
+
+REGULATIONS_GOV_PATTERN_ROW_SOURCES = tuple(
+    _regulations_gov_pattern_source(
+        name=name,
+        schema_name=schema_name,
+        resource_name=resource_name,
+        identifier_kind=identifier_kind,
+        expected_count=expected_count,
+    )
+    for name, schema_name, resource_name, identifier_kind, expected_count in (
+        (
+            "regulations-gov-docket-type",
+            "DocketType",
+            "docketType",
+            "docketTypeCode",
+            2,
+        ),
+        (
+            "regulations-gov-document-type",
+            "DocumentType",
+            "documentType",
+            "documentTypeCode",
+            5,
+        ),
+        (
+            "regulations-gov-submitter-type",
+            "SubmitterType",
+            "submitterType",
+            "submitterTypeCode",
+            3,
+        ),
+    )
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -8431,6 +8568,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     ),
     *BILLSTATUS_PATTERN_ROW_SOURCES,
     *FEC_PATTERN_ROW_SOURCES,
+    *REGULATIONS_GOV_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
