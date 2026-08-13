@@ -66,6 +66,13 @@ from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 from jsonschema import _utils as jsonschema_utils
 from jsonschema import validators as jsonschema_validators
 from owlrl import DeductiveClosure, OWLRL_Semantics
+from parse_substrate import (
+    MEMORY_STORE,
+    RDF_STORE_ENV,
+    TWO_INDEX_STORE,
+    TermPool,
+    TwoIndexStore,
+)
 from pyshacl import validate as shacl_validate
 from pyshacl.rdfutil import inoculate
 from rdf_canonical import (
@@ -80,7 +87,16 @@ from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS, SH, SKOS, XSD
 from rdflib.parser import create_input_source
 from rdflib.plugins.parsers.nquads import NQuadsParser
-from rdflib.plugins.parsers.ntriples import URI, ParseError, r_literal, r_tail, r_wspace, unquote, uriquote
+from rdflib.plugins.parsers.ntriples import (
+    URI,
+    ParseError,
+    r_literal,
+    r_tail,
+    r_uriref,
+    r_wspace,
+    unquote,
+    uriquote,
+)
 from referencing import Registry, Resource
 
 try:  # Python 3.14+
@@ -141,6 +157,7 @@ CONTRACT_PATHS = (
 BINDING_TOOL_PATHS = (
     Path("requirements.txt"),
     Path("tools/build_fixtures.py"),
+    Path("tools/parse_substrate.py"),
     Path("tools/rdf_canonical.py"),
     Path("tools/validate.py"),
 )
@@ -761,6 +778,38 @@ SKOS_TO_XL = {plain: xl for xl, plain in XL_TO_SKOS.items()}
 # through this index. A gate asking for a predicate that is NOT here raises
 # rather than silently answering from the store, so the list cannot drift out
 # from under a check without failing loudly.
+#
+# Machine-adjudication records are structurally absent from the staging
+# distribution. Keeping their complete read set separate makes that zero and
+# its memory consequence measurable without weakening the shared allowlist.
+_MACHINE_ADJUDICATION_INDEXED_PREDICATES = frozenset(
+    {
+        RKAF.hasArtifactIdentifier,
+        RKAF.hasContentDigest,
+        RKAF.proofRecordDigest,
+        RKAF.proofIssuer,
+        RKAF.hasAILineage,
+        RKAF.proofComparisonContext,
+        RKAF.proofEvaluatedAt,
+        RKAF.adjudicationVerdict,
+        RKAF.proofOutcome,
+        RKAF.proofSnapshot,
+        RKAF.sealedRequestDigest,
+        RKAF.inputContextHash,
+        RKAF.independenceGroup,
+        RKAF.proofResolver,
+        RKAF.modelId,
+        RKAF.sealedResponseArtifact,
+        RKAF.proofInput,
+        RKAF.proofInputDigest,
+        RKAF.comparisonExpectedAssertion,
+        RKAF.comparisonOutcome,
+        RKAF.comparisonSnapshot,
+        RKAF.comparisonBaselineArtifact,
+        RKAF.comparisonObservedArtifact,
+        RKAF.comparisonProofRecord,
+    }
+)
 _INDEXED_ASSERTED_PREDICATES = frozenset(
     {
         RDF.subject,
@@ -807,7 +856,7 @@ _INDEXED_ASSERTED_PREDICATES = frozenset(
         RKAF.lifecycleEventKind,
         RKAF.conflictingEntries,
     }
-)
+) | _MACHINE_ADJUDICATION_INDEXED_PREDICATES
 # The assertion-shaped `rdf:type` objects, and the two of them the shared
 # carrier inventory cannot answer. `_check_graph_roles` already hands every
 # gate a set per concrete carrier type, so `atlas:RelationAssertion` and
@@ -1137,9 +1186,12 @@ class _AssertedFacts:
     `Graph.triples` calls across four phases costing 5.8s, and the same loops
     at full scale run over 20-60x the carriers. The parser already holds every
     one of those objects as it builds the store, so they ride along into a
-    columnar index (`predicate -> subject -> object`) and the gates read that:
-    the same four phases then issue 150 store calls and cost 2.5s, for a
-    measured 45 MB of index over a 1.5 GB run (~1.2 GB projected at 29M quads).
+    columnar index (`predicate -> subject -> object`) and the gates read that.
+    The original four phases then issued 150 store calls and cost 2.5s. After
+    construction ownership and machine adjudication joined them, the 67-row
+    allowlist retained the same 826,127 staging occurrences: its median parse
+    RSS cost was 41 MiB (~1.16 GiB projected at 29M quads), because the 24 new
+    machine predicates have no occurrences in that artifact.
 
     This is the `_AssertedPlacementObservation` pattern, applied to reads
     rather than to placement: nothing here fails, the gates still raise, in the
@@ -1148,11 +1200,11 @@ class _AssertedFacts:
     objects of `predicate` on `subject` in the asserted graph", which is what
     `Graph.objects` answers, and the gates' control flow is untouched.
 
-    Two modes, one API. Bound to an index it answers from the index; bound to a
-    graph (`for_graph`) it answers from the store, which is what
-    `validate_preparsed_distribution`, the fixture corpus and every direct
-    helper call get. `one` in graph mode is literally `_one`, so a caller
-    counting `_one` still counts it.
+    Two modes, one API. The parser fills the index; `from_graph` recreates it
+    for `validate_preparsed_distribution`, which has resident graphs but no
+    parse observer. Bound directly to a graph (`for_graph`), it answers from
+    the store for helper calls that have neither observation. `one` in graph
+    mode is literally `_one`, so a caller counting `_one` still counts it.
 
     Duplicate objects are impossible on the indexed path and so are not
     filtered: canonical packs are strictly increasing (`_NQuadsProfileReader`),
@@ -1838,14 +1890,24 @@ class _LexicalNQuadsParser(NQuadsParser):
         *args: Any,
         subject_observer: Callable[[URIRef, URIRef], None] | None = None,
         asserted_placement: _AssertedPlacementObservation | None = None,
+        term_pool: TermPool | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.graph_counts: Counter[URIRef] = Counter()
         self.subject_observer = subject_observer
         self.asserted_placement = asserted_placement
+        self.term_pool = term_pool
         self.observed_subject: URIRef | None = None
         self.observed_subject_graphs: set[URIRef] = set()
+
+    def uriref(self) -> URIRef | bool:
+        if not self.peek("<"):
+            return False
+        lexical = uriquote(unquote(self.eat(r_uriref).group(1)))
+        if self.term_pool is None:
+            return URI(lexical)
+        return self.term_pool.iri(lexical)
 
     def literal(self) -> Literal | bool:
         if not self.peek('"'):
@@ -1853,13 +1915,27 @@ class _LexicalNQuadsParser(NQuadsParser):
         lexical, language, datatype = self.eat(r_literal).groups()
         if language and datatype:
             raise ParseError("Can't have both a language and a datatype")
-        datatype_node = URI(uriquote(unquote(datatype))) if datatype else None
-        return Literal(
-            unquote(lexical),
-            lang=language or None,
+        datatype_node = self.uriref_from_lexical(datatype) if datatype else None
+        lexical = unquote(lexical)
+        language = language or None
+        if self.term_pool is None:
+            return Literal(
+                lexical,
+                lang=language,
+                datatype=datatype_node,
+                normalize=False,
+            )
+        return self.term_pool.literal(
+            lexical,
+            lang=language,
             datatype=datatype_node,
-            normalize=False,
         )
+
+    def uriref_from_lexical(self, lexical: str) -> URIRef:
+        value = uriquote(unquote(lexical))
+        if self.term_pool is None:
+            return URI(value)
+        return self.term_pool.iri(value)
 
     def parseline(self, bnode_context: Any = None) -> None:
         """Parse one statement into the sink, observing subjects and placement."""
@@ -1915,12 +1991,15 @@ def _parse_nquads_preserving_lexical_forms(
     parser = _LexicalNQuadsParser(
         subject_observer=subject_observer,
         asserted_placement=asserted_placement,
+        term_pool=getattr(dataset, "_refspec_term_pool", None),
     )
     try:
         parser.parse(input_source, dataset)
     finally:
         if input_source.auto_close:
             input_source.close()
+        if parser.term_pool is not None:
+            parser.term_pool.clear()
     return parser.graph_counts
 
 
@@ -2247,7 +2326,7 @@ def _binding_tool_paths() -> tuple[Path, ...]:
     """Resolve BINDING_TOOL_PATHS against this binding.
 
     A function rather than a constant so a caller can point the tool inventory
-    at a different copy of these four files -- which is how the cache test
+    at a different copy of these files -- which is how the cache test
     proves that an edited validator cannot be answered from the old
     validator's receipt without editing the installed validator itself.
     """
@@ -2761,6 +2840,27 @@ def _check_distribution_files(
     return member_digests
 
 
+def _new_dataset() -> Dataset:
+    """Create the selected RDF store and its matching term-construction path.
+
+    ``two-index`` is the production default. Setting
+    ``REFSPEC_ATLAS_RDF_STORE=memory`` restores stock rdflib ``Memory`` and
+    stock RDF terms for immediate mitigation and differential checks.
+    """
+
+    selected = os.environ.get(RDF_STORE_ENV, TWO_INDEX_STORE)
+    if selected == MEMORY_STORE:
+        return Dataset()
+    if selected == TWO_INDEX_STORE:
+        dataset = Dataset(store=TwoIndexStore())
+        dataset._refspec_term_pool = TermPool()
+        return dataset
+    _fail(
+        "configuration.rdf-store",
+        f"{RDF_STORE_ENV} must be {TWO_INDEX_STORE!r} or {MEMORY_STORE!r}",
+    )
+
+
 def _parse_dataset(
     path: Path,
     manifest: Mapping[str, Any],
@@ -2768,7 +2868,7 @@ def _parse_dataset(
     expected_digest: str | None = None,
 ) -> tuple[Dataset, dict[str, Graph]]:
     line_count = _check_serialized_nquads_profile(path, expected_digest=expected_digest)
-    dataset = Dataset()
+    dataset = _new_dataset()
     try:
         counts = _parse_nquads_preserving_lexical_forms(dataset, path)
     except AtlasValidationError:
@@ -2897,7 +2997,7 @@ def _parse_packed_dataset(
     off the same bytes; see each observation's own docstring.
     """
 
-    dataset = Dataset()
+    dataset = _new_dataset()
     subject_owners: dict[str, dict[URIRef, str]] = {
         role: {} for role in graph_ids
     }
@@ -5168,8 +5268,9 @@ def _adjudicated_relation(verdicts: AbstractSet[URIRef]) -> URIRef | None:
 
 
 def _machine_adjudication_artifact_facts(
-    asserted: Graph,
     artifacts: AbstractSet[URIRef],
+    *,
+    asserted_facts: _AssertedFacts,
 ) -> dict[URIRef, dict[str, Any]]:
     """Resolve every bundled artifact to its identifiers and its exact bytes."""
 
@@ -5182,10 +5283,14 @@ def _machine_adjudication_artifact_facts(
                     code="dataset.adjudication-input",
                     label="hasArtifactIdentifier",
                 )
-                for value in asserted.objects(artifact, RKAF.hasArtifactIdentifier)
+                for value in asserted_facts.objects(artifact, RKAF.hasArtifactIdentifier)
             ),
             "digest": _literal_text(
-                _one(asserted, artifact, RKAF.hasContentDigest, code="dataset.adjudication-input"),
+                asserted_facts.one(
+                    artifact,
+                    RKAF.hasContentDigest,
+                    code="dataset.adjudication-input",
+                ),
                 code="dataset.adjudication-input",
                 label="hasContentDigest",
             ),
@@ -5197,54 +5302,72 @@ def _machine_adjudication_proof_facts(
     asserted: Graph,
     proof: URIRef,
     *,
+    asserted_facts: _AssertedFacts,
     issuers: AbstractSet[URIRef],
     lineages: AbstractSet[URIRef],
     comparisons: AbstractSet[URIRef],
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> dict[str, Any]:
     """Resolve one proof record, including both dereferenced axes."""
 
     stored_digest = _literal_text(
-        _one(asserted, proof, RKAF.proofRecordDigest, code="dataset.adjudication-identity"),
+        asserted_facts.one(
+            proof,
+            RKAF.proofRecordDigest,
+            code="dataset.adjudication-identity",
+        ),
         code="dataset.adjudication-identity",
         label="proofRecordDigest",
     )
-    if stored_digest != rdf_node_digest(asserted, proof):
+    if stored_digest != _node_digest(asserted, proof, node_digests):
         _fail("dataset.adjudication-identity", f"{proof} proofRecordDigest differs")
     issuer = _iri(
-        _one(asserted, proof, RKAF.proofIssuer, code="dataset.adjudication"),
+        asserted_facts.one(proof, RKAF.proofIssuer, code="dataset.adjudication"),
         code="dataset.adjudication",
         label="proofIssuer",
     )
     if issuer not in issuers:
         _fail("dataset.adjudication", f"{proof} names unknown proof issuer {issuer}")
     lineage = _iri(
-        _one(asserted, proof, RKAF.hasAILineage, code="dataset.adjudication"),
+        asserted_facts.one(proof, RKAF.hasAILineage, code="dataset.adjudication"),
         code="dataset.adjudication",
         label="hasAILineage",
     )
     if lineage not in lineages:
         _fail("dataset.adjudication", f"{proof} names unknown AI lineage {lineage}")
     comparison = _iri(
-        _one(asserted, proof, RKAF.proofComparisonContext, code="dataset.adjudication"),
+        asserted_facts.one(
+            proof,
+            RKAF.proofComparisonContext,
+            code="dataset.adjudication",
+        ),
         code="dataset.adjudication",
         label="proofComparisonContext",
     )
     if comparison not in comparisons:
         _fail("dataset.adjudication", f"{proof} names unknown comparison {comparison}")
     _date_time(
-        _one(asserted, proof, RKAF.proofEvaluatedAt, code="dataset.adjudication"),
+        asserted_facts.one(
+            proof,
+            RKAF.proofEvaluatedAt,
+            code="dataset.adjudication",
+        ),
         code="dataset.adjudication",
         label="proofEvaluatedAt",
     )
     verdict = _iri(
-        _one(asserted, proof, RKAF.adjudicationVerdict, code="dataset.adjudication"),
+        asserted_facts.one(
+            proof,
+            RKAF.adjudicationVerdict,
+            code="dataset.adjudication",
+        ),
         code="dataset.adjudication",
         label="adjudicationVerdict",
     )
     if verdict not in MACHINE_ADJUDICATION_VERDICTS:
         _fail("dataset.adjudication", f"{proof} states an unsupported verdict {verdict}")
     outcome = _iri(
-        _one(asserted, proof, RKAF.proofOutcome, code="dataset.adjudication"),
+        asserted_facts.one(proof, RKAF.proofOutcome, code="dataset.adjudication"),
         code="dataset.adjudication",
         label="proofOutcome",
     )
@@ -5255,17 +5378,29 @@ def _machine_adjudication_proof_facts(
         "verdict": verdict,
         "outcome": outcome,
         "snapshot": _literal_text(
-            _one(asserted, proof, RKAF.proofSnapshot, code="dataset.adjudication"),
+            asserted_facts.one(
+                proof,
+                RKAF.proofSnapshot,
+                code="dataset.adjudication",
+            ),
             code="dataset.adjudication",
             label="proofSnapshot",
         ),
         "sealedRequestDigest": _literal_text(
-            _one(asserted, proof, RKAF.sealedRequestDigest, code="dataset.adjudication"),
+            asserted_facts.one(
+                proof,
+                RKAF.sealedRequestDigest,
+                code="dataset.adjudication",
+            ),
             code="dataset.adjudication",
             label="sealedRequestDigest",
         ),
         "inputContextHash": _literal_text(
-            _one(asserted, lineage, RKAF.inputContextHash, code="dataset.adjudication-input"),
+            asserted_facts.one(
+                lineage,
+                RKAF.inputContextHash,
+                code="dataset.adjudication-input",
+            ),
             code="dataset.adjudication-input",
             label="inputContextHash",
         ),
@@ -5277,30 +5412,46 @@ def _machine_adjudication_proof_facts(
         "axes": (
             issuer,
             _iri(
-                _one(asserted, proof, RKAF.independenceGroup, code="dataset.adjudication"),
+                asserted_facts.one(
+                    proof,
+                    RKAF.independenceGroup,
+                    code="dataset.adjudication",
+                ),
                 code="dataset.adjudication",
                 label="independenceGroup",
             ),
             _iri(
-                _one(asserted, issuer, RKAF.proofResolver, code="dataset.adjudication"),
+                asserted_facts.one(
+                    issuer,
+                    RKAF.proofResolver,
+                    code="dataset.adjudication",
+                ),
                 code="dataset.adjudication",
                 label="proofResolver",
             ),
             _literal_text(
-                _one(asserted, lineage, RKAF.modelId, code="dataset.adjudication"),
+                asserted_facts.one(
+                    lineage,
+                    RKAF.modelId,
+                    code="dataset.adjudication",
+                ),
                 code="dataset.adjudication",
                 label="modelId",
             ),
             _iri(
-                _one(asserted, proof, RKAF.sealedResponseArtifact, code="dataset.adjudication"),
+                asserted_facts.one(
+                    proof,
+                    RKAF.sealedResponseArtifact,
+                    code="dataset.adjudication",
+                ),
                 code="dataset.adjudication",
                 label="sealedResponseArtifact",
             ),
         ),
-        "inputs": frozenset(asserted.objects(proof, RKAF.proofInput)),
+        "inputs": frozenset(asserted_facts.objects(proof, RKAF.proofInput)),
         "inputDigests": frozenset(
             _literal_text(value, code="dataset.adjudication-input", label="proofInputDigest")
-            for value in asserted.objects(proof, RKAF.proofInputDigest)
+            for value in asserted_facts.objects(proof, RKAF.proofInputDigest)
         ),
     }
 
@@ -5308,6 +5459,8 @@ def _machine_adjudication_proof_facts(
 def _check_machine_adjudication(
     asserted: Graph,
     inventory: SemanticInventory | None = None,
+    *,
+    node_digests: _AssertedNodeDigests | None = None,
 ) -> None:
     """Close the machine-adjudication protocol over proofs and comparisons.
 
@@ -5364,6 +5517,7 @@ def _check_machine_adjudication(
       the relation the mapping states.
     """
 
+    asserted_facts = _asserted_facts(asserted, inventory)
     comparisons = _carrier_nodes(asserted, RKAF.RelationComparisonContext, inventory)
     proofs = _carrier_nodes(asserted, RKAF.ResolverProofRecord, inventory)
     issuers = _carrier_nodes(asserted, RKAF.ResolverProofIssuer, inventory)
@@ -5377,18 +5531,23 @@ def _check_machine_adjudication(
     adjudicated: set[URIRef] = set()
     for binding in bindings:
         if "twoMachineAdjudication" in declared_evidence_warrants(
-            {axis: asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES}
+            {axis: asserted_facts.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES}
         ):
-            adjudicated.update(asserted.objects(binding, RKAF.bindsAssertion))
+            adjudicated.update(asserted_facts.objects(binding, RKAF.bindsAssertion))
 
-    artifact_facts = _machine_adjudication_artifact_facts(asserted, artifacts)
+    artifact_facts = _machine_adjudication_artifact_facts(
+        artifacts,
+        asserted_facts=asserted_facts,
+    )
     facts = {
         proof: _machine_adjudication_proof_facts(
             asserted,
             proof,
+            asserted_facts=asserted_facts,
             issuers=issuers,
             lineages=lineages,
             comparisons=comparisons,
+            node_digests=node_digests,
         )
         for proof in sorted(proofs)
     }
@@ -5399,7 +5558,11 @@ def _check_machine_adjudication(
     comparison_by_assertion: dict[URIRef, URIRef] = {}
     for comparison in sorted(comparisons):
         assertion = _iri(
-            _one(asserted, comparison, RKAF.comparisonExpectedAssertion, code="dataset.adjudication"),
+            asserted_facts.one(
+                comparison,
+                RKAF.comparisonExpectedAssertion,
+                code="dataset.adjudication",
+            ),
             code="dataset.adjudication",
             label="comparisonExpectedAssertion",
         )
@@ -5420,7 +5583,11 @@ def _check_machine_adjudication(
             )
         comparison_by_assertion[assertion] = comparison
         outcome = _iri(
-            _one(asserted, comparison, RKAF.comparisonOutcome, code="dataset.adjudication"),
+            asserted_facts.one(
+                comparison,
+                RKAF.comparisonOutcome,
+                code="dataset.adjudication",
+            ),
             code="dataset.adjudication",
             label="comparisonOutcome",
         )
@@ -5437,12 +5604,20 @@ def _check_machine_adjudication(
             licensing_comparisons.append(comparison)
             licensed_assertion[comparison] = assertion
         snapshot = _literal_text(
-            _one(asserted, comparison, RKAF.comparisonSnapshot, code="dataset.adjudication"),
+            asserted_facts.one(
+                comparison,
+                RKAF.comparisonSnapshot,
+                code="dataset.adjudication",
+            ),
             code="dataset.adjudication",
             label="comparisonSnapshot",
         )
         target_release = _iri(
-            _one(asserted, assertion, ATLAS.targetRelease, code="dataset.adjudication"),
+            asserted_facts.one(
+                assertion,
+                ATLAS.targetRelease,
+                code="dataset.adjudication",
+            ),
             code="dataset.adjudication",
             label="targetRelease",
         )
@@ -5456,7 +5631,11 @@ def _check_machine_adjudication(
             (
                 RKAF.comparisonBaselineArtifact,
                 _iri(
-                    _one(asserted, assertion, RDF.subject, code="dataset.adjudication"),
+                    asserted_facts.one(
+                        assertion,
+                        RDF.subject,
+                        code="dataset.adjudication",
+                    ),
                     code="dataset.adjudication",
                     label="assertion subject",
                 ),
@@ -5464,7 +5643,11 @@ def _check_machine_adjudication(
             (
                 RKAF.comparisonObservedArtifact,
                 _iri(
-                    _one(asserted, assertion, RDF.object, code="dataset.adjudication"),
+                    asserted_facts.one(
+                        assertion,
+                        RDF.object,
+                        code="dataset.adjudication",
+                    ),
                     code="dataset.adjudication",
                     label="assertion object",
                 ),
@@ -5473,7 +5656,11 @@ def _check_machine_adjudication(
         endpoint_artifacts: set[URIRef] = set()
         for predicate, endpoint in endpoints:
             artifact = _iri(
-                _one(asserted, comparison, predicate, code="dataset.adjudication-input"),
+                asserted_facts.one(
+                    comparison,
+                    predicate,
+                    code="dataset.adjudication-input",
+                ),
                 code="dataset.adjudication-input",
                 label=str(predicate),
             )
@@ -5497,7 +5684,9 @@ def _check_machine_adjudication(
                     f"{artifact} pins content {endpoint} does not have",
                 )
             endpoint_artifacts.add(artifact)
-        cited = sorted(set(asserted.objects(comparison, RKAF.comparisonProofRecord)))
+        cited = sorted(
+            set(asserted_facts.objects(comparison, RKAF.comparisonProofRecord))
+        )
         request_artifacts: set[URIRef] = set()
         for proof in cited:
             if proof not in facts:
@@ -5621,7 +5810,11 @@ def _check_machine_adjudication(
             )
         assertion = licensed_assertion[comparison]
         stated = _iri(
-            _one(asserted, assertion, RDF.predicate, code="dataset.adjudication-lattice"),
+            asserted_facts.one(
+                assertion,
+                RDF.predicate,
+                code="dataset.adjudication-lattice",
+            ),
             code="dataset.adjudication-lattice",
             label="assertion predicate",
         )
@@ -7244,8 +7437,13 @@ def _construction_rdf_one(
     predicate: URIRef,
     *,
     term_type: type[URIRef | Literal],
+    asserted_facts: _AssertedFacts | None = None,
 ) -> Any:
-    values = list(graph.objects(subject, predicate))
+    values = list(
+        asserted_facts.objects(subject, predicate)
+        if asserted_facts is not None
+        else graph.objects(subject, predicate)
+    )
     if len(values) != 1 or not isinstance(values[0], term_type):
         _fail(
             "construction.sample",
@@ -7981,12 +8179,15 @@ def _construction_source_record_owner(
     asserted: Graph,
     source_record: URIRef,
     source_owner: Mapping[str, str],
+    *,
+    asserted_facts: _AssertedFacts | None = None,
 ) -> str | None:
     source_release = _construction_rdf_one(
         asserted,
         source_record,
         ATLAS.inSourceRelease,
         term_type=URIRef,
+        asserted_facts=asserted_facts,
     )
     return source_owner.get(str(source_release))
 
@@ -7994,8 +8195,15 @@ def _construction_source_record_owner(
 def _construction_statement_source_record(
     asserted: Graph,
     statement: URIRef,
+    *,
+    asserted_facts: _AssertedFacts | None = None,
+    bindings_by_statement: Mapping[URIRef, Sequence[URIRef]] | None = None,
 ) -> URIRef:
-    bindings = list(asserted.subjects(RKAF.bindsAssertion, statement))
+    bindings = list(
+        bindings_by_statement.get(statement, ())
+        if bindings_by_statement is not None
+        else asserted.subjects(RKAF.bindsAssertion, statement)
+    )
     if len(bindings) != 1 or not isinstance(bindings[0], URIRef):
         _fail(
             "construction.sample",
@@ -8006,6 +8214,7 @@ def _construction_statement_source_record(
         bindings[0],
         ATLAS.evidenceSourceRecord,
         term_type=URIRef,
+        asserted_facts=asserted_facts,
     )
 
 
@@ -8016,6 +8225,8 @@ def _construction_compact_owner(
     *,
     source_owner: Mapping[str, str],
     atlas_owner: Mapping[str, str],
+    asserted_facts: _AssertedFacts | None = None,
+    bindings_by_statement: Mapping[URIRef, Sequence[URIRef]] | None = None,
 ) -> str | None:
     """Resolve one logical RDF record to its construction release."""
 
@@ -8025,10 +8236,16 @@ def _construction_compact_owner(
             subject,
             ATLAS.inRelease,
             term_type=URIRef,
+            asserted_facts=asserted_facts,
         )
         return atlas_owner.get(str(release))
     if role == "SourceRecord":
-        return _construction_source_record_owner(asserted, subject, source_owner)
+        return _construction_source_record_owner(
+            asserted,
+            subject,
+            source_owner,
+            asserted_facts=asserted_facts,
+        )
     if role == "Release":
         if (subject, RDF.type, ATLAS.SourceRelease) in asserted:
             return source_owner.get(str(subject))
@@ -8039,23 +8256,34 @@ def _construction_compact_owner(
             subject,
             ATLAS.identifies,
             term_type=URIRef,
+            asserted_facts=asserted_facts,
         )
         release = _construction_rdf_one(
             asserted,
             resource,
             ATLAS.inRelease,
             term_type=URIRef,
+            asserted_facts=asserted_facts,
         )
         return atlas_owner.get(str(release))
     if role == "LifecycleEvent":
-        records = list(asserted.objects(subject, ATLAS.sourceRecord))
+        records = list(
+            asserted_facts.objects(subject, ATLAS.sourceRecord)
+            if asserted_facts is not None
+            else asserted.objects(subject, ATLAS.sourceRecord)
+        )
         if not records or any(not isinstance(record, URIRef) for record in records):
             _fail(
                 "construction.sample",
                 f"lifecycle event {subject} has invalid RDF source records",
             )
         owners = {
-            _construction_source_record_owner(asserted, record, source_owner)
+            _construction_source_record_owner(
+                asserted,
+                record,
+                source_owner,
+                asserted_facts=asserted_facts,
+            )
             for record in records
         }
         return next(iter(owners)) if len(owners) == 1 else None
@@ -8065,17 +8293,25 @@ def _construction_compact_owner(
             subject,
             ATLAS.evidenceSourceRecord,
             term_type=URIRef,
+            asserted_facts=asserted_facts,
         )
         return _construction_source_record_owner(
             asserted,
             source_record,
             source_owner,
+            asserted_facts=asserted_facts,
         )
     if role == "Statement":
         return _construction_source_record_owner(
             asserted,
-            _construction_statement_source_record(asserted, subject),
+            _construction_statement_source_record(
+                asserted,
+                subject,
+                asserted_facts=asserted_facts,
+                bindings_by_statement=bindings_by_statement,
+            ),
             source_owner,
+            asserted_facts=asserted_facts,
         )
     _fail("construction.record-ownership", f"unsupported logical record role {role}")
 
@@ -8176,6 +8412,8 @@ def _check_cached_pack_transports(
 def _check_construction_record_ownership(
     asserted: Graph,
     construction_summary: Mapping[str, Any],
+    *,
+    asserted_facts: _AssertedFacts | None = None,
 ) -> None:
     """Recompute each release's logical record counts from the asserted RDF.
 
@@ -8184,6 +8422,8 @@ def _check_construction_record_ownership(
     own output. With the packs gone the comparand is the graph: every carrier
     is resolved to the construction unit that owns it and tallied, and the
     published counts must equal that tally exactly, per release and per role.
+    A parse-observed fact index answers the per-record ownership reads when
+    available; direct callers retain the graph-backed path.
     """
 
     source_owner: dict[str, str] = {}
@@ -8192,6 +8432,12 @@ def _check_construction_record_ownership(
         source_owner[release["sourceRelease"]] = release["key"]
         if "atlasRelease" in release:
             atlas_owner[release["atlasRelease"]] = release["key"]
+
+    facts = asserted_facts or _AssertedFacts.for_graph(asserted)
+    bindings_by_statement: dict[URIRef, list[URIRef]] = defaultdict(list)
+    for binding, statement in facts.subject_objects(RKAF.bindsAssertion):
+        if isinstance(binding, URIRef) and isinstance(statement, URIRef):
+            bindings_by_statement[statement].append(binding)
 
     observed: dict[str, Counter[str]] = {
         release["key"]: Counter() for release in construction_summary["releases"]
@@ -8206,6 +8452,8 @@ def _check_construction_record_ownership(
                 role,
                 source_owner=source_owner,
                 atlas_owner=atlas_owner,
+                asserted_facts=facts,
+                bindings_by_statement=bindings_by_statement,
             )
             if owner is None:
                 _fail(
@@ -8643,7 +8891,11 @@ def _validate_semantic_graphs(
     _check_evidence_bindings(graphs["asserted"], inventory, node_digests=node_digests)
     current_assertions = _validate_assertions(graphs["asserted"], inventory)
     _STATUS.phase("check-machine-adjudication")
-    _check_machine_adjudication(graphs["asserted"], inventory)
+    _check_machine_adjudication(
+        graphs["asserted"],
+        inventory,
+        node_digests=node_digests,
+    )
     _STATUS.phase("check-skos-semantics")
     exact_index = _check_skos_integrity(current_assertions)
     projection_quad_count = next(
@@ -8767,7 +9019,19 @@ def _validate_semantics_then_record_ownership(
         node_digests=node_digests,
     )
     _STATUS.phase("check-construction-record-ownership")
-    _check_construction_record_ownership(graphs["asserted"], construction_summary)
+    asserted = graphs["asserted"]
+    asserted_facts = (
+        asserted_placement.facts
+        if asserted_placement is not None
+        and asserted_placement.facts is not None
+        and asserted_placement.facts.graph_id == asserted.identifier
+        else None
+    )
+    _check_construction_record_ownership(
+        asserted,
+        construction_summary,
+        asserted_facts=asserted_facts,
+    )
     return result
 
 
@@ -9039,7 +9303,7 @@ def smoke_check(root: Path) -> dict[str, Any]:
         _fail("smoke.sample", "no pack and dependency closure fits the smoke sample budget")
 
     _STATUS.phase("smoke-parse-sampled-packs")
-    dataset = Dataset()
+    dataset = _new_dataset()
     subject_owners: dict[str, dict[URIRef, str]] = {role: {} for role in graph_ids}
     sampled_quads = 0
     for position, pack in enumerate(sample, start=1):
@@ -9164,7 +9428,7 @@ def _check_registry_descriptors(
         or any(not line or line != line.strip() for line in lines)
     ):
         _fail("registry.descriptors", "registry descriptor N-Quads are not sorted and unique")
-    dataset = Dataset()
+    dataset = _new_dataset()
     try:
         _parse_nquads_preserving_lexical_forms(dataset, REGISTRY_DESCRIPTOR_DATASET_PATH)
     except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
