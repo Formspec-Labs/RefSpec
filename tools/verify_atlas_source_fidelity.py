@@ -2409,6 +2409,8 @@ def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
     if operation.startswith("none-if-equals:"):
         sentinel = operation.removeprefix("none-if-equals:")
         return None if value == sentinel else value
+    if operation == "presence-boolean":
+        return value is not None
     if not isinstance(value, str):
         raise ValueError(
             f"{label} normalization {operation!r} requires text, observed "
@@ -2716,6 +2718,21 @@ def _read_pattern_rows(
                             fields[derived.field] = derived.prefix + urllib.parse.quote(
                                 rendered,
                                 safe="",
+                            )
+                        elif derived.operation == "uuid7":
+                            if (
+                                not isinstance(rendered, Mapping)
+                                or set(rendered) != {"recordedAt", "seed"}
+                                or not isinstance(rendered["recordedAt"], str)
+                                or not isinstance(rendered["seed"], Mapping)
+                            ):
+                                raise ValueError(
+                                    f"{spec.name} UUIDv7 field {derived.field!r} "
+                                    "requires recordedAt text and a seed object"
+                                )
+                            fields[derived.field] = derived.prefix + _source_uuid7(
+                                rendered["recordedAt"],
+                                rendered["seed"],
                             )
                         else:
                             raise ValueError(
@@ -11162,6 +11179,288 @@ CENSUS_GEO_PATTERN_ROW_SOURCES = (
 )
 
 
+_GAO_CRA_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/gao_cra_facets/"
+        "gao-cra-database-real-capture-2026-08-04.html"
+    ),
+    sha256=(
+        "sha256:50c6a5a94627a09539ddfb991397a22e257e2d1ec1f25e1206be5214322d9c12"
+    ),
+    byte_length=130_944,
+    fmt="html",
+    role="publisherSearchFacets",
+    source_iri=(
+        "https://www.gao.gov/legal/congressional-review-act/"
+        "search-database-of-rules?priority=all&processed=1&type=all"
+    ),
+)
+
+
+def _gao_cra_pattern_source() -> SourceSpec:
+    native_payload = {
+        "facet_name": "{facet_name}",
+        "identifiers": [
+            {
+                "authority_uri": "https://www.gao.gov/",
+                "effective_at": None,
+                "kind": "{identifier_kind}",
+                "observed_at": "2026-08-04T04:35:23Z",
+                "source_digest": "{source_digest}",
+                "source_uri": "{source_iri}",
+                "value": "{identifier_value}",
+            }
+        ],
+        "is_default": "{checked}",
+        "is_general_subject_concept": False,
+        "publisher_label": "{label}",
+        "source_url": "{source_iri}",
+        "use": "deterministicMetadata",
+    }
+    payload_json = _canonical_json_bytes(native_payload).decode("utf-8")
+    payload_fields = tuple(sorted(native_payload))
+    patterns = tuple(
+        PatternRowPattern(
+            input_pattern=re.escape(_GAO_CRA_PATTERN_PIN.path),
+            region_pattern=(
+                rf'<fieldset[^>]*id="edit-{re.escape(facet_name)}--wrapper"[^>]*>'
+                r"(?P<region>.*?)</fieldset>"
+            ),
+            row_pattern=(
+                rf'<input[^>]*name="{re.escape(facet_name)}"[^>]*'
+                r'value="(?P<identifier_value>[^"]+)"'
+                r'(?P<checked>\s+checked="checked")?[^>]*/>\s*'
+                r'<label[^>]*>(?P<label>.*?)</label>'
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=3,
+            constants=(
+                ("facet_name", facet_name),
+                ("identifier_kind", identifier_kind),
+            ),
+            normalizers=(
+                PatternFieldNormalizer("checked", ("presence-boolean",)),
+                PatternFieldNormalizer("label", ("html-visible-text",)),
+            ),
+            native_payload_template_json=payload_json,
+            native_payload_fields=payload_fields,
+            derived_fields=(
+                PatternDerivedField(
+                    field="encoded_identifier_value",
+                    operation="uri-component",
+                    template_json=json.dumps("{identifier_value}"),
+                ),
+            ),
+        )
+        for facet_name, identifier_kind in (
+            ("priority", "craPriorityFacetValue"),
+            ("type", "craTypeFacetValue"),
+        )
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{facet_name}:{identifier_value}",
+        identity_mode="source-key-derived",
+        identity_template=(
+            "urn:ref:gao-cra-facet:{facet_name}:{encoded_identifier_value}"
+        ),
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_value}"),
+            ("source_path", "{input_path}"),
+        ),
+        native_payload_template_json=payload_json,
+        native_payload_fields=payload_fields,
+        expected_count=6,
+        declared_unevaluated_fields=("htmlOutsidePriorityAndTypeFacets",),
+    )
+    return _pattern_row_source_spec(
+        "gao-cra-database-facets-2026-08-04",
+        (_GAO_CRA_PATTERN_PIN,),
+        selector,
+    )
+
+
+_GAO_PRODUCT_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/gao_topics/"
+        "gao-product-gao-26-108505-2026-08-04.html"
+    ),
+    sha256=(
+        "sha256:c50268888ddb9c7cae2277d55229394b6434ba7503d79a61cb3ff3775a0683fd"
+    ),
+    byte_length=107_634,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.gao.gov/products/gao-26-108505",
+)
+
+_GAO_PRODUCT_PATTERN_ROW = (
+    r"\A(?=[\s\S]*<link[^>]+rel=\"canonical\"[^>]+"
+    r'href="(?P<canonical_url>[^"]+)")'
+    r"(?=[\s\S]*<h1[^>]*>(?P<label>.*?)</h1>)"
+    r"(?=[\s\S]*<section[^>]+class=\"[^\"]*block-post-title-info[^\"]*\""
+    r"[^>]*>[\s\S]*?<strong[^>]*>(?P<product_report_number>.*?)</strong>"
+    r"[\s\S]*?Published:\s*May 12, 2026)"
+    r"(?=[\s\S]*<div class=\"views-field views-field-field-topic\">"
+    r"[\s\S]*?<a href=\"(?P<topic_path>/topics/[a-z0-9-]+)\"[^>]*>"
+    r"(?P<topic_label>.*?)</a>)"
+    r"[\s\S]*?<head>"
+)
+
+
+def _gao_report_pattern_source() -> SourceSpec:
+    native_payload = {
+        "canonicalUrl": "{canonical_url}",
+        "productReportNumber": "{product_report_number}",
+        "productTitle": "{label}",
+        "publicationDate": "2026-05-12",
+        "sourceArtifact": "{source_iri}",
+        "sourcePath": "product",
+        "topicAssignments": [
+            {
+                "label": "{topic_label}",
+                "recordIri": "{topic_record_iri}",
+                "sourceOrdinal": 0,
+                "topicPath": "{topic_path}",
+            }
+        ],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_GAO_PRODUCT_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=_GAO_PRODUCT_PATTERN_ROW,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer(
+                        "product_report_number", ("html-visible-text",)
+                    ),
+                    PatternFieldNormalizer("topic_label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{canonical_url}",
+        identity_mode="publisher-iri",
+        identity_template="{canonical_url}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("source_path", "product"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=1,
+        declared_unevaluated_fields=("htmlOutsideProductIdentityAndTopics",),
+        derived_fields=(
+            PatternDerivedField(
+                field="topic_record_iri",
+                operation="template",
+                template_json=json.dumps(
+                    "urn:ref:gao-topic-assignment:"
+                    "c50268888ddb9c7cae2277d55229394b6434ba7503d79a61cb3ff3775a0683fd:"
+                    "{product_report_number}:0"
+                ),
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(
+        "gao-report-gao-26-108505",
+        (_GAO_PRODUCT_PATTERN_PIN,),
+        selector,
+    )
+
+
+def _gao_topic_pattern_source() -> SourceSpec:
+    native_payload = {
+        "conceptIdentityClaimedByPublisher": False,
+        "observedOnProduct": "{product_report_number}",
+        "sourceArtifact": "{source_iri}",
+        "sourcePath": "{source_path}",
+        "topicPath": "{topic_path}",
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_GAO_PRODUCT_PATTERN_PIN.path),
+                region_pattern=r"(?P<region>[\s\S]+)",
+                row_pattern=_GAO_PRODUCT_PATTERN_ROW,
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=1,
+                normalizers=(
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                    PatternFieldNormalizer(
+                        "product_report_number", ("html-visible-text",)
+                    ),
+                    PatternFieldNormalizer("topic_label", ("html-visible-text",)),
+                ),
+                derived_fields=(
+                    PatternDerivedField(
+                        field="source_path",
+                        operation="template",
+                        template_json=json.dumps(
+                            "topics.viewsRow[{match_ordinal}].viewsFieldFieldTopic"
+                        ),
+                    ),
+                    PatternDerivedField(
+                        field="topic_uuid",
+                        operation="uuid7",
+                        template_json=_canonical_json_bytes(
+                            {
+                                "recordedAt": "2026-08-04T00:18:00Z",
+                                "seed": {
+                                    "sourceArtifact": "{source_iri}",
+                                    "sourcePath": "{source_path}",
+                                    "sourceValue": "{topic_path}",
+                                },
+                            }
+                        ).decode("utf-8"),
+                    ),
+                ),
+            ),
+        ),
+        row_key="{topic_path}",
+        identity_mode="source-key-derived",
+        identity_template="urn:ref:source-concept:v2:gao-topics:{topic_uuid}",
+        source_locator_template="{source_iri}#topic={match_ordinal}",
+        claim_map=(
+            ("preferred_label", "{topic_label}"),
+            ("source_path", "{source_path}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
+            "utf-8"
+        ),
+        native_payload_fields=tuple(sorted(native_payload)),
+        expected_count=1,
+        declared_unevaluated_fields=(
+            "canonical_url",
+            "htmlOutsideProductIdentityAndTopics",
+            "label",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "gao-topics-observed-on-gao-26-108505",
+        (_GAO_PRODUCT_PATTERN_PIN,),
+        selector,
+    )
+
+
+GAO_PATTERN_ROW_SOURCES = (
+    _gao_cra_pattern_source(),
+    _gao_report_pattern_source(),
+    _gao_topic_pattern_source(),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -11249,6 +11548,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *EPA_COMPTOX_PATTERN_ROW_SOURCES,
     *FAC_PATTERN_ROW_SOURCES,
     *CENSUS_GEO_PATTERN_ROW_SOURCES,
+    *GAO_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
