@@ -27,7 +27,10 @@ rediscovered:
 
 * An Atlas resource for a vocabulary source **is** the publisher's own IRI. The
   data join is IRI identity, not a minted key and not a digest. Source locators
-  are adapter-specific evidence addresses and are checked independently.
+  are adapter-specific evidence addresses and are checked independently. The one
+  exception is a ``source-extract`` comparison, where the publisher ships no IRIs
+  at all: there the join is the source-local identity the Atlas record itself
+  declares in ``atlas:nativePayload``, and the comparison says so in the receipt.
 * ``atlas:sourceDigest`` is source-specific: some adapters retain a publisher
   file or archive-member digest, while others digest a constructed native
   relation. The verifier checks the applicable digest rule, but never treats a
@@ -51,6 +54,13 @@ artifact, or go through the Makefile target, which names it for you::
     uv run python tools/verify_atlas_source_fidelity.py \\
         --distribution output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution \\
         --output findings.json
+
+``--only NAME`` (repeatable) restricts the run to named comparisons, so a bounded
+artifact costs a bounded run. It narrows what is proven, never what is claimed:
+construction units owned by the comparisons left out are reported as *not
+evaluated (scoped out)*, never as covered and never as failed, and the receipt
+names every comparison the run skipped. Within the scope both directions still
+fail closed.
 
 Exit codes: ``0`` all checks passed and ``1`` one or more checks failed. Missing
 or malformed inputs are collected as check failures so the remaining independent
@@ -101,6 +111,19 @@ SKOS = "http://www.w3.org/2004/02/skos/core#"
 SKOSXL = "http://www.w3.org/2008/05/skos-xl#"
 XSD = "http://www.w3.org/2001/XMLSchema#"
 ATLAS = "https://refspec.org/ns/atlas/v3#"
+# RuleSpec's rkaf namespace. Atlas mints its evidence records in it: an
+# rkaf:EvidenceBinding node and its rkaf: predicates are Atlas representation
+# structure, not a publisher claim, exactly like an atlas: class is. Classifying
+# only the ATLAS namespace made every evidence binding an unknown subject, so
+# each one's claims were reported as escaping comparison.
+RKAF = "https://rulespec.org/ns/v1#"
+ATLAS_REPRESENTATION_NAMESPACES = (ATLAS, RKAF)
+
+
+def _is_atlas_representation_iri(iri: str) -> bool:
+    """Return whether an IRI is minted in a namespace Atlas itself owns."""
+    return iri.startswith(ATLAS_REPRESENTATION_NAMESPACES)
+
 
 RDF_TYPE = f"{RDF}type"
 RDF_SUBJECT = f"{RDF}subject"
@@ -529,6 +552,13 @@ def _literal_value(value: str, language: str | None, datatype: str | None) -> Li
     return LiteralValue(value, language, datatype)
 
 
+def _literal_repr(literal: LiteralValue) -> str:
+    """Render one literal with the tag or datatype that makes a rewrite visible."""
+    if literal.language is not None:
+        return f"{literal.value!r}@{literal.language}"
+    return f"{literal.value!r}^^<{literal.datatype}>"
+
+
 @dataclass(frozen=True)
 class PublisherView:
     """What the pinned publisher bytes say, in the least-transformed form usable."""
@@ -649,6 +679,30 @@ class NativeControlSelector:
 
 
 @dataclass(frozen=True)
+class SourceExtractSelector:
+    """One non-RDF publisher artifact compared through its checked-in extract.
+
+    Some publishers ship no machine-readable distribution at all -- the Federal
+    Register thesaurus is a styled PDF. For those releases the comparison basis
+    is the repository-checked semantic extract of the pinned artifact: bytes
+    that live in git, are pinned here by digest, are *not* read by the builder
+    (which re-parses the PDF on every build), and whose own header binds the
+    exact publisher artifact this comparison authenticates.
+
+    This is weaker than the RDF comparisons and says so in the receipt: it is
+    not an independent re-parse of the publisher's bytes, it is a frozen
+    re-statement of them. What it does catch is every drift between what the
+    builder parsed out of the pinned artifact and what git recorded.
+    """
+
+    reader: str
+    extract: SourcePin
+    source_release_iri: str
+    label_language: str
+    relation_predicate: str
+
+
+@dataclass(frozen=True)
 class RdfSourcePolicy:
     """Independent source-record provenance policy for one RDF adapter."""
 
@@ -677,7 +731,7 @@ class SourceSpec:
     """One source vocabulary the verifier knows how to compare end to end."""
 
     name: str
-    kind: str  # "vocabulary", "mapping", or "native-control"
+    kind: str  # "vocabulary", "mapping", "native-control", or "source-extract"
     release_keys: tuple[str, ...]
     inputs: tuple[SourcePin, ...]
     policies: frozenset[str] = frozenset()
@@ -686,6 +740,7 @@ class SourceSpec:
     excluded_resource_predicates: frozenset[str] = frozenset()
     native_control: NativeControlSelector | None = None
     rdf_source: RdfSourcePolicy | None = None
+    source_extract: SourceExtractSelector | None = None
 
     def has_policy(self, name: str) -> bool:
         return name in self.policies
@@ -723,6 +778,44 @@ class NativeControlPair:
     atlas: AtlasView
 
 
+@dataclass(frozen=True)
+class SourceExtractPublisherView:
+    """One repository-checked semantic extract, read with a stock JSON parser."""
+
+    concept_labels: Mapping[str, str]
+    concept_entry_ids: Mapping[str, str]
+    concept_locators: Mapping[str, Mapping[str, int]]
+    alternate_labels: Mapping[str, frozenset[str]]
+    alternate_label_occurrence_count: int
+    relations: frozenset[tuple[str, str, str]]
+    unrepresented_rows: Mapping[str, int]
+    declared_publisher_artifact: Mapping[str, Any]
+    extract_digest: str
+    failures: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SourceExtractPair:
+    """One checked-in source extract and the Atlas pack that claims to represent it."""
+
+    spec: SourceSpec
+    publisher: SourceExtractPublisherView
+    atlas: AtlasView
+
+
+@dataclass(frozen=True)
+class KeyedAtlasExtractView:
+    """Atlas claims re-keyed from minted resource IRIs to source-local identities."""
+
+    resource_by_local: Mapping[str, str]
+    pref_labels: Mapping[str, frozenset[LiteralValue]]
+    alt_labels: Mapping[str, frozenset[LiteralValue]]
+    entry_ids: Mapping[str, str]
+    locators: Mapping[str, Any]
+    relations: frozenset[tuple[str, str, str]]
+    failures: tuple[str, ...]
+
+
 @dataclass
 class Expectations:
     """Declared shape of the run; overridable so tests need no real distribution."""
@@ -752,6 +845,11 @@ class Context:
     verified_pins: frozenset[SourcePin]
     pin_failures: tuple[str, ...]
     load_failures: tuple[str, ...]
+    source_extract_pairs: tuple[SourceExtractPair, ...] = ()
+    # Specs this run deliberately did not evaluate. They stay visible so the
+    # coverage arithmetic can report their construction units as scoped out
+    # instead of silently counting them covered or failing them unread.
+    scoped_out_specs: tuple[SourceSpec, ...] = ()
     comparison_claim_scope_cache: dict[SourceSpec, dict[str, Any]] = field(
         default_factory=dict,
         compare=False,
@@ -766,7 +864,20 @@ class Context:
 
     def loaded_specs(self) -> frozenset[SourceSpec]:
         return frozenset(
-            [*(pair.spec for pair in self.pairs), *(pair.spec for pair in self.native_control_pairs)]
+            [
+                *(pair.spec for pair in self.pairs),
+                *(pair.spec for pair in self.native_control_pairs),
+                *(pair.spec for pair in self.source_extract_pairs),
+            ]
+        )
+
+    def declared_specs(self) -> tuple[SourceSpec, ...]:
+        """Every spec the registry declares, whether or not this run ran it."""
+        return (*self.specs, *self.scoped_out_specs)
+
+    def scoped_out_release_keys(self) -> frozenset[str]:
+        return frozenset(
+            key for spec in self.scoped_out_specs for key in spec.release_keys
         )
 
 
@@ -1554,6 +1665,227 @@ def _json_without_duplicate_keys(payload: bytes, label: str) -> Any:
         return result
 
     return json.loads(payload, object_pairs_hook=reject_duplicates)
+
+
+FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
+    "federal-register-thesaurus-2025-styled-pdf-v1/1.0"
+)
+
+
+def _source_extract_failure_view(
+    extract_digest: str,
+    failures: Sequence[str],
+) -> SourceExtractPublisherView:
+    """Return a view that compares against nothing and says why, so runs fail closed."""
+    return SourceExtractPublisherView(
+        concept_labels={},
+        concept_entry_ids={},
+        concept_locators={},
+        alternate_labels={},
+        alternate_label_occurrence_count=0,
+        relations=frozenset(),
+        unrepresented_rows={},
+        declared_publisher_artifact={},
+        extract_digest=extract_digest,
+        failures=tuple(failures),
+    )
+
+
+def _read_source_extract(
+    source_root: Path,
+    selector: SourceExtractSelector,
+) -> SourceExtractPublisherView:
+    """Authenticate and read one checked-in extract, or say exactly why it could not."""
+    reader = _SOURCE_EXTRACT_READERS.get(selector.reader)
+    if reader is None:
+        return _source_extract_failure_view(
+            "",
+            [f"no extract reader is declared for {selector.reader!r}"],
+        )
+    try:
+        payload = read_verified_file_pin(
+            _resolve_source_pin(source_root, selector.extract),
+            expected_sha256=selector.extract.sha256,
+            expected_byte_length=selector.extract.byte_length,
+            logical_path=selector.extract.path,
+        )
+    except Exception as error:  # noqa: BLE001 - report and keep auditing everything else
+        return _source_extract_failure_view(
+            "",
+            [
+                (
+                    f"{selector.extract.path}: checked source extract was not "
+                    f"authenticated: {type(error).__name__}: {error}"
+                )
+            ],
+        )
+    return reader(payload, selector)
+
+
+
+def _read_federal_register_thesaurus_2025_extract(
+    payload: bytes,
+    selector: SourceExtractSelector,
+) -> SourceExtractPublisherView:
+    """Read the checked-in 2025 thesaurus extract with a stock JSON parser.
+
+    Nothing here interprets the PDF. The extract's own vocabulary is read
+    literally: an official term is a concept, a ``recognizedVariant`` occurrence
+    is an alternate label of every concept it names, and a ``resolved`` related
+    reference is one directed associative relation. Rows the source itself marks
+    as unresolved, ambiguous, open-term patterns, or index anomalies are counted
+    and reported as rows Atlas must not turn into claims -- the exact set
+    comparisons below are what enforce that.
+    """
+    failures: list[str] = []
+    extract_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+    try:
+        data = _json_without_duplicate_keys(payload, "source extract")
+    except (UnicodeError, ValueError) as error:
+        return _source_extract_failure_view(
+            extract_digest,
+            [f"source extract is not valid JSON: {error}"],
+        )
+    if not isinstance(data, Mapping):
+        return _source_extract_failure_view(
+            extract_digest,
+            ["source extract must be a JSON object"],
+        )
+
+    declared_source = data.get("source")
+    if not isinstance(declared_source, Mapping):
+        failures.append("source extract declares no source object")
+        declared_source = {}
+    schema_version = data.get("schemaVersion")
+    parser_version = data.get("parserVersion")
+    if f"{parser_version}/{schema_version}" != (
+        FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER
+    ):
+        failures.append(
+            "source extract version is not the one this comparison reads -- expected "
+            f"{FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER!r}, observed "
+            f"{parser_version!r}/{schema_version!r}"
+        )
+
+    def rows(name: str) -> list[Mapping[str, Any]]:
+        value = data.get(name)
+        if not isinstance(value, list) or any(
+            not isinstance(item, Mapping) for item in value
+        ):
+            failures.append(f"source extract {name} must be an array of objects")
+            return []
+        return list(value)
+
+    concept_labels: dict[str, str] = {}
+    concept_entry_ids: dict[str, str] = {}
+    concept_locators: dict[str, Mapping[str, int]] = {}
+    for index, item in enumerate(rows("officialTerms")):
+        concept_id = item.get("concept_id")
+        entry_id = item.get("entry_id")
+        label = item.get("label")
+        locator = item.get("locator")
+        if (
+            not isinstance(concept_id, str)
+            or not concept_id
+            or not isinstance(entry_id, str)
+            or not entry_id
+            or not isinstance(label, str)
+            or not isinstance(locator, Mapping)
+            or any(
+                not isinstance(locator.get(key), int)
+                or isinstance(locator.get(key), bool)
+                for key in ("pdf_page", "printed_page", "source_ordinal")
+            )
+        ):
+            failures.append(f"source extract officialTerms[{index}] is malformed")
+            continue
+        if concept_id in concept_labels:
+            failures.append(
+                f"source extract repeats official term identity {concept_id!r}"
+            )
+            continue
+        concept_labels[concept_id] = label
+        concept_entry_ids[concept_id] = entry_id
+        concept_locators[concept_id] = {
+            key: int(locator[key])
+            for key in ("pdf_page", "printed_page", "source_ordinal")
+        }
+
+    alternate: dict[str, set[str]] = defaultdict(set)
+    alternate_occurrences = 0
+    unrepresented_variant_rows = 0
+    for index, item in enumerate(rows("variants")):
+        label = item.get("label")
+        status = item.get("resolution_status")
+        targets = item.get("target_concept_ids")
+        if (
+            not isinstance(label, str)
+            or not isinstance(status, str)
+            or not isinstance(targets, list)
+            or any(not isinstance(target, str) for target in targets)
+        ):
+            failures.append(f"source extract variants[{index}] is malformed")
+            continue
+        if status != "recognizedVariant":
+            unrepresented_variant_rows += len(targets) or 1
+            continue
+        for target in targets:
+            if target not in concept_labels:
+                failures.append(
+                    f"source extract variants[{index}] names unknown concept {target!r}"
+                )
+                continue
+            alternate[target].add(label)
+            alternate_occurrences += 1
+
+    relations: set[tuple[str, str, str]] = set()
+    unrepresented_relation_rows = 0
+    for index, item in enumerate(rows("relatedReferences")):
+        status = item.get("resolution_status")
+        subject = item.get("source_concept_id")
+        obj = item.get("target_concept_id")
+        if not isinstance(status, str) or not isinstance(subject, str):
+            failures.append(f"source extract relatedReferences[{index}] is malformed")
+            continue
+        if status != "resolved" or obj is None:
+            unrepresented_relation_rows += 1
+            continue
+        if not isinstance(obj, str) or obj not in concept_labels or subject not in concept_labels:
+            failures.append(
+                f"source extract relatedReferences[{index}] names an unknown concept"
+            )
+            continue
+        relations.add((subject, selector.relation_predicate, obj))
+
+    return SourceExtractPublisherView(
+        concept_labels=concept_labels,
+        concept_entry_ids=concept_entry_ids,
+        concept_locators=concept_locators,
+        alternate_labels={key: frozenset(value) for key, value in alternate.items()},
+        alternate_label_occurrence_count=alternate_occurrences,
+        relations=frozenset(relations),
+        unrepresented_rows={
+            "ambiguousOrUnresolvedVariantOccurrences": unrepresented_variant_rows,
+            "indexAnomalies": len(rows("indexAnomalies")),
+            "suggestedOpenTermPatterns": len(rows("suggestedOpenTermPatterns")),
+            "unresolvedReferences": len(rows("unresolvedReferences")),
+            "unresolvedOrRedirectedRelatedReferences": unrepresented_relation_rows,
+            "variantRedirects": len(rows("variantRedirects")),
+        },
+        declared_publisher_artifact=dict(declared_source),
+        extract_digest=extract_digest,
+        failures=tuple(failures),
+    )
+
+
+_SOURCE_EXTRACT_READERS: Mapping[
+    str,
+    Callable[[bytes, SourceExtractSelector], SourceExtractPublisherView],
+] = {
+    FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER: (
+        _read_federal_register_thesaurus_2025_extract
+    ),
+}
 
 
 def _extract_native_control_value(
@@ -3072,6 +3404,46 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
         ),
     ),
+    SourceSpec(
+        name="federal-register-thesaurus-2025",
+        kind="source-extract",
+        release_keys=("federal-register-thesaurus-2025",),
+        inputs=(
+            _registry_source_pin(
+                "federal-register-thesaurus-2025.pdf",
+                "sha256:66dd28fff5defedfb151d04dc4ef255181085cce76618cb10c9372db6540810f",
+                1_051_423,
+                "https://www.archives.gov/files/federal-register/cfr/thesaurus-4-1-2025.pdf",
+                fmt="pdf",
+            ),
+        ),
+        source_extract=SourceExtractSelector(
+            reader=FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER,
+            extract=SourcePin(
+                path=(
+                    "src/refspec/resources/federal_register_thesaurus/"
+                    "2025-04-01/source-extract.json"
+                ),
+                sha256=(
+                    "sha256:1ef6bb4ea2af001b8f2450888fb48715de2efda3"
+                    "3190138a4ca5b90dafe71eb1"
+                ),
+                byte_length=789_855,
+                fmt="json",
+                role="repositoryCheckedSourceExtract",
+                source_iri=(
+                    "https://www.archives.gov/files/federal-register/cfr/"
+                    "thesaurus-4-1-2025.pdf"
+                ),
+            ),
+            source_release_iri=(
+                "https://www.archives.gov/files/federal-register/cfr/"
+                "thesaurus-4-1-2025.pdf"
+            ),
+            label_language="en",
+            relation_predicate=f"{SKOS}related",
+        ),
+    ),
     *NATIVE_CONTROL_SOURCES,
 )
 
@@ -3081,9 +3453,11 @@ def build_context(
     source_root: Path,
     expectations: Expectations | None = None,
     specs: Sequence[SourceSpec] = SOURCES,
+    scoped_out_specs: Sequence[SourceSpec] = (),
 ) -> Context:
     """Authenticate and read all declared inputs while collecting recoverable errors."""
     specs = tuple(specs)
+    scoped_out_specs = tuple(scoped_out_specs)
     expectations = expectations or Expectations()
     summary_path = distribution / CONSTRUCTION_SUMMARY
     units: list[DistributionUnit] = []
@@ -3214,6 +3588,7 @@ def build_context(
 
     pairs: list[SourcePair] = []
     native_control_pairs: list[NativeControlPair] = []
+    source_extract_pairs: list[SourceExtractPair] = []
     atlas_views: list[tuple[SourceSpec, AtlasView]] = []
     publisher_cache: dict[
         tuple[tuple[SourcePin, ...], tuple[str, ...], tuple[str, ...]],
@@ -3243,7 +3618,7 @@ def build_context(
             ).packs
         )
         publisher: PublisherView | None = None
-        if spec.kind != "native-control":
+        if spec.kind in RDF_COMPARISON_KINDS:
             additional_annotation_predicates = (
                 spec.rdf_source.additional_annotation_predicates
                 if spec.rdf_source is not None
@@ -3326,6 +3701,19 @@ def build_context(
                         atlas=atlas,
                     )
                 )
+        elif spec.kind == "source-extract":
+            if spec.source_extract is None:
+                load_failures.append(
+                    f"{spec.name}: source-extract comparison declares no extract selector"
+                )
+            else:
+                source_extract_pairs.append(
+                    SourceExtractPair(
+                        spec=spec,
+                        publisher=_read_source_extract(source_root, spec.source_extract),
+                        atlas=atlas,
+                    )
+                )
         elif publisher is not None:
             pairs.append(SourcePair(spec=spec, publisher=publisher, atlas=atlas))
     return Context(
@@ -3343,6 +3731,8 @@ def build_context(
         verified_pins=frozenset(verified_pins),
         pin_failures=tuple(pin_failures),
         load_failures=tuple(load_failures),
+        source_extract_pairs=tuple(source_extract_pairs),
+        scoped_out_specs=scoped_out_specs,
     )
 
 
@@ -3351,18 +3741,25 @@ def build_context(
 # --------------------------------------------------------------------------------------
 
 
+RDF_COMPARISON_KINDS = frozenset({"vocabulary", "mapping"})
+COMPARISON_KINDS = frozenset(
+    {*RDF_COMPARISON_KINDS, "native-control", "source-extract"}
+)
+
+
 def _not_evaluated(ctx: Context, kind: str | None = None) -> list[str]:
     """Name declared comparisons whose publisher view could not be constructed."""
     declared = [
         spec
         for spec in ctx.specs
-        if (spec.kind != "native-control" if kind is None else spec.kind == kind)
+        if (spec.kind in RDF_COMPARISON_KINDS if kind is None else spec.kind == kind)
     ]
-    loaded = (
-        {pair.spec for pair in ctx.native_control_pairs}
-        if kind == "native-control"
-        else {pair.spec for pair in ctx.pairs}
-    )
+    if kind == "native-control":
+        loaded = {pair.spec for pair in ctx.native_control_pairs}
+    elif kind == "source-extract":
+        loaded = {pair.spec for pair in ctx.source_extract_pairs}
+    else:
+        loaded = {pair.spec for pair in ctx.pairs}
     return sorted(spec.name for spec in declared if spec not in loaded)
 
 
@@ -3397,12 +3794,15 @@ def check_configuration(ctx: Context) -> CheckResult:
         failures.append("require_input_pins=False cannot produce a source-fidelity verdict")
     if not ctx.expectations.require_pack_pins:
         failures.append("require_pack_pins=False cannot produce a source-fidelity verdict")
-    names = [spec.name for spec in ctx.specs]
+    # Declaration checks run over every declared comparison, scoped in or out, so
+    # --only can never weaken them by hiding half the registry from review.
+    declared_specs = ctx.declared_specs()
+    names = [spec.name for spec in declared_specs]
     duplicate_names = sorted(name for name, count in Counter(names).items() if count > 1)
     if duplicate_names:
         failures.append(f"comparison names must be unique: {duplicate_names}")
     release_key_owners: dict[str, list[str]] = defaultdict(list)
-    for spec in ctx.specs:
+    for spec in declared_specs:
         for release_key in spec.release_keys:
             release_key_owners[release_key].append(spec.name)
     duplicate_release_keys = {
@@ -3414,8 +3814,10 @@ def check_configuration(ctx: Context) -> CheckResult:
         failures.append(
             f"construction-unit comparison ownership must be unique: {duplicate_release_keys}"
         )
-    for spec in ctx.specs:
+    for spec in declared_specs:
         selector = spec.native_control
+        if spec.kind not in COMPARISON_KINDS:
+            failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
         for pin in spec.inputs:
             if not pin.role:
                 failures.append(
@@ -3437,6 +3839,28 @@ def check_configuration(ctx: Context) -> CheckResult:
             failures.append(
                 f"{spec.name}: {spec.kind!r} comparison must not declare a native-control selector"
             )
+        if spec.kind == "source-extract" and spec.source_extract is None:
+            failures.append(f"{spec.name}: source-extract comparison has no selector")
+        if spec.kind != "source-extract" and spec.source_extract is not None:
+            failures.append(
+                f"{spec.name}: {spec.kind!r} comparison must not declare a source-extract selector"
+            )
+        if spec.source_extract is not None:
+            if spec.source_extract.reader not in _SOURCE_EXTRACT_READERS:
+                failures.append(
+                    f"{spec.name}: no extract reader is declared for "
+                    f"{spec.source_extract.reader!r}"
+                )
+            if spec.rdf_source is not None:
+                failures.append(
+                    f"{spec.name}: source-extract comparison must not declare RDF source policy"
+                )
+            if not any(pin.role == "publisherSource" for pin in spec.inputs):
+                failures.append(
+                    f"{spec.name}: source-extract comparison declares no publisher artifact pin"
+                )
+        if spec.kind == "source-extract":
+            continue
         if selector is not None:
             expected_release_keys = (selector.construction_key,)
             if spec.release_keys != expected_release_keys:
@@ -3540,11 +3964,20 @@ def check_configuration(ctx: Context) -> CheckResult:
 def check_distribution_coverage(ctx: Context) -> CheckResult:
     """Fail closed unless every construction unit has an independent comparison."""
     failures: list[str] = []
-    atlas_only_manifest_packs = frozenset({"packs/catalog.nq.zst"})
+    # Manifest pack paths are keyed without their "packs/" prefix (build_context
+    # strips it), so this exemption has to be keyed the same way or it never
+    # matches and the Atlas catalog is reported as an unowned source pack on
+    # every distribution. The catalog carries only Atlas descriptors, profiles,
+    # rings and titles -- no source-shaped claim -- which is why it is exempt.
+    atlas_only_manifest_packs = frozenset({"catalog.nq.zst"})
     unit_keys = {unit.key for unit in ctx.units}
     covered_keys = {
         key for spec in ctx.loaded_specs() for key in spec.release_keys
     }
+    # A scoped run evaluates fewer comparisons on purpose. Those units are
+    # neither covered nor failed: they are reported as not evaluated, and the
+    # arithmetic below never counts them as proven.
+    scoped_out_keys = ctx.scoped_out_release_keys() & unit_keys
     source_names = {spec.name for spec in ctx.loaded_specs()}
 
     if not ctx.units:
@@ -3557,6 +3990,7 @@ def check_distribution_coverage(ctx: Context) -> CheckResult:
             "vocabulary": "sourceRelease",
             "mapping": "mapping",
             "native-control": "sourceRelease",
+            "source-extract": "sourceRelease",
         }.get(spec.kind)
         if expected_kind is None:
             failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
@@ -3591,16 +4025,20 @@ def check_distribution_coverage(ctx: Context) -> CheckResult:
             f"authenticated manifest pack {pack!r} is not owned by any construction unit; "
             "its source-shaped claims would escape this audit"
         )
-    uncovered = sorted(unit_keys - covered_keys)
+    uncovered = sorted(unit_keys - covered_keys - scoped_out_keys)
     if uncovered and ctx.expectations.require_complete_coverage:
         failures.append(
             f"{len(uncovered)} of {len(unit_keys)} construction units have no independent publisher adapter; "
             "each uncovered unit is reported separately below"
         )
         failures.extend(f"{key}: no independent publisher comparison was performed" for key in uncovered)
+    scoped_note = (
+        f"; {len(scoped_out_keys)} not evaluated (scoped out)" if scoped_out_keys else ""
+    )
     return _result(
         "distribution-coverage",
-        f"{len(covered_keys & unit_keys)}/{len(unit_keys)} construction units have an independent comparison",
+        f"{len(covered_keys & unit_keys)}/{len(unit_keys)} construction units have an "
+        f"independent comparison{scoped_note}",
         failures,
     )
 
@@ -4322,6 +4760,248 @@ def check_native_control_fidelity(ctx: Context) -> CheckResult:
     )
 
 
+def _source_extract_atlas_view(pair: SourceExtractPair) -> KeyedAtlasExtractView:
+    """Key the Atlas pack by the source-local identity its own records declare."""
+    failures: list[str] = []
+    atlas = pair.atlas
+    resource_by_local: dict[str, str] = {}
+    entry_by_local: dict[str, str] = {}
+    locator_by_local: dict[str, Any] = {}
+    local_by_resource: dict[str, str] = {}
+    for record in sorted(atlas.native_payloads):
+        payload = atlas.native_payloads[record]
+        target = atlas.record_targets.get(record)
+        if target is None:
+            failures.append(
+                f"source record <{record}> has a native payload but represents no resource"
+            )
+            continue
+        local_id = payload.get("sourceLocalConceptId")
+        if not isinstance(local_id, str) or not local_id:
+            failures.append(
+                f"source record <{record}> declares no sourceLocalConceptId, so <{target}> "
+                "cannot be traced to a row of the checked source extract"
+            )
+            continue
+        if local_id in resource_by_local:
+            failures.append(
+                f"source-local concept {local_id!r} is claimed by both "
+                f"<{resource_by_local[local_id]}> and <{target}>"
+            )
+            continue
+        resource_by_local[local_id] = target
+        local_by_resource[target] = local_id
+        entry_id = payload.get("sourceLocalEntryId")
+        if isinstance(entry_id, str) and entry_id:
+            entry_by_local[local_id] = entry_id
+        locator_by_local[local_id] = payload.get("pdfLocator")
+
+    pref = {
+        local_by_resource[resource]: values
+        for resource, values in atlas.pref_labels.items()
+        if resource in local_by_resource
+    }
+    alt = {
+        local_by_resource[resource]: values
+        for resource, values in atlas.alt_labels.items()
+        if resource in local_by_resource
+    }
+    relations: set[tuple[str, str, str]] = set()
+    for subject, predicate, obj in sorted(atlas.relations):
+        keyed_subject = local_by_resource.get(subject)
+        keyed_object = local_by_resource.get(obj)
+        if keyed_subject is None or keyed_object is None:
+            failures.append(
+                f"relation <{subject}> {_short(predicate)} <{obj}> has an endpoint that no "
+                "source record traces to the checked source extract"
+            )
+            continue
+        relations.add((keyed_subject, predicate, keyed_object))
+    return KeyedAtlasExtractView(
+        resource_by_local=resource_by_local,
+        pref_labels=pref,
+        alt_labels=alt,
+        entry_ids=entry_by_local,
+        locators=locator_by_local,
+        relations=frozenset(relations),
+        failures=tuple(failures),
+    )
+
+
+def check_source_extract_fidelity(ctx: Context) -> CheckResult:
+    """Compare Atlas packs with the checked-in extract of a non-RDF publisher artifact."""
+    failures = _incomplete_evaluation_failure(
+        ctx,
+        "source-extract fidelity",
+        "source-extract",
+    )
+    compared_concepts = 0
+    for pair in ctx.source_extract_pairs:
+        source = pair.spec.name
+        selector = pair.spec.source_extract
+        if selector is None:
+            failures.append(f"{source}: source-extract selector is missing")
+            continue
+        failures.extend(f"{source}: {detail}" for detail in pair.publisher.failures)
+
+        publisher_pin = next(
+            (pin for pin in pair.spec.inputs if pin.role == "publisherSource"),
+            None,
+        )
+        declared = pair.publisher.declared_publisher_artifact
+        if publisher_pin is None:
+            failures.append(f"{source}: comparison declares no publisher artifact pin")
+        else:
+            expected_binding = {
+                "id": publisher_pin.source_iri,
+                "sha256": publisher_pin.sha256,
+                "byteLength": publisher_pin.byte_length,
+            }
+            for field_name, expected in expected_binding.items():
+                if declared.get(field_name) != expected:
+                    failures.append(
+                        f"{source}: the checked source extract binds a different publisher "
+                        f"artifact {field_name} -- expected {expected!r}, observed "
+                        f"{declared.get(field_name)!r}"
+                    )
+            release_digest = next(
+                (
+                    literal.value
+                    for subject, predicate, literal in pair.atlas.all_raw_literal_claims
+                    if subject == selector.source_release_iri
+                    and predicate == ATLAS_SOURCE_DIGEST
+                ),
+                None,
+            )
+            if release_digest != publisher_pin.sha256:
+                failures.append(
+                    f"{source}: Atlas source release <{selector.source_release_iri}> declares "
+                    f"digest {release_digest!r}, not the authenticated publisher bytes "
+                    f"{publisher_pin.sha256!r}"
+                )
+
+        keyed = _source_extract_atlas_view(pair)
+        failures.extend(f"{source}: {detail}" for detail in keyed.failures)
+
+        publisher_concepts = set(pair.publisher.concept_labels)
+        atlas_concepts = set(keyed.resource_by_local)
+        for local_id in sorted(publisher_concepts - atlas_concepts):
+            failures.append(
+                f"{source}: source extract concept {local_id!r} "
+                f"({pair.publisher.concept_labels[local_id]!r}) is not asserted by Atlas"
+            )
+        for local_id in sorted(atlas_concepts - publisher_concepts):
+            failures.append(
+                f"{source}: Atlas asserts <{keyed.resource_by_local[local_id]}> for source-local "
+                f"concept {local_id!r}, which the checked source extract does not contain"
+            )
+
+        for local_id in sorted(publisher_concepts & atlas_concepts):
+            compared_concepts += 1
+            expected_pref = frozenset(
+                {
+                    _literal_value(
+                        pair.publisher.concept_labels[local_id],
+                        selector.label_language,
+                        None,
+                    )
+                }
+            )
+            observed_pref = keyed.pref_labels.get(local_id, frozenset())
+            if observed_pref != expected_pref:
+                failures.append(
+                    f"{source}: {local_id} preferred label differs -- expected "
+                    f"{sorted(_literal_repr(item) for item in expected_pref)}, observed "
+                    f"{sorted(_literal_repr(item) for item in observed_pref)}"
+                )
+            expected_alt = frozenset(
+                _literal_value(value, selector.label_language, None)
+                for value in pair.publisher.alternate_labels.get(local_id, frozenset())
+            )
+            observed_alt = keyed.alt_labels.get(local_id, frozenset())
+            if observed_alt != expected_alt:
+                failures.append(
+                    f"{source}: {local_id} alternate labels differ -- expected "
+                    f"{sorted(_literal_repr(item) for item in expected_alt)}, observed "
+                    f"{sorted(_literal_repr(item) for item in observed_alt)}"
+                )
+            expected_entry = pair.publisher.concept_entry_ids.get(local_id)
+            if keyed.entry_ids.get(local_id) != expected_entry:
+                failures.append(
+                    f"{source}: {local_id} source entry identity differs -- expected "
+                    f"{expected_entry!r}, observed {keyed.entry_ids.get(local_id)!r}"
+                )
+            expected_locator = dict(pair.publisher.concept_locators.get(local_id, {}))
+            observed_locator = keyed.locators.get(local_id)
+            if (
+                not isinstance(observed_locator, Mapping)
+                or dict(observed_locator) != expected_locator
+            ):
+                failures.append(
+                    f"{source}: {local_id} source locator differs -- expected "
+                    f"{expected_locator}, observed {observed_locator!r}"
+                )
+
+        missing_relations = pair.publisher.relations - keyed.relations
+        added_relations = keyed.relations - pair.publisher.relations
+        for subject, predicate, obj in sorted(missing_relations):
+            failures.append(
+                f"{source}: source extract relation {subject} {_short(predicate)} {obj} "
+                "is not asserted by Atlas"
+            )
+        for subject, predicate, obj in sorted(added_relations):
+            failures.append(
+                f"{source}: Atlas asserts relation {subject} {_short(predicate)} {obj}, "
+                "which the checked source extract does not record as resolved"
+            )
+
+        represented = set(keyed.resource_by_local.values())
+        unexpected_claim_counts = {
+            "hidden labels": sum(
+                len(values)
+                for resource, values in pair.atlas.hidden_labels.items()
+                if resource in represented
+            ),
+            "definitions": sum(
+                len(values)
+                for resource, values in pair.atlas.definitions.items()
+                if resource in represented
+            ),
+            "notes": sum(
+                len(values)
+                for resource, values in pair.atlas.notes.items()
+                if resource in represented
+            ),
+            "notations": sum(
+                len(values)
+                for resource, values in pair.atlas.notations.items()
+                if resource in represented
+            ),
+        }
+        for claim_family, count in unexpected_claim_counts.items():
+            if count:
+                failures.append(
+                    f"{source}: Atlas adds {count} {claim_family} that the checked source "
+                    "extract does not record"
+                )
+    return _result(
+        "source-extract-fidelity",
+        f"{compared_concepts} extract concepts compared with the Atlas packs that represent them",
+        failures,
+    )
+
+
+def _scope_requires(ctx: Context, kind: str) -> bool:
+    """Whether this run's scope can prove anything about one comparison kind.
+
+    A --only run that names no comparison of this kind has nothing to inspect,
+    and a check that reports "I inspected nothing" for a deliberately excluded
+    kind would be reporting a scope decision as an infidelity. A run that loaded
+    no comparison at all still fails: proving nothing is never a pass.
+    """
+    return any(spec.kind == kind for spec in ctx.specs) or not ctx.loaded_specs()
+
+
 def check_concept_traceability(ctx: Context) -> CheckResult:
     """Publisher and Atlas concept identities match exactly in both directions."""
     failures = _incomplete_evaluation_failure(ctx, "concept traceability", "vocabulary")
@@ -4341,7 +5021,7 @@ def check_concept_traceability(ctx: Context) -> CheckResult:
             failures.append(
                 f"{pair.spec.name}: publisher concept <{resource}> is missing from the Atlas release"
             )
-    if not ctx.vocabularies():
+    if not ctx.vocabularies() and _scope_requires(ctx, "vocabulary"):
         failures.append("no vocabulary sources were compared; traceability is unproven")
     return _result(
         "concept-traceability",
@@ -4484,7 +5164,7 @@ def check_label_fidelity(ctx: Context) -> CheckResult:
                 )
 
     minimum_label_sample = max(1, ctx.expectations.minimum_label_sample)
-    if compared < minimum_label_sample:
+    if compared < minimum_label_sample and _scope_requires(ctx, "vocabulary"):
         failures.append(
             f"only {compared} labels were compared, below the {minimum_label_sample} floor; "
             f"a label check that inspects nothing cannot pass"
@@ -6112,9 +6792,10 @@ def _atlas_claims_outside_comparison(
     Dedicated checks compare every non-Atlas claim on a known publisher concept,
     source-native scheme, or annotation target. This final accounting catches
     claims on unknown subjects and malformed label-node claims that those checks
-    cannot see. Atlas classes, rings, profiles, governed schemes, releases, and
-    the complete label closure of Atlas-owned resources are deliberately outside
-    the source-data comparison.
+    cannot see. Atlas classes, rings, profiles, governed schemes, releases,
+    Atlas-minted evidence records (rkaf:EvidenceBinding and its rkaf: claims),
+    and the complete label closure of Atlas-owned resources are deliberately
+    outside the source-data comparison: none of them is a publisher claim.
     """
     publisher = pair.publisher
     atlas = pair.atlas
@@ -6148,7 +6829,7 @@ def _atlas_claims_outside_comparison(
     atlas_classified_subjects = {
         subject
         for subject, types in atlas.rdf_types.items()
-        if any(class_iri.startswith(ATLAS) for class_iri in types)
+        if any(_is_atlas_representation_iri(class_iri) for class_iri in types)
     }
     atlas_owned_primary = frozenset(
         {
@@ -6216,7 +6897,7 @@ def _atlas_claims_outside_comparison(
                 continue
             residual_iri.add(row)
             continue
-        if predicate.startswith(ATLAS):
+        if _is_atlas_representation_iri(predicate):
             if (
                 subject in source_primary or subject in mapping_endpoints
             ) and predicate in relation_predicates:
@@ -6244,7 +6925,7 @@ def _atlas_claims_outside_comparison(
                 continue
             residual_literals.add(row)
             continue
-        if predicate.startswith(ATLAS):
+        if _is_atlas_representation_iri(predicate):
             if (
                 subject in normalized_source_value_subjects
                 and predicate in normalized_source_value_predicates
@@ -6369,7 +7050,13 @@ def check_source_defects(ctx: Context) -> CheckResult:
 
 def _short(iri: str) -> str:
     """Abbreviate a well-known IRI for readable failure text."""
-    for namespace, prefix in ((SKOS, "skos"), (SKOSXL, "skosxl"), (ATLAS, "atlas"), (RDF, "rdf")):
+    for namespace, prefix in (
+        (SKOS, "skos"),
+        (SKOSXL, "skosxl"),
+        (ATLAS, "atlas"),
+        (RKAF, "rkaf"),
+        (RDF, "rdf"),
+    ):
         if iri.startswith(namespace):
             return f"{prefix}:{iri[len(namespace):]}"
     return f"<{iri}>"
@@ -6389,6 +7076,7 @@ _CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_graph_structure,
     check_rdf_provenance_fidelity,
     check_native_control_fidelity,
+    check_source_extract_fidelity,
     check_concept_traceability,
     check_identifier_retention,
     check_label_fidelity,
@@ -6432,10 +7120,37 @@ def verify(
     source_root: Path,
     expectations: Expectations | None = None,
     specs: Sequence[SourceSpec] = SOURCES,
+    scoped_out_specs: Sequence[SourceSpec] = (),
 ) -> list[CheckResult]:
     """Run every named check and return the results in declaration order."""
-    ctx = build_context(distribution, source_root, expectations, specs)
+    ctx = build_context(distribution, source_root, expectations, specs, scoped_out_specs)
     return run_checks(ctx)
+
+
+def select_scope(
+    only: Sequence[str],
+    specs: Sequence[SourceSpec] = SOURCES,
+) -> tuple[tuple[SourceSpec, ...], tuple[SourceSpec, ...]]:
+    """Split the declared comparisons into the ones this run evaluates and the rest.
+
+    An empty selection means the whole registry. Every named comparison must
+    exist: silently ignoring a typo would produce a receipt that looks like a
+    proof of something nobody asked for.
+    """
+    specs = tuple(specs)
+    if not only:
+        return specs, ()
+    requested = tuple(dict.fromkeys(only))
+    known = {spec.name for spec in specs}
+    unknown = [name for name in requested if name not in known]
+    if unknown:
+        raise ValueError(
+            f"unknown comparison name(s) {unknown}; declared comparisons are "
+            f"{sorted(known)}"
+        )
+    selected = tuple(spec for spec in specs if spec.name in set(requested))
+    scoped_out = tuple(spec for spec in specs if spec.name not in set(requested))
+    return selected, scoped_out
 
 
 COMPARED_VOCABULARY_PREDICATES = frozenset(
@@ -7277,6 +7992,171 @@ def _native_control_claim_scope(
     }
 
 
+def _source_extract_claim_scope(
+    spec: SourceSpec,
+    pair: SourceExtractPair | None,
+    evaluation_failures: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Describe exactly what one checked-in source extract was compared on."""
+    if pair is None or spec.source_extract is None:
+        return {
+            "status": "not-evaluated",
+            "claimFamilies": [],
+            "intentionallyExcludedFamilies": [],
+            "unexpectedPublisherPredicates": [],
+        }
+
+    selector = spec.source_extract
+    publisher = pair.publisher
+    keyed = _source_extract_atlas_view(pair)
+    source_concepts = set(publisher.concept_labels)
+    source_pref = {
+        (local_id, _literal_value(label, selector.label_language, None))
+        for local_id, label in publisher.concept_labels.items()
+    }
+    atlas_pref_claims = {
+        (local_id, literal)
+        for local_id, values in keyed.pref_labels.items()
+        for literal in values
+    }
+    source_alt = {
+        (local_id, _literal_value(value, selector.label_language, None))
+        for local_id, values in publisher.alternate_labels.items()
+        for value in values
+    }
+    atlas_alt_claims = {
+        (local_id, literal)
+        for local_id, values in keyed.alt_labels.items()
+        for literal in values
+    }
+    source_locators = {
+        (local_id, tuple(sorted(locator.items())))
+        for local_id, locator in publisher.concept_locators.items()
+    }
+    atlas_locator_claims = {
+        (local_id, tuple(sorted(locator.items())))
+        for local_id, locator in keyed.locators.items()
+        if isinstance(locator, Mapping)
+    }
+    families = [
+        _claim_family(
+            name="conceptIdentities",
+            source_predicates=(),
+            atlas_predicates=(ATLAS_NATIVE_PAYLOAD, ATLAS_REPRESENTS_RESOURCE),
+            source_claims=source_concepts,
+            atlas_claims=set(keyed.resource_by_local),
+            checked_by="source-extract-fidelity",
+            joinedOn="nativePayload.sourceLocalConceptId",
+        ),
+        _claim_family(
+            name="preferredLabels",
+            source_predicates=(),
+            atlas_predicates=(SKOSXL_PREF_LABEL, SKOSXL_LITERAL_FORM),
+            source_claims=source_pref,
+            atlas_claims=atlas_pref_claims,
+            checked_by="source-extract-fidelity",
+            languageSelection=selector.label_language,
+            lexicalFormRetained=True,
+            languageAndDatatypeCompared=True,
+        ),
+        _claim_family(
+            name="alternateLabels",
+            source_predicates=(),
+            atlas_predicates=(SKOSXL_ALT_LABEL, SKOSXL_LITERAL_FORM),
+            source_claims=source_alt,
+            atlas_claims=atlas_alt_claims,
+            checked_by="source-extract-fidelity",
+            sourceRowSelector="variants with resolution_status recognizedVariant",
+        ),
+        _claim_family(
+            name="associativeRelations",
+            source_predicates=(),
+            atlas_predicates=(RDF_SUBJECT, RDF_PREDICATE, RDF_OBJECT),
+            source_claims=set(publisher.relations),
+            atlas_claims=set(keyed.relations),
+            checked_by="source-extract-fidelity",
+            sourceRowSelector="relatedReferences with resolution_status resolved",
+            sourceDirectionRetained=True,
+        ),
+        _claim_family(
+            name="sourceEntryIdentities",
+            source_predicates=(),
+            atlas_predicates=(ATLAS_NATIVE_PAYLOAD,),
+            source_claims=set(publisher.concept_entry_ids.items()),
+            atlas_claims=set(keyed.entry_ids.items()),
+            checked_by="source-extract-fidelity",
+        ),
+        _claim_family(
+            name="sourceLocators",
+            source_predicates=(),
+            atlas_predicates=(ATLAS_NATIVE_PAYLOAD,),
+            source_claims=source_locators,
+            atlas_claims=atlas_locator_claims,
+            checked_by="source-extract-fidelity",
+        ),
+        _claim_family(
+            name="completeSourceEvaluation",
+            source_predicates=(),
+            atlas_predicates=(ATLAS_SOURCE_DIGEST,),
+            source_claims=set(),
+            atlas_claims=set(),
+            checked_by="source-extract-fidelity",
+            status=("differences-found" if evaluation_failures else "exact"),
+            evaluationFailureCount=len(evaluation_failures),
+            evaluatedClaims=(
+                "publisher artifact pin, the extract's own binding to those bytes, "
+                "concept identities, preferred and alternate labels, associative "
+                "relations, source entry identities, and source locators"
+            ),
+        ),
+    ]
+    statuses = {family["status"] for family in families}
+    status = (
+        "differences-found"
+        if statuses & {"differences-found", "unrepresented"}
+        or publisher.failures
+        or evaluation_failures
+        else "exact"
+    )
+    return {
+        "status": status,
+        "claimFamilies": families,
+        "intentionallyExcludedFamilies": [
+            {
+                "name": "sourceRowsAtlasMustNotAssert",
+                "rowCounts": dict(sorted(publisher.unrepresented_rows.items())),
+                "reason": (
+                    "the publisher's own extract marks these rows unresolved, "
+                    "ambiguous, or as open-term suggestions; the exact set "
+                    "comparisons above are what prove Atlas asserts none of them"
+                ),
+            },
+            {
+                "name": "atlasRepresentationStructure",
+                "reason": (
+                    "classes, rings, profiles, releases, schemes, source records, "
+                    "relation assertions, and rkaf evidence bindings are Atlas-minted "
+                    "and are not publisher claims"
+                ),
+            },
+        ],
+        "unexpectedPublisherPredicates": [],
+        "comparisonBasis": {
+            "reader": selector.reader,
+            "extractPath": selector.extract.path,
+            "extractSha256": selector.extract.sha256,
+            "extractByteLength": selector.extract.byte_length,
+            "observedExtractDigest": publisher.extract_digest,
+            "independentReparseOfPublisherBytes": False,
+            "note": (
+                "the publisher ships a styled PDF; the comparison basis is the "
+                "repository-checked semantic extract of the authenticated artifact, "
+                "which the builder does not read"
+            ),
+        },
+    }
+
+
 def _cached_comparison_claim_scope(
     ctx: Context,
     spec: SourceSpec,
@@ -7294,13 +8174,10 @@ def _cached_comparison_claim_scope(
 def _evaluate_claim_scope(ctx: Context) -> CheckResult:
     """Fail closed on unhandled publisher predicates or known lossy representations."""
     failures = _incomplete_evaluation_failure(ctx, "claim-scope review")
-    failures.extend(
-        _incomplete_evaluation_failure(
-            ctx,
-            "claim-scope review",
-            "native-control",
+    for kind in ("native-control", "source-extract"):
+        failures.extend(
+            _incomplete_evaluation_failure(ctx, "claim-scope review", kind)
         )
-    )
     checked = 0
     for pair in ctx.pairs:
         scope = _cached_comparison_claim_scope(ctx, pair.spec, pair)
@@ -7333,6 +8210,22 @@ def _evaluate_claim_scope(ctx: Context) -> CheckResult:
                 failures.append(
                     f"{pair.spec.name}: {family['name']} differs from its declared direct-source scope"
                 )
+    extract_fidelity = check_source_extract_fidelity(ctx)
+    for pair in ctx.source_extract_pairs:
+        prefix = f"{pair.spec.name}:"
+        pair_failures = [
+            failure
+            for failure in extract_fidelity.failures
+            if failure.startswith(prefix)
+        ]
+        scope = _source_extract_claim_scope(pair.spec, pair, pair_failures)
+        checked += len(scope["claimFamilies"])
+        for family in scope["claimFamilies"]:
+            if family["status"] in {"differences-found", "unrepresented"}:
+                failures.append(
+                    f"{pair.spec.name}: {family['name']} differs from its declared "
+                    "checked-extract scope"
+                )
     return _result(
         "claim-scope",
         f"{checked} declared source claim families checked for complete evaluation scope",
@@ -7347,40 +8240,43 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
         key for spec in ctx.loaded_specs() for key in spec.release_keys
     } & set(units_by_key)
     declared_keys = {key for spec in ctx.specs for key in spec.release_keys} & set(units_by_key)
+    scoped_out_keys = ctx.scoped_out_release_keys() & set(units_by_key)
     pairs_by_spec = {pair.spec: pair for pair in ctx.pairs}
     native_controls_by_spec = {
         pair.spec: pair for pair in ctx.native_control_pairs
     }
+    source_extracts_by_spec = {
+        pair.spec: pair for pair in ctx.source_extract_pairs
+    }
     atlas_by_spec = dict(ctx.atlas_views)
-    native_result = next(
-        (result for result in results if result.name == "native-control-fidelity"),
-        None,
-    )
-    native_failures_by_spec = {
-        spec: [
+
+    def spec_failures(check_name: str, spec: SourceSpec) -> list[str]:
+        result = next(
+            (item for item in results if item.name == check_name),
+            None,
+        )
+        return [
             failure
-            for failure in (native_result.failures if native_result is not None else ())
+            for failure in (result.failures if result is not None else ())
             if failure.startswith(f"{spec.name}:")
         ]
-        for spec in ctx.specs
-        if spec.kind == "native-control"
-    }
-    scope_by_spec = {
-        spec: (
-            _native_control_claim_scope(
+
+    def claim_scope(spec: SourceSpec) -> dict[str, Any]:
+        if spec.kind == "native-control":
+            return _native_control_claim_scope(
                 spec,
                 native_controls_by_spec.get(spec),
-                native_failures_by_spec.get(spec, ()),
+                spec_failures("native-control-fidelity", spec),
             )
-            if spec.kind == "native-control"
-            else _cached_comparison_claim_scope(
-                ctx,
+        if spec.kind == "source-extract":
+            return _source_extract_claim_scope(
                 spec,
-                pairs_by_spec.get(spec),
+                source_extracts_by_spec.get(spec),
+                spec_failures("source-extract-fidelity", spec),
             )
-        )
-        for spec in ctx.specs
-    }
+        return _cached_comparison_claim_scope(ctx, spec, pairs_by_spec.get(spec))
+
+    scope_by_spec = {spec: claim_scope(spec) for spec in ctx.specs}
     owners_by_key: dict[str, list[SourceSpec]] = defaultdict(list)
     for spec in ctx.specs:
         for key in spec.release_keys:
@@ -7439,6 +8335,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                 "publisherLoaded": (
                     spec in native_controls_by_spec
                     if spec.kind == "native-control"
+                    else spec in source_extracts_by_spec
+                    if spec.kind == "source-extract"
                     else spec in pairs_by_spec
                 ),
                 "atlasLoaded": atlas is not None,
@@ -7470,6 +8368,19 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                     }
                     for pin in spec.inputs
                 ],
+                "sourceExtract": (
+                    {
+                        "reader": spec.source_extract.reader,
+                        "extractPath": spec.source_extract.extract.path,
+                        "extractSha256": spec.source_extract.extract.sha256,
+                        "extractByteLength": spec.source_extract.extract.byte_length,
+                        "sourceReleaseIri": spec.source_extract.source_release_iri,
+                        "labelLanguage": spec.source_extract.label_language,
+                        "relationPredicate": spec.source_extract.relation_predicate,
+                    }
+                    if spec.source_extract is not None
+                    else None
+                ),
                 "nativeControl": (
                     {
                         "controlId": spec.native_control.control_id,
@@ -7515,15 +8426,26 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
             "requirePackPins": ctx.expectations.require_pack_pins,
             "requiredSources": list(ctx.expectations.required_sources),
         },
+        "scope": {
+            "evaluatedComparisons": sorted(spec.name for spec in ctx.specs),
+            "scopedOutComparisons": sorted(
+                spec.name for spec in ctx.scoped_out_specs
+            ),
+            "scopedOutUnits": sorted(scoped_out_keys),
+            "complete": not ctx.scoped_out_specs,
+        },
         "coverage": {
             "constructionUnitCount": len(ctx.units),
             "coveredUnitCount": len(compared_keys),
             "adapterLoadedUnitCount": len(compared_keys),
+            "notEvaluatedScopedOutUnitCount": len(scoped_out_keys),
             "exactUnitCount": sum(
                 status == "exact" for status in fidelity_by_key.values()
             ),
             "coveredUnits": sorted(compared_keys),
-            "uncoveredUnits": sorted(set(units_by_key) - compared_keys),
+            "uncoveredUnits": sorted(
+                set(units_by_key) - compared_keys - scoped_out_keys
+            ),
             "constructionUnits": [
                 {
                     "key": unit.key,
@@ -7533,6 +8455,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                         if unit.key in compared_keys
                         else "loadFailed"
                         if unit.key in declared_keys
+                        else "not-evaluated-scoped-out"
+                        if unit.key in scoped_out_keys
                         else "uncovered"
                     ),
                     "inputCount": len(unit.inputs),
@@ -7585,6 +8509,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--source-root", type=Path, default=DEFAULT_SOURCE_ROOT)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--minimum-label-sample", type=int, default=200)
+    parser.add_argument(
+        "--only",
+        action="append",
+        default=None,
+        metavar="COMPARISON",
+        help=(
+            "restrict the run to the named comparison; repeatable. Construction "
+            "units owned by the comparisons left out are reported as not evaluated "
+            "(scoped out), never as covered or failed."
+        ),
+    )
     args = parser.parse_args(argv)
 
     if args.distribution is None:
@@ -7600,11 +8535,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             "ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01"
         )
 
+    try:
+        selected_specs, scoped_out_specs = select_scope(args.only or (), SOURCES)
+    except ValueError as error:
+        parser.error(str(error))
+
     ctx = build_context(
         args.distribution,
         args.source_root,
         expectations=Expectations(minimum_label_sample=args.minimum_label_sample),
-        specs=SOURCES,
+        specs=selected_specs,
+        scoped_out_specs=scoped_out_specs,
     )
     results = run_checks(ctx)
 

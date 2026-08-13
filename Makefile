@@ -10,6 +10,10 @@
 # that validates under HEAD.
 ATLAS_V3_AUDIT_ROOT ?=
 ATLAS_V3_AUDIT_SOURCE_ROOT ?= output/registry-real-data-sources
+# Space-separated comparison names. Empty means the whole registry. A scoped run
+# reports the construction units it left out as not evaluated (scoped out); it
+# never counts them covered, and it never marks them failed.
+ATLAS_V3_AUDIT_ONLY ?=
 # Beside the distribution, never inside it. A distribution validates its own
 # membership as a closed set, so a receipt written into that directory makes
 # the audited artifact fail its own walk -- which is exactly what happened.
@@ -141,10 +145,15 @@ audit-atlas-v3-source-fidelity:
 	if [ ! -f "$$audit_distribution/atlas-manifest.json" ]; then \
 		audit_distribution="$$audit_distribution/distribution"; \
 	fi; \
+	only_flags=""; \
+	for comparison in $(ATLAS_V3_AUDIT_ONLY); do \
+		only_flags="$$only_flags --only $$comparison"; \
+	done; \
 	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
 		python tools/verify_atlas_source_fidelity.py \
 		--distribution "$$audit_distribution" \
 		--source-root "$(ATLAS_V3_AUDIT_SOURCE_ROOT)" \
+		$$only_flags \
 		--output "$(ATLAS_V3_AUDIT_RECEIPT)"
 
 # ---------------------------------------------------------------------------

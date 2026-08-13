@@ -3508,3 +3508,709 @@ def test_run_checks_converts_an_exception_and_continues() -> None:
     assert not results[0].passed
     assert results[0].failures == ["RuntimeError: deliberate check failure"]
     assert results[1].passed
+
+
+# --------------------------------------------------------------------------------------
+# rkaf evidence bindings: Atlas representation structure, not publisher claims
+# --------------------------------------------------------------------------------------
+
+RKAF = "https://rulespec.org/ns/v1#"
+
+
+def _evidence_binding_lines(node: str = "urn:ref:atlas-evidence:1") -> list[str]:
+    """Render one Atlas-minted evidence record exactly as the builder writes it."""
+    return [
+        _quad(node, f"{RDF}type", f"{RKAF}EvidenceBinding"),
+        _quad(node, f"{RKAF}bindsAssertion", "urn:ref:atlas-assertion:0"),
+        _quad(node, f"{RKAF}attestor", "urn:ref:actor:atlas-3-source-native-import"),
+        _quad(node, f"{RKAF}attestorKind", f"{RKAF}automatedParser"),
+        _quad(node, f"{RKAF}decision", f"{RKAF}approved"),
+        _quad(node, f"{RKAF}epistemicBasis", f"{RKAF}sourceExplicit"),
+        _quad(node, f"{ATLAS}contentDigest", "sha256:" + "a" * 64, literal=True),
+        _plain_literal_quad(node, f"{RKAF}attestedAt", "2025-04-01T00:00:00+00:00"),
+    ]
+
+
+def test_source_claim_coverage_ignores_an_rkaf_evidence_binding(suite: Fixture) -> None:
+    lines = atlas_pack_lines()
+    lines.extend(_evidence_binding_lines())
+    suite.write_pack_lines(lines)
+
+    coverage = result(suite.run(), "source-claim-coverage")
+
+    assert coverage.passed, coverage.failures
+
+
+def test_source_claim_coverage_still_reports_an_rkaf_claim_on_an_unknown_subject(
+    suite: Fixture,
+) -> None:
+    lines = atlas_pack_lines()
+    lines.append(_quad("urn:ref:atlas-evidence:ghost", f"{RKAF}decision", f"{RKAF}approved"))
+    suite.write_pack_lines(lines)
+
+    coverage = result(suite.run(), "source-claim-coverage")
+
+    assert not coverage.passed
+    assert any(
+        "urn:ref:atlas-evidence:ghost" in failure and f"{RKAF}decision" in failure
+        for failure in coverage.failures
+    )
+
+
+def test_source_claim_coverage_reports_an_rkaf_claim_planted_on_a_publisher_concept(
+    suite: Fixture,
+) -> None:
+    lines = atlas_pack_lines()
+    lines.append(_quad(f"{EX}c1", f"{RKAF}decision", f"{RKAF}approved"))
+    suite.write_pack_lines(lines)
+
+    coverage = result(suite.run(), "source-claim-coverage")
+
+    assert not coverage.passed
+    assert any(
+        f"{EX}c1" in failure and f"{RKAF}decision" in failure
+        for failure in coverage.failures
+    )
+
+
+# --------------------------------------------------------------------------------------
+# --only: a scoped run reports what it did not evaluate, and never counts it proven
+# --------------------------------------------------------------------------------------
+
+
+def _declare_second_unit(suite: Fixture) -> SourceSpec:
+    """Add one more construction unit, its pack, and the comparison that owns it."""
+    relative = "sources/second/all.nq.zst"
+    pack_path = suite.distribution / "packs" / relative
+    pack_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = ("\n".join(atlas_pack_lines()) + "\n").encode("utf-8")
+    transport = zstd.compress(payload)
+    pack_path.write_bytes(transport)
+
+    manifest_path = suite.distribution / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packs"].append(
+        {
+            "path": f"packs/{relative}",
+            "transport": {
+                "byteLength": len(transport),
+                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
+            },
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    summary_path = suite.distribution / "atlas-construction-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    pin = suite.spec.inputs[0]
+    summary["releases"].append(
+        {
+            "key": "second",
+            "kind": "sourceRelease",
+            "inputs": [
+                {
+                    "path": pin.path,
+                    "sha256": pin.sha256,
+                    "byteLength": pin.byte_length,
+                    "role": "publisherSource",
+                    "sourceIri": pin.source_iri,
+                }
+            ],
+            "rdfPacks": [{"path": f"packs/{relative}"}],
+            "recordCounts": {"resources": 3},
+        }
+    )
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    return replace(suite.spec, name="second", release_keys=("second",))
+
+
+def test_scoped_out_unit_is_reported_as_not_evaluated_rather_than_uncovered(
+    suite: Fixture,
+) -> None:
+    second = _declare_second_unit(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec,),
+        (second,),
+    )
+    coverage = result(results, "distribution-coverage")
+
+    assert coverage.passed, coverage.failures
+    assert "not evaluated (scoped out)" in coverage.summary
+
+
+def test_scoped_run_still_fails_on_a_unit_no_declared_comparison_owns(
+    suite: Fixture,
+) -> None:
+    second = _declare_second_unit(suite)
+    orphan = replace(second, name="unowned", release_keys=("unowned",))
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec,),
+        (orphan,),
+    )
+    coverage = result(results, "distribution-coverage")
+
+    assert not coverage.passed
+    assert any(
+        "second: no independent publisher comparison was performed" in failure
+        for failure in coverage.failures
+    )
+
+
+def test_scoped_run_keeps_source_claim_coverage_failing_closed(suite: Fixture) -> None:
+    second = _declare_second_unit(suite)
+    lines = atlas_pack_lines()
+    lines.append(_quad(f"{EX}ghost", f"{SKOS}related", f"{EX}c1"))
+    suite.write_pack_lines(lines)
+    # write_pack_lines rewrites the manifest, so re-declare the second unit's pack.
+    second = _declare_second_unit(suite)
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec,),
+        (second,),
+    )
+    coverage = result(results, "source-claim-coverage")
+
+    assert not coverage.passed
+    assert any(f"{EX}ghost" in failure for failure in coverage.failures)
+
+
+def test_scoped_configuration_review_still_sees_every_declared_comparison(
+    suite: Fixture,
+) -> None:
+    clash = replace(suite.spec, name="second")
+
+    results = verify(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (suite.spec,),
+        (clash,),
+    )
+    configuration = result(results, "configuration")
+
+    assert not configuration.passed
+    assert any(
+        "comparison ownership must be unique" in failure
+        for failure in configuration.failures
+    )
+
+
+def test_only_selection_rejects_an_undeclared_comparison_name() -> None:
+    from tools.verify_atlas_source_fidelity import SOURCES, select_scope
+
+    with pytest.raises(ValueError, match="unknown comparison name"):
+        select_scope(("no-such-source",), SOURCES)
+
+
+def test_only_selection_splits_the_registry_without_losing_a_comparison() -> None:
+    from tools.verify_atlas_source_fidelity import SOURCES, select_scope
+
+    selected, scoped_out = select_scope(("elsst-r6",), SOURCES)
+
+    assert [spec.name for spec in selected] == ["elsst-r6"]
+    assert len(selected) + len(scoped_out) == len(SOURCES)
+    assert "elsst-r6" not in {spec.name for spec in scoped_out}
+
+
+def test_empty_only_selection_runs_the_whole_registry() -> None:
+    from tools.verify_atlas_source_fidelity import SOURCES, select_scope
+
+    selected, scoped_out = select_scope((), SOURCES)
+
+    assert selected == SOURCES
+    assert scoped_out == ()
+
+
+# --------------------------------------------------------------------------------------
+# source-extract: a non-RDF publisher artifact compared through its checked extract
+# --------------------------------------------------------------------------------------
+
+EXTRACT_SOURCE_IRI = "https://example.gov/thesaurus-2025.pdf"
+EXTRACT_READER = "federal-register-thesaurus-2025-styled-pdf-v1/1.0"
+EXTRACT_TERMS = {
+    "ex-concept-0001": ("ex-entry-0001", "Airspace", ("Air space",)),
+    "ex-concept-0002": ("ex-entry-0002", "Migratory birds", ()),
+}
+
+
+def _extract_payload(
+    *,
+    publisher_digest: str,
+    labels: dict[str, str] | None = None,
+    drop_relation: bool = False,
+) -> bytes:
+    """Render a checked source extract in the exact shape the reader accepts."""
+    overrides = labels or {}
+    official = []
+    variants = []
+    for ordinal, (concept_id, (entry_id, label, alts)) in enumerate(
+        EXTRACT_TERMS.items(), start=1
+    ):
+        official.append(
+            {
+                "concept_id": concept_id,
+                "entry_id": entry_id,
+                "label": overrides.get(concept_id, label),
+                "locator": {
+                    "pdf_page": 4 + ordinal,
+                    "printed_page": 1 + ordinal,
+                    "source_ordinal": ordinal,
+                },
+            }
+        )
+        for alt_ordinal, alt in enumerate(alts, start=1):
+            variants.append(
+                {
+                    "variant_id": f"ex-variant-{ordinal}{alt_ordinal}",
+                    "label": alt,
+                    "resolution_status": "recognizedVariant",
+                    "target_concept_ids": [concept_id],
+                    "redirect_ids": [],
+                    "locator": {
+                        "pdf_page": 4 + ordinal,
+                        "printed_page": 1 + ordinal,
+                        "source_ordinal": 100 + ordinal,
+                    },
+                }
+            )
+    variants.append(
+        {
+            "variant_id": "ex-variant-99",
+            "label": "Birds",
+            "resolution_status": "ambiguous",
+            "target_concept_ids": ["ex-concept-0001", "ex-concept-0002"],
+            "redirect_ids": [],
+            "locator": {"pdf_page": 9, "printed_page": 6, "source_ordinal": 200},
+        }
+    )
+    related = [
+        {
+            "relation_id": "ex-related-0002",
+            "source_concept_id": "ex-concept-0001",
+            "raw_target_label": "Ghosts",
+            "target_concept_id": None,
+            "resolution_status": "unresolved",
+            "locator": {"pdf_page": 6, "printed_page": 3, "source_ordinal": 301},
+        }
+    ]
+    if not drop_relation:
+        related.insert(
+            0,
+            {
+                "relation_id": "ex-related-0001",
+                "source_concept_id": "ex-concept-0001",
+                "raw_target_label": "Migratory birds",
+                "target_concept_id": "ex-concept-0002",
+                "resolution_status": "resolved",
+                "locator": {"pdf_page": 5, "printed_page": 2, "source_ordinal": 300},
+            },
+        )
+    payload = {
+        "schemaVersion": "1.0",
+        "parserVersion": "federal-register-thesaurus-2025-styled-pdf-v1",
+        "source": {
+            "id": EXTRACT_SOURCE_IRI,
+            "issued": "2025-04-01",
+            "sha256": publisher_digest,
+            "byteLength": len(b"styled pdf bytes"),
+            "pageCount": 180,
+        },
+        "counts": {"official_terms": len(official)},
+        "officialTerms": official,
+        "variants": variants,
+        "variantRedirects": [],
+        "relatedReferences": related,
+        "suggestedOpenTermPatterns": [],
+        "unresolvedReferences": [],
+        "indexAnomalies": [],
+    }
+    return json.dumps(payload, separators=(",", ":")).encode("utf-8")
+
+
+def _extract_pack_lines(
+    *,
+    labels: dict[str, str] | None = None,
+    publisher_digest: str,
+    extra_relations: Sequence[tuple[str, str, str]] = (),
+    locator_override: dict[str, dict[str, int]] | None = None,
+) -> list[str]:
+    """Render what the Atlas asserts about the synthetic non-RDF release."""
+    overrides = labels or {}
+    locator_override = locator_override or {}
+    lines = [
+        _quad(EXTRACT_SOURCE_IRI, f"{RDF}type", f"{ATLAS}SourceRelease"),
+        _plain_literal_quad(EXTRACT_SOURCE_IRI, f"{ATLAS}sourceDigest", publisher_digest),
+    ]
+    relations: list[tuple[str, str, str]] = [
+        (
+            "urn:ref:source-concept:v2:example:1",
+            f"{SKOS}related",
+            "urn:ref:source-concept:v2:example:2",
+        ),
+        *extra_relations,
+    ]
+    for ordinal, (concept_id, (entry_id, label, alts)) in enumerate(
+        EXTRACT_TERMS.items(), start=1
+    ):
+        resource = f"urn:ref:source-concept:v2:example:{ordinal}"
+        record = f"urn:ref:atlas-source-record:{ordinal}"
+        lines.extend(
+            [
+                _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+                _quad(resource, f"{RDF}type", f"{ATLAS}SubjectConcept"),
+                _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+                _quad(record, f"{ATLAS}representsResource", resource),
+                _quad(
+                    record,
+                    f"{ATLAS}nativePayload",
+                    json.dumps(
+                        {
+                            "pdfLocator": locator_override.get(
+                                concept_id,
+                                {
+                                    "pdf_page": 4 + ordinal,
+                                    "printed_page": 1 + ordinal,
+                                    "source_ordinal": ordinal,
+                                },
+                            ),
+                            "sourceLocalConceptId": concept_id,
+                            "sourceLocalEntryId": entry_id,
+                        },
+                        separators=(",", ":"),
+                    ),
+                    literal=True,
+                ),
+            ]
+        )
+        pref_node = f"urn:ref:atlas-label:{ordinal}-pref"
+        lines.append(_quad(resource, f"{SKOSXL}prefLabel", pref_node))
+        lines.append(
+            _quad(
+                pref_node,
+                f"{SKOSXL}literalForm",
+                overrides.get(concept_id, label),
+                literal=True,
+            )
+        )
+        for alt_ordinal, alt in enumerate(alts, start=1):
+            alt_node = f"urn:ref:atlas-label:{ordinal}-alt-{alt_ordinal}"
+            lines.append(_quad(resource, f"{SKOSXL}altLabel", alt_node))
+            lines.append(_quad(alt_node, f"{SKOSXL}literalForm", alt, literal=True))
+    for index, (subject, predicate, obj) in enumerate(relations):
+        assertion = f"urn:ref:atlas-assertion:{index}"
+        lines.append(_quad(assertion, f"{RDF}type", f"{ATLAS}RelationAssertion"))
+        lines.append(_quad(assertion, f"{RDF}subject", subject))
+        lines.append(_quad(assertion, f"{RDF}predicate", predicate))
+        lines.append(_quad(assertion, f"{RDF}object", obj))
+    return lines
+
+
+class ExtractFixture:
+    """A pinned non-RDF artifact, its checked extract, and the Atlas pack for both."""
+
+    def __init__(self, root: Path) -> None:
+        from tools.verify_atlas_source_fidelity import SourceExtractSelector
+
+        self.selector_type = SourceExtractSelector
+        self.root = root
+        self.distribution = root / "distribution"
+        self.source_root = root / "sources"
+        (self.distribution / "packs" / "sources" / "extract-example").mkdir(parents=True)
+        self.source_root.mkdir(parents=True)
+        artifact = b"styled pdf bytes"
+        (self.source_root / "thesaurus.pdf").write_bytes(artifact)
+        self.publisher_digest = "sha256:" + hashlib.sha256(artifact).hexdigest()
+        self.publisher_pin = SourcePin(
+            path="thesaurus.pdf",
+            sha256=self.publisher_digest,
+            byte_length=len(artifact),
+            fmt="pdf",
+            role="publisherSource",
+            source_iri=EXTRACT_SOURCE_IRI,
+        )
+        self.write_extract(_extract_payload(publisher_digest=self.publisher_digest))
+        self.write_pack_lines(
+            _extract_pack_lines(publisher_digest=self.publisher_digest)
+        )
+        (self.distribution / "atlas-construction-summary.json").write_text(
+            json.dumps(
+                {
+                    "releases": [
+                        {
+                            "key": "extract-example",
+                            "kind": "sourceRelease",
+                            "inputs": [
+                                {
+                                    "path": "thesaurus.pdf",
+                                    "sha256": self.publisher_digest,
+                                    "byteLength": len(artifact),
+                                    "role": "publisherSource",
+                                    "sourceIri": EXTRACT_SOURCE_IRI,
+                                }
+                            ],
+                            "rdfPacks": [
+                                {"path": "packs/sources/extract-example/all.nq.zst"}
+                            ],
+                            "recordCounts": {"resources": 2},
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    def write_extract(self, payload: bytes) -> None:
+        (self.source_root / "extract.json").write_bytes(payload)
+        self.extract_pin = SourcePin(
+            path="extract.json",
+            sha256="sha256:" + hashlib.sha256(payload).hexdigest(),
+            byte_length=len(payload),
+            fmt="json",
+            role="repositoryCheckedSourceExtract",
+            source_iri=EXTRACT_SOURCE_IRI,
+        )
+
+    def write_pack_lines(self, lines: Sequence[str]) -> None:
+        payload = ("\n".join(lines) + "\n").encode("utf-8")
+        transport = zstd.compress(payload)
+        pack = self.distribution / "packs" / "sources" / "extract-example" / "all.nq.zst"
+        pack.write_bytes(transport)
+        (self.distribution / "atlas-manifest.json").write_text(
+            json.dumps(
+                {
+                    "packs": [
+                        {
+                            "path": "packs/sources/extract-example/all.nq.zst",
+                            "transport": {
+                                "byteLength": len(transport),
+                                "digest": "sha256:"
+                                + hashlib.sha256(transport).hexdigest(),
+                            },
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    @property
+    def spec(self) -> SourceSpec:
+        return SourceSpec(
+            name="extract-example",
+            kind="source-extract",
+            release_keys=("extract-example",),
+            inputs=(self.publisher_pin,),
+            source_extract=self.selector_type(
+                reader=EXTRACT_READER,
+                extract=self.extract_pin,
+                source_release_iri=EXTRACT_SOURCE_IRI,
+                label_language="en",
+                relation_predicate=f"{SKOS}related",
+            ),
+        )
+
+    def run(self) -> list:
+        return verify(
+            self.distribution,
+            self.source_root,
+            Expectations(minimum_label_sample=1),
+            (self.spec,),
+        )
+
+
+@pytest.fixture
+def extract_suite(tmp_path: Path) -> ExtractFixture:
+    """A faithful pair: the Atlas says exactly what the checked extract records."""
+    return ExtractFixture(tmp_path)
+
+
+def test_source_extract_pair_passes_every_check(extract_suite: ExtractFixture) -> None:
+    results = extract_suite.run()
+    assert failed(results) == set(), [
+        (item.name, item.failures) for item in results if not item.passed
+    ]
+
+
+def test_source_extract_fires_when_a_preferred_label_is_rewritten(
+    extract_suite: ExtractFixture,
+) -> None:
+    extract_suite.write_pack_lines(
+        _extract_pack_lines(
+            publisher_digest=extract_suite.publisher_digest,
+            labels={"ex-concept-0001": "airspace"},
+        )
+    )
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any(
+        "ex-concept-0001 preferred label differs" in failure for failure in check.failures
+    )
+
+
+def test_source_extract_fires_when_an_unresolved_relation_is_asserted(
+    extract_suite: ExtractFixture,
+) -> None:
+    extract_suite.write_extract(
+        _extract_payload(
+            publisher_digest=extract_suite.publisher_digest,
+            drop_relation=True,
+        )
+    )
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any(
+        "does not record as resolved" in failure for failure in check.failures
+    )
+
+
+def test_source_extract_fires_when_a_recorded_relation_is_dropped(
+    extract_suite: ExtractFixture,
+) -> None:
+    lines = [
+        line
+        for line in _extract_pack_lines(
+            publisher_digest=extract_suite.publisher_digest
+        )
+        if "urn:ref:atlas-assertion:0" not in line
+    ]
+    extract_suite.write_pack_lines(lines)
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any("is not asserted by Atlas" in failure for failure in check.failures)
+
+
+def test_source_extract_fires_when_the_source_locator_is_rewritten(
+    extract_suite: ExtractFixture,
+) -> None:
+    extract_suite.write_pack_lines(
+        _extract_pack_lines(
+            publisher_digest=extract_suite.publisher_digest,
+            locator_override={
+                "ex-concept-0001": {
+                    "pdf_page": 999,
+                    "printed_page": 2,
+                    "source_ordinal": 1,
+                }
+            },
+        )
+    )
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any("source locator differs" in failure for failure in check.failures)
+
+
+def test_source_extract_fires_when_the_release_digest_is_not_the_pinned_artifact(
+    extract_suite: ExtractFixture,
+) -> None:
+    extract_suite.write_pack_lines(
+        _extract_pack_lines(publisher_digest="sha256:" + "b" * 64)
+    )
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any(
+        "not the authenticated publisher bytes" in failure for failure in check.failures
+    )
+
+
+def test_source_extract_fires_when_the_extract_binds_other_publisher_bytes(
+    extract_suite: ExtractFixture,
+) -> None:
+    extract_suite.write_extract(
+        _extract_payload(publisher_digest="sha256:" + "c" * 64)
+    )
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any(
+        "binds a different publisher artifact sha256" in failure
+        for failure in check.failures
+    )
+
+
+def test_source_extract_fails_closed_when_the_extract_is_not_authenticated(
+    extract_suite: ExtractFixture,
+) -> None:
+    spec = extract_suite.spec
+    assert spec.source_extract is not None
+    tampered = replace(
+        spec,
+        source_extract=replace(
+            spec.source_extract,
+            extract=replace(spec.source_extract.extract, sha256="sha256:" + "d" * 64),
+        ),
+    )
+    results = verify(
+        extract_suite.distribution,
+        extract_suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (tampered,),
+    )
+    check = result(results, "source-extract-fidelity")
+
+    assert not check.passed
+    assert any("was not authenticated" in failure for failure in check.failures)
+
+
+def test_source_extract_fails_closed_on_an_atlas_concept_the_extract_lacks(
+    extract_suite: ExtractFixture,
+) -> None:
+    lines = _extract_pack_lines(publisher_digest=extract_suite.publisher_digest)
+    lines.extend(
+        [
+            _quad("urn:ref:source-concept:v2:example:9", f"{RDF}type", f"{SKOS}Concept"),
+            _quad("urn:ref:atlas-source-record:9", f"{RDF}type", f"{ATLAS}SourceRecord"),
+            _quad(
+                "urn:ref:atlas-source-record:9",
+                f"{ATLAS}representsResource",
+                "urn:ref:source-concept:v2:example:9",
+            ),
+            _quad(
+                "urn:ref:atlas-source-record:9",
+                f"{ATLAS}nativePayload",
+                json.dumps(
+                    {
+                        "pdfLocator": {
+                            "pdf_page": 9,
+                            "printed_page": 6,
+                            "source_ordinal": 9,
+                        },
+                        "sourceLocalConceptId": "ex-concept-9999",
+                        "sourceLocalEntryId": "ex-entry-9999",
+                    },
+                    separators=(",", ":"),
+                ),
+                literal=True,
+            ),
+        ]
+    )
+    extract_suite.write_pack_lines(lines)
+
+    check = result(extract_suite.run(), "source-extract-fidelity")
+
+    assert not check.passed
+    assert any(
+        "which the checked source extract does not contain" in failure
+        for failure in check.failures
+    )
