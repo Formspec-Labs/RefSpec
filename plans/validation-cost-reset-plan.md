@@ -330,6 +330,32 @@ full scale makes the JVM candidates look worse, not better. Trigger (b) below
 stands unchanged and is now backed by full-scale evidence rather than a staging
 extrapolation.
 
+**DEFECT FOUND BY MANUAL PDF REVIEW — TYPOGRAPHIC LIGATURES ON THE WIRE
+(2026-08-13, owner-requested visual check).** The four PDF-pinned units are
+blocked for the auditor — an authenticated PDF pin compares no publisher rows —
+so they were reviewed BY EYE against the source document, and that found what
+the automated campaign structurally could not. `ferc-docket-prefixes` carries
+**54 Unicode presentation-form ligatures** copied out of the PDF's text layer:
+U+FB01 (ﬁ) ×30, U+FB00 (ﬀ) ×21, U+FB03 (ﬃ) ×3. A full sweep of all 126 packs
+(29,286,753 quads) finds exactly 54 — every one in this pack, none anywhere
+else, so the blast radius is one source. Live examples: "Staﬀ Adjustments under
+Section 502 of NGPA", "Certiﬁcates for Interstate Natural Gas Pipeline
+Companies", "Exemption Notiﬁcation", "Audits other than ﬁnancial audits".
+WHY IT MATTERS: these are valid Unicode and therefore pass the canonical byte
+grammar and the strict-parser lint — nothing in the pipeline is wrong, the text
+is just semantically incorrect. A consumer searching "Certificates" or "Staff"
+does not match, which for a vocabulary product is the failure that matters.
+FIX: fold presentation forms on the PDF-extraction path (NFKC on that path, or
+a targeted ligature map — NFKC applied globally is more aggressive than this
+needs and would touch other sources). Wire-visible; re-mints the affected label
+and definition nodes.
+WHAT ELSE THE SAME REVIEW CONFIRMED, and it is genuinely good: all 95 prefixes
+present with ZERO set difference against the PDF; the three source tables are
+not flattened — 77 active (Table 1's 73 + Table 2's 4) and 18 discontinued
+(Table 3) exactly; every spot-checked definition matches verbatim including the
+en-dash in IC; and the third column survives in nativePayload with multi-value
+cells intact ("E, G, H, O" for ZZ, "E, G, O, H, Gen" for CE and PA).
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
