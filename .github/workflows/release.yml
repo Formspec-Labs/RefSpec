@@ -55,14 +55,18 @@ jobs:
     name: Build, gate, and independently validate one distribution
     if: github.event_name == 'workflow_dispatch'
     # No such runner is registered yet -- this simply queues until one is.
-    # Runner spec, measured (plan "What the 2h instrumented run changes"
-    # item 3): >=32 GB RAM (18.3 GB RSS observed at parse alone, before the
-    # rest of the pipeline's working set), ~60 GB free disk for `output/`
-    # (7.3 GB decompressed per distribution, plus the packs and headroom
-    # for a second concurrent build), and a single fast core preferred over
-    # many small ones -- the pipeline is serial and memory-bound, and naive
-    # multiprocess parsing multiplies the 18 GB working set rather than
-    # dividing the wall-clock time.
+    # Runner spec, re-measured 2026-08-13 on the two-index parse substrate
+    # (bindings/atlas/3.1/tools/parse_substrate.py): a complete 29,283,283-quad
+    # acceptance run peaked at 14.31 GiB RSS in 18.5 minutes, on a quiet
+    # machine with zero swap. That is down from ~23.6 GB and 62-75 minutes on
+    # stock rdflib, so a SELF-HOSTED box is no longer required -- a managed
+    # 32 GB larger runner carries better than 2x headroom. It still does NOT
+    # fit a standard 16 GB hosted runner (~14-15 GB usable): 14.31 GiB is
+    # inside the noise of that ceiling, and disk rules it out independently
+    # (~7.3 GB decompressed per distribution plus packs and view against a
+    # 14 GB SSD). Keep ~60 GB free disk and prefer a single fast core: the
+    # pipeline is serial and memory-bound, and naive multiprocess parsing
+    # multiplies the working set rather than dividing the wall clock.
     runs-on: [self-hosted, atlas-release]
     # Sum of the step budgets below (30 build + 30 smoke + 120 acceptance +
     # 120 shapes benchmark = 300) plus headroom for
