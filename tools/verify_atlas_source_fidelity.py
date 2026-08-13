@@ -8995,6 +8995,140 @@ FERC_HTML_PATTERN_ROW_SOURCES = (
 )
 
 
+_GRANTS_GOV_PATTERN_PIN = SourcePin(
+    path=(
+        "tests/fixtures/grants_gov_codes/"
+        "grants-gov-status-codes-2026-08-03.html"
+    ),
+    sha256=(
+        "sha256:bcbe4c44f8c1743eeaa26ab9f350c53214238c31d807057f248af8dd96cd5f85"
+    ),
+    byte_length=46_093,
+    fmt="html",
+    role="publisherSource",
+    source_iri="https://www.grants.gov/api/status-codes",
+)
+
+
+def _grants_gov_pattern_source(
+    *,
+    name: str,
+    resource_name: str,
+    heading: str,
+    identifier_kind: str,
+    use: str,
+    expected_count: int,
+) -> SourceSpec:
+    observed_at = "2026-08-03T19:28:12Z"
+    native_payload_template = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [
+            {
+                "authorityUri": "https://www.grants.gov/",
+                "kind": identifier_kind,
+                "observedAt": observed_at,
+                "sourceDigest": "{source_digest}",
+                "sourcePath": "{source_path}",
+                "sourceUri": "{source_iri}",
+                "value": "{code}",
+            }
+        ],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_iri}",
+        "sourceOrdinal": "{ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": [use],
+    }
+    selector = PatternRowSelector(
+        patterns=(
+            PatternRowPattern(
+                input_pattern=re.escape(_GRANTS_GOV_PATTERN_PIN.path),
+                region_pattern=(
+                    re.escape(heading)
+                    + r".*?<table[^>]*>.*?<tbody>(?P<region>.*?)</tbody>\s*</table>"
+                ),
+                row_pattern=(
+                    r"<tr>\s*<td>(?P<code>.*?)</td>\s*"
+                    r"<td>(?P<label>.*?)</td>\s*</tr>"
+                ),
+                expected_input_count=1,
+                expected_region_count=1,
+                expected_row_count=expected_count,
+                constants=(
+                    ("observed_at", observed_at),
+                    ("resource_name", resource_name),
+                    ("source_token", name),
+                ),
+                normalizers=(
+                    PatternFieldNormalizer("code", ("html-visible-text",)),
+                    PatternFieldNormalizer("label", ("html-visible-text",)),
+                ),
+            ),
+        ),
+        row_key="{code}",
+        identity_mode="source-local-record",
+        identity_template="urn:ref:source-concept:v2:{source_token}:{source_uuid7}",
+        source_locator_template="{source_iri}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{code}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{observed_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=_canonical_json_bytes(
+            native_payload_template
+        ).decode("utf-8"),
+        native_payload_fields=tuple(sorted(native_payload_template)),
+        expected_count=expected_count,
+        declared_unevaluated_fields=("htmlOutsideSelectedCodeTable",),
+        derived_fields=(
+            PatternDerivedField(
+                field="source_path",
+                operation="template",
+                template_json=json.dumps(f"$.{resource_name}.{{code}}"),
+            ),
+            PatternDerivedField(
+                field="observation_id",
+                operation="canonical-json-sha256",
+                template_json=_canonical_json_bytes(
+                    {
+                        "resourceName": resource_name,
+                        "sourceArtifact": "{source_iri}",
+                        "sourcePath": "{source_path}",
+                        "value": "{code}",
+                    }
+                ).decode("utf-8"),
+                prefix="urn:ref:source-observation:grants-gov-codes:",
+            ),
+        ),
+    )
+    return _pattern_row_source_spec(name, (_GRANTS_GOV_PATTERN_PIN,), selector)
+
+
+GRANTS_GOV_PATTERN_ROW_SOURCES = (
+    _grants_gov_pattern_source(
+        name="grants-gov-eligibilities",
+        resource_name="eligibilities",
+        heading="Eligibility Codes (&quot;eligibilities&quot;):",
+        identifier_kind="eligibilityCode",
+        use="deterministicMetadata",
+        expected_count=17,
+    ),
+    _grants_gov_pattern_source(
+        name="grants-gov-funding-categories",
+        resource_name="fundingCategories",
+        heading="Category Codes (&quot;fundingCategories&quot;):",
+        identifier_kind="fundingCategoryCode",
+        use="sourceAssignedEvidence",
+        expected_count=26,
+    ),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -9070,6 +9204,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *SAM_ASSISTANCE_PATTERN_ROW_SOURCES,
     *SAM_OPPORTUNITIES_PATTERN_ROW_SOURCES,
     *FERC_HTML_PATTERN_ROW_SOURCES,
+    *GRANTS_GOV_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
