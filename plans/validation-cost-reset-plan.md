@@ -219,6 +219,24 @@ consumer-visible refusal class rather than merely deleting Atlas's own
 scaffolding. That is the trade to decide; the measurement is no longer
 the unknown half.
 
+**LANGUAGE-SCOPE WAVE COMPLETE — REBUILT AND PROVEN (2026-08-13).** New
+artifact `output/atlas-3.1-full-2026-08-13b/` (built to `/distribution` with
+its view at `/parquet-view`, deliberately NOT overwriting 08-13 or its seal —
+the 08-13 build had put its view at the shared `output/parquet-view`, so a bare
+--output would have invalidated the live seal a second time). distributionId
+`urn:ref:atlas:distribution:3.1-full-development:ff86e377…f88b3c`, manifest
+sha256 `656e4cc7…7bd3db` (was `18fdcd01…c4b8d6` — definitions re-mint node
+digests, by design), releaseCount 110, 29,286,753 quads (+3,470). Smoke passed
+over 8 sampled packs. **The gate the rebuild existed for is GREEN:**
+observedConstructionStatement == expectedConstructionStatement exactly, and the
+whole-distribution scan returns atlasNonEnglishLiteralClaimCount 0,
+atlasNoncanonicalSemanticLiteralClaimCount 0, atlasScanFailures []. STILL OWED
+on this artifact: (i) full acceptance validation (14.31 GiB — deferred for a
+quiet machine; three research agents were running), (ii) a vocabulary-scoped
+audit to exercise the PUBLISHER-side declaration itemisation, which the
+1-record FCC-scoped proof above left at declaredPublisherClaimCount 0, and
+(iii) re-pin + seal if this becomes the artifact of record.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
