@@ -11,6 +11,7 @@ from rdflib import BNode, Graph, Literal, URIRef
 
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
 from refspec.registry.infrastructure.registry_claim_release import RegistryClaim
+from refspec.vocabulary import is_english_language_tag
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,11 +37,6 @@ def parse_rdf_graph(payload: bytes, *, rdf_format: str, public_id: str) -> Graph
     finally:
         term_logger.setLevel(previous_level)
     return graph
-
-
-def _is_english(language: str) -> bool:
-    normalized = language.casefold()
-    return normalized == "en" or normalized.startswith("en-")
 
 
 def _source_path(
@@ -115,7 +111,7 @@ def extract_rdf_claims(
                 if object_term.language is not None
                 else None
             )
-            if language is not None and not _is_english(language):
+            if language is not None and not is_english_language_tag(language):
                 omitted_non_english += 1
                 continue
             lexical_value = str(object_term)

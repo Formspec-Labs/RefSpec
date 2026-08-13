@@ -884,6 +884,12 @@ REQUIRED_GATES = frozenset(
         "profile-conformance",
     }
 )
+ATLAS_LANGUAGE_SCOPE = {
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+    "unselectedPublisherContent": "notRepresented",
+    "wireLanguageTag": "en",
+}
 REQUIRED_CORPUS_CASES = frozenset(
     {
         "acceptance-missing-gate",
@@ -934,6 +940,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "cross-ring-endpoint-ring-reversal",
         "cross-ring-missing-evidence",
         "cross-role-identity",
+        "construction-language-scope-missing",
         "dataset-digest-mismatch",
         "derived-input-digest",
         "derived-asserted-scheme-collision",
@@ -977,6 +984,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "naked-projected-mapping",
         "no-derived",
         "non-english-label",
+        "non-english-definition",
         "partitioned-packs",
         "profile-ring-mismatch",
         "qualified-lattice-branches",
@@ -7175,6 +7183,11 @@ def _check_construction_summary_identity(
     for field, expected in expected_envelope.items():
         if construction_summary[field] != expected:
             _fail("construction.identity", f"construction summary {field} differs")
+    if construction_summary["languageScope"] != ATLAS_LANGUAGE_SCOPE:
+        _fail(
+            "construction.language-scope",
+            "construction summary language scope differs from the Atlas build",
+        )
 
     releases = construction_summary["releases"]
     release_keys = [row["key"] for row in releases]
@@ -7243,6 +7256,7 @@ def _check_construction_summary_identity(
             "inputInventoryDigest": release["inputInventoryDigest"],
             "key": key,
             "kind": release["kind"],
+            "languageScope": construction_summary["languageScope"],
             **(
                 {"registrySource": release["registrySource"]}
                 if "registrySource" in release
@@ -7363,6 +7377,7 @@ def _check_construction_summary_identity(
             "contractDigest": construction_summary["contractDigest"],
             "catalogInputInventoryDigest": catalog_input_digest,
             "constructionProfile": construction_summary["profile"],
+            "languageScope": construction_summary["languageScope"],
             "releaseSchemeInventoryDigest": release_scheme_inventory_digest,
         }
     )

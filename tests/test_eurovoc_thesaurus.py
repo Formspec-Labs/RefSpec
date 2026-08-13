@@ -13,11 +13,13 @@ import pytest
 from rdflib import Graph
 
 from refspec.registry.eurovoc_thesaurus import (
+    DEFINITION_PREDICATE_IRI,
     EUROVOC_4_24_METADATA,
     EUROVOC_RELEASE_4_24,
     HAS_TOP_CONCEPT_PREDICATE_IRI,
     HIERARCHY_PREDICATE_IRIS,
     SCHEME_MEMBERSHIP_PREDICATE_IRI,
+    SCOPE_NOTE_PREDICATE_IRI,
     STATUS_PREDICATE_IRI,
     TOP_CONCEPT_OF_PREDICATE_IRI,
     AcquiredEuroVocRelease,
@@ -85,6 +87,8 @@ SYNTHETIC_EDGE_TURTLE = """\
     skos:notation "900001" ;
     skos:prefLabel "Edge concept"@en ;
     skos:hiddenLabel "Internal term"@en ;
+    skos:definition "An English definition."@en-GB, "Une définition."@fr ;
+    skos:scopeNote "An English scope note."@en-US ;
     euvoc:status <http://publications.europa.eu/resource/authority/concept-status/CURRENT> .
 """
 
@@ -256,6 +260,15 @@ def test_synthetic_edge_input_round_trips_domain_group_and_hidden_label() -> Non
     assert parsed.concepts[0].concept_iri == "urn:example:edge"
     assert parsed.concepts[0].notation == "900001"
     assert any(item.role == "hidden" and item.value.lexical_form == "Internal term" for item in parsed.labels)
+    assert {
+        (item.property_iri, item.value.language_tag, item.value.lexical_form)
+        for item in parsed.annotations
+        if item.subject_iri == "urn:example:edge"
+    } == {
+        (DEFINITION_PREDICATE_IRI, "en-GB", "An English definition."),
+        (DEFINITION_PREDICATE_IRI, "fr", "Une définition."),
+        (SCOPE_NOTE_PREDICATE_IRI, "en-US", "An English scope note."),
+    }
 
 
 def test_skos_core_domain_membership_separates_domains_from_thesaurus_concepts() -> None:
@@ -306,6 +319,18 @@ def test_parser_refuses_a_domain_group_whose_code_does_not_match_its_domains_pre
 def test_parser_rejects_a_blank_node_in_place_of_a_required_iri() -> None:
     mutated = SYNTHETIC_EDGE_TURTLE.replace("<urn:example:domain-01>", "[]", 1)
     with pytest.raises(EuroVocThesaurusError, match="must be an IRI"):
+        parse_eurovoc_turtle(
+            mutated,
+            source_url="https://example.test/synthetic-eurovoc-edge.ttl",
+        )
+
+
+def test_parser_rejects_an_iri_valued_definition() -> None:
+    mutated = SYNTHETIC_EDGE_TURTLE.replace(
+        'skos:definition "An English definition."@en-GB, "Une définition."@fr ;',
+        "skos:definition <urn:example:definition> ;",
+    )
+    with pytest.raises(EuroVocThesaurusError, match="must be an RDF literal"):
         parse_eurovoc_turtle(
             mutated,
             source_url="https://example.test/synthetic-eurovoc-edge.ttl",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,6 +11,33 @@ from refspec.atlas import v3_registry_nonemitters as adapters
 
 ROOT = Path(__file__).resolve().parents[1]
 REAL_DATA = ROOT / "output" / "registry-real-data-sources"
+
+
+def test_bounded_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
+    def source_label(value: str, language: str, role: str) -> SimpleNamespace:
+        return SimpleNamespace(
+            role=role,
+            value=SimpleNamespace(
+                lexical_form=value,
+                language_tag=language,
+            ),
+        )
+
+    labels, dropped = adapters._normalized_english_labels(
+        (
+            source_label("organisation", "en", "preferred"),
+            source_label("organisation", "en-GB", "preferred"),
+            source_label("organization", "en-US", "preferred"),
+            source_label("organisation", "fr", "preferred"),
+        ),
+        source_path="publisher.ttl",
+    )
+
+    assert [(label.value, label.role, label.language) for label in labels] == [
+        ("organisation", "preferred", "en"),
+        ("organization", "alternate", "en"),
+    ]
+    assert dropped == 1
 
 
 def test_bounded_subject_sources_emit_every_pinned_concept_without_claiming_completeness() -> None:
@@ -96,6 +124,17 @@ def test_nalt_bounded_release_keeps_two_real_core_concepts_and_their_relations()
     }
     assert len(release.relations) == 2
     assert release.metadata["completePublisherRelease"] is False
+    resources = {resource.iri: resource for resource in release.resources}
+    assert resources["https://lod.nal.usda.gov/nalt/9084"].definition == (
+        "The protection of animals in laboratories or other specific "
+        "environments by promoting their health through nutrition, housing, "
+        "care, climate, mental stimulation, and freedom from pain and "
+        "suffering, disease, and disability."
+    )
+    assert resources["https://lod.nal.usda.gov/nalt/9084"].notes == ()
+    assert resources["https://lod.nal.usda.gov/nalt/127295"].definition is None
+    assert release.metadata["englishDefinitionRelationCount"] == 1
+    assert release.metadata["unresolvedDefinitionRelationCount"] == 1
 
 
 def test_nppes_emits_every_field_and_every_bounded_provider_row() -> None:

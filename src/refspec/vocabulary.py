@@ -231,6 +231,21 @@ def require_language_tag(value: object, label: str = "languageTag") -> str:
     return _require_language_tag(value, label)
 
 
+def is_english_language_tag(
+    value: str | None,
+    *,
+    untagged_is_english: bool = False,
+) -> bool:
+    """Return whether a valid BCP 47 tag belongs to the English family."""
+
+    if value is None:
+        return untagged_is_english
+    if _BCP47.fullmatch(value) is None:
+        return False
+    normalized = value.casefold()
+    return normalized == "en" or normalized.startswith("en-")
+
+
 def _require_reference(
     value: Mapping[str, Any],
     label: str,

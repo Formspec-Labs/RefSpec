@@ -50,6 +50,7 @@ from refspec.registry.eurovoc_lcsh_alignment import (
     verify_eurovoc_4_24_metadata,
     verify_eurovoc_lcsh_release_metadata,
 )
+from refspec.vocabulary import is_english_language_tag
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
@@ -277,7 +278,7 @@ def load_eurovoc_lcsh_mapping_release(
 
 
 def _english_labels(record: lcsh.LcshTopicalRecord) -> tuple[RegistryLabel, ...]:
-    if record.preferred_label.language.casefold() != "en":
+    if not is_english_language_tag(record.preferred_label.language):
         raise ValueError(
             f"aligned LCSH authority lacks an English preferred label: {record.concept_iri}"
         )
@@ -290,7 +291,7 @@ def _english_labels(record: lcsh.LcshTopicalRecord) -> tuple[RegistryLabel, ...]
     ]
     seen = {labels[0].value}
     for index, label in enumerate(record.variant_labels):
-        if label.language.casefold() != "en":
+        if not is_english_language_tag(label.language):
             continue
         value = label.value.strip()
         if not value or value in seen:
@@ -405,7 +406,7 @@ def load_lcsh_alignment_endpoint_release(
         resources=resources,
         relations=relations,
         dropped_label_count=sum(
-            label.language.casefold() != "en"
+            not is_english_language_tag(label.language)
             for record in capture.records
             for label in record.variant_labels
         ),

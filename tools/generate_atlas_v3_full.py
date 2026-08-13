@@ -95,6 +95,7 @@ from refspec.registry.managed_releases.icpsr_managed_release import (
     open_icpsr_managed_release_sources,
 )
 from refspec.release_model import canonical_sha256 as refspec_canonical_sha256
+from refspec.vocabulary import is_english_language_tag
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
@@ -149,6 +150,12 @@ _COMPILED_PRODUCER_MODE = (
     "compiledSourceAndEvidenceBackedMappingProducerValidation"
 )
 _CONSTRUCTION_SUMMARY_PROFILE = "atlas-3-release-local-construction-v1"
+_LANGUAGE_SCOPE = {
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
+    "unselectedPublisherContent": "notRepresented",
+    "wireLanguageTag": "en",
+}
 _CONSTRUCTION_SUMMARY_RECEIPT_PROFILE = (
     "atlas-3-authenticated-construction-summary-v1"
 )
@@ -644,7 +651,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:2096baf4c098ba54b32f4079bb9d5112ad54ea01820388fc9b610f26e496d32f"
+    "sha256:70c1172b1c4b5f6ff1a7917c71ac8f72d8cbaea7492657676c566b14261503cf"
 )
 
 
@@ -1189,7 +1196,7 @@ def _normalize_english_language_content(
                     raise TypeError(
                         f"language tag at {'/'.join(path) or '<root>'} is not text"
                     )
-                if explicit_language.lower() != "en":
+                if not is_english_language_tag(explicit_language):
                     dropped.append(
                         {
                             "kind": "languageTaggedValue",
@@ -1208,10 +1215,17 @@ def _normalize_english_language_content(
                         raw_child,
                         path=child_path,
                     )
-                    child = {}
-                    for language, values in sorted(language_values.items()):
-                        if language.lower() == "en":
-                            child["en"] = values
+                    english_values: list[str] = []
+                    for language, values in sorted(
+                        language_values.items(),
+                        key=lambda item: (
+                            item[0].casefold() != "en",
+                            item[0].casefold(),
+                            item[0],
+                        ),
+                    ):
+                        if is_english_language_tag(language):
+                            english_values.extend(values)
                         else:
                             dropped.append(
                                 {
@@ -1221,6 +1235,11 @@ def _normalize_english_language_content(
                                     "values": values,
                                 }
                             )
+                    child = (
+                        {"en": list(dict.fromkeys(english_values))}
+                        if english_values
+                        else {}
+                    )
                 elif (
                     key.startswith(("skos:", "xkos:"))
                     and _looks_like_language_map(raw_child)
@@ -1238,9 +1257,60 @@ def _normalize_english_language_content(
 
         if isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
             result_list: list[Any] = []
+            seen_tagged_values: set[str] = set()
+            base_preferred_values = {
+                raw_child.get("value")
+                for raw_child in item
+                if isinstance(raw_child, Mapping)
+                and raw_child.get("role") == "preferred"
+                and isinstance(raw_child.get("value"), str)
+                and any(
+                    isinstance(raw_child.get(key), str)
+                    and str(raw_child[key]).casefold() == "en"
+                    for key in raw_child
+                    if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
+                )
+            }
             for index, raw_child in enumerate(item):
                 child = visit(raw_child, (*path, str(index)))
                 if child is not _DROP_LANGUAGE_VALUE:
+                    if isinstance(child, Mapping) and any(
+                        str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
+                        for key in child
+                    ):
+                        raw_language = (
+                            next(
+                                (
+                                    raw_child[key]
+                                    for key in raw_child
+                                    if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
+                                ),
+                                None,
+                            )
+                            if isinstance(raw_child, Mapping)
+                            else None
+                        )
+                        is_variant = (
+                            isinstance(raw_language, str)
+                            and raw_language.casefold() != "en"
+                        )
+                        if is_variant and child.get("value") in base_preferred_values:
+                            continue
+                        if (
+                            is_variant
+                            and base_preferred_values
+                            and child.get("role") == "preferred"
+                        ):
+                            child = {**child, "role": "alternate"}
+                        identity = json.dumps(
+                            _plain(child),
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                            sort_keys=True,
+                        )
+                        if identity in seen_tagged_values:
+                            continue
+                        seen_tagged_values.add(identity)
                     result_list.append(child)
             return result_list
         return item
@@ -1279,10 +1349,10 @@ def _audit_english_language_content(
                     ) and not (
                         isinstance(child, str)
                         and (
-                            child.lower() == "en"
+                            child.casefold() == "en"
                             or (
                                 allow_untagged_explicit_language
-                                and child.lower().startswith("en-")
+                                and is_english_language_tag(child)
                             )
                         )
                     ):
@@ -1405,7 +1475,7 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
                 ),
                 "droppedLanguageValueCount": len(dropped_language_content),
                 "languageNormalizationAlgorithm": (
-                    "recursiveLanguageMapsAndTaggedValuesV1"
+                    "recursiveEnglishFamilyLanguageMapsAndTaggedValuesV2"
                 ),
                 "originalObservationDigest": _native_digest(observation),
                 "sourceTextLanguage": "en",
@@ -1652,7 +1722,7 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
                     {str(row["path"]) for row in dropped_language_content}
                 ),
                 "languageNormalizationAlgorithm": (
-                    "recursiveLanguageMapsAndJsonLdLanguageValuesV1"
+                    "recursiveEnglishFamilyLanguageMapsAndJsonLdLanguageValuesV2"
                 ),
                 "originalMemberDigest": _native_digest(record),
                 "originalSourceLocator": member.member_iri,
@@ -6300,6 +6370,7 @@ def _construction_base_build_keys(
                 "inputInventoryDigest": input_inventory_digest,
                 "key": seed.key,
                 "kind": seed.kind,
+                "languageScope": _LANGUAGE_SCOPE,
                 "registrySource": seed.registry_source_iri,
                 "resourceProfile": seed.resource_profile,
                 "scheme": seed.scheme_iri,
@@ -6519,6 +6590,7 @@ def _construction_summary(
                 "contractDigest": contract_digest,
                 "catalogInputInventoryDigest": catalog_input_digest,
                 "constructionProfile": _CONSTRUCTION_SUMMARY_PROFILE,
+                "languageScope": _LANGUAGE_SCOPE,
                 "releaseSchemeInventoryDigest": release_scheme_inventory_digest,
             }
         ),
@@ -6541,6 +6613,7 @@ def _construction_summary(
         "contractDigest": contract_digest,
         "catalog": catalog,
         "distributionId": _distribution_id(accounting),
+        "languageScope": _LANGUAGE_SCOPE,
         "profile": _CONSTRUCTION_SUMMARY_PROFILE,
         "releaseCount": len(releases),
         "releaseInventoryDigest": _canonical_digest(releases),
@@ -7263,6 +7336,16 @@ def _release_label_role_conflict_count(release: LoadedRelease) -> int:
     return value
 
 
+def _release_english_family_duplicate_label_count(release: LoadedRelease) -> int:
+    value = release.metadata.get("englishFamilyDuplicateLabelCount", 0)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(
+            f"{release.spec.key} englishFamilyDuplicateLabelCount is not a "
+            "non-negative integer"
+        )
+    return value
+
+
 def _release_pack_plan(release: LoadedRelease) -> ReleasePackPlan:
     return ReleasePackPlan(
         key=release.spec.key,
@@ -7587,6 +7670,10 @@ def build_distribution(
     label_role_conflict_count = sum(
         _release_label_role_conflict_count(release) for release in releases
     )
+    english_family_duplicate_label_count = sum(
+        _release_english_family_duplicate_label_count(release)
+        for release in releases
+    )
     observed_counts = _direct_source_counts(
         releases,
         label_count=english_only_scan["emittedLabels"],
@@ -7608,11 +7695,13 @@ def build_distribution(
         "createdAt": _distribution_instant(releases),
         "directSourceCounts": observed_counts,
         "droppedLabelCount": dropped_label_count,
+        "englishFamilyDuplicateLabelCount": english_family_duplicate_label_count,
         "labelRoleConflictCount": label_role_conflict_count,
         "retainedEnglishLabelCount": observed_counts["labels"],
         "sourceLabelCountBeforeLanguageFilter": (
             observed_counts["labels"]
             + dropped_label_count
+            + english_family_duplicate_label_count
             + label_role_conflict_count
         ),
         "englishOnlyPolicy": {
