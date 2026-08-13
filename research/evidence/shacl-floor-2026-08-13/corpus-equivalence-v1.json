@@ -1,0 +1,240 @@
+{
+  "caseCount": 130,
+  "firstIssueCaseCount": 117,
+  "recordedAt": "2026-08-13T16:40:07+00:00",
+  "shaclComponentCaseCount": 47,
+  "variants": {
+    "combined-second-implementation": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 61128704,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 38.52991370903328
+        },
+        "default": {
+          "maximumRssBytes": 63815680,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 39.132320458011236
+        }
+      }
+    },
+    "direct-equals": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 62521344,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 34.96671808301471
+        },
+        "default": {
+          "maximumRssBytes": 62570496,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 32.295257209043484
+        }
+      }
+    },
+    "direct-equals-indexed": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 63209472,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 36.16540225001518
+        },
+        "default": {
+          "maximumRssBytes": 63995904,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 32.70983399997931
+        }
+      }
+    },
+    "focus-hints": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 60850176,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 34.34386837499915
+        },
+        "default": {
+          "maximumRssBytes": 62226432,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 31.400655874982476
+        }
+      }
+    },
+    "indexed-focus-hints": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 63356928,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 35.60446750000119
+        },
+        "default": {
+          "maximumRssBytes": 63717376,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 32.103447458008304
+        }
+      }
+    },
+    "indexed-view": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 62717952,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 35.69756712502567
+        },
+        "default": {
+          "maximumRssBytes": 61227008,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 32.432102792023215
+        }
+      }
+    },
+    "mapping-or": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 62406656,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 34.20165733399335
+        },
+        "default": {
+          "maximumRssBytes": 64782336,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 31.221780624997336
+        }
+      }
+    },
+    "semantic-helper-ceiling": {
+      "equivalent": true,
+      "modes": {
+        "audit": {
+          "maximumRssBytes": 60243968,
+          "mode": "audit",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 56.65702704200521
+        },
+        "default": {
+          "maximumRssBytes": 63913984,
+          "mode": "default",
+          "result": {
+            "caseCount": 130,
+            "invalidCount": 117,
+            "registryDescriptorCount": 88,
+            "registryDescriptorQuadCount": 994,
+            "schemaCount": 10
+          },
+          "seconds": 33.31177354202373
+        }
+      }
+    }
+  }
+}
