@@ -2816,6 +2816,11 @@ def test_folded_gates_read_the_index_rather_than_the_asserted_store() -> None:
     accounting = json.loads(
         (VALID_DISTRIBUTION / "atlas-source-accounting.json").read_text(encoding="utf-8")
     )
+    construction_summary = json.loads(
+        (VALID_DISTRIBUTION / atlas_validate.CONSTRUCTION_SUMMARY_FILE).read_text(
+            encoding="utf-8"
+        )
+    )
     inventory = atlas_validate._check_graph_roles(graphs)
     original_triples = Graph.triples
 
@@ -2836,8 +2841,14 @@ def test_folded_gates_read_the_index_rather_than_the_asserted_store() -> None:
         atlas_validate._check_label_integrity(asserted, inventory)
         atlas_validate._check_evidence_bindings(asserted, inventory)
         atlas_validate._validate_assertions(asserted, inventory)
+        atlas_validate._check_machine_adjudication(asserted, inventory)
         atlas_validate._check_source_accounting(asserted, accounting, inventory)
         atlas_validate._check_counts(manifest, graphs, inventory)
+        atlas_validate._check_construction_record_ownership(
+            asserted,
+            construction_summary,
+            asserted_facts=inventory.facts,
+        )
 
 
 def test_acceptance_does_not_walk_the_asserted_store_twice_for_placement(
@@ -2859,6 +2870,60 @@ def test_acceptance_does_not_walk_the_asserted_store_twice_for_placement(
 
     assert result["quadCount"] > 0
     assert original is not None
+
+
+def test_preparsed_validation_builds_observer_facts_from_the_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The resident-graph API has no parse observer, so it must build one."""
+
+    _, graphs, manifest = _load_valid_graphs()
+    accounting = json.loads(
+        (VALID_DISTRIBUTION / "atlas-source-accounting.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    acceptance = json.loads(
+        (VALID_DISTRIBUTION / "atlas-acceptance.json").read_text(encoding="utf-8")
+    )
+    producer_validation = json.loads(
+        (VALID_DISTRIBUTION / atlas_validate.PRODUCER_VALIDATION_FILE).read_text(
+            encoding="utf-8"
+        )
+    )
+    construction_summary = json.loads(
+        (VALID_DISTRIBUTION / atlas_validate.CONSTRUCTION_SUMMARY_FILE).read_text(
+            encoding="utf-8"
+        )
+    )
+    member_digests = atlas_validate._check_distribution_files(
+        VALID_DISTRIBUTION,
+        manifest,
+    )
+    original = atlas_validate._AssertedPlacementObservation.from_graph
+    observed: list[URIRef] = []
+
+    def traced(asserted: Graph) -> Any:
+        observed.append(asserted.identifier)
+        return original(asserted)
+
+    monkeypatch.setattr(
+        atlas_validate._AssertedPlacementObservation,
+        "from_graph",
+        staticmethod(traced),
+    )
+    result = atlas_validate.validate_preparsed_distribution(
+        manifest,
+        accounting,
+        acceptance,
+        graphs,
+        member_digests=member_digests,
+        producer_validation=producer_validation,
+        construction_summary=construction_summary,
+    )
+
+    assert result["quadCount"] > 0
+    assert observed == [graphs["asserted"].identifier]
 
 
 def test_acceptance_freezes_the_parsed_heap_only_for_the_semantic_phases(
