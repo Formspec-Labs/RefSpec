@@ -1370,6 +1370,137 @@ def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
     assert family["status"] == "declared-out-of-scope"
 
 
+RELEASE = f"{EX}release/2026-01-01"
+
+
+def _with_adopted_release(suite: Fixture, *, atlas_asserts: Sequence[str] = ()) -> None:
+    """Publisher describes a release; Atlas adopts that IRI as its source release."""
+    suite.write_publisher(
+        extra_triples=(
+            f"<{RELEASE}> a <{EX}Work> ;\n"
+            f'  <http://purl.org/dc/terms/title> "Example release"@en ;\n'
+            f'  <http://purl.org/dc/terms/version> "1.0" .'
+        )
+    )
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.append(_quad(RELEASE, f"{RDF}type", f"{ATLAS}SourceRelease"))
+    lines.extend(atlas_asserts)
+    suite.write_pack_lines(lines)
+
+
+def test_release_metadata_reports_publisher_fields_atlas_drops_by_family(
+    suite: Fixture,
+) -> None:
+    """A release Atlas adopts is compared field for field, named compactly."""
+    _with_adopted_release(suite)
+
+    check = result(suite.run(), "source-release-metadata")
+
+    assert not check.passed
+    assert any(
+        "title family are missing from Atlas" in failure for failure in check.failures
+    )
+    assert any(
+        "version family are missing from Atlas" in failure for failure in check.failures
+    )
+
+
+def test_release_metadata_fires_when_atlas_states_an_unsupported_release_field(
+    suite: Fixture,
+) -> None:
+    """The direction that matters most: Atlas asserting what the publisher did not."""
+    _with_adopted_release(
+        suite,
+        atlas_asserts=(
+            _quad(
+                RELEASE,
+                "http://purl.org/dc/terms/issued",
+                "2026-01-01",
+                literal=True,
+            ),
+        ),
+    )
+
+    check = result(suite.run(), "source-release-metadata")
+
+    assert not check.passed
+    assert any(
+        "Atlas adds" in failure and "dates family" in failure
+        for failure in check.failures
+    )
+
+
+def test_an_adopted_release_iri_can_never_be_declared_out_of_scope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Adoption beats any declaration, and the routing is stated, not silent.
+
+    A declaration worded broadly enough to reach a release Atlas adopted does
+    not get to cover it: those claims stay in source-release-metadata, and the
+    receipt names the subject it routed away rather than quietly dropping it.
+    """
+    import tools.verify_atlas_source_fidelity as verifier
+
+    fixture = Fixture(tmp_path)
+    _with_adopted_release(fixture)
+    overreaching = DeclaredClaimExclusion(
+        name="allPublisherWorks",
+        reason="an exclusion worded broadly enough to reach the adopted release",
+        subject_types=frozenset({f"{EX}Work"}),
+    )
+    fixture.spec = replace(
+        fixture.spec, declared_claim_exclusions=(overreaching,)
+    )
+    monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
+    output = tmp_path / "receipt.json"
+    verifier.main(
+        [
+            "--distribution",
+            str(fixture.distribution),
+            "--source-root",
+            str(fixture.source_root),
+            "--output",
+            str(output),
+            "--minimum-label-sample",
+            "1",
+        ]
+    )
+
+    receipt = json.loads(output.read_text(encoding="utf-8"))
+    family = next(
+        row
+        for row in receipt["comparisons"][0]["claimScope"][
+            "intentionallyExcludedFamilies"
+        ]
+        if row["name"] == "allPublisherWorks"
+    )
+    assert family["routedToReleaseComparison"] == [RELEASE]
+    assert family["publisherClaimCount"] == 0
+    release = next(
+        row for row in receipt["results"] if row["check"] == "source-release-metadata"
+    )
+    assert any(
+        "title family are missing from Atlas" in failure
+        for failure in release["failures"]
+    )
+
+
+def test_release_metadata_ignores_atlas_minted_provenance(suite: Fixture) -> None:
+    """Atlas structure on the adopted IRI is declared elsewhere, not a difference."""
+    _with_adopted_release(
+        suite,
+        atlas_asserts=(
+            _quad(RELEASE, f"{ATLAS}semanticRing", f"{ATLAS}SourceRing"),
+            _plain_literal_quad(RELEASE, f"{ATLAS}contentDigest", "sha256:" + "a" * 64),
+        ),
+    )
+
+    check = result(suite.run(), "source-release-metadata")
+
+    assert not any("Atlas adds" in failure for failure in check.failures)
+
+
 def test_a_declared_exclusion_may_not_cover_a_subject_the_comparison_compares(
     suite: Fixture,
 ) -> None:

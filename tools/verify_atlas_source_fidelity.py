@@ -170,6 +170,7 @@ SKOSXL_LABEL_PREDICATES = frozenset(
 )
 
 ATLAS_SOURCE_RECORD = f"{ATLAS}SourceRecord"
+ATLAS_SOURCE_RELEASE = f"{ATLAS}SourceRelease"
 ATLAS_RESOURCE = f"{ATLAS}AtlasResource"
 ATLAS_RELEASE = f"{ATLAS}AtlasRelease"
 ATLAS_SUBJECT_CONCEPT = f"{ATLAS}SubjectConcept"
@@ -617,6 +618,14 @@ class PublisherView:
     # subject), so the exclusion report counts them from here instead of losing
     # them between the two accountings.
     declared_out_of_scope_blank_node_claims: Mapping[str, tuple[str, ...]] = field(
+        default_factory=dict
+    )
+    # The subjects each exclusion selected out of the publisher's whole graph,
+    # before any subset selector narrowed this view. EuroVoc's main/domains
+    # split drops the dataset-description subjects entirely, which would leave
+    # the exclusion's Atlas-side proof ranging over an empty set -- vacuously
+    # true, and therefore worthless. Keeping the roots makes that proof real.
+    declared_out_of_scope_subjects: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict
     )
 
@@ -1417,6 +1426,7 @@ def _publisher_view(
     # subject and no further: a blank node reachable from anything else stays in
     # the uncovered report.
     excluded_blank_node_claims: dict[str, list[str]] = {}
+    excluded_subjects: dict[str, tuple[str, ...]] = {}
     exclusion_nodes: list[tuple[str, set[Any]]] = []
     for exclusion in declared_claim_exclusions:
         roots = {
@@ -1440,6 +1450,9 @@ def _publisher_view(
         if roots:
             exclusion_nodes.append((exclusion.name, reached))
             excluded_blank_node_claims[exclusion.name] = []
+            excluded_subjects[exclusion.name] = tuple(
+                sorted(str(term) for term in roots)
+            )
     for subject, predicate, obj in graph:
         if not isinstance(subject, rdflib.BNode) and not isinstance(obj, rdflib.BNode):
             continue
@@ -1507,6 +1520,7 @@ def _publisher_view(
             name: tuple(details)
             for name, details in excluded_blank_node_claims.items()
         },
+        declared_out_of_scope_subjects=dict(excluded_subjects),
     )
 
 
@@ -1702,6 +1716,7 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
         declared_out_of_scope_blank_node_claims=(
             view.declared_out_of_scope_blank_node_claims
         ),
+        declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
     )
 
 
@@ -1792,6 +1807,7 @@ def _select_publisher_concepts(
         declared_out_of_scope_blank_node_claims=(
             view.declared_out_of_scope_blank_node_claims
         ),
+        declared_out_of_scope_subjects=view.declared_out_of_scope_subjects,
     )
 
 
@@ -3182,6 +3198,59 @@ _GENERIC_SKOS_NATIVE_FIELDS = frozenset(
     {"publisherConceptIri", "schemeIris", "topConceptOfIris"}
 )
 
+# Every Publications Office release ships the same dataset-description layer in
+# its metadata file, so the comparisons that read those files share one
+# declaration rather than several drifting copies of it.
+#
+# cdm:work and its relatives ARE listed here, which needs saying plainly. The
+# publisher describes a whole family of release entities -- the abstract work,
+# the dated release, its documentation, the agent that published it. Atlas
+# adopts exactly one of them as its own source-release node, and that one can
+# never be covered by this declaration: adopted release IRIs are compared
+# subjects (see _compared_publisher_subjects), so the overlap guard fails the
+# declaration rather than letting it hide them. The split is made by evidence
+# from the Atlas pack, not by a hand-picked predicate allowlist.
+_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION = DeclaredClaimExclusion(
+    name="publisherDatasetDescription",
+    reason=(
+        "the pinned metadata files carry the Publications Office's own "
+        "description of the datasets they ship -- void:Linkset and void:Dataset "
+        "statistics (including the blank-node void:classPartition counts), lime "
+        "lexicalization sets, dcat catalogue, distribution and service records, "
+        "the align:Ontology/align:Alignment header, the cdm release works that "
+        "Atlas does not adopt, and the EU authority entries those records cite. "
+        "Every one of them describes a FILE or a publication event, not a term. "
+        "Atlas asserts nothing about any of these subjects, which is what the "
+        "paired Atlas-side count proves; the one release IRI Atlas DOES adopt is "
+        "a compared subject and is excluded from this exclusion by the overlap "
+        "guard, then compared field by field by source-release-metadata"
+    ),
+    subject_types=frozenset(
+        {
+            f"{ALIGNMENT}Alignment",
+            f"{ALIGNMENT}Ontology",
+            f"{CDM}agent",
+            f"{CDM}complex_work",
+            f"{CDM}concept",
+            f"{CDM}documentation",
+            f"{CDM}work",
+            f"{CDM}work_dataset",
+            f"{DCAT}Catalog",
+            f"{DCAT}DataService",
+            f"{DCAT}Dataset",
+            f"{DCAT}Distribution",
+            f"{LIME}LexicalizationSet",
+            f"{MDR}DatasetArchetype",
+            f"{MDR}DatasetRealization",
+            f"{MDR}RDFDataset",
+            f"{STMDR}SemanticTurkeyInstance",
+            f"{VOID}Dataset",
+            f"{VOID}DatasetDescription",
+            f"{VOID}Linkset",
+        }
+    ),
+)
+
 
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
@@ -3268,6 +3337,29 @@ SOURCES: tuple[SourceSpec, ...] = (
                 f"{DCAT}CatalogRecord",
             }
         ),
+        declared_claim_exclusions=(
+            DeclaredClaimExclusion(
+                name="importedVocabularyTermLabels",
+                reason=(
+                    "ELSST ships display labels for the PREDICATES its file uses "
+                    "-- dcterms:identifier as 'URN', owl:imports as 'Uses other "
+                    "schema:' -- so a browsing UI can render its own field names. "
+                    "The subjects are terms in vocabularies ELSST imports, never "
+                    "ELSST concepts (which all live under elsst.cessda.eu/id/6/), "
+                    "so this is a legend for the file's own schema rather than "
+                    "thesaurus content. Atlas asserts nothing about them. The "
+                    "file's owl:Ontology header is deliberately NOT declared "
+                    "here: Atlas adopts that IRI as its source release, so "
+                    "source-release-metadata compares it"
+                ),
+                subject_iri_prefixes=(
+                    DCTERMS,
+                    OWL,
+                    "http://rdf-vocabulary.ddialliance.org/xkos#",
+                    DCAT,
+                ),
+            ),
+        ),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS | {"metadata"},
             record_digest_input_paths=("ELSST_R6.ttl",),
@@ -3295,6 +3387,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         subset="eurovoc-main",
+        declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,
             record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
@@ -3322,6 +3415,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         subset="eurovoc-domains",
+        declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,
             record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
@@ -3375,46 +3469,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             }
         ),
         declared_claim_exclusions=(
-            DeclaredClaimExclusion(
-                name="publisherDatasetDescription",
-                reason=(
-                    "the pinned files carry the Publications Office's own "
-                    "description of the datasets they ship -- void:Linkset and "
-                    "void:Dataset statistics (including the blank-node "
-                    "void:classPartition counts), lime lexicalization sets, dcat "
-                    "catalogue, distribution and service records, the "
-                    "align:Ontology/align:Alignment header, and the EU authority "
-                    "entries those records cite. Every one of them describes a "
-                    "FILE, not a term: this comparison's claim is the "
-                    "EuroVoc-to-LCSH mapping statements, which relation-fidelity "
-                    "compares exactly and in both directions. Atlas asserts "
-                    "nothing about any of these subjects. The publisher's release "
-                    "works (cdm:work and friends) are deliberately NOT here: "
-                    "Atlas reuses the alignment release IRI as its own source "
-                    "release, so those claims are in scope and stay in the "
-                    "uncovered report until something reverses them"
-                ),
-                subject_types=frozenset(
-                    {
-                        f"{ALIGNMENT}Alignment",
-                        f"{ALIGNMENT}Ontology",
-                        f"{CDM}agent",
-                        f"{CDM}concept",
-                        f"{DCAT}Catalog",
-                        f"{DCAT}DataService",
-                        f"{DCAT}Dataset",
-                        f"{DCAT}Distribution",
-                        f"{LIME}LexicalizationSet",
-                        f"{MDR}DatasetArchetype",
-                        f"{MDR}DatasetRealization",
-                        f"{MDR}RDFDataset",
-                        f"{STMDR}SemanticTurkeyInstance",
-                        f"{VOID}Dataset",
-                        f"{VOID}DatasetDescription",
-                        f"{VOID}Linkset",
-                    }
-                ),
-            ),
+            _PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,
             DeclaredClaimExclusion(
                 name="cellarDocumentStoreResources",
                 reason=(
@@ -6910,6 +6965,175 @@ def check_scheme_organisation(ctx: Context) -> CheckResult:
     )
 
 
+# Field families for release-metadata reporting. Publishers describe a release
+# with dozens of near-synonymous predicates (work_title beside title,
+# work_date_creation beside date_creation), and one failure line per predicate
+# turns a characterised gap into a wall. These buckets are for READING only:
+# every count below is over exact claims, and the claim sets are compared whole.
+_RELEASE_METADATA_FAMILIES: tuple[tuple[str, str], ...] = (
+    # Agent needles come first on purpose: cdm:created_by names who made the
+    # release, not when, and "created" would otherwise capture it as a date.
+    ("created_by", "agent"),
+    ("creator", "agent"),
+    ("creates", "agent"),
+    ("published_by", "agent"),
+    ("publish", "agent"),
+    ("agent", "agent"),
+    ("title", "title"),
+    ("version", "version"),
+    ("identifier", "identity"),
+    ("datetime", "dates"),
+    ("date", "dates"),
+    ("issued", "dates"),
+    ("created", "dates"),
+    ("modified", "dates"),
+    ("frequency", "classification"),
+    ("type", "classification"),
+    ("language", "language"),
+    ("licen", "rights"),
+    ("rights", "rights"),
+    ("access", "rights"),
+    ("descri", "description"),
+    ("keyword", "description"),
+    ("editorial", "description"),
+    ("comment", "description"),
+    ("label", "description"),
+    ("import", "imports"),
+    ("member", "structure"),
+    ("expression", "structure"),
+    ("documentation", "structure"),
+    ("related", "structure"),
+    ("has", "structure"),
+    ("id", "identity"),
+)
+
+
+def _release_metadata_family(predicate: str) -> str:
+    """Bucket one release predicate into a readable field family."""
+    local = predicate.rsplit("#", 1)[-1].rsplit("/", 1)[-1].lower()
+    for needle, family in _RELEASE_METADATA_FAMILIES:
+        if needle in local:
+            return family
+    return "other"
+
+
+def _atlas_source_release_subjects(pair: SourcePair) -> frozenset[str]:
+    """Publisher release IRIs that Atlas reuses as its own source-release node.
+
+    Atlas does not mint a fresh identifier for a publisher release; it adopts
+    the publisher's own release IRI and hangs its provenance off it. That makes
+    every publisher claim about that IRI a claim Atlas is standing on, so it
+    belongs in a comparison rather than in a scope declaration -- an exclusion
+    covering it would be exactly the waiver this verifier must not grant.
+    """
+    return frozenset(
+        subject
+        for subject, types in pair.atlas.rdf_types.items()
+        if ATLAS_SOURCE_RELEASE in types
+    )
+
+
+def _publisher_release_metadata_claims(
+    pair: SourcePair,
+) -> tuple[
+    frozenset[tuple[str, str, str]],
+    frozenset[tuple[str, str, LiteralValue]],
+]:
+    """Every publisher claim about a release IRI Atlas adopted."""
+    subjects = _atlas_source_release_subjects(pair)
+    return (
+        frozenset(row for row in pair.publisher.iri_claims if row[0] in subjects),
+        frozenset(row for row in pair.publisher.literal_claims if row[0] in subjects),
+    )
+
+
+def _atlas_release_metadata_claims(
+    pair: SourcePair,
+) -> tuple[
+    frozenset[tuple[str, str, str]],
+    frozenset[tuple[str, str, LiteralValue]],
+]:
+    """Every source-shaped claim Atlas makes about a release IRI it adopted.
+
+    Atlas-minted predicates and Atlas class memberships are excluded: those are
+    the representation structure already declared in the receipt, not a
+    restatement of anything the publisher said.
+    """
+    subjects = _atlas_source_release_subjects(pair)
+    return (
+        frozenset(
+            row
+            for row in pair.atlas.all_raw_iri_claims
+            if row[0] in subjects
+            and not _is_atlas_representation_iri(row[1])
+            and not (row[1] == RDF_TYPE and _is_atlas_representation_iri(row[2]))
+        ),
+        frozenset(
+            row
+            for row in pair.atlas.all_raw_literal_claims
+            if row[0] in subjects and not _is_atlas_representation_iri(row[1])
+        ),
+    )
+
+
+def check_source_release_metadata(ctx: Context) -> CheckResult:
+    """Publisher release descriptions match what Atlas asserts about the same IRI.
+
+    Both directions, exact. Where a publisher describes its release in fifty
+    fields and Atlas restates two, this reports the gap as a difference rather
+    than leaving it in the uncovered pile -- the truth is that Atlas speaks
+    about that subject and drops most of what the publisher said about it.
+    """
+    failures = _incomplete_evaluation_failure(ctx, "source release metadata")
+    compared = 0
+    for pair in ctx.pairs:
+        subjects = _atlas_source_release_subjects(pair)
+        if not subjects:
+            continue
+        publisher_iri, publisher_literals = _publisher_release_metadata_claims(pair)
+        atlas_iri, atlas_literals = _atlas_release_metadata_claims(pair)
+        compared += len(atlas_iri) + len(atlas_literals)
+
+        missing: dict[str, list[str]] = defaultdict(list)
+        for subject, predicate, obj in sorted(publisher_iri - atlas_iri):
+            missing[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} <{obj}>"
+            )
+        for subject, predicate, literal in sorted(
+            publisher_literals - atlas_literals, key=_literal_claim_sort_key
+        ):
+            missing[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} {_literal_repr(literal)}"
+            )
+        for family, rows in sorted(missing.items()):
+            failures.append(
+                f"{pair.spec.name}: {len(rows)} publisher release claim(s) in the "
+                f"{family} family are missing from Atlas; examples {rows[:3]}"
+            )
+
+        added: dict[str, list[str]] = defaultdict(list)
+        for subject, predicate, obj in sorted(atlas_iri - publisher_iri):
+            added[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} <{obj}>"
+            )
+        for subject, predicate, literal in sorted(
+            atlas_literals - publisher_literals, key=_literal_claim_sort_key
+        ):
+            added[_release_metadata_family(predicate)].append(
+                f"<{subject}> {_short(predicate)} {_literal_repr(literal)}"
+            )
+        for family, rows in sorted(added.items()):
+            failures.append(
+                f"{pair.spec.name}: Atlas adds {len(rows)} release claim(s) in the "
+                f"{family} family, absent from publisher bytes; examples {rows[:3]}"
+            )
+    return _result(
+        "source-release-metadata",
+        f"{compared} Atlas release claims compared against publisher release descriptions",
+        failures,
+    )
+
+
 def _publisher_subject_types(view: PublisherView) -> dict[str, frozenset[str]]:
     """Index the rdf:type values the publisher's own bytes assert per subject."""
     types: dict[str, set[str]] = defaultdict(set)
@@ -6953,6 +7177,12 @@ def _declared_exclusion_subjects(
         *(subject for subject, _, _ in pair.publisher.iri_claims),
         *(subject for subject, _, _ in pair.publisher.literal_claims),
     }
+    # A release IRI Atlas adopted is never selectable by a declaration, however
+    # the declaration is worded: those claims belong to source-release-metadata,
+    # which reads every one of them in both directions. This is routing, not a
+    # waiver -- the claims stay compared, and the routing is reported on the
+    # family as ``routedToReleaseComparison`` rather than happening silently.
+    adopted_releases = _atlas_source_release_subjects(pair)
     resolved: list[tuple[DeclaredClaimExclusion, frozenset[str]]] = []
     for exclusion in exclusions:
         empty: frozenset[str] = frozenset()
@@ -6960,10 +7190,22 @@ def _declared_exclusion_subjects(
             (
                 exclusion,
                 frozenset(
-                    subject
-                    for subject in subjects
-                    if exclusion.selects(subject, types.get(subject, empty))
-                ),
+                    {
+                        *(
+                            subject
+                            for subject in subjects
+                            if exclusion.selects(subject, types.get(subject, empty))
+                        ),
+                        # Roots the reader selected out of the whole publisher
+                        # graph, which a subset selector may since have dropped
+                        # from this view. Without them the Atlas-side proof
+                        # would range over nothing and pass by vacancy.
+                        *pair.publisher.declared_out_of_scope_subjects.get(
+                            exclusion.name, ()
+                        ),
+                    }
+                )
+                - adopted_releases,
             )
         )
     return tuple(resolved)
@@ -6998,8 +7240,17 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
     if not resolved:
         return []
     compared = _compared_publisher_subjects(pair)
+    types = _publisher_subject_types(pair.publisher)
+    empty: frozenset[str] = frozenset()
+    adopted_releases = _atlas_source_release_subjects(pair)
     rows: list[dict[str, Any]] = []
     for exclusion, subjects in resolved:
+        # Only the subjects THIS declaration would otherwise have covered.
+        routed = sorted(
+            subject
+            for subject in adopted_releases
+            if exclusion.selects(subject, types.get(subject, empty))
+        )
         overlap = sorted(subjects & compared)
         selected = subjects - compared
         counts: dict[str, int] = defaultdict(int)
@@ -7042,6 +7293,7 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
                 "atlasClaimExamples": atlas_claims,
                 "comparedSubjectOverlapCount": len(overlap),
                 "comparedSubjectOverlapExamples": overlap[:5],
+                "routedToReleaseComparison": routed,
                 "status": "declared-out-of-scope" if holds else "violated",
                 "meaning": (
                     "publisher claims this release declares Atlas does not "
@@ -7066,6 +7318,13 @@ def _publisher_claims_outside_comparison(
     publisher_literals = set(pair.publisher.literal_claims) - excluded_literals
     supported_iri: set[tuple[str, str, str]] = set()
     supported_literals: set[tuple[str, str, LiteralValue]] = set()
+
+    # Release IRIs Atlas adopted are compared claim for claim by
+    # source-release-metadata, so they leave the uncovered accounting the only
+    # way anything ever should: because something now reads them.
+    release_iri, release_literals = _publisher_release_metadata_claims(pair)
+    supported_iri.update(release_iri)
+    supported_literals.update(release_literals)
 
     if pair.spec.kind == "mapping":
         supported_iri.update(pair.publisher.relations)
@@ -7476,6 +7735,7 @@ _CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_reification_fidelity,
     check_count_reconciliation,
     check_scheme_organisation,
+    check_source_release_metadata,
     check_source_claim_coverage,
     check_source_defects,
 )
@@ -8176,6 +8436,41 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
                 ),
             )
         )
+
+    release_publisher_iri, release_publisher_literals = (
+        _publisher_release_metadata_claims(pair)
+    )
+    release_atlas_iri, release_atlas_literals = _atlas_release_metadata_claims(pair)
+    release_publisher_claims = {
+        *(("iri", *row) for row in release_publisher_iri),
+        *(("literal", *row) for row in release_publisher_literals),
+    }
+    release_atlas_claims = {
+        *(("iri", *row) for row in release_atlas_iri),
+        *(("literal", *row) for row in release_atlas_literals),
+    }
+    families.append(
+        _claim_family(
+            name="sourceReleaseMetadata",
+            source_predicates=tuple(
+                sorted({row[1] for row in release_publisher_claims})
+            ),
+            atlas_predicates=tuple(sorted({row[1] for row in release_atlas_claims})),
+            source_claims=release_publisher_claims,
+            atlas_claims=release_atlas_claims,
+            checked_by="source-release-metadata",
+            sourcePredicateIdentityRetained=True,
+            adoptedReleaseIris=sorted(_atlas_source_release_subjects(pair)),
+            sourceFieldFamilies=dict(
+                sorted(
+                    Counter(
+                        _release_metadata_family(row[1])
+                        for row in release_publisher_claims
+                    ).items()
+                )
+            ),
+        )
+    )
 
     residual_iri, residual_literals = _publisher_claims_outside_comparison(pair)
     residual_atlas_iri, residual_atlas_literals = (
