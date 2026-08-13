@@ -2422,6 +2422,8 @@ def _normalize_pattern_field(value: Any, operation: str, label: str) -> Any:
         return " ".join(value.split())
     if operation == "html-visible-text":
         return _html_fragment_text(value)
+    if operation == "remove-html-sup":
+        return re.sub(r"<sup\b[^>]*>.*?</sup>", "", value, flags=re.DOTALL)
     if operation == "html-unescape":
         return html.unescape(value)
     if operation == "markdown-bold":
@@ -2620,7 +2622,7 @@ def _read_pattern_rows(
                 )
             for region_ordinal, region in enumerate(regions):
                 row_matches = list(row_pattern.finditer(region.group("region")))
-                for match in row_matches:
+                for match_ordinal, match in enumerate(row_matches):
                     constants = dict(declaration.constants)
                     if len(constants) != len(declaration.constants):
                         raise ValueError(
@@ -2633,6 +2635,8 @@ def _read_pattern_rows(
                         "source_digest": pin.sha256,
                         "input_ordinal": spec.inputs.index(pin),
                         "region_ordinal": region_ordinal,
+                        "match_ordinal": match_ordinal,
+                        "match_ordinal_one_based": match_ordinal + 1,
                         "pattern_ordinal": pattern_row_count,
                         "pattern_ordinal_one_based": pattern_row_count + 1,
                         "ordinal": len(records),
@@ -10298,6 +10302,8 @@ def _pra_identifier_payload(
 def _pra_observation_id_field(
     resource_id: str,
     identifiers: list[dict[str, str]],
+    *,
+    source_artifact: str = "{source_iri}",
 ) -> PatternDerivedField:
     identity_identifiers = [
         {
@@ -10314,7 +10320,7 @@ def _pra_observation_id_field(
             {
                 "identifiers": identity_identifiers,
                 "resourceId": resource_id,
-                "sourceArtifact": "{source_iri}",
+                "sourceArtifact": source_artifact,
                 "sourcePath": "{source_path}",
             }
         ).decode("utf-8"),
@@ -10785,6 +10791,377 @@ def _fac_pattern_source() -> SourceSpec:
 FAC_PATTERN_ROW_SOURCES = (_fac_pattern_source(),)
 
 
+_CENSUS_ACS_GEO_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/census_geo_codes/acs-variables-2026-08-03.html",
+    sha256=(
+        "sha256:cc018ff0aa9b5e9c73d57f537d281add5211fc47f2e3023940dbd0498386b416"
+    ),
+    byte_length=5_326,
+    fmt="html",
+    role="publisherPageContainingPinnedSpan",
+    source_iri="https://api.census.gov/data/2024/acs/acs1/spp/variables.html",
+)
+
+_CENSUS_TIGER_GEOID_PATTERN_PIN = SourcePin(
+    path="tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html",
+    sha256=(
+        "sha256:61cfc7b6b8b4b5a20365e8a71985b7151e7e90b937f747db83f2a8d53b801f49"
+    ),
+    byte_length=5_920,
+    fmt="html",
+    role="publisherPageContainingPinnedSpan",
+    source_iri=(
+        "https://www.census.gov/programs-surveys/geography/guidance/"
+        "geo-identifiers.html"
+    ),
+)
+
+_CENSUS_GEO_RESOURCE_ID = "census-geo-identifier-authority-2026-08-03"
+_CENSUS_TIGER_AUTHORITY = (
+    "https://www.census.gov/programs-surveys/geography/technical-documentation/"
+    "complete-technical-documentation/tiger-geo-line.html"
+)
+
+
+def _census_geo_identifier_payload() -> dict[str, Any]:
+    return {
+        "authorityUri": "{identifier_authority}",
+        "kind": "{identifier_kind}",
+        "observedAt": "{identifier_observed_at}",
+        "sourceDigest": "{record_source_digest}",
+        "sourcePath": "{source_path}",
+        "sourceUri": "{identifier_source_uri}",
+        "value": "{identifier_value}",
+    }
+
+
+def _census_geo_native_payload(extra: Mapping[str, Any]) -> tuple[str, tuple[str, ...]]:
+    payload = {
+        "conceptIdentityClaimed": False,
+        "id": "{observation_id}",
+        "identifiers": [_census_geo_identifier_payload()],
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "{label}"}
+        ],
+        "sourceArtifact": "{source_artifact}",
+        "sourceOrdinal": "{match_ordinal}",
+        "sourcePath": "{source_path}",
+        "uses": ["deterministicMetadata"],
+        **extra,
+    }
+    return _canonical_json_bytes(payload).decode("utf-8"), tuple(sorted(payload))
+
+
+def _census_geo_pattern_derivations(source_path_template: str) -> tuple[PatternDerivedField, ...]:
+    return (
+        PatternDerivedField(
+            field="source_path",
+            operation="template",
+            template_json=json.dumps(source_path_template),
+        ),
+        _pra_observation_id_field(
+            _CENSUS_GEO_RESOURCE_ID,
+            [
+                {
+                    "authorityUri": "{identifier_authority}",
+                    "kind": "{identifier_kind}",
+                    "value": "{identifier_value}",
+                }
+            ],
+            source_artifact="{source_artifact}",
+        ),
+    )
+
+
+_ACS_PATTERN_ROW = (
+    r'<tr>\s*<td><a name="(?P<identifier_value>[^"]+)"[^>]*>[^<]*</a></td>'
+    r"<td>(?P<label>.*?)</td><td>(?P<universe>.*?)</td>"
+    r"<td>(?P<required>.*?)</td><td>(?P<attributes>.*?)</td>"
+    r"<td>(?P<limit>.*?)</td><td>(?P<predicate_type>.*?)</td>"
+    r"<td>(?P<group>.*?)</td>\s*</tr>"
+)
+
+_ACS_FIELD_NORMALIZERS = (
+    PatternFieldNormalizer("label", ("strip",)),
+    PatternFieldNormalizer("universe", ("strip", "none-if-empty")),
+    PatternFieldNormalizer("required", ("strip",)),
+    PatternFieldNormalizer("predicate_type", ("html-visible-text",)),
+    PatternFieldNormalizer("group", ("collapse-whitespace",)),
+)
+
+
+def _census_acs_pattern_source() -> SourceSpec:
+    geography_artifact = _CENSUS_ACS_GEO_PATTERN_PIN.source_iri + "#geography-and-predicate-variables"
+    estimates_artifact = _CENSUS_ACS_GEO_PATTERN_PIN.source_iri + "#s0201-estimate-variables"
+    geography_region = (
+        r"(?P<region><table>[\s\S]*?"
+        r'<a name="in"[\s\S]*?</tr>)'
+    )
+    estimates_region = (
+        r'(?P<region><tr>\s*<td><a name="S0201_001E"[\s\S]+)'
+    )
+    common_constants = (
+        ("identifier_authority", _CENSUS_ACS_GEO_PATTERN_PIN.source_iri),
+        ("identifier_source_uri", geography_artifact),
+        ("identifier_observed_at", "2026-08-03T19:17:10Z"),
+        ("recorded_at", "2026-08-03T19:24:00Z"),
+        (
+            "record_source_digest",
+            "sha256:66ac97d792d55cbb0ace1d4a26305a7c0fe704db94f83f2bade342f6c743e025",
+        ),
+        ("source_artifact", geography_artifact),
+    )
+    acs_payload, acs_payload_fields = _census_geo_native_payload(
+        {
+            "group": "{group}",
+            "predicateType": "{predicate_type}",
+            "product": "acs1",
+            "required": "{required}",
+            "universe": "{universe}",
+            "vintage": "2024",
+        }
+    )
+    patterns = (
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
+            region_pattern=geography_region,
+            row_pattern=_ACS_PATTERN_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=2,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "acsApiPredicateParameterName"),
+            ),
+            normalizers=_ACS_FIELD_NORMALIZERS,
+            row_filters=(PatternRowFilter("identifier_value", r"(?:for|in)"),),
+            native_payload_template_json=acs_payload,
+            native_payload_fields=acs_payload_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "variablesTable.row.{identifier_value}"
+            ),
+        ),
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
+            region_pattern=geography_region,
+            row_pattern=_ACS_PATTERN_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=3,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "acsVariableName"),
+            ),
+            normalizers=_ACS_FIELD_NORMALIZERS,
+            row_filters=(
+                PatternRowFilter(
+                    "identifier_value",
+                    r"(?:COUNTY|GEO_ID|GEOCOMP)",
+                ),
+            ),
+            native_payload_template_json=acs_payload,
+            native_payload_fields=acs_payload_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "variablesTable.row.{identifier_value}"
+            ),
+        ),
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
+            region_pattern=estimates_region,
+            row_pattern=_ACS_PATTERN_ROW,
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=2,
+            constants=(
+                ("identifier_authority", _CENSUS_ACS_GEO_PATTERN_PIN.source_iri),
+                ("identifier_kind", "acsVariableName"),
+                ("identifier_source_uri", estimates_artifact),
+                ("identifier_observed_at", "2026-08-03T19:17:10Z"),
+                ("recorded_at", "2026-08-03T19:24:00Z"),
+                (
+                    "record_source_digest",
+                    "sha256:4d386957911b76830b53b64e47df1c5e0fb98bcca6253c0e32f722ce2ae520b7",
+                ),
+                ("source_artifact", estimates_artifact),
+            ),
+            normalizers=_ACS_FIELD_NORMALIZERS,
+            native_payload_template_json=acs_payload,
+            native_payload_fields=acs_payload_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "variablesTable.row.{identifier_value}"
+            ),
+        ),
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{source_artifact}:{identifier_value}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:census-acs-geography:{source_uuid7}"
+        ),
+        source_locator_template="{source_artifact}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_value}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{recorded_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=acs_payload,
+        native_payload_fields=acs_payload_fields,
+        expected_count=7,
+        declared_unevaluated_fields=(
+            "attributes",
+            "excludedAcsSpanRows",
+            "fullPageOutsidePinnedSpans",
+            "limit",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "census-acs-geography-identifiers",
+        (_CENSUS_ACS_GEO_PATTERN_PIN,),
+        selector,
+    )
+
+
+def _census_tiger_pattern_source() -> SourceSpec:
+    guidance = _CENSUS_TIGER_GEOID_PATTERN_PIN.source_iri
+    structure_artifact = guidance + "#geoid-structure-table"
+    example_artifact = guidance + "#geoid-download-example-table"
+    structure_payload, structure_fields = _census_geo_native_payload(
+        {
+            "areaType": "{label}",
+            "exampleGeographicArea": "{example_area}",
+            "exampleGeoid": "{example_geoid}",
+            "numberOfDigits": "{digits}",
+            "product": "tigerLineGeoid",
+        }
+    )
+    example_payload, example_fields = _census_geo_native_payload(
+        {
+            "exampleGeographicArea": "{label}",
+            "product": "dataCensusGovGeoId",
+        }
+    )
+    common_constants = (
+        ("identifier_authority", _CENSUS_TIGER_AUTHORITY),
+        ("identifier_source_uri", guidance),
+        ("identifier_observed_at", "2026-08-03T19:20:00Z"),
+        ("recorded_at", "2026-08-03T19:24:00Z"),
+    )
+    patterns = (
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_TIGER_GEOID_PATTERN_PIN.path),
+            region_pattern=(
+                r'<table class="datatablewide"[^>]*>(?P<region>.*?)</table>'
+            ),
+            row_pattern=(
+                r"<tr>\s*<td scope=\"row\"[^>]*>(?P<label>.*?)</td>\s*"
+                r"<td[^>]*>(?P<identifier_value>.*?)</td>\s*"
+                r"<td[^>]*>(?P<digits>.*?)</td>\s*"
+                r"<td[^>]*>(?P<example_area>.*?)</td>\s*"
+                r"<td[^>]*>(?P<example_geoid>.*?)</td>\s*</tr>"
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=11,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "tigerGeoidComposition"),
+                (
+                    "record_source_digest",
+                    "sha256:5886829a89ffe3381333572948a4ed6db3ee1ae0d53b6462d491186596d1aedb",
+                ),
+                ("source_artifact", structure_artifact),
+            ),
+            normalizers=(
+                PatternFieldNormalizer(
+                    "label", ("remove-html-sup", "html-visible-text")
+                ),
+                PatternFieldNormalizer("identifier_value", ("html-visible-text",)),
+                PatternFieldNormalizer("digits", ("html-visible-text",)),
+                PatternFieldNormalizer("example_area", ("html-visible-text",)),
+                PatternFieldNormalizer("example_geoid", ("html-visible-text",)),
+            ),
+            native_payload_template_json=structure_payload,
+            native_payload_fields=structure_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "geoidStructureTable.row.{match_ordinal}"
+            ),
+        ),
+        PatternRowPattern(
+            input_pattern=re.escape(_CENSUS_TIGER_GEOID_PATTERN_PIN.path),
+            region_pattern=(
+                r'<table class="datatable"[^>]*>(?P<region>.*?)</table>'
+            ),
+            row_pattern=(
+                r"<tr>\s*<td scope=\"row\"[^>]*>"
+                r"(?P<identifier_value>.*?)</td>\s*"
+                r"<td[^>]*>(?P<label>.*?)</td>\s*</tr>"
+            ),
+            expected_input_count=1,
+            expected_region_count=1,
+            expected_row_count=3,
+            constants=(
+                *common_constants,
+                ("identifier_kind", "tigerGeoidExampleValue"),
+                (
+                    "record_source_digest",
+                    "sha256:2b9d6087100846298ed8aa56cc8164e8fdeb360bd5ee19d42667ce94ca88597a",
+                ),
+                ("source_artifact", example_artifact),
+            ),
+            normalizers=(
+                PatternFieldNormalizer("identifier_value", ("html-visible-text",)),
+                PatternFieldNormalizer("label", ("html-visible-text",)),
+            ),
+            row_filters=(
+                PatternRowFilter("identifier_value", r"0500000US\d{5}"),
+            ),
+            native_payload_template_json=example_payload,
+            native_payload_fields=example_fields,
+            derived_fields=_census_geo_pattern_derivations(
+                "geoidExampleTable.row.{match_ordinal}"
+            ),
+        ),
+    )
+    selector = PatternRowSelector(
+        patterns=patterns,
+        row_key="{source_artifact}:{source_path}",
+        identity_mode="source-local-record",
+        identity_template=(
+            "urn:ref:source-concept:v2:census-tiger-geoid:{source_uuid7}"
+        ),
+        source_locator_template="{source_artifact}",
+        claim_map=(
+            ("preferred_label", "{label}"),
+            ("notation", "{identifier_value}"),
+            ("source_path", "{source_path}"),
+            ("observed_at", "{recorded_at}"),
+            ("identity_hint", "{observation_id}"),
+        ),
+        native_payload_template_json=structure_payload,
+        native_payload_fields=structure_fields,
+        expected_count=14,
+        declared_unevaluated_fields=(
+            "exampleTableHeaderRow",
+            "fullPageOutsidePinnedSpans",
+            "structureTableFootnotes",
+        ),
+    )
+    return _pattern_row_source_spec(
+        "census-tiger-geoid-structure",
+        (_CENSUS_TIGER_GEOID_PATTERN_PIN,),
+        selector,
+    )
+
+
+CENSUS_GEO_PATTERN_ROW_SOURCES = (
+    _census_acs_pattern_source(),
+    _census_tiger_pattern_source(),
+)
+
+
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         name="federal-register-api-topics-2026-08-03",
@@ -10871,6 +11248,7 @@ SOURCES: tuple[SourceSpec, ...] = (
     *PRA_PATTERN_ROW_SOURCES,
     *EPA_COMPTOX_PATTERN_ROW_SOURCES,
     *FAC_PATTERN_ROW_SOURCES,
+    *CENSUS_GEO_PATTERN_ROW_SOURCES,
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
