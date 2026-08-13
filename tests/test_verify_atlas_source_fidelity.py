@@ -46,6 +46,7 @@ from tools.verify_atlas_source_fidelity import (
     check_source_defects,
     main,
     parse_nquads_line,
+    read_atlas_source,
     render,
     run_checks,
     unescape_literal,
@@ -1763,6 +1764,91 @@ def test_graph_structure_fires_on_duplicate_literal_forms(suite: Fixture) -> Non
     check = result(suite.run(), "graph-structure")
     assert not check.passed
     assert any("has 2 literal forms" in text for text in check.failures)
+
+
+def test_graph_structure_accepts_a_digested_source_shaped_editorial_relation(
+    suite: Fixture,
+) -> None:
+    relation = {
+        "relation": "related",
+        "sourceLabel": "Child",
+        "sourceLocalRecordNumber": "1",
+        "sourcePath": "subject.xml#record=1",
+        "targetLabel": "Parent",
+    }
+    relation_bytes = json.dumps(
+        relation,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    relation_digest = "sha256:" + hashlib.sha256(relation_bytes).hexdigest()
+    payload = {
+        "editorialTransformation": {
+            "fromPredicate": f"{SKOS}related",
+            "reason": "SKOS-S27-hierarchy-path",
+            "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+            "toPredicate": f"{ATLAS}thesaurusRelated",
+        },
+        "publisherRelation": relation,
+        "publisherRelationDigest": relation_digest,
+    }
+    record = "urn:ref:atlas-source-record:editorial-relation"
+    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines.extend(
+        (
+            _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+            _quad(
+                record,
+                f"{ATLAS}sourceLocator",
+                "urn:ref:publisher-relation:"
+                + relation_digest.removeprefix("sha256:"),
+            ),
+            _plain_literal_quad(
+                record,
+                f"{ATLAS}sourceDigest",
+                "sha256:"
+                + hashlib.sha256(
+                    json.dumps(
+                        payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                ).hexdigest(),
+            ),
+            _quad(
+                record,
+                f"{ATLAS}nativePayload",
+                json.dumps(payload, separators=(",", ":")),
+                literal=True,
+            ),
+        )
+    )
+    suite.write_pack_lines(lines)
+
+    faithful = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+    )
+    assert not faithful.structural_failures
+
+    broken = json.loads(json.dumps(payload))
+    broken["publisherRelationDigest"] = "sha256:" + "0" * 64
+    lines[-1] = _quad(
+        record,
+        f"{ATLAS}nativePayload",
+        json.dumps(broken, separators=(",", ":")),
+        literal=True,
+    )
+    suite.write_pack_lines(lines)
+
+    fault = read_atlas_source(
+        suite.distribution,
+        ("sources/example/all.nq.zst",),
+    )
+    assert any(
+        "invalid nativePayload.publisherRelation" in failure
+        for failure in fault.structural_failures
+    )
 
 
 def test_graph_structure_reports_a_pack_that_differs_from_its_manifest_pin(

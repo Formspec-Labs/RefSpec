@@ -2779,19 +2779,26 @@ def read_atlas_source(
                                 "nativePayload.publisherRelation"
                             )
                         else:
-                            subject = publisher_relation.get("subjectIri")
-                            predicate = publisher_relation.get("predicateIri")
-                            obj = publisher_relation.get("objectIri")
-                            if not all(
-                                isinstance(value, str) and ":" in value
-                                for value in (subject, predicate, obj)
-                            ):
+                            relation = _payload_relation(publisher_relation)
+                            editorial_transformation = payload.get(
+                                "editorialTransformation"
+                            )
+                            publisher_relation_digest = payload.get(
+                                "publisherRelationDigest"
+                            )
+                            source_shaped_relation = (
+                                isinstance(editorial_transformation, Mapping)
+                                and isinstance(publisher_relation_digest, str)
+                                and publisher_relation_digest
+                                == _canonical_json_digest(publisher_relation)
+                            )
+                            if relation is None and not source_shaped_relation:
                                 structural_failures.append(
                                     f"{pack}: source record <{quad.subject}> has invalid "
                                     "nativePayload.publisherRelation"
                                 )
-                            else:
-                                native_relations.add((subject, predicate, obj))
+                            elif relation is not None:
+                                native_relations.add(relation)
         except Exception as error:  # noqa: BLE001 - inspect every other pack in the comparison
             structural_failures.append(f"{pack}: could not be read: {type(error).__name__}: {error}")
 
