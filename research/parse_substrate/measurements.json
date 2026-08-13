@@ -1,0 +1,156 @@
+{
+  "format": "refspec-parse-substrate-measurements/1",
+  "measuredAt": "2026-08-13",
+  "revision": "dae346da46706083b695cf232901b24e2d87cad5",
+  "environment": {
+    "hardware": "Apple M4 Pro, 14 cores, 48 GB RAM",
+    "operatingSystem": "macOS 26.6 arm64",
+    "python": "3.12.9",
+    "rdflib": "7.5.0",
+    "pyshacl": "0.31.0",
+    "note": "Fresh process per sample. Wall and CPU use perf_counter/process_time; peak RSS uses ru_maxrss. The host was shared, so medians and ranges are retained."
+  },
+  "artifact": {
+    "distributionId": "urn:ref:atlas:distribution:3.1-bounded-development:198a41c398de4a8f2240430ef648ecafe2519537d1739b3d6f52123c66386a56",
+    "quadCount": 1013723,
+    "packQuadCounts": [856733, 95396, 60095, 1004, 495],
+    "largestPackShare": 0.8451352095,
+    "transportDigests": [
+      "sha256:4afd8b497e6cddee913ba85d3600e6d2a20047bf5951b4acfc763b3635103544",
+      "sha256:d55f384116b7aa5bee85c6ff8e0e2f6b1ae6ca0b5dad4b71277e5294ccba2fe4",
+      "sha256:e6a303ee9344b90d45d8cff58cff8f6cf2b9fe931abb45c218819194ce4af115",
+      "sha256:512c10be0af44609dd6accfcc58516f1cf5140ea9ac2ee6c621435cf98606fbc",
+      "sha256:cce0c35fbf0d5806c4656f4bdc607add91a1a571c25c8ec525fc1f835a55030d"
+    ],
+    "sharedStateNote": "The supplied output directory was rebuilt during the study. The RDF pack digests and distribution ID remained exact, but outer binding metadata moved to another revision. Later samples used a read-only /tmp snapshot and the complete graph-dependent path; only outer JSON admission was excluded."
+  },
+  "unprofiled": {
+    "parse": {
+      "memoryStock": {
+        "wallSeconds": [20.5545631670, 20.7287165420, 20.7107050000],
+        "cpuSeconds": [20.528655, 20.623271, 20.682985],
+        "maxRssMiB": [1379.859375, 1378.71875, 1382.375],
+        "medianWallSeconds": 20.7107050000,
+        "medianMaxRssMiB": 1379.859375
+      },
+      "twoIndexInternedTerms": {
+        "wallSeconds": [14.7841845000, 14.7673716660, 14.8031480410],
+        "cpuSeconds": [14.754561, 14.746028, 14.78493],
+        "maxRssMiB": [567.6875, 567.265625, 565.5],
+        "medianWallSeconds": 14.7841845000,
+        "medianMaxRssMiB": 567.265625
+      }
+    },
+    "semanticPath": {
+      "scope": "Parse plus real atlas.shacl.ttl, every graph semantic check, and compact-record ownership; excludes outer JSON admission.",
+      "memoryStock": {
+        "wallSeconds": [57.2875600840, 49.2089220420, 44.9543710830],
+        "cpuSeconds": [52.577232, 49.108591, 44.903677],
+        "maxRssMiB": [1434.453125, 1431.65625, 1434.03125],
+        "medianWallSeconds": 49.2089220420,
+        "medianCpuSeconds": 49.108591,
+        "medianMaxRssMiB": 1434.03125
+      },
+      "memoryInternedTerms": {
+        "parseWallSeconds": [16.74447, 16.72937],
+        "meanParseWallSeconds": 16.73692,
+        "wallSeconds": [40.4482510830, 40.5169610000],
+        "cpuSeconds": [40.44178, 40.500684],
+        "maxRssMiB": [1077.921875, 1078.65625],
+        "meanWallSeconds": 40.4826060415,
+        "meanMaxRssMiB": 1078.2890625
+      },
+      "twoIndexStockTerms": {
+        "parseWallSeconds": [16.70257, 16.97898],
+        "meanParseWallSeconds": 16.840775,
+        "wallSeconds": [37.9416305840, 38.3419763340],
+        "cpuSeconds": [37.934776, 38.324543],
+        "maxRssMiB": [960.78125, 965.546875],
+        "meanWallSeconds": 38.1418034590,
+        "meanMaxRssMiB": 963.1640625
+      },
+      "twoIndexInternedTerms": {
+        "wallSeconds": [33.4509256670, 33.7099033340, 34.1385531660],
+        "cpuSeconds": [33.440448, 33.703922, 34.110347],
+        "maxRssMiB": [617.921875, 615.46875, 619.890625],
+        "medianWallSeconds": 33.7099033340,
+        "medianCpuSeconds": 33.703922,
+        "medianMaxRssMiB": 617.921875
+      }
+    }
+  },
+  "queryProfile": {
+    "store": "rdflib Memory",
+    "scope": "Complete staging semantic path",
+    "patterns": {
+      "SPO": {"calls": 91252, "rows": 63887},
+      "SP_": {"calls": 4197322, "rows": 3925047},
+      "S__": {"calls": 134265, "rows": 1072457},
+      "_PO": {"calls": 82455, "rows": 3543249},
+      "_P_": {"calls": 3, "rows": 43978},
+      "___": {"calls": 8, "rows": 1013724}
+    },
+    "unobservedPatterns": ["S_O", "__O"],
+    "note": "No object-only pattern was observed. The trace proves SPO and POS are load-bearing and OSP is unused for this validator and these real shapes."
+  },
+  "negativeDesigns": {
+    "twoIndexListLeaves": {
+      "parseWallSeconds": 19.2136385840,
+      "parseMaxRssMiB": 713.109375,
+      "semanticWallSeconds": 50.1794734580,
+      "semanticMaxRssMiB": 767.171875,
+      "verdict": "Reject: useful memory reduction but no useful end-to-end wall reduction."
+    },
+    "datasetContextCache": {
+      "parseWallSeconds": 48.8047183750,
+      "parseMaxRssMiB": 1367.40625,
+      "verdict": "Reject: tuple-key cache overhead more than doubled parse CPU."
+    },
+    "parallelTwoWorkers": {
+      "wallSeconds": 118.9263686670,
+      "parseMergeWallSeconds": 48.3522589170,
+      "workersWallSeconds": 39.0424733330,
+      "parentLoadWallSeconds": 8.35766475,
+      "boundedPeakRssMiB": 2042.34375,
+      "workerMaxRssMiB": [1657.34375, 385.0],
+      "workerParseWallSeconds": [33.4010019160, 7.7592029170],
+      "pickleBytes": [187894283, 38432482],
+      "verdict": "Reject: pack skew, serialization, reload, and aggregate-query overhead make the bounded design slower and larger."
+    }
+  },
+  "compatibility": {
+    "realStagingResult": {
+      "quadCount": 1013723,
+      "inferredMappingCount": 5939,
+      "memoryAndCandidateExactMatch": true
+    },
+    "bindingCorpus": {
+      "caseCount": 130,
+      "validCount": 13,
+      "invalidCount": 117,
+      "shaclDataCases": 46,
+      "memoryAndCandidateExactMatch": true,
+      "candidateWallSeconds": 32.7358998750,
+      "memoryWallSeconds": 35.3491370830
+    },
+    "graphApiUnitTests": "2 passed"
+  },
+  "projection": {
+    "fullScaleQuads": 29283283,
+    "measuredFullScaleStockParseSeconds": 1373,
+    "conservativeCandidateSeconds": 980.1059557618,
+    "conservativeCandidateMinutes": 16.3350992627,
+    "optimisticCandidateSeconds": 640.6031903760,
+    "optimisticCandidateMinutes": 10.6767198396,
+    "avenueConservativeMinutes": {
+      "memoryInternedTerms": 18.586,
+      "twoIndexStockTerms": 18.701,
+      "twoIndexInternedTerms": 16.335,
+      "parallelTwoWorkers": null
+    },
+    "assumptions": {
+      "conservative": "Apply each staging candidate/stock parse ratio to the measured 1,373-second full-scale phase, preserving all observed full-scale superlinearity. Isolated avenues use the paired 20.607-second stock parse median; the combined design uses the standalone 20.710705-second stock median.",
+      "optimistic": "Scale the staging candidate linearly by quads and apply the prior 1.5x full-heap penalty; lower candidate RSS is assumed to avoid the stock store's larger penalty."
+    }
+  }
+}
