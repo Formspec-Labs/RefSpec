@@ -93,6 +93,8 @@ REPOSITORY_ROOT = BINDING_ROOT.parents[2]
 SCHEMA_ROOT = BINDING_ROOT / "schemas"
 ONTOLOGY_PATH = BINDING_ROOT / "ontology" / "atlas.ttl"
 SHAPES_PATH = BINDING_ROOT / "shapes" / "atlas.shacl.ttl"
+RULESPEC_SHAPES_PATH = BINDING_ROOT / "shapes" / "rulespec-adjudication.shacl.ttl"
+RULESPEC_SHAPES_LOCK_PATH = BINDING_ROOT / "shapes" / "rulespec-adjudication.lock.json"
 FIXTURE_ROOT = BINDING_ROOT / "fixtures"
 CORPUS_PATH = FIXTURE_ROOT / "corpus.json"
 PROFILE_MAP_PATH = BINDING_ROOT / "registry-resource-profiles.json"
@@ -117,6 +119,8 @@ CONTRACT_PATHS = (
     Path("ontology/atlas.ttl"),
     Path("registry-resource-profiles.json"),
     Path("shapes/atlas.shacl.ttl"),
+    Path("shapes/rulespec-adjudication.lock.json"),
+    Path("shapes/rulespec-adjudication.shacl.ttl"),
     Path("tests/registry-coverage.json"),
     Path("tests/registry-descriptors.json"),
     Path("tests/registry-descriptors.nq"),
@@ -142,6 +146,7 @@ BINDING_TOOL_PATHS = (
     Path("requirements.txt"),
     Path("tools/build_fixtures.py"),
     Path("tools/rdf_canonical.py"),
+    Path("tools/refresh_rulespec_adjudication_shapes.py"),
     Path("tools/validate.py"),
 )
 
@@ -1923,10 +1928,22 @@ def _binding_digests(
         }
         for relative, payload in contract_payloads.items()
     ]
+    shape_rows = [
+        {
+            "byteLength": len(contract_payloads[relative]),
+            "digest": "sha256:"
+            + hashlib.sha256(contract_payloads[relative]).hexdigest(),
+            "path": relative.as_posix(),
+        }
+        for relative in (
+            Path("shapes/atlas.shacl.ttl"),
+            Path("shapes/rulespec-adjudication.shacl.ttl"),
+        )
+    ]
     return {
         "contractDigest": canonical_sha256(contract_rows, terminal_lf=False),
         "ontologyDigest": file_sha256(ONTOLOGY_PATH),
-        "shapesDigest": file_sha256(SHAPES_PATH),
+        "shapesDigest": canonical_sha256(shape_rows, terminal_lf=False),
         "manifestSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["manifest"]),
         "sourceAccountingSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["sourceAccounting"]),
         "acceptanceSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["acceptance"]),
@@ -2692,11 +2709,60 @@ def _parse_binding_graphs() -> tuple[Graph, Graph]:
         ontology.parse(ONTOLOGY_PATH, format="turtle")
     except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
         _fail("ontology.syntax", f"cannot parse atlas.ttl: {exc}")
-    try:
-        shapes.parse(SHAPES_PATH, format="turtle")
-    except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
-        _fail("shacl.syntax", f"cannot parse atlas.shacl.ttl: {exc}")
+    _check_rulespec_shapes_lock()
+    for path in (SHAPES_PATH, RULESPEC_SHAPES_PATH):
+        try:
+            shapes.parse(path, format="turtle")
+        except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
+            _fail("shacl.syntax", f"cannot parse {path.name}: {exc}")
     return ontology, shapes
+
+
+def _check_rulespec_shapes_lock() -> None:
+    """Verify the local compiler output against its package-provenance pin."""
+
+    lock = _load_json(RULESPEC_SHAPES_LOCK_PATH, require_canonical=True)
+    if not isinstance(lock, Mapping) or set(lock) != {
+        "format",
+        "formatVersion",
+        "output",
+        "package",
+        "packageVersion",
+        "resources",
+    }:
+        _fail("binding.rulespec-shapes", "RuleSpec shape lock is malformed")
+    if (
+        lock["format"] != "RulespecAdjudicationShapeLock"
+        or lock["formatVersion"] != "1.0"
+        or lock["package"] != "rulespec-conformance"
+        or not isinstance(lock["packageVersion"], str)
+        or not lock["packageVersion"]
+    ):
+        _fail("binding.rulespec-shapes", "RuleSpec shape lock identity differs")
+    output = lock["output"]
+    payload = RULESPEC_SHAPES_PATH.read_bytes()
+    if output != {
+        "byteLength": len(payload),
+        "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        "path": "shapes/rulespec-adjudication.shacl.ttl",
+    }:
+        _fail("binding.rulespec-shapes", "RuleSpec shape output differs from its lock")
+    resources = lock["resources"]
+    if (
+        not isinstance(resources, list)
+        or [row.get("name") for row in resources if isinstance(row, Mapping)]
+        != ["machine-adjudication", "resolver-proof-record"]
+        or any(
+            not isinstance(row, Mapping)
+            or set(row) != {"accessor", "byteLength", "digest", "name"}
+            or not isinstance(row["byteLength"], int)
+            or row["byteLength"] <= 0
+            or not isinstance(row["digest"], str)
+            or not DIGEST_RE.fullmatch(row["digest"])
+            for row in resources
+        )
+    ):
+        _fail("binding.rulespec-shapes", "RuleSpec shape resource pins are malformed")
 
 
 def _lint_ontology(ontology: Graph) -> None:
@@ -3545,10 +3611,10 @@ def _focused_shacl_report(
 def _prove_shape_graph_conforms(ontology_digest: str, shapes_digest: str) -> None:
     """Prove the shape graph is well-formed SHACL and the ontology conforms to it.
 
-    This asks a question about two immutable binding files -- `atlas.ttl` and
-    `atlas.shacl.ttl` -- and nothing else. It is a property of the binding, not
-    of any distribution being validated, so it is derived once per process
-    instead of once per distribution.
+    This asks a question about the immutable binding ontology and combined
+    Atlas-plus-RuleSpec shape graph, and nothing else. It is a property of the
+    binding, not of any distribution being validated, so it is derived once
+    per process instead of once per distribution.
 
     That distinction is not a micro-optimization. Measured on this binding, the
     meta-conformance derivation costs ~1.880s while the data conformance it
@@ -3556,9 +3622,9 @@ def _prove_shape_graph_conforms(ontology_digest: str, shapes_digest: str) -> Non
     roughly 170s of its ~204s re-deriving one unchanging fact 110 times.
 
     Nothing is trusted that was not proven. The cache key is the pair of file
-    digests, recomputed from disk by the caller on every call, so editing
-    either file re-derives instead of reusing the proof. `_fail` raises, and
-    `lru_cache` never stores a result for a call that raised, so a shape graph
+    digests, recomputed from disk by the caller on every call, so editing the
+    ontology or either shape file re-derives instead of reusing the proof.
+    `_fail` raises, and `lru_cache` never stores a result for a call that raised, so a shape graph
     that does not conform is re-derived and re-refused every single time --
     the failure can never be cached as a pass.
     """
@@ -3607,7 +3673,10 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
     be trusted to reproduce the same components.
     """
 
-    _prove_shape_graph_conforms(file_sha256(ONTOLOGY_PATH), file_sha256(SHAPES_PATH))
+    _prove_shape_graph_conforms(
+        file_sha256(ONTOLOGY_PATH),
+        _binding_digests()["shapesDigest"],
+    )
 
     audit = os.environ.get(VALIDATION_MODE_ENV) == AUDIT_VALIDATION_MODE
     ontology_view = inoculate(Graph(), ontology)

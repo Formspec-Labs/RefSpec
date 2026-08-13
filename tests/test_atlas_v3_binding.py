@@ -541,7 +541,12 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
 
     baseline = atlas_validate._binding_digests()["contractDigest"]
 
-    for contract in ("ontology/atlas.ttl", "shapes/atlas.shacl.ttl"):
+    for contract in (
+        "ontology/atlas.ttl",
+        "shapes/atlas.shacl.ttl",
+        "shapes/rulespec-adjudication.lock.json",
+        "shapes/rulespec-adjudication.shacl.ttl",
+    ):
         changed = (BINDING_ROOT / contract).read_bytes() + b"\n# contract comment\n"
         digests = atlas_validate._binding_digests(content_overrides={Path(contract): changed})
         assert digests["contractDigest"] != baseline, f"{contract} must reissue the corpus"

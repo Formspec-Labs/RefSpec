@@ -1,0 +1,394 @@
+{
+  "corpusCases": 14,
+  "corpusRuleChecks": 56,
+  "elapsedSeconds": 2.686,
+  "engine": "pySHACL 0.31.0",
+  "mutationCases": 20,
+  "mutationRuleChecks": 80,
+  "peakRssMiB": 58.8,
+  "results": [
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "adjudication-single-proof",
+      "kind": "corpus",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "adjudication-same-validator-actor",
+      "kind": "corpus",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "adjudication-same-independence-group",
+      "kind": "corpus",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "adjudication-same-provider",
+      "kind": "corpus",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "adjudication-same-provider-model",
+      "kind": "corpus",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "adjudication-same-response-artifact",
+      "kind": "corpus",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "complete-support"
+      ],
+      "id": "adjudication-discarded-support",
+      "kind": "corpus",
+      "python": [
+        "complete-support"
+      ],
+      "shacl": [
+        "complete-support"
+      ]
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "adjudication-relation-not-licensed",
+      "kind": "corpus",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "adjudication-verdicts-disagree",
+      "kind": "corpus",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [
+        "proof-replay"
+      ],
+      "id": "adjudication-foreign-comparison",
+      "kind": "corpus",
+      "python": [
+        "proof-replay"
+      ],
+      "shacl": [
+        "proof-replay"
+      ]
+    },
+    {
+      "expected": [],
+      "id": "all-resource-profiles",
+      "kind": "corpus",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [],
+      "id": "qualified-three-machine-support",
+      "kind": "corpus",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [],
+      "id": "qualified-lattice-branches",
+      "kind": "corpus",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [],
+      "id": "adjudication-refused-comparison-record",
+      "kind": "corpus",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [],
+      "id": "valid-exact",
+      "kind": "mutation",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "single-proof",
+      "kind": "mutation",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "same-actor",
+      "kind": "mutation",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "same-group",
+      "kind": "mutation",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "same-response",
+      "kind": "mutation",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "same-provider",
+      "kind": "mutation",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "independence"
+      ],
+      "id": "same-model",
+      "kind": "mutation",
+      "python": [
+        "independence"
+      ],
+      "shacl": [
+        "independence"
+      ]
+    },
+    {
+      "expected": [
+        "complete-support"
+      ],
+      "id": "discarded-support",
+      "kind": "mutation",
+      "python": [
+        "complete-support"
+      ],
+      "shacl": [
+        "complete-support"
+      ]
+    },
+    {
+      "expected": [
+        "proof-replay"
+      ],
+      "id": "proof-replay",
+      "kind": "mutation",
+      "python": [
+        "proof-replay"
+      ],
+      "shacl": [
+        "proof-replay"
+      ]
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "exact-with-near",
+      "kind": "mutation",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [],
+      "id": "valid-close",
+      "kind": "mutation",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "close-without-near",
+      "kind": "mutation",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [],
+      "id": "valid-broad",
+      "kind": "mutation",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [],
+      "id": "valid-narrow",
+      "kind": "mutation",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [],
+      "id": "valid-related",
+      "kind": "mutation",
+      "python": [],
+      "shacl": []
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "broad-with-same",
+      "kind": "mutation",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "narrow-with-same",
+      "kind": "mutation",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "related-with-same",
+      "kind": "mutation",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [
+        "verdict-lattice"
+      ],
+      "id": "unsupported-relation",
+      "kind": "mutation",
+      "python": [
+        "verdict-lattice"
+      ],
+      "shacl": [
+        "verdict-lattice"
+      ]
+    },
+    {
+      "expected": [],
+      "id": "refused-does-not-fold",
+      "kind": "mutation",
+      "python": [],
+      "shacl": []
+    }
+  ],
+  "status": "PASS"
+}
