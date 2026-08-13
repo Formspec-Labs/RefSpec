@@ -27,4 +27,5 @@ cp -R "$topbraid_source/src/main/resources/." "$output_directory/classes/"
 "$JAVA_HOME/bin/javac" -proc:none \
   -cp "$output_directory/classes:$JENA_HOME/lib/*" \
   -d "$output_directory/classes" \
-  "$repo_root/probes/TopBraidValidate.java"
+  "$repo_root/probes/TopBraidValidate.java" \
+  "$repo_root/probes/TopBraidValidateTdb.java"
