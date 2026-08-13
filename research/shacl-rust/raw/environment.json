@@ -1,0 +1,54 @@
+{
+  "commands": {
+    "candidateRegistryProbe": {
+      "command": [
+        "cargo",
+        "search",
+        "shacl-rust",
+        "--limit",
+        "1"
+      ],
+      "returnCode": 101,
+      "stderr": "error: failed to retrieve search results from the registry at https://crates.io\n\nCaused by:\n  [6] Couldn't resolve host name (Could not resolve host: crates.io)\n",
+      "stdout": "",
+      "timedOut": false
+    },
+    "cargo": {
+      "command": [
+        "cargo",
+        "--version"
+      ],
+      "returnCode": 0,
+      "stderr": "",
+      "stdout": "cargo 1.89.0 (c24e10642 2025-06-23)\n",
+      "timedOut": false
+    },
+    "rustc": {
+      "command": [
+        "rustc",
+        "--version",
+        "--verbose"
+      ],
+      "returnCode": 0,
+      "stderr": "",
+      "stdout": "rustc 1.89.0 (29483883e 2025-08-04)\nbinary: rustc\ncommit-hash: 29483883eed69d5fb4db01964cdf2af4d86e9cb2\ncommit-date: 2025-08-04\nhost: aarch64-apple-darwin\nrelease: 1.89.0\nLLVM version: 20.1.7\n",
+      "timedOut": false
+    },
+    "vmStat": {
+      "command": [
+        "vm_stat"
+      ],
+      "returnCode": 0,
+      "stderr": "",
+      "stdout": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    21197.\nPages active:                                 993440.\nPages inactive:                               990496.\nPages speculative:                              6935.\nPages throttled:                                   0.\nPages wired down:                             362724.\nPages purgeable:                               26686.\n\"Translation faults\":                     8452397537.\nPages copy-on-write:                       213906707.\nPages zero filled:                        3488309115.\nPages reactivated:                        1354858215.\nPages purged:                               78523856.\nFile-backed pages:                            531996.\nAnonymous pages:                             1458875.\nPages stored in compressor:                  1995880.\nPages occupied by compressor:                 714854.\nDecompressions:                           2227215394.\nCompressions:                             2306574869.\nPageins:                                   136383362.\nPageouts:                                   21294099.\nSwapins:                                    52051127.\nSwapouts:                                   55614429.\n",
+      "timedOut": false
+    }
+  },
+  "executables": {
+    "cargo": "/Users/mikewolfd/.cargo/bin/cargo",
+    "rudof": null,
+    "rustc": "/Users/mikewolfd/.cargo/bin/rustc",
+    "shacl-validator": null
+  },
+  "platform": "macOS-26.6-arm64-arm-64bit"
+}

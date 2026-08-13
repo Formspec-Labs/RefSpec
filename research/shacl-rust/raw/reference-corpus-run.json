@@ -1,0 +1,21 @@
+{
+  "command": [
+    "make",
+    "test-atlas-v3"
+  ],
+  "cwd": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust",
+  "elapsedSeconds": 0.024057,
+  "measurement": {
+    "peakRssBytes": 16842752,
+    "peakRssMiB": 16.062,
+    "ruMaxrssBefore": 0,
+    "ruMaxrssSourceUnit": "bytes",
+    "scope": "maximum resident set reported for child processes"
+  },
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "returnCode": 2,
+  "stderr": "error: failed to open file `/Users/mikewolfd/.cache/uv/sdists-v9/.git`: Operation not permitted (os error 1)\nmake: *** [atlas-v3-fixtures] Error 2\n",
+  "stdout": "Atlas 3.0 fixtures absent (generated, gitignored); building once\n",
+  "timedOut": false,
+  "timeoutSeconds": 300.0
+}

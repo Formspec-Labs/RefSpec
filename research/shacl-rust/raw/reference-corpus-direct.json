@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/Users/mikewolfd/Work/spicy-regs/RefSpec/.venv/bin/python",
+    "bindings/atlas/3.1/tools/validate.py"
+  ],
+  "cwd": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust",
+  "elapsedSeconds": 30.738376,
+  "measurement": {
+    "peakRssBytes": 83542016,
+    "peakRssMiB": 79.672,
+    "ruMaxrssBefore": 0,
+    "ruMaxrssSourceUnit": "bytes",
+    "scope": "maximum resident set reported for child processes"
+  },
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "returnCode": 0,
+  "stderr": "",
+  "stdout": "{\"caseCount\":132,\"invalidCount\":119,\"registryDescriptorCount\":88,\"registryDescriptorQuadCount\":994,\"schemaCount\":10}\n",
+  "timedOut": false,
+  "timeoutSeconds": 240.0
+}

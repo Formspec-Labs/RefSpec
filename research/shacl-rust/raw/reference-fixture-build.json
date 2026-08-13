@@ -1,0 +1,22 @@
+{
+  "command": [
+    "/Users/mikewolfd/Work/spicy-regs/RefSpec/.venv/bin/python",
+    "bindings/atlas/3.1/tools/build_fixtures.py",
+    "--check"
+  ],
+  "cwd": "/Users/mikewolfd/Work/spicy-regs/RefSpec/.claude/worktrees/codex-shacl-rust",
+  "elapsedSeconds": 16.978517,
+  "measurement": {
+    "peakRssBytes": 114835456,
+    "peakRssMiB": 109.516,
+    "ruMaxrssBefore": 0,
+    "ruMaxrssSourceUnit": "bytes",
+    "scope": "maximum resident set reported for child processes"
+  },
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "returnCode": 0,
+  "stderr": "",
+  "stdout": "Atlas 3.1 fixtures materialized and matched the committed receipt: 2116 files\n",
+  "timedOut": false,
+  "timeoutSeconds": 180.0
+}
