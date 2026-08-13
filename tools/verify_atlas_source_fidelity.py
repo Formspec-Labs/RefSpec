@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import io
 import json
 import logging
@@ -763,15 +764,20 @@ class SourceListSelector:
     extraction: str
     expected_record_count: int
     source_assertion: str
+    source_key: str | None = None
     label_language: str = "en"
     input_path: str | None = None
     table_headers: tuple[str, ...] = ()
     table_index: int | None = None
+    table_indices: tuple[int, ...] = ()
     data_row_start: int = 1
     label_column: int = 0
     notation_columns: tuple[int, ...] = ()
     split_pattern: str | None = None
     ignored_single_cell_rows: tuple[str, ...] = ()
+    included_notations: frozenset[str] = frozenset()
+    compare_labels: bool = True
+    casefold_labels: bool = False
     compare_resource_iri: bool = False
     native_payload_fields: tuple[str, ...] = ()
     normalize_whitespace: bool = True
@@ -929,7 +935,7 @@ class SourceExtractPair:
 class SourceListRow:
     """One publisher row at the comparison boundary."""
 
-    label: LiteralValue
+    label: LiteralValue | None
     notations: tuple[str, ...]
     resource_iri: str | None = None
     native_attributes: tuple[tuple[str, str | None], ...] = ()
@@ -2165,6 +2171,14 @@ class _FlatHtmlTableReader(HTMLParser):
                 self._rows.append(tuple(self._row))
             self._row = None
 
+    def close(self) -> None:
+        """Retain a table from an explicitly bounded publisher-page excerpt."""
+        super().close()
+        if self._table_depth == 1 and self._rows is not None:
+            self.tables.append(self._rows)
+            self._rows = None
+            self._table_depth = 0
+
 
 def _source_list_failure_view(
     selector: SourceListSelector,
@@ -2196,14 +2210,20 @@ def _source_list_input(
 
 
 def _source_list_row(
-    label: str,
+    label: str | None,
     notations: Iterable[str],
     selector: SourceListSelector,
     *,
     resource_iri: str | None = None,
     native_attributes: Mapping[str, str | None] | None = None,
 ) -> SourceListRow:
-    normalized_label = " ".join(label.split()) if selector.normalize_whitespace else label
+    normalized_label = (
+        " ".join(label.split())
+        if label is not None and selector.normalize_whitespace
+        else label
+    )
+    if normalized_label is not None and selector.casefold_labels:
+        normalized_label = normalized_label.casefold()
     normalized_notations = tuple(
         sorted(
             {
@@ -2213,10 +2233,14 @@ def _source_list_row(
             }
         )
     )
-    if not normalized_label:
+    if selector.compare_labels and not normalized_label:
         raise ValueError("publisher row has an empty label")
     return SourceListRow(
-        label=_literal_value(normalized_label, selector.label_language, None),
+        label=(
+            _literal_value(normalized_label, selector.label_language, None)
+            if selector.compare_labels and normalized_label is not None
+            else None
+        ),
         notations=normalized_notations,
         resource_iri=resource_iri,
         native_attributes=tuple(
@@ -2244,7 +2268,27 @@ def _read_html_table_source_list(
     parser = _FlatHtmlTableReader()
     parser.feed(text)
     parser.close()
-    if selector.table_index is not None:
+    selected_tables: list[list[tuple[str, ...]]]
+    if selector.table_indices:
+        selected_tables = []
+        for table_index in selector.table_indices:
+            try:
+                candidate = parser.tables[table_index]
+            except IndexError as error:
+                raise ValueError(
+                    f"HTML table index {table_index} is absent; "
+                    f"observed {len(parser.tables)} tables"
+                ) from error
+            if selector.table_headers and (
+                not candidate or candidate[0] != selector.table_headers
+            ):
+                observed = candidate[0] if candidate else ()
+                raise ValueError(
+                    f"HTML table {table_index} headers differ -- expected "
+                    f"{selector.table_headers!r}, observed {observed!r}"
+                )
+            selected_tables.append(candidate)
+    elif selector.table_index is not None:
         try:
             table = parser.tables[selector.table_index]
         except IndexError as error:
@@ -2260,6 +2304,7 @@ def _read_html_table_source_list(
                 f"HTML table {selector.table_index} headers differ -- expected "
                 f"{selector.table_headers!r}, observed {observed!r}"
             )
+        selected_tables = [table]
     elif selector.table_headers:
         tables = [
             table
@@ -2271,12 +2316,17 @@ def _read_html_table_source_list(
                 f"expected one HTML table headed {selector.table_headers!r}, "
                 f"observed {len(tables)}"
         )
-        table = tables[0]
+        selected_tables = [tables[0]]
     else:
         raise ValueError("HTML table extraction declares neither headers nor an index")
 
     rows: list[SourceListRow] = []
-    for ordinal, cells in enumerate(table[selector.data_row_start :]):
+    selected_rows = [
+        cells
+        for table in selected_tables
+        for cells in table[selector.data_row_start :]
+    ]
+    for ordinal, cells in enumerate(selected_rows):
         if len(cells) == 1 and cells[0] in selector.ignored_single_cell_rows:
             continue
         if selector.split_pattern is not None:
@@ -2304,10 +2354,15 @@ def _read_html_table_source_list(
                 f"HTML row {ordinal} has {len(cells)} cells; required columns are "
                 f"{required_columns}"
             )
+        notations = tuple(cells[column] for column in selector.notation_columns)
+        if selector.included_notations and not (
+            set(notations) & selector.included_notations
+        ):
+            continue
         rows.append(
             _source_list_row(
                 cells[selector.label_column],
-                (cells[column] for column in selector.notation_columns),
+                notations,
                 selector,
             )
         )
@@ -2451,6 +2506,616 @@ def _read_cbo_publication_source_list(
     return SourceListPublisherView(tuple(rows), selector.source_assertion)
 
 
+def _decode_source_list_payload(pin: SourcePin, payload: bytes) -> str:
+    try:
+        return payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"{pin.path} is not UTF-8 text") from error
+
+
+def _plain_html(value: str) -> str:
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", value)).split())
+
+
+class _FormValueReader(HTMLParser):
+    """Collect ordinary select options and input/label value pairs."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.selects: list[tuple[Mapping[str, str | None], list[tuple[str | None, str]]]] = []
+        self.inputs: dict[str, tuple[str | None, str | None]] = {}
+        self.labels: list[tuple[str | None, str]] = []
+        self._select: tuple[Mapping[str, str | None], list[tuple[str | None, str]]] | None = None
+        self._option_value: str | None = None
+        self._option_chunks: list[str] | None = None
+        self._label_for: str | None = None
+        self._label_input: str | None = None
+        self._label_chunks: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = dict(attrs)
+        if tag == "select":
+            self._select = (attr_map, [])
+            self.selects.append(self._select)
+        elif tag == "option" and self._select is not None:
+            self._option_value = attr_map.get("value")
+            self._option_chunks = []
+        elif tag == "label":
+            self._label_for = attr_map.get("for")
+            self._label_input = None
+            self._label_chunks = []
+        elif tag == "input":
+            element_id = attr_map.get("id")
+            if element_id:
+                self.inputs[element_id] = (attr_map.get("name"), attr_map.get("value"))
+                if self._label_chunks is not None:
+                    self._label_input = element_id
+
+    def handle_data(self, data: str) -> None:
+        if self._option_chunks is not None:
+            self._option_chunks.append(data)
+        if self._label_chunks is not None:
+            self._label_chunks.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "option" and self._option_chunks is not None and self._select is not None:
+            self._select[1].append(
+                (self._option_value, " ".join("".join(self._option_chunks).split()))
+            )
+            self._option_value = None
+            self._option_chunks = None
+        elif tag == "select":
+            self._select = None
+        elif tag == "label" and self._label_chunks is not None:
+            self.labels.append(
+                (
+                    self._label_for or self._label_input,
+                    " ".join("".join(self._label_chunks).split()),
+                )
+            )
+            self._label_for = None
+            self._label_input = None
+            self._label_chunks = None
+
+
+def _read_census_tiger_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    parser = _FlatHtmlTableReader()
+    parser.feed(_decode_source_list_payload(pin, payload))
+    parser.close()
+    if len(parser.tables) != 2:
+        raise ValueError(f"Census GEOID page must contain two tables, observed {len(parser.tables)}")
+    structure = [row for row in parser.tables[0][1:] if len(row) == 5]
+    examples = [row for row in parser.tables[1][2:] if len(row) == 2]
+    rows = [
+        _source_list_row(row[0], (row[1],), selector)
+        for row in structure
+    ] + [
+        _source_list_row(row[1], (row[0],), selector)
+        for row in examples
+    ]
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_epa_comptox_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    patterns = {
+        "dtxsid": r"DTXSID\d{6,9}",
+        "dtxcid": r"DTXCID\d{4,9}",
+        "casrn": r'casrn:"(\d{2,7}-\d{2}-\d)"',
+        "preferredName": r'preferredName:"([^"\\]+)"',
+    }
+    values: dict[str, str] = {}
+    for name, pattern in patterns.items():
+        matches = sorted(set(re.findall(pattern, text)))
+        if len(matches) != 1:
+            raise ValueError(f"CompTox page exposes {len(matches)} distinct {name} values")
+        values[name] = matches[0]
+    row = _source_list_row(
+        values["preferredName"],
+        (),
+        selector,
+        native_attributes=values,
+    )
+    return SourceListPublisherView((row,), selector.source_assertion)
+
+
+def _read_fac_dictionary_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    section_pattern = re.compile(
+        r'<h3 id="endpoint-([a-z_]+)">Endpoint: <code>[a-z_]+</code> '
+        r'\(formerly <code>([^)<]*)\)(?:</code>)?</h3>.*?'
+        r'<table class="usa-table">(.*?)</table>',
+        re.DOTALL,
+    )
+    row_pattern = re.compile(
+        r"<tr>\s*<td>(.*?)</td>\s*<th scope=\"row\">(.*?)</th>\s*"
+        r"<td>(.*?)</td>\s*</tr>",
+        re.DOTALL,
+    )
+    rows: list[SourceListRow] = []
+    for endpoint, formerly, table in section_pattern.findall(text):
+        distinct: dict[str, SourceListRow] = {}
+        for census, gsa, data_type in row_pattern.findall(table):
+            gsa_field = _plain_html(gsa)
+            row = _source_list_row(
+                gsa_field,
+                (gsa_field,),
+                selector,
+                native_attributes={
+                    "data_type": _plain_html(data_type),
+                    "endpoint": endpoint,
+                    "formerly_endpoint": _plain_html(formerly),
+                    "gsa_field": gsa_field,
+                    "legacy_census_field": (
+                        None if _plain_html(census) == "____" else _plain_html(census)
+                    ),
+                },
+            )
+            existing = distinct.get(gsa_field)
+            if existing is not None and existing != row:
+                raise ValueError(f"FAC field {gsa_field!r} repeats with conflicting metadata")
+            distinct[gsa_field] = row
+        rows.extend(distinct.values())
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_fec_inline_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    if selector.source_key is None:
+        raise ValueError("FEC inline extraction requires a column name")
+    text = _decode_source_list_payload(pin, payload)
+    table_rows = re.findall(r"<tr>(.*?)</tr>", text, re.DOTALL)
+    descriptions: list[str] = []
+    for table_row in table_rows:
+        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", table_row, re.DOTALL)
+        if cells and _plain_html(cells[0]) == selector.source_key:
+            if len(cells) != 7:
+                raise ValueError(f"FEC {selector.source_key} row has {len(cells)} cells")
+            descriptions.append(cells[5])
+    if len(descriptions) != 1:
+        raise ValueError(f"FEC {selector.source_key} row count is {len(descriptions)}, expected one")
+    rows: list[SourceListRow] = []
+    for part in re.split(r"<br\s*/?>", descriptions[0]):
+        line = _plain_html(part)
+        if not line:
+            continue
+        match = re.fullmatch(r"([A-Z])\s*=\s*(.+)", line)
+        if match is None:
+            raise ValueError(f"FEC {selector.source_key} line is malformed: {line!r}")
+        rows.append(_source_list_row(match.group(2), (match.group(1),), selector))
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_ferc_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    if selector.extraction == "ferc-accession-formats":
+        match = re.search(
+            r'<td scope="row">Accession</td>\s*<td>([^<]+)</td>',
+            text,
+        )
+        if match is None:
+            raise ValueError("FERC accessibility page omitted accession formats")
+        values = tuple(part.strip() for part in match.group(1).split(", or "))
+        rows = tuple(_source_list_row(None, (value,), selector) for value in values)
+        return SourceListPublisherView(rows, selector.source_assertion)
+    if selector.source_key is None:
+        raise ValueError("FERC list extraction requires a heading")
+    match = re.search(
+        r"<li>" + re.escape(selector.source_key) + r"</li>\s*<ul[^>]*>(.*?)</ul>",
+        text,
+        re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"FERC page omitted {selector.source_key!r}")
+    values = tuple(_plain_html(value) for value in re.findall(r"<li>(.*?)</li>", match.group(1), re.DOTALL))
+    rows = tuple(_source_list_row(value, (value,), selector) for value in values)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _form_rows(
+    text: str,
+    selector: SourceListSelector,
+    *,
+    names: Collection[str],
+) -> tuple[SourceListRow, ...]:
+    parser = _FormValueReader()
+    parser.feed(text)
+    parser.close()
+    labels_by_id = {element_id: label for element_id, label in parser.labels if element_id}
+    rows: list[SourceListRow] = []
+    for element_id, (name, value) in parser.inputs.items():
+        if name in names and value not in (None, ""):
+            label = labels_by_id.get(element_id)
+            if not label:
+                raise ValueError(f"form input {element_id!r} has no non-empty label")
+            rows.append(_source_list_row(label, (value,), selector))
+    for attrs, options in parser.selects:
+        if attrs.get("name") not in names and attrs.get("id") not in names:
+            continue
+        rows.extend(
+            _source_list_row(label, (value,), selector)
+            for value, label in options
+            if value not in (None, "")
+        )
+    return tuple(rows)
+
+
+def _read_gao_cra_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    rows = _form_rows(
+        _decode_source_list_payload(pin, payload),
+        selector,
+        names={"priority", "type"},
+    )
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _gao_product_values(text: str) -> dict[str, str]:
+    canonical = re.findall(
+        r'<link[^>]+rel="canonical"[^>]+href="([^"]+)"',
+        text,
+    )
+    identity_blocks = re.findall(
+        r'<section[^>]+class="[^"]*block-post-title-info[^"]*"[^>]*>(.*?)</section>',
+        text,
+        re.DOTALL,
+    )
+    titles = re.findall(r"<h1[^>]*>(.*?)</h1>", text, re.DOTALL)
+    if len(canonical) != 1 or len(identity_blocks) != 1 or len(titles) != 1:
+        raise ValueError("GAO product page identity structure changed")
+    report_numbers = re.findall(r"<strong[^>]*>(.*?)</strong>", identity_blocks[0], re.DOTALL)
+    published = re.findall(r"Published:\s*([A-Z][a-z]+ \d{1,2}, \d{4})", _plain_html(identity_blocks[0]))
+    if len(report_numbers) != 1 or len(published) != 1:
+        raise ValueError("GAO product page report number or publication date is ambiguous")
+    month, day, year = re.fullmatch(
+        r"([A-Z][a-z]+) (\d{1,2}), (\d{4})",
+        published[0],
+    ).groups()
+    months = {
+        name: index
+        for index, name in enumerate(
+            (
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December",
+            ),
+            start=1,
+        )
+    }
+    return {
+        "canonicalUrl": canonical[0],
+        "productReportNumber": _plain_html(report_numbers[0]),
+        "productTitle": _plain_html(titles[0]),
+        "publicationDate": f"{year}-{months[month]:02d}-{int(day):02d}",
+    }
+
+
+def _gao_topic_rows(text: str, selector: SourceListSelector) -> tuple[SourceListRow, ...]:
+    heading = re.search(r'<h2[^>]*class="[^"]*block__title[^"]*"[^>]*>\s*Topics\s*</h2>', text)
+    if heading is None:
+        raise ValueError("GAO product page has no Topics block heading")
+    rest = text[heading.end() :]
+    next_heading = re.search(r"<h2\b", rest)
+    block = rest[: next_heading.start()] if next_heading else rest
+    links = re.findall(r'<a href="(/topics/[a-z0-9-]+)"[^>]*>(.*?)</a>', block, re.DOTALL)
+    product = _gao_product_values(text)["productReportNumber"]
+    return tuple(
+        _source_list_row(
+            _plain_html(label),
+            (),
+            selector,
+            native_attributes={
+                "observedOnProduct": product,
+                "topicPath": path,
+            },
+        )
+        for path, label in links
+    )
+
+
+def _read_gao_product_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    if selector.extraction == "gao-product-topic":
+        rows = _gao_topic_rows(text, selector)
+    else:
+        values = _gao_product_values(text)
+        rows = (
+            _source_list_row(
+                values["productTitle"],
+                (),
+                selector,
+                resource_iri=values["canonicalUrl"],
+                native_attributes={
+                    "productReportNumber": values["productReportNumber"],
+                    "publicationDate": values["publicationDate"],
+                },
+            ),
+        )
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _read_nasbo_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    parser = _FlatHtmlTableReader()
+    parser.feed(_decode_source_list_payload(pin, payload))
+    parser.close()
+    if len(parser.tables) != 1:
+        raise ValueError(f"NASBO page must contain one table, observed {len(parser.tables)}")
+    labels: list[str] = []
+    for row in parser.tables[0]:
+        for cell in row:
+            if not cell:
+                continue
+            match = re.fullmatch(r'(.+?)\s+Read\s*\|\s*Tables', cell)
+            if match is None:
+                raise ValueError(f"NASBO chapter cell has unexpected text {cell!r}")
+            labels.append(match.group(1).strip())
+    rows = tuple(_source_list_row(label, (), selector) for label in labels)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _read_oira_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    expected_names = {
+        "eoStatusCode",
+        "ruleStages",
+        "concludedActionCode",
+        "meetingType",
+    }
+    rows: list[SourceListRow] = []
+    for pin in spec.inputs:
+        rows.extend(
+            _form_rows(
+                _decode_source_list_payload(pin, authenticated_payloads[pin]),
+                selector,
+                names=expected_names,
+            )
+        )
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_oversight_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    rows = _form_rows(
+        _decode_source_list_payload(pin, payload),
+        selector,
+        names={"field_report_type[]", "edit-field-report-type--2"},
+    )
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _read_pra_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    rows = list(_form_rows(text, selector, names={"requestType", "icrStatus"}))
+    burden = re.compile(
+        r'<td[^>]*style="font-weight:600;">\s*([^<]+?)\s*</td>\s*<td[^>]*>\s*Between\s*'
+        r'<input id="(low\w+)"[^>]*/>.*?<input id="(high\w+)"[^>]*/>',
+        re.DOTALL,
+    )
+    rows.extend(
+        _source_list_row(_plain_html(label), (low_id, high_id), selector)
+        for label, low_id, high_id in burden.findall(text)
+    )
+    omb = re.search(r'<input id="ombControlNumber"[^>]*maxlength="(\d+)"[^>]*>', text)
+    if omb is None:
+        raise ValueError("PRA page omitted OMB Control Number maxlength")
+    rows.append(_source_list_row("OMB Control Number", ("ombControlNumber", omb.group(1)), selector))
+    return SourceListPublisherView(tuple(rows), selector.source_assertion)
+
+
+def _read_yaml_enum_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    if selector.source_key is None:
+        raise ValueError("YAML enum extraction requires a schema name")
+    text = _decode_source_list_payload(pin, payload)
+    pattern = re.compile(
+        r"\n {4}" + re.escape(selector.source_key) + r":\n"
+        r" {6}type: string\n"
+        r" {6}description: [^\n]+\n"
+        r" {6}enum:\n(?P<items>(?: {8}- [^\n]*\n)+)"
+    )
+    match = pattern.search(text)
+    if match is None:
+        raise ValueError(f"YAML schema {selector.source_key!r} enum is absent or changed")
+    values = tuple(
+        line.removeprefix("        - ").rstrip()
+        for line in match.group("items").splitlines()
+    )
+    rows = tuple(_source_list_row(value, (value,), selector) for value in values)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _request_parameter_cell(text: str, name: str) -> str:
+    match = re.search(
+        r"<tr>\s*<td>" + re.escape(name) + r"</td>\s*<td>(.*?)</td>\s*<td>",
+        text,
+        re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"SAM.gov request parameter {name!r} is absent")
+    return match.group(1)
+
+
+def _read_sam_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    if selector.extraction == "sam-notice-types":
+        cell = _request_parameter_cell(text, "ptype")
+        lines = [_plain_html(part) for part in re.split(r"<br\s*/?>", cell)]
+        rows: list[SourceListRow] = []
+        for line in lines[1:]:
+            lowered = line.casefold()
+            if not line or lowered.startswith(("note: below services", "use justification")):
+                continue
+            match = re.fullmatch(r"([a-z])\s*=\s*(.+)", line)
+            if match is None:
+                raise ValueError(f"SAM.gov ptype line is malformed: {line!r}")
+            rows.append(_source_list_row(match.group(2), (match.group(1),), selector))
+        return SourceListPublisherView(tuple(rows), selector.source_assertion)
+    cell = _request_parameter_cell(text, "status (Coming Soon)")
+    flattened = _plain_html(cell.replace("<br>", " "))
+    match = re.search(r"Accepts following:\s*(.+)$", flattened)
+    if match is None:
+        raise ValueError("SAM.gov opportunity status sentence is absent")
+    values = tuple(value.strip() for value in match.group(1).split(",") if value.strip())
+    rows = tuple(_source_list_row(value, (value,), selector) for value in values)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _read_scotus_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    sidenav = re.findall(r'<ul class="sidenav-list">(.*?)</ul>', text, re.DOTALL)
+    if len(sidenav) != 1:
+        raise ValueError(f"SCOTUS page has {len(sidenav)} sidenav lists, expected one")
+    links = re.findall(r"<a[^>]*>(.*?)</a>", sidenav[0], re.DOTALL)
+    if len(links) < 4:
+        raise ValueError("SCOTUS sidenav has fewer than four opinion categories")
+    labels = [_plain_html(value) for value in links[:4]]
+    page_text = _plain_html(text).casefold()
+    for phrase in ("slip opinion", "preliminary print", "bound volume"):
+        if page_text.count(phrase) < 1:
+            raise ValueError(f"SCOTUS page does not state the {phrase!r} publication stage")
+        labels.append(phrase)
+    rows = tuple(_source_list_row(label, (), selector) for label in labels)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _read_sec_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    text = _decode_source_list_payload(pin, payload)
+    sidenavs = re.findall(r'<ul class="usa-sidenav">(.*?)</ul>', text, re.DOTALL)
+    if len(sidenavs) != 2:
+        raise ValueError(f"SEC page has {len(sidenavs)} side navigation blocks, expected two")
+    blocks = [
+        tuple(_plain_html(value) for value in re.findall(r"<a[^>]*>(.*?)</a>", block, re.DOTALL))
+        for block in sidenavs
+    ]
+    if blocks[0] != blocks[1] or len(blocks[0]) != 14:
+        raise ValueError("SEC mobile and desktop navigation blocks differ or changed count")
+    card_labels = tuple(
+        _plain_html(value)
+        for value in re.findall(
+            r'<a[^>]*class="[^"]*subpage-card__headline__link[^"]*"[^>]*>(.*?)</a>',
+            text,
+            re.DOTALL,
+        )
+    )
+    if len(card_labels) != 6:
+        raise ValueError(f"SEC page has {len(card_labels)} subpage cards, expected six")
+    labels = (*blocks[0][1:], *card_labels)
+    rows = tuple(_source_list_row(label, (), selector) for label in labels)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
+def _read_xsd_documentation_source_list(
+    spec: SourceSpec,
+    selector: SourceListSelector,
+    authenticated_payloads: Mapping[SourcePin, bytes],
+) -> SourceListPublisherView:
+    _pin, payload = _source_list_input(spec, selector, authenticated_payloads)
+    if selector.source_key is None:
+        raise ValueError("XSD documentation extraction requires container:element:mode")
+    parts = selector.source_key.split(":")
+    if len(parts) != 3:
+        raise ValueError("XSD source key must be container:element:mode")
+    container, element_name, mode = parts
+    if b"<!ENTITY" in payload[:8192].upper():
+        raise ValueError("XSD source must not declare custom entities")
+    root = ElementTree.fromstring(payload)
+    namespace = "{http://www.w3.org/2001/XMLSchema}"
+    complex_type = root.find(f"./{namespace}complexType[@name='{container}']")
+    element = (
+        complex_type.find(f".//{namespace}element[@name='{element_name}']")
+        if complex_type is not None
+        else None
+    )
+    documentation = (
+        element.find(f"./{namespace}annotation/{namespace}documentation")
+        if element is not None
+        else None
+    )
+    if documentation is None or not documentation.text:
+        raise ValueError(f"XSD documentation for {container}.{element_name} is absent")
+    text = documentation.text.strip()
+    match = re.match(r"One of the following(?: options)?:\s*(.*)", text)
+    if match is None:
+        raise ValueError(f"XSD option sentence for {element_name} changed")
+    body = match.group(1).strip().rstrip(".")
+    raw_values = (
+        re.findall(r'"([^"]+)"', body)
+        if mode == "quoted"
+        else [part.strip() for part in body.split(",") if part.strip()]
+    )
+    values = tuple(dict.fromkeys(raw_values))
+    rows = tuple(_source_list_row(value, (value,), selector) for value in values)
+    return SourceListPublisherView(rows, selector.source_assertion)
+
+
 def _read_source_list(
     spec: SourceSpec,
     authenticated_payloads: Mapping[SourcePin, bytes],
@@ -2476,6 +3141,25 @@ def _read_source_list(
         "markdown-table": _read_markdown_source_list,
         "billstatus-bill-types": _read_markdown_source_list,
         "cbo-publication-xml": _read_cbo_publication_source_list,
+        "census-tiger-geoid": _read_census_tiger_source_list,
+        "epa-comptox-html": _read_epa_comptox_source_list,
+        "fac-dictionary-html": _read_fac_dictionary_source_list,
+        "fec-inline-html": _read_fec_inline_source_list,
+        "ferc-help-list": _read_ferc_source_list,
+        "ferc-accession-formats": _read_ferc_source_list,
+        "gao-cra-radio": _read_gao_cra_source_list,
+        "gao-product-report": _read_gao_product_source_list,
+        "gao-product-topic": _read_gao_product_source_list,
+        "nasbo-chapters": _read_nasbo_source_list,
+        "oira-controls": _read_oira_source_list,
+        "oversight-report-select": _read_oversight_source_list,
+        "pra-controls": _read_pra_source_list,
+        "yaml-enum": _read_yaml_enum_source_list,
+        "sam-notice-types": _read_sam_source_list,
+        "sam-opportunity-statuses": _read_sam_source_list,
+        "scotus-opinion-types": _read_scotus_source_list,
+        "sec-categories": _read_sec_source_list,
+        "xsd-documentation-options": _read_xsd_documentation_source_list,
     }
     reader = readers.get(selector.extraction)
     if reader is None:
@@ -3385,6 +4069,7 @@ def _registry_source_pin(
     fmt: str = "turtle",
     zip_member: str | None = None,
     role: str = "publisherSource",
+    construction_path: str | None = None,
 ) -> SourcePin:
     """Declare one local publisher file and its exact construction-summary identity."""
     return SourcePin(
@@ -3395,7 +4080,11 @@ def _registry_source_pin(
         zip_member=zip_member,
         role=role,
         source_iri=source_iri,
-        construction_path=f"refspec/output/registry-real-data-sources/{filename}",
+        construction_path=(
+            construction_path
+            if construction_path is not None
+            else f"refspec/output/registry-real-data-sources/{filename}"
+        ),
     )
 
 
@@ -3991,6 +4680,574 @@ LONG_TAIL_SOURCE_LISTS: tuple[SourceSpec, ...] = (
             label_column=1,
             notation_columns=(0,),
         ),
+    ),
+    SourceSpec(
+        name="census-acs-geography-identifiers",
+        kind="source-list",
+        release_keys=("census-acs-geography-identifiers",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/census_geo_codes/acs-variables-2026-08-03.html",
+                "sha256:cc018ff0aa9b5e9c73d57f537d281add5211fc47f2e3023940dbd0498386b416",
+                5_326,
+                "https://api.census.gov/data/2024/acs/acs1/spp/variables.html",
+                fmt="html",
+                role="publisherPageContainingPinnedSpan",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="html-table",
+            expected_record_count=7,
+            source_assertion="selected ACS variable name and label",
+            table_index=0,
+            label_column=1,
+            notation_columns=(0,),
+            ignored_single_cell_rows=("635 variables",),
+            included_notations=frozenset(
+                {"COUNTY", "for", "GEO_ID", "GEOCOMP", "in", "S0201_001E", "S0201_002E"}
+            ),
+        ),
+    ),
+    SourceSpec(
+        name="census-tiger-geoid-structure",
+        kind="source-list",
+        release_keys=("census-tiger-geoid-structure",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html",
+                "sha256:61cfc7b6b8b4b5a20365e8a71985b7151e7e90b937f747db83f2a8d53b801f49",
+                5_920,
+                "https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html",
+                fmt="html",
+                role="publisherPageContainingPinnedSpan",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="census-tiger-geoid",
+            expected_record_count=14,
+            source_assertion="GEOID structure/example label and published value",
+        ),
+    ),
+    SourceSpec(
+        name="epa-comptox-substance-bounded-2026-08-03",
+        kind="source-list",
+        release_keys=("epa-comptox-substance-bounded-2026-08-03",),
+        inputs=(
+            _registry_source_pin(
+                "comptox-DTXSID7020182.normalized.html",
+                "sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803",
+                334_109,
+                "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
+                fmt="html",
+                role="boundedPublisherSubstancePage",
+                construction_path=(
+                    "output/registry-real-data-sources/"
+                    "comptox-DTXSID7020182.normalized.html"
+                ),
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="epa-comptox-html",
+            expected_record_count=1,
+            source_assertion="preferred name and DTXSID, DTXCID, and CASRN values",
+            native_payload_fields=("casrn", "dtxcid", "dtxsid", "preferredName"),
+            normalize_whitespace=False,
+        ),
+    ),
+    SourceSpec(
+        name="fac-api-field-dictionary-2026-08-03",
+        kind="source-list",
+        release_keys=("fac-api-field-dictionary-2026-08-03",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/fac_dictionary/fac-api-dictionary-2026-08-03.html",
+                "sha256:95799a6f28b2f9a4d48bb0a88a1429381f2bc6e0677a9ec3a6608aa46a5a369c",
+                74_851,
+                "https://www.fac.gov/api/dictionary/",
+                fmt="html",
+                role="publisherFieldDictionary",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="fac-dictionary-html",
+            expected_record_count=163,
+            source_assertion="endpoint, field name, legacy field, and SQL data type",
+            native_payload_fields=(
+                "data_type",
+                "endpoint",
+                "formerly_endpoint",
+                "gsa_field",
+                "legacy_census_field",
+            ),
+        ),
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _repository_source_pin(
+                    "tests/fixtures/fec_committee_codes/"
+                    "fec-committee-master-file-description-2026-08-03.html",
+                    "sha256:dda49be2e360d39bb1b7dcbc53239e627109a26fbaefe172688aca84abc4ff66",
+                    29_343,
+                    "https://www.fec.gov/campaign-finance-data/committee-master-file-description/",
+                    fmt="html",
+                ),
+            ),
+            source_list=SourceListSelector(
+                reader=SOURCE_LIST_READER,
+                extraction="fec-inline-html",
+                expected_record_count=6,
+                source_assertion=assertion,
+                source_key=column,
+            ),
+        )
+        for name, column, assertion in (
+            ("fec-committee-designation", "CMTE_DSGN", "committee designation code and label"),
+            ("fec-filing-frequency", "CMTE_FILING_FREQ", "filing frequency code and label"),
+            ("fec-organization-type", "ORG_TP", "organization type code and label"),
+        )
+    ),
+    SourceSpec(
+        name="ferc-accession-number-formats",
+        kind="source-list",
+        release_keys=("ferc-accession-number-formats",),
+        inputs=(
+            _registry_source_pin(
+                "ferc-accessibility-tips.html",
+                "sha256:c9219bd08b8712e35389ff26f079a21e16d2b5fea68aaebf561bb9b203010688",
+                39_466,
+                "https://elibrary.ferc.gov/eLibrary/assets/Accessibility_Tips.html",
+                fmt="html",
+                construction_path=(
+                    "output/registry-real-data-sources/ferc-accessibility-tips.html"
+                ),
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="ferc-accession-formats",
+            expected_record_count=2,
+            source_assertion="published accession-number format examples",
+            compare_labels=False,
+        ),
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _registry_source_pin(
+                    "ferc-general-search-help.html",
+                    "sha256:1f4b2883879602530c59095cc3d33fedbbf50a2d630e7bdf0226785259dd2b45",
+                    7_447,
+                    "https://elibrary.ferc.gov/eLibraryhelp/General_Search.htm",
+                    fmt="html",
+                    construction_path=(
+                        "output/registry-real-data-sources/ferc-general-search-help.html"
+                    ),
+                ),
+            ),
+            source_list=SourceListSelector(
+                reader=SOURCE_LIST_READER,
+                extraction="ferc-help-list",
+                expected_record_count=count,
+                source_assertion=assertion,
+                source_key=heading,
+            ),
+        )
+        for name, heading, count, assertion in (
+            ("ferc-sectors", "Industry Sector", 6, "industry-sector option"),
+            ("ferc-security-levels", "Security Level", 4, "security-level option"),
+        )
+    ),
+    SourceSpec(
+        name="gao-cra-database-facets-2026-08-04",
+        kind="source-list",
+        release_keys=("gao-cra-database-facets-2026-08-04",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html",
+                "sha256:50c6a5a94627a09539ddfb991397a22e257e2d1ec1f25e1206be5214322d9c12",
+                130_944,
+                "https://www.gao.gov/legal/congressional-review-act/search-database-of-rules?priority=all&processed=1&type=all",
+                fmt="html",
+                role="publisherSearchFacets",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="gao-cra-radio",
+            expected_record_count=6,
+            source_assertion="priority/type radio value and label",
+        ),
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _repository_source_pin(
+                    "tests/fixtures/gao_topics/gao-product-gao-26-108505-2026-08-04.html",
+                    "sha256:c50268888ddb9c7cae2277d55229394b6434ba7503d79a61cb3ff3775a0683fd",
+                    107_634,
+                    "https://www.gao.gov/products/gao-26-108505",
+                    fmt="html",
+                ),
+            ),
+            source_list=selector,
+        )
+        for name, selector in (
+            (
+                "gao-report-gao-26-108505",
+                SourceListSelector(
+                    reader=SOURCE_LIST_READER,
+                    extraction="gao-product-report",
+                    expected_record_count=1,
+                    source_assertion="canonical report identity, title, report number, and publication date",
+                    compare_resource_iri=True,
+                    native_payload_fields=("productReportNumber", "publicationDate"),
+                ),
+            ),
+            (
+                "gao-topics-observed-on-gao-26-108505",
+                SourceListSelector(
+                    reader=SOURCE_LIST_READER,
+                    extraction="gao-product-topic",
+                    expected_record_count=1,
+                    source_assertion="topic label, topic path, and assigning report",
+                    native_payload_fields=("observedOnProduct", "topicPath"),
+                ),
+            ),
+        )
+    ),
+    SourceSpec(
+        name="nasbo-program-areas",
+        kind="source-list",
+        release_keys=("nasbo-program-areas",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/census_gov_finance_codes/"
+                "nasbo-ser-program-area-chapters-2026-08-03.html",
+                "sha256:cff509abccd46a7bba32e5261164a430934db29004024c2b66d389d83ef9ba57",
+                189_899,
+                "https://www.nasbo.org/mainsite/reports-data/state-expenditure-report",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="nasbo-chapters",
+            expected_record_count=7,
+            source_assertion="program-area chapter title",
+        ),
+    ),
+    SourceSpec(
+        name="oira-review-controls",
+        kind="source-list",
+        release_keys=("oira-review-controls",),
+        inputs=(
+            _registry_source_pin(
+                "oira-controls/sha256/bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76/reviewStatus.html",
+                "sha256:bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76",
+                405,
+                "https://www.reginfo.gov/public/do/eoAdvancedSearch?eoStatusCode=CD#eoStatusCode",
+                fmt="html",
+                construction_path=(
+                    "output/registry-real-data-sources/oira-controls/sha256/"
+                    "bc92190b16d9855c05700592bd957491089434bed031aff369103add47af4f76/"
+                    "reviewStatus.html"
+                ),
+            ),
+            _registry_source_pin(
+                "oira-controls/sha256/90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a/ruleStage.html",
+                "sha256:90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a",
+                1_390,
+                "https://www.reginfo.gov/public/do/eoAdvancedSearch?eoStatusCode=CD#ruleStages",
+                fmt="html",
+                construction_path=(
+                    "output/registry-real-data-sources/oira-controls/sha256/"
+                    "90ccba72caf4a3b98654937fd9a5297c0413b803b9e513c85b1851daf7fbb15a/"
+                    "ruleStage.html"
+                ),
+            ),
+            _registry_source_pin(
+                "oira-controls/sha256/a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef/concludedAction.html",
+                "sha256:a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef",
+                570,
+                "https://www.reginfo.gov/public/do/eoAdvancedSearch?eoStatusCode=CD#concludedActionCode",
+                fmt="html",
+                construction_path=(
+                    "output/registry-real-data-sources/oira-controls/sha256/"
+                    "a402dfde370f0b506dc5262b6002a41983e28f1ac7a4338c1ed048ee49cadbef/"
+                    "concludedAction.html"
+                ),
+            ),
+            _registry_source_pin(
+                "oira-controls/sha256/9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea/meetingStatus.html",
+                "sha256:9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea",
+                379,
+                "https://www.reginfo.gov/public/do/eom12866Search#meetingType",
+                fmt="html",
+                construction_path=(
+                    "output/registry-real-data-sources/oira-controls/sha256/"
+                    "9bec2066ff2c01731b201765cad4a175a0b34230c30dfc854655341040cc9aea/"
+                    "meetingStatus.html"
+                ),
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="oira-controls",
+            expected_record_count=20,
+            source_assertion="review, rule-stage, action, and meeting control value and label",
+        ),
+    ),
+    SourceSpec(
+        name="oversight-report-types",
+        kind="source-list",
+        release_keys=("oversight-report-types",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/oversight_report_types/oversight-reports-federal-2026-08-03.html",
+                "sha256:8f1f8b29a5ecb224e19505ccdb24edf59b785273a60e807dc95355ffbc1785dd",
+                110_293,
+                "https://www.oversight.gov/reports/federal",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="oversight-report-select",
+            expected_record_count=10,
+            source_assertion="Report Type facet value and label",
+        ),
+    ),
+    SourceSpec(
+        name="pra-icr-controls",
+        kind="source-list",
+        release_keys=("pra-icr-controls",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/pra_icr_codes/pra-search-2026-08-03.html",
+                "sha256:7f1e24bbe278c67171a71c9e85d50bf7c886646ae25c835194bda5a6e9d4fa4e",
+                174_551,
+                "https://www.reginfo.gov/public/do/PRASearch",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="pra-controls",
+            expected_record_count=21,
+            source_assertion="request/status options, burden input pairs, and OMB-number field shape",
+        ),
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _repository_source_pin(
+                    "tests/fixtures/regulations_gov_codes/regulations-gov-openapi-v4-2026-08-03.yaml",
+                    "sha256:be43c866f5ca424a456bde36ea03cb9326c454ef4e1894a13df80b6dc6e22488",
+                    60_826,
+                    "https://open.gsa.gov/api/regulationsgov/v4/openapi.yaml",
+                    fmt="yaml",
+                ),
+            ),
+            source_list=SourceListSelector(
+                reader=SOURCE_LIST_READER,
+                extraction="yaml-enum",
+                expected_record_count=count,
+                source_assertion=f"{schema} enum value",
+                source_key=schema,
+            ),
+        )
+        for name, schema, count in (
+            ("regulations-gov-docket-type", "DocketType", 2),
+            ("regulations-gov-document-type", "DocumentType", 5),
+            ("regulations-gov-submitter-type", "SubmitterType", 3),
+        )
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _repository_source_pin(
+                    "tests/fixtures/sam_assistance_listing_codes/"
+                    "sam-assistance-listings-api-2026-08-03.html",
+                    "sha256:6ea76d040e2190b02cad8192f50dbe00d39f01f5366f893cd24b6491dfdeeffd",
+                    210_611,
+                    "https://open.gsa.gov/api/assistance-listings-api/",
+                    fmt="html",
+                ),
+            ),
+            source_list=SourceListSelector(
+                reader=SOURCE_LIST_READER,
+                extraction="html-table",
+                expected_record_count=count,
+                source_assertion=assertion,
+                table_headers=headers,
+                table_indices=indices,
+                label_column=1,
+                notation_columns=(0,),
+            ),
+        )
+        for name, count, assertion, headers, indices in (
+            (
+                "sam-assistance-assistance-types",
+                17,
+                "assistance type code and name",
+                ("Assistance Type Code", "Assistance Type Name"),
+                (29, 30),
+            ),
+            (
+                "sam-assistance-eligible-applicant-types",
+                44,
+                "eligible applicant entity type code and name",
+                ("Entity Type Code", "Entity Type Name"),
+                (31,),
+            ),
+            (
+                "sam-assistance-eligible-beneficiary-types",
+                73,
+                "eligible beneficiary entity type code and name",
+                ("Entity Type Code", "Entity Type Name"),
+                (32,),
+            ),
+        )
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _repository_source_pin(
+                    "tests/fixtures/sam_opportunities_codes/"
+                    "sam-get-opportunities-public-api-2026-08-03.html",
+                    "sha256:448b85ab4a22e33d139295cb1d6a3a6384b685a936d8c645dd12e69ed938fa62",
+                    46_217,
+                    "https://open.gsa.gov/api/get-opportunities-public-api/",
+                    fmt="html",
+                ),
+            ),
+            source_list=selector,
+        )
+        for name, selector in (
+            (
+                "sam-opportunities-notice-types",
+                SourceListSelector(
+                    reader=SOURCE_LIST_READER,
+                    extraction="sam-notice-types",
+                    expected_record_count=11,
+                    source_assertion="ptype code and label",
+                ),
+            ),
+            (
+                "sam-opportunities-opportunity-statuses",
+                SourceListSelector(
+                    reader=SOURCE_LIST_READER,
+                    extraction="sam-opportunity-statuses",
+                    expected_record_count=5,
+                    source_assertion="opportunity status accepted value",
+                ),
+            ),
+            (
+                "sam-opportunities-set-aside-codes",
+                SourceListSelector(
+                    reader=SOURCE_LIST_READER,
+                    extraction="html-table",
+                    expected_record_count=18,
+                    source_assertion="set-aside code and description",
+                    table_headers=("Code", "SetAside Values"),
+                    table_index=2,
+                    label_column=1,
+                    notation_columns=(0,),
+                ),
+            ),
+        )
+    ),
+    SourceSpec(
+        name="scotus-opinion-types",
+        kind="source-list",
+        release_keys=("scotus-opinion-types",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/scotus_opinion_types/scotus-opinions-2026-08-03.html",
+                "sha256:26d9c70afb7ee7b66678eea7eb32851c74a10ee8e60249ffc5433a45a82b2bd5",
+                42_237,
+                "https://www.supremecourt.gov/opinions/opinions.aspx",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="scotus-opinion-types",
+            expected_record_count=7,
+            source_assertion="opinion navigation category and publication-stage term",
+            casefold_labels=True,
+        ),
+    ),
+    SourceSpec(
+        name="sec-series-categories",
+        kind="source-list",
+        release_keys=("sec-series-categories",),
+        inputs=(
+            _repository_source_pin(
+                "tests/fixtures/sec_series_categories/sec-rules-regulations-2026-08-03.html",
+                "sha256:2f39c9d08f0dc55462e30fbda57315fd5159d47a4894dd113dc0bf226112c1b1",
+                70_936,
+                "https://www.sec.gov/rules-regulations",
+                fmt="html",
+            ),
+        ),
+        source_list=SourceListSelector(
+            reader=SOURCE_LIST_READER,
+            extraction="sec-categories",
+            expected_record_count=19,
+            source_assertion="side-navigation and subpage-card category label",
+        ),
+    ),
+    *(
+        SourceSpec(
+            name=name,
+            kind="source-list",
+            release_keys=(name,),
+            inputs=(
+                _repository_source_pin(
+                    "tests/fixtures/unified_agenda_codes/reginfo-rin-data-ver10262011.xsd",
+                    "sha256:94fdcf4b382830cc44b9956c00439dc20a9643de402c298cee71293a14153b24",
+                    22_730,
+                    "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd",
+                    fmt="xml",
+                ),
+            ),
+            source_list=SourceListSelector(
+                reader=SOURCE_LIST_READER,
+                extraction="xsd-documentation-options",
+                expected_record_count=count,
+                source_assertion=f"{element} distinct documented option",
+                source_key=f"{container}:{element}:{mode}",
+            ),
+        )
+        for name, container, element, mode, count in (
+            ("unified-agenda-priority-category", "RIN_INFOType", "PRIORITY_CATEGORY", "quoted", 6),
+            ("unified-agenda-rule-stage", "RIN_INFOType", "RULE_STAGE", "quoted", 6),
+            ("unified-agenda-timetable-action", "TIMETABLEType", "TTBL_ACTION", "plain", 34),
+        )
     ),
 )
 
@@ -6060,26 +7317,30 @@ def _atlas_source_list_rows(pair: SourceListPair) -> tuple[tuple[SourceListRow, 
                 f"source record <{record}> has native data but represents no resource"
             )
             continue
-        labels = pair.atlas.pref_labels.get(target, frozenset())
-        expected_language_labels = {
-            label
-            for label in labels
-            if label.language == selector.label_language and label.datatype is None
-        }
-        if len(labels) != 1 or len(expected_language_labels) != 1:
-            failures.append(
-                f"resource <{target}> must have exactly one preferred label in "
-                f"{selector.label_language!r}; observed "
-                f"{sorted(_literal_repr(label) for label in labels)}"
+        label: LiteralValue | None = None
+        if selector.compare_labels:
+            labels = pair.atlas.pref_labels.get(target, frozenset())
+            expected_language_labels = {
+                item
+                for item in labels
+                if item.language == selector.label_language and item.datatype is None
+            }
+            if len(labels) != 1 or len(expected_language_labels) != 1:
+                failures.append(
+                    f"resource <{target}> must have exactly one preferred label in "
+                    f"{selector.label_language!r}; observed "
+                    f"{sorted(_literal_repr(item) for item in labels)}"
+                )
+                continue
+            label = next(iter(expected_language_labels))
+            label_value = (
+                " ".join(label.value.split())
+                if selector.normalize_whitespace
+                else label.value
             )
-            continue
-        label = next(iter(expected_language_labels))
-        if selector.normalize_whitespace:
-            label = _literal_value(
-                " ".join(label.value.split()),
-                label.language,
-                label.datatype,
-            )
+            if selector.casefold_labels:
+                label_value = label_value.casefold()
+            label = _literal_value(label_value, label.language, label.datatype)
         notations = tuple(
             sorted(literal.value for literal in pair.atlas.notations.get(target, ()))
         )
@@ -6125,7 +7386,8 @@ def _atlas_source_list_rows(pair: SourceListPair) -> tuple[tuple[SourceListRow, 
 
 def _source_list_row_repr(row: SourceListRow) -> str:
     return (
-        f"resourceIri={row.resource_iri!r}, label={_literal_repr(row.label)}, "
+        f"resourceIri={row.resource_iri!r}, "
+        f"label={_literal_repr(row.label) if row.label is not None else None}, "
         f"notations={list(row.notations)!r}, "
         f"nativeAttributes={dict(row.native_attributes)!r}"
     )
@@ -9783,16 +11045,6 @@ def _source_list_claim_scope(
         }
     atlas_rows, _ = _atlas_source_list_rows(pair)
     source_rows = pair.publisher.rows
-    source_labels = {
-        (_literal_repr(label), occurrence)
-        for label, count in Counter(row.label for row in source_rows).items()
-        for occurrence in range(count)
-    }
-    atlas_labels = {
-        (_literal_repr(label), occurrence)
-        for label, count in Counter(row.label for row in atlas_rows).items()
-        for occurrence in range(count)
-    }
     source_notations = {
         (notations, occurrence)
         for notations, count in Counter(row.notations for row in source_rows).items()
@@ -9815,16 +11067,6 @@ def _source_list_claim_scope(
             rowMultiplicityCompared=True,
         ),
         _claim_family(
-            name="preferredLabels",
-            source_predicates=(),
-            atlas_predicates=(SKOSXL_PREF_LABEL, SKOSXL_LITERAL_FORM),
-            source_claims=source_labels,
-            atlas_claims=atlas_labels,
-            checked_by="source-list-fidelity",
-            languageSelection=spec.source_list.label_language,
-            lexicalFormRetained=True,
-        ),
-        _claim_family(
             name="notations",
             source_predicates=(),
             atlas_predicates=(ATLAS_NOTATION,),
@@ -9834,6 +11076,32 @@ def _source_list_claim_scope(
             rowGroupingRetained=True,
         ),
     ]
+    if spec.source_list.compare_labels:
+        source_labels = {
+            (_literal_repr(label), occurrence)
+            for label, count in Counter(row.label for row in source_rows).items()
+            if label is not None
+            for occurrence in range(count)
+        }
+        atlas_labels = {
+            (_literal_repr(label), occurrence)
+            for label, count in Counter(row.label for row in atlas_rows).items()
+            if label is not None
+            for occurrence in range(count)
+        }
+        families.append(
+            _claim_family(
+                name="preferredLabels",
+                source_predicates=(),
+                atlas_predicates=(SKOSXL_PREF_LABEL, SKOSXL_LITERAL_FORM),
+                source_claims=source_labels,
+                atlas_claims=atlas_labels,
+                checked_by="source-list-fidelity",
+                languageSelection=spec.source_list.label_language,
+                lexicalFormRetained=not spec.source_list.casefold_labels,
+                casefolded=spec.source_list.casefold_labels,
+            )
+        )
     if spec.source_list.compare_resource_iri:
         source_identities = {
             (identity, occurrence)
@@ -10245,6 +11513,8 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                         "extraction": spec.source_list.extraction,
                         "expectedRecordCount": spec.source_list.expected_record_count,
                         "sourceAssertion": spec.source_list.source_assertion,
+                        "compareLabels": spec.source_list.compare_labels,
+                        "casefoldLabels": spec.source_list.casefold_labels,
                         "compareResourceIri": spec.source_list.compare_resource_iri,
                         "nativePayloadFields": list(
                             spec.source_list.native_payload_fields

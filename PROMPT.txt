@@ -1,0 +1,22 @@
+You are a data-fidelity engineer in a DISPOSABLE git worktree (branch research/coverage-html-misc). YOUR BATCH: the LONG TAIL - 44 uncovered units, 5,306 records: HTML, XML captures, Markdown, YAML, XSD, and JavaScript fixtures. This is the largest unit count and the smallest record count, so the real question your report must answer is WHICH OF THESE DESERVE A COMPARISON AT ALL. Many are tiny code lists scraped from documentation pages. For each: is there a pinned publisher artifact an independent reader can open, and does it assert anything the Atlas record represents? Author specs where the answer is yes; where it is no, document the impossibility precisely (that is the deliverable for this batch as much as the specs are). If a common shape emerges across many units (e.g. all the regulatory-native code lists share a capture format), build ONE reader kind and a table of specs on top of it rather than 44 bespoke readers.
+
+SHARED CONTEXT (all coverage agents):
+The auditor is tools/verify_atlas_source_fidelity.py. It compares an Atlas distribution against authenticated publisher source bytes using STOCK parsers only (json/csv/xml/rdflib/pyarrow) - it must never import the ETL that built the distribution; that independence is the whole point. Coverage today: 27 of 110 construction units declared; 83 uncovered. Uncovered units are explicit FAILURES, not assumed matches.
+
+PRIOR ART - read these first:
+- .claude/worktrees/codex-fidelity-coverage/REPORT.md (branch research/fidelity-coverage): the inventory by source family, the payoff order, and three worked SourceSpecs (mesh-descriptors XML, federal-register-api-topics JSON, gcmd CSV) with their reader kinds.
+- The auditor's existing SOURCES table and its comparison kinds - your pattern library. The FR source-extract kind (check_source_extract_fidelity) shows a checked-extract comparison; the native-control kind shows a Parquet one.
+- The receipt at /Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-full-2026-08-12c-source-fidelity-receipt-batch2.json (608KB) lists every unit and its status.
+
+ARTIFACTS (READ-ONLY, absolute paths - your worktree has no output/):
+- distribution: /Users/mikewolfd/Work/spicy-regs/RefSpec/output/atlas-3.1-full-2026-08-13
+- publisher sources: /Users/mikewolfd/Work/spicy-regs/RefSpec/output/registry-real-data-sources
+Never write to either.
+
+METHOD per unit: identify the construction unit's publisher input (the registry module under src/refspec/registry/ names it; the construction summary pins it), author a SourceSpec declaring what an independent reader can compare (identities, labels, notations, relations, whatever the source genuinely asserts), then VERIFY scoped:
+  uv run --no-sync python tools/verify_atlas_source_fidelity.py --distribution <dist> --source-root <sources> --only <spec-name> --output <scratch>.json
+A new spec that REPORTS DIFFERENCES is a success (honest coverage). A spec that errors, or that reports nonsense because the comparison is mis-specified, is not. Never run the unscoped full audit.
+
+RULES: additive changes only (new SourceSpec entries, new reader kinds) - other agents hold this file in other worktrees and I merge later, so keep your diff localized and mergeable. One test per new READER KIND (not per spec): faithful-pair passes plus one fault injection. If a unit CANNOT be honestly compared (no pinned publisher bytes, or the source asserts nothing the Atlas record represents), say so explicitly in REPORT.md with the reason - a documented impossibility is a real result, not a failure.
+
+GATES: make lint; uv run --no-sync pytest tests/test_verify_atlas_source_fidelity.py -q; the scoped verification output for every spec you add. Commit incrementally so partial progress survives. Deliverable: REPORT.md with a per-unit table (unit, source kind, records, spec status, what it compares, differences found), your coverage delta, and the units you judged impossible with reasons.
