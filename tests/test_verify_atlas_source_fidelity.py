@@ -3774,6 +3774,20 @@ def test_identifier_retention_fires_when_the_publisher_iri_is_replaced_by_a_mint
     assert any("carries a minted RefSpec identifier" in text for text in check.failures)
 
 
+def test_mixed_identifier_policy_fails_closed_without_a_source_identity_status(
+    suite: Fixture,
+) -> None:
+    spec = replace(
+        suite.spec,
+        identity_policy="publisher-iri-or-source-local-record",
+    )
+
+    check = result(suite.run(spec=spec), "identifier-retention")
+
+    assert not check.passed
+    assert any("identity status" in text and "absent" in text for text in check.failures)
+
+
 def test_rdf_provenance_fires_on_a_source_locator_that_resolves_nowhere(
     suite: Fixture,
 ) -> None:
@@ -6826,53 +6840,208 @@ def test_fast_native_reader_accepts_a_faithful_pair_and_rejects_marc_identity_fa
         )
 
 
-def test_icpsr_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
+def _icpsr_managed_fixture(
     tmp_path: Path,
-) -> None:
+) -> tuple[Path, SourceSpec, bytes]:
     import tools.verify_atlas_source_fidelity as verifier
+
+    def canonical(value: object) -> bytes:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+
+    def digest(payload: bytes) -> str:
+        return "sha256:" + hashlib.sha256(payload).hexdigest()
 
     root = tmp_path / "managed-release"
     (root / "records").mkdir(parents=True)
-    (root / "sources" / "index").mkdir(parents=True)
+    (root / "sources" / "index" / "pages").mkdir(parents=True)
+    scheme_iri = "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001"
+    release_iri = "urn:test:icpsr:managed-release"
+    page_url = scheme_iri + "?letter=f"
+    faithful_iri = scheme_iri + "/terms/1"
+    index_only_iri = scheme_iri + "/terms/2"
+    page_payload = (
+        b'<html><body><a href="/web/ICPSR/thesaurus/10001/terms/1">'
+        b"Faithful term</a>"
+        b'<a href="/web/ICPSR/thesaurus/10001/terms/2">Index only</a>'
+        b"</body></html>"
+    )
+    robots_payload = b"User-agent: *\nAllow: /\n"
+    index_terms = [
+        {
+            "code": "1",
+            "conceptIri": faithful_iri,
+            "label": "Faithful term",
+            "preferred": True,
+            "sourceLetter": "f",
+        },
+        {
+            "code": "2",
+            "conceptIri": index_only_iri,
+            "label": "Index only",
+            "preferred": True,
+            "sourceLetter": "f",
+        },
+    ]
+    page_descriptor = {
+        "byteLength": len(page_payload),
+        "letter": "f",
+        "path": "pages/f.html",
+        "resolvedUrl": page_url,
+        "sha256": digest(page_payload),
+        "url": page_url,
+    }
+    robots_descriptor = {
+        "byteLength": len(robots_payload),
+        "path": "robots.txt",
+        "sha256": digest(robots_payload),
+        "url": "https://www.icpsr.umich.edu/robots.txt",
+    }
+    capture_basis = {
+        "parserVersion": "stock-html-parser-test-v1",
+        "schemeIri": scheme_iri,
+        "robots": {
+            key: robots_descriptor[key]
+            for key in ("url", "sha256", "byteLength")
+        },
+        "pages": [
+            {
+                key: page_descriptor[key]
+                for key in (
+                    "letter",
+                    "url",
+                    "resolvedUrl",
+                    "sha256",
+                    "byteLength",
+                )
+            }
+        ],
+        "terms": index_terms,
+        "complete": True,
+    }
+    index_manifest = {
+        **capture_basis,
+        "captureDigest": verifier._canonical_json_digest(capture_basis),
+        "pages": [page_descriptor],
+        "robots": robots_descriptor,
+    }
+    index_manifest_payload = canonical(index_manifest)
+    xml_payload = b"""<THESAURUS>
+<CONCEPT><DESCRIPTOR>Faithful term</DESCRIPTOR><INP>2026-01-01 00:00:00.0</INP><UPD>2026-01-02 00:00:00.0</UPD><TNR>1</TNR><NT>XML only</NT><SN>Faithful note</SN></CONCEPT>
+<CONCEPT><DESCRIPTOR>XML only</DESCRIPTOR><INP>2026-01-01 00:00:00.0</INP><UPD>2026-01-02 00:00:00.0</UPD><TNR>2</TNR><BT>Faithful term</BT></CONCEPT>
+</THESAURUS>"""
     concept = {
-        "conceptIri": "https://example.org/icpsr/1",
+        "conceptIri": faithful_iri,
         "identifiers": [
             {
-                "authorityUri": "https://example.org/icpsr",
+                "authorityUri": scheme_iri,
                 "effectiveAt": None,
                 "kind": "publisherCode",
                 "observedAt": None,
-                "sourceDigest": "sha256:" + "1" * 64,
-                "sourceUri": "https://example.org/icpsr?a",
+                "sourceDigest": digest(page_payload),
+                "sourceUri": page_url,
                 "value": "1",
-            }
+            },
+            {
+                "authorityUri": scheme_iri,
+                "effectiveAt": None,
+                "kind": "publisherTermUri",
+                "observedAt": None,
+                "sourceDigest": digest(page_payload),
+                "sourceUri": page_url,
+                "value": faithful_iri,
+            },
         ],
         "inputTimestamp": "2026-01-01 00:00:00.0",
         "officialLabel": "Faithful term",
         "officialLabelRole": "preferred",
         "publisherCode": "1",
-        "relations": [],
+        "relations": [
+            {
+                "relation": "narrower",
+                "resolutionStatus": "unresolvedSourceSkew",
+                "targetLabel": "XML only",
+            }
+        ],
         "scopeNotes": ["Faithful note"],
-        "sourceLetter": "a",
+        "sourceLetter": "f",
         "sourceLocalRecordNumber": "1",
-        "updateTimestamp": "2026-01-01 00:00:00.0",
+        "updateTimestamp": "2026-01-02 00:00:00.0",
         "xmlLabelRole": "preferred",
     }
-    concepts_payload = json.dumps(concept, separators=(",", ":")).encode() + b"\n"
+    concepts_payload = canonical(concept) + b"\n"
+    expressions = [
+        verifier._icpsr_indexed_expression(
+            release_iri=release_iri,
+            member_iri=faithful_iri,
+            semantic_property_iri=f"{SKOS}prefLabel",
+            original_literal="Faithful term",
+            role="preferredLabel",
+            source_path="index/pages/f#term=1",
+        ),
+        verifier._icpsr_indexed_expression(
+            release_iri=release_iri,
+            member_iri=faithful_iri,
+            semantic_property_iri=f"{SKOS}scopeNote",
+            original_literal="Faithful note",
+            role="scopeNote",
+            source_path="subject.xml#record=1;scopeNote=1",
+        ),
+    ]
+    expressions.sort(key=lambda row: row["id"])
+    expressions_payload = b"".join(canonical(row) + b"\n" for row in expressions)
     coverage = {
-        "gaps": {"indexOnlyTerms": [], "xmlOnlyLabels": []},
+        "gaps": {
+            "indexOnlyCount": 1,
+            "indexOnlyTerms": [
+                {
+                    "code": "2",
+                    "conceptIri": index_only_iri,
+                    "label": "Index only",
+                    "preferred": True,
+                }
+            ],
+            "roleConflictCount": 0,
+            "roleConflicts": [],
+            "unresolvedRelationCount": 1,
+            "unresolvedRelations": [
+                {
+                    "relation": "narrower",
+                    "sourceConceptIri": faithful_iri,
+                    "targetLabel": "XML only",
+                }
+            ],
+            "xmlOnlyCount": 1,
+            "xmlOnlyLabels": ["XML only"],
+        },
+        "recordedAt": "2026-01-03T00:00:00Z",
+        "relationCoverage": {
+            "explicitlyExcludedCount": 1,
+            "failedCount": 0,
+            "sourceObservedCount": 1,
+            "uriResolvedCount": 0,
+        },
+        "sourceCounts": {
+            "publicIndexTerms": 2,
+            "uriVerifiedJoins": 1,
+            "xmlTerms": 2,
+        },
     }
     coverage["canonicalPayloadDigest"] = verifier._canonical_json_digest(coverage)
-    coverage_payload = json.dumps(
-        coverage,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
+    coverage_payload = canonical(coverage)
     artifact_values = {
         "records/concepts.jsonl": concepts_payload,
         "records/coverage.json": coverage_payload,
-        "sources/index/manifest.json": b"{}",
-        "sources/subject.xml": b"<subjects/>",
+        "records/indexed-expressions.jsonl": expressions_payload,
+        "sources/index/manifest.json": index_manifest_payload,
+        "sources/index/pages/f.html": page_payload,
+        "sources/index/robots.txt": robots_payload,
+        "sources/subject.xml": xml_payload,
     }
     for relative_path, payload in artifact_values.items():
         path = root / relative_path
@@ -6882,30 +7051,34 @@ def test_icpsr_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault
         {
             "byteLength": len(payload),
             "path": relative_path,
-            "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+            "sha256": digest(payload),
         }
-        for relative_path, payload in artifact_values.items()
+        for relative_path, payload in sorted(artifact_values.items())
     ]
     manifest = {
         "artifacts": artifacts,
-        "counts": {"concepts": 1},
-        "release": {"schemeIri": "https://example.org/icpsr"},
+        "counts": {
+            "concepts": 1,
+            "indexOnlyGaps": 1,
+            "indexedExpressions": 2,
+            "roleConflicts": 0,
+            "unresolvedRelations": 1,
+            "xmlOnlyGaps": 1,
+        },
+        "release": {"id": release_iri, "schemeIri": scheme_iri},
         "sources": {
-            "indexManifestDigest": "sha256:" + hashlib.sha256(b"{}").hexdigest(),
-            "xmlDigest": "sha256:" + hashlib.sha256(b"<subjects/>").hexdigest(),
+            "indexCaptureDigest": index_manifest["captureDigest"],
+            "indexManifestDigest": digest(index_manifest_payload),
+            "xmlDigest": digest(xml_payload),
         },
     }
     manifest["canonicalPayloadDigest"] = verifier._canonical_json_digest(manifest)
-    manifest_payload = json.dumps(
-        manifest,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
+    manifest_payload = canonical(manifest)
     manifest_path = root / "managed-release.json"
     manifest_path.write_bytes(manifest_payload)
     pin = SourcePin(
         str(manifest_path),
-        "sha256:" + hashlib.sha256(manifest_payload).hexdigest(),
+        digest(manifest_payload),
         len(manifest_payload),
         fmt="managed-release-json",
         role="publisherSource",
@@ -6917,14 +7090,149 @@ def test_icpsr_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault
         ("icpsr-reader-test",),
         (pin,),
         reader=verifier.ICPSR_MANAGED_RELEASE_READER,
+        identity_policy="publisher-iri-or-source-local-record",
     )
+    return root, spec, manifest_payload
+
+
+def test_icpsr_managed_reader_reconstructs_the_complete_union(
+    tmp_path: Path,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    _, spec, manifest_payload = _icpsr_managed_fixture(tmp_path)
+    pin = spec.inputs[0]
 
     view = verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
 
-    assert view.concepts == frozenset({"https://example.org/icpsr/1"})
+    xml_only_iri, _, _ = verifier._icpsr_xml_only_identity(
+        "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001",
+        "2026-01-03T00:00:00Z",
+        "2",
+    )
+    assert view.concepts == frozenset(
+        {
+            "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/1",
+            "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/2",
+            xml_only_iri,
+        }
+    )
     assert len(view.annotations) == 1
-    (root / "sources" / "subject.xml").write_bytes(b"<fault/>")
-    with pytest.raises(ValueError, match="artifact pin differs"):
+    assert len(view.relations) == 2
+    assert view.expected_native_payloads[xml_only_iri]["identityStatus"] == (
+        "publisherIdentifierAbsent"
+    )
+    assert view.resource_locators[xml_only_iri].endswith("#record=2")
+
+
+@pytest.mark.parametrize(
+    ("fault", "message"),
+    (
+        ("artifact-pin", "artifact pin differs"),
+        ("raw-index", "raw index pages differ"),
+        ("raw-xml", "absent from raw index or XML bytes"),
+        ("indexed-expression", "indexed expressions differ"),
+        ("coverage", "coverage gaps differ"),
+    ),
+)
+def test_icpsr_managed_reader_rejects_reconstructed_evidence_faults(
+    tmp_path: Path,
+    fault: str,
+    message: str,
+) -> None:
+    import tools.verify_atlas_source_fidelity as verifier
+
+    def canonical(value: object) -> bytes:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+
+    def digest(payload: bytes) -> str:
+        return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+    root, spec, manifest_payload = _icpsr_managed_fixture(tmp_path)
+    manifest = json.loads(manifest_payload)
+
+    def repin_outer(relative_path: str, payload: bytes) -> None:
+        (root / relative_path).write_bytes(payload)
+        descriptor = next(
+            row for row in manifest["artifacts"] if row["path"] == relative_path
+        )
+        descriptor["byteLength"] = len(payload)
+        descriptor["sha256"] = digest(payload)
+
+    if fault == "artifact-pin":
+        (root / "sources" / "subject.xml").write_bytes(b"<fault/>")
+    elif fault == "raw-index":
+        page_path = root / "sources" / "index" / "pages" / "f.html"
+        page_payload = page_path.read_bytes().replace(
+            b"Faithful term",
+            b"Changed term",
+            1,
+        )
+        repin_outer("sources/index/pages/f.html", page_payload)
+        index_manifest_path = root / "sources" / "index" / "manifest.json"
+        index_manifest = json.loads(index_manifest_path.read_bytes())
+        index_manifest["pages"][0]["byteLength"] = len(page_payload)
+        index_manifest["pages"][0]["sha256"] = digest(page_payload)
+        index_manifest_payload = canonical(index_manifest)
+        repin_outer("sources/index/manifest.json", index_manifest_payload)
+        manifest["sources"]["indexManifestDigest"] = digest(index_manifest_payload)
+    elif fault == "raw-xml":
+        xml_path = root / "sources" / "subject.xml"
+        xml_payload = xml_path.read_bytes().replace(
+            b"Faithful term",
+            b"Changed term",
+            1,
+        )
+        repin_outer("sources/subject.xml", xml_payload)
+        manifest["sources"]["xmlDigest"] = digest(xml_payload)
+    elif fault == "indexed-expression":
+        expression_path = root / "records" / "indexed-expressions.jsonl"
+        expression_payload = expression_path.read_bytes().replace(
+            b'"indexedText":"faithful note"',
+            b'"indexedText":"changed note"',
+            1,
+        )
+        repin_outer("records/indexed-expressions.jsonl", expression_payload)
+    elif fault == "coverage":
+        coverage_path = root / "records" / "coverage.json"
+        coverage = json.loads(coverage_path.read_bytes())
+        coverage["gaps"]["indexOnlyCount"] = 0
+        coverage["canonicalPayloadDigest"] = verifier._canonical_json_digest(
+            {
+                key: value
+                for key, value in coverage.items()
+                if key != "canonicalPayloadDigest"
+            }
+        )
+        repin_outer("records/coverage.json", canonical(coverage))
+    else:  # pragma: no cover - parametrization is exhaustive
+        raise AssertionError(f"unknown fault {fault}")
+
+    if fault != "artifact-pin":
+        manifest["canonicalPayloadDigest"] = verifier._canonical_json_digest(
+            {
+                key: value
+                for key, value in manifest.items()
+                if key != "canonicalPayloadDigest"
+            }
+        )
+        manifest_payload = canonical(manifest)
+        (root / "managed-release.json").write_bytes(manifest_payload)
+        old_pin = spec.inputs[0]
+        new_pin = replace(
+            old_pin,
+            sha256=digest(manifest_payload),
+            byte_length=len(manifest_payload),
+        )
+        spec = replace(spec, inputs=(new_pin,))
+    pin = spec.inputs[0]
+    with pytest.raises(ValueError, match=message):
         verifier._read_icpsr_managed_release(spec, {pin: manifest_payload})
 
 

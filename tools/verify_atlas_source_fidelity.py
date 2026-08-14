@@ -82,6 +82,7 @@ import re
 import string
 import sys
 import threading
+import unicodedata
 import urllib.parse
 import uuid
 import zipfile
@@ -89,6 +90,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
+from html.parser import HTMLParser
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -9657,6 +9659,346 @@ def _icpsr_index_identifier(value: Mapping[str, Any]) -> Mapping[str, Any]:
     return {target: value[source] for source, target in keys.items()}
 
 
+_ICPSR_INDEX_TERM_PATH = re.compile(
+    r"^/web/ICPSR/thesaurus/10001/terms/([1-9][0-9]*)$"
+)
+
+
+class _IcpsrIndexPageParser(HTMLParser):
+    """Extract ICPSR term anchors with the Python standard-library parser."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.terms: list[tuple[str, str]] = []
+        self._term_href: str | None = None
+        self._text: list[str] = []
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        if tag != "a" or self._term_href is not None:
+            return
+        href = dict(attrs).get("href")
+        if (
+            isinstance(href, str)
+            and _ICPSR_INDEX_TERM_PATH.fullmatch(
+                urllib.parse.urlsplit(href).path
+            )
+            is not None
+        ):
+            self._term_href = href
+            self._text = []
+
+    def handle_data(self, data: str) -> None:
+        if self._term_href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag != "a" or self._term_href is None:
+            return
+        self.terms.append((self._term_href, "".join(self._text)))
+        self._term_href = None
+        self._text = []
+
+
+@dataclass(frozen=True)
+class _IcpsrXmlTerm:
+    label: str
+    preferred: bool
+    source_local_record_number: str
+    input_timestamp: str
+    update_timestamp: str
+    broader_labels: tuple[str, ...]
+    narrower_labels: tuple[str, ...]
+    related_labels: tuple[str, ...]
+    use_labels: tuple[str, ...]
+    used_for_labels: tuple[str, ...]
+    scope_notes: tuple[str, ...]
+
+    def native_payload(self) -> dict[str, Any]:
+        return {
+            "broaderLabels": list(self.broader_labels),
+            "inputTimestamp": self.input_timestamp,
+            "label": self.label,
+            "narrowerLabels": list(self.narrower_labels),
+            "preferred": self.preferred,
+            "relatedLabels": list(self.related_labels),
+            "scopeNotes": list(self.scope_notes),
+            "sourceLocalRecordNumber": self.source_local_record_number,
+            "updateTimestamp": self.update_timestamp,
+            "useLabels": list(self.use_labels),
+            "usedForLabels": list(self.used_for_labels),
+        }
+
+    def relation_labels(self) -> Iterator[tuple[str, str]]:
+        for relation, labels in (
+            ("broader", self.broader_labels),
+            ("narrower", self.narrower_labels),
+            ("related", self.related_labels),
+            ("use", self.use_labels),
+            ("usedFor", self.used_for_labels),
+        ):
+            for label in labels:
+                yield relation, label
+
+
+def _parse_icpsr_index_page(
+    payload: bytes,
+    *,
+    source_letter: str,
+) -> list[dict[str, Any]]:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(
+            f"ICPSR index page {source_letter!r} is not UTF-8"
+        ) from error
+    parser = _IcpsrIndexPageParser()
+    parser.feed(text)
+    parser.close()
+    terms: list[dict[str, Any]] = []
+    for href, raw_label in parser.terms:
+        path = urllib.parse.urlsplit(href).path
+        match = _ICPSR_INDEX_TERM_PATH.fullmatch(path)
+        if match is None:  # pragma: no cover - parser selects this exact shape
+            continue
+        label = " ".join(raw_label.split())
+        preferred = not label.endswith("*")
+        if not preferred:
+            label = label[:-1]
+        if not label or label != label.strip():
+            raise ValueError(
+                f"ICPSR index term {match.group(1)} has an invalid label"
+            )
+        terms.append(
+            {
+                "code": match.group(1),
+                "conceptIri": (
+                    "https://www.icpsr.umich.edu/web/ICPSR/"
+                    f"thesaurus/10001/terms/{match.group(1)}"
+                ),
+                "label": label,
+                "preferred": preferred,
+                "sourceLetter": source_letter,
+            }
+        )
+    return terms
+
+
+def _parse_icpsr_subject_xml(payload: bytes) -> tuple[_IcpsrXmlTerm, ...]:
+    try:
+        root = ElementTree.fromstring(payload)
+    except ElementTree.ParseError as error:
+        raise ValueError("ICPSR subject XML is malformed") from error
+    if root.tag != "THESAURUS":
+        raise ValueError(f"ICPSR subject XML root differs: {root.tag!r}")
+    allowed = {
+        "BT",
+        "DESCRIPTOR",
+        "INP",
+        "NON-DESCRIPTOR",
+        "NT",
+        "RT",
+        "SN",
+        "TNR",
+        "UF",
+        "UPD",
+        "USE",
+    }
+    terms: list[_IcpsrXmlTerm] = []
+    labels: set[str] = set()
+    local_numbers: set[str] = set()
+    for ordinal, element in enumerate(root, start=1):
+        if element.tag != "CONCEPT":
+            raise ValueError(
+                f"ICPSR subject XML child {ordinal} differs: {element.tag!r}"
+            )
+        values: dict[str, list[str]] = defaultdict(list)
+        for child in element:
+            if child.tag not in allowed or list(child):
+                raise ValueError(
+                    f"ICPSR XML concept {ordinal} has unsupported field {child.tag!r}"
+                )
+            value = "".join(child.itertext()).strip()
+            if not value:
+                raise ValueError(
+                    f"ICPSR XML concept {ordinal} has blank {child.tag}"
+                )
+            values[child.tag].append(value)
+        labels_found = values["DESCRIPTOR"] + values["NON-DESCRIPTOR"]
+        for required in ("INP", "TNR", "UPD"):
+            if len(values[required]) != 1:
+                raise ValueError(
+                    f"ICPSR XML concept {ordinal} has {len(values[required])} {required} values"
+                )
+        if len(labels_found) != 1:
+            raise ValueError(
+                f"ICPSR XML concept {ordinal} has {len(labels_found)} labels"
+            )
+        label = labels_found[0]
+        local_number = values["TNR"][0]
+        if label in labels or local_number in local_numbers:
+            raise ValueError(
+                f"ICPSR XML concept {ordinal} repeats label or local record number"
+            )
+        labels.add(label)
+        local_numbers.add(local_number)
+        terms.append(
+            _IcpsrXmlTerm(
+                label=label,
+                preferred=bool(values["DESCRIPTOR"]),
+                source_local_record_number=local_number,
+                input_timestamp=values["INP"][0],
+                update_timestamp=values["UPD"][0],
+                broader_labels=tuple(values["BT"]),
+                narrower_labels=tuple(values["NT"]),
+                related_labels=tuple(values["RT"]),
+                use_labels=tuple(values["USE"]),
+                used_for_labels=tuple(values["UF"]),
+                scope_notes=tuple(values["SN"]),
+            )
+        )
+    if not terms:
+        raise ValueError("ICPSR subject XML has no concepts")
+    return tuple(terms)
+
+
+def _icpsr_uuid7(recorded_at: str, seed: str) -> str:
+    try:
+        parsed = datetime.fromisoformat(
+            recorded_at[:-1] + "+00:00"
+            if recorded_at.endswith("Z")
+            else recorded_at
+        )
+    except ValueError as error:
+        raise ValueError("ICPSR recordedAt is not an ISO 8601 date-time") from error
+    if parsed.tzinfo is None:
+        raise ValueError("ICPSR recordedAt has no time zone")
+    timestamp_ms = int(parsed.astimezone(UTC).timestamp() * 1_000)
+    if timestamp_ms < 0 or timestamp_ms >= 1 << 48:
+        raise ValueError("ICPSR recordedAt is outside the UUIDv7 range")
+    random_bits = int.from_bytes(hashlib.sha256(seed.encode()).digest(), "big") >> 182
+    random_a = random_bits >> 62
+    random_b = random_bits & ((1 << 62) - 1)
+    value = timestamp_ms << 80
+    value |= 0x7 << 76
+    value |= random_a << 64
+    value |= 0b10 << 62
+    value |= random_b
+    return str(uuid.UUID(int=value))
+
+
+def _icpsr_xml_only_identity(
+    scheme_iri: str,
+    recorded_at: str,
+    local_number: str,
+) -> tuple[str, str, dict[str, str]]:
+    seed = f"{scheme_iri}#source-local-record-number={local_number}"
+    local_uuid = _icpsr_uuid7(recorded_at, seed)
+    local_record_id = "urn:uuid:" + local_uuid
+    prior_iri = (
+        "urn:ref:source-concept:v1:"
+        + hashlib.sha256(scheme_iri.encode()).hexdigest()
+        + ":"
+        + local_uuid
+    )
+    iri = (
+        "urn:ref:source-concept:v2:icpsr-subject-thesaurus:" + local_uuid
+    )
+    return iri, seed, {
+        "identityKind": "refspecSourceScoped",
+        "localRecordId": local_record_id,
+        "namespaceToken": "icpsr-subject-thesaurus",
+        "priorSourceConceptIri": prior_iri,
+        "sourceScheme": scheme_iri,
+    }
+
+
+def _icpsr_index_identifiers(
+    term: Mapping[str, Any],
+    page: Mapping[str, Any],
+    scheme_iri: str,
+) -> list[dict[str, Any]]:
+    common = {
+        "authorityUri": scheme_iri,
+        "effectiveAt": None,
+        "observedAt": None,
+        "sourceDigest": page["sha256"],
+        "sourceUri": page["url"],
+    }
+    return [
+        {**common, "kind": "publisherCode", "value": term["code"]},
+        {
+            **common,
+            "kind": "publisherTermUri",
+            "value": term["conceptIri"],
+        },
+    ]
+
+
+def _icpsr_index_native_term(
+    term: Mapping[str, Any],
+    page: Mapping[str, Any],
+    scheme_iri: str,
+) -> dict[str, Any]:
+    return {
+        "identifiers": [
+            _icpsr_index_identifier(identifier)
+            for identifier in _icpsr_index_identifiers(term, page, scheme_iri)
+        ],
+        "label": term["label"],
+        "preferred": term["preferred"],
+        "source_letter": term["sourceLetter"],
+    }
+
+
+def _icpsr_indexed_expression(
+    *,
+    release_iri: str,
+    member_iri: str,
+    semantic_property_iri: str,
+    original_literal: str,
+    role: str,
+    source_path: str,
+) -> dict[str, Any]:
+    indexed_text = " ".join(
+        unicodedata.normalize("NFKC", original_literal).casefold().split()
+    )
+    identity = {
+        "release": release_iri,
+        "member": member_iri,
+        "semanticProperty": semantic_property_iri,
+        "literal": original_literal,
+        "language": "en",
+        "sourcePath": source_path,
+    }
+    return {
+        "id": (
+            "urn:ref:icpsr:indexed-expression:"
+            + hashlib.sha256(
+                json.dumps(
+                    identity,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()
+            ).hexdigest()
+        ),
+        "memberIri": member_iri,
+        "semanticPropertyIri": semantic_property_iri,
+        "role": role,
+        "originalLiteral": original_literal,
+        "language": "en",
+        "sourcePath": source_path,
+        "indexedText": indexed_text,
+        "indexedTextDigest": (
+            "sha256:" + hashlib.sha256(indexed_text.encode()).hexdigest()
+        ),
+    }
+
+
 def _read_icpsr_managed_release(
     spec: SourceSpec,
     authenticated_payloads: Mapping[SourcePin, bytes],
@@ -9706,6 +10048,7 @@ def _read_icpsr_managed_release(
     required = {
         "records/concepts.jsonl",
         "records/coverage.json",
+        "records/indexed-expressions.jsonl",
         "sources/index/manifest.json",
         "sources/subject.xml",
     }
@@ -9741,6 +10084,108 @@ def _read_icpsr_managed_release(
     if sources.get("xmlDigest") != subject_xml_digest:
         raise ValueError("ICPSR subject XML digest differs from authenticated artifact")
 
+    index_manifest = _json_without_duplicates(
+        artifact_payloads["sources/index/manifest.json"],
+        "ICPSR index manifest",
+    )
+    if not isinstance(index_manifest, Mapping):
+        raise ValueError("ICPSR index manifest must be an object")
+    raw_pages = index_manifest.get("pages")
+    raw_index_terms = index_manifest.get("terms")
+    robots = index_manifest.get("robots")
+    if (
+        index_manifest.get("schemeIri") != scheme_iri
+        or index_manifest.get("complete") is not True
+        or not isinstance(raw_pages, list)
+        or not isinstance(raw_index_terms, list)
+        or not isinstance(robots, Mapping)
+    ):
+        raise ValueError("ICPSR index manifest structure differs")
+    page_by_letter: dict[str, Mapping[str, Any]] = {}
+    parsed_index_terms: list[dict[str, Any]] = []
+    for ordinal, page in enumerate(raw_pages, start=1):
+        if not isinstance(page, Mapping):
+            raise ValueError(f"ICPSR index page descriptor {ordinal} is not an object")
+        letter = page.get("letter")
+        relative_path = page.get("path")
+        if (
+            not isinstance(letter, str)
+            or not isinstance(relative_path, str)
+            or letter in page_by_letter
+        ):
+            raise ValueError(f"ICPSR index page descriptor {ordinal} differs")
+        artifact_key = "sources/index/" + relative_path
+        page_payload = artifact_payloads.get(artifact_key)
+        if page_payload is None:
+            raise ValueError(f"ICPSR index page artifact is missing: {artifact_key}")
+        page_digest = "sha256:" + hashlib.sha256(page_payload).hexdigest()
+        if page.get("byteLength") != len(page_payload) or page.get("sha256") != page_digest:
+            raise ValueError(f"ICPSR index page descriptor differs: {artifact_key}")
+        if not isinstance(page.get("url"), str):
+            raise ValueError(f"ICPSR index page URL differs: {artifact_key}")
+        page_by_letter[letter] = page
+        parsed_index_terms.extend(
+            _parse_icpsr_index_page(page_payload, source_letter=letter)
+        )
+    if parsed_index_terms != raw_index_terms:
+        raise ValueError(
+            "ICPSR raw index pages differ from their authenticated term manifest"
+        )
+    robots_path = robots.get("path")
+    if not isinstance(robots_path, str):
+        raise ValueError("ICPSR robots descriptor has no path")
+    robots_payload = artifact_payloads.get("sources/index/" + robots_path)
+    if robots_payload is None:
+        raise ValueError("ICPSR robots artifact is missing")
+    robots_digest = "sha256:" + hashlib.sha256(robots_payload).hexdigest()
+    if (
+        robots.get("byteLength") != len(robots_payload)
+        or robots.get("sha256") != robots_digest
+    ):
+        raise ValueError("ICPSR robots descriptor differs from authenticated bytes")
+    capture_basis = {
+        "parserVersion": index_manifest.get("parserVersion"),
+        "schemeIri": scheme_iri,
+        "robots": {
+            key: robots.get(key)
+            for key in ("url", "sha256", "byteLength")
+        },
+        "pages": [
+            {
+                key: page.get(key)
+                for key in (
+                    "letter",
+                    "url",
+                    "resolvedUrl",
+                    "sha256",
+                    "byteLength",
+                )
+            }
+            for page in raw_pages
+        ],
+        "terms": parsed_index_terms,
+        "complete": True,
+    }
+    capture_digest = _canonical_json_digest(capture_basis)
+    if (
+        index_manifest.get("captureDigest") != capture_digest
+        or sources.get("indexCaptureDigest") != capture_digest
+    ):
+        raise ValueError("ICPSR index capture digest differs from raw page reconstruction")
+
+    xml_terms = _parse_icpsr_subject_xml(
+        artifact_payloads["sources/subject.xml"]
+    )
+    index_by_iri = {
+        str(term["conceptIri"]): term for term in parsed_index_terms
+    }
+    index_by_label = {str(term["label"]): term for term in parsed_index_terms}
+    xml_by_label = {term.label: term for term in xml_terms}
+    if len(index_by_iri) != len(parsed_index_terms) or len(index_by_label) != len(
+        parsed_index_terms
+    ):
+        raise ValueError("ICPSR index repeats an IRI or label")
+
     concepts: list[Mapping[str, Any]] = []
     for line_number, line in enumerate(
         artifact_payloads["records/concepts.jsonl"].splitlines(),
@@ -9758,47 +10203,277 @@ def _read_icpsr_managed_release(
             f"ICPSR managed concept count differs: declared {expected_concepts!r}, "
             f"observed {len(concepts)}"
         )
-    raw_relations: list[tuple[str, str, str, Mapping[str, Any]]] = []
-    unresolved_relations = 0
+    managed_by_iri: dict[str, Mapping[str, Any]] = {}
+    expected_expressions: list[dict[str, Any]] = []
+    release_id = release.get("id")
+    if not isinstance(release_id, str):
+        raise ValueError("ICPSR managed release has no release IRI")
     for concept in concepts:
         resource = concept.get("conceptIri")
-        source_label = concept.get("officialLabel")
-        local_number = concept.get("sourceLocalRecordNumber")
-        rows = concept.get("relations")
+        official_label = concept.get("officialLabel")
         if (
             not isinstance(resource, str)
-            or not isinstance(source_label, str)
-            or not isinstance(local_number, str)
-            or not isinstance(rows, list)
+            or not isinstance(official_label, str)
+            or resource in managed_by_iri
         ):
-            raise ValueError("ICPSR managed concept identity or relations differ")
-        for relation in rows:
-            if not isinstance(relation, Mapping):
-                raise ValueError(f"ICPSR {resource} relation must be an object")
-            relation_name = relation.get("relation")
-            target = relation.get("targetConceptIri")
-            target_label = relation.get("targetLabel")
-            if not isinstance(relation_name, str) or not isinstance(target_label, str):
-                raise ValueError(f"ICPSR {resource} relation shape differs")
-            if relation.get("resolutionStatus") != "uriVerified":
-                unresolved_relations += 1
-                continue
-            if not isinstance(target, str):
-                raise ValueError(f"ICPSR {resource} verified relation has no target IRI")
+            raise ValueError("ICPSR managed concept identity differs")
+        index_term = index_by_iri.get(resource)
+        xml_term = xml_by_label.get(official_label)
+        if index_term is None or xml_term is None:
+            raise ValueError(
+                f"ICPSR managed concept {resource} is absent from raw index or XML bytes"
+            )
+        page = page_by_letter.get(str(index_term["sourceLetter"]))
+        if page is None:
+            raise ValueError(f"ICPSR managed concept {resource} has no source page")
+        expected_relations: list[dict[str, Any]] = []
+        for relation_name, target_label in xml_term.relation_labels():
+            relation: dict[str, Any] = {
+                "relation": relation_name,
+                "targetLabel": target_label,
+            }
+            target = index_by_label.get(target_label)
+            if target is None:
+                relation["resolutionStatus"] = "unresolvedSourceSkew"
+            else:
+                relation["resolutionStatus"] = "uriVerified"
+                relation["targetConceptIri"] = target["conceptIri"]
+            expected_relations.append(relation)
+        expected_concept = {
+            "conceptIri": resource,
+            "identifiers": _icpsr_index_identifiers(
+                index_term,
+                page,
+                scheme_iri,
+            ),
+            "inputTimestamp": xml_term.input_timestamp,
+            "officialLabel": official_label,
+            "officialLabelRole": (
+                "preferred" if index_term["preferred"] else "alternate"
+            ),
+            "publisherCode": index_term["code"],
+            "relations": expected_relations,
+            "scopeNotes": list(xml_term.scope_notes),
+            "sourceLetter": index_term["sourceLetter"],
+            "sourceLocalRecordNumber": xml_term.source_local_record_number,
+            "updateTimestamp": xml_term.update_timestamp,
+            "xmlLabelRole": (
+                "preferred" if xml_term.preferred else "alternate"
+            ),
+        }
+        if dict(concept) != expected_concept:
+            raise ValueError(
+                f"ICPSR managed concept {resource} differs from raw index and XML bytes"
+            )
+        managed_by_iri[resource] = concept
+        label_source_path = (
+            f"index/pages/{index_term['sourceLetter']}#term={index_term['code']}"
+        )
+        expected_expressions.append(
+            _icpsr_indexed_expression(
+                release_iri=release_id,
+                member_iri=resource,
+                semantic_property_iri=(
+                    SKOS_PREF_LABEL
+                    if index_term["preferred"]
+                    else SKOS_ALT_LABEL
+                ),
+                original_literal=official_label,
+                role=(
+                    "preferredLabel"
+                    if index_term["preferred"]
+                    else "alternateLabel"
+                ),
+                source_path=label_source_path,
+            )
+        )
+        for note_ordinal, note in enumerate(xml_term.scope_notes, start=1):
+            expected_expressions.append(
+                _icpsr_indexed_expression(
+                    release_iri=release_id,
+                    member_iri=resource,
+                    semantic_property_iri=SKOS_SCOPE_NOTE,
+                    original_literal=note,
+                    role="scopeNote",
+                    source_path=(
+                        "subject.xml#record="
+                        f"{xml_term.source_local_record_number};scopeNote={note_ordinal}"
+                    ),
+                )
+            )
+
+    indexed_expressions: list[Mapping[str, Any]] = []
+    for line_number, line in enumerate(
+        artifact_payloads["records/indexed-expressions.jsonl"].splitlines(),
+        start=1,
+    ):
+        if not line.strip():
+            continue
+        row = _json_without_duplicates(
+            line,
+            f"ICPSR indexed-expression line {line_number}",
+        )
+        if not isinstance(row, Mapping):
+            raise ValueError(
+                f"ICPSR indexed-expression line {line_number} is not an object"
+            )
+        indexed_expressions.append(row)
+    expected_expressions.sort(key=lambda row: str(row["id"]))
+    if [dict(row) for row in indexed_expressions] != expected_expressions:
+        raise ValueError(
+            "ICPSR indexed expressions differ from raw index and XML literals"
+        )
+
+    expected_index_only = [
+        {
+            "code": term["code"],
+            "conceptIri": term["conceptIri"],
+            "label": term["label"],
+            "preferred": term["preferred"],
+        }
+        for term in parsed_index_terms
+        if term["label"] not in xml_by_label
+    ]
+    expected_index_only.sort(key=lambda term: str(term["label"]))
+    expected_xml_only = [
+        term.label for term in xml_terms if term.label not in index_by_label
+    ]
+    expected_role_conflicts = [
+        {
+            "indexPreferred": bool(index_by_label[term.label]["preferred"]),
+            "label": term.label,
+            "xmlPreferred": term.preferred,
+        }
+        for term in xml_terms
+        if term.label in index_by_label
+        and bool(index_by_label[term.label]["preferred"]) != term.preferred
+    ]
+    expected_unresolved = [
+        {
+            "relation": str(relation["relation"]),
+            "sourceConceptIri": str(concept["conceptIri"]),
+            "targetLabel": str(relation["targetLabel"]),
+        }
+        for concept in concepts
+        for relation in concept["relations"]
+        if relation["resolutionStatus"] != "uriVerified"
+    ]
+    expected_gap_fields = {
+        "indexOnlyCount": len(expected_index_only),
+        "indexOnlyTerms": expected_index_only,
+        "roleConflictCount": len(expected_role_conflicts),
+        "roleConflicts": expected_role_conflicts,
+        "unresolvedRelationCount": len(expected_unresolved),
+        "unresolvedRelations": expected_unresolved,
+        "xmlOnlyCount": len(expected_xml_only),
+        "xmlOnlyLabels": expected_xml_only,
+    }
+    if {key: gaps.get(key) for key in expected_gap_fields} != expected_gap_fields:
+        raise ValueError("ICPSR coverage gaps differ from raw index and XML bytes")
+    raw_source_relation_count = sum(
+        1 for term in xml_terms for _ in term.relation_labels()
+    )
+    managed_source_relation_count = sum(
+        1
+        for term in xml_terms
+        if term.label in index_by_label
+        for _ in term.relation_labels()
+    )
+    expected_source_counts = {
+        "publicIndexTerms": len(parsed_index_terms),
+        "uriVerifiedJoins": len(concepts),
+        "xmlTerms": len(xml_terms),
+    }
+    expected_relation_coverage = {
+        "explicitlyExcludedCount": len(expected_unresolved),
+        "failedCount": 0,
+        "sourceObservedCount": managed_source_relation_count,
+        "uriResolvedCount": managed_source_relation_count - len(expected_unresolved),
+    }
+    if coverage.get("sourceCounts") != expected_source_counts:
+        raise ValueError("ICPSR coverage source counts differ from raw bytes")
+    if coverage.get("relationCoverage") != expected_relation_coverage:
+        raise ValueError("ICPSR coverage relation counts differ from raw XML")
+    expected_manifest_counts = {
+        "concepts": len(concepts),
+        "indexOnlyGaps": len(expected_index_only),
+        "indexedExpressions": len(expected_expressions),
+        "roleConflicts": len(expected_role_conflicts),
+        "unresolvedRelations": len(expected_unresolved),
+        "xmlOnlyGaps": len(expected_xml_only),
+    }
+    if dict(counts) != expected_manifest_counts:
+        raise ValueError("ICPSR managed release counts differ from reconstructed artifacts")
+
+    recorded_at = coverage.get("recordedAt")
+    if not isinstance(recorded_at, str):
+        raise ValueError("ICPSR coverage has no recordedAt date-time")
+    xml_only_identity: dict[str, tuple[str, str, dict[str, str]]] = {
+        label: _icpsr_xml_only_identity(
+            scheme_iri,
+            recorded_at,
+            xml_by_label[label].source_local_record_number,
+        )
+        for label in expected_xml_only
+    }
+    label_to_resource = {
+        label: str(term["conceptIri"])
+        for label, term in index_by_label.items()
+    }
+    label_to_resource.update(
+        {label: identity[0] for label, identity in xml_only_identity.items()}
+    )
+
+    raw_relations: list[tuple[str, str, str, Mapping[str, Any]]] = []
+    for term in xml_terms:
+        subject = label_to_resource.get(term.label)
+        if subject is None:
+            raise ValueError(
+                f"ICPSR XML relation subject remains unresolved: {term.label!r}"
+            )
+        for relation_name, target_label in term.relation_labels():
+            target = label_to_resource.get(target_label)
+            if target is None:
+                raise ValueError(
+                    f"ICPSR XML relation target remains unresolved: {target_label!r}"
+                )
             raw_relations.append(
                 (
-                    resource,
+                    subject,
                     relation_name,
                     target,
                     {
                         "relation": relation_name,
-                        "sourceLabel": source_label,
-                        "sourceLocalRecordNumber": local_number,
-                        "sourcePath": f"subject.xml#record={local_number}",
+                        "sourceLabel": term.label,
+                        "sourceLocalRecordNumber": term.source_local_record_number,
+                        "sourcePath": (
+                            "subject.xml#record="
+                            + term.source_local_record_number
+                        ),
                         "targetLabel": target_label,
                     },
                 )
             )
+    managed_resolved_relations = {
+        (
+            str(concept["conceptIri"]),
+            str(relation["relation"]),
+            str(relation["targetConceptIri"]),
+        )
+        for concept in concepts
+        for relation in concept["relations"]
+        if relation["resolutionStatus"] == "uriVerified"
+    }
+    raw_relation_keys = {
+        (subject, relation_name, target)
+        for subject, relation_name, target, _ in raw_relations
+    }
+    if not managed_resolved_relations <= raw_relation_keys:
+        raise ValueError(
+            "ICPSR managed relation oracle differs from the raw XML reconstruction"
+        )
+    if len(raw_relations) != raw_source_relation_count:
+        raise ValueError("ICPSR raw relation reconstruction count differs")
     broader_graph: dict[str, set[str]] = defaultdict(set)
     for subject, relation_name, target, _ in raw_relations:
         if relation_name == "broader":
@@ -9934,24 +10609,81 @@ def _read_icpsr_managed_release(
                 source_digest=_canonical_json_digest(native_payload),
                 native_payload=native_payload,
             )
+        for gap in expected_index_only:
+            resource = str(gap["conceptIri"])
+            term = index_by_iri[resource]
+            page = page_by_letter[str(term["sourceLetter"])]
+            source_path = (
+                f"index/pages/{term['sourceLetter']}#term={term['code']}"
+            )
+            native_payload = {
+                "identityStatus": "publisherIdentifierVerified",
+                "indexTerm": _icpsr_index_native_term(term, page, scheme_iri),
+                "sourceArtifactDigests": {
+                    "indexManifest": index_manifest_digest,
+                },
+                "sourcePath": source_path,
+                "sourceScheme": scheme_iri,
+            }
+            literal = _literal_value(str(term["label"]), None, None)
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(literal,) if term["preferred"] else (),
+                alternate_labels=() if term["preferred"] else (literal,),
+                notations=(),
+                annotations=(),
+                source_locator=resource,
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
+        for label in expected_xml_only:
+            term = xml_by_label[label]
+            resource, seed, source_identity = xml_only_identity[label]
+            source_path = (
+                "subject.xml#record=" + term.source_local_record_number
+            )
+            native_payload = {
+                "identityStatus": "publisherIdentifierAbsent",
+                "identitySeed": seed,
+                "mintingPolicy": "sourceNamespaceTokenPlusUuid7LocalRecordId",
+                "mintingRule": (
+                    "derive_uuid7(recordedAt, "
+                    "sourceScheme#source-local-record-number=TNR)"
+                ),
+                "recordedAt": recorded_at,
+                "sourceArtifactDigests": {"subjectXml": subject_xml_digest},
+                "sourceIdentity": source_identity,
+                "sourceLocalRecordNumber": term.source_local_record_number,
+                "sourcePath": source_path,
+                "xmlTerm": term.native_payload(),
+            }
+            locator = (
+                "urn:ref:icpsr:subject-xml:"
+                + subject_xml_digest.removeprefix("sha256:")
+                + "#record="
+                + term.source_local_record_number
+            )
+            literal = _literal_value(label, None, None)
+            notes = tuple(
+                (SKOS_SCOPE_NOTE, _literal_value(note, None, None))
+                for note in term.scope_notes
+            )
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(literal,) if term.preferred else (),
+                alternate_labels=() if term.preferred else (literal,),
+                notations=(),
+                annotations=notes,
+                source_locator=locator,
+                source_digest=_canonical_json_digest(native_payload),
+                native_payload=native_payload,
+            )
 
-    index_only = gaps.get("indexOnlyTerms")
-    xml_only = gaps.get("xmlOnlyLabels")
-    if not isinstance(index_only, list) or not isinstance(xml_only, list):
-        raise ValueError("ICPSR coverage gap lists are missing")
-    unevaluated = (
-        f"ICPSR managed release declares {len(index_only)} index-only union members outside records/concepts.jsonl",
-        f"ICPSR managed release declares {len(xml_only)} XML-only union members outside records/concepts.jsonl",
-        f"ICPSR managed concepts contain {unresolved_relations} unresolved source-skew relations",
-        "ICPSR raw index HTML, subject XML, and indexed-expression artifacts are authenticated transitively but not reparsed by this managed-release reader",
-    )
     return _stock_vocabulary_view(
         records(),
         relations,
         (),
         spec.inputs,
-        unevaluated_claims=unevaluated,
-        require_relation_members=False,
         expected_relation_payloads=relation_payloads,
     )
 
@@ -16933,13 +17665,21 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         reader=ICPSR_MANAGED_RELEASE_READER,
+        identity_policy="publisher-iri-or-source-local-record",
         rdf_source=_rdf_source_policy(
             frozenset(
                 {
+                    "identitySeed",
                     "identityStatus",
                     "indexTerm",
                     "managedConcept",
+                    "mintingPolicy",
+                    "mintingRule",
+                    "recordedAt",
                     "sourceArtifactDigests",
+                    "sourceIdentity",
+                    "sourceLocalRecordNumber",
+                    "sourcePath",
                     "sourcePaths",
                     "sourceScheme",
                     "xmlTerm",
@@ -18011,6 +18751,7 @@ def check_configuration(ctx: Context) -> CheckResult:
             failures.append(f"{spec.name}: unsupported comparison kind {spec.kind!r}")
         if spec.identity_policy not in {
             "publisher-iri",
+            "publisher-iri-or-source-local-record",
             "source-local-record",
             "source-key-derived",
             "source-scoped-identifier",
@@ -18748,6 +19489,7 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         if (
             pair.publisher.source_digest_is_native_payload_digest
             and len(expected_digests) == 1
+            and not reader_expected_payload
         ):
             expected_per_record_fields |= expected_payload_fields
         missing_fields = sorted(
@@ -19424,6 +20166,30 @@ def check_identifier_retention(ctx: Context) -> CheckResult:
                     f"{pair.spec.name}: Atlas concept <{resource}> carries a minted "
                     "RefSpec identifier where the publisher supplies its own IRI"
                 )
+            continue
+        if pair.spec.identity_policy == "publisher-iri-or-source-local-record":
+            for resource in sorted(atlas_concepts):
+                native_payload = pair.publisher.expected_native_payloads.get(resource)
+                identity_status = (
+                    native_payload.get("identityStatus")
+                    if isinstance(native_payload, Mapping)
+                    else None
+                )
+                if identity_status == "publisherIdentifierVerified":
+                    valid = not resource.startswith("urn:ref:")
+                elif identity_status == "publisherIdentifierAbsent":
+                    valid = resource.startswith("urn:ref:source-concept:v2:")
+                else:
+                    failures.append(
+                        f"{pair.spec.name}: publisher identity status for <{resource}> "
+                        f"is unsupported or absent: {identity_status!r}"
+                    )
+                    continue
+                if not valid:
+                    failures.append(
+                        f"{pair.spec.name}: Atlas concept <{resource}> does not match "
+                        f"the independently reconstructed {identity_status} identity form"
+                    )
             continue
         if pair.spec.identity_policy in {
             "source-local-record",
