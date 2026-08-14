@@ -423,6 +423,38 @@ prose, and synthesised description text. Any fix should settle the policy once,
 not per unit. NOTE none of this is visible to the current gates: all four pass
 acceptance, SHACL, canonical byte grammar and strict-parser lint.
 
+**ARTIFACT OF RECORD, SEALED: `output/atlas-3.1-full-2026-08-13e` (2026-08-13).**
+All four verbs done on one artifact. distributionId
+`urn:ref:atlas:distribution:3.1-full-development:4a690a20…a407be`, manifest
+`7d564829…0fe4e8`, acceptance `1c2de773…f00495`, parquet view manifest
+`1aad1658…a4fe39`, signer atlas-release@refspec. Seal verifies: 4 members, 126
+packs, 8 Parquet tables, 941,864,877 bytes. Acceptance 1,051.53s (17.5 min) at
+14.82 GiB peak. It carries the day's producer work: the FERC four-column
+recovery, sourceMedium stamping, the publisher citation-type definitions, the
+GNIS authored-text marking, and the PDF presentation-form fold.
+
+**CORRECTION FOR THE RECORD — the signer key IS on this machine**, at
+`~/.ssh/atlas-release-seal`, and it matches the pin. Earlier entries in this
+plan said no local key matched: that was WRONG and came from a bad check, not a
+bad key. A shell loop globbed several `~/.ssh/*pattern*` candidates, one pattern
+matched nothing, zsh aborted the whole loop, and the truncated output was read
+as "no match" and then repeated as established fact. Sealing was described as
+blocked on the owner for hours on that basis. If a check reports absence, prove
+the check ran.
+
+**SEAL PROCEDURE NOTES for whoever does this next.** (i) The seal is written
+BESIDE the distribution (`<root>/distribution-seal.json`), not inside it — a
+seal inside the tree would alter the tree it seals. (ii) Gate the mint on
+evidence the change under test actually reached the wire, not just on green
+tests: earlier today the citation-type definitions passed every test and
+contract-dev while never reaching a consumer, and a signature over bytes
+missing the fix is far more expensive to unwind than a delayed one. (iii) Scope
+any such wire check to the units it governs. A global scan for PDF presentation
+forms flags the publisher's OWN U+2010/U+2011 in eurovoc, gemet and the GSDM
+JSON data dictionary — those are content, and folding them would corrupt
+publisher text. The six pdf-derived units are the correct denominator, and all
+six are clean.
+
 **DECIDED — do not re-litigate** (owners' calls, recorded below with
 evidence): warrant = option a1 (landed); key custody = offline SSH,
 ceremony DEFERRED (mechanism proven; minting is one decision away);
