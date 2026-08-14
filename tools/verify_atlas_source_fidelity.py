@@ -2423,8 +2423,6 @@ FCC_BUREAUS_JSON_READER = "fcc-bureaus-json-v1/1.0"
 FCC_PROCEEDINGS_JSON_READER = "fcc-proceedings-json-v1/1.0"
 FEDERAL_HIERARCHY_JSON_READER = "federal-hierarchy-json-v1/1.0"
 GOVINFO_PACKAGE_JSON_READER = "govinfo-package-json-v1/1.0"
-SAM_UEI_JSON_READER = "sam-uei-json-v1/1.0"
-SAM_CAGE_JSON_READER = "sam-cage-json-v1/1.0"
 SPEC_SCOPED_RECORD_READERS = frozenset(
     {
         CSV_RECORD_SELECTOR_READER,
@@ -2444,8 +2442,6 @@ SPEC_SCOPED_RECORD_READERS = frozenset(
         NRC_ADAMS_MULTI_ARTIFACT_READER,
         OOXML_RELATIONAL_READER,
         PATTERN_ROW_READER,
-        SAM_CAGE_JSON_READER,
-        SAM_UEI_JSON_READER,
         USASPENDING_AWARD_TYPES_JSON_READER,
         XML_RECORD_SELECTOR_READER,
     }
@@ -5825,90 +5821,6 @@ def _sam_identifier(
     }
 
 
-def _read_sam_capture(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-    *,
-    identity_kind: str,
-) -> PublisherView:
-    pin, payload = _single_pin(spec, payloads)
-    data = _json_without_duplicate_keys(payload, spec.name)
-    if not isinstance(data, Mapping):
-        raise ValueError(f"{spec.name} must be a JSON object")
-    rows = _mapping_rows(data.get("entityData"), f"{spec.name}.entityData")
-    if len(rows) != 1 or not isinstance(rows[0].get("entityRegistration"), Mapping):
-        raise ValueError(f"{spec.name} requires one public entity registration")
-    registration = rows[0]["entityRegistration"]
-    uei = _required_text(registration.get("ueiSAM"), f"{spec.name}.ueiSAM")
-    cage = _required_text(registration.get("cageCode"), f"{spec.name}.cageCode")
-    label = _required_text(
-        registration.get("legalBusinessName"), f"{spec.name}.legalBusinessName"
-    )
-    if identity_kind == "uei":
-        resource = f"urn:ref:sam-entity:uei:{uei}"
-        native = {
-            "identifier": _sam_identifier(
-                value=uei,
-                kind="samUniqueEntityId",
-                authority="https://sam.gov/entity-registration",
-                pin=pin,
-            ),
-            "legalBusinessName": label,
-            "registrationStatus": str(registration.get("registrationStatus")).lower(),
-            "immediateParentUei": None,
-            "highestLevelOwnerUei": None,
-            "accessClassification": "public",
-        }
-        relations: tuple[tuple[str, str], ...] = ()
-    else:
-        resource = f"urn:ref:dla-cage-facility:{cage}"
-        native = {
-            "identifier": _sam_identifier(
-                value=cage,
-                kind="dlaCageCode",
-                authority=(
-                    "https://www.dla.mil/Working-With-DLA/Applications/Details/"
-                    "Article/2920893/cage-code-commercial-and-government-entity-code/"
-                ),
-                pin=pin,
-            ),
-            "facilityName": label,
-            "cageStatus": "notObserved",
-            "associatedUei": uei,
-            "accessClassification": "public",
-        }
-        relations = ((f"{ATLAS}relatedEntity", f"urn:ref:sam-entity:uei:{uei}"),)
-    record = _ApiCaptureRecord(
-        resource=resource,
-        preferred_label=label,
-        notations=(),
-        source_locator=pin.source_iri or "",
-        source_digest=pin.sha256,
-        native_payload=native,
-        relations=relations,
-    )
-    return _api_capture_view(
-        [record],
-        spec,
-        payloads,
-        unevaluated_claims=(
-            "SAM registration lifecycle and API paging fields are authenticated but outside this bounded identity record",
-        ),
-    )
-
-
-def _read_sam_uei_capture(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    return _read_sam_capture(spec, payloads, identity_kind="uei")
-
-
-def _read_sam_cage_capture(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    return _read_sam_capture(spec, payloads, identity_kind="cage")
 
 
 FEDERAL_REGISTER_THESAURUS_2025_EXTRACT_READER = (
@@ -10706,8 +10618,6 @@ _PUBLISHER_READERS: Mapping[
     NASA_TAXONOMY_JSON_READER: _read_nasa_capture,
     NRC_ADAMS_MULTI_ARTIFACT_READER: _read_nrc_adams_multi_artifact,
     OOXML_RELATIONAL_READER: _read_ooxml_relational,
-    SAM_CAGE_JSON_READER: _read_sam_cage_capture,
-    SAM_UEI_JSON_READER: _read_sam_uei_capture,
     USASPENDING_AWARD_TYPES_JSON_READER: _read_usaspending_capture,
     CRS_SOURCE_CONCEPT_RELEASE_READER: _read_crs_source_concept_release,
     EPA_ENTERPRISE_VOCABULARY_XML_READER: _read_epa_enterprise_vocabulary_xml,
@@ -13209,69 +13119,6 @@ def _pra_pattern_source() -> SourceSpec:
 PRA_PATTERN_ROW_SOURCES = (_pra_pattern_source(),)
 
 
-_EPA_COMPTOX_PATTERN_PIN = _registry_source_pin(
-    "comptox-DTXSID7020182.normalized.html",
-    "sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803",
-    334_109,
-    "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
-    fmt="html",
-    role="boundedPublisherSubstancePage",
-    construction_path=(
-        "output/registry-real-data-sources/"
-        "comptox-DTXSID7020182.normalized.html"
-    ),
-)
-
-
-def _epa_comptox_pattern_source() -> SourceSpec:
-    native_payload = {
-        "casrn": "{casrn}",
-        "dtxcid": "{dtxcid}",
-        "dtxsid": "{dtxsid}",
-        "preferredName": "{label}",
-        "sourceUri": "{source_iri}",
-        "tscaInventoryStatus": None,
-    }
-    selector = PatternRowSelector(
-        patterns=(
-            PatternRowPattern(
-                input_pattern=re.escape(_EPA_COMPTOX_PATTERN_PIN.path),
-                region_pattern=r"(?P<region>[\s\S]+)",
-                row_pattern=(
-                    r"\A(?=[\s\S]*\b(?P<dtxsid>DTXSID\d{6,9})\b)"
-                    r"(?=[\s\S]*\b(?P<dtxcid>DTXCID\d{4,9})\b)"
-                    r'(?=[\s\S]*casrn:"(?P<casrn>\d{2,7}-\d{2}-\d)")'
-                    r'(?=[\s\S]*preferredName:"(?P<label>[^"\\]+)")'
-                    r"[\s\S]*?<title>CompTox Chemicals Dashboard</title>"
-                ),
-                expected_input_count=1,
-                expected_region_count=1,
-                expected_row_count=1,
-            ),
-        ),
-        row_key="{dtxsid}",
-        identity_mode="source-key-derived",
-        identity_template="urn:ref:epa-substance:{dtxsid}",
-        source_locator_template="{source_iri}",
-        claim_map=(
-            ("preferred_label", "{label}"),
-            ("source_path", "{input_path}"),
-        ),
-        native_payload_template_json=_canonical_json_bytes(native_payload).decode(
-            "utf-8"
-        ),
-        native_payload_fields=tuple(sorted(native_payload)),
-        expected_count=1,
-        declared_unevaluated_fields=("htmlOutsideCompToxIdentifiers",),
-    )
-    return _pattern_row_source_spec(
-        "epa-comptox-substance-bounded-2026-08-03",
-        (_EPA_COMPTOX_PATTERN_PIN,),
-        selector,
-    )
-
-
-EPA_COMPTOX_PATTERN_ROW_SOURCES = (_epa_comptox_pattern_source(),)
 
 
 _FAC_PATTERN_PIN = SourcePin(
@@ -15304,83 +15151,6 @@ def _nppes_layout_csv_source() -> SourceSpec:
     )
 
 
-def _nppes_provider_csv_source() -> SourceSpec:
-    native_template = json.dumps(
-        {
-            "entityTypeCode": "{Entity Type Code}",
-            "fields": "{row_fields}",
-            "identifier": {
-                "authorityUri": "https://nppes.cms.hhs.gov/",
-                "effectiveAt": None,
-                "kind": "nationalProviderIdentifier",
-                "observedAt": "2026-08-03T19:22:12Z",
-                "sourceDigest": "{input_sha256}",
-                "sourceUri": _NPPES_WEEKLY_SOURCE_IRI,
-                "value": "{NPI}",
-            },
-            "publisherLabel": "{preferred_label}",
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return SourceSpec(
-        name="nppes-npi-provider-sample-2026-08-03",
-        kind="vocabulary",
-        release_keys=("nppes-npi-provider-sample-2026-08-03",),
-        inputs=(_NPPES_HEADER_CSV_PIN, _NPPES_SAMPLE_CSV_PIN),
-        reader=CSV_RECORD_SELECTOR_READER,
-        csv_record=CsvRecordSelector(
-            input_role="publisherProviderSample",
-            header_role="publisherFileHeader",
-            encoding="utf-8",
-            delimiter=",",
-            quotechar='"',
-            projections=(CsvProjection("rows", 3),),
-            row_key="NPI",
-            identity_mode="publisher-key",
-            identity_template="urn:ref:nppes-provider:{NPI}",
-            source_path_template="{input_source_iri}",
-            source_locator_template="{input_source_iri}",
-            claim_map=(
-                ("preferred_label", "preferred_label"),
-                ("source_path", "source_path"),
-            ),
-            native_payload_template_json=native_template,
-            native_payload_fields=tuple(json.loads(native_template)),
-            expected_count=3,
-            expected_data_rows=3,
-            max_data_rows=10,
-            label_discriminator_field="Entity Type Code",
-            label_rules=(
-                CsvLabelRule(
-                    "1",
-                    (
-                        "Provider Name Prefix Text",
-                        "Provider First Name",
-                        "Provider Middle Name",
-                        "Provider Last Name (Legal Name)",
-                        "Provider Credential Text",
-                    ),
-                ),
-                CsvLabelRule(
-                    "2",
-                    ("Provider Organization Name (Legal Business Name)",),
-                ),
-            ),
-            validators=(
-                CsvFieldValidator(
-                    "Entity Type Code",
-                    "allowed-values",
-                    ("1", "2"),
-                ),
-                CsvFieldValidator("NPI", "npi-luhn"),
-            ),
-            declared_unevaluated_fields=(),
-        ),
-        identity_policy="source-key-derived",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
-    )
 
 
 _OPM_PLUM_HEADER = (
@@ -15489,7 +15259,6 @@ def _opm_plum_csv_source() -> SourceSpec:
 
 CSV_RECORD_SELECTOR_SOURCES = (
     _nppes_layout_csv_source(),
-    _nppes_provider_csv_source(),
     _opm_plum_csv_source(),
 )
 
@@ -16853,7 +16622,6 @@ SOURCES: tuple[SourceSpec, ...] = (
     *CENSUS_FINANCE_PATTERN_ROW_SOURCES,
     *NASBO_PATTERN_ROW_SOURCES,
     *PRA_PATTERN_ROW_SOURCES,
-    *EPA_COMPTOX_PATTERN_ROW_SOURCES,
     *FAC_PATTERN_ROW_SOURCES,
     *CENSUS_GEO_PATTERN_ROW_SOURCES,
     *GAO_PATTERN_ROW_SOURCES,
@@ -17353,78 +17121,6 @@ SOURCES: tuple[SourceSpec, ...] = (
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(frozenset({"fixity", "summary"})),
-    ),
-    SourceSpec(
-        name="sam-uei-bounded-public-entity-2026-08-03",
-        kind="vocabulary",
-        release_keys=("sam-uei-bounded-public-entity-2026-08-03",),
-        inputs=(
-            _registry_source_pin(
-                "sam-entity-3m-public.json",
-                "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
-                1_076,
-                (
-                    "https://api.sam.gov/entity-information/v4/entities?"
-                    "ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
-                ),
-                fmt="json",
-                role="boundedPublicEntityResponse",
-                construction_path=(
-                    "output/registry-real-data-sources/sam-entity-3m-public.json"
-                ),
-            ),
-        ),
-        reader=SAM_UEI_JSON_READER,
-        identity_policy="source-key-derived",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "accessClassification",
-                    "highestLevelOwnerUei",
-                    "identifier",
-                    "immediateParentUei",
-                    "legalBusinessName",
-                    "registrationStatus",
-                }
-            )
-        ),
-    ),
-    SourceSpec(
-        name="sam-cage-bounded-public-facility-2026-08-03",
-        kind="vocabulary",
-        release_keys=("sam-cage-bounded-public-facility-2026-08-03",),
-        inputs=(
-            _registry_source_pin(
-                "sam-entity-3m-public.json",
-                "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
-                1_076,
-                (
-                    "https://api.sam.gov/entity-information/v4/entities?"
-                    "ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
-                ),
-                fmt="json",
-                role="boundedPublicEntityResponse",
-                construction_path=(
-                    "output/registry-real-data-sources/sam-entity-3m-public.json"
-                ),
-            ),
-        ),
-        reader=SAM_CAGE_JSON_READER,
-        identity_policy="source-key-derived",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "accessClassification",
-                    "associatedUei",
-                    "cageStatus",
-                    "facilityName",
-                    "identifier",
-                }
-            ),
-            additional_relation_predicates=(f"{ATLAS}relatedEntity",),
-        ),
     ),
     SourceSpec(
         name="crs-legislative-entities",

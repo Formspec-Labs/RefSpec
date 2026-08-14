@@ -1387,3 +1387,41 @@ survives is between two readings taken ~25 minutes apart, which catches a
 binding edited under a running build. The tripwire that always mattered —
 the independent validator recomputing those digests from the binding on
 *its* disk — is untouched.
+
+### REF-030: Registrant populations leave the Atlas for the entity registry
+
+- **Date:** 2026-08-14
+- **Status:** Accepted; executed. Amends the four-ring adoption (2026-08-04):
+  the entity ring survives, its registrant exemplars do not.
+
+**The split that matters.** Not "entities vs. concepts" — the entity ring's
+institutional rosters (Treasury FAST Book accounts, CourtListener
+jurisdictions, CRS legislative entities, federal hierarchy orgs, FCC bureaus)
+are finite, curated, slow-churning, published-by-an-authority reference and
+they stay. What leaves is open registrant populations: SAM registrants, CAGE
+facilities, NPI providers, CompTox substances. Those are referents with
+registry cadence — SAM churns daily against a sealed artifact reissued on
+vocabulary cadence — and their bounded exemplars (one 3M UEI record, one 3M
+CAGE facility, three NPI rows, one substance) proved the ingestion pathway
+during the 2026-08-03 registry audit and then had nothing further to say
+inside the Atlas.
+
+**Where they live now.** `refspec.registry.entity_registry_release` builds
+the standalone entity-registry object (`tools/generate_entity_registry.py`,
+first cut `output/entity-registry-2026-08-03`: 4 releases, 6 records, 8
+identifiers, 1 cross-authority relation) from the same pinned captures the
+Atlas adapters consumed, under the same URNs (`urn:ref:sam-entity:uei:…`,
+`urn:ref:dla-cage-facility:…`, `urn:ref:nppes-provider:…`,
+`urn:ref:epa-substance:…`), digest-manifested and tamper-refusing. Consumers
+that need to *reference* an entity join by URN; a consumer that needs to
+*enumerate* a population reads this object, never the Atlas.
+
+**The running check.** `load_releases` in `tools/generate_atlas_v3_full.py`
+refuses any release whose scheme falls under the four registrant authorities
+and any release emitting records under the four registrant URN prefixes, by
+name of this decision. A loader that reintroduces the authorities — or a
+renamed release re-ingesting the same records — fails the build. Pinned by
+`test_registrant_population_releases_are_refused`; the artifact side is
+pinned by `tests/test_entity_registry_release.py`. The NPPES *layout*
+release (structural field definitions) stays in the Atlas: structure is
+reference even when the rows it describes are not.

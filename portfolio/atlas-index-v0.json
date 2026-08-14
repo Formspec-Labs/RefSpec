@@ -8,6 +8,7 @@
     "refspec.registry.adapters.elsst_import_coverage",
     "refspec.registry.adapters.icpsr_zyte",
     "refspec.registry.claim_release_exports",
+    "refspec.registry.entity_registry_release",
     "refspec.registry.infrastructure.artifact_serialization",
     "refspec.registry.infrastructure.controlled_identifier",
     "refspec.registry.infrastructure.identifier_validation",
@@ -27,8 +28,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:a802318fc49e6a8247fa54ecf623a26ae738a52526c77e40e35d83dbf1168a87",
-  "indexId": "urn:ref:atlas-index:a802318fc49e6a8247fa54ecf623a26ae738a52526c77e40e35d83dbf1168a87",
+  "indexDigest": "sha256:c1a68178ce750e47c4fd58519cfa2dcdd7c886a965979b5251fdac5b40200b7e",
+  "indexId": "urn:ref:atlas-index:c1a68178ce750e47c4fd58519cfa2dcdd7c886a965979b5251fdac5b40200b7e",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -686,7 +687,7 @@
         "deterministicMetadata",
         "entityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -701,8 +702,8 @@
       ],
       "release": null,
       "resourceId": "epa-substance-identifiers",
-      "rowDigest": "sha256:9e97e08d19368116bd93f838a1cee2331f4e3754cdb02f1d2b9b702e965d3571",
-      "rowId": "urn:ref:atlas-index-row:9e97e08d19368116bd93f838a1cee2331f4e3754cdb02f1d2b9b702e965d3571",
+      "rowDigest": "sha256:ede0040853ad49586bdfc33b8cc81ce75bdc373f91b3fa4ce2573d275f6d5631",
+      "rowId": "urn:ref:atlas-index-row:ede0040853ad49586bdfc33b8cc81ce75bdc373f91b3fa4ce2573d275f6d5631",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.epa_srs_substances"
     },
@@ -1084,7 +1085,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_ferc_elibrary_codes.py",
-          "sha256": "sha256:590622e550c61cb49e9add51603c73f7a9352adbe67f40f0c3609753b91851e4"
+          "sha256": "sha256:1be502b8da16539d2e03ea0bd9c7684b420cbdac5ff68db52b9dcdfb8a77d7f8"
         },
         {
           "kind": "sourceImplementation",
@@ -1094,8 +1095,8 @@
       ],
       "release": null,
       "resourceId": "ferc-elibrary-identifiers",
-      "rowDigest": "sha256:403525d10fd1e8f96dc10c843e2dc0d47a33a72eff0daa7e09339f75e8b7b467",
-      "rowId": "urn:ref:atlas-index-row:403525d10fd1e8f96dc10c843e2dc0d47a33a72eff0daa7e09339f75e8b7b467",
+      "rowDigest": "sha256:1a2203b93e85ba0f5576297d9b76aa57c1fc1af36a61fcd92faed90e96264401",
+      "rowId": "urn:ref:atlas-index-row:1a2203b93e85ba0f5576297d9b76aa57c1fc1af36a61fcd92faed90e96264401",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1112,7 +1113,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_ferc_elibrary_codes.py",
-          "sha256": "sha256:590622e550c61cb49e9add51603c73f7a9352adbe67f40f0c3609753b91851e4"
+          "sha256": "sha256:1be502b8da16539d2e03ea0bd9c7684b420cbdac5ff68db52b9dcdfb8a77d7f8"
         },
         {
           "kind": "sourceImplementation",
@@ -1122,8 +1123,8 @@
       ],
       "release": null,
       "resourceId": "ferc-elibrary-native-controls",
-      "rowDigest": "sha256:598057c4d180dcce367012e2a6c58213763c66a6cfcab08a8d4f3bcb1725ce60",
-      "rowId": "urn:ref:atlas-index-row:598057c4d180dcce367012e2a6c58213763c66a6cfcab08a8d4f3bcb1725ce60",
+      "rowDigest": "sha256:1fc1c8cb0b283d3e9b7de48b83c12e2c5ea13f128727dc8c41fc8a6e56142e36",
+      "rowId": "urn:ref:atlas-index-row:1fc1c8cb0b283d3e9b7de48b83c12e2c5ea13f128727dc8c41fc8a6e56142e36",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1805,7 +1806,7 @@
         "deterministicMetadata",
         "entityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -1820,8 +1821,8 @@
       ],
       "release": null,
       "resourceId": "nppes-npi-authority",
-      "rowDigest": "sha256:497969e7846814061929a2acc130592fde001fc36053d571c39cdba3135347fb",
-      "rowId": "urn:ref:atlas-index-row:497969e7846814061929a2acc130592fde001fc36053d571c39cdba3135347fb",
+      "rowDigest": "sha256:5374b0887451bed76e0b8dc4c6092929f3b1bc45dc533742500de948cf294111",
+      "rowId": "urn:ref:atlas-index-row:5374b0887451bed76e0b8dc4c6092929f3b1bc45dc533742500de948cf294111",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -1838,18 +1839,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_nonemitters.py",
-          "sha256": "sha256:48e5d4d93ce5664ce8ead784b3249e1126b0d605e5480875f96cafa79804fa64"
+          "sha256": "sha256:3a2d351cb4e2fbc21c9f3a65d6b02682c297ae6e15caadc6de3aee0186ccf0a6"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_nonemitters.py",
-          "sha256": "sha256:0a31e51ead21ffe783ca531125efcb87968997e238f5465821269108951d0d20"
+          "sha256": "sha256:dcf8cdfd4f22927685f64e4826a2f921dc41b1ff4820a94271cf54923b2fb2ce"
         }
       ],
       "release": null,
       "resourceId": "nrc-adams-identifiers",
-      "rowDigest": "sha256:e98eaec62c323f27a84c315e7541680bf268744897b1c471f1d6725913f5c67e",
-      "rowId": "urn:ref:atlas-index-row:e98eaec62c323f27a84c315e7541680bf268744897b1c471f1d6725913f5c67e",
+      "rowDigest": "sha256:9f4b97db4c26205271306d172b7cb32452ea8e596a6ef5e9c9d0dfa22795a515",
+      "rowId": "urn:ref:atlas-index-row:9f4b97db4c26205271306d172b7cb32452ea8e596a6ef5e9c9d0dfa22795a515",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_codes"
     },
@@ -2477,7 +2478,7 @@
         "deterministicMetadata",
         "entityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -2492,8 +2493,8 @@
       ],
       "release": null,
       "resourceId": "cage-authority",
-      "rowDigest": "sha256:7977c1401642d92c92fc7172a83c2e7c3c8237d2f51f409b0b123a3ce1fcd146",
-      "rowId": "urn:ref:atlas-index-row:7977c1401642d92c92fc7172a83c2e7c3c8237d2f51f409b0b123a3ce1fcd146",
+      "rowDigest": "sha256:7103c0be79189f9905b14538939e7bc756fc91b7dc1090fd65d53031d919cee9",
+      "rowId": "urn:ref:atlas-index-row:7103c0be79189f9905b14538939e7bc756fc91b7dc1090fd65d53031d919cee9",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.uei_cage_identifiers"
     },
@@ -2505,7 +2506,7 @@
         "deterministicMetadata",
         "entityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -2520,8 +2521,8 @@
       ],
       "release": null,
       "resourceId": "uei-authority",
-      "rowDigest": "sha256:9b95f5f76f900b8d03b079915f8b56141e507daac0e774e5ddfedc7013e2de4f",
-      "rowId": "urn:ref:atlas-index-row:9b95f5f76f900b8d03b079915f8b56141e507daac0e774e5ddfedc7013e2de4f",
+      "rowDigest": "sha256:6a8d19122f15ed52e8897864c9ba9cac28fd9a13a697e0c57098a516a4955dbc",
+      "rowId": "urn:ref:atlas-index-row:6a8d19122f15ed52e8897864c9ba9cac28fd9a13a697e0c57098a516a4955dbc",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.uei_cage_identifiers"
     },
@@ -2640,7 +2641,7 @@
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 24,
+    "implementationModuleCount": 25,
     "participationCounts": {
       "bridge": 12,
       "core": 1,
@@ -2657,8 +2658,8 @@
     "statusCounts": {
       "deferred": 3,
       "notApplicable": 49,
-      "planned": 37,
-      "rejected": 0,
+      "planned": 33,
+      "rejected": 4,
       "superseded": 0,
       "unassessed": 0
     }

@@ -3594,3 +3594,40 @@ def test_every_other_mapping_ring_still_passes_producer_intake() -> None:
         assert generator._mapping_release_ring(ring) == generator.ATLAS[ring]
     with pytest.raises(ValueError, match="unsupported mapping semantic ring"):
         generator._mapping_release_ring("inventedRing")
+
+
+def test_registrant_population_releases_are_refused() -> None:
+    """REF-030's running check: registrant populations cannot re-enter the Atlas.
+
+    The entity registry (refspec.registry.entity_registry_release) owns SAM
+    registrants, CAGE facilities, NPI providers, and CompTox substances. A
+    loader that reintroduces one of their authorities -- or a renamed release
+    that re-ingests the same records -- must fail the build, not ship.
+    """
+
+    by_scheme = SimpleNamespace(
+        spec=SimpleNamespace(key="sam-uei-reintroduced"),
+        scheme_iri="urn:ref:atlas-resource-scheme:uei-authority",
+        resources=(),
+    )
+    with pytest.raises(ValueError, match="entity registry, not the Atlas"):
+        generator._refuse_registrant_population_release(by_scheme)
+
+    by_record = SimpleNamespace(
+        spec=SimpleNamespace(key="renamed-entity-release"),
+        scheme_iri="urn:ref:atlas-resource-scheme:renamed",
+        resources=(
+            SimpleNamespace(iri="urn:ref:sam-entity:uei:YLQMY5SGNE55"),
+        ),
+    )
+    with pytest.raises(ValueError, match="REF-030"):
+        generator._refuse_registrant_population_release(by_record)
+
+    institutional = SimpleNamespace(
+        spec=SimpleNamespace(key="courtlistener-jurisdictions-2026-08-03"),
+        scheme_iri="urn:ref:atlas-resource-scheme:courtlistener-jurisdictions",
+        resources=(
+            SimpleNamespace(iri="urn:ref:courtlistener:jurisdiction:scotus"),
+        ),
+    )
+    generator._refuse_registrant_population_release(institutional)

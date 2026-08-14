@@ -5,6 +5,11 @@ states its capture scope. Partial samples remain partial samples; structural
 definitions remain structural definitions; identifiers attach to the entity or
 legal resource they identify. No adapter promotes examples into authority
 membership or creates an identifier ring.
+
+Registrant populations (SAM registrants, CAGE facilities, NPI providers,
+CompTox substances) are not loaded here: they are referents with registry
+cadence, carried by ``refspec.registry.entity_registry_release`` instead, and
+the producer refuses their authorities outright (REF-030).
 """
 
 from __future__ import annotations
@@ -35,7 +40,6 @@ from refspec.atlas.v3_source_data import (
 from refspec.immutable import deep_freeze_json
 from refspec.registry import agrovoc_thesaurus as agrovoc
 from refspec.registry import epa_enterprise_vocabulary as epa_vocabulary
-from refspec.registry import epa_srs_substances as epa
 from refspec.registry import fac_dictionary as fac
 from refspec.registry import federal_hierarchy_orgs as fh
 from refspec.registry import gao_cra_facets as gao_cra
@@ -44,7 +48,6 @@ from refspec.registry import nalt_core
 from refspec.registry import nppes_npi_identifiers as nppes
 from refspec.registry import nrc_adams_codes as nrc
 from refspec.registry import treasury_tas_fast_book as treasury
-from refspec.registry import uei_cage_identifiers as sam
 from refspec.registry import usaspending_gsdm_codes as gsdm
 from refspec.vocabulary import is_english_language_tag
 
@@ -468,65 +471,6 @@ def _fac_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
-def _epa_substance_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    source_iri = "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182"
-    source_pin = _pin(
-        root,
-        "output/registry-real-data-sources/comptox-DTXSID7020182.normalized.html",
-        sha256="sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803",
-        byte_length=334_109,
-        source_iri=source_iri,
-        role="boundedPublisherSubstancePage",
-    )
-    sample = epa.parse_comptox_detail_page(
-        source_pin.path.read_bytes(),
-        source_uri=source_iri,
-        captured_at="2026-08-03T20:00:00Z",
-    )
-    resources = tuple(
-        RegistryResource(
-            iri=f"urn:ref:epa-substance:{record.dtxsid}",
-            labels=(_label(record.preferred_name, source_pin.logical_path),),
-            native_payload=_frozen(record.native_payload()),
-            source_locator=source_pin.source_iri,
-            source_digest=source_pin.sha256,
-            identifiers=tuple(
-                RegistryIdentifier(
-                    value=value,
-                    scheme_iri="urn:ref:atlas-resource-scheme:epa-substance-identifiers",
-                    source_path=f"{source_pin.logical_path}#{kind}",
-                )
-                for kind, value in (
-                    ("DTXSID", record.dtxsid),
-                    ("DTXCID", record.dtxcid),
-                    ("CASRN", record.casrn),
-                )
-                if value is not None
-            ),
-            status="boundedPublicSample",
-        )
-        for record in sample.records
-    )
-    return (
-        _release(
-            key="epa-comptox-substance-bounded-2026-08-03",
-            resource_id="epa-substance-identifiers",
-            source_module="refspec.registry.epa_srs_substances",
-            profile="identifierScheme",
-            ring="entity",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(source_pin,),
-            resources=resources,
-            metadata={
-                "completePublisherRelease": False,
-                "substanceCount": len(resources),
-                "identifierKinds": ["DTXSID", "DTXCID", "CASRN"],
-            },
-        ),
-    )
-
-
 def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
     captures = (
         (
@@ -874,24 +818,10 @@ def _nppes_releases(root: Path) -> tuple[RegistryRelease, ...]:
         source_iri=nppes.NPPES_FILEHEADER_SOURCE_ID,
         role="publisherFileHeader",
     )
-    sample_pin = _pin(
-        root,
-        "tests/fixtures/nppes_npi_identifiers/npidata_pfile_sample_v2.csv",
-        sha256=nppes.NPPES_SAMPLE_SHA256,
-        byte_length=nppes.NPPES_SAMPLE_BYTE_LENGTH,
-        source_iri=nppes.NPPES_WEEKLY_CAPTURE_URL + "#bounded-provider-sample",
-        role="publisherProviderSample",
-    )
     columns = nppes.parse_fileheader_columns(
         header_pin.path.read_bytes(),
         expected_sha256=header_pin.sha256,
         expected_byte_length=header_pin.byte_length,
-    )
-    providers = nppes.parse_npi_provider_sample(
-        sample_pin.path.read_bytes(),
-        columns,
-        expected_sha256=sample_pin.sha256,
-        expected_byte_length=sample_pin.byte_length,
     )
     layout_resources = tuple(
         RegistryResource(
@@ -911,24 +841,6 @@ def _nppes_releases(root: Path) -> tuple[RegistryRelease, ...]:
         )
         for ordinal, column in enumerate(columns)
     )
-    provider_resources = tuple(
-        RegistryResource(
-            iri=f"urn:ref:nppes-provider:{record.identifier.value}",
-            labels=(_label(record.publisher_label, sample_pin.logical_path),),
-            native_payload=_frozen(record.native_payload()),
-            source_locator=sample_pin.source_iri,
-            source_digest=sample_pin.sha256,
-            identifiers=(
-                RegistryIdentifier(
-                    value=record.identifier.value,
-                    scheme_iri="urn:ref:atlas-resource-scheme:nppes-npi-authority",
-                    source_path=f"{sample_pin.logical_path}#NPI",
-                ),
-            ),
-            status="boundedPublicSample",
-        )
-        for record in providers
-    )
     return (
         _release(
             key="nppes-data-dissemination-layout-v2-2026-08-03",
@@ -941,22 +853,6 @@ def _nppes_releases(root: Path) -> tuple[RegistryRelease, ...]:
             inputs=(header_pin,),
             resources=layout_resources,
             metadata={"fieldCount": len(columns), "layoutVersion": "2"},
-        ),
-        _release(
-            key="nppes-npi-provider-sample-2026-08-03",
-            resource_id="nppes-npi-authority",
-            source_module="refspec.registry.nppes_npi_identifiers",
-            profile="identifierScheme",
-            ring="entity",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(header_pin, sample_pin),
-            resources=provider_resources,
-            metadata={
-                "providerCount": len(providers),
-                "completeAuthority": False,
-                "providerFieldsRetained": len(columns),
-            },
         ),
     )
 
@@ -1204,99 +1100,6 @@ def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
-def _sam_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    pin_spec = sam.SAM_ENTITY_3M_PUBLIC_PIN
-    source_pin = _pin(
-        root,
-        "output/registry-real-data-sources/sam-entity-3m-public.json",
-        sha256=pin_spec.sha256,
-        byte_length=pin_spec.byte_length,
-        source_iri=pin_spec.url,
-        role="boundedPublicEntityResponse",
-    )
-    sample = sam.parse_sam_entity_public_response(source_pin.path.read_bytes(), pin_spec)
-    if len(sample.ueis) != 1 or len(sample.cages) != 1:
-        raise ValueError("bounded SAM sample must contain one UEI and one CAGE record")
-    uei = sample.ueis[0]
-    cage = sample.cages[0]
-    uei_iri = f"urn:ref:sam-entity:uei:{uei.identifier.value}"
-    cage_iri = f"urn:ref:dla-cage-facility:{cage.identifier.value}"
-    uei_resource = RegistryResource(
-        iri=uei_iri,
-        labels=(_label(uei.legal_business_name, source_pin.logical_path),),
-        native_payload=_frozen(uei.native_payload()),
-        source_locator=source_pin.source_iri,
-        source_digest=source_pin.sha256,
-        identifiers=(
-            RegistryIdentifier(
-                value=uei.identifier.value,
-                scheme_iri="urn:ref:atlas-resource-scheme:uei-authority",
-                source_path=f"{source_pin.logical_path}#entityRegistration.ueiSAM",
-            ),
-        ),
-        status=uei.registration_status,
-    )
-    cage_resource = RegistryResource(
-        iri=cage_iri,
-        labels=(_label(cage.facility_name, source_pin.logical_path),),
-        native_payload=_frozen(cage.native_payload()),
-        source_locator=source_pin.source_iri,
-        source_digest=source_pin.sha256,
-        identifiers=(
-            RegistryIdentifier(
-                value=cage.identifier.value,
-                scheme_iri="urn:ref:atlas-resource-scheme:cage-authority",
-                source_path=f"{source_pin.logical_path}#entityRegistration.cageCode",
-            ),
-        ),
-        status=cage.cage_status,
-    )
-    return (
-        _release(
-            key="sam-uei-bounded-public-entity-2026-08-03",
-            resource_id="uei-authority",
-            source_module="refspec.registry.uei_cage_identifiers",
-            profile="identifierScheme",
-            ring="entity",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(source_pin,),
-            resources=(uei_resource,),
-            metadata={"completeAuthority": False, "publicEntityCount": 1},
-        ),
-        _release(
-            key="sam-cage-bounded-public-facility-2026-08-03",
-            resource_id="cage-authority",
-            source_module="refspec.registry.uei_cage_identifiers",
-            profile="identifierScheme",
-            ring="entity",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(source_pin,),
-            resources=(cage_resource,),
-            relations=(
-                RegistryRelation(
-                    subject=cage_iri,
-                    predicate=ATLAS + "relatedEntity",
-                    object=uei_iri,
-                    source_payload=_frozen(
-                        {
-                            "associatedUei": cage.associated_uei,
-                            "relationMeaning": "facility is filed under the SAM registrant",
-                            "identityEquivalenceClaimed": False,
-                        }
-                    ),
-                ),
-            ),
-            metadata={
-                "completeAuthority": False,
-                "publicFacilityCount": 1,
-                "dlaCageStatusObserved": False,
-            },
-        ),
-    )
-
-
 def _gsdm_releases(root: Path) -> tuple[RegistryRelease, ...]:
     dictionary_pin = _pin(
         root,
@@ -1422,10 +1225,6 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
     ("gao-cra", frozenset({"gao-cra-database-facets-2026-08-04"})),
     ("fac", frozenset({"fac-api-field-dictionary-2026-08-03"})),
     (
-        "epa-substance",
-        frozenset({"epa-comptox-substance-bounded-2026-08-03"}),
-    ),
-    (
         "federal-hierarchy",
         frozenset({"federal-hierarchy-orgs-bounded-2026-08-03"}),
     ),
@@ -1436,12 +1235,7 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
     ("nalt", frozenset({"nalt-core-bounded-concepts-2026-08-03"})),
     (
         "nppes",
-        frozenset(
-            {
-                "nppes-data-dissemination-layout-v2-2026-08-03",
-                "nppes-npi-provider-sample-2026-08-03",
-            }
-        ),
+        frozenset({"nppes-data-dissemination-layout-v2-2026-08-03"}),
     ),
     (
         "nrc",
@@ -1458,15 +1252,6 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
             {
                 "treasury-fast-book-accounts-parts-ii-iii-2026-07",
                 "treasury-fast-book-fund-types-parts-ii-iii-2026-07",
-            }
-        ),
-    ),
-    (
-        "sam",
-        frozenset(
-            {
-                "sam-cage-bounded-public-facility-2026-08-03",
-                "sam-uei-bounded-public-entity-2026-08-03",
             }
         ),
     ),
@@ -1505,14 +1290,12 @@ def load_registry_nonemitter_releases(
         "epa-vocabulary": _epa_vocabulary_releases,
         "gao-cra": _gao_cra_releases,
         "fac": _fac_releases,
-        "epa-substance": _epa_substance_releases,
         "federal-hierarchy": _federal_hierarchy_releases,
         "govinfo-package": _govinfo_package_releases,
         "nalt": _nalt_releases,
         "nppes": _nppes_releases,
         "nrc": _nrc_releases,
         "treasury": _treasury_releases,
-        "sam": _sam_releases,
         "gsdm": _gsdm_releases,
     }
     releases: list[RegistryRelease] = []

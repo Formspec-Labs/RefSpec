@@ -651,7 +651,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:9ba4adca69be4c87f2f5eb928c6012857f4a74599254fd0e269d71fd34abd54a"
+    "sha256:20eb4f41eb4ddc633fdf4301c9c5912c0c70ae4c170a03c66378e1a3437b3473"
 )
 
 
@@ -2194,6 +2194,39 @@ def split_construction_unit_keys(
     return frozenset(include_keys - mapping_keys), frozenset(mapping_keys)
 
 
+# Registrant populations live in the entity-registry object, never in the
+# Atlas: a sealed reference artifact cannot track registry churn (REF-030).
+# The scheme refusal breaks any loader that reintroduces one of these
+# authorities; the IRI refusal breaks a renamed release that re-ingests the
+# same records under a new authority name.
+REGISTRANT_POPULATION_SCHEME_PREFIXES = (
+    "urn:ref:atlas-resource-scheme:cage-authority",
+    "urn:ref:atlas-resource-scheme:epa-substance-identifiers",
+    "urn:ref:atlas-resource-scheme:nppes-npi-authority",
+    "urn:ref:atlas-resource-scheme:uei-authority",
+)
+REGISTRANT_POPULATION_IRI_PREFIXES = (
+    "urn:ref:dla-cage-facility:",
+    "urn:ref:epa-substance:",
+    "urn:ref:nppes-provider:",
+    "urn:ref:sam-entity:",
+)
+
+
+def _refuse_registrant_population_release(release: LoadedRelease) -> None:
+    if release.scheme_iri.startswith(REGISTRANT_POPULATION_SCHEME_PREFIXES):
+        raise ValueError(
+            "registrant-population authority belongs to the entity registry, "
+            f"not the Atlas (REF-030): {release.spec.key} uses {release.scheme_iri}"
+        )
+    for resource in release.resources:
+        if resource.iri.startswith(REGISTRANT_POPULATION_IRI_PREFIXES):
+            raise ValueError(
+                "registrant-population records belong to the entity registry, "
+                f"not the Atlas (REF-030): {release.spec.key} emits {resource.iri}"
+            )
+
+
 def load_releases(
     include_keys: frozenset[str] | None = None,
     *,
@@ -2315,6 +2348,8 @@ def load_releases(
         missing = sorted(include_keys - observed)
         if missing:
             raise ValueError(f"selective Atlas source loaders do not know keys: {missing}")
+    for release in releases:
+        _refuse_registrant_population_release(release)
     return tuple(releases)
 
 

@@ -192,23 +192,23 @@ def test_nonemitter_loader_parses_one_group_and_filters_its_releases(
 ) -> None:
     called: list[str] = []
 
-    def nppes(_root: Path) -> tuple[Any, ...]:
-        called.append("nppes")
+    def nrc(_root: Path) -> tuple[Any, ...]:
+        called.append("nrc")
         return (
-            _release("nppes-data-dissemination-layout-v2-2026-08-03"),
-            _release("nppes-npi-provider-sample-2026-08-03"),
+            _release("nrc-adams-identifier-shapes-2026-08-03"),
+            _release("nrc-adams-native-controls-bounded-2026-08-03"),
         )
 
-    monkeypatch.setattr(nonemitters, "_nppes_releases", nppes)
+    monkeypatch.setattr(nonemitters, "_nrc_releases", nrc)
     releases = nonemitters.load_registry_nonemitter_releases(
         Path("/repo"),
-        only_keys={"nppes-npi-provider-sample-2026-08-03"},
+        only_keys={"nrc-adams-native-controls-bounded-2026-08-03"},
     )
 
     assert [release.key for release in releases] == [
-        "nppes-npi-provider-sample-2026-08-03"
+        "nrc-adams-native-controls-bounded-2026-08-03"
     ]
-    assert called == ["nppes"]
+    assert called == ["nrc"]
 
 
 def test_mapping_and_alignment_loaders_skip_empty_selections(

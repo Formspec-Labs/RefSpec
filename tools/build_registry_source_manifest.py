@@ -156,6 +156,47 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherApiResponse",
         },
     ),
+    # The entity-registry builder (REF-030) consumes the same pinned registrant
+    # captures its reader modules parse; it verifies each capture's digest and
+    # byte length itself before delegating to the readers.
+    "entity_registry_release.py": (
+        {
+            "name": "comptoxBisphenolAPage",
+            "localPath": "output/registry-real-data-sources/comptox-DTXSID7020182.normalized.html",
+            "publisherUrl": "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
+            "normalization": "stripCompToxSentryTrace",
+            "sha256": "sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803",
+            "byteLength": 334_109,
+            "provenance": "normalizedPublisherCapture",
+        },
+        {
+            "name": "nppesWeeklyFileHeaderExcerpt",
+            "localPath": "tests/fixtures/nppes_npi_identifiers/npidata_pfile_fileheader_v2.csv",
+            "publisherUrl": "https://download.cms.gov/nppes/NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip",
+            "sha256": "sha256:1f781040d7dae44496be1729250e79114b6dd03f17c10d7d8965486052177679",
+            "byteLength": 12_267,
+            "provenance": "publisherArchiveEntryExcerpt",
+            "scope": "exact file-header entry from the weekly ZIP",
+        },
+        {
+            "name": "nppesWeeklyThreeRowExcerpt",
+            "localPath": "tests/fixtures/nppes_npi_identifiers/npidata_pfile_sample_v2.csv",
+            "publisherUrl": "https://download.cms.gov/nppes/NPPES_Data_Dissemination_072726_080226_Weekly_V2.zip",
+            "sha256": "sha256:3735061e873e5db7cfb422aeaa7eea5514d0a5e8089765c94b82f0d43450a87d",
+            "byteLength": 15_866,
+            "provenance": "publisherArchiveEntryExcerpt",
+            "scope": "three exact provider rows from the weekly ZIP; entity ingestion remains intentionally bounded",
+        },
+        {
+            "name": "samEntity3mPublic",
+            "localPath": "output/registry-real-data-sources/sam-entity-3m-public.json",
+            "publisherUrl": "https://api.sam.gov/entity-information/v4/entities?ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration",
+            "sha256": "sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
+            "byteLength": 1_076,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+    ),
     "epa_srs_substances.py": (
         {
             "name": "comptoxBisphenolAPage",

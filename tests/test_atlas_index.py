@@ -87,7 +87,7 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["nonAuthorizing"] is True
     assert index["summary"] == {
         "exactReleaseCount": 6,
-        "implementationModuleCount": 24,
+        "implementationModuleCount": 25,
         "participationCounts": {"bridge": 12, "core": 1, "specialist": 4},
         "semanticRingCounts": {
             "entity": 12,
@@ -100,8 +100,11 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         "statusCounts": {
             "deferred": 3,
             "notApplicable": 49,
-            "planned": 37,
-            "rejected": 0,
+            "planned": 33,
+            # REF-030: the four registrant-population authorities (UEI, CAGE,
+            # NPI, CompTox) are rejected for Atlas participation; they live in
+            # the entity-registry object instead.
+            "rejected": 4,
             "superseded": 0,
             "unassessed": 0,
         },
