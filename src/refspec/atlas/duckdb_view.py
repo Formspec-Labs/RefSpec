@@ -248,6 +248,141 @@ class AtlasDuckDBView:
             "start": start_rows[0]["id"] if start_rows else "",
         }
 
+    def overview(self) -> dict[str, Any]:
+        """Return the whole-atlas map: every vocabulary and the relation volume between them."""
+
+        nodes = self.query_rows(
+            """
+            SELECT
+                release.id,
+                release.identifier,
+                release.semantic_ring AS ring,
+                count(resource.id) AS resources
+            FROM atlas_releases AS release
+            LEFT JOIN atlas_resources AS resource ON resource.release = release.id
+            WHERE release.release_type = 'AtlasRelease'
+            GROUP BY release.id, release.identifier, release.semantic_ring
+            ORDER BY lower(release.identifier), release.id
+            """
+        )
+        pairs = self.query_rows(
+            """
+            SELECT
+                least(source_release, target_release) AS source,
+                greatest(source_release, target_release) AS target,
+                statement_type,
+                count(*) AS count
+            FROM atlas_statements
+            GROUP BY 1, 2, statement_type
+            ORDER BY 1, 2, statement_type
+            """
+        )
+        internal: dict[str, int] = {}
+        edges: list[dict[str, Any]] = []
+        for row in pairs:
+            if row["source"] == row["target"]:
+                internal[row["source"]] = internal.get(row["source"], 0) + row["count"]
+            else:
+                edges.append(row)
+        for node in nodes:
+            node["internalRelations"] = internal.get(node["id"], 0)
+        return {"edges": edges, "nodes": nodes}
+
+    def release_graph(self, release_id: str) -> dict[str, Any]:
+        """Return one vocabulary's full graph: every resource and internal relation.
+
+        Nodes are ``[id, label]`` pairs; edges are ``[subject, object, predicate,
+        statementType]`` index tuples into ``nodes``, ``predicates``, and
+        ``types``, so the payload stays compact for six-figure vocabularies.
+        """
+
+        release_rows = self.query_rows(
+            """
+            SELECT id, identifier, semantic_ring AS ring
+            FROM atlas_releases
+            WHERE id = ? AND release_type = 'AtlasRelease'
+            """,
+            (release_id,),
+        )
+        if len(release_rows) != 1:
+            raise AtlasDuckDBViewError("release is not present in the Parquet view")
+        node_rows = self.query_rows(
+            """
+            WITH ranked AS (
+                SELECT
+                    resource,
+                    value,
+                    row_number() OVER (
+                        PARTITION BY resource
+                        ORDER BY
+                            CASE label_role
+                                WHEN 'preferred' THEN 0
+                                WHEN 'alternate' THEN 1
+                                WHEN 'hidden' THEN 2
+                                ELSE 99
+                            END,
+                            lower(value),
+                            value
+                    ) AS label_rank
+                FROM atlas_labels
+                WHERE lower(language) = 'en'
+            )
+            SELECT
+                resource.id,
+                coalesce(
+                    ranked.value,
+                    nullif(regexp_extract(resource.id, '([^#/:]+)[/#:]?$', 1), ''),
+                    resource.id
+                ) AS label
+            FROM atlas_resources AS resource
+            LEFT JOIN ranked ON ranked.resource = resource.id AND ranked.label_rank = 1
+            WHERE resource.release = ?
+            ORDER BY lower(label), label, resource.id
+            """,
+            (release_id,),
+        )
+        edge_rows = self.query_rows(
+            """
+            SELECT subject, predicate, object, statement_type
+            FROM atlas_statements
+            WHERE source_release = ? AND target_release = ?
+            ORDER BY id
+            """,
+            (release_id, release_id),
+        )
+        positions = {row["id"]: position for position, row in enumerate(node_rows)}
+        predicates: list[str] = []
+        predicate_positions: dict[str, int] = {}
+        types: list[str] = []
+        type_positions: dict[str, int] = {}
+        edges: list[list[int]] = []
+        dropped = 0
+        for row in edge_rows:
+            subject = positions.get(row["subject"])
+            object_ = positions.get(row["object"])
+            if subject is None or object_ is None:
+                dropped += 1
+                continue
+            predicate = predicate_positions.setdefault(row["predicate"], len(predicates))
+            if predicate == len(predicates):
+                predicates.append(row["predicate"])
+            statement_type = type_positions.setdefault(row["statement_type"], len(types))
+            if statement_type == len(types):
+                types.append(row["statement_type"])
+            edges.append([subject, object_, predicate, statement_type])
+        return {
+            "counts": {
+                "droppedRelations": dropped,
+                "relations": len(edges),
+                "resources": len(node_rows),
+            },
+            "edges": edges,
+            "nodes": [[row["id"], row["label"]] for row in node_rows],
+            "predicates": predicates,
+            "release": release_rows[0],
+            "types": types,
+        }
+
     def search(
         self,
         query: str = "",

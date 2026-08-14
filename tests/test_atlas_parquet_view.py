@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import re
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -70,6 +72,7 @@ _D1 = "sha256:" + "1" * 64
 _D2 = "sha256:" + "2" * 64
 _D3 = "sha256:" + "3" * 64
 _D4 = "sha256:" + "4" * 64
+_D5 = "sha256:" + "5" * 64
 
 
 #: The rows each fixture distribution's served view carries, keyed by that
@@ -116,6 +119,7 @@ def _fixture_distribution(
     source_native_payload: Mapping[str, object] | None = None,
     source_digest: str = _D3,
     include_alias: bool = False,
+    include_mapping: bool = False,
 ) -> str:
     release = "urn:test:atlas-release"
     source_record = "urn:ref:atlas-source-record:" + "5" * 64
@@ -231,6 +235,57 @@ def _fixture_distribution(
                     "contentDigest": _D3,
                 }
             )
+        if include_mapping and role is CompactRecordRole.RESOURCE:
+            records.append(
+                {
+                    "id": "urn:test:parent",
+                    "release": release,
+                    "scheme": "urn:test:scheme",
+                    "semanticRing": "subject",
+                    "resourceProfile": "conceptScheme",
+                    "sourceRecord": source_record,
+                    "definition": "A parent resource.",
+                    "notes": [],
+                    "notations": [],
+                    "recordStatus": "active",
+                    "contentDigest": _D2,
+                }
+            )
+        if include_mapping and role is CompactRecordRole.RELEASE:
+            records.append(
+                {
+                    "id": "urn:test:atlas-release-b",
+                    "releaseType": "AtlasRelease",
+                    "identifier": "test-release-b",
+                    "issued": "2026-08-07",
+                    "resourceProfile": "conceptScheme",
+                    "semanticRing": "subject",
+                    "scheme": "urn:test:scheme-b",
+                    "membershipMode": "complete",
+                    "contentDigest": _D2,
+                }
+            )
+        if include_mapping and role is CompactRecordRole.STATEMENT:
+            for suffix, identity_digest, source_release, target_release in (
+                ("4", _D4, release, "urn:test:atlas-release-b"),
+                ("5", _D5, "urn:test:atlas-release-b", release),
+            ):
+                records.append(
+                    {
+                        "id": "urn:ref:atlas-assertion:" + suffix * 64,
+                        "statementType": "MappingAssertion",
+                        "subject": "urn:test:resource",
+                        "predicate": "http://www.w3.org/2004/02/skos/core#exactMatch",
+                        "object": "urn:test:parent",
+                        "sourceRelease": source_release,
+                        "targetRelease": target_release,
+                        "policy": "urn:ref:atlas-policy:" + "6" * 64,
+                        "assertedAt": "2026-08-07T00:00:00+00:00",
+                        "assertionIdentityDigest": identity_digest,
+                        "semanticRing": "subject",
+                        "contentDigest": _D1,
+                    }
+                )
         records_by_role[role] = records
     _STAGED_RECORDS[str(root.resolve())] = records_by_role
     empty_inventory_digest = _payload_digest([])
@@ -670,6 +725,83 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
     assert not database_path.exists()
 
 
+def test_overview_maps_release_pairs_and_internal_relations(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, include_mapping=True)
+    full = tmp_path / "full"
+    _seal_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+
+    with AtlasDuckDBView.open(compact, trusted_manifest_digest=compact_pin) as view:
+        overview = view.overview()
+
+    assert overview["nodes"] == [
+        {
+            "id": "urn:test:atlas-release",
+            "identifier": "test-release",
+            "ring": "subject",
+            "resources": 2,
+            "internalRelations": 1,
+        },
+        {
+            "id": "urn:test:atlas-release-b",
+            "identifier": "test-release-b",
+            "ring": "subject",
+            "resources": 0,
+            "internalRelations": 0,
+        },
+    ]
+    # The two opposite-direction mappings collapse onto one undirected pair.
+    assert overview["edges"] == [
+        {
+            "source": "urn:test:atlas-release",
+            "target": "urn:test:atlas-release-b",
+            "statement_type": "MappingAssertion",
+            "count": 2,
+        }
+    ]
+
+
+def test_release_graph_returns_the_full_vocabulary(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, include_mapping=True)
+    full = tmp_path / "full"
+    _seal_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+
+    with AtlasDuckDBView.open(compact, trusted_manifest_digest=compact_pin) as view:
+        graph = view.release_graph("urn:test:atlas-release")
+        empty = view.release_graph("urn:test:atlas-release-b")
+        with pytest.raises(AtlasDuckDBViewError, match="release is not present"):
+            view.release_graph("urn:test:missing-release")
+
+    assert graph["release"] == {
+        "id": "urn:test:atlas-release",
+        "identifier": "test-release",
+        "ring": "subject",
+    }
+    assert graph["nodes"] == [
+        ["urn:test:parent", "parent"],
+        ["urn:test:resource", "Test resource"],
+    ]
+    # The one internal relation arrives as index tuples; the cross-release
+    # mappings belong to the overview, not to either vocabulary's own graph.
+    assert graph["edges"] == [[1, 0, 0, 0]]
+    assert graph["predicates"] == ["http://www.w3.org/2004/02/skos/core#broader"]
+    assert graph["types"] == ["NativeRelationAssertion"]
+    assert graph["counts"] == {"droppedRelations": 0, "relations": 1, "resources": 2}
+    assert empty["nodes"] == []
+    assert empty["edges"] == []
+
+
 def test_search_view_matches_whole_tokens_only(tmp_path: Path) -> None:
     """Pin the retrieval the view actually offers: whole tokens, nothing else.
 
@@ -720,6 +852,35 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     assert "lineTo(to.x,to.y)" in rendered
     assert "Browse every resource or narrow the list" in rendered
     assert 'id="more-results"' not in rendered
+    # The Atlas overview map opens first and stays open beside neighborhoods.
+    assert "class OverviewView" in rendered
+    assert 'overview=new OverviewView(await get("/api/overview"))' in rendered
+    assert "workspace.prepend(this.element)" in rendered
+    assert "const count=graphs.size+(overview?1:0)" in rendered
+    assert "overview?.refresh(fit)" in rendered
+    # A selected vocabulary links to its full map, and the map links back into
+    # a neighborhood through the ?open= deep link.
+    assert 'href="/release?id=${encodeURIComponent(node.id)}" target="_blank"' in rendered
+    assert 'new URLSearchParams(location.search).get("open")' in rendered
+    assert "if(openTarget)await addGraph(openTarget)" in rendered
+    # The explorer accepts concepts broadcast from vocabulary-map tabs by
+    # adding a pane, and selecting an overview vocabulary must not re-filter
+    # the neighborhoods that are already open.
+    assert 'new BroadcastChannel("refspec-atlas-open")' in rendered
+    assert 'openChannel.postMessage({type:"opened",id:data.id})' in rendered
+    assert (
+        "select(node){this.selected=node.id;releaseFilter.value=node.id;"
+        "runSearch().catch(showSearchError);showOverviewNodeInspector(node)"
+    ) in rendered
+    script = re.search(r"<script>\n(.*?)</script>", rendered, re.DOTALL)
+    assert script is not None
+    subprocess.run(
+        ["node", "--check", "-"],
+        input=script.group(1),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     assert "Show more" not in rendered
     assert 'id="search-status"' in rendered
     assert 'searchResults.addEventListener("scroll"' in rendered
@@ -752,3 +913,47 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     assert "compact Parquet" not in rendered
     assert ">NativeRelationAssertion<" not in rendered
     assert "<table" not in rendered
+
+
+def test_release_map_page_draws_every_concept_and_links_back() -> None:
+    from refspec.atlas.explorer import render_atlas_release_map
+    from refspec.atlas.explorer_frontend import render_atlas_release_frontend
+
+    rendered = render_atlas_release_map()
+
+    assert rendered == render_atlas_release_frontend()
+    assert "Every concept in this vocabulary" in rendered
+    assert "/api/release-graph?id=" in rendered
+    # All nodes stay drawable at scale: culling grid, dot fallback, and the
+    # zoom-gated edge pass instead of a truncated node list.
+    assert "function visibleNodes()" in rendered
+    assert "visible.length>DOT_LIMIT" in rendered
+    assert "zoom in to see relations" in rendered
+    assert "state.adjacency" in rendered
+    # Selecting a concept keeps this map open: the click selects in place and
+    # shows the same full inspector the main explorer has — definition,
+    # aliases, grouped relations, and per-relation meaning with evidence.
+    assert 'id="inspector"' in rendered
+    assert "if(state.drag&&!state.drag.moved)selectNode(hitNode(x,y))" in rendered
+    assert "/api/resource?id=" in rendered
+    assert "function connectionGroups(resource)" in rendered
+    assert "function showEdgeDetail(index,group)" in rendered
+    assert "equivalent assertions" in rendered
+    assert "function relationMeaning(edge)" in rendered
+    assert "Open source record" in rendered
+    assert "Also known as" in rendered
+    # The explicit action sends the concept to an already-open explorer tab,
+    # opening a new tab only when no explorer answers.
+    assert "window.open" not in rendered.split("function openSelected()")[0].split("<script>")[-1]
+    assert 'new BroadcastChannel("refspec-atlas-open")' in rendered
+    assert 'channel.postMessage({type:"open",id})' in rendered
+    assert 'window.open(url,"_blank","noopener")' in rendered
+    script = re.search(r"<script>\n(.*?)</script>", rendered, re.DOTALL)
+    assert script is not None
+    subprocess.run(
+        ["node", "--check", "-"],
+        input=script.group(1),
+        check=True,
+        capture_output=True,
+        text=True,
+    )

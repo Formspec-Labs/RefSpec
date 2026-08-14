@@ -15,7 +15,10 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
-from refspec.atlas.explorer_frontend import render_atlas_explorer_frontend
+from refspec.atlas.explorer_frontend import (
+    render_atlas_explorer_frontend,
+    render_atlas_release_frontend,
+)
 from refspec.atlas.explorer_render import (
     _EXPLORER_RECORD_PREFIX_LENGTH,
     _EXPLORER_SHARD_BUNDLE_TYPE,
@@ -164,6 +167,12 @@ def render_atlas_parquet_explorer() -> str:
     """Return the storage-neutral browser served beside the Parquet API."""
 
     return render_atlas_explorer_frontend()
+
+
+def render_atlas_release_map() -> str:
+    """Return the full-vocabulary map page served at ``/release``."""
+
+    return render_atlas_release_frontend()
 
 
 def _resource_record(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -819,6 +828,7 @@ __all__ = [
     "open_atlas_explorer",
     "render_atlas_explorer",
     "render_atlas_parquet_explorer",
+    "render_atlas_release_map",
     "render_atlas_v3_explorer",
     "search_atlas_parquet",
 ]

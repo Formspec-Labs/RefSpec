@@ -15,6 +15,7 @@ from refspec.atlas.explorer import (
     AtlasParquetExplorerError,
     open_atlas_explorer,
     render_atlas_parquet_explorer,
+    render_atlas_release_map,
 )
 from refspec.atlas.explorer_data import AtlasExplorerData
 from refspec.atlas.parquet_search_view import MANIFEST_FILE
@@ -50,6 +51,16 @@ def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
                     )
                 elif parsed.path == "/api/facets":
                     self._json(view.facets())
+                elif parsed.path == "/release":
+                    self._send(
+                        200,
+                        "text/html; charset=utf-8",
+                        render_atlas_release_map().encode(),
+                    )
+                elif parsed.path == "/api/overview":
+                    self._json(view.overview())
+                elif parsed.path == "/api/release-graph":
+                    self._json(view.release_graph(query.get("id", [""])[0]))
                 elif parsed.path == "/api/search":
                     self._json(
                         view.search(

@@ -70,6 +70,13 @@ def test_api_search_passes_stable_page_offset() -> None:
         def facets(self) -> dict[str, Any]:
             return {}
 
+        def overview(self) -> dict[str, Any]:
+            return {"edges": [], "nodes": [{"id": "urn:test:release"}]}
+
+        def release_graph(self, release_id: str) -> dict[str, Any]:
+            self.release_graph_id = release_id
+            return {"nodes": [], "edges": [], "release": {"id": release_id}}
+
         def search(
             self,
             query: str = "",
@@ -104,6 +111,22 @@ def test_api_search_passes_stable_page_offset() -> None:
             timeout=5,
         ) as response:
             assert json.loads(response.read()) == [{"id": "urn:test:result"}]
+        with urlopen(f"{base_url}/api/overview", timeout=5) as response:
+            assert json.loads(response.read()) == {
+                "edges": [],
+                "nodes": [{"id": "urn:test:release"}],
+            }
+        with urlopen(
+            f"{base_url}/api/release-graph?id=urn%3Atest%3Arelease", timeout=5
+        ) as response:
+            assert json.loads(response.read()) == {
+                "nodes": [],
+                "edges": [],
+                "release": {"id": "urn:test:release"},
+            }
+        assert view.release_graph_id == "urn:test:release"
+        with urlopen(f"{base_url}/release?id=urn%3Atest%3Arelease", timeout=5) as response:
+            assert "Every concept in this vocabulary" in response.read().decode()
         assert view.search_arguments == {
             "query": "social",
             "release": "r1",

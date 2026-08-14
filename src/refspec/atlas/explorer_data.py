@@ -13,6 +13,12 @@ class AtlasExplorerData(Protocol):
     def facets(self) -> dict[str, Any]:
         """Return corpus counts, filters, and a useful starting resource."""
 
+    def overview(self) -> dict[str, Any]:
+        """Return every vocabulary and the aggregated relation volume between them."""
+
+    def release_graph(self, release_id: str) -> dict[str, Any]:
+        """Return one vocabulary's complete graph of resources and internal relations."""
+
     def search(
         self,
         query: str = "",
