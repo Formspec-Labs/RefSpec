@@ -38,6 +38,7 @@ from urllib.parse import urlsplit
 
 from pypdf import PdfReader
 
+from refspec.pdf_text import fold_pdf_text
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
@@ -297,7 +298,7 @@ def parse_ferc_class_type_pdf(payload: bytes) -> FercPublishedClassTypeCapture:
     for page in reader.pages:
         text = page.extract_text() or ""
         for raw_line in text.splitlines():
-            line = " ".join(raw_line.split())
+            line = fold_pdf_text(" ".join(raw_line.split()))
             if line.startswith(("Issuance ", "Submittal ")):
                 rows.append(_split_class_type_row(line))
     if len(reader.pages) != 7 or len(rows) != FERC_CLASS_TYPE_PDF_ROW_COUNT:
@@ -339,7 +340,7 @@ def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCap
     status: Literal["active", "discontinued"] | None = None
     for page in reader.pages:
         for raw_line in (page.extract_text() or "").splitlines():
-            line = " ".join(raw_line.split())
+            line = fold_pdf_text(" ".join(raw_line.split()))
             if "Table 1" in line or "Table 2" in line:
                 status = "active"
                 continue
