@@ -3445,21 +3445,17 @@ def test_identifier_emission_rejects_non_identifier_schemes(
 def test_real_document_releases_emit_identifiers_and_cross_ring_assignment(
     document_releases,
 ) -> None:
+    # REF-031: the CBO publication population left; what remains is the GAO
+    # witness and the one topic observed on it.
     releases = document_releases
-    assert generator._direct_source_counts(releases, label_count=1_060) == {
+    assert generator._direct_source_counts(releases, label_count=2) == {
         "crossRingRelations": 1,
-        "identifiers": 1_059,
-        "labels": 1_060,
+        "identifiers": 1,
+        "labels": 2,
         "nativeRelations": 0,
-        "resources": 1_060,
+        "resources": 2,
     }
     assert [generator._release_direct_source_counts(release) for release in releases] == [
-        {
-            "crossRingRelations": 0,
-            "identifiers": 1_058,
-            "nativeRelations": 0,
-            "resources": 1_058,
-        },
         {
             "crossRingRelations": 1,
             "identifiers": 1,
@@ -3489,7 +3485,7 @@ def test_real_document_releases_emit_identifiers_and_cross_ring_assignment(
         )
     )
 
-    assert generator._counts(graphs)["identifiers"] == 1_059
+    assert generator._counts(graphs)["identifiers"] == 1
     assert generator._counts(graphs)["crossRingRelationAssertions"] == 1
     assert len(assertions) == 1
     assertion = next(iter(assertions))
@@ -3631,3 +3627,70 @@ def test_registrant_population_releases_are_refused() -> None:
         ),
     )
     generator._refuse_registrant_population_release(institutional)
+
+
+def test_document_population_releases_are_refused() -> None:
+    """REF-031's running check: document populations cannot re-enter the Atlas.
+
+    SpicyRegs acquires CBO publications, FCC ECFS proceedings, and GovInfo
+    CFR packages -- world-generated populations no sealed reference artifact
+    can enumerate honestly. A loader that reintroduces one of their
+    authorities, or a renamed release that re-ingests the same documents,
+    must fail the build. The GAO product page stays: it is the witness that
+    anchors the observed-topics unit, not a population.
+    """
+
+    by_scheme = SimpleNamespace(
+        spec=SimpleNamespace(key="cbo-publications-reintroduced"),
+        scheme_iri="urn:ref:atlas-resource-scheme:cbo-publication-identifiers",
+        resources=(),
+    )
+    with pytest.raises(ValueError, match="SpicyRegs, not the Atlas"):
+        generator._refuse_document_population_release(by_scheme)
+
+    govinfo_by_scheme = SimpleNamespace(
+        spec=SimpleNamespace(key="govinfo-cfr-package-reintroduced"),
+        scheme_iri="urn:ref:atlas-resource-scheme:govinfo-cfr-packages",
+        resources=(),
+    )
+    with pytest.raises(ValueError, match="REF-031"):
+        generator._refuse_document_population_release(govinfo_by_scheme)
+
+    for iri in (
+        "https://www.cbo.gov/publication/62634",
+        "urn:ref:govinfo-cfr-package:CFR-2023-title1-vol1",
+        (
+            "urn:ref:source-concept:v2:fcc-ecfs-proceedings:"
+            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+        ),
+    ):
+        by_record = SimpleNamespace(
+            spec=SimpleNamespace(key="renamed-document-release"),
+            scheme_iri="urn:ref:atlas-resource-scheme:renamed",
+            resources=(SimpleNamespace(iri=iri),),
+        )
+        with pytest.raises(ValueError, match="REF-031"):
+            generator._refuse_document_population_release(by_record)
+
+    # The GAO witness stays, and so do the FCC controls that share the
+    # proceedings' scheme URN.
+    witness = SimpleNamespace(
+        spec=SimpleNamespace(key="gao-report-gao-26-108505"),
+        scheme_iri="urn:ref:atlas-resource-scheme:gao-report-identifiers",
+        resources=(
+            SimpleNamespace(iri="https://www.gao.gov/products/gao-26-108505"),
+        ),
+    )
+    generator._refuse_document_population_release(witness)
+
+    fcc_bureaus = SimpleNamespace(
+        spec=SimpleNamespace(key="fcc-ecfs-bureaus"),
+        scheme_iri="urn:ref:atlas-resource-scheme:fcc-ecfs-native-controls",
+        resources=(
+            SimpleNamespace(
+                iri="urn:ref:source-concept:v2:fcc-ecfs-bureaus:"
+                "019fc911-9300-7a37-9efb-3f03b934f065"
+            ),
+        ),
+    )
+    generator._refuse_document_population_release(fcc_bureaus)

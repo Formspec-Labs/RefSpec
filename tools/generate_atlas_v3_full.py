@@ -651,7 +651,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:20eb4f41eb4ddc633fdf4301c9c5912c0c70ae4c170a03c66378e1a3437b3473"
+    "sha256:e91eac71386e9d88b240c9bf3de0e6e26279412a82ebcaa3b6d4bacba870e55f"
 )
 
 
@@ -2227,6 +2227,40 @@ def _refuse_registrant_population_release(release: LoadedRelease) -> None:
             )
 
 
+# Document populations are acquired by SpicyRegs, never enumerated in the
+# Atlas: CBO publishes continuously, FCC ECFS holds six figures of
+# proceedings, and GovInfo issues hundreds of CFR volumes a year, so no
+# sealed reference artifact can hold an honest census of them (REF-031).
+# The scheme refusal breaks a loader that reintroduces one of these
+# document authorities; the IRI refusal breaks a renamed release that
+# re-ingests the same documents. FCC's proceedings shared the
+# ``fcc-ecfs-native-controls`` scheme with bureaus, filing types, and access
+# statuses -- all of which stay -- so only the IRI prefix can name it.
+DOCUMENT_POPULATION_SCHEME_PREFIXES = (
+    "urn:ref:atlas-resource-scheme:cbo-publication-identifiers",
+    "urn:ref:atlas-resource-scheme:govinfo-cfr-packages",
+)
+DOCUMENT_POPULATION_IRI_PREFIXES = (
+    "https://www.cbo.gov/publication/",
+    "urn:ref:govinfo-cfr-package:",
+    "urn:ref:source-concept:v2:fcc-ecfs-proceedings:",
+)
+
+
+def _refuse_document_population_release(release: LoadedRelease) -> None:
+    if release.scheme_iri.startswith(DOCUMENT_POPULATION_SCHEME_PREFIXES):
+        raise ValueError(
+            "document-population authority belongs to SpicyRegs, "
+            f"not the Atlas (REF-031): {release.spec.key} uses {release.scheme_iri}"
+        )
+    for resource in release.resources:
+        if resource.iri.startswith(DOCUMENT_POPULATION_IRI_PREFIXES):
+            raise ValueError(
+                "document-population records belong to SpicyRegs, "
+                f"not the Atlas (REF-031): {release.spec.key} emits {resource.iri}"
+            )
+
+
 def load_releases(
     include_keys: frozenset[str] | None = None,
     *,
@@ -2350,6 +2384,7 @@ def load_releases(
             raise ValueError(f"selective Atlas source loaders do not know keys: {missing}")
     for release in releases:
         _refuse_registrant_population_release(release)
+        _refuse_document_population_release(release)
     return tuple(releases)
 
 

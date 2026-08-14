@@ -43,7 +43,6 @@ from refspec.registry import epa_enterprise_vocabulary as epa_vocabulary
 from refspec.registry import fac_dictionary as fac
 from refspec.registry import federal_hierarchy_orgs as fh
 from refspec.registry import gao_cra_facets as gao_cra
-from refspec.registry import govinfo_collections as govinfo
 from refspec.registry import nalt_core
 from refspec.registry import nppes_npi_identifiers as nppes
 from refspec.registry import nrc_adams_codes as nrc
@@ -558,75 +557,6 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 "organizationCount": len(resources),
                 "publisherTotals": [parsed.total_records_reported for parsed in parsed_samples],
                 "otherPublisherIdentifiersRetainedInNativePayload": True,
-            },
-        ),
-    )
-
-
-def _govinfo_package_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    summary_spec = govinfo.GOVINFO_CFR_PACKAGE_SUMMARY_2026_08_03
-    fixity_spec = govinfo.GOVINFO_CFR_PACKAGE_PREMIS_2026_08_03
-    summary_pin = _pin(
-        root,
-        "tests/fixtures/govinfo_collections/govinfo-package-summary-cfr-2023-title1-vol1-2026-08-03.json",
-        sha256=summary_spec.expected_sha256,
-        byte_length=summary_spec.expected_byte_length,
-        source_iri=summary_spec.source.source_url,
-        role="publisherPackageSummary",
-    )
-    fixity_pin = _pin(
-        root,
-        "tests/fixtures/govinfo_collections/govinfo-premis-cfr-2023-title1-vol1-mini-2026-08-03.xml",
-        sha256=fixity_spec.expected_sha256,
-        byte_length=fixity_spec.expected_byte_length,
-        source_iri=fixity_spec.source.source_url,
-        role="publisherPackageFixity",
-    )
-    with tempfile.TemporaryDirectory(prefix="refspec-atlas-govinfo-") as directory:
-        store = Path(directory)
-        summary = govinfo.parse_govinfo_cfr_package_summary(
-            govinfo.acquire_govinfo_source(summary_spec, store, source_path=summary_pin.path)
-        )
-        fixity = govinfo.parse_govinfo_cfr_package_fixity(
-            govinfo.acquire_govinfo_source(fixity_spec, store, source_path=fixity_pin.path),
-            expected_package_id=summary.package_id,
-        )
-    resource = RegistryResource(
-        iri=f"urn:ref:govinfo-cfr-package:{summary.package_id}",
-        labels=(
-            _label(
-                f"{summary.document_type}: {summary.package_id}",
-                summary_pin.logical_path,
-            ),
-        ),
-        native_payload=_frozen({"summary": summary, "fixity": fixity}),
-        source_locator=summary.details_link,
-        source_digest=summary_pin.sha256,
-        identifiers=(
-            RegistryIdentifier(
-                value=summary.package_id,
-                scheme_iri="urn:ref:atlas-resource-scheme:govinfo-cfr-packages",
-                source_path=f"{summary_pin.logical_path}#packageId",
-            ),
-        ),
-        status="boundedPublishedPackage",
-    )
-    return (
-        _release(
-            key="govinfo-cfr-package-bounded-2026-08-03",
-            resource_id="govinfo-cfr-packages",
-            source_module="refspec.registry.govinfo_collections",
-            profile="identifierScheme",
-            ring="legalIdentity",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(summary_pin, fixity_pin),
-            resources=(resource,),
-            metadata={
-                "completePublisherRelease": False,
-                "packageCount": 1,
-                "packageDateIssued": summary.date_issued,
-                "premisFixityRecordCount": len(fixity.records),
             },
         ),
     )
@@ -1228,10 +1158,6 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
         "federal-hierarchy",
         frozenset({"federal-hierarchy-orgs-bounded-2026-08-03"}),
     ),
-    (
-        "govinfo-package",
-        frozenset({"govinfo-cfr-package-bounded-2026-08-03"}),
-    ),
     ("nalt", frozenset({"nalt-core-bounded-concepts-2026-08-03"})),
     (
         "nppes",
@@ -1291,7 +1217,6 @@ def load_registry_nonemitter_releases(
         "gao-cra": _gao_cra_releases,
         "fac": _fac_releases,
         "federal-hierarchy": _federal_hierarchy_releases,
-        "govinfo-package": _govinfo_package_releases,
         "nalt": _nalt_releases,
         "nppes": _nppes_releases,
         "nrc": _nrc_releases,

@@ -91,12 +91,17 @@ def test_federal_hierarchy_emits_all_twenty_organizations_and_only_fh_org_ids() 
     assert release.metadata["otherPublisherIdentifiersRetainedInNativePayload"] is True
 
 
-def test_govinfo_emits_identified_package_and_retains_every_fixity_row() -> None:
-    (release,) = adapters._govinfo_package_releases(ROOT)
+def test_govinfo_cfr_packages_are_not_a_nonemitter_group() -> None:
+    # REF-031: GovInfo issues hundreds of CFR volumes a year, so the bounded
+    # package exemplar left the Atlas for SpicyRegs. The GovInfo *collections*
+    # list is a code release and stays in v3_registry_codes.
+    group_names = {name for name, _ in adapters.REGISTRY_NONEMITTER_RELEASE_GROUPS}
 
-    assert len(release.resources) == 1
-    assert release.resources[0].identifiers[0].value == "CFR-2023-title1-vol1"
-    assert release.metadata["premisFixityRecordCount"] == 2
+    assert "govinfo-package" not in group_names
+    assert not hasattr(adapters, "_govinfo_package_releases")
+    assert "govinfo-cfr-package-bounded-2026-08-03" not in (
+        adapters.REGISTRY_NONEMITTER_RELEASE_KEYS
+    )
 
 
 def test_nalt_bounded_release_keeps_two_real_core_concepts_and_their_relations() -> None:
@@ -174,12 +179,13 @@ def test_gsdm_emits_all_dictionary_rows_and_reviewed_domain_values() -> None:
     or not (REAL_DATA / "gsdm-architecture-v1.0.1.pdf").is_file(),
     reason="all exact local publisher captures are required for the complete adapter set",
 )
-def test_complete_nonemitter_adapter_set_emits_4638_resources() -> None:
+def test_complete_nonemitter_adapter_set_emits_4637_resources() -> None:
     # 4,644 before REF-030; the six registrant-population records (one UEI,
     # one CAGE, three NPI providers, one substance) moved to the entity
-    # registry, and their four releases left this adapter set.
+    # registry, and their four releases left this adapter set. REF-031 took
+    # the one bounded GovInfo CFR package with it, to SpicyRegs.
     releases = adapters.load_registry_nonemitter_releases(ROOT)
 
-    assert len(releases) == 14
-    assert sum(len(release.resources) for release in releases) == 4_638
+    assert len(releases) == 13
+    assert sum(len(release.resources) for release in releases) == 4_637
     assert all(not release.key.startswith(("eurovoc-", "lcsh-")) for release in releases)

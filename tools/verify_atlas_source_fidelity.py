@@ -2420,9 +2420,7 @@ NASA_TAXONOMY_JSON_READER = "nasa-taxonomy-json-v1/1.0"
 FCC_FILING_TYPES_JSON_READER = "fcc-filing-types-json-v1/1.0"
 FCC_ACCESS_STATUSES_JSON_READER = "fcc-access-statuses-json-v1/1.0"
 FCC_BUREAUS_JSON_READER = "fcc-bureaus-json-v1/1.0"
-FCC_PROCEEDINGS_JSON_READER = "fcc-proceedings-json-v1/1.0"
 FEDERAL_HIERARCHY_JSON_READER = "federal-hierarchy-json-v1/1.0"
-GOVINFO_PACKAGE_JSON_READER = "govinfo-package-json-v1/1.0"
 SPEC_SCOPED_RECORD_READERS = frozenset(
     {
         CSV_RECORD_SELECTOR_READER,
@@ -2430,10 +2428,8 @@ SPEC_SCOPED_RECORD_READERS = frozenset(
         FCC_ACCESS_STATUSES_JSON_READER,
         FCC_BUREAUS_JSON_READER,
         FCC_FILING_TYPES_JSON_READER,
-        FCC_PROCEEDINGS_JSON_READER,
         FEDERAL_HIERARCHY_JSON_READER,
         GOVINFO_COLLECTIONS_JSON_READER,
-        GOVINFO_PACKAGE_JSON_READER,
         GSDM_REVIEWED_DOMAIN_JSON_READER,
         JSON_RECORD_SELECTOR_READER,
         LDA_FILING_TYPE_JSON_READER,
@@ -5423,29 +5419,14 @@ def _read_fcc_capture(
                 path = f"$.filing[{ordinal}].proceedings[{proceeding_ordinal}]"
                 source_ordinal = ordinal * 1000 + proceeding_ordinal
                 bureau_code = _required_text(row.get("bureau_code"), f"{path}.bureau_code")
-                if mode == "bureaus":
-                    label = _required_text(row.get("bureau_name"), f"{path}.bureau_name")
-                    retain(
-                        bureau_code,
-                        label,
-                        path,
-                        source_ordinal,
-                        [_fcc_identifier(bureau_code, "bureauCode", pin, path)],
-                    )
-                else:
-                    number = _required_text(row.get("name"), f"{path}.name")
-                    label = _required_text(row.get("description"), f"{path}.description")
-                    retain(
-                        number,
-                        label,
-                        path,
-                        source_ordinal,
-                        [
-                            _fcc_identifier(number, "proceedingNumber", pin, path),
-                            _fcc_identifier(row.get("id_proceeding"), "publisherRecordId", pin, path),
-                            _fcc_identifier(bureau_code, "bureauCode", pin, path),
-                        ],
-                    )
+                label = _required_text(row.get("bureau_name"), f"{path}.bureau_name")
+                retain(
+                    bureau_code,
+                    label,
+                    path,
+                    source_ordinal,
+                    [_fcc_identifier(bureau_code, "bureauCode", pin, path)],
+                )
     if len(distinct) != expected_count:
         raise ValueError(f"{spec.name} expected {expected_count} distinct rows, observed {len(distinct)}")
     records: list[_ApiCaptureRecord] = []
@@ -5532,19 +5513,6 @@ def _read_fcc_bureaus_capture(
         mode="bureaus",
         resource_id="fcc-ecfs-bureaus-2026-08-03",
         expected_count=5,
-    )
-
-
-def _read_fcc_proceedings_capture(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    return _read_fcc_capture(
-        spec,
-        payloads,
-        mode="proceedings",
-        resource_id="fcc-ecfs-proceedings-2026-08-03",
-        expected_count=15,
     )
 
 
@@ -5669,137 +5637,6 @@ def _read_federal_hierarchy_capture(
         spec,
         payloads,
         unevaluated_claims=tuple(input_totals),
-    )
-
-
-def _element_text(element: ElementTree.Element, path: str, label: str) -> str:
-    found = element.find(path)
-    return _required_text(found.text if found is not None else None, label).strip()
-
-
-def _read_govinfo_package_capture(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    summary_pin, summary_payload = _pin_with_role(spec, payloads, "publisherPackageSummary")
-    fixity_pin, fixity_payload = _pin_with_role(spec, payloads, "publisherPackageFixity")
-    raw = _json_without_duplicate_keys(summary_payload, f"{spec.name} summary")
-    if not isinstance(raw, Mapping):
-        raise ValueError(f"{spec.name} summary must be a JSON object")
-    observed_at = "2026-08-03T19:15:00Z"
-    package_id = _required_text(raw.get("packageId"), f"{spec.name}.packageId")
-    summary_identifiers = [
-        _code_identifier(
-            value=package_id,
-            kind="govInfoPackageId",
-            authority="https://www.govinfo.gov/developers",
-            pin=summary_pin,
-            observed_at=observed_at,
-        ),
-        _code_identifier(
-            value=_required_text(raw.get("suDocClassNumber"), f"{spec.name}.suDocClassNumber"),
-            kind="suDocClassNumber",
-            authority="https://www.govinfo.gov/developers",
-            pin=summary_pin,
-            observed_at=observed_at,
-        ),
-    ]
-    summary = {
-        "package_id": package_id,
-        "collection_code": raw.get("collectionCode"),
-        "collection_name": raw.get("collectionName"),
-        "title_number": int(_required_text(raw.get("titleNumber"), f"{spec.name}.titleNumber")),
-        "date_issued": raw.get("dateIssued"),
-        "last_modified": raw.get("lastModified"),
-        "doc_class": raw.get("docClass"),
-        "document_type": raw.get("documentType"),
-        "category": raw.get("category"),
-        "sudoc_class_number": raw.get("suDocClassNumber"),
-        "details_link": raw.get("detailsLink"),
-        "granules_link": raw.get("granulesLink"),
-        "download_links": raw.get("download"),
-        "identifiers": summary_identifiers,
-        "is_general_subject_concept": False,
-    }
-    root = ElementTree.fromstring(fixity_payload)
-    namespace = root.tag.removesuffix("premis")
-    xsi_type = "{http://www.w3.org/2001/XMLSchema-instance}type"
-    fixity_records: list[dict[str, Any]] = []
-    for obj in root.findall(f"{namespace}object"):
-        if obj.get(xsi_type) != "file":
-            continue
-        fixity = obj.find(
-            f"{namespace}objectCharacteristics/{namespace}fixity"
-        )
-        if fixity is None:
-            continue
-        object_id = _element_text(
-            obj,
-            f"{namespace}objectIdentifier/{namespace}objectIdentifierValue",
-            "PREMIS object identifier",
-        )
-        algorithm = _element_text(
-            fixity,
-            f"{namespace}messageDigestAlgorithm",
-            "PREMIS digest algorithm",
-        )
-        digest = _element_text(
-            fixity,
-            f"{namespace}messageDigest",
-            "PREMIS message digest",
-        ).lower()
-        original_name = _element_text(obj, f"{namespace}originalName", "PREMIS original name")
-        location = _element_text(
-            obj,
-            (
-                f"{namespace}storage/{namespace}contentLocation/"
-                f"{namespace}contentLocationValue"
-            ),
-            "PREMIS content location",
-        ).rsplit(" ", 1)[-1]
-        fixity_records.append(
-            {
-                "object_identifier_value": object_id,
-                "original_name": original_name,
-                "content_location_uri": location,
-                "algorithm": algorithm,
-                "digest": digest,
-                "identifiers": [
-                    _code_identifier(
-                        value=digest,
-                        kind="govInfoPremisSha256Fixity",
-                        authority="https://www.govinfo.gov/developers",
-                        pin=fixity_pin,
-                        observed_at=observed_at,
-                    )
-                ],
-                "is_general_subject_concept": False,
-            }
-        )
-    fixity_payload_value = {
-        "package_id": package_id,
-        "retrieved_at": observed_at,
-        "source_sha256": fixity_pin.sha256,
-        "source_byte_length": fixity_pin.byte_length,
-        "records": fixity_records,
-    }
-    native = {"summary": summary, "fixity": fixity_payload_value}
-    record = _ApiCaptureRecord(
-        resource=f"urn:ref:govinfo-cfr-package:{package_id}",
-        preferred_label=f"{raw.get('documentType')}: {package_id}",
-        notations=(),
-        source_locator=_required_text(raw.get("detailsLink"), f"{spec.name}.detailsLink"),
-        source_digest=summary_pin.sha256,
-        native_payload=native,
-    )
-    return _api_capture_view(
-        [record],
-        spec,
-        payloads,
-        unevaluated_claims=(
-            "GovInfo summary authorship, pagination, part range, and migration fields are authenticated but not represented",
-            "PREMIS characteristics other than file SHA-256 fixity and location are authenticated but not represented",
-        ),
     )
 
 
@@ -10608,10 +10445,8 @@ _PUBLISHER_READERS: Mapping[
     FCC_ACCESS_STATUSES_JSON_READER: _read_fcc_access_statuses_capture,
     FCC_BUREAUS_JSON_READER: _read_fcc_bureaus_capture,
     FCC_FILING_TYPES_JSON_READER: _read_fcc_filing_types_capture,
-    FCC_PROCEEDINGS_JSON_READER: _read_fcc_proceedings_capture,
     FEDERAL_HIERARCHY_JSON_READER: _read_federal_hierarchy_capture,
     GOVINFO_COLLECTIONS_JSON_READER: _read_govinfo_collections_capture,
-    GOVINFO_PACKAGE_JSON_READER: _read_govinfo_package_capture,
     GSDM_REVIEWED_DOMAIN_JSON_READER: _read_gsdm_capture,
     LDA_FILING_TYPE_JSON_READER: _read_lda_filing_type_capture,
     LDA_GENERAL_ISSUE_JSON_READER: _read_lda_general_issue_capture,
@@ -14753,89 +14588,6 @@ def _courtlistener_pattern_source() -> SourceSpec:
 COURTLISTENER_PATTERN_ROW_SOURCES = (_courtlistener_pattern_source(),)
 
 
-_CBO_PUBLICATION_XML_PIN = SourcePin(
-    path="tests/fixtures/cbo_topic_codes/cbo-119congress-cost-estimates-2026-08-04.xml",
-    sha256="sha256:edc957a1115320f1c0da4b02c33d1af146a3c508592ee20b4909e0a8db44d968",
-    byte_length=375_365,
-    fmt="xml",
-    role="publisherSource",
-    source_iri="https://www.cbo.gov/rss/119congress-cost-estimates.xml",
-)
-
-
-def _cbo_publication_xml_source() -> SourceSpec:
-    native_template = json.dumps(
-        {
-            "billNumber": "{bill_number}",
-            "canonicalPublicationUrl": "{link}",
-            "date": "{date}",
-            "description": "{description}",
-            "feedItemKey": "{key}",
-            "publicationId": "{publication_id}",
-            "sourceArtifact": "{input_source_iri}",
-            "sourcePath": "{source_path}",
-            "title": "{title}",
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return SourceSpec(
-        name="cbo-119th-congress-publications",
-        kind="vocabulary",
-        release_keys=("cbo-119th-congress-publications",),
-        inputs=(_CBO_PUBLICATION_XML_PIN,),
-        reader=XML_RECORD_SELECTOR_READER,
-        xml_record=XmlRecordSelector(
-            input_role="publisherSource",
-            namespaces=(),
-            record_xpath="./item",
-            fields=(
-                XmlRecordField("key", attribute="key"),
-                XmlRecordField("title", xpath="Title"),
-                XmlRecordField("date", xpath="Date"),
-                XmlRecordField("link", xpath="Link"),
-                XmlRecordField("description", xpath="Description"),
-                XmlRecordField(
-                    "bill_number",
-                    xpath="Bill_Number",
-                    required=False,
-                    normalizers=("strip", "none-if-empty"),
-                ),
-                XmlRecordField(
-                    "publication_id",
-                    xpath="Link",
-                    capture_pattern=r"/publication/(?P<value>[1-9][0-9]*)$",
-                ),
-            ),
-            row_key="link",
-            identity_mode="publisher-iri",
-            identity_template="{link}",
-            source_path_template="response.item[{ordinal}]",
-            source_locator_template="{input_source_iri}#item={key}",
-            claim_map=(
-                ("preferred_label", "title"),
-                ("source_path", "source_path"),
-            ),
-            native_payload_template_json=native_template,
-            native_payload_fields=tuple(json.loads(native_template)),
-            expected_count=1_058,
-            expected_record_tags=(
-                "Title",
-                "Date",
-                "Link",
-                "Description",
-                "Bill_Number",
-            ),
-            declared_unevaluated_fields=(),
-        ),
-        identity_policy="publisher-iri",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(json.loads(native_template)),
-        ),
-    )
-
-
 _UNIFIED_AGENDA_XSD_PIN = SourcePin(
     path="tests/fixtures/unified_agenda_codes/reginfo-rin-data-ver10262011.xsd",
     sha256="sha256:94fdcf4b382830cc44b9956c00439dc20a9643de402c298cee71293a14153b24",
@@ -14938,7 +14690,6 @@ def _unified_agenda_xml_source(
 
 
 XML_RECORD_SELECTOR_SOURCES = (
-    _cbo_publication_xml_source(),
     _unified_agenda_xml_source(
         name="unified-agenda-priority-category",
         container="RIN_INFOType",
@@ -16994,44 +16745,6 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
     ),
     SourceSpec(
-        name="fcc-ecfs-proceedings",
-        kind="vocabulary",
-        release_keys=("fcc-ecfs-proceedings",),
-        inputs=(
-            SourcePin(
-                path=(
-                    "tests/fixtures/fcc_ecfs_codes/"
-                    "fcc-ecfs-filings-2026-08-03.json"
-                ),
-                sha256="sha256:4393e9c73ab5e12e25c79a707ca85856ba1d9cc1c3eccdfdfa235223f17773da",
-                byte_length=51_284,
-                fmt="json",
-                role="publisherSource",
-                source_iri=(
-                    "https://publicapi.fcc.gov/ecfs/filings?"
-                    "limit=25&sort=date_disseminated,DESC"
-                ),
-            ),
-        ),
-        reader=FCC_PROCEEDINGS_JSON_READER,
-        identity_policy="source-local-record",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "conceptIdentityClaimed",
-                    "id",
-                    "identifiers",
-                    "labels",
-                    "sourceArtifact",
-                    "sourceOrdinal",
-                    "sourcePath",
-                    "uses",
-                }
-            )
-        ),
-    ),
-    SourceSpec(
         name="federal-hierarchy-orgs-bounded-2026-08-03",
         kind="vocabulary",
         release_keys=("federal-hierarchy-orgs-bounded-2026-08-03",),
@@ -17082,45 +16795,6 @@ SOURCES: tuple[SourceSpec, ...] = (
             ),
             additional_relation_predicates=(f"{ATLAS}parentEntity",),
         ),
-    ),
-    SourceSpec(
-        name="govinfo-cfr-package-bounded-2026-08-03",
-        kind="vocabulary",
-        release_keys=("govinfo-cfr-package-bounded-2026-08-03",),
-        inputs=(
-            SourcePin(
-                path=(
-                    "tests/fixtures/govinfo_collections/"
-                    "govinfo-package-summary-cfr-2023-title1-vol1-2026-08-03.json"
-                ),
-                sha256="sha256:705a28865a4fba746e8deb4aff05a21bbd63534201e74c5320f56d505ca3d79e",
-                byte_length=1_532,
-                fmt="json",
-                role="publisherPackageSummary",
-                source_iri=(
-                    "https://api.govinfo.gov/packages/"
-                    "CFR-2023-title1-vol1/summary"
-                ),
-            ),
-            SourcePin(
-                path=(
-                    "tests/fixtures/govinfo_collections/"
-                    "govinfo-premis-cfr-2023-title1-vol1-mini-2026-08-03.xml"
-                ),
-                sha256="sha256:afeba6d9e48f502c911ef0ec1400accdbaa5cad5d7d056672dce6a54d1326417",
-                byte_length=4_268,
-                fmt="xml",
-                role="publisherPackageFixity",
-                source_iri=(
-                    "https://api.govinfo.gov/packages/"
-                    "CFR-2023-title1-vol1/premis"
-                ),
-            ),
-        ),
-        reader=GOVINFO_PACKAGE_JSON_READER,
-        identity_policy="source-key-derived",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(frozenset({"fixity", "summary"})),
     ),
     SourceSpec(
         name="crs-legislative-entities",

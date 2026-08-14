@@ -100,11 +100,14 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         "statusCounts": {
             "deferred": 3,
             "notApplicable": 49,
-            "planned": 33,
+            "planned": 30,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
-            # the entity-registry object instead.
-            "rejected": 4,
+            # the entity-registry object instead. REF-031: the three
+            # document-population authorities (CBO publications, FCC ECFS
+            # proceedings, GovInfo CFR packages) are rejected too; SpicyRegs
+            # acquires those.
+            "rejected": 7,
             "superseded": 0,
             "unassessed": 0,
         },

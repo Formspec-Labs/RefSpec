@@ -8,12 +8,14 @@ from refspec.registry.infrastructure.source_identity import validate_uuid7
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_loads_exact_cbo_and_gao_document_identity_releases() -> None:
+def test_loads_the_gao_witness_and_its_observed_topics() -> None:
     releases = load_registry_document_releases(ROOT)
     by_key = {release.key: release for release in releases}
 
-    assert len(releases) == 3
-    assert len(by_key["cbo-119th-congress-publications"].resources) == 1_058
+    # REF-031: the CBO publication population left for SpicyRegs. What stays
+    # is the GAO product that witnesses the observed-topics unit.
+    assert len(releases) == 2
+    assert "cbo-119th-congress-publications" not in by_key
     assert len(by_key["gao-report-gao-26-108505"].resources) == 1
     assert len(by_key["gao-topics-observed-on-gao-26-108505"].resources) == 1
     assert {release.profile for release in releases} == {
@@ -21,28 +23,11 @@ def test_loads_exact_cbo_and_gao_document_identity_releases() -> None:
         "identifierScheme",
     }
     assert {release.ring for release in releases} == {"entity", "subject"}
-    assert by_key["cbo-119th-congress-publications"].scope == "completeCapture"
     assert by_key["gao-report-gao-26-108505"].scope == "captureSubset"
 
 
-def test_cbo_publication_identity_preserves_exact_source_row() -> None:
-    cbo_release = load_registry_document_releases(ROOT)[0]
-    first = cbo_release.resources[0]
-
-    assert first.iri == "https://www.cbo.gov/publication/62634"
-    assert first.labels[0].value == (
-        "H.R. 8844, U.S. Customs and Border Protection Officer Retirement "
-        "Technical Corrections Act"
-    )
-    assert first.identifiers[0].value == "62634"
-    assert first.identifiers[0].scheme_iri == cbo_release.scheme_iri
-    assert first.native_payload["billNumber"] == "H.R. 8844"
-    assert first.native_payload["feedItemKey"] == "0"
-    assert first.source_locator.endswith("#item=0")
-
-
 def test_gao_report_identity_retains_topic_assignment_as_source_evidence() -> None:
-    gao_release = load_registry_document_releases(ROOT)[1]
+    gao_release = load_registry_document_releases(ROOT)[0]
     report = gao_release.resources[0]
 
     assert report.iri == "https://www.gao.gov/products/gao-26-108505"
@@ -65,8 +50,8 @@ def test_gao_report_identity_retains_topic_assignment_as_source_evidence() -> No
 
 def test_gao_topic_without_publisher_id_gets_readable_source_scoped_uuid7() -> None:
     releases = load_registry_document_releases(ROOT)
-    report_release = releases[1]
-    topic_release = releases[2]
+    report_release = releases[0]
+    topic_release = releases[1]
     topic = topic_release.resources[0]
 
     prefix = "urn:ref:source-concept:v2:gao-topics:"

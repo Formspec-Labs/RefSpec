@@ -621,7 +621,6 @@ def _load_fcc(repo_root: Path) -> tuple[RegistryRelease, ...]:
             "value",
         ),
         ("fcc-ecfs-bureaus", "fcc-ecfs-bureaus", source.build_fcc_ecfs_bureau_package, 5, "entity"),
-        ("fcc-ecfs-proceedings", "fcc-ecfs-proceedings", source.build_fcc_ecfs_proceeding_package, 15, "legalIdentity"),
     )
     return tuple(
         _bundle_release(
@@ -1802,7 +1801,6 @@ REGISTRY_CODE_RELEASE_GROUPS = (
                 "fcc-ecfs-access-statuses",
                 "fcc-ecfs-bureaus",
                 "fcc-ecfs-filing-types",
-                "fcc-ecfs-proceedings",
             }
         ),
     ),

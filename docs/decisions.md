@@ -1425,3 +1425,68 @@ renamed release re-ingesting the same records — fails the build. Pinned by
 pinned by `tests/test_entity_registry_release.py`. The NPPES *layout*
 release (structural field definitions) stays in the Atlas: structure is
 reference even when the rows it describes are not.
+
+### REF-031: Document populations leave the Atlas for SpicyRegs
+
+- **Date:** 2026-08-14
+- **Status:** Accepted; executed. The same criterion as REF-030, applied to
+  the other kind of open population.
+
+**The criterion, restated.** A unit belongs in the Atlas when an authority
+publishes a finite, curated vocabulary and reissues it on vocabulary
+cadence. What leaves is populations the world generates: CBO publishes cost
+estimates continuously, FCC ECFS holds six figures of proceedings and opens
+more every week, GovInfo issues hundreds of CFR volumes a year. Three
+bounded exemplars — 1,058 publications from one pinned 119th-Congress feed,
+15 proceedings observed in one 25-filing ECFS page, one CFR package — proved
+their ingestion pathways during the 2026-08-03 registry audit and then had
+nothing further to say. In the 2026-08-14 search view not one statement in
+the Atlas touched any of their 1,074 resources: they were an enumeration
+nobody joined against, aging from the day they were sealed.
+
+**Where the acquisitions go.** SpicyRegs, whose README states the boundary
+plainly: it "owns source acquisition and source-addressable document
+structure," and RefSpec "owns vocabulary releases, concepts, labels,
+mappings, redirects." Its source-profile catalog already carries
+`fcc-proceeding-v1`, `gao-report-v1`, and `cfr-section-v1` — the document
+shapes these three populations are instances of. A consumer that needs to
+*enumerate* CBO publications, ECFS proceedings, or CFR packages reads
+SpicyRegs; a consumer that needs to *reference* one joins by its publisher
+IRI or package identifier, which SpicyRegs mints from the same bytes.
+
+**What stays, and why.** The `gao-report-gao-26-108505` unit stays: it is
+not a population but the witness that anchors
+`gao-topics-observed-on-gao-26-108505` — the report page is where those
+topics were observed, and its live `CrossRingRelationAssertion` is the
+evidence for the subject ring's claim. Delete the witness and the topics
+lose their provenance. The FCC bureaus, filing types, and access statuses
+stay — finite publisher controls, and they share the removed proceedings'
+scheme URN, which is why the guard below can only name proceedings by IRI.
+`ecfr-cfr-titles`, the GovInfo *collections* list, the CBO *topic codes*,
+and every subject and value vocabulary stay. So does every reader module
+under `src/refspec/registry/`, every capture, and every fixture: the
+parsing knowledge is audit-attested here and the registry audit still reads
+those bytes. Only the Atlas unit wiring left.
+
+**The running check.** `load_releases` in `tools/generate_atlas_v3_full.py`
+refuses any release whose scheme is `cbo-publication-identifiers` or
+`govinfo-cfr-packages`, and any release emitting a resource under
+`https://www.cbo.gov/publication/`, `urn:ref:govinfo-cfr-package:`, or
+`urn:ref:source-concept:v2:fcc-ecfs-proceedings:`, by name of this decision.
+A loader that reintroduces a document authority — or a renamed release that
+re-ingests the same documents — fails the build. Pinned by
+`test_document_population_releases_are_refused`, which also asserts the
+non-refusals that matter: the GAO product IRI and the FCC bureaus sharing
+the proceedings' scheme.
+
+**What moves.** The three units leave their adapter groups
+(`v3_registry_documents`, `v3_registry_codes`, `v3_registry_nonemitters`)
+and the source-fidelity audit, taking two now-unused readers with them; the
+planning index marks the three authorities rejected (rejected 4 → 7, planned
+33 → 30, 89 rows and 81 modules unchanged); index → descriptors → coverage
+regenerate with the proof pin updated, the descriptor RDF and the coverage
+summary byte-identical; the corpus receipt reissues over unchanged fixtures;
+the registry audit snapshot regenerates with its one declared gap. A rebuilt
+distribution loses exactly 1,074 resources, 1,074 labels, 1,059 identifiers,
+1,074 source records, and 6 releases — and zero statements and zero evidence
+bindings, which is the measurement that made the decision.

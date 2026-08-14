@@ -27,7 +27,7 @@ EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.billstatus_codes": 132,
     "refspec.registry.census_geo_codes": 24,
     "refspec.registry.census_gov_finance_codes": 56,
-    "refspec.registry.fcc_ecfs_codes": 27,
+    "refspec.registry.fcc_ecfs_codes": 12,
     "refspec.registry.fec_committee_codes": 129,
     "refspec.registry.ferc_elibrary_codes": 342,
     "refspec.registry.govinfo_collections": 92,
@@ -108,8 +108,10 @@ def test_loads_every_supported_small_registry_source_at_measured_counts(
     for release in releases:
         counts[release.source_module] += len(release.resources)
 
-    assert len(releases) == 67
-    assert sum(counts.values()) == 3_426
+    # 67 before REF-031, when the FCC ECFS proceedings population left for
+    # SpicyRegs; the bureaus, filing types, and access statuses stay.
+    assert len(releases) == 66
+    assert sum(counts.values()) == 3_411
     assert dict(counts) == EXPECTED_RESOURCE_COUNTS
     assert all(not release.relations for release in releases)
 

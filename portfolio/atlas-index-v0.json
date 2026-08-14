@@ -28,8 +28,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:c1a68178ce750e47c4fd58519cfa2dcdd7c886a965979b5251fdac5b40200b7e",
-  "indexId": "urn:ref:atlas-index:c1a68178ce750e47c4fd58519cfa2dcdd7c886a965979b5251fdac5b40200b7e",
+  "indexDigest": "sha256:021eb1a893ed8e75f8ce87571de3f1ce9d640f3ba1a858506dad40d33a826ff6",
+  "indexId": "urn:ref:atlas-index:021eb1a893ed8e75f8ce87571de3f1ce9d640f3ba1a858506dad40d33a826ff6",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -154,7 +154,7 @@
         "deterministicMetadata",
         "entityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -169,8 +169,8 @@
       ],
       "release": null,
       "resourceId": "cbo-publication-identifiers",
-      "rowDigest": "sha256:45e3463936bcd0bef6920c4627a8f2496cd2c59c17025813037632716ac518b9",
-      "rowId": "urn:ref:atlas-index-row:45e3463936bcd0bef6920c4627a8f2496cd2c59c17025813037632716ac518b9",
+      "rowDigest": "sha256:137219713627ee28bb740c8bdf1f6d19ab12f582dc5401c32e25cfb8e52380ff",
+      "rowId": "urn:ref:atlas-index-row:137219713627ee28bb740c8bdf1f6d19ab12f582dc5401c32e25cfb8e52380ff",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
@@ -930,7 +930,7 @@
         "deterministicMetadata",
         "legalIdentityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -945,8 +945,8 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
-      "rowDigest": "sha256:9584e30addeb0f8e30cf8a46e1d04a1cff5ff58be9f7bfb283aa00cc670a6907",
-      "rowId": "urn:ref:atlas-index-row:9584e30addeb0f8e30cf8a46e1d04a1cff5ff58be9f7bfb283aa00cc670a6907",
+      "rowDigest": "sha256:fcfd4213d9d0cc0e6c16f4445cef59f4bdacda688c59501535121a27245ddc3d",
+      "rowId": "urn:ref:atlas-index-row:fcfd4213d9d0cc0e6c16f4445cef59f4bdacda688c59501535121a27245ddc3d",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
@@ -1305,7 +1305,7 @@
         "deterministicMetadata",
         "legalIdentityResolution"
       ],
-      "planningStatus": "planned",
+      "planningStatus": "rejected",
       "readinessEvidence": [
         {
           "kind": "parserTest",
@@ -1320,8 +1320,8 @@
       ],
       "release": null,
       "resourceId": "govinfo-cfr-packages",
-      "rowDigest": "sha256:4a2f861d28809bd636055905b5cdb73d10ed4e681a247bca5a394799b7130e1a",
-      "rowId": "urn:ref:atlas-index-row:4a2f861d28809bd636055905b5cdb73d10ed4e681a247bca5a394799b7130e1a",
+      "rowDigest": "sha256:8e0ccbe7f88af39d9474c15195ccc5e035e07bf41dd35f33adc09b0e427d70dd",
+      "rowId": "urn:ref:atlas-index-row:8e0ccbe7f88af39d9474c15195ccc5e035e07bf41dd35f33adc09b0e427d70dd",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
@@ -1839,18 +1839,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_nonemitters.py",
-          "sha256": "sha256:3a2d351cb4e2fbc21c9f3a65d6b02682c297ae6e15caadc6de3aee0186ccf0a6"
+          "sha256": "sha256:3c361ccc406eca4fa3c9abbdff6cdbae843371c3bd0e6fe518227babdaf6013f"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_nonemitters.py",
-          "sha256": "sha256:dcf8cdfd4f22927685f64e4826a2f921dc41b1ff4820a94271cf54923b2fb2ce"
+          "sha256": "sha256:a68f52de4332a5dfa7e21d64c8181ddfea7207e646f3587c5e7ecc23a6e1999d"
         }
       ],
       "release": null,
       "resourceId": "nrc-adams-identifiers",
-      "rowDigest": "sha256:9f4b97db4c26205271306d172b7cb32452ea8e596a6ef5e9c9d0dfa22795a515",
-      "rowId": "urn:ref:atlas-index-row:9f4b97db4c26205271306d172b7cb32452ea8e596a6ef5e9c9d0dfa22795a515",
+      "rowDigest": "sha256:460896b6b0555c5dde54b1f3de8e15b4235ced57f1b0a087373f44d561b4ed87",
+      "rowId": "urn:ref:atlas-index-row:460896b6b0555c5dde54b1f3de8e15b4235ced57f1b0a087373f44d561b4ed87",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_codes"
     },
@@ -2658,8 +2658,8 @@
     "statusCounts": {
       "deferred": 3,
       "notApplicable": 49,
-      "planned": 33,
-      "rejected": 4,
+      "planned": 30,
+      "rejected": 7,
       "superseded": 0,
       "unassessed": 0
     }
