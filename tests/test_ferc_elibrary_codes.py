@@ -54,7 +54,9 @@ def test_full_official_class_type_pdf_shape_count_and_samples() -> None:
     assert capture.rows[0].text.endswith(
         "ALJ Initial Decision/Certification of Initial Decision and Record"
     )
-    assert capture.rows[-1].text.endswith("Form 552 ‐ Annual Report of Natural Gas Transactions")
+    # The parser folds PDF presentation forms (c2b34440): the publisher's
+    # U+2010 hyphen arrives as the searchable ASCII hyphen.
+    assert capture.rows[-1].text.endswith("Form 552 - Annual Report of Natural Gas Transactions")
 
 
 def test_full_official_docket_prefix_pdf_shape_count_and_samples() -> None:
