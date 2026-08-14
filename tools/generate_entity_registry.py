@@ -14,7 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from refspec.registry.entity_registry_release import (  # noqa: E402
+from refspec.registry.entity_registry_release import (
     EntityRegistryError,
     verify_entity_registry,
     write_entity_registry,
