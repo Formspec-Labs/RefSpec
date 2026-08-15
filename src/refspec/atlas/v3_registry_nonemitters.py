@@ -13,12 +13,17 @@ the producer refuses their authorities outright (REF-030).
 
 Observed inventories are not loaded here either (REF-032). What survives is
 publisher-*written* structure: FAC's field dictionary, NPPES's dissemination
-layout, the FAST Book's published account symbols, GSDM's data dictionary
-with every domain value its publisher enumerates, and the EHRI workbook's
-AGENCY/SUBELEMENT roster — the publisher's own list of federal agencies and
-subelements, carried in the entity ring as an institutional roster.
-Set-distincts over sampled records, first-page roster slices, scraped search
-widgets, and regexed identifier shapes left the Atlas.
+layout, the FAST Book's published account symbols and its own Intro-sheet
+fund-group table, GSDM's data dictionary with every domain value its
+publisher enumerates, the EHRI workbook's AGENCY/SUBELEMENT roster — the
+publisher's own list of federal agencies and subelements, carried in the
+entity ring as an institutional roster — and NRC's published APS
+documentation: the User Manual's 22-property "Properties in Profile" table
+with the official accession-number definition, corroborated by the APS API
+Developer's Guide. Set-distincts over sampled records, first-page roster
+slices, scraped search widgets, and regexed identifier shapes left the
+Atlas; the NRC and Treasury fund-group units here are the documented
+successors REF-032 named, captured from publisher-written lists.
 """
 
 from __future__ import annotations
@@ -48,6 +53,7 @@ from refspec.atlas.v3_source_data import (
 from refspec.immutable import deep_freeze_json
 from refspec.registry import fac_dictionary as fac
 from refspec.registry import nppes_npi_identifiers as nppes
+from refspec.registry import nrc_adams_aps_docs as nrc_aps
 from refspec.registry import opm_workforce_codes as opm
 from refspec.registry import treasury_tas_fast_book as treasury
 from refspec.registry import usaspending_gsdm_codes as gsdm
@@ -72,6 +78,20 @@ def _frozen(value: Any) -> Mapping[str, Any]:
     if not isinstance(frozen, Mapping):
         raise TypeError("registry native payload must normalize to an object")
     return cast(Mapping[str, Any], frozen)
+
+
+def _without_none_fields(rows: Sequence[Any]) -> list[dict[str, Any]]:
+    """Render dataclass rows for wire metadata, omitting None-valued keys.
+
+    The canonical wire grammar rejects nulls; a field the publisher does not
+    print is stated by the key's absence, never by a placeholder.
+    """
+
+    rendered: list[dict[str, Any]] = []
+    for row in rows:
+        record = cast(dict[str, Any], _json_value(row))
+        rendered.append({key: value for key, value in record.items() if value is not None})
+    return rendered
 
 
 def _pin(
@@ -318,6 +338,38 @@ def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 status="publishedPartIIOrIII",
             )
         )
+    fund_groups = treasury.parse_fast_book_fund_groups(workbook_pin.path, pin=pin_spec)
+    fund_group_resources = tuple(
+        RegistryResource(
+            iri="urn:ref:treasury-fast-book:fund-group:" + quote(group.name, safe=""),
+            labels=(
+                _label(
+                    group.name,
+                    f"{workbook_pin.logical_path}#{group.sheet}!A{group.row_number}",
+                ),
+            ),
+            native_payload=_frozen(
+                {
+                    "fundGroupName": group.name,
+                    "fastBookPart": group.part,
+                    "sheet": group.sheet,
+                    "rowNumber": group.row_number,
+                    "symbolRangeText": group.symbol_range_text,
+                    "symbolRanges": [
+                        {"firstSymbol": symbol_range.first_symbol, "lastSymbol": symbol_range.last_symbol}
+                        for symbol_range in group.symbol_ranges
+                    ],
+                }
+            ),
+            source_locator=workbook_pin.source_iri,
+            source_digest=workbook_pin.sha256,
+            notations=tuple(
+                f"{symbol_range.first_symbol}-{symbol_range.last_symbol}"
+                for symbol_range in group.symbol_ranges
+            ),
+        )
+        for group in fund_groups.groups
+    )
     return (
         _release(
             key="treasury-fast-book-accounts-parts-ii-iii-2026-07",
@@ -335,6 +387,61 @@ def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 "publisherAnomalies": workbook.publisher_anomalies,
                 "partsIncluded": ["II", "III"],
                 "partIMissing": True,
+            },
+        ),
+        _release(
+            key="treasury-fast-book-fund-groups-2026-07",
+            resource_id="treasury-fast-book",
+            source_module="refspec.registry.treasury_tas_fast_book",
+            profile="codeScheme",
+            ring="value",
+            # Complete over exactly what it names: every fund-group row the
+            # workbook's own Intro sheets state.
+            scope="completeCapture",
+            issued="2026-07-31",
+            inputs=(workbook_pin,),
+            resources=fund_group_resources,
+            scheme_suffix="fund-groups",
+            metadata={
+                "fundGroupCount": len(fund_group_resources),
+                "partIIHeading": fund_groups.part_ii_heading,
+                "sheetsParsed": ["Intro Part II", "Intro Part III"],
+                "edition": fund_groups.edition,
+                "workbookModifiedAt": fund_groups.workbook_modified_at,
+                "completeCaptureOf": (
+                    "every fund-group row the workbook's Intro Part II "
+                    "'EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP' table and its "
+                    "Intro Part III sheet state, with the publisher's own "
+                    "expenditure-account symbol ranges"
+                ),
+                # REF-032 deleted the observed fund-type unit: 11 distinct
+                # Fund Type strings Counter-aggregated from this same
+                # workbook's Part II/III account rows, matching none of the
+                # publisher's documented lists. This release is its
+                # documented successor, read from the workbook's own Intro
+                # sheets rather than aggregated from its data rows.
+                "documentedSuccessorOfObservedFundTypes": True,
+                "observedPredecessorNote": (
+                    "The REF-032-removed fund-type unit was a Counter over the "
+                    "kept FAST Book accounts release; its 11 observed values "
+                    "matched no documented list. The fund groups here are the "
+                    "list the publisher itself states in the same workbook."
+                ),
+                # The semantic anchor for federal fund-group classification is
+                # OMB Circular A-11 section 20.11(b); the reference is
+                # recorded here and A-11 section 20 itself is not captured.
+                "semanticAnchorReference": "OMB Circular A-11 §20.11(b)",
+                "descriptionOfContentsReconciliation": (
+                    "The FAST Book Description of Contents page phrases Part II "
+                    "as five fund groups (general, revolving, special, deposit "
+                    "and trust); the workbook's Intro Part II sheet states eight "
+                    "groups with expenditure-account symbol ranges, and Intro "
+                    "Part III states the foreign currency group. Both are "
+                    "publisher statements from different publisher artifacts; "
+                    "this release emits the workbook sheets, and the page's "
+                    "coarser phrasing remains transcribed as PART_FUND_GROUPS "
+                    "in the reader, never extended to stand in for the sheet."
+                ),
             },
         ),
     )
@@ -569,6 +676,230 @@ def _opm_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
+def _shared_nrc_snapshot_metadata(
+    manual: nrc_aps.ParsedAPSUserManual,
+    guide: nrc_aps.ParsedAPSAPIGuide,
+) -> dict[str, Any]:
+    """Version and snapshot markers both NRC releases carry.
+
+    The publisher's own statements place the current property list behind
+    the sign-in APS API Developer Portal, so both PDFs are point-in-time
+    documentation snapshots; their version markers are recorded verbatim.
+    The manual prints no version statement — its PDF document-information
+    timestamps are the available revision markers.
+    """
+
+    return {
+        # The API guide's Appendix A states thirteen API document-property
+        # names; the reader captures and drift-checks them
+        # (appendix_document_property_names) but no Atlas release emits
+        # them: the emitted profile-property scheme is the manual's
+        # documented profile table, and the appendix is the API projection
+        # of the same application's properties. Recorded so the omission is
+        # a decision, not an oversight.
+        "notEmitted": {
+            "apiGuideAppendixAHeading": "Appendix A: Document Properties",
+            "apiGuideAppendixADocumentPropertyCount": len(
+                guide.appendix_document_property_names
+            ),
+            "apiGuideAppendixADocumentPropertyNames": list(
+                guide.appendix_document_property_names
+            ),
+        },
+        "developerPortalStatements": list(guide.developer_portal_statements),
+        "developerPortalSnapshotNote": (
+            "The publisher states the sign-in ADAMS Public Search API "
+            "Developer Portal carries the most current property list; these "
+            "pinned PDFs are the publisher's anonymously fetchable "
+            "documentation snapshot of that application."
+        ),
+        "userManualVersionMarkers": {
+            # The manual prints no version statement; absence is stated by
+            # the key's omission (the wire grammar carries no nulls), and
+            # the PDF document-information markers stand in as the version
+            # evidence.
+            "printedVersionStatementAbsent": True,
+            "documentInformation": manual.document_information,
+        },
+        "apiGuideVersionMarkers": {
+            "printedVersionStatement": guide.self_described_version,
+            "documentInformation": guide.document_information,
+        },
+        "wbaReplacementStatement": manual.wba_replacement_statement,
+        "wbaExclusionNote": (
+            "Nothing from the Web-Based ADAMS legacy application is read or "
+            "captured; both pinned documents describe APS, its documented "
+            "successor."
+        ),
+    }
+
+
+def _nrc_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    manual_pin = _pin(
+        root,
+        "tests/fixtures/nrc_adams_aps_docs/aps-user-manual-2026-08-15.pdf",
+        sha256=nrc_aps.APS_USER_MANUAL_2026_08_15.expected_sha256,
+        byte_length=nrc_aps.APS_USER_MANUAL_2026_08_15.expected_byte_length,
+        source_iri=nrc_aps.APS_USER_MANUAL_2026_08_15.source_url,
+        role="publisherUserManual",
+    )
+    guide_pin = _pin(
+        root,
+        "tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-15.pdf",
+        sha256=nrc_aps.APS_API_GUIDE_2026_08_15.expected_sha256,
+        byte_length=nrc_aps.APS_API_GUIDE_2026_08_15.expected_byte_length,
+        source_iri=nrc_aps.APS_API_GUIDE_2026_08_15.source_url,
+        role="publisherApiGuide",
+    )
+    manual = nrc_aps.parse_aps_user_manual(manual_pin.path, pin=nrc_aps.APS_USER_MANUAL_2026_08_15)
+    guide = nrc_aps.parse_aps_api_guide(guide_pin.path, pin=nrc_aps.APS_API_GUIDE_2026_08_15)
+    snapshot_metadata = _shared_nrc_snapshot_metadata(manual, guide)
+
+    property_resources = tuple(
+        RegistryResource(
+            iri="urn:ref:nrc-adams-profile-property:" + quote(prop.name, safe=""),
+            labels=(
+                _label(
+                    prop.name,
+                    f"{manual_pin.logical_path}#properties-in-profile-row-{prop.source_ordinal}",
+                ),
+            ),
+            native_payload=_frozen(
+                {
+                    "propertyName": prop.name,
+                    # The publisher's description cell, verbatim (PDF
+                    # presentation forms folded per refspec.pdf_text).
+                    "description": prop.description,
+                    "sourceOrdinal": prop.source_ordinal,
+                    "sourceMedium": "pdf",
+                }
+            ),
+            source_locator=manual_pin.source_iri,
+            source_digest=manual_pin.sha256,
+            definition=prop.description,
+        )
+        for prop in manual.properties
+    )
+
+    accession = manual.accession_number
+    element_resources: list[RegistryResource] = []
+    for element in accession.elements:
+        # The publisher's noun phrase for the element, without its inline
+        # example or naming parenthetical; the full bullet stays verbatim in
+        # the definition and payload.
+        phrase = element.text.split(" (")[0].split(", known as")[0].strip()
+        labels = [
+            _label(
+                phrase,
+                f"{manual_pin.logical_path}#accession-number-element-{element.ordinal + 1}",
+            )
+        ]
+        if "“ADAMS Item ID”" in element.text:
+            labels.append(
+                _label(
+                    "ADAMS Item ID",
+                    f"{manual_pin.logical_path}#accession-number-element-{element.ordinal + 1}",
+                    role="alternate",
+                )
+            )
+        element_resources.append(
+            RegistryResource(
+                iri=f"urn:ref:nrc-adams-accession-number:element-{element.ordinal + 1}",
+                labels=tuple(labels),
+                native_payload=_frozen(
+                    {
+                        "ordinal": element.ordinal,
+                        "elementText": element.text,
+                        "officialDefinition": accession.definition,
+                        "sourceMedium": "pdf",
+                    }
+                ),
+                source_locator=manual_pin.source_iri,
+                source_digest=manual_pin.sha256,
+                definition=element.text,
+            )
+        )
+
+    return (
+        _release(
+            key="nrc-adams-documented-profile-properties-2026-08-15",
+            resource_id="nrc-adams-native-controls",
+            source_module="refspec.registry.nrc_adams_aps_docs",
+            profile="structureScheme",
+            ring="value",
+            # Complete over exactly what it names: every property the
+            # manual's Properties in Profile table states.
+            scope="completeCapture",
+            issued="2026-08-15",
+            inputs=(manual_pin, guide_pin),
+            resources=property_resources,
+            scheme_suffix="documented-profile-properties",
+            metadata={
+                "propertyCount": len(property_resources),
+                "sectionHeading": "Properties in Profile",
+                "completeCaptureOf": (
+                    "every property row the User Manual's 'Properties in "
+                    "Profile' table states, with the publisher's own "
+                    "description cells; not the API guide's Appendix A "
+                    "document-property list, which is recorded in notEmitted"
+                ),
+                # The API guide's documented search-interface enumerations,
+                # verbatim: they corroborate the profile properties and are
+                # publisher-written statements about the same application.
+                # Rows whose description the publisher does not print omit the
+                # key entirely -- the canonical wire grammar carries no nulls,
+                # and an absent key states the absence honestly.
+                "apiGuideTextOperators": _without_none_fields(guide.text_operators),
+                "apiGuideDatePropertyNames": list(guide.date_property_names),
+                "apiGuideSearchRequestParameters": _without_none_fields(guide.search_request_parameters),
+                "apiGuideGetDocumentParameters": _without_none_fields(guide.get_document_parameters),
+                **snapshot_metadata,
+            },
+        ),
+        _release(
+            key="nrc-adams-documented-accession-number-2026-08-15",
+            resource_id="nrc-adams-identifiers",
+            source_module="refspec.registry.nrc_adams_aps_docs",
+            profile="structureScheme",
+            ring="value",
+            scope="completeCapture",
+            issued="2026-08-15",
+            inputs=(manual_pin, guide_pin),
+            resources=tuple(element_resources),
+            scheme_suffix="documented-accession-number",
+            metadata={
+                "elementCount": len(element_resources),
+                "officialDefinition": accession.definition,
+                "completeCaptureOf": (
+                    "the two elements the User Manual's official "
+                    "accession-number definition states; no finer "
+                    "decomposition of the nine-character ADAMS Item ID is "
+                    "documented, and the API guide's Appendix A "
+                    "document-property list is recorded in notEmitted"
+                ),
+                "apiGuideParameterStatement": guide.get_document_parameters[0].description,
+                # The official definition states exactly two elements and
+                # documents no finer structure for the nine-character ADAMS
+                # Item ID. The previously inferred MLYYDDDNNNN decomposition
+                # left under REF-032 and is not carried anywhere.
+                "noUndocumentedDecomposition": True,
+                "undocumentedDecompositionNote": (
+                    "NRC's official accession-number definition decomposes "
+                    "the value into exactly two documented elements; no "
+                    "finer decomposition of the nine-character ADAMS Item ID "
+                    "is documented, so none is emitted."
+                ),
+                # No authority-scoped identifier rows are minted: the members
+                # are the documented elements of the identifier's structure,
+                # not identifier values, and this scheme is not a declared
+                # Atlas identifier authority.
+                "identifierAuthorityRowsMinted": False,
+                **snapshot_metadata,
+            },
+        ),
+    )
+
+
 REGISTRY_NONEMITTER_RELEASE_GROUPS = (
     ("fac", frozenset({"fac-api-field-dictionary-2026-08-03"})),
     (
@@ -577,7 +908,12 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
     ),
     (
         "treasury",
-        frozenset({"treasury-fast-book-accounts-parts-ii-iii-2026-07"}),
+        frozenset(
+            {
+                "treasury-fast-book-accounts-parts-ii-iii-2026-07",
+                "treasury-fast-book-fund-groups-2026-07",
+            }
+        ),
     ),
     (
         "gsdm",
@@ -591,6 +927,15 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
     (
         "opm",
         frozenset({"opm-ehri-agency-subelement-2026-08-04"}),
+    ),
+    (
+        "nrc",
+        frozenset(
+            {
+                "nrc-adams-documented-profile-properties-2026-08-15",
+                "nrc-adams-documented-accession-number-2026-08-15",
+            }
+        ),
     ),
 )
 REGISTRY_NONEMITTER_RELEASE_KEYS = frozenset(
@@ -619,6 +964,7 @@ def load_registry_nonemitter_releases(
         "treasury": _treasury_releases,
         "gsdm": _gsdm_releases,
         "opm": _opm_releases,
+        "nrc": _nrc_releases,
     }
     releases: list[RegistryRelease] = []
     for group_name, group_keys in REGISTRY_NONEMITTER_RELEASE_GROUPS:

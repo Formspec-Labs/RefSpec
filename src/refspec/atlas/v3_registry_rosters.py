@@ -17,7 +17,15 @@ land here, each captured from the publisher's own documented list:
   totals, with sub-tier -> department relations carried as native entity
   relations. REF-032's cross-ring tripwire names this roster as the intended
   carrier of a future entity -> subject crossing; no such publisher
-  assignment exists yet, so no cross-ring relation is emitted.
+  assignment exists yet, so no cross-ring relation is emitted;
+* GAO's published /topics browse index — the complete 30-term topic
+  vocabulary the publisher itself serves, each term carrying the publisher's
+  own /topics/<slug> path and numeric Drupal taxonomy term id. The documented
+  successor of the removed observed unit, which was one label observed on one
+  report page under RefSpec-minted identity. This lands on the subject ring:
+  the terms are general subject concepts with publisher-authored scope
+  descriptions, and the identity is publisher-claimed, which is exactly what
+  the deleted unit lacked.
 
 Every adapter consumes exact publisher bytes through its registry parser,
 verifies them against pinned digests, and states its capture scope. Publisher
@@ -49,12 +57,14 @@ from refspec.immutable import deep_freeze_json
 from refspec.registry import fcc_bureaus_offices as fcc
 from refspec.registry import federal_hierarchy_complete as fh
 from refspec.registry import federal_register_native_controls as fr
+from refspec.registry import gao_published_topics as gao
 
 ATLAS_PARENT_ENTITY = "https://refspec.org/ns/atlas/v3#parentEntity"
 
 _FR_FIXTURES = "tests/fixtures/federal_register_native_controls"
 _FCC_FIXTURES = "tests/fixtures/fcc_bureaus_offices"
 _FH_FIXTURES = "tests/fixtures/federal_hierarchy_complete"
+_GAO_FIXTURES = "tests/fixtures/gao_published_topics"
 
 
 def _json_value(value: Any) -> Any:
@@ -500,6 +510,90 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
+def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    page_pin = _pin(
+        root,
+        f"{_GAO_FIXTURES}/gao-topics-2026-08-15.html",
+        sha256=gao.GAO_TOPICS_2026_08_15.expected_sha256,
+        byte_length=gao.GAO_TOPICS_2026_08_15.expected_byte_length,
+        source_iri=gao.GAO_TOPICS_URL,
+        role="publisherIndexPage",
+    )
+    index = gao.parse_gao_published_topics(page_pin.path.read_bytes())
+    # Identity here is publisher-claimed twice over: the /topics/<slug> path
+    # is the publisher's operative URL identity and the numeric Drupal
+    # taxonomy term id is the publisher's own vocabulary identity, both
+    # rendered in the publisher's markup. The REF-032-deleted gao-topics unit
+    # failed for minted identity over one observed label, not because slugs
+    # are insufficient; the slug is the IRI basis and both publisher ids ride
+    # as notations, never as identifier rows (gao-topics is not a declared
+    # identifier authority).
+    resources = tuple(
+        RegistryResource(
+            iri=f"urn:ref:gao-topic:{quote(topic.slug, safe='')}",
+            labels=(_label(topic.name, f"{page_pin.logical_path}#taxonomy-term-{topic.term_id}"),),
+            native_payload=_frozen(topic),
+            source_locator=page_pin.source_iri,
+            source_digest=page_pin.sha256,
+            definition=topic.description,
+            notations=(topic.slug, topic.term_id),
+        )
+        for topic in index.topics
+    )
+    return (
+        _release(
+            key="gao-published-topics-index-2026-08-15",
+            resource_id="gao-topics",
+            source_module="refspec.registry.gao_published_topics",
+            profile="conceptScheme",
+            ring="subject",
+            scope="completeCapture",
+            issued="2026-08-15",
+            inputs=(page_pin,),
+            resources=resources,
+            metadata={
+                "topicCount": len(resources),
+                "listingTitle": index.listing_title,
+                "publisherIdentityNote": (
+                    "Each topic carries two publisher-minted identifiers rendered in "
+                    "the publisher's own markup: its /topics/<slug> path and its "
+                    "numeric Drupal taxonomy term id (div id taxonomy-term-<id>, "
+                    "class vocabulary-topic). The REF-032-removed gao-topics unit "
+                    "was one label observed on one report page under RefSpec-minted "
+                    "UUIDv7 identity; this release is the publisher's complete "
+                    "published index under the publisher's own identity."
+                ),
+                "excludedFeaturedEntryHrefs": list(index.featured_entry_hrefs),
+                "excludedFeaturedEntryCount": len(index.featured_entry_hrefs),
+                "excludedFeaturedEntryNote": (
+                    "The page's featured block renders four content nodes "
+                    "(node--type-featured-topic), not taxonomy terms; they are "
+                    "recorded here and never emitted as topics."
+                ),
+                "transportNote": (
+                    "gao.gov returns HTTP 403 to plain clients behind an Akamai "
+                    "challenge; REF-033 recorded GAO's published /topics index as "
+                    "sitting behind that challenge with no pinned capture cleared. "
+                    "This capture was fetched through the shared Zyte transport "
+                    "(refspec.registry.infrastructure.zyte_transport), which "
+                    "returned the publisher's 200 response on 2026-08-15T13:56:14Z."
+                ),
+                "identityStabilityNote": (
+                    "The Internet Archive's 2022-12-31 snapshot of this page "
+                    "(https://web.archive.org/web/20221231190002/https://www.gao.gov/topics) "
+                    "carries the identical 30 slugs and the identical 30 taxonomy "
+                    "term ids as this capture; both publisher identifier sets are "
+                    "stable 2022 -> 2026. Verified against the snapshot at capture "
+                    "review time; the snapshot is not a pinned input."
+                ),
+                "publisherMarkupAnomalies": {
+                    "misspelledDescriptionClass": "taxonomy-term-descripiton"
+                },
+            },
+        ),
+    )
+
+
 REGISTRY_ROSTER_RELEASE_GROUPS = (
     (
         "federal-register",
@@ -516,6 +610,7 @@ REGISTRY_ROSTER_RELEASE_GROUPS = (
         "federal-hierarchy",
         frozenset({"federal-hierarchy-orgs-complete-2026-08-15"}),
     ),
+    ("gao", frozenset({"gao-published-topics-index-2026-08-15"})),
 )
 REGISTRY_ROSTER_RELEASE_KEYS = frozenset(
     key
@@ -541,6 +636,7 @@ def load_registry_roster_releases(
         "federal-register": _federal_register_releases,
         "fcc": _fcc_releases,
         "federal-hierarchy": _federal_hierarchy_releases,
+        "gao": _gao_releases,
     }
     releases: list[RegistryRelease] = []
     for group_name, group_keys in REGISTRY_ROSTER_RELEASE_GROUPS:

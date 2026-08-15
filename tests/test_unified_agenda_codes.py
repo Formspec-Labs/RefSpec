@@ -1,5 +1,6 @@
-"""Unified Agenda rule-stage, priority, timetable-action, and legal-authority
-citation-type control tests."""
+"""Unified Agenda documented option list and legal-authority citation-type
+control tests. The pinned schema documents exactly twenty "One of the
+following" option lists; the parse must capture all of them."""
 
 from __future__ import annotations
 
@@ -161,6 +162,164 @@ def test_rule_stage_priority_and_timetable_action_are_deterministic_not_subjects
     )
 
 
+def test_schema_parse_is_a_complete_capture_of_all_twenty_documented_lists(
+    tmp_path: Path,
+) -> None:
+    """The census of "One of the following" blocks is pinned at exactly 20 and
+    the parse covers every one of them -- that is what makes the family's
+    completeCapture claim checkable rather than asserted."""
+
+    schema = ua.parse_reginfo_schema(_acquire(tmp_path, ua.UA_REGINFO_SCHEMA_2026_08_03, SCHEMA_FIXTURE))
+
+    assert ua.UA_DOCUMENTED_OPTION_LIST_COUNT == 20
+    assert schema.documented_option_list_count == 20
+    assert len(schema.documented_fields) == 20
+    # The raw fixture agrees with the parsed census.
+    assert SCHEMA_FIXTURE.read_text(encoding="utf-8").count("One of the following") == 20
+
+    by_name = schema.by_field_name()
+    assert len(by_name) == 20
+    counts = {name: len(field.values) for name, field in by_name.items()}
+    assert counts == {
+        "priorityCategory": 6,
+        "rinStatus": 2,
+        "ruleStage": 6,
+        "major": 3,
+        "unfundedMandate": 4,
+        "eo13771Designation": 6,
+        "rfaSection610Review": 4,
+        "rplanEntry": 2,
+        "rfaRequired": 3,
+        "smallEntity": 6,
+        "govtLevel": 6,
+        "federalism": 3,
+        "energyAffected": 3,
+        "printPaper": 3,
+        "internationalInterest": 3,
+        "dlineType": 4,
+        "dlineActionStage": 5,
+        "timetableAction": 34,
+        "rinRelation": 5,
+        "agencyRelation": 2,
+    }
+    assert sum(counts.values()) == 110
+    # The three named accessors are the same objects as their census entries.
+    assert schema.rule_stage is by_name["ruleStage"]
+    assert schema.priority_category is by_name["priorityCategory"]
+    assert schema.timetable_action is by_name["timetableAction"]
+
+
+def test_new_documented_lists_carry_the_publishers_exact_wording(
+    tmp_path: Path,
+) -> None:
+    schema = ua.parse_reginfo_schema(_acquire(tmp_path, ua.UA_REGINFO_SCHEMA_2026_08_03, SCHEMA_FIXTURE))
+    by_name = schema.by_field_name()
+
+    # RIN_STATUS: the XSD's sentence-case wording, verbatim -- the live
+    # export's casing drift is the publisher's issue, not ours to repair.
+    assert by_name["rinStatus"].values == (
+        "First time published in the Unified Agenda",
+        "Previously published in the Unified Agenda",
+    )
+    assert by_name["major"].values == ("Yes", "No", "Undetermined")
+    assert by_name["unfundedMandate"].values == (
+        "State, local, or tribal governments",
+        "Private Sector",
+        "No",
+        "Undetermined",
+    )
+    assert by_name["eo13771Designation"].values == (
+        "Deregulatory",
+        "Regulatory",
+        "Fully or Partially Exempt",
+        "Not subject to, not significant",
+        "Other",
+        "Independent agency",
+    )
+    assert by_name["rfaSection610Review"].values == (
+        "Completion of a Section 610 Review",
+        "Rulemaking Resulting From a Section 610 Review",
+        "Section 610 Review",
+        "No",
+    )
+    assert by_name["govtLevel"].values == ("State", "Local", "Tribal", "Federal", "None", "Undetermined")
+    assert by_name["smallEntity"].values == (
+        "Businesses",
+        "Governmental Jurisdictions",
+        "Tribal",
+        "Organizations",
+        "No",
+        "Undetermined",
+    )
+    assert by_name["printPaper"].values == ("Yes", "No", "NA")
+    assert by_name["internationalInterest"].values == ("Yes", "No", "Not Collected")
+    assert by_name["dlineType"].values == ("Statutory", "Judicial", "Overall Description", "None")
+    assert by_name["dlineActionStage"].values == ("Overall Description", "NPRM", "Final", "Other", "None")
+    assert by_name["rinRelation"].values == (
+        "Merge with",
+        "Split from",
+        "Previously reported as",
+        "Duplicate of",
+        "Related to",
+    )
+    assert by_name["agencyRelation"].values == ("Joint", "Common")
+    assert by_name["rplanEntry"].values == ("Yes", "No")
+    # RFA_REQUIRED's documentation opens with a description sentence; the
+    # option list behind the pinned prefix still parses.
+    assert by_name["rfaRequired"].values == ("Yes", "No", "Undetermined")
+    for field in schema.documented_fields:
+        assert len(field.identifiers) == len(field.values)
+        assert {identifier.kind for identifier in field.identifiers} == {f"{field.field_name}Value"}
+
+
+def test_documented_option_list_census_drift_is_refused(tmp_path: Path) -> None:
+    """Removing a documented block -- or adding one -- must break the census,
+    not silently narrow the family's completeCapture claim."""
+
+    payload = SCHEMA_FIXTURE.read_bytes()
+    changed = payload.replace(
+        b'<xs:documentation>One of the following options: "Joint" and "Common".</xs:documentation>',
+        b"<xs:documentation>A relation.</xs:documentation>",
+    )
+    assert changed != payload
+    changed_pin = ua.UASnapshotPin(
+        document=ua.UA_REGINFO_SCHEMA,
+        retrieved_at="2026-08-03T19:15:15Z",
+        expected_sha256=ua.sha256_digest(changed),
+        expected_byte_length=len(changed),
+    )
+    changed_path = tmp_path / "census-drift.xsd"
+    changed_path.write_bytes(changed)
+    acquired = ua.acquire_unified_agenda_document(changed_pin, tmp_path / "store", source_path=changed_path)
+
+    with pytest.raises(ua.UnifiedAgendaSourceDriftError, match="census drift"):
+        ua.parse_reginfo_schema(acquired)
+
+
+def test_documentation_prefix_drift_is_refused(tmp_path: Path) -> None:
+    """Only RFA_REQUIRED's pinned prefix sentence is allowed; a new prefix on
+    any field is publisher wording this module has not reviewed."""
+
+    payload = SCHEMA_FIXTURE.read_bytes()
+    changed = payload.replace(
+        b"Regulatory Flexibility Analysis Required. One of the following",
+        b"Regulatory Flexibility Analysis. One of the following",
+    )
+    assert changed != payload
+    changed_pin = ua.UASnapshotPin(
+        document=ua.UA_REGINFO_SCHEMA,
+        retrieved_at="2026-08-03T19:15:15Z",
+        expected_sha256=ua.sha256_digest(changed),
+        expected_byte_length=len(changed),
+    )
+    changed_path = tmp_path / "prefix-drift.xsd"
+    changed_path.write_bytes(changed)
+    acquired = ua.acquire_unified_agenda_document(changed_pin, tmp_path / "store", source_path=changed_path)
+
+    with pytest.raises(ua.UnifiedAgendaSourceDriftError, match="prefix drifted"):
+        ua.parse_reginfo_schema(acquired)
+
+
 def test_legal_authority_citation_types_come_from_the_preamble_not_the_schema(
     tmp_path: Path,
 ) -> None:
@@ -294,7 +453,9 @@ def test_digest_or_structure_drift_never_becomes_a_parsed_resource(
         tmp_path / "shape",
         source_path=mini_path,
     )
-    with pytest.raises(ua.UnifiedAgendaSourceDriftError, match="no longer defines element RULE_STAGE"):
+    # The documented-list census fires before any element lookup: a schema
+    # with no documented option lists is structure drift at the census.
+    with pytest.raises(ua.UnifiedAgendaSourceDriftError, match="census drift"):
         ua.parse_reginfo_schema(acquired)
 
 

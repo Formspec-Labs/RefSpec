@@ -1445,3 +1445,17 @@ resources, 561,385 statements, every one of the 963 new publisher
 parent-entity relations evidence-bound. 13e remains on disk as the prior
 record; its seal still verifies over its own tree but its contents predate
 the three splits and the repair wave.
+
+**ARTIFACT OF RECORD, SEALED: `output/atlas-3.1-full-2026-08-15b` (2026-08-15).
+Supersedes the same-day 08-15 seal.** distributionId
+`urn:ref:atlas:distribution:3.1-full-development:d1fe90a2…55c1cb`, manifest
+`9988ab86…84189c`, acceptance `eb1aaf33…842df6`, parquet view manifest
+`4f07a185…e2fb5f6`, signer atlas-release@refspec. Seal verifies: 4 members,
+115 packs, 8 Parquet tables, 935,375,986 bytes. Carries REF-034: the
+validation-driven successor wave — the Unified Agenda family completed to
+the census-pinned 20 documented option lists, GAO's CRA form vocabularies
+(including the priority levels the current form revision dropped), NRC's
+documented APS properties and official accession structure, Treasury's real
+fund groups, and GAO's 30-topic published index — 98 releases, 581,120
+resources, 561,385 statements. The criterion as restated in REF-034:
+relevance and placement admit data; acquisition method never does.

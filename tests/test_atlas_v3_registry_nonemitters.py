@@ -56,14 +56,224 @@ def test_nppes_emits_only_the_layout_structure() -> None:
 def test_treasury_emits_every_unique_account_and_retains_the_duplicate_row() -> None:
     # REF-032: the fund-type release was a Counter over these same rows and
     # matched none of Treasury's three documented lists, so only the published
-    # account symbols remain.
-    (accounts,) = adapters._treasury_releases(ROOT)
+    # account symbols remain (the documented fund groups are a separate
+    # release parsed from the workbook's own Intro sheets, below).
+    accounts, _fund_groups = adapters._treasury_releases(ROOT)
 
+    assert accounts.key == "treasury-fast-book-accounts-parts-ii-iii-2026-07"
     assert accounts.ring == "entity"
     assert len(accounts.resources) == 3_581
     assert sum(resource.native_payload["duplicatePublisherRowCount"] for resource in accounts.resources) == 1
     assert accounts.metadata["publisherRows"] == 3_582
     assert accounts.metadata["partIMissing"] is True
+
+
+def test_treasury_fund_groups_are_the_documented_successor_of_the_fund_type_counter() -> None:
+    # REF-032 deleted the observed fund-type unit: 11 distinct Fund Type
+    # strings Counter-aggregated from the workbook's account rows, matching
+    # none of Treasury's documented lists. The documented successor is the
+    # workbook's own Intro Part II "EXPENDITURE ACCOUNT SYMBOLS BY FUND
+    # GROUP" table plus Intro Part III's foreign currency row -- parsed from
+    # the same pinned bytes, never transcribed from another page.
+    _accounts, fund_groups = adapters._treasury_releases(ROOT)
+
+    assert fund_groups.key == "treasury-fast-book-fund-groups-2026-07"
+    assert fund_groups.resource_id == "treasury-fast-book"
+    assert (fund_groups.profile, fund_groups.ring) == ("codeScheme", "value")
+    assert fund_groups.scope == "completeCapture"
+    # Clean scheme naming: the refused urn:ref:treasury-fast-book:fund-type:
+    # namespace appears nowhere; the scheme names the documented list.
+    assert fund_groups.scheme_iri == "urn:ref:atlas-resource-scheme:treasury-fast-book:fund-groups"
+    assert len(fund_groups.resources) == 9
+    assert fund_groups.metadata["fundGroupCount"] == 9
+    assert fund_groups.metadata["partIIHeading"] == "EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP"
+    assert fund_groups.metadata["semanticAnchorReference"] == "OMB Circular A-11 §20.11(b)"
+    assert fund_groups.metadata["documentedSuccessorOfObservedFundTypes"] is True
+
+    assert [resource.labels[0].value for resource in fund_groups.resources] == [
+        "General Fund",
+        "Management and Consolidated Working Funds",
+        "Public Enterprise Revolving Fund",
+        "Intra-Governmental Revolving Fund",
+        "Special Fund",
+        "Deposit Fund",
+        "Trust Revolving Fund",
+        "Trust Non-Revolving Fund",
+        "Foreign Currency Expenditure (No associated receipts)",
+    ]
+    by_label = {resource.labels[0].value: resource for resource in fund_groups.resources}
+    general = by_label["General Fund"]
+    assert general.iri == "urn:ref:treasury-fast-book:fund-group:General%20Fund"
+    assert general.notations == ("0000-3899",)
+    assert [dict(item) for item in general.native_payload["symbolRanges"]] == [
+        {"firstSymbol": "0000", "lastSymbol": "3899"}
+    ]
+    split = by_label["Trust Non-Revolving Fund"]
+    assert split.notations == ("8000-8399", "8500-8999")
+    assert split.native_payload["symbolRangeText"] == "8000-8399 and 8500-8999"
+    foreign = by_label["Foreign Currency Expenditure (No associated receipts)"]
+    assert foreign.native_payload["fastBookPart"] == "III"
+    assert foreign.notations == ("7000-7999",)
+    # No member re-mints the refused observation namespace and none carries
+    # authority-scoped identifier rows.
+    for resource in fund_groups.resources:
+        assert not resource.iri.startswith("urn:ref:treasury-fast-book:fund-type:")
+        assert resource.identifiers == ()
+
+
+def test_nrc_releases_are_the_documented_successors_of_the_scraped_units() -> None:
+    # REF-032 deleted 19 NRC ADAMS controls (12 regexed out of a minified
+    # Angular bundle) and four identifier shapes (one inferred from two
+    # examples). The documented successors are NRC's own published APS PDFs:
+    # the User Manual's 22-property Properties in Profile table with
+    # publisher descriptions, and the official accession-number definition.
+    properties, accession = adapters._nrc_releases(ROOT)
+
+    assert properties.key == "nrc-adams-documented-profile-properties-2026-08-15"
+    assert properties.resource_id == "nrc-adams-native-controls"
+    assert (properties.profile, properties.ring) == ("structureScheme", "value")
+    assert properties.scope == "completeCapture"
+    # Clean scheme naming: the REF-032-refused :observed-structure suffix is
+    # gone; the documented suffix names the publisher's table.
+    assert properties.scheme_iri == (
+        "urn:ref:atlas-resource-scheme:nrc-adams-native-controls:documented-profile-properties"
+    )
+    assert len(properties.resources) == 22
+    assert properties.metadata["propertyCount"] == 22
+    assert [pin.role for pin in properties.inputs] == ["publisherUserManual", "publisherApiGuide"]
+
+    by_label = {resource.labels[0].value: resource for resource in properties.resources}
+    assert by_label["Addressee Affiliation"].definition == (
+        "The name of the organization receiving the agency document(s)"
+    )
+    assert by_label["Docket Number"].native_payload["sourceMedium"] == "pdf"
+    for resource in properties.resources:
+        assert resource.definition  # every property carries a publisher description
+        assert not resource.iri.startswith("urn:ref:nrc-adams-control:")
+        assert resource.identifiers == ()
+
+    # The API guide's documented enumerations travel verbatim as metadata.
+    assert tuple(properties.metadata["apiGuideDatePropertyNames"]) == (
+        "DateAddedTimestamp",
+        "DocumentDate",
+    )
+    assert [item["token"] for item in properties.metadata["apiGuideTextOperators"]] == [
+        "contains",
+        "notcontains",
+        "starts",
+        "notstarts",
+        "equals",
+        "notequals",
+    ]
+    assert [item["name"] for item in properties.metadata["apiGuideSearchRequestParameters"]] == [
+        "q",
+        "filters",
+        "anyFilters",
+        "legacyLibFilter",
+        "mainLibFilter",
+        "sort",
+        "sortDirection",
+        "skip",
+    ]
+    assert properties.metadata["apiGuideVersionMarkers"]["printedVersionStatement"] == "Version 1.0"
+    # The manual prints no version statement; the wire carries no nulls, so
+    # the absence is stated by omission plus an explicit absence flag.
+    assert "printedVersionStatement" not in properties.metadata["userManualVersionMarkers"]
+    assert properties.metadata["userManualVersionMarkers"]["printedVersionStatementAbsent"] is True
+    assert properties.metadata["wbaReplacementStatement"] == (
+        "This application will replace the previous Web-Based ADAMS search application."
+    )
+
+    # The API guide's Appendix A (13 API document-property names) is captured
+    # and recorded as notEmitted on both releases, and each release bounds
+    # its completeCapture claim to exactly what it names.
+    for release in (properties, accession):
+        not_emitted = release.metadata["notEmitted"]
+        assert not_emitted["apiGuideAppendixAHeading"] == "Appendix A: Document Properties"
+        assert not_emitted["apiGuideAppendixADocumentPropertyCount"] == 13
+        assert list(not_emitted["apiGuideAppendixADocumentPropertyNames"])[:2] == [
+            "AccessionNumber",
+            "DocumentTitle",
+        ]
+        assert len(not_emitted["apiGuideAppendixADocumentPropertyNames"]) == 13
+    assert "Properties in Profile" in properties.metadata["completeCaptureOf"]
+    assert "Appendix A" in properties.metadata["completeCaptureOf"]
+    assert "accession-number definition" in accession.metadata["completeCaptureOf"]
+
+    assert accession.key == "nrc-adams-documented-accession-number-2026-08-15"
+    assert accession.resource_id == "nrc-adams-identifiers"
+    assert (accession.profile, accession.ring) == ("structureScheme", "value")
+    # Clean scheme naming: the REF-032-refused :identifier-shapes suffix is
+    # gone; the documented suffix names the official definition.
+    assert accession.scheme_iri == (
+        "urn:ref:atlas-resource-scheme:nrc-adams-identifiers:documented-accession-number"
+    )
+    assert len(accession.resources) == 2
+    first, second = accession.resources
+    assert first.iri == "urn:ref:nrc-adams-accession-number:element-1"
+    assert first.labels[0].value == "two-character alphabetic code"
+    assert first.definition == (
+        "two-character alphabetic code (e.g., “ML” to indicate the original library)"
+    )
+    assert second.labels[0].value == "nine-character numeric code"
+    assert {label.value for label in second.labels if label.role == "alternate"} == {"ADAMS Item ID"}
+    assert second.definition == "nine-character numeric code, known as the “ADAMS Item ID”"
+    # NO identifier-authority rows, and no undocumented decomposition: the
+    # publisher states exactly two elements and nothing finer for the
+    # nine-character ADAMS Item ID (the inferred MLYYDDDNNNN shape left
+    # under REF-032 and is not carried).
+    for resource in accession.resources:
+        assert resource.identifiers == ()
+        assert not resource.iri.startswith("urn:ref:nrc-adams-identifier-shape:")
+    assert accession.metadata["elementCount"] == 2
+    assert accession.metadata["noUndocumentedDecomposition"] is True
+    assert accession.metadata["identifierAuthorityRowsMinted"] is False
+    assert "MLYYDDDNNNN" not in accession.metadata["officialDefinition"]
+
+
+def test_documented_successor_releases_pass_all_three_atlas_refusal_guards() -> None:
+    """REF-030/031/032's refusal guards must all accept the new units.
+
+    The guards key on registrant-population schemes, document-population
+    IRIs, observation substrate paths, observation scheme strings, and
+    observation IRI namespaces. The documented successors deliberately land
+    beside every one of those surfaces -- same resources, clean naming --
+    so this test runs the generator's own refusal functions over each new
+    release, exactly as ``load_releases`` would.
+    """
+
+    import importlib
+    import sys
+    from types import SimpleNamespace
+
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        generator = importlib.import_module("generate_atlas_v3_full")
+    finally:
+        sys.path.pop(0)
+
+    releases = [
+        *adapters._nrc_releases(ROOT),
+        adapters._treasury_releases(ROOT)[1],
+    ]
+    assert [release.key for release in releases] == [
+        "nrc-adams-documented-profile-properties-2026-08-15",
+        "nrc-adams-documented-accession-number-2026-08-15",
+        "treasury-fast-book-fund-groups-2026-07",
+    ]
+    for release in releases:
+        shaped = SimpleNamespace(
+            spec=SimpleNamespace(
+                key=release.key,
+                logical_path=release.inputs[0].logical_path,
+                input_pins=tuple(release.inputs),
+            ),
+            scheme_iri=release.scheme_iri,
+            resources=tuple(release.resources),
+        )
+        generator._refuse_registrant_population_release(shaped)
+        generator._refuse_document_population_release(shaped)
+        generator._refuse_observed_inventory_release(shaped)
 
 
 @pytest.mark.skipif(
@@ -154,14 +364,37 @@ def test_opm_agency_subelement_roster_is_an_entity_ring_release() -> None:
     not _GSDM_CAPTURES_PRESENT or not _EHRI_CAPTURE_PRESENT,
     reason="all exact local publisher captures are required for the complete adapter set",
 )
-def test_complete_nonemitter_adapter_set_emits_6338_resources() -> None:
-    # 4,571 across 5 releases after REF-030/031/032. The boundary-audit
-    # repairs move both pins: the GSDM domain-value unit grew from the
-    # 3-element reviewed tuple (40 values) to every publisher-enumerated
-    # domain value (1,009), and the EHRI AGENCY/SUBELEMENT roster joined as
-    # a sixth release (798 entity-ring members).
+def test_complete_nonemitter_adapter_set_emits_6371_resources() -> None:
+    # 6,338 across 6 releases after the boundary-audit repairs (GSDM domain
+    # values completed at 1,009; the EHRI AGENCY/SUBELEMENT roster split out
+    # at 798). The REF-032 documented successors move the pin again: the
+    # Treasury fund groups (9), the NRC APS profile properties (22), and the
+    # NRC accession-number structure (2) join as three more releases.
     releases = adapters.load_registry_nonemitter_releases(ROOT)
 
-    assert len(releases) == 6
-    assert sum(len(release.resources) for release in releases) == 6_338
+    assert len(releases) == 9
+    assert sum(len(release.resources) for release in releases) == 6_371
     assert all(not release.key.startswith(("eurovoc-", "lcsh-")) for release in releases)
+
+
+def test_release_metadata_carries_no_nulls() -> None:
+    """The canonical wire grammar rejects nulls; absence is stated by omission.
+
+    The build's json.null rejector runs 130 seconds in -- this is its
+    two-second suite twin, added after apiGuideTextOperators shipped a
+    publisher-undescribed operator as description: null.
+    """
+
+    from collections.abc import Mapping, Sequence
+
+    def scan(value: object, path: str) -> None:
+        assert value is not None, f"null at {path}"
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                scan(child, f"{path}.{key}")
+        elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+            for index, child in enumerate(value):
+                scan(child, f"{path}[{index}]")
+
+    for release in adapters.load_registry_nonemitter_releases(ROOT):
+        scan(release.metadata, f"{release.key}.metadata")

@@ -1238,7 +1238,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 78
+    assert len(generator._validated_registry_index_rows(index, proof)) == 82
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(
@@ -1396,7 +1396,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
 
     inventory = generator.verify_inputs(releases, mapping_releases)
     assert inventory["expectedResources"] == 2
-    assert inventory["registryDescriptors"] == 88
+    assert inventory["registryDescriptors"] == 86
     mapping_source = inventory["mappingSources"][0]
     assert [row["role"] for row in mapping_source["inputs"]] == [
         "publisherAlignment",

@@ -123,6 +123,13 @@ def _mint_resource_iri(
     return f"urn:ref:source-concept:v2:{source_token}:{uuid}"
 
 
+def _frozen_metadata(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
+    frozen = deep_freeze_json(_json_value(value or {}))
+    if not isinstance(frozen, Mapping):
+        raise TypeError("registry release metadata must normalize to an object")
+    return cast(Mapping[str, Any], frozen)
+
+
 def _release(
     *,
     key: str,
@@ -137,6 +144,7 @@ def _release(
     items: Sequence[_Item],
     source_release_digest: str | None = None,
     source_digests: Mapping[str, str] | None = None,
+    metadata: Mapping[str, Any] | None = None,
 ) -> RegistryRelease:
     if not inputs:
         raise ValueError(f"registry release {key} has no exact inputs")
@@ -224,6 +232,7 @@ def _release(
         scheme_iri=f"urn:ref:atlas-resource-scheme:{resource_id}",
         inputs=tuple(inputs),
         resources=tuple(resources),
+        metadata=_frozen_metadata(metadata),
     )
 
 
@@ -786,6 +795,155 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
     if tuple(len(release.resources) for release in releases) != (235, 95, 6, 4):
         raise ValueError("FERC official control counts drifted")
     return tuple(releases)
+
+
+def _load_gao_cra(repo_root: Path) -> tuple[RegistryRelease, ...]:
+    """GAO Form 41217's documented rule types and retired priority levels.
+
+    The REF-032-deleted GAO CRA unit was six radio-button widgets scraped from
+    the CRA database *search page* (scheme family ``urn:ref:gao-cra-facet:``,
+    fixtures under ``tests/fixtures/gao_cra_facets/`` -- both on the REF-032
+    refusal lists and both deliberately not reused here). What lands instead
+    is the publisher's numbered submission form, in two pinned revisions:
+
+    * the current Rev. 12/24 form's item 6 rule types;
+    * the retired Rev. 11/17/23 form's item 8 Priority of Regulation levels,
+      which the current revision dropped. The retired revision is the last
+      publisher statement of that list, so its members carry ``retired``
+      status, and the current form's bytes ride along as an input pin: the
+      parser refuses if the current revision states a Priority item again,
+      which would make the dropped-item claim false.
+
+    The major/non-major dichotomy appears on both revisions and is
+    deliberately not emitted: the major-rule definition the form quotes is 5
+    U.S.C. 804(2)'s, not GAO's, and a submission form's yes/no question is
+    not a GAO code list.
+    """
+
+    from refspec.registry import gao_cra_form_codes as source
+
+    current_pin = source.GAO_CRA_CURRENT_FORM_2026_08_15
+    current_input = _input_pin(
+        repo_root,
+        "tests/fixtures/gao_cra_form_codes/gao-cra-submission-form-rev-12-24-2026-08-15.pdf",
+        source_iri=current_pin.source_url,
+        sha256=current_pin.expected_sha256,
+        byte_length=current_pin.expected_byte_length,
+    )
+    retired_pin = source.GAO_CRA_RETIRED_FORM_2026_08_15
+    retired_input = _input_pin(
+        repo_root,
+        "tests/fixtures/gao_cra_form_codes/gao-cra-blank-form-rev-11-17-23-2026-08-15.pdf",
+        source_iri=retired_pin.source_url,
+        sha256=retired_pin.expected_sha256,
+        byte_length=retired_pin.expected_byte_length,
+        role="publisherRetiredRevision",
+    )
+    current = source.parse_gao_cra_current_form(current_input.path.read_bytes())
+    retired = source.parse_gao_cra_retired_form(retired_input.path.read_bytes())
+    if len(current.rule_types) != 5 or len(retired.priority_levels) != 5:
+        raise ValueError("GAO CRA form option counts drifted")
+
+    def _items(
+        options: Sequence[Any],
+        *,
+        field_name: str,
+        capture: Any,
+        status: str | None,
+    ) -> tuple[_Item, ...]:
+        return tuple(
+            _Item(
+                label=option.value,
+                source_path=f"$.{field_name}[{ordinal}]",
+                notations=(option.value,),
+                native_payload=_stamp_source_artifact(
+                    {
+                        "value": option.value,
+                        # The exact printed option text, list joiners and
+                        # fill-in instructions included ("Other (specify)",
+                        # "Economically Significant; or").
+                        "optionText": option.option_text,
+                        "formNumber": source.GAO_FORM_NUMBER,
+                        "formRevision": capture.revision,
+                        "formItem": option.form_item,
+                    },
+                    capture.source_url,
+                ),
+                status=status,
+            )
+            for ordinal, option in enumerate(options)
+        )
+
+    rule_types = _release(
+        key="gao-cra-rule-types",
+        resource_id="gao-cra-submission-form-controls",
+        source_module="refspec.registry.gao_cra_form_codes",
+        source_token="gao-cra-rule-types",
+        profile="codeScheme",
+        ring="value",
+        scope="captureSubset",
+        issued=current.retrieved_at,
+        inputs=(current_input,),
+        items=_items(
+            current.rule_types,
+            field_name="ruleTypes",
+            capture=current,
+            status="active",
+        ),
+        source_release_digest=canonical_digest(
+            {"input": current.source_sha256, "resource": "ruleTypes"}
+        ),
+        metadata={
+            "formNumber": source.GAO_FORM_NUMBER,
+            "formRevision": current.revision,
+            "formItem": "6",
+            "publisherUrlTypo": (
+                "The publisher's own download URL misspells 'Submission' as "
+                "'Sumission'; the URL is preserved exactly as published."
+            ),
+            "notEmitted": (
+                "The form's major/non-major question is not emitted: the "
+                "major-rule definition it quotes is 5 U.S.C. 804(2)'s, not a "
+                "GAO code list."
+            ),
+        },
+    )
+    priority = _release(
+        key="gao-cra-priority-of-regulation",
+        resource_id="gao-cra-submission-form-controls",
+        source_module="refspec.registry.gao_cra_form_codes",
+        source_token="gao-cra-priority-of-regulation",
+        profile="codeScheme",
+        ring="value",
+        scope="captureSubset",
+        issued=retired.retrieved_at,
+        inputs=(retired_input, current_input),
+        items=_items(
+            retired.priority_levels,
+            field_name="priorityOfRegulation",
+            capture=retired,
+            status="retired",
+        ),
+        source_release_digest=canonical_digest(
+            {"input": retired.source_sha256, "resource": "priorityOfRegulation"}
+        ),
+        metadata={
+            "formNumber": source.GAO_FORM_NUMBER,
+            "formRevision": retired.revision,
+            "formItem": "8",
+            "droppedByCurrentRevision": (
+                "The current Rev. 12/24 form carries no Priority of Regulation "
+                "item; this retired Rev. 11/17/23 revision is the last "
+                "publisher statement of these five levels. The current form's "
+                "pinned bytes are an input to this release, and the parser "
+                "refuses if a Priority of Regulation item reappears there."
+            ),
+            "priorityRoutingNote": retired.priority_routing_note,
+        },
+    )
+    if (len(rule_types.resources), len(priority.resources)) != (5, 5):
+        raise ValueError("GAO CRA release counts drifted")
+    return (rule_types, priority)
 
 
 def _load_grants(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
@@ -1431,15 +1589,69 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
         temporary / "unified-agenda-schema",
     )
     parsed = source.parse_reginfo_schema(schema_acquired)
-    fields = (
-        ("rule-stage", parsed.rule_stage, 6),
-        ("priority-category", parsed.priority_category, 6),
-        ("timetable-action", parsed.timetable_action, 34),
-    )
+    # Every documented option list the schema states, one release per field.
+    # The reader's census pins the block count at exactly 20, and this loop
+    # emits all 20, so the family is a completeCapture of the XSD's documented
+    # option lists -- the pre-REF-033 captureSubset claim (3 of 20 emitted) no
+    # longer describes what ships.
+    expected_field_counts = {
+        "priorityCategory": 6,
+        "rinStatus": 2,
+        "ruleStage": 6,
+        "major": 3,
+        "unfundedMandate": 4,
+        "eo13771Designation": 6,
+        "rfaSection610Review": 4,
+        "rplanEntry": 2,
+        "rfaRequired": 3,
+        "smallEntity": 6,
+        "govtLevel": 6,
+        "federalism": 3,
+        "energyAffected": 3,
+        "printPaper": 3,
+        "internationalInterest": 3,
+        "dlineType": 4,
+        "dlineActionStage": 5,
+        "timetableAction": 34,
+        "rinRelation": 5,
+        "agencyRelation": 2,
+    }
+    if parsed.documented_option_list_count != 20 or len(parsed.documented_fields) != 20:
+        raise ValueError("Unified Agenda documented option list census drifted")
+    if [field.field_name for field in parsed.documented_fields] != list(expected_field_counts):
+        raise ValueError("Unified Agenda documented field roster drifted")
+    # Two of these lists are the documented successors of observed twins that
+    # left under REF-032 as distinct-value scans of SpicyRegs's
+    # unified_agenda.parquet snapshot. The successor statement travels in
+    # release metadata so a consumer sees the provenance change, not a gap.
+    successor_notes = {
+        "major": (
+            "Documented successor of the REF-032-deleted observed MAJOR "
+            "inventory, which was a distinct-value scan of a SpicyRegs "
+            "unified_agenda.parquet snapshot. This list is the schema's own "
+            "documented Yes/No/Undetermined statement."
+        ),
+        "rinStatus": (
+            "Documented successor of the REF-032-deleted observed RIN_STATUS "
+            "inventory, which was a distinct-value scan of a SpicyRegs "
+            "unified_agenda.parquet snapshot. This list is the schema's own "
+            "two-value statement."
+        ),
+    }
+    casing_notes = {
+        "rinStatus": (
+            "The schema documents sentence-case values ('First time published "
+            "in the Unified Agenda'); live reginfo.gov exports have been "
+            "observed with different casing, a known publisher-side drift "
+            "recorded in SpicyRegs. The XSD's own wording is carried verbatim."
+        ),
+    }
     releases: list[RegistryRelease] = []
-    for suffix, field, expected_count in fields:
+    for field in parsed.documented_fields:
+        expected_count = expected_field_counts[field.field_name]
         if len(field.values) != expected_count or len(field.identifiers) != expected_count:
-            raise ValueError(f"Unified Agenda {suffix} count drifted")
+            raise ValueError(f"Unified Agenda {field.field_name} count drifted")
+        suffix = _token_fragment(field.field_name)
         items = tuple(
             _Item(
                 label=value,
@@ -1454,6 +1666,14 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
             )
             for ordinal, (value, identifier) in enumerate(zip(field.values, field.identifiers, strict=True))
         )
+        metadata: dict[str, Any] = {
+            "xsdDocumentedOptionListCount": parsed.documented_option_list_count,
+            "familyEmitsEveryDocumentedOptionList": True,
+        }
+        if field.field_name in successor_notes:
+            metadata["observedTwinSuccessorNote"] = successor_notes[field.field_name]
+        if field.field_name in casing_notes:
+            metadata["publisherCasingNote"] = casing_notes[field.field_name]
         releases.append(
             _release(
                 key=f"unified-agenda-{suffix}",
@@ -1462,11 +1682,12 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
                 source_token=f"unified-agenda-{suffix}",
                 profile="codeScheme",
                 ring="value",
-                scope="captureSubset",
+                scope="completeCapture",
                 issued=parsed.retrieved_at,
                 inputs=(schema_input,),
                 items=items,
                 source_release_digest=canonical_digest({"input": parsed.source_sha256, "field": field.field_name}),
+                metadata=metadata,
             )
         )
 
@@ -1579,6 +1800,10 @@ REGISTRY_CODE_RELEASE_GROUPS = (
             }
         ),
     ),
+    (
+        "gao-cra",
+        frozenset({"gao-cra-priority-of-regulation", "gao-cra-rule-types"}),
+    ),
     ("govinfo", frozenset({"ecfr-cfr-titles", "govinfo-collections"})),
     (
         "grants",
@@ -1636,10 +1861,27 @@ REGISTRY_CODE_RELEASE_GROUPS = (
         "unified-agenda",
         frozenset(
             {
+                "unified-agenda-agency-relation",
+                "unified-agenda-dline-action-stage",
+                "unified-agenda-dline-type",
+                "unified-agenda-energy-affected",
+                "unified-agenda-eo13771-designation",
+                "unified-agenda-federalism",
+                "unified-agenda-govt-level",
+                "unified-agenda-international-interest",
                 "unified-agenda-legal-authority-citation-types",
+                "unified-agenda-major",
+                "unified-agenda-print-paper",
                 "unified-agenda-priority-category",
+                "unified-agenda-rfa-required",
+                "unified-agenda-rfa-section610-review",
+                "unified-agenda-rin-relation",
+                "unified-agenda-rin-status",
+                "unified-agenda-rplan-entry",
                 "unified-agenda-rule-stage",
+                "unified-agenda-small-entity",
                 "unified-agenda-timetable-action",
+                "unified-agenda-unfunded-mandate",
             }
         ),
     ),
@@ -1681,6 +1923,7 @@ def load_registry_code_releases(
         "census-geo": (_load_census_geo, True),
         "fec": (_load_fec, True),
         "ferc": (_load_ferc, False),
+        "gao-cra": (_load_gao_cra, False),
         "govinfo": (_load_govinfo, True),
         "grants": (_load_grants, True),
         "lda": (_load_lda, True),

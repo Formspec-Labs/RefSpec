@@ -17,6 +17,17 @@ a formatted PDF and is outside the workbook reader.  It never mints concept
 identity for an account title: the rows are fiscal account metadata and the
 identifier is Treasury's published value.
 
+The workbook's own ``Intro Part II`` sheet publishes a finer fund-group
+statement than the Description of Contents page: the table headed
+"EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP" states eight named groups with
+their main-account symbol ranges, and ``Intro Part III`` states the foreign
+currency group with its 7000-7999 range. ``parse_fast_book_fund_groups``
+reads those sheets from the exact pinned bytes. ``PART_FUND_GROUPS`` below
+remains the hand transcription of the *Description of Contents page's*
+coarser five-group Part II phrasing; the two are different publisher
+statements from different publisher artifacts and are both retained -- the
+transcription is never extended to stand in for the parsed sheet.
+
 fiscal.treasury.gov pages embed per-request Akamai/Boomerang analytics
 tokens (request IDs, timestamps) directly in the page body, so two live
 captures of the identical logical page do not share one stable digest. This
@@ -782,17 +793,8 @@ def _parse_published_account_row(
     )
 
 
-def parse_fast_book_workbook(
-    source_path: Path,
-    *,
-    pin: FASTBookWorkbookPin,
-) -> ParsedFASTBookWorkbook:
-    """Parse every Part II and III row from one exact official workbook.
-
-    The workbook's published ``TAS`` column is authoritative.  The separate
-    convenience columns have a small number of known publisher defects; those
-    are reported in ``publisher_anomalies`` and never used to rewrite the TAS.
-    """
+def _load_verified_workbook(source_path: Path, pin: FASTBookWorkbookPin):
+    """Verify one exact workbook capture and return it with its digest."""
 
     path = Path(source_path)
     if path.is_symlink() or not path.is_file():
@@ -829,6 +831,22 @@ def parse_fast_book_workbook(
         )
     if not pin.expected_modified_at.startswith(pin.edition):
         raise TreasurySourceDriftError("FAST Book pin edition does not match the workbook modified month")
+    return workbook, digest, len(payload)
+
+
+def parse_fast_book_workbook(
+    source_path: Path,
+    *,
+    pin: FASTBookWorkbookPin,
+) -> ParsedFASTBookWorkbook:
+    """Parse every Part II and III row from one exact official workbook.
+
+    The workbook's published ``TAS`` column is authoritative.  The separate
+    convenience columns have a small number of known publisher defects; those
+    are reported in ``publisher_anomalies`` and never used to rewrite the TAS.
+    """
+
+    workbook, digest, byte_length = _load_verified_workbook(source_path, pin)
 
     accounts: list[FASTBookPublishedAccount] = []
     anomalies: list[str] = []
@@ -884,7 +902,7 @@ def parse_fast_book_workbook(
     return ParsedFASTBookWorkbook(
         source_url=pin.source_url,
         source_sha256=digest,
-        source_byte_length=len(payload),
+        source_byte_length=byte_length,
         retrieved_at=pin.retrieved_at,
         edition=pin.edition,
         workbook_modified_at=pin.expected_modified_at,
@@ -893,6 +911,177 @@ def parse_fast_book_workbook(
         change_row_count=change_count,
         accounts=tuple(accounts),
         publisher_anomalies=tuple(anomalies),
+    )
+
+
+# ---------------------------------------------------------------------------
+# FAST Book workbook Intro fund-group tables
+# ---------------------------------------------------------------------------
+
+FAST_BOOK_FUND_GROUP_HEADING = "EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP"
+_FUND_GROUP_RANGE_RE = re.compile(r"^(?P<first>\d{4})-(?P<last>\d{4})$")
+_FUND_GROUP_RANGE_SEPARATOR = " and "
+# The reviewed shape of the Intro Part II table: exactly eight fund-group
+# rows under the heading. Like Part III's exactly-one guard, a different row
+# count is drift and fails closed rather than silently widening or
+# narrowing the emitted list.
+_FUND_GROUP_PART_II_EXPECTED_ROW_COUNT = 8
+
+
+@dataclass(frozen=True, slots=True)
+class FASTBookFundGroupRange:
+    """One contiguous main-account symbol range a fund group covers."""
+
+    first_symbol: str
+    last_symbol: str
+
+    def __post_init__(self) -> None:
+        for name, value in (("first_symbol", self.first_symbol), ("last_symbol", self.last_symbol)):
+            if _MAIN_PATTERN.fullmatch(value) is None:
+                raise TreasurySourceDriftError(f"fund-group {name} must be exactly 4 digits")
+        if self.first_symbol > self.last_symbol:
+            raise TreasurySourceDriftError("fund-group symbol range must not be inverted")
+
+
+@dataclass(frozen=True, slots=True)
+class FASTBookFundGroup:
+    """One fund group as a workbook Intro sheet states it.
+
+    Cell text is stripped of surrounding whitespace and otherwise verbatim:
+    the pinned workbook's General Fund range cell reads ``'0000-3899 '``
+    with a trailing space, and ``symbol_range_text`` carries ``'0000-3899'``.
+    """
+
+    part: Literal["II", "III"]
+    sheet: str
+    row_number: int
+    name: str
+    symbol_range_text: str
+    symbol_ranges: tuple[FASTBookFundGroupRange, ...]
+
+    def __post_init__(self) -> None:
+        if self.part not in {"II", "III"}:
+            raise TreasurySourceDriftError("fund-group part must be II or III")
+        for field_name, value in (("name", self.name), ("symbol_range_text", self.symbol_range_text)):
+            if not value or value != value.strip():
+                raise TreasurySourceDriftError(f"fund-group {field_name} must be non-empty normalized text")
+        if not self.symbol_ranges:
+            raise TreasurySourceDriftError("fund-group must state at least one symbol range")
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedFASTBookFundGroups:
+    """The fund groups both workbook Intro sheets state, from one exact capture."""
+
+    source_url: str
+    source_sha256: str
+    source_byte_length: int
+    retrieved_at: str
+    edition: str
+    workbook_modified_at: str
+    part_ii_heading: str
+    groups: tuple[FASTBookFundGroup, ...]
+
+
+def _parse_fund_group_ranges(cell_text: str, *, sheet: str, row_number: int) -> tuple[FASTBookFundGroupRange, ...]:
+    ranges: list[FASTBookFundGroupRange] = []
+    for piece in cell_text.split(_FUND_GROUP_RANGE_SEPARATOR):
+        match = _FUND_GROUP_RANGE_RE.fullmatch(piece.strip())
+        if match is None:
+            raise TreasurySourceDriftError(
+                f"{sheet} row {row_number} fund-group range cell has an unexpected shape: {cell_text!r}"
+            )
+        ranges.append(FASTBookFundGroupRange(first_symbol=match.group("first"), last_symbol=match.group("last")))
+    return tuple(ranges)
+
+
+def parse_fast_book_fund_groups(
+    source_path: Path,
+    *,
+    pin: FASTBookWorkbookPin,
+) -> ParsedFASTBookFundGroups:
+    """Parse the fund-group tables both workbook Intro sheets publish.
+
+    ``Intro Part II`` carries the table headed "EXPENDITURE ACCOUNT SYMBOLS
+    BY FUND GROUP": one row per fund group, name in column A and the
+    main-account symbol range in column B (one group states two ranges,
+    joined by the publisher's own " and "). ``Intro Part III`` publishes no
+    such heading; its single fund-group row is the one row carrying a
+    range-shaped column-B cell. Every name and range is the sheet's own
+    text; nothing is transcribed from any other publisher page, and any
+    structural drift fails closed.
+    """
+
+    workbook, digest, byte_length = _load_verified_workbook(source_path, pin)
+
+    groups: list[FASTBookFundGroup] = []
+    heading_text: str | None = None
+    for sheet, part in (("Intro Part II", "II"), ("Intro Part III", "III")):
+        worksheet = workbook[sheet]
+        heading_row: int | None = None
+        sheet_groups: list[FASTBookFundGroup] = []
+        for row_number, cells in enumerate(worksheet.iter_rows(values_only=True), start=1):
+            row = tuple(cells)
+            first_cell = row[0] if row else None
+            if (
+                part == "II"
+                and isinstance(first_cell, str)
+                and first_cell.strip() == FAST_BOOK_FUND_GROUP_HEADING
+            ):
+                if heading_row is not None:
+                    raise TreasurySourceDriftError(f"{sheet} repeats the fund-group heading")
+                heading_row = row_number
+                heading_text = first_cell.strip()
+                continue
+            range_cell = row[1] if len(row) > 1 else None
+            if range_cell is None:
+                continue
+            if not isinstance(range_cell, str) or not range_cell.strip():
+                raise TreasurySourceDriftError(
+                    f"{sheet} row {row_number} column B is occupied but is not range text"
+                )
+            if part == "II" and heading_row is None:
+                raise TreasurySourceDriftError(f"{sheet} states a fund-group row before its heading")
+            name = _normalized_workbook_text(first_cell, sheet=sheet, row_number=row_number, field="fund group name")
+            range_text = range_cell.strip()
+            sheet_groups.append(
+                FASTBookFundGroup(
+                    part=cast(Literal["II", "III"], part),
+                    sheet=sheet,
+                    row_number=row_number,
+                    name=name,
+                    symbol_range_text=range_text,
+                    symbol_ranges=_parse_fund_group_ranges(range_text, sheet=sheet, row_number=row_number),
+                )
+            )
+        if part == "II" and heading_row is None:
+            raise TreasurySourceDriftError(f"{sheet} no longer carries the fund-group heading")
+        if part == "II" and len(sheet_groups) != _FUND_GROUP_PART_II_EXPECTED_ROW_COUNT:
+            raise TreasurySourceDriftError(
+                f"{sheet} states {len(sheet_groups)} fund-group rows; the reviewed shape is "
+                f"exactly {_FUND_GROUP_PART_II_EXPECTED_ROW_COUNT}"
+            )
+        if part == "III" and len(sheet_groups) != 1:
+            raise TreasurySourceDriftError(
+                f"{sheet} states {len(sheet_groups)} fund-group rows; the reviewed shape is exactly one"
+            )
+        if not sheet_groups:
+            raise TreasurySourceDriftError(f"{sheet} states no fund-group rows")
+        groups.extend(sheet_groups)
+
+    names = [group.name for group in groups]
+    if len(names) != len(set(names)):
+        raise TreasurySourceDriftError("the workbook Intro sheets repeat a fund-group name")
+
+    return ParsedFASTBookFundGroups(
+        source_url=pin.source_url,
+        source_sha256=digest,
+        source_byte_length=byte_length,
+        retrieved_at=pin.retrieved_at,
+        edition=pin.edition,
+        workbook_modified_at=pin.expected_modified_at,
+        part_ii_heading=cast(str, heading_text),
+        groups=tuple(groups),
     )
 
 
@@ -1199,6 +1388,7 @@ def assemble_treasury_tas_fast_book_edition(
 __all__ = [
     "FAST_BOOK_DESCRIPTION_2026_08_03",
     "FAST_BOOK_DESCRIPTION_SOURCE",
+    "FAST_BOOK_FUND_GROUP_HEADING",
     "FAST_BOOK_PART_II_III_2026_07_31",
     "FAST_BOOK_PART_II_III_SOURCE_URL",
     "PART_FUND_GROUPS",
@@ -1210,6 +1400,8 @@ __all__ = [
     "AcquiredTreasuryPage",
     "AcquisitionMode",
     "FASTBookAccountRecord",
+    "FASTBookFundGroup",
+    "FASTBookFundGroupRange",
     "FASTBookPart",
     "FASTBookPublishedAccount",
     "FASTBookRecordError",
@@ -1217,6 +1409,7 @@ __all__ = [
     "FetchedTreasuryPage",
     "FundGroup",
     "ParsedFASTBookDescription",
+    "ParsedFASTBookFundGroups",
     "ParsedFASTBookWorkbook",
     "ParsedTASComponentFormat",
     "TASComponentError",
@@ -1232,6 +1425,7 @@ __all__ = [
     "assemble_treasury_tas_fast_book_edition",
     "fast_book_identifier",
     "parse_fast_book_description_page",
+    "parse_fast_book_fund_groups",
     "parse_fast_book_workbook",
     "parse_tas_canonical_value",
     "parse_tas_component_page",

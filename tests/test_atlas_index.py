@@ -97,17 +97,21 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # roster split out of the value-ring workbook release); the LDA and
         # NASA rows moved from the subject ring to the value ring, and the
         # Federal Register documented document types joined the value ring.
+        # REF-034: GAO's published /topics index joined the subject ring, and
+        # three value-ring placements landed for the documented successors
+        # (the GAO Form 41217 option lists and NRC's two published APS
+        # documentation units).
         "semanticRingCounts": {
             "entity": 15,
             "legalIdentity": 3,
-            "subject": 19,
-            "value": 41,
+            "subject": 20,
+            "value": 44,
         },
-        "rowCount": 78,
-        "sourceModuleCount": 50,
+        "rowCount": 82,
+        "sourceModuleCount": 53,
         "statusCounts": {
             "deferred": 2,
-            "notApplicable": 39,
+            "notApplicable": 44,
             "planned": 26,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
@@ -121,13 +125,16 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
             # rows with them. REF-033 rejects the two deleted census-family
             # units whose reader survives (the ACS geography span and the
             # NASBO chapter scan) and removes the SCOTUS and SEC rows with
-            # their deleted readers.
-            "rejected": 11,
+            # their deleted readers. REF-034 flips the treasury-fast-book
+            # value row back off rejected (11 -> 10): the rejected verdict
+            # named the observed fund-type Counter, and the workbook's own
+            # documented Intro-sheet fund groups now ship under that row.
+            "rejected": 10,
             "superseded": 0,
             "unassessed": 0,
         },
     }
-    assert len(atlas_index_rows(index, semantic_ring="subject")) == 19
+    assert len(atlas_index_rows(index, semantic_ring="subject")) == 20
 
 
 def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(

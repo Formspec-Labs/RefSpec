@@ -1723,6 +1723,28 @@ Department/Ind. Agency and 738 Sub-Tier — the 907 already includes the
 sub-tiers beside the departments. The complete roster landed under REF-033
 at 907, witnessed by the API's own per-level totals.
 
+**Amendment (2026-08-15, REF-034).** The census above was re-validated
+deletion by deletion — 29 of 29 stand — and two of its justifications did
+not. First: the PLUM entry claimed the 27 observed values "duplicat[e]
+codes the kept `opm-ehri-data-standards` unit carries *with definitions*."
+They do not. The overlap is a string collision with inverted semantics —
+EHRI's `CA` is the Board of Contract Appeals; PLUM's `CA` is a Career
+Appointment — so no kept unit carries those codes' meanings. The deletion
+stands, but on measured irrelevance rather than redundancy: nothing in the
+Atlas tags or joins against the 27 values, and the workforce codes that do
+matter are carried by the kept EHRI unit with the publisher's definitions.
+That the values were counted out of a roster is how they were acquired,
+not why they left. Second: the Federal Register split was justified
+with "the ad-hoc collection holds harvested document fragments like
+'165 as follows:'" — a description true of roughly 1% of its 6,723 members
+and therefore not a justification. The split is vindicated by measurement
+instead: the publisher's topic facet spans 1,088 slugs; used as filter
+conditions against the live API, ad-hoc slugs return zero documents or
+HTTP 400 while thesaurus slugs resolve, so the kept 1,044-member thesaurus
+collection covers the publisher's tagging surface. A residual of roughly 44
+facet slugs is accounted for by neither collection; that open measurement
+is recorded here, not membered.
+
 ### REF-033: The boundary audit's repair verdicts, and the documented successors land
 
 - **Date:** 2026-08-15
@@ -1807,15 +1829,20 @@ the publisher's own list rather than an observation of its data:
   (`test_federal_hierarchy_release_is_the_complete_entity_roster`).
 
 They land in a new adapter group (`v3_registry_rosters`, pinned by
-`test_complete_roster_adapter_set_emits_1409_resources`), with planning rows,
+`test_complete_roster_adapter_set_emits_1439_resources` — the check's name
+carries the census and moved with REF-034's GAO landing), with planning rows,
 registry descriptors, source-fidelity specs, and manifest entries. A rebuilt
 distribution gains exactly 2,347 resources, 963 relations, and 2 releases
 net (75 releases; five roster releases and the EHRI roster added; the four
 deleted units and the reviewed GSDM tuple removed; the counts above moved).
 
-**What remains open, and why.** GAO's published /topics index sits behind
-an Akamai challenge no pinned capture has cleared. AGROVOC and NALT
-enumeration remain unscheduled; their catalog rows stand. And eCFR's
+**What remains open, and why.** GAO's published /topics index sat behind
+an Akamai challenge no pinned capture had then cleared; that note is
+superseded — the index landed under REF-034 through the shared Zyte
+transport, which returned the publisher's 200 response, and the capture is
+pinned byte-exact. AGROVOC and NALT enumeration were never scheduled, and
+REF-034 retires their rows: no pinnable publisher release remains to
+schedule against. And eCFR's
 agency → CFR-chapter assignments stay structurally blocked on the
 cross-ring decision — with one material change: the tripwire's intended
 carrier now exists in-Atlas. REF-032 pointed
@@ -1844,8 +1871,9 @@ completeness only over what it names — the element's own current values
 (`completeCurrentValueRosterOfElement`).
 
 **The running checks.** The nonemitter census is pinned by
-`test_complete_nonemitter_adapter_set_emits_6338_resources`; the roster
-group by `test_complete_roster_adapter_set_emits_1409_resources`.
+`test_complete_nonemitter_adapter_set_emits_6371_resources`; the roster
+group by `test_complete_roster_adapter_set_emits_1439_resources` (both
+names carry their censuses and moved with REF-034's landings).
 Authority-scoped identifier rows are minted only under schemes the registry
 descriptors declare as identifier authorities — the roster wave first
 minted per-field child schemes no catalog authority backs (the build
@@ -1863,3 +1891,220 @@ releases, the split EHRI pair, the completed GSDM enumeration, and the
 completed 21-field GNIS layout (re-parsed from the pinned PDF with the
 merged description cells reconstructed), so the next distribution build is
 compared against publisher bytes, not against this entry.
+
+### REF-034: The validation-driven wave — the census re-proved, the documented option lists completed, and the dead rows retired
+
+- **Date:** 2026-08-15
+- **Status:** Accepted; executed. Re-validates every REF-032 deletion
+  against the live publishers, lands the documented successors that
+  validation surfaced, and retires the inventory rows validation proved
+  dead.
+
+**The criterion, stated plainly.** Scraping is fine; the methods are fine.
+What admits data to the Atlas is not how it was acquired but whether it is
+relevant — does a consumer tag or join against it, measured wherever a
+measurement exists — and where it belongs: which ring, which product,
+which object. An API response, a scraped page, a PDF text layer, a Zyte
+fetch, even an observation over data are all acceptable acquisitions for
+relevant data; the pinning, verbatim wording, drift refusal, and honest
+identity this registry insists on are disciplines about the *fidelity of
+the capture*, never rules about the admissibility of the method. When a
+documented statement and an observation of the same data both exist, the
+documented one wins — a quality preference, not a rule of admission — and
+observed relevant data beats a gap. Read in that light, the REF-032
+deletions this wave re-validated stand because their data was irrelevant
+(measured zero tagging value), duplicative of an equal-or-better source,
+or misplaced — not because it was scraped.
+
+**The validation.** All twenty-nine REF-032 deletions were re-checked
+deletion by deletion and all twenty-nine stand — with two justification
+corrections recorded as an amendment under REF-032: the PLUM "duplicates"
+claim was a string collision with inverted semantics (the deletion rests
+on measured irrelevance, not redundancy and not method), and the Federal
+Register ad-hoc rationale described ~1% of the collection; the split now
+rests on the measured facet surface (1,088 facet slugs, the kept 1,044
+resolving as filters, ad-hoc slugs returning zero documents or HTTP 400,
+~44 residual slugs recorded unaccounted).
+
+**The successors.** Five families land. Each is relevant data placed where
+it belongs, and each happens to come from a source the publisher states —
+the quality preference above, exercised where a documented source exists:
+
+- *Unified Agenda* — the reginfo XSD's documented option lists, completed
+  from 3 emitted of 20 to all 20 (110 values). The reader now censuses the
+  schema's "One of the following" documentation blocks and refuses any
+  count but 20, which is what turns the family's `completeCapture` claim
+  into a check
+  (`test_schema_parse_is_a_complete_capture_of_all_twenty_documented_lists`,
+  `test_documented_option_list_census_drift_is_refused`); the adapter emits
+  one release per list
+  (`test_unified_agenda_family_emits_every_documented_option_list`). Two of
+  the twenty close REF-032 observed-twin successors: the documented MAJOR
+  and RIN_STATUS lists carry `observedTwinSuccessorNote` metadata naming
+  the deleted distinct-value scans they replace
+  (`test_unified_agenda_successor_releases_state_their_ref_032_provenance`),
+  and RIN_STATUS carries the XSD's sentence-case wording verbatim with the
+  live export's casing drift noted as the publisher's.
+- *GAO CRA* — the deleted search-page radio widgets were form mechanics,
+  not the vocabulary; the vocabulary is the numbered form GAO publishes:
+  Form 41217's current Rev. 12/24 item 6 rule
+  types (five, `Other (specify)` preserved as printed), and the retired
+  Rev. 11/17/23 revision's item 8 Priority of Regulation levels (five,
+  status `retired`) — the last publisher statement of a list the current
+  revision dropped. The dropped-item claim is measured, not asserted: the
+  current form's pinned bytes ride as an input on the retired-list release,
+  `priority_item_absent` is derived from the parse, and a text-level
+  tripwire proves the refusal fires if the item reappears
+  (`test_current_form_refuses_if_priority_of_regulation_reappears`,
+  `test_gao_cra_releases_carry_both_form_revisions_honestly`). The
+  publisher's own download URL misspells "Sumission" and is preserved
+  exactly.
+- *NRC* — the ADAMS Public Search application's own published PDFs replace
+  the REF-032-deleted units, whose defect was never that they were scraped
+  but that they invented: controls regexed out of a minified bundle no
+  publisher statement stands behind, and an identifier shape inferred from
+  two examples against its documented sibling. What lands is the User
+  Manual's 22-property
+  "Properties in Profile" table with every publisher description verbatim,
+  and the official accession-number definition — exactly two documented
+  elements, the nine-character ADAMS Item ID left undecomposed because NRC
+  documents nothing finer. The 22 is counted, not assumed: the parser
+  measures the table's name column from page geometry and refuses any
+  added, removed, or renamed row
+  (`test_property_roster_is_measured_from_the_page_not_assumed`,
+  `test_nrc_releases_are_the_documented_successors_of_the_scraped_units`).
+  The API guide's Appendix A (13 API document-property names) is captured,
+  drift-checked, and deliberately not emitted; both releases record that
+  boundary in `notEmitted` metadata and bound their `completeCaptureOf`
+  claims to exactly what they name.
+- *Treasury* — the FAST Book workbook's own Intro-sheet fund-group tables
+  (eight Part II groups with the publisher's expenditure-account symbol
+  ranges, plus Part III's foreign currency group), the documented successor
+  of the deleted fund-type `Counter` over the same workbook's data rows.
+  Both sheet shapes fail closed in the parser (eight rows and one row
+  exactly;
+  `test_treasury_fund_groups_are_the_documented_successor_of_the_fund_type_counter`).
+- *GAO topics* — the publisher's complete /topics browse index: 30 terms,
+  each under GAO's own `/topics/<slug>` path and numeric Drupal taxonomy
+  term id, with publisher-authored scope descriptions, on the subject ring
+  (`test_gao_topics_release_is_a_subject_ring_concept_scheme`). This closes
+  the follow-up REF-033 recorded as Akamai-blocked: the pinned capture came
+  through the shared Zyte transport. The identity ruling is
+  Wayback-verified: the Internet Archive's 2022-12-31 snapshot carries the
+  identical 30 slugs and 30 term ids, so both publisher identifier sets are
+  stable 2022 → 2026. The REF-032-deleted unit failed for RefSpec-minted
+  identity over one observed label; this one is the publisher's identity
+  over the publisher's index. It is also the criterion's worked example:
+  scraped HTML, fetched through a commercial anti-bot transport, admitted
+  without hesitation — because the data is relevant, the identity is the
+  publisher's, and the capture is pinned byte-exact. The acquisition method
+  was never the problem.
+
+**The skip, recorded.** The regulations.gov agency roster did not land. The
+v4 API accepts only personally registered api.data.gov keys in the
+`X-Api-Key` header: `DEMO_KEY` answers `OVER_RATE_LIMIT` before a roster
+can be paged, an api.data.gov key issued for another site answers
+`API_KEY_INVALID`, and a first-party key arrives only through a per-person
+email signup — a credential no pinned, reproducible capture should embed.
+The capture spec is written and waiting on a project-owned key; nothing
+else blocks it.
+
+**Re-admission candidates the criterion opens — recorded, not decided.**
+Two REF-032 deletions carried relevant data whose loss the criterion above
+does not require, and both are named here as open owner calls rather than
+implemented. First: the regulations.gov agency codes. The data is relevant
+— the agency acronym is the docket-ID prefix, the join key every docket
+and document identifier starts with — and the documented successor
+(the v4 agencies roster) is blocked only on the free API key above. Until
+that key exists, the previously deleted observed inventory would be
+admissible under this criterion as an honestly labeled interim — observed
+relevant data beats a gap — and the owner may take either path: land the
+observation now and supersede it when the documented roster arrives, or
+wait for the key. Second: the Unified Agenda agency codes (the 191-value
+observed inventory). The reginfo XSD documents no agency roster at all —
+the twenty documented option lists above are exhaustively censused and an
+agency list is not among them — so the observation is the only source
+there is. It is relevant the day agenda entries are joined by agency;
+whether that join is wanted is the owner's call, and this entry records
+the candidacy so the deletion is not mistaken for a verdict on the data.
+
+**A publisher-side spec defect, recorded not membered.** regulations.gov's
+OpenAPI description still `$ref`s its five-value `DocumentType` enum from
+the Comment schema's `documentType` field, yet the comment type "Public
+Submission" is neither in the documented enum nor observable in v4. The
+kept documented lists carry the publisher's stated values; the defect is
+the publisher's to fix and is recorded here so the omission reads as
+observed, not overlooked.
+
+**Retirements.** Validation proved three inventory rows dead, and they
+leave the catalog rather than stand as plans nobody can execute. AGROVOC:
+the publisher ended versioned downloads in July 2025; only a mutable
+`latestAgrovoc/` directory remains, so no pinnable publisher release
+exists to schedule. NALT: frozen at a 2024 snapshot with the per-year
+editions gone — same verdict. EPA's Enterprise Vocabulary closes
+permanently: no distribution, session-scoped exports, and broken detail
+pages. Git keeps the rows; the catalog stops carrying them (89 → 87
+resources, three concept schemes leave the descriptor graph).
+
+**Adversarial review, applied.** The wave was reviewed adversarially and
+every verified finding landed with a mutation check. Two deserve naming.
+The vacuous assertion: the NRC release test guarded the refused
+`MLYYDDDNNNN` decomposition with `"MLYYDDDNNNN" not in
+str(sorted(...))` — `sorted()` of a string is a character list, so the
+assertion could never fire; it now asserts against the string itself and
+was proven to bite by mutation. The tripwire negative: the GAO CRA
+dropped-item refusal gained the reviewer's prescribed negative test — a
+retired-form page merged into a copy of the current form's text — proving
+the parse refuses rather than trusting a hardcoded flag. The review also
+made the NRC property count measured (page geometry, above), stopped the
+API guide's Get Document parameter regex from swallowing following bullets
+(a second parameter is now roster drift,
+`test_get_document_second_parameter_is_roster_drift_not_swallowed_text`),
+added the Treasury Part II eight-row guard, aligned the fund-group
+docstrings with the whitespace the code actually strips (the General Fund
+cell reads `'0000-3899 '`), and deleted the review's listed tautological
+assertions rather than letting them stand as coverage theater.
+
+**The guards, re-run.** Every new release passes the three REF-030/031/032
+refusal guards under its clean naming — same publisher resources, none of
+the refused substrate paths, scheme strings, or minted namespaces
+(`test_documented_successor_releases_pass_all_three_atlas_refusal_guards`,
+`test_new_releases_pass_the_ref_032_guards_and_mint_no_identifier_rows`,
+`test_roster_releases_pass_the_generator_refusal_guards`), and none of
+them mints an authority-scoped identifier row: publisher slugs, term ids,
+and symbol ranges travel as notations and payload fields only.
+
+**What moves.** The planning index gains four rows and three source
+modules (rows 78 → 82, source modules 50 → 53) and flips
+`treasury-fast-book` off `rejected` (11 → 10): the rejection named the
+observed fund-type Counter, and the workbook's own documented list now
+ships under that row. The catalog trades three retired rows for the GAO
+CRA form row (89 → 87); the descriptor graph regenerates at 964 quads
+(983 before) with both proof pins moved; index → coverage → descriptors →
+binding fixtures regenerate to stability. The source-fidelity audit gains
+an independent re-parse for every new construction unit — seventeen more
+`_unified_agenda_xml_source` rows, two GAO Form 41217 PDF comparisons
+(the retired-list comparison re-verifies the dropped item on the current
+revision's bytes), two NRC APS PDF comparisons, the fund-groups workbook
+comparison, and the GAO topics HTML comparison — each reconstructing the
+emitted rows from pinned publisher bytes with stock operations, verified
+against the adapters' emissions before landing. The registry source
+manifest records the three new reader modules with their pinned captures
+(78 modules), and the real-data audit passes with its one declared eurovoc
+gap. A rebuilt distribution gains exactly 23 releases (75 → 98), 137
+resources, 138 labels, and 137 source records, and zero identifiers,
+relations, statements, or evidence bindings — the whole wave is publisher
+vocabulary, not graph structure.
+
+**The running checks.** The code-adapter census moves to
+`test_loads_every_supported_small_registry_source_at_measured_counts` at
+63 releases and 1,579 resources; the nonemitter census to
+`test_complete_nonemitter_adapter_set_emits_6371_resources`; the roster
+census to `test_complete_roster_adapter_set_emits_1439_resources`. The
+planning and coverage summaries are pinned by
+`test_checked_atlas_index_is_exact_and_exhaustive` and
+`test_checked_registry_coverage_is_exact_and_compact`, the descriptor
+graph by `test_descriptor_proof_pins_exact_registry_inputs_and_output`,
+and the GAO CRA catalog landing retired its own scaffold: the
+`PENDING_CATALOG_RESOURCE_IDS` pin deleted itself the day the catalog row
+landed, exactly as its comment directed.

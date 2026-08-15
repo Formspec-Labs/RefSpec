@@ -32,6 +32,9 @@ EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.census_gov_finance_codes": 49,
     "refspec.registry.fec_committee_codes": 129,
     "refspec.registry.ferc_elibrary_codes": 340,
+    # Two pinned revisions of GAO Form 41217: the current revision's five
+    # rule types and the retired revision's five dropped priority levels.
+    "refspec.registry.gao_cra_form_codes": 10,
     "refspec.registry.govinfo_collections": 92,
     "refspec.registry.grants_gov_codes": 43,
     "refspec.registry.lda_controlled_codes": 129,
@@ -46,7 +49,9 @@ EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.regulations_gov_codes": 10,
     "refspec.registry.sam_assistance_listing_codes": 134,
     "refspec.registry.sam_opportunities_codes": 34,
-    "refspec.registry.unified_agenda_codes": 49,
+    # All 20 documented option lists of the pinned reginfo XSD (110 values)
+    # plus the 3 RISC Preamble legal-authority citation types.
+    "refspec.registry.unified_agenda_codes": 113,
     "refspec.registry.usaspending_gsdm_codes": 33,
 }
 PROFILE_BY_RESOURCE_KIND = {
@@ -115,9 +120,10 @@ def test_loads_every_supported_small_registry_source_at_measured_counts(
     # "accession number formats" left as observed inventories; 48 before the
     # REF-032 repair pass removed the NASBO chapter titles, the SCOTUS
     # sidebar labels, the SEC sidenav categories, and the ACS variables
-    # sample.
-    assert len(releases) == 44
-    assert sum(counts.values()) == 1_505
+    # sample; 44 before the Unified Agenda's remaining 17 documented option
+    # lists and the two GAO Form 41217 lists landed.
+    assert len(releases) == 63
+    assert sum(counts.values()) == 1_579
     assert dict(counts) == EXPECTED_RESOURCE_COUNTS
     assert all(not release.relations for release in releases)
 
@@ -242,10 +248,16 @@ def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
     assert by_key["census-tiger-geoid-structure"].scope == "captureSubset"
     assert by_key["usgs-gnis-identifiers"].scope == "captureSubset"
     assert by_key["omb-a11-functional-classification"].scope == "captureSubset"
-    assert by_key["unified-agenda-rule-stage"].scope == "captureSubset"
+    # With all 20 documented option lists emitted, the schema family claims
+    # completeCapture; the hand-transcribed Preamble citation types stay a
+    # captureSubset, as do the two GAO form lists (the forms carry other
+    # option lists this unit deliberately does not emit).
+    assert by_key["unified-agenda-rule-stage"].scope == "completeCapture"
     assert by_key["unified-agenda-legal-authority-citation-types"].scope == (
         "captureSubset"
     )
+    assert by_key["gao-cra-rule-types"].scope == "captureSubset"
+    assert by_key["gao-cra-priority-of-regulation"].scope == "captureSubset"
     assert {pin.role for pin in by_key["omb-a11-functional-classification"].inputs} == {
         "publisherSource",
         "publisherPdfTextExtraction",
@@ -355,6 +367,228 @@ def test_pra_release_emits_publisher_codes_without_form_mechanics(
     labels = {resource.labels[0].value for resource in release.resources}
     assert "OMB Control Number" not in labels
     assert not any(label.endswith(":") for label in labels)
+
+
+def test_unified_agenda_family_emits_every_documented_option_list(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    """REF-032's captureSubset claim (3 of 20 lists) is retired: the family
+    now emits one completeCapture release per documented option list, and the
+    reader's pinned census (exactly 20 blocks) is echoed in every release."""
+
+    schema_releases = [
+        release
+        for release in releases
+        if release.resource_id == "unified-agenda-native-controls"
+    ]
+
+    assert len(schema_releases) == 20
+    assert {release.key for release in schema_releases} == {
+        "unified-agenda-agency-relation",
+        "unified-agenda-dline-action-stage",
+        "unified-agenda-dline-type",
+        "unified-agenda-energy-affected",
+        "unified-agenda-eo13771-designation",
+        "unified-agenda-federalism",
+        "unified-agenda-govt-level",
+        "unified-agenda-international-interest",
+        "unified-agenda-major",
+        "unified-agenda-print-paper",
+        "unified-agenda-priority-category",
+        "unified-agenda-rfa-required",
+        "unified-agenda-rfa-section610-review",
+        "unified-agenda-rin-relation",
+        "unified-agenda-rin-status",
+        "unified-agenda-rplan-entry",
+        "unified-agenda-rule-stage",
+        "unified-agenda-small-entity",
+        "unified-agenda-timetable-action",
+        "unified-agenda-unfunded-mandate",
+    }
+    assert sum(len(release.resources) for release in schema_releases) == 110
+    for release in schema_releases:
+        assert release.scope == "completeCapture"
+        assert release.metadata["xsdDocumentedOptionListCount"] == 20
+        assert release.metadata["familyEmitsEveryDocumentedOptionList"] is True
+
+    by_key = {release.key: release for release in schema_releases}
+    counts = {key: len(release.resources) for key, release in by_key.items()}
+    assert counts == {
+        "unified-agenda-agency-relation": 2,
+        "unified-agenda-dline-action-stage": 5,
+        "unified-agenda-dline-type": 4,
+        "unified-agenda-energy-affected": 3,
+        "unified-agenda-eo13771-designation": 6,
+        "unified-agenda-federalism": 3,
+        "unified-agenda-govt-level": 6,
+        "unified-agenda-international-interest": 3,
+        "unified-agenda-major": 3,
+        "unified-agenda-print-paper": 3,
+        "unified-agenda-priority-category": 6,
+        "unified-agenda-rfa-required": 3,
+        "unified-agenda-rfa-section610-review": 4,
+        "unified-agenda-rin-relation": 5,
+        "unified-agenda-rin-status": 2,
+        "unified-agenda-rplan-entry": 2,
+        "unified-agenda-rule-stage": 6,
+        "unified-agenda-small-entity": 6,
+        "unified-agenda-timetable-action": 34,
+        "unified-agenda-unfunded-mandate": 4,
+    }
+    # Sampled publisher wording, exactly as documented.
+    assert [r.labels[0].value for r in by_key["unified-agenda-rin-relation"].resources] == [
+        "Merge with",
+        "Split from",
+        "Previously reported as",
+        "Duplicate of",
+        "Related to",
+    ]
+    assert [r.labels[0].value for r in by_key["unified-agenda-agency-relation"].resources] == [
+        "Joint",
+        "Common",
+    ]
+    assert [r.labels[0].value for r in by_key["unified-agenda-govt-level"].resources] == [
+        "State",
+        "Local",
+        "Tribal",
+        "Federal",
+        "None",
+        "Undetermined",
+    ]
+
+
+def test_unified_agenda_successor_releases_state_their_ref_032_provenance(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    """MAJOR and RIN_STATUS are the documented successors of observed twins
+    deleted under REF-032; the successor statement must travel in metadata."""
+
+    by_key = {release.key: release for release in releases}
+
+    major = by_key["unified-agenda-major"]
+    assert [resource.labels[0].value for resource in major.resources] == [
+        "Yes",
+        "No",
+        "Undetermined",
+    ]
+    assert "REF-032" in major.metadata["observedTwinSuccessorNote"]
+    assert "distinct-value scan" in major.metadata["observedTwinSuccessorNote"]
+
+    rin_status = by_key["unified-agenda-rin-status"]
+    # The XSD's sentence-case wording, verbatim: the live export's casing
+    # drift is a known publisher-side issue recorded in SpicyRegs.
+    assert [resource.labels[0].value for resource in rin_status.resources] == [
+        "First time published in the Unified Agenda",
+        "Previously published in the Unified Agenda",
+    ]
+    assert "REF-032" in rin_status.metadata["observedTwinSuccessorNote"]
+    assert "casing" in rin_status.metadata["publisherCasingNote"]
+
+    # No other schema release claims the successor note.
+    claimants = {
+        release.key
+        for release in releases
+        if "observedTwinSuccessorNote" in release.metadata
+    }
+    assert claimants == {"unified-agenda-major", "unified-agenda-rin-status"}
+
+
+def test_gao_cra_releases_carry_both_form_revisions_honestly(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    by_key = {release.key: release for release in releases}
+
+    rule_types = by_key["gao-cra-rule-types"]
+    assert [resource.labels[0].value for resource in rule_types.resources] == [
+        "Draft Rule",
+        "Final Rule",
+        "Draft Guideline",
+        "Final Guideline",
+        "Other",
+    ]
+    assert rule_types.resources[-1].native_payload["optionText"] == "Other (specify)"
+    assert all(
+        resource.native_payload["sourceMedium"] == "pdf"
+        for resource in rule_types.resources
+    )
+    assert all(resource.status == "active" for resource in rule_types.resources)
+    assert rule_types.metadata["formRevision"] == "Rev. 12/24"
+    # The publisher's own URL typo is preserved, and named in metadata.
+    assert "Sumission" in rule_types.inputs[0].source_iri
+    assert "Sumission" in rule_types.metadata["publisherUrlTypo"]
+
+    priority = by_key["gao-cra-priority-of-regulation"]
+    assert [resource.labels[0].value for resource in priority.resources] == [
+        "Economically Significant",
+        "Significant",
+        "Substantive, Nonsignificant",
+        "Routine and Frequent",
+        "Informational/Administrative/Other",
+    ]
+    # The retired revision is the last publisher statement of the list: every
+    # member is retired, the metadata says the current form dropped the item,
+    # and the current form's bytes are pinned as an input so the claim is
+    # re-verified on every load.
+    assert all(resource.status == "retired" for resource in priority.resources)
+    assert priority.metadata["formRevision"] == "11/17/23"
+    assert "Rev. 12/24" in priority.metadata["droppedByCurrentRevision"]
+    assert "last publisher statement" in priority.metadata["droppedByCurrentRevision"]
+    assert {pin.role for pin in priority.inputs} == {
+        "publisherRetiredRevision",
+        "publisherSource",
+    }
+    # The "; or" joiners stay in the printed option text, never in the value.
+    assert priority.resources[0].native_payload["optionText"] == "Economically Significant; or"
+    assert not priority.resources[0].labels[0].value.endswith("; or")
+
+
+def test_new_releases_pass_the_ref_032_guards_and_mint_no_identifier_rows(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    """The REF-032 refusal surfaces name the deleted GAO CRA facet scheme
+    (``urn:ref:gao-cra-facet:``) and fixtures path
+    (``tests/fixtures/gao_cra_facets/``). The fresh units must pass all three
+    refusal guards under their new naming, and -- because no declared catalog
+    authority backs GAO CRA or the Unified Agenda schema fields -- must mint
+    no authority-scoped identifier rows at all: publisher values travel as
+    notations and payload fields only."""
+
+    import importlib
+    import sys
+    from types import SimpleNamespace
+
+    sys.path.insert(0, str(ROOT / "tools"))
+    generator = importlib.import_module("generate_atlas_v3_full")
+
+    new_keys = {
+        release.key
+        for release in releases
+        if release.key.startswith(("gao-cra-", "unified-agenda-"))
+    }
+    assert len(new_keys) == 23
+    for release in releases:
+        if release.key not in new_keys:
+            continue
+        loaded = SimpleNamespace(
+            spec=SimpleNamespace(
+                key=release.key,
+                logical_path=release.inputs[0].logical_path,
+                input_pins=release.inputs,
+            ),
+            scheme_iri=release.scheme_iri,
+            resources=release.resources,
+        )
+        generator._refuse_registrant_population_release(loaded)
+        generator._refuse_document_population_release(loaded)
+        generator._refuse_observed_inventory_release(loaded)
+        # The identifier-authority tripwire, held at the source: no release in
+        # this adapter mints RegistryIdentifier rows.
+        assert all(not resource.identifiers for resource in release.resources)
+        assert not release.scheme_iri.startswith(
+            generator.OBSERVED_INVENTORY_SCHEME_PREFIXES
+        )
+        for pin in release.inputs:
+            assert not pin.logical_path.startswith("tests/fixtures/gao_cra_facets/")
 
 
 def test_govinfo_collections_emit_codes_and_names_without_holdings_counts(

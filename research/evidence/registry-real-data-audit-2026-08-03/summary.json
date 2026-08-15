@@ -1,6 +1,6 @@
 {
   "classifications": {
-    "data-registry": 52,
+    "data-registry": 55,
     "registry-adapter": 5,
     "registry-infrastructure": 12,
     "registry-managed-release": 2,
@@ -9,15 +9,15 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1193,
-    "seconds": 193.318,
+    "passed": 1223,
+    "seconds": 203.89,
     "skipped": 2,
-    "testFiles": 72,
-    "tests": 1195
+    "testFiles": 75,
+    "tests": 1225
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
-    "moduleCount": 75,
+    "moduleCount": 78,
     "modules": [
       {
         "executions": [
@@ -11845,7 +11845,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-740d-b2ea-c034f3152b8a",
+                "fetch_id": "019fb304-0930-7faa-b001-974d4c31fd5d",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -18900,19 +18900,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:d699a3e39f0069813304e1676bc292d4748e9beab8d765300ded0199c998b9c4"
+                  "sha256": "sha256:ad2232c68132117d1471d8cc5d08a664181edfe74f0a46d9d8a048fc4ef398bb"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:934e8731f71b5b09f5686f2d3101c9dcbd397e009049aac46bd7974cd7f0e475"
+                  "sha256": "sha256:3f1dba466eb22446271f1a459a78895533d935c69eac2512321d0baffbd72c04"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:50c2e7078ccb2e814c4f77758dc4daab0d839cb7298824b9a530ed3c1f3a4b88"
+                  "sha256": "sha256:184c258d82f2e5fa53dc00230a1c95befce4c792cb43cb2532bd7461b0b15ae3"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:34532a3e7f5792e536112ef068a3316822e74935e2fe9ada2a135f7d46dfa80a"
+                  "sha256": "sha256:c537e0324a0867433cb9a0a2c54c7910f2b1b17860dc4e1106c8dd1faddf39c7"
                 }
               },
               "manifest": {
@@ -18923,7 +18923,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:e3e8fa7ebd39a97e59e9990ca1837e878bd988f91aa6e0b1d59828ee277ec84c",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:049a4e5b8c90846616a059b35e6f6961d3d8edee1fb07ce2a3318b8bf60bc910",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -18979,7 +18979,7 @@
               "byteLengths": [
                 0,
                 566,
-                591,
+                585,
                 1080,
                 1315,
                 1504,
@@ -18991,18 +18991,18 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:34532a3e7f5792e536112ef068a3316822e74935e2fe9ada2a135f7d46dfa80a",
+                "sha256:184c258d82f2e5fa53dc00230a1c95befce4c792cb43cb2532bd7461b0b15ae3",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3c7df9ccb3ab761c03079e897104d04e5c4bbcb411542f9b3520a2005209f1c2",
-                "sha256:50c2e7078ccb2e814c4f77758dc4daab0d839cb7298824b9a530ed3c1f3a4b88",
-                "sha256:722c48f92179913e67611a9becbb46ecf38f76b9f8083e8f2c0bd5a632ce3a6b",
+                "sha256:3f1dba466eb22446271f1a459a78895533d935c69eac2512321d0baffbd72c04",
+                "sha256:576a0155ed933c5868dc437f7eb96ad7092e96aa30a38ddb01aabbaabc5e9a86",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:934e8731f71b5b09f5686f2d3101c9dcbd397e009049aac46bd7974cd7f0e475",
-                "sha256:9726602626a84002e567f2e3a3e89e1a54c16a86233d1e330041a900e94efce9",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:a653a1faf5f2365599258405f71f47909c85c6832bc887d110981011f53af357",
+                "sha256:ac89bc0a50777e787d86e07f922fccc7a160e094e96a655de4c28691ee3c9348",
+                "sha256:ad2232c68132117d1471d8cc5d08a664181edfe74f0a46d9d8a048fc4ef398bb",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:c537e0324a0867433cb9a0a2c54c7910f2b1b17860dc4e1106c8dd1faddf39c7",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:d699a3e39f0069813304e1676bc292d4748e9beab8d765300ded0199c998b9c4",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
@@ -19027,7 +19027,7 @@
               "byteLengths": [
                 0,
                 566,
-                591,
+                585,
                 1080,
                 1315,
                 1504,
@@ -19039,18 +19039,18 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:34532a3e7f5792e536112ef068a3316822e74935e2fe9ada2a135f7d46dfa80a",
+                "sha256:184c258d82f2e5fa53dc00230a1c95befce4c792cb43cb2532bd7461b0b15ae3",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3c7df9ccb3ab761c03079e897104d04e5c4bbcb411542f9b3520a2005209f1c2",
-                "sha256:50c2e7078ccb2e814c4f77758dc4daab0d839cb7298824b9a530ed3c1f3a4b88",
-                "sha256:722c48f92179913e67611a9becbb46ecf38f76b9f8083e8f2c0bd5a632ce3a6b",
+                "sha256:3f1dba466eb22446271f1a459a78895533d935c69eac2512321d0baffbd72c04",
+                "sha256:576a0155ed933c5868dc437f7eb96ad7092e96aa30a38ddb01aabbaabc5e9a86",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:934e8731f71b5b09f5686f2d3101c9dcbd397e009049aac46bd7974cd7f0e475",
-                "sha256:9726602626a84002e567f2e3a3e89e1a54c16a86233d1e330041a900e94efce9",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:a653a1faf5f2365599258405f71f47909c85c6832bc887d110981011f53af357",
+                "sha256:ac89bc0a50777e787d86e07f922fccc7a160e094e96a655de4c28691ee3c9348",
+                "sha256:ad2232c68132117d1471d8cc5d08a664181edfe74f0a46d9d8a048fc4ef398bb",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:c537e0324a0867433cb9a0a2c54c7910f2b1b17860dc4e1106c8dd1faddf39c7",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:d699a3e39f0069813304e1676bc292d4748e9beab8d765300ded0199c998b9c4",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
@@ -19071,7 +19071,7 @@
               "byteLengths": [
                 0,
                 566,
-                591,
+                585,
                 1080,
                 1315,
                 1504,
@@ -19083,18 +19083,18 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:34532a3e7f5792e536112ef068a3316822e74935e2fe9ada2a135f7d46dfa80a",
+                "sha256:184c258d82f2e5fa53dc00230a1c95befce4c792cb43cb2532bd7461b0b15ae3",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3c7df9ccb3ab761c03079e897104d04e5c4bbcb411542f9b3520a2005209f1c2",
-                "sha256:50c2e7078ccb2e814c4f77758dc4daab0d839cb7298824b9a530ed3c1f3a4b88",
-                "sha256:722c48f92179913e67611a9becbb46ecf38f76b9f8083e8f2c0bd5a632ce3a6b",
+                "sha256:3f1dba466eb22446271f1a459a78895533d935c69eac2512321d0baffbd72c04",
+                "sha256:576a0155ed933c5868dc437f7eb96ad7092e96aa30a38ddb01aabbaabc5e9a86",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:934e8731f71b5b09f5686f2d3101c9dcbd397e009049aac46bd7974cd7f0e475",
-                "sha256:9726602626a84002e567f2e3a3e89e1a54c16a86233d1e330041a900e94efce9",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:a653a1faf5f2365599258405f71f47909c85c6832bc887d110981011f53af357",
+                "sha256:ac89bc0a50777e787d86e07f922fccc7a160e094e96a655de4c28691ee3c9348",
+                "sha256:ad2232c68132117d1471d8cc5d08a664181edfe74f0a46d9d8a048fc4ef398bb",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:c537e0324a0867433cb9a0a2c54c7910f2b1b17860dc4e1106c8dd1faddf39c7",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:d699a3e39f0069813304e1676bc292d4748e9beab8d765300ded0199c998b9c4",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
@@ -19116,9 +19116,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 796,
+              "archive_byte_length": 798,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
+              "archive_sha256": "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -19127,10 +19127,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 796,
+                "expected_byte_length": 798,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
-                "expected_sha256": "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
+                "expected_member_sha256": "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
+                "expected_sha256": "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -19144,7 +19144,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
+              "sha256": "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -19191,8 +19191,8 @@
                 2908
               ],
               "digests": [
-                "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
-                "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96"
+                "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
+                "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006"
               ],
               "paths": [],
               "urls": [
@@ -19207,9 +19207,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 796,
+              "archive_byte_length": 798,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
+              "archive_sha256": "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -19227,10 +19227,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 796,
+                "expected_byte_length": 798,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
-                "expected_sha256": "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
+                "expected_member_sha256": "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
+                "expected_sha256": "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -19249,7 +19249,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
+              "sha256": "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -19317,8 +19317,8 @@
                 2908
               ],
               "digests": [
-                "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
-                "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
+                "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
+                "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006",
                 "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
               ],
               "paths": [],
@@ -19450,7 +19450,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
+              "source_sha256": "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -19640,8 +19640,8 @@
                 2908
               ],
               "digests": [
-                "sha256:0a6a06e7fe0dec7524436d3e1831323373149855f2291e98748295df6739895e",
-                "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96"
+                "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
+                "sha256:6e545ccba4be5313e1673b4245cc30e97c4626027c96de6a59464641e7dcf006"
               ],
               "paths": [],
               "urls": [
@@ -20154,7 +20154,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96",
+              "source_sha256": "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -20344,7 +20344,7 @@
                 2908
               ],
               "digests": [
-                "sha256:6f6e44ebbbc9eddd01bcc294b9085942403f36aa7c0562c45ecf4306cb7c4c96"
+                "sha256:25b9a8790b06ac9f3565347f8ce3c7eb71135b4ad402b139a2eebe8eb3419c1c"
               ],
               "paths": [],
               "urls": [
@@ -31968,7 +31968,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7961-b97e-ec508a8f2832",
+                "fetch_id": "019fb2e5-4e00-78d0-b3e1-b9359bca7160",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -32045,7 +32045,7 @@
               "acquisition_mode": "local",
               "byte_length": 887,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7e9a-a33d-46fe91635169",
+                "fetch_id": "019fb2e5-4e00-7f44-9591-7df1a1caaae6",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -33458,6 +33458,462 @@
       {
         "executions": [
           {
+            "counts": {
+              "rule_types.items": 5
+            },
+            "function": "parse_gao_cra_current_form",
+            "sample": {
+              "major_dichotomy_text": "Major* Non-Major",
+              "priority_item_absent": true,
+              "retrieved_at": "2026-08-15T13:56:56Z",
+              "revision": "Rev. 12/24",
+              "rule_types": [
+                {
+                  "form_item": "6",
+                  "option_text": "Draft Rule",
+                  "source_ordinal": 1,
+                  "value": "Draft Rule"
+                },
+                {
+                  "form_item": "6",
+                  "option_text": "Final Rule",
+                  "source_ordinal": 2,
+                  "value": "Final Rule"
+                }
+              ],
+              "source_byte_length": 354320,
+              "source_sha256": "sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa",
+              "source_url": "https://www.gao.gov/assets/2025-01/Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional%20Review%20Act%20-%202025.pdf"
+            },
+            "shape": {
+              "fields": {
+                "major_dichotomy_text": "str",
+                "priority_item_absent": "bool",
+                "retrieved_at": "str",
+                "revision": "str",
+                "rule_types": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "form_item": "str",
+                      "option_text": "str",
+                      "source_ordinal": "int",
+                      "value": "str"
+                    },
+                    "type": "refspec.registry.gao_cra_form_codes.GaoCraFormOption"
+                  },
+                  "type": "tuple"
+                },
+                "source_byte_length": "int",
+                "source_sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gao_cra_form_codes.GaoCraCurrentFormCapture"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                354320
+              ],
+              "digests": [
+                "sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.gao.gov/assets/2025-01/Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional%20Review%20Act%20-%202025.pdf"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "priority_levels.items": 5
+            },
+            "function": "parse_gao_cra_retired_form",
+            "sample": {
+              "major_dichotomy_text": "Major Rule Non-major Rule",
+              "priority_levels": [
+                {
+                  "form_item": "8",
+                  "option_text": "Economically Significant; or",
+                  "source_ordinal": 1,
+                  "value": "Economically Significant"
+                },
+                {
+                  "form_item": "8",
+                  "option_text": "Significant; or",
+                  "source_ordinal": 2,
+                  "value": "Significant"
+                }
+              ],
+              "priority_routing_note": "(Do not complete the other side of this form if filled in above.)",
+              "retrieved_at": "2026-08-15T13:57:12Z",
+              "revision": "11/17/23",
+              "source_byte_length": 111887,
+              "source_sha256": "sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d",
+              "source_url": "https://www.gao.gov/assets/2023-11/Blank%20CRA%20Form-Updated.pdf"
+            },
+            "shape": {
+              "fields": {
+                "major_dichotomy_text": "str",
+                "priority_levels": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "form_item": "str",
+                      "option_text": "str",
+                      "source_ordinal": "int",
+                      "value": "str"
+                    },
+                    "type": "refspec.registry.gao_cra_form_codes.GaoCraFormOption"
+                  },
+                  "type": "tuple"
+                },
+                "priority_routing_note": "str",
+                "retrieved_at": "str",
+                "revision": "str",
+                "source_byte_length": "int",
+                "source_sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gao_cra_form_codes.GaoCraRetiredFormCapture"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                111887
+              ],
+              "digests": [
+                "sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.gao.gov/assets/2023-11/Blank%20CRA%20Form-Updated.pdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:3689a7293865cdb1613939ce41a68575bab41a7ac1cec6d5ebbdb9781ba09b3d",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                354320
+              ],
+              "digests": [
+                "sha256:3689a7293865cdb1613939ce41a68575bab41a7ac1cec6d5ebbdb9781ba09b3d"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                354320
+              ],
+              "digests": [
+                "sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                111887
+              ],
+              "digests": [
+                "sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          }
+        ],
+        "module": "gao_cra_form_codes.py"
+      },
+      {
+        "executions": [
+          {
+            "counts": {},
+            "function": "GaoPublishedTopicsIndex.by_slug",
+            "sample": {
+              "agriculture-and-food": {
+                "description": "Agricultural industry, markets, and food production (e.g., farm animals and crops). Food-related issues such as safety, nutrition, and domestic and international assistance.",
+                "name": "Agriculture and Food",
+                "page_href": "/topics/agriculture-and-food",
+                "page_url": "https://www.gao.gov/topics/agriculture-and-food",
+                "slug": "agriculture-and-food",
+                "source_ordinal": 1,
+                "term_id": "151"
+              },
+              "auditing-and-financial-management": {
+                "description": "Auditing how-to, including methodologies, tools, techniques, and standards. Financial, forensic, and programmatic audits of federal agencies and the U.S. government.",
+                "name": "Auditing and Financial Management",
+                "page_href": "/topics/auditing-and-financial-management",
+                "page_url": "https://www.gao.gov/topics/auditing-and-financial-management",
+                "slug": "auditing-and-financial-management",
+                "source_ordinal": 2,
+                "term_id": "156"
+              },
+              "budget-and-spending": {
+                "description": "The federal budget, budget projections, and agency budget systems. Government appropriations; federal, state, and local finance.",
+                "name": "Budget and Spending",
+                "page_href": "/topics/budget-and-spending",
+                "page_url": "https://www.gao.gov/topics/budget-and-spending",
+                "slug": "budget-and-spending",
+                "source_ordinal": 3,
+                "term_id": "161"
+              },
+              "business-regulation-and-consumer-protection": {
+                "description": "Domestic and international business, small business programs, federal regulations. Consumer protection, (e.g., identity theft, insurance, regulation, and credit markets).",
+                "name": "Business Regulation and Consumer Protection",
+                "page_href": "/topics/business-regulation-and-consumer-protection",
+                "page_url": "https://www.gao.gov/topics/business-regulation-and-consumer-protection",
+                "slug": "business-regulation-and-consumer-protection",
+                "source_ordinal": 4,
+                "term_id": "166"
+              },
+              "economic-development": {
+                "description": "Domestic and international development initiatives, including loans and grants. Construction and disaster relief.",
+                "name": "Economic Development",
+                "page_href": "/topics/economic-development",
+                "page_url": "https://www.gao.gov/topics/economic-development",
+                "slug": "economic-development",
+                "source_ordinal": 5,
+                "term_id": "171"
+              }
+            },
+            "shape": {
+              "count": 30,
+              "keys": [
+                "agriculture-and-food",
+                "auditing-and-financial-management",
+                "budget-and-spending",
+                "business-regulation-and-consumer-protection",
+                "economic-development",
+                "education",
+                "employment",
+                "energy",
+                "equal-opportunity",
+                "financial-markets-and-institutions",
+                "gao-mission-and-operations",
+                "government-operations",
+                "health-care",
+                "homeland-security",
+                "housing",
+                "human-capital",
+                "information-management",
+                "information-security",
+                "information-technology",
+                "international-affairs"
+              ],
+              "type": "mapping",
+              "valueShape": {
+                "fields": {
+                  "description": "str",
+                  "name": "str",
+                  "page_href": "str",
+                  "page_url": "str",
+                  "slug": "str",
+                  "source_ordinal": "int",
+                  "term_id": "str"
+                },
+                "type": "refspec.registry.gao_published_topics.GaoPublishedTopic"
+              }
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                122070
+              ],
+              "digests": [
+                "sha256:9aa9e7f185b9433236f512a6f694f6c9cf57f109bba3e9ea99ac42de19180096"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.gao.gov/topics/agriculture-and-food",
+                "https://www.gao.gov/topics/auditing-and-financial-management",
+                "https://www.gao.gov/topics/budget-and-spending",
+                "https://www.gao.gov/topics/business-regulation-and-consumer-protection",
+                "https://www.gao.gov/topics/economic-development",
+                "https://www.gao.gov/topics/education",
+                "https://www.gao.gov/topics/employment",
+                "https://www.gao.gov/topics/energy",
+                "https://www.gao.gov/topics/equal-opportunity",
+                "https://www.gao.gov/topics/financial-markets-and-institutions",
+                "https://www.gao.gov/topics/gao-mission-and-operations",
+                "https://www.gao.gov/topics/government-operations",
+                "https://www.gao.gov/topics/health-care",
+                "https://www.gao.gov/topics/homeland-security",
+                "https://www.gao.gov/topics/housing",
+                "https://www.gao.gov/topics/human-capital",
+                "https://www.gao.gov/topics/information-management",
+                "https://www.gao.gov/topics/information-security",
+                "https://www.gao.gov/topics/information-technology",
+                "https://www.gao.gov/topics/international-affairs",
+                "https://www.gao.gov/topics/justice-and-law-enforcement",
+                "https://www.gao.gov/topics/national-defense",
+                "https://www.gao.gov/topics/natural-resources-and-environment",
+                "https://www.gao.gov/topics/retirement-security",
+                "https://www.gao.gov/topics/space",
+                "https://www.gao.gov/topics/tax-policy-and-administration",
+                "https://www.gao.gov/topics/telecommunications",
+                "https://www.gao.gov/topics/transportation",
+                "https://www.gao.gov/topics/veterans",
+                "https://www.gao.gov/topics/worker-and-family-assistance"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "featured_entry_hrefs.items": 4,
+              "topics.items": 30
+            },
+            "function": "parse_gao_published_topics",
+            "sample": {
+              "featured_entry_hrefs": [
+                "/america-250",
+                "/fraud-improper-payments"
+              ],
+              "listing_title": "Browse Topics Alphabetically",
+              "retrieved_at": "2026-08-15T13:56:14Z",
+              "source_byte_length": 122070,
+              "source_sha256": "sha256:9aa9e7f185b9433236f512a6f694f6c9cf57f109bba3e9ea99ac42de19180096",
+              "topics": [
+                {
+                  "description": "Agricultural industry, markets, and food production (e.g., farm animals and crops). Food-related issues such as safety, nutrition, and domestic and international assistance.",
+                  "name": "Agriculture and Food",
+                  "page_href": "/topics/agriculture-and-food",
+                  "page_url": "https://www.gao.gov/topics/agriculture-and-food",
+                  "slug": "agriculture-and-food",
+                  "source_ordinal": 1,
+                  "term_id": "151"
+                },
+                {
+                  "description": "Auditing how-to, including methodologies, tools, techniques, and standards. Financial, forensic, and programmatic audits of federal agencies and the U.S. government.",
+                  "name": "Auditing and Financial Management",
+                  "page_href": "/topics/auditing-and-financial-management",
+                  "page_url": "https://www.gao.gov/topics/auditing-and-financial-management",
+                  "slug": "auditing-and-financial-management",
+                  "source_ordinal": 2,
+                  "term_id": "156"
+                }
+              ]
+            },
+            "shape": {
+              "fields": {
+                "featured_entry_hrefs": {
+                  "count": 4,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "listing_title": "str",
+                "retrieved_at": "str",
+                "source_byte_length": "int",
+                "source_sha256": "str",
+                "topics": {
+                  "count": 30,
+                  "itemShape": {
+                    "fields": {
+                      "description": "str",
+                      "name": "str",
+                      "page_href": "str",
+                      "page_url": "str",
+                      "slug": "str",
+                      "source_ordinal": "int",
+                      "term_id": "str"
+                    },
+                    "type": "refspec.registry.gao_published_topics.GaoPublishedTopic"
+                  },
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.gao_published_topics.GaoPublishedTopicsIndex"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                122070
+              ],
+              "digests": [
+                "sha256:9aa9e7f185b9433236f512a6f694f6c9cf57f109bba3e9ea99ac42de19180096"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.gao.gov/topics/agriculture-and-food",
+                "https://www.gao.gov/topics/auditing-and-financial-management",
+                "https://www.gao.gov/topics/budget-and-spending",
+                "https://www.gao.gov/topics/business-regulation-and-consumer-protection",
+                "https://www.gao.gov/topics/economic-development",
+                "https://www.gao.gov/topics/education",
+                "https://www.gao.gov/topics/employment",
+                "https://www.gao.gov/topics/energy",
+                "https://www.gao.gov/topics/equal-opportunity",
+                "https://www.gao.gov/topics/financial-markets-and-institutions"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:3883f8c642fe7034b0d393089e9fa11f8f3dc9e0b74131a49db7df33cad0aab2",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                122055
+              ],
+              "digests": [
+                "sha256:3883f8c642fe7034b0d393089e9fa11f8f3dc9e0b74131a49db7df33cad0aab2"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:5ae81ec9a7b4887c118f67839f3be899cf5af3f5de924fbc66cf67fff0dae3b1",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                122074
+              ],
+              "digests": [
+                "sha256:5ae81ec9a7b4887c118f67839f3be899cf5af3f5de924fbc66cf67fff0dae3b1"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:ce7c20e32f5cb65d2213b4ede39d721a63b050c43dcc8e6c8f155d7bdeb0adcf",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                122070
+              ],
+              "digests": [
+                "sha256:ce7c20e32f5cb65d2213b4ede39d721a63b050c43dcc8e6c8f155d7bdeb0adcf"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          }
+        ],
+        "module": "gao_published_topics.py"
+      },
+      {
+        "executions": [
+          {
             "counts": {},
             "function": "ParsedGCMDScienceKeywords.by_uuid",
             "sample": {
@@ -34534,86 +34990,6 @@
               "acquisition_mode": "local",
               "byte_length": 11807,
               "cache_hit": false,
-              "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:94daca2c546a4d669cfd40e937b3a9d0ecbf99df20610063f33cc9bf15f30ac6",
-              "local_source_path": "<pathlib.PosixPath>",
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
-                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 11807,
-                "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:94daca2c546a4d669cfd40e937b3a9d0ecbf99df20610063f33cc9bf15f30ac6",
-                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "filename": "gemet-mini.rdf",
-                "landing_page_url": "https://example.test/gemet-landing-page",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "publisher": "European Environment Agency / Eionet",
-                "source_url": "https://example.test/gemet-mini.rdf",
-                "version": "fixture"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-              "source_url": "https://example.test/gemet-mini.rdf"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "compressed_byte_length": "int",
-                "compressed_sha256": "str",
-                "local_source_path": "pathlib.PosixPath",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_compressed_byte_length": "int",
-                    "expected_compressed_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "publisher": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                11807
-              ],
-              "digests": [
-                "sha256:94daca2c546a4d669cfd40e937b3a9d0ecbf99df20610063f33cc9bf15f30ac6",
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/gemet-landing-page",
-                "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_gemet_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "byte_length": 11807,
-              "cache_hit": false,
               "compressed_byte_length": null,
               "compressed_sha256": null,
               "local_source_path": "<pathlib.PosixPath>",
@@ -34676,6 +35052,86 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/gemet-landing-page",
+                "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gemet_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 11807,
+              "cache_hit": false,
+              "compressed_byte_length": 2809,
+              "compressed_sha256": "sha256:a8bf0e173ff2db452f73b4b28086f427b698be8b57eab3cb0d46af56f412f5fe",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
+                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "expected_byte_length": 11807,
+                "expected_compressed_byte_length": 2809,
+                "expected_compressed_sha256": "sha256:a8bf0e173ff2db452f73b4b28086f427b698be8b57eab3cb0d46af56f412f5fe",
+                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "filename": "gemet-mini.rdf",
+                "landing_page_url": "https://example.test/gemet-landing-page",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "publisher": "European Environment Agency / Eionet",
+                "source_url": "https://example.test/gemet-mini.rdf",
+                "version": "fixture"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_url": "https://example.test/gemet-mini.rdf"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "compressed_byte_length": "int",
+                "compressed_sha256": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_compressed_byte_length": "int",
+                    "expected_compressed_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "publisher": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                11807
+              ],
+              "digests": [
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "sha256:a8bf0e173ff2db452f73b4b28086f427b698be8b57eab3cb0d46af56f412f5fe"
               ],
               "paths": [],
               "urls": [
@@ -34955,7 +35411,6 @@
                 11807
               ],
               "digests": [
-                "sha256:94daca2c546a4d669cfd40e937b3a9d0ecbf99df20610063f33cc9bf15f30ac6",
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
@@ -35291,7 +35746,8 @@
                 11807
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "sha256:a8bf0e173ff2db452f73b4b28086f427b698be8b57eab3cb0d46af56f412f5fe"
               ],
               "paths": [],
               "urls": [
@@ -66831,7 +67287,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7163-9123-c75cdb4b9fd4",
+              "fetch_id": "019fb2e5-4e00-7f44-9591-7df1a1caaae6",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -66888,7 +67344,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-710b-8478-3de87e02cbdb"
+              "registration_id": "019fb80b-aa00-763f-ab4f-200b08f10d10"
             },
             "shape": {
               "fields": {
@@ -79186,6 +79642,276 @@
           }
         ],
         "module": "nppes_npi_identifiers.py"
+      },
+      {
+        "executions": [
+          {
+            "counts": {
+              "appendix_document_property_names.items": 13,
+              "date_property_names.items": 2,
+              "developer_portal_statements.items": 3,
+              "get_document_parameters.items": 1,
+              "search_request_parameters.items": 8,
+              "text_operators.items": 6
+            },
+            "function": "parse_aps_api_guide",
+            "sample": {
+              "appendix_document_property_names": [
+                "AccessionNumber",
+                "DocumentTitle"
+              ],
+              "date_property_names": [
+                "DateAddedTimestamp",
+                "DocumentDate"
+              ],
+              "developer_portal_statements": [
+                "The most current properties available for search are published via the ADAMS Public Search API Developer Portal for each of the endpoints discussed below in section 3.",
+                "The API also has a Developer Portal is published at: https://adams-api-developer.nrc.gov/ for more direct access."
+              ],
+              "document_information": {
+                "CreationDate": "D:20251125135020-05'00'",
+                "ModDate": "D:20251125135020-05'00'"
+              },
+              "get_document_parameters": [
+                {
+                  "declared_type": "location: path, required",
+                  "description": "Unique NRC accession number (e.g., ML12345A678).",
+                  "endpoint": "getDocument",
+                  "name": "accessionNumber",
+                  "source_ordinal": 0
+                }
+              ],
+              "page_count": 24,
+              "retrieved_at": "2026-08-15T13:56:07Z",
+              "search_request_parameters": [
+                {
+                  "declared_type": "string",
+                  "description": "Search query text",
+                  "endpoint": "searchDocumentLibrary",
+                  "name": "q",
+                  "source_ordinal": 0
+                },
+                {
+                  "declared_type": "array",
+                  "description": "Property filters for AND operations, all the filters here MUST be true.",
+                  "endpoint": "searchDocumentLibrary",
+                  "name": "filters",
+                  "source_ordinal": 1
+                }
+              ],
+              "self_described_version": "Version 1.0",
+              "source_byte_length": 531285,
+              "source_sha256": "sha256:5d1ed894dfbd30cb9ea4c7e05fb01c3bec5502dc4e4ab968daf88095b4c2d848",
+              "source_url": "https://adams-search.nrc.gov/assets/APS-API-Guide.pdf",
+              "text_operators": [
+                {
+                  "description": "The field contains the search term",
+                  "label": "Contains",
+                  "source_ordinal": 0,
+                  "token": "contains"
+                },
+                {
+                  "description": "The field does not contain the search term",
+                  "label": "Does Not Contain",
+                  "source_ordinal": 1,
+                  "token": "notcontains"
+                }
+              ]
+            },
+            "shape": {
+              "fields": {
+                "appendix_document_property_names": {
+                  "count": 13,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "date_property_names": {
+                  "count": 2,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "developer_portal_statements": {
+                  "count": 3,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "document_information": {
+                  "count": 2,
+                  "keys": [
+                    "CreationDate",
+                    "ModDate"
+                  ],
+                  "type": "mapping",
+                  "valueShape": "TextStringObject"
+                },
+                "get_document_parameters": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "declared_type": "str",
+                      "description": "str",
+                      "endpoint": "str",
+                      "name": "str",
+                      "source_ordinal": "int"
+                    },
+                    "type": "refspec.registry.nrc_adams_aps_docs.APSRequestParameter"
+                  },
+                  "type": "tuple"
+                },
+                "page_count": "int",
+                "retrieved_at": "str",
+                "search_request_parameters": {
+                  "count": 8,
+                  "itemShape": {
+                    "fields": {
+                      "declared_type": "str",
+                      "description": "str",
+                      "endpoint": "str",
+                      "name": "str",
+                      "source_ordinal": "int"
+                    },
+                    "type": "refspec.registry.nrc_adams_aps_docs.APSRequestParameter"
+                  },
+                  "type": "tuple"
+                },
+                "self_described_version": "str",
+                "source_byte_length": "int",
+                "source_sha256": "str",
+                "source_url": "str",
+                "text_operators": {
+                  "count": 6,
+                  "itemShape": {
+                    "fields": {
+                      "description": "str",
+                      "label": "str",
+                      "source_ordinal": "int",
+                      "token": "str"
+                    },
+                    "type": "refspec.registry.nrc_adams_aps_docs.APSTextOperator"
+                  },
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.nrc_adams_aps_docs.ParsedAPSAPIGuide"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                531285
+              ],
+              "digests": [
+                "sha256:5d1ed894dfbd30cb9ea4c7e05fb01c3bec5502dc4e4ab968daf88095b4c2d848"
+              ],
+              "paths": [
+                "/Users/mikewolfd/Work/spicy-regs/RefSpec/tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-15.pdf"
+              ],
+              "urls": [
+                "https://adams-search.nrc.gov/assets/APS-API-Guide.pdf"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "accession_number.elements.items": 2,
+              "properties.items": 22
+            },
+            "function": "parse_aps_user_manual",
+            "sample": {
+              "accession_number": {
+                "definition": "A system-generated identification number (ID) assigned when a document or package is first added to an ADAMS Library, consisting of the following elements: • two-character alphabetic code (e.g., “ML” to indicate the original library) • n...",
+                "elements": [
+                  "<refspec.registry.nrc_adams_aps_docs.APSAccessionNumberElement>",
+                  "<refspec.registry.nrc_adams_aps_docs.APSAccessionNumberElement>"
+                ]
+              },
+              "document_information": {
+                "CreationDate": "D:20260610121143-04'00'",
+                "ModDate": "D:20260610121157-04'00'",
+                "SourceModified": "D:20260610161102",
+                "Subject": "User Manual",
+                "Title": "ADAMS Public Search (APS)"
+              },
+              "page_count": 23,
+              "properties": [
+                {
+                  "description": "A system-generated identification number (ID) assigned when a document or package is first added to an ADAMS Library, consisting of the following elements: • two-character alphabetic code (e.g., “ML” to indicate the original library) • n...",
+                  "name": "Accession Number",
+                  "source_ordinal": 0
+                },
+                {
+                  "description": "The name of the organization receiving the agency document(s)",
+                  "name": "Addressee Affiliation",
+                  "source_ordinal": 1
+                }
+              ],
+              "retrieved_at": "2026-08-15T13:56:07Z",
+              "source_byte_length": 2687062,
+              "source_sha256": "sha256:ab6d6e298cf9a142aad94dbe39024eb0002513beef1e61851784652145643c93",
+              "source_url": "https://adams-search.nrc.gov/assets/APS-User-Manual.pdf",
+              "wba_replacement_statement": "This application will replace the previous Web-Based ADAMS search application."
+            },
+            "shape": {
+              "fields": {
+                "accession_number": {
+                  "fields": {
+                    "definition": "str",
+                    "elements": {
+                      "count": 2,
+                      "itemShape": "refspec.registry.nrc_adams_aps_docs.APSAccessionNumberElement",
+                      "type": "tuple"
+                    }
+                  },
+                  "type": "refspec.registry.nrc_adams_aps_docs.APSAccessionNumberDefinition"
+                },
+                "document_information": {
+                  "count": 5,
+                  "keys": [
+                    "CreationDate",
+                    "ModDate",
+                    "SourceModified",
+                    "Subject",
+                    "Title"
+                  ],
+                  "type": "mapping",
+                  "valueShape": "TextStringObject"
+                },
+                "page_count": "int",
+                "properties": {
+                  "count": 22,
+                  "itemShape": {
+                    "fields": {
+                      "description": "str",
+                      "name": "str",
+                      "source_ordinal": "int"
+                    },
+                    "type": "refspec.registry.nrc_adams_aps_docs.APSProfileProperty"
+                  },
+                  "type": "tuple"
+                },
+                "retrieved_at": "str",
+                "source_byte_length": "int",
+                "source_sha256": "str",
+                "source_url": "str",
+                "wba_replacement_statement": "str"
+              },
+              "type": "refspec.registry.nrc_adams_aps_docs.ParsedAPSUserManual"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                2687062
+              ],
+              "digests": [
+                "sha256:ab6d6e298cf9a142aad94dbe39024eb0002513beef1e61851784652145643c93"
+              ],
+              "paths": [
+                "/Users/mikewolfd/Work/spicy-regs/RefSpec/tests/fixtures/nrc_adams_aps_docs/aps-user-manual-2026-08-15.pdf"
+              ],
+              "urls": [
+                "https://adams-search.nrc.gov/assets/APS-User-Manual.pdf"
+              ]
+            }
+          }
+        ],
+        "module": "nrc_adams_aps_docs.py"
       },
       {
         "executions": [
@@ -97580,14 +98306,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3",
+            "sample": "sha256:3bae9a4a3b0c2780cc3f68fd8952422bcf7b617cb7354da61e0bd31aff68bb9e",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                58
+                364729
               ],
               "digests": [
-                "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3"
+                "sha256:3bae9a4a3b0c2780cc3f68fd8952422bcf7b617cb7354da61e0bd31aff68bb9e"
               ],
               "paths": [],
               "urls": []
@@ -97596,14 +98322,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:77988f39492c0ff825cc9cc9dc8fc2c3ae9b7acf52723f7e74b9bb65d912b428",
+            "sample": "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                364731
+                58
               ],
               "digests": [
-                "sha256:77988f39492c0ff825cc9cc9dc8fc2c3ae9b7acf52723f7e74b9bb65d912b428"
+                "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3"
               ],
               "paths": [],
               "urls": []
@@ -98269,6 +98995,134 @@
         "executions": [
           {
             "counts": {},
+            "function": "ParsedReginfoSchema.by_field_name",
+            "sample": {
+              "major": {
+                "field_name": "major",
+                "identifiers": [
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>",
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>"
+                ],
+                "is_general_subject_concept": false,
+                "raw_observed_count": 3,
+                "values": [
+                  "Yes",
+                  "No"
+                ]
+              },
+              "priorityCategory": {
+                "field_name": "priorityCategory",
+                "identifiers": [
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>",
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>"
+                ],
+                "is_general_subject_concept": false,
+                "raw_observed_count": 7,
+                "values": [
+                  "Economically Significant",
+                  "Other Significant"
+                ]
+              },
+              "rinStatus": {
+                "field_name": "rinStatus",
+                "identifiers": [
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>",
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>"
+                ],
+                "is_general_subject_concept": false,
+                "raw_observed_count": 2,
+                "values": [
+                  "First time published in the Unified Agenda",
+                  "Previously published in the Unified Agenda"
+                ]
+              },
+              "ruleStage": {
+                "field_name": "ruleStage",
+                "identifiers": [
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>",
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>"
+                ],
+                "is_general_subject_concept": false,
+                "raw_observed_count": 6,
+                "values": [
+                  "Prerule Stage",
+                  "Proposed Rule Stage"
+                ]
+              },
+              "unfundedMandate": {
+                "field_name": "unfundedMandate",
+                "identifiers": [
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>",
+                  "<refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier>"
+                ],
+                "is_general_subject_concept": false,
+                "raw_observed_count": 4,
+                "values": [
+                  "State, local, or tribal governments",
+                  "Private Sector"
+                ]
+              }
+            },
+            "shape": {
+              "count": 20,
+              "keys": [
+                "agencyRelation",
+                "dlineActionStage",
+                "dlineType",
+                "energyAffected",
+                "eo13771Designation",
+                "federalism",
+                "govtLevel",
+                "internationalInterest",
+                "major",
+                "printPaper",
+                "priorityCategory",
+                "rfaRequired",
+                "rfaSection610Review",
+                "rinRelation",
+                "rinStatus",
+                "rplanEntry",
+                "ruleStage",
+                "smallEntity",
+                "timetableAction",
+                "unfundedMandate"
+              ],
+              "type": "mapping",
+              "valueShape": {
+                "fields": {
+                  "field_name": "str",
+                  "identifiers": {
+                    "count": 6,
+                    "itemShape": "refspec.registry.infrastructure.controlled_identifier.ControlledIdentifier",
+                    "type": "tuple"
+                  },
+                  "is_general_subject_concept": "bool",
+                  "raw_observed_count": "int",
+                  "values": {
+                    "count": 6,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.unified_agenda_codes.UAControlledFieldValues"
+              }
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                22730
+              ],
+              "digests": [
+                "sha256:94fdcf4b382830cc44b9956c00439dc20a9643de402c298cee71293a14153b24"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.reginfo.gov/",
+                "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+              ]
+            }
+          },
+          {
+            "counts": {},
             "function": "UAControlledFieldValues.by_value",
             "sample": {
               "Completed Actions": {
@@ -98349,6 +99203,73 @@
               "paths": [],
               "urls": [
                 "https://www.reginfo.gov/",
+                "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_unified_agenda_document",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 22721,
+              "cache_hit": false,
+              "content_type": "application/xml",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "pin": {
+                "document": {
+                  "document_kind": "reginfoSchema",
+                  "filename": "reginfo-rin-data-ver10262011.xsd",
+                  "source_url": "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+                },
+                "expected_byte_length": 22721,
+                "expected_sha256": "sha256:2f08bcf564f63a5e2e8ee0f245ab6687dbf0f8be778d86500c9174949eb6d1ef",
+                "retrieved_at": "2026-08-03T19:15:15Z"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:2f08bcf564f63a5e2e8ee0f245ab6687dbf0f8be778d86500c9174949eb6d1ef",
+              "source_url": "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "content_type": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "pin": {
+                  "fields": {
+                    "document": {
+                      "fields": {
+                        "document_kind": "str",
+                        "filename": "str",
+                        "source_url": "str"
+                      },
+                      "type": "refspec.registry.unified_agenda_codes.UASourceDocument"
+                    },
+                    "expected_byte_length": "int",
+                    "expected_sha256": "str",
+                    "retrieved_at": "str"
+                  },
+                  "type": "refspec.registry.unified_agenda_codes.UASnapshotPin"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.unified_agenda_codes.AcquiredUADocument"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                22721
+              ],
+              "digests": [
+                "sha256:2f08bcf564f63a5e2e8ee0f245ab6687dbf0f8be778d86500c9174949eb6d1ef"
+              ],
+              "paths": [],
+              "urls": [
                 "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
               ]
             }
@@ -98693,8 +99614,75 @@
             }
           },
           {
+            "counts": {},
+            "function": "acquire_unified_agenda_document",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 22690,
+              "cache_hit": false,
+              "content_type": "application/xml",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "pin": {
+                "document": {
+                  "document_kind": "reginfoSchema",
+                  "filename": "reginfo-rin-data-ver10262011.xsd",
+                  "source_url": "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+                },
+                "expected_byte_length": 22690,
+                "expected_sha256": "sha256:efb7aeef34b8cba4c16d25846f8a54a54a08ee19a41322182fde822461155aec",
+                "retrieved_at": "2026-08-03T19:15:15Z"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:efb7aeef34b8cba4c16d25846f8a54a54a08ee19a41322182fde822461155aec",
+              "source_url": "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "content_type": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "pin": {
+                  "fields": {
+                    "document": {
+                      "fields": {
+                        "document_kind": "str",
+                        "filename": "str",
+                        "source_url": "str"
+                      },
+                      "type": "refspec.registry.unified_agenda_codes.UASourceDocument"
+                    },
+                    "expected_byte_length": "int",
+                    "expected_sha256": "str",
+                    "retrieved_at": "str"
+                  },
+                  "type": "refspec.registry.unified_agenda_codes.UASnapshotPin"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.unified_agenda_codes.AcquiredUADocument"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                22690
+              ],
+              "digests": [
+                "sha256:efb7aeef34b8cba4c16d25846f8a54a54a08ee19a41322182fde822461155aec"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd"
+              ]
+            }
+          },
+          {
             "counts": {
-              "gaps.items": 5,
+              "gaps.items": 6,
               "legal_authority_citation_type_identifiers.items": 3,
               "legal_authority_citation_types.items": 3,
               "priority_category.identifiers": 6,
@@ -98783,7 +99771,7 @@
             "shape": {
               "fields": {
                 "gaps": {
-                  "count": 5,
+                  "count": 6,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -98884,7 +99872,8 @@
           },
           {
             "counts": {
-              "gaps.items": 5,
+              "documented_fields.items": 20,
+              "gaps.items": 6,
               "priority_category.identifiers": 6,
               "priority_category.identifiers.items": 6,
               "priority_category.values": 6,
@@ -98900,6 +99889,23 @@
             },
             "function": "parse_reginfo_schema",
             "sample": {
+              "documented_fields": [
+                {
+                  "field_name": "priorityCategory",
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "raw_observed_count": 7,
+                  "values": "<builtins.tuple>"
+                },
+                {
+                  "field_name": "rinStatus",
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "raw_observed_count": 2,
+                  "values": "<builtins.tuple>"
+                }
+              ],
+              "documented_option_list_count": 20,
               "gaps": [
                 "The reginfo.gov RIN-data schema types RULE_STAGE, PRIORITY_CATEGORY, and TTBL_ACTION as unrestricted xs:string elements with no XSD enumeration; the closed value sets RefSpec packages come from the schema's own 'One of the following' doc...",
                 "The schema's PRIORITY_CATEGORY documentation lists 'Not Major' twice and its TTBL_ACTION documentation lists 'NPRM' twice; RefSpec folds each literal duplicate into one value rather than inventing a second meaning."
@@ -98950,8 +99956,23 @@
             },
             "shape": {
               "fields": {
+                "documented_fields": {
+                  "count": 20,
+                  "itemShape": {
+                    "fields": {
+                      "field_name": "str",
+                      "identifiers": "builtins.tuple",
+                      "is_general_subject_concept": "bool",
+                      "raw_observed_count": "int",
+                      "values": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.unified_agenda_codes.UAControlledFieldValues"
+                  },
+                  "type": "tuple"
+                },
+                "documented_option_list_count": "int",
                 "gaps": {
-                  "count": 5,
+                  "count": 6,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -99034,7 +100055,7 @@
           },
           {
             "counts": {
-              "gaps.items": 5,
+              "gaps.items": 6,
               "legal_authority_citation_type_identifiers.items": 3,
               "legal_authority_citation_types.items": 3
             },
@@ -99076,7 +100097,7 @@
             "shape": {
               "fields": {
                 "gaps": {
-                  "count": 5,
+                  "count": 6,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -99122,6 +100143,22 @@
                 "https://www.reginfo.gov/",
                 "https://www.reginfo.gov/public/jsp/eAgenda/StaticContent/202210/RiscPreamble.pdf"
               ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:2f08bcf564f63a5e2e8ee0f245ab6687dbf0f8be778d86500c9174949eb6d1ef",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                22721
+              ],
+              "digests": [
+                "sha256:2f08bcf564f63a5e2e8ee0f245ab6687dbf0f8be778d86500c9174949eb6d1ef"
+              ],
+              "paths": [],
+              "urls": []
             }
           },
           {
@@ -99205,8 +100242,24 @@
             }
           },
           {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:efb7aeef34b8cba4c16d25846f8a54a54a08ee19a41322182fde822461155aec",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                22690
+              ],
+              "digests": [
+                "sha256:efb7aeef34b8cba4c16d25846f8a54a54a08ee19a41322182fde822461155aec"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
             "counts": {
-              "gaps.items": 5,
+              "gaps.items": 6,
               "legal_authorities.items": 2,
               "priority_category.identifiers": 1,
               "priority_category.identifiers.items": 1,
@@ -99262,7 +100315,7 @@
             "shape": {
               "fields": {
                 "gaps": {
-                  "count": 5,
+                  "count": 6,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -100572,7 +101625,7 @@
   },
   "format": "refspec-registry-audit-summary/v1",
   "fullSuiteExecution": null,
-  "moduleCount": 75,
+  "moduleCount": 78,
   "modules": [
     {
       "auditRole": "support",
@@ -101673,6 +102726,63 @@
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
+        "https://www.gao.gov/",
+        "https://www.gao.gov/assets/2023-11/Blank%20CRA%20Form-Updated.pdf",
+        "https://www.gao.gov/assets/2025-01/Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional%20Review%20Act%20-%202025.pdf"
+      ],
+      "module": "gao_cra_form_codes.py",
+      "sourceStatus": "publisherBytes",
+      "testInputs": [
+        {
+          "byteLength": 354320,
+          "localPath": "tests/fixtures/gao_cra_form_codes/gao-cra-submission-form-rev-12-24-2026-08-15.pdf",
+          "name": "gaoCraCurrentForm20260815",
+          "pinConstant": "GAO_CRA_CURRENT_FORM_2026_08_15",
+          "provenance": "pinnedPublisherCapture",
+          "publisherUrl": "https://www.gao.gov/assets/2025-01/Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional%20Review%20Act%20-%202025.pdf",
+          "sha256": "sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa"
+        },
+        {
+          "byteLength": 111887,
+          "localPath": "tests/fixtures/gao_cra_form_codes/gao-cra-blank-form-rev-11-17-23-2026-08-15.pdf",
+          "name": "gaoCraRetiredForm20260815",
+          "pinConstant": "GAO_CRA_RETIRED_FORM_2026_08_15",
+          "provenance": "pinnedPublisherCapture",
+          "publisherUrl": "https://www.gao.gov/assets/2023-11/Blank%20CRA%20Form-Updated.pdf",
+          "sha256": "sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d"
+        }
+      ]
+    },
+    {
+      "auditRole": "dataReader",
+      "blockers": [],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [
+        "https://www.gao.gov",
+        "https://www.gao.gov/",
+        "https://www.gao.gov/topics"
+      ],
+      "module": "gao_published_topics.py",
+      "sourceStatus": "publisherBytes",
+      "testInputs": [
+        {
+          "byteLength": 122070,
+          "localPath": "tests/fixtures/gao_published_topics/gao-topics-2026-08-15.html",
+          "name": "gaoTopicsIndex20260815",
+          "pinConstant": "GAO_TOPICS_2026_08_15",
+          "provenance": "pinnedPublisherCapture",
+          "publisherUrl": "https://www.gao.gov/topics",
+          "sha256": "sha256:9aa9e7f185b9433236f512a6f694f6c9cf57f109bba3e9ea99ac42de19180096"
+        }
+      ]
+    },
+    {
+      "auditRole": "dataReader",
+      "blockers": [],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [
         "https://gcmd.earthdata.nasa.gov/KeywordViewer/scheme/sciencekeywords/27478148-b4b6-4c89-8829-08d2ee7bfe10/",
         "https://gcmd.earthdata.nasa.gov/kms/",
         "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
@@ -102640,6 +103750,39 @@
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
+        "https://adams-api-developer.nrc.gov/",
+        "https://adams-search.nrc.gov/assets/APS-API-Guide.pdf",
+        "https://adams-search.nrc.gov/assets/APS-User-Manual.pdf"
+      ],
+      "module": "nrc_adams_aps_docs.py",
+      "sourceStatus": "publisherBytes",
+      "testInputs": [
+        {
+          "byteLength": 2687062,
+          "localPath": "tests/fixtures/nrc_adams_aps_docs/aps-user-manual-2026-08-15.pdf",
+          "name": "nrcApsUserManual20260815",
+          "pinConstant": "APS_USER_MANUAL_2026_08_15",
+          "provenance": "pinnedPublisherCapture",
+          "publisherUrl": "https://adams-search.nrc.gov/assets/APS-User-Manual.pdf",
+          "sha256": "sha256:ab6d6e298cf9a142aad94dbe39024eb0002513beef1e61851784652145643c93"
+        },
+        {
+          "byteLength": 531285,
+          "localPath": "tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-15.pdf",
+          "name": "nrcApsApiGuide20260815",
+          "pinConstant": "APS_API_GUIDE_2026_08_15",
+          "provenance": "pinnedPublisherCapture",
+          "publisherUrl": "https://adams-search.nrc.gov/assets/APS-API-Guide.pdf",
+          "sha256": "sha256:5d1ed894dfbd30cb9ea4c7e05fb01c3bec5502dc4e4ab968daf88095b4c2d848"
+        }
+      ]
+    },
+    {
+      "auditRole": "dataReader",
+      "blockers": [],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [
         "https://www.reginfo.gov/",
         "https://www.reginfo.gov/public/do/eoAdvancedSearch?eoStatusCode=CD",
         "https://www.reginfo.gov/public/do/eom12866Search"
@@ -103202,6 +104345,6 @@
   "sourceStatuses": {
     "blocked": 1,
     "notApplicable": 9,
-    "publisherBytes": 65
+    "publisherBytes": 68
   }
 }

@@ -1,14 +1,19 @@
-"""Pinned Unified Agenda rule-stage, priority, timetable-action, and
-legal-authority controls for RIN records published on reginfo.gov.
+"""Pinned Unified Agenda documented option lists and legal-authority
+controls for RIN records published on reginfo.gov.
 
 reginfo.gov ships every RIN's structured fields as an XML export governed by a
-shared, publicly linked schema (REGINFO_XML_Ver10262011.xsd). RULE_STAGE,
-PRIORITY_CATEGORY, and TTBL_ACTION are typed as unrestricted ``xs:string``
-elements, but the schema's own ``xs:documentation`` text names a closed list
-of values for each -- "One of the following options: ...". RefSpec treats
-that documented list, not an XSD enumeration restriction, as the pinned
-controlled value set, and refuses to parse if the documentation no longer
-matches the expected shape or count.
+shared, publicly linked schema (REGINFO_XML_Ver10262011.xsd). Twenty of its
+elements are typed as unrestricted ``xs:string``, but the schema's own
+``xs:documentation`` text names a closed list of values for each -- "One of
+the following options: ...". RefSpec treats those documented lists, not XSD
+enumeration restrictions, as the pinned controlled value sets, parses all
+twenty (a census of the schema's "One of the following" documentation blocks
+is pinned at exactly twenty, so a new or vanished list is drift), and refuses
+to parse if any documentation no longer matches the expected shape or count.
+The option strings are carried exactly as documented, including publisher
+casing: reginfo.gov's live exports are known to drift in casing from the
+schema's own documentation (the RIN_STATUS sentence-vs-title-case drift is
+recorded in SpicyRegs); the schema's wording is what this module pins.
 
 LEGAL_AUTHORITY carries no schema documentation or enumeration at all; it is
 genuinely free text (for example "5 U.S.C. 301" or "E.O. 13279, 67 FR
@@ -53,21 +58,61 @@ UA_REGINFO_XSD_URL = "https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011
 UA_RISC_PREAMBLE_URL = "https://www.reginfo.gov/public/jsp/eAgenda/StaticContent/202210/RiscPreamble.pdf"
 
 DocumentKind = Literal["reginfoSchema", "riscPreamble"]
-UAControlledFieldName = Literal["ruleStage", "priorityCategory", "timetableAction"]
+UAControlledFieldName = Literal[
+    "priorityCategory",
+    "rinStatus",
+    "ruleStage",
+    "major",
+    "unfundedMandate",
+    "eo13771Designation",
+    "rfaSection610Review",
+    "rplanEntry",
+    "rfaRequired",
+    "smallEntity",
+    "govtLevel",
+    "federalism",
+    "energyAffected",
+    "printPaper",
+    "internationalInterest",
+    "dlineType",
+    "dlineActionStage",
+    "timetableAction",
+    "rinRelation",
+    "agencyRelation",
+]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
-_OPTION_LIST = re.compile(r"^One of the following(?: options)?:\s*(?P<body>.+)$", re.DOTALL)
+_OPTION_LIST = re.compile(
+    r"^(?P<prefix>.*?)One of the following(?: options)?:\s*(?P<body>.+)$",
+    re.DOTALL,
+)
 _QUOTED_OPTION = re.compile(r'"([^"]+)"')
 _XS_NS = "{http://www.w3.org/2001/XMLSchema}"
 
+# The pinned schema documents exactly this many "One of the following" option
+# lists. The parse below covers all of them, so this census is what makes the
+# completeCapture claim checkable: a schema revision that adds or removes a
+# documented list changes the census and refuses to parse.
+UA_DOCUMENTED_OPTION_LIST_COUNT = 20
+_OPTION_LIST_SENTINEL = "One of the following"
+
 # Deterministic metadata: RULE_STAGE, PRIORITY_CATEGORY, and TTBL_ACTION count
 # and shape expectations, pinned from the reviewed 2026-08-03 schema capture.
+# The other seventeen documented lists pin their counts inline in
+# ``_SCHEMA_FIELDS``.
 UA_RULE_STAGE_EXPECTED_DISTINCT_COUNT = 6
 UA_RULE_STAGE_EXPECTED_RAW_COUNT = 6
 UA_PRIORITY_CATEGORY_EXPECTED_DISTINCT_COUNT = 6
 UA_PRIORITY_CATEGORY_EXPECTED_RAW_COUNT = 7
 UA_TIMETABLE_ACTION_EXPECTED_DISTINCT_COUNT = 34
 UA_TIMETABLE_ACTION_EXPECTED_RAW_COUNT = 35
+
+# The only documented option list whose ``xs:documentation`` opens with a
+# field-description sentence before the "One of the following options" phrase.
+# The prefix is pinned verbatim; any other prefix on any field is drift.
+UA_DOCUMENTED_PREFIXES: Mapping[str, str] = MappingProxyType(
+    {"RFA_REQUIRED": "Regulatory Flexibility Analysis Required."}
+)
 
 # Transcribed from the RISC Preamble's "Legal Authority --" definition ("the
 # section(s) of the United States Code (U.S.C.) or Public Law (Pub. L.) or the
@@ -133,6 +178,12 @@ UA_PORTFOLIO_GAPS: tuple[str, ...] = (
         "The LEGAL_AUTHORITY element carries no XSD documentation or enumeration "
         "and remains free text; a citation without a documented U.S.C./Pub. L./E.O. "
         "prefix is not a drift condition."
+    ),
+    (
+        "The RFA_REQUIRED documentation opens with the sentence 'Regulatory "
+        "Flexibility Analysis Required.' before its 'One of the following options' "
+        "list; RefSpec pins that prefix verbatim and treats any other documentation "
+        "prefix on any field as drift."
     ),
 )
 
@@ -269,7 +320,14 @@ class UAControlledFieldValues:
 
 @dataclass(frozen=True, slots=True)
 class ParsedReginfoSchema:
-    """A parsed, digest-pinned reginfo.gov RIN-data schema."""
+    """A parsed, digest-pinned reginfo.gov RIN-data schema.
+
+    ``documented_fields`` carries every one of the schema's documented option
+    lists in schema-document order; ``documented_option_list_count`` is the
+    verified census of "One of the following" documentation blocks, which
+    always equals ``len(documented_fields)``. The three named accessors are
+    the fields RIN-record validation consumes.
+    """
 
     source_url: str
     retrieved_at: str
@@ -278,7 +336,14 @@ class ParsedReginfoSchema:
     rule_stage: UAControlledFieldValues
     priority_category: UAControlledFieldValues
     timetable_action: UAControlledFieldValues
+    documented_fields: tuple[UAControlledFieldValues, ...]
+    documented_option_list_count: int
     gaps: tuple[str, ...]
+
+    def by_field_name(self) -> dict[str, UAControlledFieldValues]:
+        """Index every documented option list by its camelCase field name."""
+
+        return {field.field_name: field for field in self.documented_fields}
 
 
 @dataclass(frozen=True, slots=True)
@@ -520,7 +585,14 @@ def _parse_documented_options(text: str, *, quoted: bool, field_name: str) -> tu
     match = _OPTION_LIST.match(text.strip())
     if match is None:
         raise UnifiedAgendaSourceDriftError(
-            f"reginfo schema {field_name} documentation no longer starts with 'One of the following'"
+            f"reginfo schema {field_name} documentation no longer states 'One of the following'"
+        )
+    prefix = match.group("prefix").strip()
+    expected_prefix = UA_DOCUMENTED_PREFIXES.get(field_name, "")
+    if prefix != expected_prefix:
+        raise UnifiedAgendaSourceDriftError(
+            f"reginfo schema {field_name} documentation prefix drifted: "
+            f"expected {expected_prefix!r}, got {prefix!r}"
         )
     body = match.group("body").strip().rstrip(".").strip()
     raw = _QUOTED_OPTION.findall(body) if quoted else [part.strip() for part in body.split(",") if part.strip()]
@@ -561,7 +633,21 @@ def _controlled_field(
     )
 
 
+# Every documented option list the pinned schema carries, in schema-document
+# order: (field name, containing complexType, element, quoted, identifier
+# kind, expected distinct count, expected raw count). The census in
+# ``parse_reginfo_schema`` proves this table is exhaustive.
 _SCHEMA_FIELDS: tuple[tuple[UAControlledFieldName, str, str, bool, str, int, int], ...] = (
+    (
+        "priorityCategory",
+        "RIN_INFOType",
+        "PRIORITY_CATEGORY",
+        True,
+        "priorityCategoryValue",
+        UA_PRIORITY_CATEGORY_EXPECTED_DISTINCT_COUNT,
+        UA_PRIORITY_CATEGORY_EXPECTED_RAW_COUNT,
+    ),
+    ("rinStatus", "RIN_INFOType", "RIN_STATUS", True, "rinStatusValue", 2, 2),
     (
         "ruleStage",
         "RIN_INFOType",
@@ -571,14 +657,51 @@ _SCHEMA_FIELDS: tuple[tuple[UAControlledFieldName, str, str, bool, str, int, int
         UA_RULE_STAGE_EXPECTED_DISTINCT_COUNT,
         UA_RULE_STAGE_EXPECTED_RAW_COUNT,
     ),
+    ("major", "RIN_INFOType", "MAJOR", True, "majorValue", 3, 3),
+    ("unfundedMandate", "RIN_INFOType", "UNFUNDED_MANDATE", True, "unfundedMandateValue", 4, 4),
     (
-        "priorityCategory",
+        "eo13771Designation",
         "RIN_INFOType",
-        "PRIORITY_CATEGORY",
+        "EO_13771_DESIGNATION",
         True,
-        "priorityCategoryValue",
-        UA_PRIORITY_CATEGORY_EXPECTED_DISTINCT_COUNT,
-        UA_PRIORITY_CATEGORY_EXPECTED_RAW_COUNT,
+        "eo13771DesignationValue",
+        6,
+        6,
+    ),
+    (
+        "rfaSection610Review",
+        "RIN_INFOType",
+        "RFA_SECTION_610_REVIEW",
+        True,
+        "rfaSection610ReviewValue",
+        4,
+        4,
+    ),
+    ("rplanEntry", "RIN_INFOType", "RPLAN_ENTRY", True, "rplanEntryValue", 2, 2),
+    ("rfaRequired", "RIN_INFOType", "RFA_REQUIRED", True, "rfaRequiredValue", 3, 3),
+    ("smallEntity", "RIN_INFOType", "SMALL_ENTITY", True, "smallEntityValue", 6, 6),
+    ("govtLevel", "RIN_INFOType", "GOVT_LEVEL", True, "govtLevelValue", 6, 6),
+    ("federalism", "RIN_INFOType", "FEDERALISM", True, "federalismValue", 3, 3),
+    ("energyAffected", "RIN_INFOType", "ENERGY_AFFECTED", True, "energyAffectedValue", 3, 3),
+    ("printPaper", "RIN_INFOType", "PRINT_PAPER", True, "printPaperValue", 3, 3),
+    (
+        "internationalInterest",
+        "RIN_INFOType",
+        "INTERNATIONAL_INTEREST",
+        True,
+        "internationalInterestValue",
+        3,
+        3,
+    ),
+    ("dlineType", "LEGAL_DLINE_INFOType", "DLINE_TYPE", True, "dlineTypeValue", 4, 4),
+    (
+        "dlineActionStage",
+        "LEGAL_DLINE_INFOType",
+        "DLINE_ACTION_STAGE",
+        True,
+        "dlineActionStageValue",
+        5,
+        5,
     ),
     (
         "timetableAction",
@@ -589,11 +712,30 @@ _SCHEMA_FIELDS: tuple[tuple[UAControlledFieldName, str, str, bool, str, int, int
         UA_TIMETABLE_ACTION_EXPECTED_DISTINCT_COUNT,
         UA_TIMETABLE_ACTION_EXPECTED_RAW_COUNT,
     ),
+    ("rinRelation", "RELATED_RINType", "RIN_RELATION", True, "rinRelationValue", 5, 5),
+    ("agencyRelation", "RELATED_AGENCYType", "AGENCY_RELATION", True, "agencyRelationValue", 2, 2),
 )
 
 
+def _census_documented_option_lists(root: ET.Element) -> int:
+    """Count every ``xs:documentation`` block that states an option list."""
+
+    return sum(
+        1
+        for documentation in root.iter(f"{_XS_NS}documentation")
+        if _OPTION_LIST_SENTINEL in (documentation.text or "")
+    )
+
+
 def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
-    """Parse the schema's documented option lists without minting new codes."""
+    """Parse every documented option list without minting new codes.
+
+    The parse is a complete capture of the schema's documented option lists:
+    the census of "One of the following" documentation blocks is pinned at
+    ``UA_DOCUMENTED_OPTION_LIST_COUNT`` and must equal the field table's
+    length, so a schema revision that adds a documented list -- or one this
+    table stops covering -- is drift, not silence.
+    """
 
     if acquired.pin.document.document_kind != "reginfoSchema":
         raise UnifiedAgendaResourceError("parse_reginfo_schema requires a reginfoSchema acquisition")
@@ -604,7 +746,16 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
     except ET.ParseError as error:
         raise UnifiedAgendaSourceDriftError("reginfo schema payload is not valid XML") from error
 
+    census = _census_documented_option_lists(root)
+    if census != UA_DOCUMENTED_OPTION_LIST_COUNT or census != len(_SCHEMA_FIELDS):
+        raise UnifiedAgendaSourceDriftError(
+            "reginfo schema documented option list census drift: expected "
+            f"{UA_DOCUMENTED_OPTION_LIST_COUNT} documentation blocks covering "
+            f"{len(_SCHEMA_FIELDS)} parsed fields, counted {census}"
+        )
+
     fields: dict[UAControlledFieldName, UAControlledFieldValues] = {}
+    ordered: list[UAControlledFieldValues] = []
     for (
         field_name,
         container_type,
@@ -631,6 +782,7 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
                 f"{field_values.raw_observed_count} raw"
             )
         fields[field_name] = field_values
+        ordered.append(field_values)
 
     return ParsedReginfoSchema(
         source_url=acquired.pin.document.source_url,
@@ -640,6 +792,8 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
         rule_stage=fields["ruleStage"],
         priority_category=fields["priorityCategory"],
         timetable_action=fields["timetableAction"],
+        documented_fields=tuple(ordered),
+        documented_option_list_count=census,
         gaps=UA_PORTFOLIO_GAPS,
     )
 

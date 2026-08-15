@@ -2423,12 +2423,24 @@ FR_AGENCIES_ROSTER_JSON_READER = "fr-agencies-roster-json-v1/1.0"
 FCC_BUREAUS_OFFICES_HTML_READER = "fcc-bureaus-offices-html-v1/1.0"
 FH_COMPLETE_ROSTER_JSON_READER = "fh-complete-roster-json-v1/1.0"
 GNIS_FILE_FORMAT_PDF_READER = "gnis-file-format-pdf-v1/1.0"
+GAO_PUBLISHED_TOPICS_HTML_READER = "gao-published-topics-html-v1/1.0"
+GAO_CRA_RULE_TYPES_PDF_READER = "gao-cra-rule-types-pdf-v1/1.0"
+GAO_CRA_PRIORITY_PDF_READER = "gao-cra-priority-pdf-v1/1.0"
+NRC_APS_PROFILE_PROPERTIES_PDF_READER = "nrc-aps-profile-properties-pdf-v1/1.0"
+NRC_APS_ACCESSION_NUMBER_PDF_READER = "nrc-aps-accession-number-pdf-v1/1.0"
+FAST_BOOK_FUND_GROUPS_OOXML_READER = "fast-book-fund-groups-ooxml-v1/1.0"
 SPEC_SCOPED_RECORD_READERS = frozenset(
     {
         CSV_RECORD_SELECTOR_READER,
         ECFR_TITLES_JSON_READER,
+        FAST_BOOK_FUND_GROUPS_OOXML_READER,
         FCC_BUREAUS_OFFICES_HTML_READER,
         FH_COMPLETE_ROSTER_JSON_READER,
+        GAO_CRA_PRIORITY_PDF_READER,
+        GAO_CRA_RULE_TYPES_PDF_READER,
+        GAO_PUBLISHED_TOPICS_HTML_READER,
+        NRC_APS_ACCESSION_NUMBER_PDF_READER,
+        NRC_APS_PROFILE_PROPERTIES_PDF_READER,
         FR_AGENCIES_ROSTER_JSON_READER,
         FR_DOCUMENTED_TYPES_JSON_READER,
         FR_PRESIDENTIAL_SUBTYPES_JSON_READER,
@@ -5785,6 +5797,509 @@ def _read_fcc_bureaus_offices_capture(
             )
     if len({record.resource for record in records}) != len(records) or len(records) != 19:
         raise ValueError(f"{spec.name} roster drifted: {len(records)} units")
+    return _api_capture_view(records, spec, payloads)
+
+
+# --- GAO published /topics browse index ------------------------------------
+# Independent restatement of the publisher's rendered structure: each topic is
+# a Drupal taxonomy term div (id taxonomy-term-<id>, class vocabulary-topic)
+# carrying a name field, the publisher's misspelled description class
+# ("taxonomy-term-descripiton", targeted verbatim), and a /topics/<slug> link.
+_GAO_TOPIC_TERM_ID = re.compile(r"^taxonomy-term-([1-9]\d*)$")
+_GAO_TOPIC_HREF = re.compile(r"^/topics/[a-z0-9-]+$")
+_GAO_TOPICS_EXPECTED_COUNT = 30
+
+
+class _GaoTopicsHtmlParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.entries: list[dict[str, Any]] = []
+        self._depth = 0
+        self._collect: str | None = None
+        self._collect_depth = 0
+        self._buffer: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        classes = (attributes.get("class") or "").split()
+        if tag == "div" and self._depth == 0 and "taxonomy-term" in classes and "vocabulary-topic" in classes:
+            matched = _GAO_TOPIC_TERM_ID.fullmatch(attributes.get("id") or "")
+            if matched is None:
+                raise ValueError(f"GAO topic term div id drifted: {attributes.get('id')!r}")
+            self.entries.append({"term_id": matched.group(1), "hrefs": [], "name": None, "description": None})
+            self._depth = 1
+            return
+        if self._depth == 0:
+            return
+        if tag == "div":
+            self._depth += 1
+            if "field--name-name" in classes:
+                self._collect, self._collect_depth, self._buffer = "name", self._depth, []
+            elif "taxonomy-term-descripiton" in classes:
+                self._collect, self._collect_depth, self._buffer = "description", self._depth, []
+            return
+        if tag == "a" and (href := attributes.get("href")) is not None:
+            self.entries[-1]["hrefs"].append(href)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._depth > 0 and tag == "div":
+            if self._collect is not None and self._depth == self._collect_depth:
+                if self.entries[-1][self._collect] is not None:
+                    raise ValueError(f"GAO topic term repeats its {self._collect} field")
+                self.entries[-1][self._collect] = " ".join("".join(self._buffer).split())
+                self._collect = None
+                self._buffer = []
+            self._depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._collect is not None:
+            self._buffer.append(data)
+
+
+def _read_gao_published_topics_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    parser = _GaoTopicsHtmlParser()
+    parser.feed(payload.decode("utf-8"))
+    parser.close()
+    if len(parser.entries) != _GAO_TOPICS_EXPECTED_COUNT:
+        raise ValueError(f"{spec.name} topic count drifted: {len(parser.entries)}")
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, entry in enumerate(parser.entries, start=1):
+        name = entry["name"]
+        description = entry["description"]
+        hrefs = set(entry["hrefs"])
+        if not name or not description:
+            raise ValueError(f"{spec.name} term {entry['term_id']} lacks a name or description")
+        if len(hrefs) != 1:
+            raise ValueError(f"{spec.name} topic {name!r} links to more than one path")
+        href = next(iter(hrefs))
+        if _GAO_TOPIC_HREF.fullmatch(href) is None:
+            raise ValueError(f"{spec.name} topic {name!r} has an unsupported href: {href!r}")
+        slug = href.removeprefix("/topics/")
+        native = {
+            "slug": slug,
+            "term_id": entry["term_id"],
+            "name": name,
+            "description": description,
+            "page_href": href,
+            "page_url": "https://www.gao.gov" + href,
+            "source_ordinal": ordinal,
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource="urn:ref:gao-topic:" + urllib.parse.quote(slug, safe=""),
+                preferred_label=name,
+                notations=(slug, entry["term_id"]),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+                definition=description,
+            )
+        )
+    names = [record.preferred_label for record in records]
+    if names != sorted(names, key=str.casefold):
+        raise ValueError(f"{spec.name} listing is not alphabetical")
+    if len({record.resource for record in records}) != len(records):
+        raise ValueError(f"{spec.name} repeats a topic slug")
+    return _api_capture_view(records, spec, payloads)
+
+
+# --- GAO Form 41217 (CRA submission form) option lists ----------------------
+# Independent restatement of the printed option runs on both pinned form
+# revisions. The verifier re-extracts the PDF text layer with its own fold
+# table and requires the exact runs; it never imports the registry reader.
+_GAO_CRA_FORM_NUMBER = "GAO Form 41217"
+_GAO_CRA_CURRENT_REVISION = "Rev. 12/24"
+_GAO_CRA_RETIRED_REVISION = "11/17/23"
+_GAO_CRA_RULE_TYPE_ANCHOR = "6. Indicate whether this rule is one of the following: "
+_GAO_CRA_RULE_TYPE_OPTIONS = (
+    ("Draft Rule", "Draft Rule"),
+    ("Final Rule", "Final Rule"),
+    ("Draft Guideline", "Draft Guideline"),
+    ("Final Guideline", "Final Guideline"),
+    ("Other", "Other (specify)"),
+)
+_GAO_CRA_PRIORITY_ANCHOR = "8. Priority of Regulation (fill in one) "
+_GAO_CRA_PRIORITY_OPTIONS = (
+    ("Economically Significant", "Economically Significant; or"),
+    ("Significant", "Significant; or"),
+    ("Substantive, Nonsignificant", "Substantive, Nonsignificant"),
+    ("Routine and Frequent", "Routine and Frequent or"),
+    ("Informational/Administrative/Other", "Informational/Administrative/Other"),
+)
+_GAO_CRA_PRIORITY_ROUTING_NOTE = "(Do not complete the other side of this form if filled in above.)"
+_GAO_CRA_RETIRED_TITLE = "Submission of Federal Rules Under the Congressional Review Act"
+_GAO_CRA_PRIORITY_ITEM_TEXT = "Priority of Regulation"
+
+
+def _gao_cra_form_text(spec_name: str, payload: bytes) -> str:
+    try:
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise ValueError(f"{spec_name} requires pypdf to read the pinned PDF") from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+    except Exception as error:
+        raise ValueError(f"{spec_name} input is not a readable PDF: {error}") from error
+    return " ".join(
+        " ".join((page.extract_text() or "").translate(_GNIS_PDF_TEXT_FOLDS).split())
+        for page in reader.pages
+    )
+
+
+def _gao_cra_records(
+    *,
+    spec: SourceSpec,
+    pin: SourcePin,
+    token: str,
+    recorded_at: str,
+    field_name: str,
+    form_item: str,
+    form_revision: str,
+    options: tuple[tuple[str, str], ...],
+) -> list[_ApiCaptureRecord]:
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, (value, option_text) in enumerate(options):
+        source_path = f"$.{field_name}[{ordinal}]"
+        native = {
+            "value": value,
+            "optionText": option_text,
+            "formNumber": _GAO_CRA_FORM_NUMBER,
+            "formRevision": form_revision,
+            "formItem": form_item,
+            "sourceArtifact": pin.source_iri,
+            "sourceMedium": "pdf",
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource=_source_concept_iri(
+                    token=token,
+                    recorded_at=recorded_at,
+                    source_locator=pin.source_iri or "",
+                    source_path=source_path,
+                    notations=[value],
+                    identity_hint=value,
+                ),
+                preferred_label=value,
+                notations=(value,),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload=native,
+            )
+        )
+    return records
+
+
+def _read_gao_cra_rule_types_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    text = _gao_cra_form_text(spec.name, payload)
+    run = _GAO_CRA_RULE_TYPE_ANCHOR + " ".join(text for _, text in _GAO_CRA_RULE_TYPE_OPTIONS)
+    for required in (f"{_GAO_CRA_FORM_NUMBER} ({_GAO_CRA_CURRENT_REVISION})", run):
+        if required not in text:
+            raise ValueError(f"{spec.name} no longer states the reviewed run: {required!r}")
+    if _GAO_CRA_PRIORITY_ITEM_TEXT in text:
+        raise ValueError(
+            f"{spec.name} states a Priority of Regulation item again; the retired "
+            "revision's dropped-item claim no longer holds"
+        )
+    records = _gao_cra_records(
+        spec=spec,
+        pin=pin,
+        token="gao-cra-rule-types",
+        recorded_at="2026-08-15T13:56:56Z",
+        field_name="ruleTypes",
+        form_item="6",
+        form_revision=_GAO_CRA_CURRENT_REVISION,
+        options=_GAO_CRA_RULE_TYPE_OPTIONS,
+    )
+    return _api_capture_view(records, spec, payloads)
+
+
+def _read_gao_cra_priority_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    retired_pin, retired_payload = _pin_with_role(spec, payloads, "publisherRetiredRevision")
+    _current_pin, current_payload = _pin_with_role(spec, payloads, "publisherSource")
+    retired_text = _gao_cra_form_text(spec.name, retired_payload)
+    run = (
+        _GAO_CRA_PRIORITY_ANCHOR
+        + " ".join(text for _, text in _GAO_CRA_PRIORITY_OPTIONS)
+        + " "
+        + _GAO_CRA_PRIORITY_ROUTING_NOTE
+    )
+    for required in (_GAO_CRA_RETIRED_TITLE, _GAO_CRA_RETIRED_REVISION, run):
+        if required not in retired_text:
+            raise ValueError(f"{spec.name} no longer states the reviewed run: {required!r}")
+    # The release's dropped-item claim rides on the current revision's pinned
+    # bytes; re-verify the absence independently on every comparison.
+    current_text = _gao_cra_form_text(spec.name, current_payload)
+    if _GAO_CRA_PRIORITY_ITEM_TEXT in current_text:
+        raise ValueError(
+            f"{spec.name}: the current revision states a Priority of Regulation "
+            "item again; the retired revision's dropped-item claim no longer holds"
+        )
+    records = _gao_cra_records(
+        spec=spec,
+        pin=retired_pin,
+        token="gao-cra-priority-of-regulation",
+        recorded_at="2026-08-15T13:57:12Z",
+        field_name="priorityOfRegulation",
+        form_item="8",
+        form_revision=_GAO_CRA_RETIRED_REVISION,
+        options=_GAO_CRA_PRIORITY_OPTIONS,
+    )
+    return _api_capture_view(records, spec, payloads)
+
+
+# --- NRC ADAMS Public Search publisher PDFs ---------------------------------
+# Independent restatement of the User Manual's Properties in Profile table:
+# the twenty-two property names in table order, with descriptions taken from
+# the pinned PDF's own text layer. The registry reader is never imported.
+_NRC_APS_PROPERTY_NAMES = (
+    "Accession Number",
+    "Addressee Affiliation",
+    "Addressee Name",
+    "Author Affiliation",
+    "Author Name",
+    "Case Reference Number",
+    "Comment",
+    "Contact Person",
+    "Date Added",
+    "Date Docketed",
+    "Distribution List Codes",
+    "Docket Number",
+    "Document Date",
+    "Document Report Number",
+    "Document Title",
+    "Document Type",
+    "Documents Filed in Package",
+    "Estimated Page Count",
+    "Keyword",
+    "License Number",
+    "Microform Address",
+    "Packages Filed In",
+)
+_NRC_APS_TABLE_PAGE_INDICES = (18, 19)
+_NRC_APS_TABLE_HEADER = "Property Name Description"
+_NRC_APS_TABLE_END_MARKER = "Wildcards APS supports using wildcards"
+_NRC_APS_SECTION_HEADING = "Properties in Profile"
+_NRC_APS_ACCESSION_ELEMENTS_MARKER = "consisting of the following elements:"
+
+
+def _nrc_aps_manual_properties(spec_name: str, payload: bytes) -> list[tuple[str, str]]:
+    try:
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise ValueError(f"{spec_name} requires pypdf to read the pinned PDF") from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+    except Exception as error:
+        raise ValueError(f"{spec_name} input is not a readable PDF: {error}") from error
+    pages = [
+        " ".join((reader.pages[index].extract_text() or "").translate(_GNIS_PDF_TEXT_FOLDS).split())
+        for index in _NRC_APS_TABLE_PAGE_INDICES
+    ]
+    heading_index = pages[0].find(_NRC_APS_SECTION_HEADING)
+    if heading_index == -1:
+        raise ValueError(f"{spec_name} Properties in Profile heading moved off its pinned page")
+    header_index = pages[0].find(_NRC_APS_TABLE_HEADER, heading_index)
+    continued_index = pages[1].find(_NRC_APS_TABLE_HEADER)
+    end_index = pages[1].find(_NRC_APS_TABLE_END_MARKER, continued_index)
+    if header_index == -1 or continued_index == -1 or end_index == -1:
+        raise ValueError(f"{spec_name} property table structure drifted")
+    table = " ".join(
+        (
+            pages[0][header_index + len(_NRC_APS_TABLE_HEADER) :].strip(),
+            pages[1][continued_index + len(_NRC_APS_TABLE_HEADER) : end_index].strip(),
+        )
+    )
+    positions: list[int] = []
+    cursor = 0
+    for name in _NRC_APS_PROPERTY_NAMES:
+        found = table.find(name, cursor)
+        if found == -1:
+            raise ValueError(f"{spec_name} property {name!r} was not found in table order")
+        positions.append(found)
+        cursor = found + len(name)
+    if positions[0] != 0:
+        raise ValueError(f"{spec_name} property table no longer begins with its first property")
+    rows: list[tuple[str, str]] = []
+    for ordinal, name in enumerate(_NRC_APS_PROPERTY_NAMES):
+        begin = positions[ordinal] + len(name)
+        end = positions[ordinal + 1] if ordinal + 1 < len(positions) else len(table)
+        description = table[begin:end].strip()
+        if not description:
+            raise ValueError(f"{spec_name} property {name!r} has an empty description cell")
+        rows.append((name, description))
+    return rows
+
+
+def _read_nrc_aps_profile_properties_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _pin_with_role(spec, payloads, "publisherUserManual")
+    rows = _nrc_aps_manual_properties(spec.name, payload)
+    records = [
+        _ApiCaptureRecord(
+            resource="urn:ref:nrc-adams-profile-property:" + urllib.parse.quote(name, safe=""),
+            preferred_label=name,
+            notations=(),
+            source_locator=pin.source_iri or "",
+            source_digest=pin.sha256,
+            native_payload={
+                "propertyName": name,
+                "description": description,
+                "sourceOrdinal": ordinal,
+                "sourceMedium": "pdf",
+            },
+            definition=description,
+        )
+        for ordinal, (name, description) in enumerate(rows)
+    ]
+    return _api_capture_view(records, spec, payloads)
+
+
+def _read_nrc_aps_accession_number_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _pin_with_role(spec, payloads, "publisherUserManual")
+    rows = _nrc_aps_manual_properties(spec.name, payload)
+    definition = rows[0][1]
+    if rows[0][0] != "Accession Number":
+        raise ValueError(f"{spec.name} first property is not Accession Number")
+    marker_index = definition.find(_NRC_APS_ACCESSION_ELEMENTS_MARKER)
+    if marker_index == -1:
+        raise ValueError(f"{spec.name} accession-number definition no longer enumerates its elements")
+    elements = [
+        text.strip()
+        for text in definition[marker_index + len(_NRC_APS_ACCESSION_ELEMENTS_MARKER) :].split("•")
+        if text.strip()
+    ]
+    if len(elements) != 2:
+        raise ValueError(f"{spec.name} accession-number definition states {len(elements)} elements, not 2")
+    records: list[_ApiCaptureRecord] = []
+    for ordinal, element_text in enumerate(elements):
+        phrase = element_text.split(" (")[0].split(", known as")[0].strip()
+        alternates: tuple[str, ...] = ()
+        if "“ADAMS Item ID”" in element_text:
+            alternates = ("ADAMS Item ID",)
+        records.append(
+            _ApiCaptureRecord(
+                resource=f"urn:ref:nrc-adams-accession-number:element-{ordinal + 1}",
+                preferred_label=phrase,
+                notations=(),
+                source_locator=pin.source_iri or "",
+                source_digest=pin.sha256,
+                native_payload={
+                    "ordinal": ordinal,
+                    "elementText": element_text,
+                    "officialDefinition": definition,
+                    "sourceMedium": "pdf",
+                },
+                alternate_labels=alternates,
+                definition=element_text,
+            )
+        )
+    return _api_capture_view(records, spec, payloads)
+
+
+# --- FAST Book workbook Intro fund-group tables -----------------------------
+# Independent re-parse of both Intro sheets with stock ZIP/XML operations: the
+# Part II table under its "EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP" heading
+# states exactly eight rows, and Intro Part III states exactly one.
+_FAST_BOOK_FUND_GROUP_HEADING = "EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP"
+_FAST_BOOK_FUND_GROUP_RANGE = re.compile(r"^(?P<first>\d{4})-(?P<last>\d{4})$")
+_FAST_BOOK_FUND_GROUP_SHEET_SHAPES = (("Intro Part II", "II", 8), ("Intro Part III", "III", 1))
+
+
+def _read_fast_book_fund_groups_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(payload))
+    except zipfile.BadZipFile as error:
+        raise ValueError(f"{spec.name} input is not an OOXML ZIP") from error
+    records: list[_ApiCaptureRecord] = []
+    with archive:
+        sheets = dict(_ooxml_workbook_sheets(archive))
+        shared_strings = _ooxml_shared_strings(archive)
+        for sheet, part, expected_rows in _FAST_BOOK_FUND_GROUP_SHEET_SHAPES:
+            member = sheets.get(sheet)
+            if member is None:
+                raise ValueError(f"{spec.name} workbook omits the {sheet!r} sheet")
+            heading_row: int | None = None
+            sheet_records: list[_ApiCaptureRecord] = []
+            for row_number, cells in _ooxml_sheet_rows(archive, member, shared_strings):
+                first = cells[0] if cells else None
+                if part == "II" and isinstance(first, str) and first.strip() == _FAST_BOOK_FUND_GROUP_HEADING:
+                    if heading_row is not None:
+                        raise ValueError(f"{spec.name} {sheet} repeats the fund-group heading")
+                    heading_row = row_number
+                    continue
+                range_cell = cells[1] if len(cells) > 1 else None
+                if range_cell is None or not isinstance(range_cell, str) or not range_cell.strip():
+                    continue
+                range_text = range_cell.strip()
+                pieces = [piece.strip() for piece in range_text.split(" and ")]
+                matches = [_FAST_BOOK_FUND_GROUP_RANGE.fullmatch(piece) for piece in pieces]
+                if any(match is None for match in matches):
+                    continue
+                if part == "II" and heading_row is None:
+                    raise ValueError(f"{spec.name} {sheet} states a fund-group row before its heading")
+                if not isinstance(first, str) or not first.strip():
+                    raise ValueError(f"{spec.name} {sheet} row {row_number} has no fund-group name")
+                name = " ".join(first.split())
+                ranges = [
+                    {"firstSymbol": match.group("first"), "lastSymbol": match.group("last")}
+                    for match in matches
+                    if match is not None
+                ]
+                for symbol_range in ranges:
+                    if symbol_range["firstSymbol"] > symbol_range["lastSymbol"]:
+                        raise ValueError(f"{spec.name} {sheet} row {row_number} range is inverted")
+                sheet_records.append(
+                    _ApiCaptureRecord(
+                        resource="urn:ref:treasury-fast-book:fund-group:"
+                        + urllib.parse.quote(name, safe=""),
+                        preferred_label=name,
+                        notations=tuple(
+                            f"{symbol_range['firstSymbol']}-{symbol_range['lastSymbol']}"
+                            for symbol_range in ranges
+                        ),
+                        source_locator=pin.source_iri or "",
+                        source_digest=pin.sha256,
+                        native_payload={
+                            "fundGroupName": name,
+                            "fastBookPart": part,
+                            "sheet": sheet,
+                            "rowNumber": row_number,
+                            "symbolRangeText": range_text,
+                            "symbolRanges": ranges,
+                        },
+                    )
+                )
+            if part == "II" and heading_row is None:
+                raise ValueError(f"{spec.name} {sheet} no longer carries the fund-group heading")
+            if len(sheet_records) != expected_rows:
+                raise ValueError(
+                    f"{spec.name} {sheet} states {len(sheet_records)} fund-group rows; "
+                    f"the reviewed shape is exactly {expected_rows}"
+                )
+            records.extend(sheet_records)
+    names = [record.preferred_label for record in records]
+    if len(names) != len(set(names)):
+        raise ValueError(f"{spec.name} Intro sheets repeat a fund-group name")
     return _api_capture_view(records, spec, payloads)
 
 
@@ -10593,10 +11108,16 @@ _PUBLISHER_READERS: Mapping[
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
     ECFR_TITLES_JSON_READER: _read_ecfr_titles_capture,
+    FAST_BOOK_FUND_GROUPS_OOXML_READER: _read_fast_book_fund_groups_capture,
     FCC_BUREAUS_OFFICES_HTML_READER: _read_fcc_bureaus_offices_capture,
     FH_COMPLETE_ROSTER_JSON_READER: _read_fh_complete_roster_capture,
     FR_AGENCIES_ROSTER_JSON_READER: _read_fr_agencies_roster_capture,
+    GAO_CRA_PRIORITY_PDF_READER: _read_gao_cra_priority_capture,
+    GAO_CRA_RULE_TYPES_PDF_READER: _read_gao_cra_rule_types_capture,
+    GAO_PUBLISHED_TOPICS_HTML_READER: _read_gao_published_topics_capture,
     GNIS_FILE_FORMAT_PDF_READER: _read_gnis_file_format_capture,
+    NRC_APS_ACCESSION_NUMBER_PDF_READER: _read_nrc_aps_accession_number_capture,
+    NRC_APS_PROFILE_PROPERTIES_PDF_READER: _read_nrc_aps_profile_properties_capture,
     FR_DOCUMENTED_TYPES_JSON_READER: _read_fr_documented_types_capture,
     FR_PRESIDENTIAL_SUBTYPES_JSON_READER: _read_fr_presidential_subtypes_capture,
     GOVINFO_COLLECTIONS_JSON_READER: _read_govinfo_collections_capture,
@@ -13833,6 +14354,11 @@ def _unified_agenda_xml_source(
     )
 
 
+# Every documented option list the pinned reginfo schema states, in schema
+# document order -- the same twenty-list census the registry reader pins. The
+# RFA_REQUIRED documentation opens with a leading sentence before its "One of
+# the following options" phrase; the helper's capture pattern uses re.search,
+# so the prefix is skipped without weakening the option-list match.
 XML_RECORD_SELECTOR_SOURCES = (
     _unified_agenda_xml_source(
         name="unified-agenda-priority-category",
@@ -13842,6 +14368,16 @@ XML_RECORD_SELECTOR_SOURCES = (
         identifier_kind="priorityCategoryValue",
         expected_count=6,
         expected_raw_count=7,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rin-status",
+        container="RIN_INFOType",
+        element="RIN_STATUS",
+        field_name="rinStatus",
+        identifier_kind="rinStatusValue",
+        expected_count=2,
+        expected_raw_count=2,
         quoted=True,
     ),
     _unified_agenda_xml_source(
@@ -13855,6 +14391,146 @@ XML_RECORD_SELECTOR_SOURCES = (
         quoted=True,
     ),
     _unified_agenda_xml_source(
+        name="unified-agenda-major",
+        container="RIN_INFOType",
+        element="MAJOR",
+        field_name="major",
+        identifier_kind="majorValue",
+        expected_count=3,
+        expected_raw_count=3,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-unfunded-mandate",
+        container="RIN_INFOType",
+        element="UNFUNDED_MANDATE",
+        field_name="unfundedMandate",
+        identifier_kind="unfundedMandateValue",
+        expected_count=4,
+        expected_raw_count=4,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-eo13771-designation",
+        container="RIN_INFOType",
+        element="EO_13771_DESIGNATION",
+        field_name="eo13771Designation",
+        identifier_kind="eo13771DesignationValue",
+        expected_count=6,
+        expected_raw_count=6,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rfa-section610-review",
+        container="RIN_INFOType",
+        element="RFA_SECTION_610_REVIEW",
+        field_name="rfaSection610Review",
+        identifier_kind="rfaSection610ReviewValue",
+        expected_count=4,
+        expected_raw_count=4,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rplan-entry",
+        container="RIN_INFOType",
+        element="RPLAN_ENTRY",
+        field_name="rplanEntry",
+        identifier_kind="rplanEntryValue",
+        expected_count=2,
+        expected_raw_count=2,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rfa-required",
+        container="RIN_INFOType",
+        element="RFA_REQUIRED",
+        field_name="rfaRequired",
+        identifier_kind="rfaRequiredValue",
+        expected_count=3,
+        expected_raw_count=3,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-small-entity",
+        container="RIN_INFOType",
+        element="SMALL_ENTITY",
+        field_name="smallEntity",
+        identifier_kind="smallEntityValue",
+        expected_count=6,
+        expected_raw_count=6,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-govt-level",
+        container="RIN_INFOType",
+        element="GOVT_LEVEL",
+        field_name="govtLevel",
+        identifier_kind="govtLevelValue",
+        expected_count=6,
+        expected_raw_count=6,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-federalism",
+        container="RIN_INFOType",
+        element="FEDERALISM",
+        field_name="federalism",
+        identifier_kind="federalismValue",
+        expected_count=3,
+        expected_raw_count=3,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-energy-affected",
+        container="RIN_INFOType",
+        element="ENERGY_AFFECTED",
+        field_name="energyAffected",
+        identifier_kind="energyAffectedValue",
+        expected_count=3,
+        expected_raw_count=3,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-print-paper",
+        container="RIN_INFOType",
+        element="PRINT_PAPER",
+        field_name="printPaper",
+        identifier_kind="printPaperValue",
+        expected_count=3,
+        expected_raw_count=3,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-international-interest",
+        container="RIN_INFOType",
+        element="INTERNATIONAL_INTEREST",
+        field_name="internationalInterest",
+        identifier_kind="internationalInterestValue",
+        expected_count=3,
+        expected_raw_count=3,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-dline-type",
+        container="LEGAL_DLINE_INFOType",
+        element="DLINE_TYPE",
+        field_name="dlineType",
+        identifier_kind="dlineTypeValue",
+        expected_count=4,
+        expected_raw_count=4,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-dline-action-stage",
+        container="LEGAL_DLINE_INFOType",
+        element="DLINE_ACTION_STAGE",
+        field_name="dlineActionStage",
+        identifier_kind="dlineActionStageValue",
+        expected_count=5,
+        expected_raw_count=5,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
         name="unified-agenda-timetable-action",
         container="TIMETABLEType",
         element="TTBL_ACTION",
@@ -13863,6 +14539,26 @@ XML_RECORD_SELECTOR_SOURCES = (
         expected_count=34,
         expected_raw_count=35,
         quoted=False,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-rin-relation",
+        container="RELATED_RINType",
+        element="RIN_RELATION",
+        field_name="rinRelation",
+        identifier_kind="rinRelationValue",
+        expected_count=5,
+        expected_raw_count=5,
+        quoted=True,
+    ),
+    _unified_agenda_xml_source(
+        name="unified-agenda-agency-relation",
+        container="RELATED_AGENCYType",
+        element="AGENCY_RELATION",
+        field_name="agencyRelation",
+        identifier_kind="agencyRelationValue",
+        expected_count=2,
+        expected_raw_count=2,
+        quoted=True,
     ),
 )
 
@@ -15237,6 +15933,230 @@ SOURCES: tuple[SourceSpec, ...] = (
                 }
             ),
             additional_relation_predicates=(f"{ATLAS}parentEntity",),
+        ),
+    ),
+    SourceSpec(
+        name="gao-published-topics-index-2026-08-15",
+        kind="vocabulary",
+        release_keys=("gao-published-topics-index-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/gao_published_topics/gao-topics-2026-08-15.html",
+                sha256="sha256:9aa9e7f185b9433236f512a6f694f6c9cf57f109bba3e9ea99ac42de19180096",
+                byte_length=122_070,
+                fmt="html",
+                role="publisherIndexPage",
+                source_iri="https://www.gao.gov/topics",
+            ),
+        ),
+        reader=GAO_PUBLISHED_TOPICS_HTML_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "description",
+                    "name",
+                    "page_href",
+                    "page_url",
+                    "slug",
+                    "source_ordinal",
+                    "term_id",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="gao-cra-rule-types",
+        kind="vocabulary",
+        release_keys=("gao-cra-rule-types",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/gao_cra_form_codes/"
+                    "gao-cra-submission-form-rev-12-24-2026-08-15.pdf"
+                ),
+                sha256="sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa",
+                byte_length=354_320,
+                fmt="pdf",
+                role="publisherSource",
+                # The publisher's own URL misspells "Submission"; preserved.
+                source_iri=(
+                    "https://www.gao.gov/assets/2025-01/"
+                    "Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional"
+                    "%20Review%20Act%20-%202025.pdf"
+                ),
+            ),
+        ),
+        reader=GAO_CRA_RULE_TYPES_PDF_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "formItem",
+                    "formNumber",
+                    "formRevision",
+                    "optionText",
+                    "sourceArtifact",
+                    "sourceMedium",
+                    "value",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="gao-cra-priority-of-regulation",
+        kind="vocabulary",
+        release_keys=("gao-cra-priority-of-regulation",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/gao_cra_form_codes/"
+                    "gao-cra-blank-form-rev-11-17-23-2026-08-15.pdf"
+                ),
+                sha256="sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d",
+                byte_length=111_887,
+                fmt="pdf",
+                role="publisherRetiredRevision",
+                source_iri="https://www.gao.gov/assets/2023-11/Blank%20CRA%20Form-Updated.pdf",
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/gao_cra_form_codes/"
+                    "gao-cra-submission-form-rev-12-24-2026-08-15.pdf"
+                ),
+                sha256="sha256:400be25fbd9d426472118af1aafd830aee16d40248a4a89da4465ef69f18bafa",
+                byte_length=354_320,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri=(
+                    "https://www.gao.gov/assets/2025-01/"
+                    "Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional"
+                    "%20Review%20Act%20-%202025.pdf"
+                ),
+            ),
+        ),
+        reader=GAO_CRA_PRIORITY_PDF_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "formItem",
+                    "formNumber",
+                    "formRevision",
+                    "optionText",
+                    "sourceArtifact",
+                    "sourceMedium",
+                    "value",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="nrc-adams-documented-profile-properties-2026-08-15",
+        kind="vocabulary",
+        release_keys=("nrc-adams-documented-profile-properties-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/nrc_adams_aps_docs/aps-user-manual-2026-08-15.pdf",
+                sha256="sha256:ab6d6e298cf9a142aad94dbe39024eb0002513beef1e61851784652145643c93",
+                byte_length=2_687_062,
+                fmt="pdf",
+                role="publisherUserManual",
+                source_iri="https://adams-search.nrc.gov/assets/APS-User-Manual.pdf",
+            ),
+            SourcePin(
+                path="tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-15.pdf",
+                sha256="sha256:5d1ed894dfbd30cb9ea4c7e05fb01c3bec5502dc4e4ab968daf88095b4c2d848",
+                byte_length=531_285,
+                fmt="pdf",
+                role="publisherApiGuide",
+                source_iri="https://adams-search.nrc.gov/assets/APS-API-Guide.pdf",
+            ),
+        ),
+        reader=NRC_APS_PROFILE_PROPERTIES_PDF_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "description",
+                    "propertyName",
+                    "sourceMedium",
+                    "sourceOrdinal",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="nrc-adams-documented-accession-number-2026-08-15",
+        kind="vocabulary",
+        release_keys=("nrc-adams-documented-accession-number-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/nrc_adams_aps_docs/aps-user-manual-2026-08-15.pdf",
+                sha256="sha256:ab6d6e298cf9a142aad94dbe39024eb0002513beef1e61851784652145643c93",
+                byte_length=2_687_062,
+                fmt="pdf",
+                role="publisherUserManual",
+                source_iri="https://adams-search.nrc.gov/assets/APS-User-Manual.pdf",
+            ),
+            SourcePin(
+                path="tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-15.pdf",
+                sha256="sha256:5d1ed894dfbd30cb9ea4c7e05fb01c3bec5502dc4e4ab968daf88095b4c2d848",
+                byte_length=531_285,
+                fmt="pdf",
+                role="publisherApiGuide",
+                source_iri="https://adams-search.nrc.gov/assets/APS-API-Guide.pdf",
+            ),
+        ),
+        reader=NRC_APS_ACCESSION_NUMBER_PDF_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "elementText",
+                    "officialDefinition",
+                    "ordinal",
+                    "sourceMedium",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="treasury-fast-book-fund-groups-2026-07",
+        kind="vocabulary",
+        release_keys=("treasury-fast-book-fund-groups-2026-07",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/treasury_tas_fast_book/"
+                    "fast-book-part-ii-iii-2026-07-31.xlsx"
+                ),
+                sha256="sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461",
+                byte_length=420_508,
+                fmt="xlsx",
+                role="publisherWorkbookPartsIIAndIII",
+                source_iri="https://tfx.treasury.gov/media/60111/download?inline=",
+            ),
+        ),
+        reader=FAST_BOOK_FUND_GROUPS_OOXML_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "fastBookPart",
+                    "fundGroupName",
+                    "rowNumber",
+                    "sheet",
+                    "symbolRangeText",
+                    "symbolRanges",
+                }
+            )
         ),
     ),
     SourceSpec(

@@ -233,14 +233,14 @@
       "versionRepresentation": "Pin API version, cycle, effective date, capture time, and response digest."
     },
     {
-      "accessOrReproducibilityGap": "GAO topics are source assignments and no complete maintained reusable thesaurus distribution is known.",
-      "distributionStatus": "partial",
-      "identifierRepresentation": "Preserve the exact topic literal and report assignment context.",
-      "officialLocator": "https://www.gao.gov/reports-testimonies",
+      "accessOrReproducibilityGap": "gao.gov sits behind an Akamai challenge (HTTP 403 to plain clients); the published /topics index is pinned byte-exact via the shared Zyte transport, while per-report topic assignments remain source assignments on report pages.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each publisher-minted /topics/<slug> path and numeric Drupal taxonomy term id exactly; never mint concept identity from a topic label.",
+      "officialLocator": "https://www.gao.gov/topics",
       "resourceId": "gao-topics",
       "resourceKind": "sourceAssignedVocabulary",
       "title": "GAO report topics",
-      "versionRepresentation": "Pin report identity, edition or publication date, capture time, and source digest."
+      "versionRepresentation": "Pin the /topics page capture time and exact digest, each topic's publisher slug and taxonomy term id, and the observed complete 30-term membership."
     },
     {
       "accessOrReproducibilityGap": "The registry has one exact report-page capture, not GAO's complete publication history.",
@@ -343,16 +343,6 @@
       "versionRepresentation": "Pin report edition, source fields, capture time, and artifact digest."
     },
     {
-      "accessOrReproducibilityGap": "The registry has one exact publisher concept sample, not a complete release package, and language-specific contributor rights still require reconciliation.",
-      "distributionStatus": "partial",
-      "identifierRepresentation": "Preserve each AGROVOC publisher concept IRI, multilingual label, and authored SKOS mapping relation without merging AGROVOC identity with NALT.",
-      "officialLocator": "https://aims.fao.org/aos/agrovoc",
-      "resourceId": "agrovoc",
-      "resourceKind": "mappingReference",
-      "title": "AGROVOC multilingual concept scheme",
-      "versionRepresentation": "Pin the exact AGROVOC distribution or concept response, observation time, byte digest, and applicable language rights evidence."
-    },
-    {
       "accessOrReproducibilityGap": "The topic-bearing XML endpoint is blocked by DataDome in the current environment; the verified per-Congress feed omits topics and fiscal facets, so the reconstructed topic-and-facet fixture is not publication-ready evidence.",
       "distributionStatus": "partial",
       "identifierRepresentation": "Preserve each cost-estimate record link, authored topic literal, publisher budget-function code, mandate flag, PAYGO flag, bill value, and committee value without minting topic identity.",
@@ -453,16 +443,6 @@
       "versionRepresentation": "Pin dataset identifier 1668761, DOI, publication date 2020-09-30, exact RDF digest and byte length, and the unresolved currency and license findings."
     },
     {
-      "accessOrReproducibilityGap": "Only one topic-tier export is captured; current edition, complete membership, maintenance history, durable bulk access, license, and stable term identifiers remain unverified.",
-      "distributionStatus": "unresolvedIdentity",
-      "identifierRepresentation": "Preserve exact labels, definitions, scope notes, child nesting, and positional source paths; the source exports no stable term code or IRI, so mint none.",
-      "officialLocator": "https://www.epa.gov/research/epa-enterprise-vocabulary",
-      "resourceId": "epa-enterprise-vocabulary",
-      "resourceKind": "mappingReference",
-      "title": "EPA Enterprise Vocabulary",
-      "versionRepresentation": "Pin the landing-page claims, selected tier, export request, observation time, exact XML digest, and all unresolved edition, access, license, and identity gaps."
-    },
-    {
       "accessOrReproducibilityGap": "The registry captures identifier syntax and a bounded sample, not the bulk SRS, CompTox, DSSTox, or TSCA inventories.",
       "distributionStatus": "partial",
       "identifierRepresentation": "Preserve DTXSID substance identifiers and DTXCID structure identifiers as separate kinds; retain TSCA membership as status and never merge identity by label or CAS number.",
@@ -541,6 +521,16 @@
       "resourceKind": "codeList",
       "title": "GAO Congressional Review Act database facets",
       "versionRepresentation": "Pin the exact rendered source capture, observation time, digest, form field, option membership, and unresolved query-behavior gaps."
+    },
+    {
+      "accessOrReproducibilityGap": "gao.gov serves both form revisions only behind an Akamai challenge (HTTP 403 to plain clients); the pinned captures came through the shared Zyte transport, and the retired Rev. 11/17/23 revision is no longer linked from the current CRA pages.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each printed option exactly as the numbered form item states it, list joiners and fill-in instructions included; never mint concept identity from a form option.",
+      "officialLocator": "https://www.gao.gov/assets/2025-01/Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional%20Review%20Act%20-%202025.pdf",
+      "resourceId": "gao-cra-submission-form-controls",
+      "resourceKind": "codeList",
+      "title": "GAO CRA submission form controls (GAO Form 41217)",
+      "versionRepresentation": "Pin each form revision marker (Rev. 12/24; 11/17/23), exact PDF digest and byte length, capture time, and the reviewed option runs verbatim."
     },
     {
       "accessOrReproducibilityGap": "The registry packages a bounded source-evidence sample and does not yet publish a complete managed atlas frontier or demonstrate document-subject value.",
@@ -641,16 +631,6 @@
       "resourceKind": "subjectVocabulary",
       "title": "Medical Subject Headings descriptors",
       "versionRepresentation": "Pin the exact annual descriptor release, source digest, record count, attribution notice, parser version, coverage report, and managed-release identity when produced."
-    },
-    {
-      "accessOrReproducibilityGap": "NALT Core has no single downloadable distribution, and its CC BY 4.0 statement conflicts with broader USDA public-domain or CC0 claims.",
-      "distributionStatus": "partial",
-      "identifierRepresentation": "Preserve each NALT publisher concept IRI and exact Core scheme membership; refuse NALT Full records and never mint identity from a label.",
-      "officialLocator": "https://lod.nal.usda.gov/nalt-core/",
-      "resourceId": "nalt-core",
-      "resourceKind": "subjectVocabulary",
-      "title": "National Agricultural Library Thesaurus Core",
-      "versionRepresentation": "Pin every concept response URL, capture time, exact digest, Core scheme assertion, membership coverage, license evidence, and eventual managed-release selection."
     },
     {
       "accessOrReproducibilityGap": "The current registry captures only the top-level technology-area roster; deeper nodes require additional requests and document-subject value remains unevaluated.",

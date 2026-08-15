@@ -1,23 +1,10 @@
 {
-  "catalogDigest": "sha256:21e883b51626f45b4cc64c92bfeb18d5864260662a759a8a313a2d94b41f0d64",
-  "catalogId": "urn:ref:resource-catalog:21e883b51626f45b4cc64c92bfeb18d5864260662a759a8a313a2d94b41f0d64",
+  "catalogDigest": "sha256:399327808ade2c30786934b8ced0ae4193156d164ac8ddf7f81a9f5669e703ab",
+  "catalogId": "urn:ref:resource-catalog:399327808ade2c30786934b8ced0ae4193156d164ac8ddf7f81a9f5669e703ab",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
   "recordedAt": "2026-08-06T18:42:39Z",
   "resources": [
-    {
-      "consumability": "inventoryOnly",
-      "distributions": [],
-      "evidence": [],
-      "gap": "The registry has one exact publisher concept sample, not a complete release package, and language-specific contributor rights still require reconciliation.",
-      "identifierRepresentation": "Preserve each AGROVOC publisher concept IRI, multilingual label, and authored SKOS mapping relation without merging AGROVOC identity with NALT.",
-      "officialLocator": "https://aims.fao.org/aos/agrovoc",
-      "resourceId": "agrovoc",
-      "resourceKind": "mappingReference",
-      "sourceAvailability": "partial",
-      "title": "AGROVOC multilingual concept scheme",
-      "versionRepresentation": "Pin the exact AGROVOC distribution or concept response, observation time, byte digest, and applicable language rights evidence."
-    },
     {
       "consumability": "inventoryOnly",
       "distributions": [],
@@ -543,19 +530,6 @@
       "consumability": "inventoryOnly",
       "distributions": [],
       "evidence": [],
-      "gap": "Only one topic-tier export is captured; current edition, complete membership, maintenance history, durable bulk access, license, and stable term identifiers remain unverified.",
-      "identifierRepresentation": "Preserve exact labels, definitions, scope notes, child nesting, and positional source paths; the source exports no stable term code or IRI, so mint none.",
-      "officialLocator": "https://www.epa.gov/research/epa-enterprise-vocabulary",
-      "resourceId": "epa-enterprise-vocabulary",
-      "resourceKind": "mappingReference",
-      "sourceAvailability": "unresolvedIdentity",
-      "title": "EPA Enterprise Vocabulary",
-      "versionRepresentation": "Pin the landing-page claims, selected tier, export request, observation time, exact XML digest, and all unresolved edition, access, license, and identity gaps."
-    },
-    {
-      "consumability": "inventoryOnly",
-      "distributions": [],
-      "evidence": [],
       "gap": "The registry captures identifier syntax and a bounded sample, not the bulk SRS, CompTox, DSSTox, or TSCA inventories.",
       "identifierRepresentation": "Preserve DTXSID substance identifiers and DTXCID structure identifiers as separate kinds; retain TSCA membership as status and never merge identity by label or CAS number.",
       "officialLocator": "https://sor.epa.gov/sor_internet/registry/sysofreg/sorservices/sorServices.html",
@@ -811,6 +785,19 @@
       "consumability": "inventoryOnly",
       "distributions": [],
       "evidence": [],
+      "gap": "gao.gov serves both form revisions only behind an Akamai challenge (HTTP 403 to plain clients); the pinned captures came through the shared Zyte transport, and the retired Rev. 11/17/23 revision is no longer linked from the current CRA pages.",
+      "identifierRepresentation": "Preserve each printed option exactly as the numbered form item states it, list joiners and fill-in instructions included; never mint concept identity from a form option.",
+      "officialLocator": "https://www.gao.gov/assets/2025-01/Sumission%20of%20Federal%20Rules%20Under%20the%20Congressional%20Review%20Act%20-%202025.pdf",
+      "resourceId": "gao-cra-submission-form-controls",
+      "resourceKind": "codeList",
+      "sourceAvailability": "available",
+      "title": "GAO CRA submission form controls (GAO Form 41217)",
+      "versionRepresentation": "Pin each form revision marker (Rev. 12/24; 11/17/23), exact PDF digest and byte length, capture time, and the reviewed option runs verbatim."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
       "gap": "GAO report controls are record-derived; exact enumerations may require bounded source captures.",
       "identifierRepresentation": "Preserve report ID, product type, agency, recommendation state, and evidence-depth values.",
       "officialLocator": "https://www.gao.gov/reports-testimonies",
@@ -850,14 +837,14 @@
       "consumability": "inventoryOnly",
       "distributions": [],
       "evidence": [],
-      "gap": "GAO topics are source assignments and no complete maintained reusable thesaurus distribution is known.",
-      "identifierRepresentation": "Preserve the exact topic literal and report assignment context.",
-      "officialLocator": "https://www.gao.gov/reports-testimonies",
+      "gap": "gao.gov sits behind an Akamai challenge (HTTP 403 to plain clients); the published /topics index is pinned byte-exact via the shared Zyte transport, while per-report topic assignments remain source assignments on report pages.",
+      "identifierRepresentation": "Preserve each publisher-minted /topics/<slug> path and numeric Drupal taxonomy term id exactly; never mint concept identity from a topic label.",
+      "officialLocator": "https://www.gao.gov/topics",
       "resourceId": "gao-topics",
       "resourceKind": "sourceAssignedVocabulary",
-      "sourceAvailability": "partial",
+      "sourceAvailability": "available",
       "title": "GAO report topics",
-      "versionRepresentation": "Pin report identity, edition or publication date, capture time, and source digest."
+      "versionRepresentation": "Pin the /topics page capture time and exact digest, each topic's publisher slug and taxonomy term id, and the observed complete 30-term membership."
     },
     {
       "consumability": "inventoryOnly",
@@ -1147,19 +1134,6 @@
       "sourceAvailability": "available",
       "title": "North American Industry Classification System",
       "versionRepresentation": "Pin the exact NAICS edition and official artifact digest."
-    },
-    {
-      "consumability": "inventoryOnly",
-      "distributions": [],
-      "evidence": [],
-      "gap": "NALT Core has no single downloadable distribution, and its CC BY 4.0 statement conflicts with broader USDA public-domain or CC0 claims.",
-      "identifierRepresentation": "Preserve each NALT publisher concept IRI and exact Core scheme membership; refuse NALT Full records and never mint identity from a label.",
-      "officialLocator": "https://lod.nal.usda.gov/nalt-core/",
-      "resourceId": "nalt-core",
-      "resourceKind": "subjectVocabulary",
-      "sourceAvailability": "partial",
-      "title": "National Agricultural Library Thesaurus Core",
-      "versionRepresentation": "Pin every concept response URL, capture time, exact digest, Core scheme assertion, membership coverage, license evidence, and eventual managed-release selection."
     },
     {
       "consumability": "inventoryOnly",
@@ -1554,8 +1528,8 @@
   ],
   "summary": {
     "evidenceOnlyCount": 7,
-    "inventoryOnlyCount": 79,
-    "resourceCount": 89,
+    "inventoryOnlyCount": 77,
+    "resourceCount": 87,
     "verifiedDistributionCount": 5,
     "verifiedResourceCount": 3
   }

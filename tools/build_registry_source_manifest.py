@@ -836,6 +836,27 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "localPath": "tests/fixtures/fec_committee_codes/fec-party-code-descriptions-2026-08-03.html",
         },
     ),
+    "gao_cra_form_codes.py": (
+        # The current revision's publisher URL carries GAO's own "Sumission"
+        # typo; the pin constant resolves it verbatim, never corrected.
+        {
+            "name": "gaoCraCurrentForm20260815",
+            "constant": "GAO_CRA_CURRENT_FORM_2026_08_15",
+            "localPath": "tests/fixtures/gao_cra_form_codes/gao-cra-submission-form-rev-12-24-2026-08-15.pdf",
+        },
+        {
+            "name": "gaoCraRetiredForm20260815",
+            "constant": "GAO_CRA_RETIRED_FORM_2026_08_15",
+            "localPath": "tests/fixtures/gao_cra_form_codes/gao-cra-blank-form-rev-11-17-23-2026-08-15.pdf",
+        },
+    ),
+    "gao_published_topics.py": (
+        {
+            "name": "gaoTopicsIndex20260815",
+            "constant": "GAO_TOPICS_2026_08_15",
+            "localPath": "tests/fixtures/gao_published_topics/gao-topics-2026-08-15.html",
+        },
+    ),
     "govinfo_collections.py": (
         {
             "name": "govinfoCollections",
@@ -887,6 +908,18 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "name": "nasaTechnologyChildren",
             "constant": "NASA_TAXONOMY_ROOT_CHILDREN_2026_08_03",
             "localPath": "tests/fixtures/nasa_technology_taxonomy/techport-taxonomy-8817-children-2026-08-03.json",
+        },
+    ),
+    "nrc_adams_aps_docs.py": (
+        {
+            "name": "nrcApsUserManual20260815",
+            "constant": "APS_USER_MANUAL_2026_08_15",
+            "localPath": "tests/fixtures/nrc_adams_aps_docs/aps-user-manual-2026-08-15.pdf",
+        },
+        {
+            "name": "nrcApsApiGuide20260815",
+            "constant": "APS_API_GUIDE_2026_08_15",
+            "localPath": "tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-15.pdf",
         },
     ),
     "oversight_report_types.py": (

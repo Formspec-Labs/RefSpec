@@ -45,30 +45,34 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 78,
-        "catalogOnlyDescriptorCount": 24,
-        "catalogResourceCount": 89,
+        "atlasIndexRowCount": 82,
+        "catalogOnlyDescriptorCount": 18,
+        "catalogResourceCount": 87,
         "implementationModuleCount": 25,
-        "indexedResourceCount": 65,
-        "indexedWithoutExactReleaseCount": 60,
-        "registryModuleCount": 75,
+        "indexedResourceCount": 69,
+        "indexedWithoutExactReleaseCount": 64,
+        "registryModuleCount": 78,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the
         # readers' own text), and the GNIS file layout is publisher-written
-        # structure, not an identifier authority.
+        # structure, not an identifier authority. REF-034 retires the AGROVOC
+        # and NALT rows and the closed EPA row (mappingReference 12 -> 10,
+        # subjectVocabulary 7 -> 6) and adds the GAO Form 41217 code list
+        # (codeList 25 -> 26); three registry modules land with index rows
+        # (75 -> 78, source modules 50 -> 53).
         "resourceKindCounts": {
             "classification": 5,
-            "codeList": 25,
+            "codeList": 26,
             "historicalVocabulary": 1,
             "identifierAuthority": 20,
-            "mappingReference": 12,
+            "mappingReference": 10,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
             "structuralSchema": 10,
-            "subjectVocabulary": 7,
+            "subjectVocabulary": 6,
         },
-        "sourceModuleCount": 50,
+        "sourceModuleCount": 53,
     }
     assert all(values == [] for values in generated["unsupported"].values())
 

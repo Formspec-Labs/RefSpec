@@ -644,14 +644,14 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:84456cf1f56df728c5ff685c9921b3c592d158eca21d6fe88f273b9c57262b64"
+    "sha256:9af71462acb4579bbf6308e0ad4598617dbdadc50984853f66dad122175cffdf"
 )
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:e63c34368ed3e6df2e3981c71c25eb5e039dd0fa8d2595df9ebd4ebb08ba3c07"
+    "sha256:c13c1cd1d04fbeac59ba1a77fae37ca68fc69e797338d6ba5d58ecac54c2ed63"
 )
 
 
@@ -7418,8 +7418,10 @@ def verify_inputs(
     registry = Dataset(default_union=True)
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
     descriptors = set(registry.subjects(RDF.type, ATLAS.ResourceScheme))
-    if len(descriptors) != 88:
-        raise ValueError(f"expected 88 registry descriptors; found {len(descriptors)}")
+    # REF-034: three retired rows left the catalog and the GAO CRA form row
+    # joined (88 -> 86 schemes; eurovoc-lcsh-alignment still has none).
+    if len(descriptors) != 86:
+        raise ValueError(f"expected 86 registry descriptors; found {len(descriptors)}")
 
     return {
         "expectedResources": sum(source.expected_resources for source in sources),

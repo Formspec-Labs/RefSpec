@@ -13,7 +13,7 @@ from refspec.atlas import v3_registry_rosters as adapters
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_complete_roster_adapter_set_emits_1409_resources() -> None:
+def test_complete_roster_adapter_set_emits_1439_resources() -> None:
     releases = adapters.load_registry_roster_releases(ROOT)
 
     assert [release.key for release in releases] == [
@@ -22,8 +22,9 @@ def test_complete_roster_adapter_set_emits_1409_resources() -> None:
         "federal-register-agencies-roster-2026-08-15",
         "fcc-bureaus-offices-roster-2026-08-15",
         "federal-hierarchy-orgs-complete-2026-08-15",
+        "gao-published-topics-index-2026-08-15",
     ]
-    assert sum(len(release.resources) for release in releases) == 1_409
+    assert sum(len(release.resources) for release in releases) == 1_439
     assert sum(len(release.relations) for release in releases) == 963
     assert all(release.scope == "completeCapture" for release in releases)
     assert all(not release.cross_ring_relations for release in releases)
@@ -149,6 +150,79 @@ def test_federal_hierarchy_release_is_the_complete_entity_roster() -> None:
     assert "urn:ref:federal-hierarchy-org:100000000" not in subjects
 
 
+def test_gao_topics_release_is_a_subject_ring_concept_scheme() -> None:
+    (release,) = adapters._gao_releases(ROOT)
+
+    assert release.resource_id == "gao-topics"
+    # The bare scheme, exactly as REF-032's guard commentary blesses for a
+    # documented successor of the removed observed unit.
+    assert release.scheme_iri == "urn:ref:atlas-resource-scheme:gao-topics"
+    assert (release.profile, release.ring) == ("conceptScheme", "subject")
+    assert release.scope == "completeCapture"
+    assert len(release.resources) == 30
+    assert release.relations == ()
+    assert not release.cross_ring_relations
+    assert release.metadata["topicCount"] == 30
+    assert release.metadata["listingTitle"] == "Browse Topics Alphabetically"
+    assert release.metadata["excludedFeaturedEntryCount"] == 4
+    assert "Akamai" in release.metadata["transportNote"]
+    assert "zyte_transport" in release.metadata["transportNote"]
+
+    by_iri = {resource.iri: resource for resource in release.resources}
+    health = by_iri["urn:ref:gao-topic:health-care"]
+    assert health.labels[0].value == "Health Care"
+    assert health.definition is not None and health.definition.startswith("Health care services")
+    # Publisher slug and taxonomy term id ride as notations and payload,
+    # never as identifier rows: gao-topics is not a declared identifier
+    # authority (the identifier-authority tripwire covers this at suite time).
+    assert health.notations == ("health-care", "206")
+    assert health.identifiers == ()
+    assert health.native_payload["term_id"] == "206"
+    assert health.native_payload["page_url"] == "https://www.gao.gov/topics/health-care"
+
+    mission = by_iri["urn:ref:gao-topic:gao-mission-and-operations"]
+    assert mission.native_payload["term_id"] == "896"
+
+
+def test_roster_releases_pass_the_generator_refusal_guards() -> None:
+    """Run the build's three refusal guards over the real emitted releases.
+
+    REF-030 (registrant populations), REF-031 (document populations), and
+    REF-032 (observed inventories) each install a refusal in
+    tools/generate_atlas_v3_full.py. The GAO release is the sensitive one:
+    its substrate must not collide with the refused
+    ``tests/fixtures/gao_topics/`` observation path, its bare scheme is the
+    blessed documented-successor scheme, and its IRIs must stay clear of the
+    refused ``https://www.gao.gov/products/`` document-population namespace.
+    This test runs the actual guard functions, not copies of their lists.
+    """
+
+    import importlib
+    import sys
+
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        generator = importlib.import_module("generate_atlas_v3_full")
+    finally:
+        sys.path.remove(str(ROOT / "tools"))
+
+    for release in adapters.load_registry_roster_releases(ROOT):
+        shaped = SimpleNamespace(
+            spec=SimpleNamespace(
+                key=release.key,
+                logical_path=release.inputs[0].logical_path,
+                input_pins=tuple(
+                    SimpleNamespace(logical_path=pin.logical_path) for pin in release.inputs
+                ),
+            ),
+            scheme_iri=release.scheme_iri,
+            resources=tuple(SimpleNamespace(iri=resource.iri) for resource in release.resources),
+        )
+        generator._refuse_registrant_population_release(shaped)
+        generator._refuse_document_population_release(shaped)
+        generator._refuse_observed_inventory_release(shaped)
+
+
 def test_roster_loader_parses_only_intersecting_groups(monkeypatch: pytest.MonkeyPatch) -> None:
     called: list[str] = []
 
@@ -176,6 +250,7 @@ def test_roster_loader_parses_only_intersecting_groups(monkeypatch: pytest.Monke
         "_federal_hierarchy_releases",
         fake_group(("federal-hierarchy-orgs-complete-2026-08-15",)),
     )
+    monkeypatch.setattr(adapters, "_gao_releases", fake_group(("gao-published-topics-index-2026-08-15",)))
 
     releases = adapters.load_registry_roster_releases(
         Path("/pinned"),
