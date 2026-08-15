@@ -1490,3 +1490,228 @@ the registry audit snapshot regenerates with its one declared gap. A rebuilt
 distribution loses exactly 1,074 resources, 1,074 labels, 1,059 identifiers,
 1,074 source records, and 6 releases — and zero statements and zero evidence
 bindings, which is the measurement that made the decision.
+
+**Amendment (2026-08-14, REF-032).** Two claims above did not survive
+inspection. First: the FCC bureaus, filing types, and access statuses were
+kept here as "finite publisher controls." They are not. All three are
+set-distincts over the same single 25-filing ECFS response the removed
+proceedings came from — the reader's own docstring records that ECFS
+"publishes no dedicated code-list or constants endpoint" — and the bureau
+list carries the abolished Common Carrier Bureau beside its successor.
+They leave under REF-032 as observed inventories. Second: the
+`gao-report-gao-26-108505` witness was kept *because* it anchored the
+observed-topics unit. That unit is itself a source observation and has now
+left, so the witness leaves with it, and `gao-report-identifiers` joins the
+document-population refusal above — by this decision's own criterion a
+report page was always a document population. The original entry stands as
+written; these two sentences record where it was wrong.
+
+### REF-032: Observed inventories leave the Atlas
+
+- **Date:** 2026-08-14
+- **Status:** Accepted; executed. The third split in the REF-030/REF-031
+  series, applied to what a unit *is* rather than to what it enumerates.
+
+**The criterion.** The Atlas carries what a publisher wrote down. It does
+not carry the distinct values someone scanned out of that publisher's
+records. A documented code list, a field dictionary, a published thesaurus,
+an account roster — those are reference: the authority states them, is
+answerable for them, and reissues them. A `SELECT DISTINCT` over a data
+snapshot is an observation *about* a data set. It is exactly as current as
+the snapshot, it has no publisher behind it, and joining against it means
+joining against whatever happened to be in the rows on the day of capture.
+The FAC-versus-NPPES pair states the line cleanly: FAC's API field
+dictionary is publisher-written structure and stays; the NPPES *rows* left
+under REF-030 while the NPPES dissemination *layout* stayed. Structure the
+publisher wrote is reference. Values harvested from data are not.
+
+**The census.** Twenty-nine units leave, carrying 1,970 resources:
+
+- *The regulatory-native family* — 14 units, 1,861 resources: distinct-value
+  scans over four SpicyRegs Parquet snapshots
+  (`regulatory-native-current/{dockets,documents,federal_register,unified_agenda}.parquet`,
+  184 MB) executed inside RefSpec. Six of the fourteen are duplicates or
+  strict subsets of documented lists the Atlas keeps — Regulations.gov's
+  OpenAPI docket and document types, the Unified Agenda's priority
+  categories and rule stages. The three agency-code inventories (196 + 316 +
+  191 values) duplicate SpicyRegs's own `agency_stats`.
+  `federal-register-unresolved-agency-name` is parse residue: 715 members
+  including `"44 CFR Part 64"` and a bare `"Rule"`.
+- *The FCC ECFS observed trio* — 12 resources, all set-distincts over one
+  25-filing response (see the REF-031 amendment above).
+- *The GAO observed pair* — 2 resources: one topic label observed on one
+  report page, with RefSpec-minted UUIDv7 identity and
+  `publisherConceptIdentityClaimed: False`, plus the report page that
+  witnessed it. The reader's own non-Atlas packager states the position
+  outright: "This never promotes the result into a concept scheme."
+- *Pathway exemplars and minted-identity captures* — 26 resources: three
+  rows from a session-scoped EPA browse export with no publisher identity;
+  one AGROVOC concept whose declared `mappingReference` role is unreachable
+  because its mapping targets are absent from the Atlas; two NALT concepts
+  with no enumeration scheduled; the first alphabetical API page of the
+  Federal Hierarchy roster, 20 organizations of 1,645, with duplicates.
+- *Scraped widgets and false formats* — 31 resources: six GAO CRA
+  radio-button widgets; two FERC "accession number formats," one of which is
+  a wildcard search string; 19 NRC ADAMS controls of which 12 were regexed
+  out of a minified Angular bundle; four ADAMS identifier shapes, one
+  inferred from two examples and contradicting its documented sibling.
+- *Observed aggregates* — 38 resources: 27 OPM PLUM values set-distincted
+  from a 15,777-row personnel roster, duplicating codes the kept
+  `opm-ehri-data-standards` unit carries *with definitions*; 11 Treasury
+  fund types produced by a `Counter` over the kept FAST Book accounts
+  release, matching none of the publisher's three documented lists.
+
+**One split, not a removal.** `federal-register-api-topics-2026-08-03` is
+kept, narrowed to the collection the publisher's own payload names. The
+pinned capture carries `{thesaurus: 1044, ad_hoc: 6723}`; the thesaurus
+collection holds all 1,428 relation statements and the ad-hoc collection
+holds harvested document fragments like `"165 as follows:"`. The release now
+emits the thesaurus collection only, records `excludedAdHocCount: 6723` and
+`emittedCollection: "thesaurus"` in its metadata, and keeps
+`completeCapture` scope — complete, of the collection it names.
+
+**The SpicyRegs data-plane dependency is gone.** Removing the
+regulatory-native family removes the last place RefSpec's build read
+SpicyRegs's acquired records: four Parquet snapshots totalling 184 MB,
+pinned as build inputs in the source-fidelity audit and in the registry
+source manifest, and re-scanned on every audit run. RefSpec now reads
+publisher bytes and RefSpec's own captures, nothing downstream of SpicyRegs.
+The boundary the product topology asserts — no RefSpec↔DocSpec edge — is
+now a fact of the build graph rather than a claim about intent.
+
+**What stays, and why.** The *documented* twins: Regulations.gov's docket,
+document, and submitter types, parsed from the pinned OpenAPI document by a
+different reader; the Unified Agenda's priority categories, rule stages,
+timetable actions, and legal-authority citation types. Every institutional
+roster and thesaurus. The FAST Book's published account symbols, the FAC
+field dictionary, the NPPES layout, the GSDM data dictionary, the FERC
+docket prefixes and class types and sector and security-level lists — the
+FERC readers' other four units all stay. `opm-ehri-data-standards` keeps the
+PLUM values that matter, with the publisher's definitions attached.
+
+**The running check.** `_refuse_observed_inventory_release` in
+`tools/generate_atlas_v3_full.py` refuses, by name of this decision:
+
+1. Any release whose input pins name the *observation substrate* — the four
+   SpicyRegs Parquet snapshots and the capture derived from them, the PLUM
+   personnel roster, the two Federal Hierarchy first-page captures, the FERC
+   accessibility-tips page, and the ECFS, GAO product, GAO CRA, AGROVOC,
+   NALT, EPA, and NRC ADAMS fixtures. This is the strongest of the three
+   surfaces: a rename cannot evade it, and different bytes mean a different
+   unit.
+2. The three scheme strings that named an observation rather than a
+   resource: `epa-enterprise-vocabulary:captured-label-tree`,
+   `nrc-adams-identifiers:identifier-shapes`, and
+   `nrc-adams-native-controls:observed-structure`. A documented successor
+   uses the bare scheme and passes.
+3. Ten minted namespaces no publisher-written list could occupy —
+   `urn:ref:gao-cra-facet:`, `urn:ref:nrc-adams-control:`,
+   `urn:ref:nrc-adams-identifier-shape:`,
+   `urn:ref:treasury-fast-book:fund-type:`, and the
+   `urn:ref:source-concept:v2:` namespaces of the unresolved agency names,
+   the FERC accession formats, the PLUM values, and the three agency-code
+   censuses.
+
+The guard is deliberately keyed to substrate and to observation-only
+namespaces, not to the resources themselves, because every one of the named
+follow-ups below lands under a resource an observation just vacated. Pinned
+by `test_observed_inventory_releases_are_refused`, which asserts the
+refusals, the non-refusal of the documented Regulations.gov and Unified
+Agenda twins, and the non-refusal of four named follow-ups.
+
+**The un-guardable surfaces, named.** Four observed units shared *both* the
+scheme resourceId and the minted-IRI namespace token with the documented
+list that stays: `regulations-gov-docket-type`,
+`regulations-gov-document-type`, `unified-agenda-priority-category`, and
+`unified-agenda-rule-stage`. Nothing about their emitted shape distinguishes
+them from their twins, so only the substrate refusal covers them: a scan of
+the same four columns out of *different* bytes, under the twin's scheme and
+token, would pass. `federal-register-native-controls` loses all four of its
+contributors and is still not guarded by scheme, because the Federal
+Register's documented document types and agencies roster belong under
+exactly that resource. The same reasoning leaves `fcc-ecfs-native-controls`,
+`gao-topics`, `agrovoc`, `nalt-core`, `federal-hierarchy`,
+`gao-cra-database-facets`, `treasury-fast-book`, and
+`opm-plum-position-status-codes` unguarded at the scheme. That is recorded
+here rather than papered over with a guard that would refuse the work this
+decision asks for.
+
+**The cross-ring tripwire.** With the GAO pair gone the Atlas emits zero
+`atlas:CrossRingRelationAssertion`s. The type stays on the 3.1 wire — that
+is a contract, not a census — and the producer still builds one from any
+release carrying a cross-ring relation. Following the precedent of the
+unemittable-mapping-warrant declaration in the same file, the emptiness is
+declared at the emission site and pinned by
+`test_producer_emits_no_cross_ring_assertions`, which fails loudly the day a
+ring crossing appears and directs whoever trips it to the intended carrier:
+a genuine institutional-roster → subject edge, once the Federal Hierarchy
+roster is completed and an authority publishes subject assignments against
+it. The single instance that existed was never that — it was one document's
+own page metadata read twice, a report pointing at a label observed on the
+report. The binding's SHACL variant coverage now builds a synthetic
+cross-ring pair from two real releases in two rings, so the shape is still
+exercised.
+
+**The junction, checked.** SpicyRegs's
+`policies/profile-resource-applicability-v0.json` joins its profiles to
+RefSpec catalog resourceIds including `federal-register-native-controls`,
+whose four Atlas contributors all left. Nothing breaks:
+`portfolio/resource-catalog-v0.json` is generated from
+`resource-inventory-v0.json`, not from Atlas units, so it is byte-identical
+to its pre-REF-032 state and still carries the resource. Running SpicyRegs's
+documented check read-only confirms it: the only drift it reports is a stale
+RefSpec catalog *digest* pin (`c0bcce73…` checked, `a731fef9…` current) that
+predates this change and reproduces identically against RefSpec at HEAD.
+`src/refspec/registry/cfr_list_of_subjects.py` was therefore not wired in,
+and no capture was fetched.
+
+**Readers: the calls.** Seven readers lost their last Atlas unit and had no
+remaining consumer or named follow-up, and were deleted with their tests,
+their source-fidelity rows, and their manifest entries:
+`regulatory_native_controls.py` (with `tools/capture_regulatory_native_controls.py`
+and the four Parquet pins), `gao_topics.py`, `gao_cra_facets.py`,
+`agrovoc_thesaurus.py`, `nalt_core.py`, `epa_enterprise_vocabulary.py`, and
+`nrc_adams_codes.py`; `src/refspec/atlas/v3_registry_documents.py` went with
+them. Their unreferenced fixtures went too, along with both
+`research/evidence/regulatory-native-controls-*` capture directories: with the
+reader, the capture tool, and every pin gone, nothing could read, verify, or
+regenerate them, and the guard exists to keep exactly those bytes out. Git
+keeps them, and the follow-ups below re-capture from the publisher anyway.
+`federal_hierarchy_orgs.py` and `fcc_ecfs_codes.py` stay, parser-tested and
+attested against pinned publisher bytes in the registry audit but wired into
+no Atlas unit — the same state `cfr_list_of_subjects.py` has always had.
+They stay for a reason the build enforces: their planning rows are the only
+entity-ring placements their profiles have, and the 3.1
+`registry-coverage.schema.json` requires `codeScheme` and `structureScheme`
+to be non-empty in the entity ring. Deleting them would have forced a
+binding reissue to accommodate a census fact. `ferc_elibrary_codes.py`,
+`opm_workforce_codes.py`, `treasury_tas_fast_book.py`, and
+`federal_register_topics_api.py` keep units and stay unchanged. The
+verifier's `native-control` comparison kind stays as well: it is a general
+capability with its own synthetic suite, and only its SpicyRegs-sourced
+declarations left.
+
+**One false claim corrected in passing.** `opm_workforce_codes.py` stated
+that the module "never ingests bulk PLUM position rows." The real-data path
+parsed all 15,777 of them and then discarded everything but 27 distinct
+values. The docstring now says what the code does.
+
+**What moves.** Twenty-nine units leave `v3_registry_codes`,
+`v3_registry_large`, `v3_registry_nonemitters`, and the deleted
+`v3_registry_documents`, and leave the source-fidelity audit; the planning
+index drops fourteen rows with their seven deleted modules and marks
+`opm-plum-position-status-codes` and `treasury-fast-book` rejected (rows
+89 → 75, source modules 56 → 49, rejected 7 → 9); index → descriptors →
+coverage regenerate with both descriptor pins moved (the RDF itself changes
+this time: 994 → 984 quads); the corpus receipt reissues; the registry audit
+snapshot regenerates at 74 modules with its one declared gap. A rebuilt
+distribution loses 8,693 resources, 8,708 labels, 21 identifiers, 8,693
+source records, 29 releases, 6 statements, and 6 evidence bindings — of
+which 6,723 resources are the Federal Register ad-hoc collection and one
+statement is the last cross-ring assertion.
+
+**Named follow-ups.** Capture FCC's published bureau roster. Capture the
+Federal Register's documented document types and its agencies roster.
+Complete the Federal Hierarchy roster past its first page — that one is also
+the cross-ring tripwire's intended carrier. Capture GAO's published /topics
+index. Schedule AGROVOC and NALT enumeration, or retire their catalog rows.

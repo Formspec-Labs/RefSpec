@@ -88,31 +88,35 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["summary"] == {
         "exactReleaseCount": 6,
         "implementationModuleCount": 25,
-        "participationCounts": {"bridge": 12, "core": 1, "specialist": 4},
+        "participationCounts": {"bridge": 10, "core": 1, "specialist": 3},
         "semanticRingCounts": {
-            "entity": 12,
-            "legalIdentity": 4,
-            "subject": 25,
-            "value": 48,
+            "entity": 11,
+            "legalIdentity": 3,
+            "subject": 21,
+            "value": 40,
         },
-        "rowCount": 89,
-        "sourceModuleCount": 56,
+        "rowCount": 75,
+        "sourceModuleCount": 49,
         "statusCounts": {
-            "deferred": 3,
-            "notApplicable": 49,
-            "planned": 30,
+            "deferred": 2,
+            "notApplicable": 41,
+            "planned": 23,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
             # the entity-registry object instead. REF-031: the three
             # document-population authorities (CBO publications, FCC ECFS
             # proceedings, GovInfo CFR packages) are rejected too; SpicyRegs
-            # acquires those.
-            "rejected": 7,
+            # acquires those. REF-032 rejects the two observed inventories
+            # whose reader survives -- OPM PLUM position statuses and the FAST
+            # Book fund types -- while the seven readers left with no unit
+            # and no named follow-up were deleted, taking fourteen planning
+            # rows with them.
+            "rejected": 9,
             "superseded": 0,
             "unassessed": 0,
         },
     }
-    assert len(atlas_index_rows(index, semantic_ring="subject")) == 25
+    assert len(atlas_index_rows(index, semantic_ring="subject")) == 21
 
 
 def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(

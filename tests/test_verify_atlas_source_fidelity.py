@@ -6638,42 +6638,6 @@ def test_source_extract_fails_closed_on_an_atlas_concept_the_extract_lacks(
     )
 
 
-def test_epa_xml_reader_accepts_a_faithful_tree_and_rejects_a_shape_fault() -> None:
-    import tools.verify_atlas_source_fidelity as verifier
-
-    payload = b"""<EnterpriseVocabularyReport>
-<Row><Term>Parent</Term><Definitions>Definition</Definitions><ChildTerms>
-<Row><Term>Child</Term><ScopeNote>Note</ScopeNote></Row>
-</ChildTerms></Row></EnterpriseVocabularyReport>"""
-    pin = SourcePin(
-        "epa.xml",
-        "sha256:" + hashlib.sha256(payload).hexdigest(),
-        len(payload),
-        fmt="xml",
-        role="boundedPublisherLabelTree",
-        source_iri="https://example.org/epa.xml",
-    )
-    spec = SourceSpec(
-        "epa-reader-test",
-        "vocabulary",
-        ("epa-reader-test",),
-        (pin,),
-        reader=verifier.EPA_ENTERPRISE_VOCABULARY_XML_READER,
-    )
-
-    view = verifier._read_epa_enterprise_vocabulary_xml(spec, {pin: payload})
-
-    assert len(view.concepts) == 2
-    assert len(view.relations) == 1
-    assert len(view.annotations) == 2
-    assert all(view.resource_locators.values())
-    with pytest.raises(ValueError, match="termCount"):
-        verifier._read_epa_enterprise_vocabulary_xml(
-            spec,
-            {pin: payload.replace(b"<Term>Parent</Term>", b"<Label>Parent</Label>")},
-        )
-
-
 def test_lcsh_jsonld_reader_accepts_a_faithful_pair_and_rejects_context_fault() -> None:
     import tools.verify_atlas_source_fidelity as verifier
 

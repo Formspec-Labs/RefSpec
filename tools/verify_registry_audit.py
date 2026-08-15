@@ -47,13 +47,11 @@ TEST_INPUT_ENVIRONMENT = {
     "naics2022Xlsx": "REFSPEC_NAICS_2022_XLSX_PATH",
     "pscApril2025Xlsx": "REFSPEC_PSC_APRIL_2025_XLSX_PATH",
     "opmEhriDataStandardsXlsx": "REFSPEC_OPM_EHRI_DATA_STANDARDS_PATH",
-    "opmPlumAllDataCsv": "REFSPEC_OPM_PLUM_ALL_DATA_PATH",
     "ombA11OfficialPdf": "REFSPEC_OMB_A11_PDF_PATH",
     "comptoxBisphenolAPage": "REFSPEC_COMPTOX_BPA_PAGE_PATH",
     "fercClassTypes2025Pdf": "REFSPEC_FERC_CLASS_TYPES_2025_PDF_PATH",
     "fercDocketPrefix2025Pdf": "REFSPEC_FERC_DOCKET_PREFIX_2025_PDF_PATH",
     "fercGeneralSearchHelp": "REFSPEC_FERC_GENERAL_SEARCH_HELP_PATH",
-    "fercAccessibilityTips": "REFSPEC_FERC_ACCESSIBILITY_TIPS_PATH",
     "federalRegisterTopics": "REFSPEC_FR_TOPICS_PATH",
     "fastTopicalNtZip": "REFSPEC_FAST_TOPICAL_NT_ZIP_PATH",
     "fastChanges20241027": "REFSPEC_FAST_CHANGES_2024_10_27_PATH",
@@ -66,10 +64,6 @@ TEST_INPUT_ENVIRONMENT = {
     "icpsrSubjectXml": "REFSPEC_ICPSR_SUBJECT_XML_PATH",
     "icpsrManagedIndexA": "REFSPEC_ICPSR_INDEX_PAGE_A_PATH",
     "samEntity3mPublic": "REFSPEC_SAM_ENTITY_PUBLIC_PATH",
-    "regulatoryNativeDockets": "REFSPEC_REGULATORY_NATIVE_DOCKETS_PATH",
-    "regulatoryNativeDocuments": "REFSPEC_REGULATORY_NATIVE_DOCUMENTS_PATH",
-    "regulatoryNativeFederalRegister": "REFSPEC_REGULATORY_NATIVE_FEDERAL_REGISTER_PATH",
-    "regulatoryNativeUnifiedAgenda": "REFSPEC_REGULATORY_NATIVE_UNIFIED_AGENDA_PATH",
 }
 
 

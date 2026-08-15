@@ -118,17 +118,6 @@ def test_registry_audit_snapshot_is_current_and_honest_about_open_gaps() -> None
     )
 
 
-def test_gao_fedrules_reference_page_is_not_a_required_package_receipt() -> None:
-    """The package uses the search form; the scalar FedRules page is supporting evidence."""
-
-    manifest = manifest_builder.build_manifest(REPOSITORY_ROOT)
-    row = next(module for module in manifest["modules"] if module["module"] == "gao_cra_facets.py")
-    inputs = {descriptor["name"]: descriptor for descriptor in row["testInputs"]}
-
-    assert inputs["gaoCraDatabase"].get("receiptRequired", True) is True
-    assert inputs["gaoFedRulesRecord"]["receiptRequired"] is False
-
-
 def test_registry_audit_inventory_includes_nested_runtime_modules() -> None:
     modules = set(audit.registry_modules(REPOSITORY_ROOT))
     manifest = manifest_builder.build_manifest(REPOSITORY_ROOT)

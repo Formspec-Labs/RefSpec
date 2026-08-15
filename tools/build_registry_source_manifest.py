@@ -233,14 +233,6 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "byteLength": 7_447,
             "provenance": "publisherDistribution",
         },
-        {
-            "name": "fercAccessibilityTips",
-            "localPath": "output/registry-real-data-sources/ferc-accessibility-tips.html",
-            "publisherUrl": "https://elibrary.ferc.gov/eLibrary/assets/Accessibility_Tips.html",
-            "sha256": "sha256:c9219bd08b8712e35389ff26f079a21e16d2b5fea68aaebf561bb9b203010688",
-            "byteLength": 39_466,
-            "provenance": "publisherDistribution",
-        },
     ),
     "federal_register_topics_api.py": (
         {
@@ -657,14 +649,6 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "byteLength": 1_154_183,
             "provenance": "publisherDistribution",
         },
-        {
-            "name": "opmPlumAllDataCsv",
-            "localPath": "output/registry-real-data-sources/OPM-PLUM-all-data-20260804.csv",
-            "publisherUrl": "https://escs.opm.gov/escs-net/api/pbpub/download-data",
-            "sha256": "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f",
-            "byteLength": 2_737_270,
-            "provenance": "publisherDistribution",
-        },
     ),
     "uei_cage_identifiers.py": (
         {
@@ -677,65 +661,12 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherApiResponse",
         },
     ),
-    "regulatory_native_controls.py": (
-        {
-            "name": "regulatoryNativeDockets",
-            "localPath": "output/registry-real-data-sources/regulatory-native-current/dockets.parquet",
-            "publisherUrl": "https://r2.spicy-regs.dev/dockets.parquet",
-            "sha256": "sha256:b14cd488b7898391cff448ac4de19f85936072dcb1aa105da32eea88e6fd7938",
-            "byteLength": 14_347_053,
-            "rowCount": 276_326,
-            "etag": '"7eeeec4f91bfb333c4c221dade5bfbd6-2"',
-            "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
-            "provenance": "downstreamPublishedSnapshot",
-        },
-        {
-            "name": "regulatoryNativeDocuments",
-            "localPath": "output/registry-real-data-sources/regulatory-native-current/documents.parquet",
-            "publisherUrl": "https://r2.spicy-regs.dev/documents.parquet",
-            "sha256": "sha256:bb42f79eacd0a1bfb19b7711f5d6859d288133acffa8f585ee468acdd5cb4975",
-            "byteLength": 54_865_512,
-            "rowCount": 1_990_136,
-            "etag": '"8faaa53955c26ddb3f5ed957cf599865-7"',
-            "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
-            "provenance": "downstreamPublishedSnapshot",
-        },
-        {
-            "name": "regulatoryNativeFederalRegister",
-            "localPath": "output/registry-real-data-sources/regulatory-native-current/federal_register.parquet",
-            "publisherUrl": "https://r2.spicy-regs.dev/federal_register.parquet",
-            "sha256": "sha256:702018767f73b914ef11696b47ff360e616acc2da4769f40b0d0d90f03c5ffea",
-            "byteLength": 122_957_045,
-            "rowCount": 800_619,
-            "etag": '"d88fd82c9326590699ace479d609815d-15"',
-            "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
-            "provenance": "downstreamPublishedSnapshot",
-        },
-        {
-            "name": "regulatoryNativeUnifiedAgenda",
-            "localPath": "output/registry-real-data-sources/regulatory-native-current/unified_agenda.parquet",
-            "publisherUrl": "https://r2.spicy-regs.dev/unified_agenda.parquet",
-            "sha256": "sha256:e6862d5d6a5300f10c70eeaf321f1e82e1f5332f71069d07723cc584ee6a85ae",
-            "byteLength": 1_017_503,
-            "rowCount": 3_954,
-            "etag": '"70da846ac24f0a0ee9f1a21674d3a21e"',
-            "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
-            "provenance": "downstreamPublishedSnapshot",
-        },
-    ),
 }
 
 # These files are admitted only when the named module-level immutable pin
 # matches their exact digest and length. This is an explicit allowlist, not
 # fixture discovery: constructed mini fixtures are intentionally absent.
 PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
-    "agrovoc_thesaurus.py": (
-        {
-            "name": "agrovocC330Sample",
-            "constant": "AGROVOC_C330_SAMPLE",
-            "localPath": "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl",
-        },
-    ),
     "billstatus_codes.py": (
         {
             "name": "billstatusUserGuide",
@@ -774,18 +705,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "localPath": "tests/fixtures/census_gov_finance_codes/nasbo-ser-program-area-chapters-2026-08-03.html",
         },
     ),
-    "epa_enterprise_vocabulary.py": (
-        {
-            "name": "epaEnterpriseTier",
-            "constant": "EPA_REGULATORY_ACTIVITIES_TIER_CAPTURE",
-            "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100.xml",
-        },
-        {
-            "name": "epaEnterpriseTierDefinitions",
-            "constant": "EPA_REGULATORY_ACTIVITIES_TIER_WITH_DEFINITIONS_CAPTURE",
-            "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100-with-definitions.xml",
-        },
-    ),
     "fac_dictionary.py": (
         {
             "name": "facDictionaryDocs",
@@ -815,28 +734,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "name": "fecPartyCodes",
             "constant": "FEC_PARTY_CODES_2026_08_03",
             "localPath": "tests/fixtures/fec_committee_codes/fec-party-code-descriptions-2026-08-03.html",
-        },
-    ),
-    "gao_cra_facets.py": (
-        {
-            "name": "gaoCraDatabase",
-            "constant": "GAO_CRA_REAL_CAPTURE_2026_08_04",
-            "localPath": "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html",
-        },
-        {
-            "name": "gaoFedRulesRecord",
-            "constant": "GAO_FEDRULES_167777",
-            "localPath": "tests/fixtures/gao_cra_facets/gao-fedrules-167777-2026-08-04.html",
-            # Reference-only evidence for the scalar detail-page parser. The
-            # six-observation package consumes only gaoCraDatabase above.
-            "receiptRequired": False,
-        },
-    ),
-    "gao_topics.py": (
-        {
-            "name": "gaoProductTopics",
-            "constant": "GAO_PRODUCT_GAO_26_108505_2026_08_04",
-            "localPath": "tests/fixtures/gao_topics/gao-product-gao-26-108505-2026-08-04.html",
         },
     ),
     "govinfo_collections.py": (
@@ -880,18 +777,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "localPath": "tests/fixtures/lda-filing-types-2026-07-30.json",
         },
     ),
-    "nalt_core.py": (
-        {
-            "name": "naltCoreAnimalWelfare",
-            "constant": "NALT_CORE_ANIMAL_WELFARE_CAPTURE",
-            "localPath": "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl",
-        },
-        {
-            "name": "naltCoreTopConcept",
-            "constant": "NALT_CORE_TOP_CONCEPT_CAPTURE",
-            "localPath": "tests/fixtures/nalt_core/nalt-core-127295-top-concept.ttl",
-        },
-    ),
     "nasa_technology_taxonomy.py": (
         {
             "name": "nasaTechnologyRoots",
@@ -902,38 +787,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "name": "nasaTechnologyChildren",
             "constant": "NASA_TAXONOMY_ROOT_CHILDREN_2026_08_03",
             "localPath": "tests/fixtures/nasa_technology_taxonomy/techport-taxonomy-8817-children-2026-08-03.json",
-        },
-    ),
-    "nrc_adams_codes.py": (
-        {
-            "name": "nrcAdamsLanding",
-            "constant": "NRC_ADAMS_LANDING_PAGE_2026_08_03",
-            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-landing-page-2026-08-03.html",
-        },
-        {
-            "name": "nrcAdamsHelp",
-            "constant": "NRC_ADAMS_HELP_REFERENCE_2026_08_03",
-            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-help-reference-2026-08-03.html",
-        },
-        {
-            "name": "nrcAdamsFaq",
-            "constant": "NRC_ADAMS_FAQ_2026_08_03",
-            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html",
-        },
-        {
-            "name": "nrcAdamsNotices",
-            "constant": "NRC_ADAMS_SYSTEM_NOTICES_2026_08_03",
-            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-system-notices-2026-08-03.html",
-        },
-        {
-            "name": "nrcAdamsResultLabels",
-            "constant": "NRC_APS_RESULT_FIELD_LABELS_2026_08_03",
-            "localPath": "tests/fixtures/nrc_adams_codes/nrc-aps-result-field-labels-excerpt-2026-08-03.js",
-        },
-        {
-            "name": "nrcAdamsFacetLabels",
-            "constant": "NRC_APS_LIBRARY_FACET_LABELS_2026_08_03",
-            "localPath": "tests/fixtures/nrc_adams_codes/nrc-aps-library-facet-labels-excerpt-2026-08-03.js",
         },
     ),
     "oversight_report_types.py": (

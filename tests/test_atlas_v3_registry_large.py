@@ -16,7 +16,6 @@ from refspec.registry.infrastructure.source_identity import validate_uuid7
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ROOT = Path(__file__).parents[1]
-PLUM_REAL_SOURCE = ROOT / "output/registry-real-data-sources/OPM-PLUM-all-data-20260804.csv"
 
 
 def _input_pin(tmp_path: Path, payload: bytes = b"exact source") -> RegistryInputPin:
@@ -165,7 +164,17 @@ def test_federal_register_capture_ids_do_not_reuse_slugs_or_merge_2025() -> None
         expected_counts=(2, 1),
     )
 
-    assert len(release.resources) == 3
+    # REF-032: only the publisher's ``thesaurus`` collection is emitted; the
+    # ``ad_hoc`` rows are document fragments the API harvested from rule text.
+    assert len(release.resources) == 2
+    assert release.metadata["emittedCollection"] == "thesaurus"
+    assert release.metadata["emittedCount"] == 2
+    assert release.metadata["excludedAdHocCount"] == 1
+    assert list(release.metadata["excludedCollections"]) == ["ad_hoc"]
+    assert release.metadata["totalCapturedCount"] == 3
+    assert "Experimental topic" not in {
+        label.value for resource in release.resources for label in resource.labels
+    }
     assert len(release.relations) == 1
     assert release.relations[0].predicate == large.SKOS_RELATED
     assert release.metadata["managedThesaurus2025Merged"] is False
@@ -231,73 +240,6 @@ def test_opm_ehri_uses_field_and_code_identity_and_keeps_past_as_metadata(
     assert release.scheme_iri == ("urn:ref:atlas-resource-scheme:opm-ehri-workforce-codes")
     assert release.source_release_digest == input_pin.sha256
     assert all(resource.source_digest == input_pin.sha256 for resource in release.resources)
-
-
-@pytest.mark.skipif(
-    not PLUM_REAL_SOURCE.is_file(),
-    reason="the pinned official OPM PLUM CSV is not present in this checkout",
-)
-def test_opm_plum_real_cache_publishes_only_closed_non_person_values() -> None:
-    release = large.load_opm_plum_release(PLUM_REAL_SOURCE)
-
-    resources_by_category: dict[str, list] = {}
-    for resource in release.resources:
-        category = resource.native_payload["category"]
-        resources_by_category.setdefault(category, []).append(resource)
-
-    assert {category: len(resources) for category, resources in resources_by_category.items()} == {
-        "appointmentType": 12,
-        "payPlan": 13,
-        "positionStatus": 2,
-    }
-    assert len(release.resources) == 27
-    assert not release.relations
-    assert release.resource_id == "opm-plum-position-status-codes"
-    assert release.profile == "codeScheme"
-    assert release.ring == "value"
-    assert release.scheme_iri == ("urn:ref:atlas-resource-scheme:opm-plum-position-status-codes")
-    assert release.source_release_digest == large.OPM_PLUM_SHA256
-    assert release.inputs[0].byte_length == large.OPM_PLUM_BYTE_LENGTH
-    assert release.metadata["sourceRecordCount"] == 15_777
-    assert release.metadata["emittedControlledValueCount"] == 27
-    assert release.metadata["blankPayPlanRowCount"] > 0
-    assert release.metadata["blankValuesAreMembers"] is False
-    assert release.metadata["bulkPositionRowsIncluded"] is False
-    assert release.metadata["personRowsIncluded"] is False
-    assert release.metadata["personIdentityFieldsIncluded"] is False
-    assert {resource.notations[0] for resource in resources_by_category["positionStatus"]} == {
-        "Filled",
-        "Vacant",
-    }
-    assert "" not in {resource.notations[0] for resources in resources_by_category.values() for resource in resources}
-    assert len({resource.iri for resource in release.resources}) == 27
-    for resource in release.resources:
-        _assert_readable_uuid7(resource.iri, "opm-plum")
-        assert resource.labels[0].role == "preferred"
-        assert resource.labels[0].value == resource.notations[0]
-        assert resource.source_digest == large.OPM_PLUM_SHA256
-        assert set(resource.native_payload) == {
-            "category",
-            "identityScope",
-            "identityStatus",
-            "sourceColumn",
-            "value",
-        }
-
-    serialized = json.dumps(
-        {
-            "metadata": release.metadata,
-            "resources": [resource.native_payload for resource in release.resources],
-        },
-        sort_keys=True,
-    )
-    for forbidden_person_field in (
-        "incumbentFirstName",
-        "incumbentLastName",
-        "incumbent_first_name",
-        "incumbent_last_name",
-    ):
-        assert forbidden_person_field not in serialized
 
 
 def test_large_loader_bindings_match_catalog_index_and_profile_map() -> None:

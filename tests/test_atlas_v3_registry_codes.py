@@ -27,9 +27,8 @@ EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.billstatus_codes": 132,
     "refspec.registry.census_geo_codes": 24,
     "refspec.registry.census_gov_finance_codes": 56,
-    "refspec.registry.fcc_ecfs_codes": 12,
     "refspec.registry.fec_committee_codes": 129,
-    "refspec.registry.ferc_elibrary_codes": 342,
+    "refspec.registry.ferc_elibrary_codes": 340,
     "refspec.registry.govinfo_collections": 92,
     "refspec.registry.grants_gov_codes": 43,
     "refspec.registry.lda_controlled_codes": 129,
@@ -40,7 +39,6 @@ EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.oversight_report_types": 10,
     "refspec.registry.pra_icr_codes": 21,
     "refspec.registry.regulations_gov_codes": 10,
-    "refspec.registry.regulatory_native_controls": 1_861,
     "refspec.registry.sam_assistance_listing_codes": 134,
     "refspec.registry.sam_opportunities_codes": 34,
     "refspec.registry.scotus_opinion_types": 7,
@@ -109,9 +107,11 @@ def test_loads_every_supported_small_registry_source_at_measured_counts(
         counts[release.source_module] += len(release.resources)
 
     # 67 before REF-031, when the FCC ECFS proceedings population left for
-    # SpicyRegs; the bureaus, filing types, and access statuses stay.
-    assert len(releases) == 66
-    assert sum(counts.values()) == 3_411
+    # SpicyRegs; 66 before REF-032, when the fourteen regulatory-native
+    # inventories, the three remaining ECFS observations, and the FERC
+    # "accession number formats" left as observed inventories.
+    assert len(releases) == 48
+    assert sum(counts.values()) == 1_536
     assert dict(counts) == EXPECTED_RESOURCE_COUNTS
     assert all(not release.relations for release in releases)
 
@@ -147,13 +147,9 @@ def test_field_values_formats_and_code_domains_use_the_value_ring(
         "fec-organization-type",
         "fec-party",
         "ferc-docket-prefixes",
-        "ferc-accession-number-formats",
         "grants-gov-funding-categories",
         "unified-agenda-legal-authority-citation-types",
     }
-    value_release_keys.update(
-        key for key in by_key if key.startswith("regulatory-native-")
-    )
 
     assert value_release_keys <= by_key.keys()
     assert {by_key[key].ring for key in value_release_keys} == {"value"}
@@ -239,7 +235,4 @@ def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
         "publisherSource",
         "publisherPdfTextExtraction",
     }
-    assert len(by_key["regulatory-native-federal-register-unresolved-agency-name"].resources) == 715
     assert by_key["ferc-docket-prefixes"].resources[0].status in {"active", "discontinued"}
-    regulatory_resource = by_key["regulatory-native-federal-register-unresolved-agency-name"].resources[0]
-    assert "values" not in regulatory_resource.native_payload["control"]

@@ -600,45 +600,6 @@ def _load_billstatus(repo_root: Path, temporary: Path) -> tuple[RegistryRelease,
     return tuple(releases)
 
 
-def _load_fcc(repo_root: Path) -> tuple[RegistryRelease, ...]:
-    from refspec.registry import fcc_ecfs_codes as source
-
-    pin = source.FCC_ECFS_FILINGS_SNAPSHOT_2026_08_03
-    input_pin = _input_pin(
-        repo_root,
-        "tests/fixtures/fcc_ecfs_codes/fcc-ecfs-filings-2026-08-03.json",
-        source_iri=pin.source.source_url,
-        sha256=pin.expected_sha256,
-        byte_length=pin.expected_byte_length,
-    )
-    rows = (
-        ("fcc-ecfs-filing-types", "fcc-ecfs-filing-types", source.build_fcc_ecfs_filing_type_package, 6, "value"),
-        (
-            "fcc-ecfs-access-statuses",
-            "fcc-ecfs-access-statuses",
-            source.build_fcc_ecfs_access_status_package,
-            1,
-            "value",
-        ),
-        ("fcc-ecfs-bureaus", "fcc-ecfs-bureaus", source.build_fcc_ecfs_bureau_package, 5, "entity"),
-    )
-    return tuple(
-        _bundle_release(
-            builder(input_pin.path),
-            key=key,
-            resource_id="fcc-ecfs-native-controls",
-            source_module="refspec.registry.fcc_ecfs_codes",
-            source_token=token,
-            profile="structureScheme",
-            ring=ring,
-            scope="captureSubset",
-            inputs=(input_pin,),
-            expected_count=count,
-        )
-        for key, token, builder, count, ring in rows
-    )
-
-
 def _load_fec(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
     from refspec.registry import fec_committee_codes as source
 
@@ -841,42 +802,10 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
             )
         )
 
-    accessibility_input = _input_pin(
-        repo_root,
-        "output/registry-real-data-sources/ferc-accessibility-tips.html",
-        source_iri=source.FERC_ACCESSIBILITY_TIPS_URL,
-        sha256=source.FERC_ACCESSIBILITY_TIPS_SHA256,
-        byte_length=source.FERC_ACCESSIBILITY_TIPS_BYTE_LENGTH,
-    )
-    formats = source.parse_ferc_accessibility_tips(accessibility_input.path.read_bytes())
-    format_items = tuple(
-        _Item(
-            label=f"FERC accession number format {value}",
-            source_path=f"$.accessionFormats[{ordinal}]",
-            notations=(value,),
-            native_payload={
-                "sourceArtifact": formats.source_url,
-                "format": value,
-            },
-        )
-        for ordinal, value in enumerate(formats.accession_formats)
-    )
-    releases.append(
-        _release(
-            key="ferc-accession-number-formats",
-            resource_id="ferc-elibrary-identifiers",
-            source_module="refspec.registry.ferc_elibrary_codes",
-            source_token="ferc-accession-formats",
-            profile="identifierScheme",
-            ring="value",
-            scope="completeCapture",
-            issued=issued,
-            inputs=(accessibility_input,),
-            items=format_items,
-            source_release_digest=formats.source_sha256,
-        )
-    )
-    if tuple(len(release.resources) for release in releases) != (235, 95, 6, 4, 2):
+    # The accessibility-tips page's two "accession number format" strings left
+    # the Atlas with the other observed inventories (REF-032): one of the two
+    # is a wildcard search string, not a format the publisher governs.
+    if tuple(len(release.resources) for release in releases) != (235, 95, 6, 4):
         raise ValueError("FERC official control counts drifted")
     return tuple(releases)
 
@@ -1408,94 +1337,6 @@ def _load_pra(repo_root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
-def _load_regulatory_native_controls(repo_root: Path) -> tuple[RegistryRelease, ...]:
-    from refspec.registry import regulatory_native_controls as source
-
-    capture_path = "research/evidence/regulatory-native-controls-2026-08-03/source-native-control-capture.json"
-    capture_payload = (repo_root / capture_path).read_bytes()
-    capture_file_digest = "sha256:" + hashlib.sha256(capture_payload).hexdigest()
-    capture_iri = "urn:ref:registry:regulatory-native-control-capture:2026-08-03"
-    capture_input = _input_pin(
-        repo_root,
-        capture_path,
-        source_iri=capture_iri,
-        sha256=capture_file_digest,
-        byte_length=len(capture_payload),
-        role="normalizedControlCapture",
-    )
-    capture = source.parse_control_capture(
-        capture_payload,
-        expected_sha256=capture_file_digest,
-        expected_byte_length=len(capture_payload),
-    )
-    paths_by_table = {
-        "dockets": "output/registry-real-data-sources/regulatory-native-current/dockets.parquet",
-        "documents": "output/registry-real-data-sources/regulatory-native-current/documents.parquet",
-        "federal_register": ("output/registry-real-data-sources/regulatory-native-current/federal_register.parquet"),
-        "unified_agenda": ("output/registry-real-data-sources/regulatory-native-current/unified_agenda.parquet"),
-    }
-    table_inputs: dict[str, RegistryInputPin] = {}
-    for table, pin in capture.source_pins.by_table.items():
-        table_inputs[table] = _input_pin(
-            repo_root,
-            paths_by_table[table],
-            source_iri=pin.uri,
-            sha256=pin.sha256,
-            byte_length=pin.byte_length,
-            role="sourceDistribution",
-        )
-
-    releases: list[RegistryRelease] = []
-    for control in capture.controls:
-        source_pin = capture.source_pins.by_table[control.spec.source_table]
-        control_metadata = {key: value for key, value in control.native_payload().items() if key != "values"}
-        items = tuple(
-            _Item(
-                label=value.value,
-                source_path=(f"$.controls[{control.spec.control_id}].values[{ordinal}]"),
-                notations=(value.value,),
-                native_payload={
-                    "sourceArtifact": source_pin.uri,
-                    "control": control_metadata,
-                    "value": value.native_payload(),
-                },
-            )
-            for ordinal, value in enumerate(control.values)
-        )
-        # These releases contain publisher field values, including agency codes
-        # and unresolved agency-name strings. They do not identify the agencies.
-        ring = "value"
-        profiles_by_resource = {
-            "federal-register-native-controls": "conceptScheme",
-            "regulations-gov-native-controls": "structureScheme",
-            "unified-agenda-native-controls": "codeScheme",
-        }
-        profile = profiles_by_resource[control.spec.resource_id]
-        releases.append(
-            _release(
-                key=f"regulatory-native-{control.spec.control_id}",
-                resource_id=control.spec.resource_id,
-                source_module="refspec.registry.regulatory_native_controls",
-                source_token=control.spec.control_id,
-                profile=profile,
-                ring=ring,
-                scope="completeCapture",
-                issued=capture.source_pins.captured_at,
-                inputs=(capture_input, table_inputs[control.spec.source_table]),
-                items=items,
-                source_release_digest=canonical_digest(
-                    {
-                        "captureDigest": capture.digest,
-                        "control": control.native_payload(),
-                    }
-                ),
-            )
-        )
-    if len(releases) != 14 or sum(len(release.resources) for release in releases) != 1_861:
-        raise ValueError("regulatory-native control capture count drifted")
-    return tuple(releases)
-
-
 def _load_regulations_gov(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
     from refspec.registry import regulations_gov_codes as source
 
@@ -1795,16 +1636,6 @@ REGISTRY_CODE_RELEASE_GROUPS = (
         ),
     ),
     (
-        "fcc",
-        frozenset(
-            {
-                "fcc-ecfs-access-statuses",
-                "fcc-ecfs-bureaus",
-                "fcc-ecfs-filing-types",
-            }
-        ),
-    ),
-    (
         "fec",
         frozenset(
             {
@@ -1820,7 +1651,6 @@ REGISTRY_CODE_RELEASE_GROUPS = (
         "ferc",
         frozenset(
             {
-                "ferc-accession-number-formats",
                 "ferc-docket-prefixes",
                 "ferc-document-class-types",
                 "ferc-sectors",
@@ -1851,27 +1681,6 @@ REGISTRY_CODE_RELEASE_GROUPS = (
     ),
     ("oversight", frozenset({"oversight-report-types"})),
     ("pra", frozenset({"pra-icr-controls"})),
-    (
-        "regulatory-native",
-        frozenset(
-            {
-                "regulatory-native-federal-register-agency-slug",
-                "regulatory-native-federal-register-document-type",
-                "regulatory-native-federal-register-presidential-subtype",
-                "regulatory-native-federal-register-unresolved-agency-name",
-                "regulatory-native-regulations-gov-attachment-format",
-                "regulatory-native-regulations-gov-docket-agency-code",
-                "regulatory-native-regulations-gov-docket-type",
-                "regulatory-native-regulations-gov-document-agency-code",
-                "regulatory-native-regulations-gov-document-type",
-                "regulatory-native-unified-agenda-agency-code",
-                "regulatory-native-unified-agenda-major-flag",
-                "regulatory-native-unified-agenda-priority-category",
-                "regulatory-native-unified-agenda-rin-status",
-                "regulatory-native-unified-agenda-rule-stage",
-            }
-        ),
-    ),
     (
         "regulations-gov",
         frozenset(
@@ -1951,7 +1760,6 @@ def load_registry_code_releases(
         "billstatus": (_load_billstatus, True),
         "census": (_load_census, True),
         "census-geo": (_load_census_geo, True),
-        "fcc": (_load_fcc, False),
         "fec": (_load_fec, True),
         "ferc": (_load_ferc, False),
         "govinfo": (_load_govinfo, True),
@@ -1963,7 +1771,6 @@ def load_registry_code_releases(
         "omb-a11": (_load_omb_a11, True),
         "oversight": (_load_oversight, True),
         "pra": (_load_pra, False),
-        "regulatory-native": (_load_regulatory_native_controls, False),
         "regulations-gov": (_load_regulations_gov, True),
         "sam-assistance": (_load_sam_assistance, True),
         "sam-opportunities": (_load_sam_opportunities, True),

@@ -18,6 +18,7 @@ from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
 
 from refspec.atlas.v3_source_data import (
+    RegistryCrossRingRelation,
     RegistryInputPin,
     RegistryLabel,
     RegistryMapping,
@@ -1237,7 +1238,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 89
+    assert len(generator._validated_registry_index_rows(index, proof)) == 75
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(
@@ -2551,16 +2552,6 @@ def icpsr_release():
 
 
 @pytest.fixture(scope="module")
-def document_releases():
-    from refspec.atlas.v3_registry_documents import load_registry_document_releases
-
-    return tuple(
-        generator._adapt_registry_release(release)
-        for release in load_registry_document_releases(ROOT)
-    )
-
-
-@pytest.fixture(scope="module")
 def registry_code_releases():
     from refspec.atlas.v3_registry_codes import load_registry_code_releases
 
@@ -2630,10 +2621,28 @@ def test_only_five_icpsr_xml_gaps_receive_readable_fallback_ids(
     )
 
 
+@pytest.fixture(scope="module")
+def entity_ring_release():
+    """One small entity-ring release, for cross-ring assertion coverage."""
+
+    from refspec.atlas.v3_registry_large import (
+        load_courtlistener_jurisdictions_release,
+    )
+
+    return generator._adapt_registry_release(
+        load_courtlistener_jurisdictions_release()
+    )
+
+
 def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
     icpsr_release,
-    document_releases,
+    entity_ring_release,
 ) -> None:
+    # REF-032 left the Atlas emitting zero cross-ring assertions, and
+    # `test_producer_emits_no_cross_ring_assertions` pins that. The wire type
+    # is still normative, so the SHACL variant coverage builds one here from
+    # two real releases in two rings rather than dropping the shape from the
+    # only test that exercises it.
     native_relation = icpsr_release.relations[0]
     native_resources = {
         resource.iri: resource for resource in icpsr_release.resources
@@ -2656,34 +2665,29 @@ def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
         relations=(native_relation,),
     )
 
-    cross_owner = next(
-        release for release in document_releases if release.cross_ring_relations
+    subject_endpoint = sampled_native_resources[0]
+    entity_endpoint = entity_ring_release.resources[0]
+    cross_relation = RegistryCrossRingRelation(
+        subject=entity_endpoint.iri,
+        predicate=str(generator.ATLAS.hasIndexedSubject),
+        object=subject_endpoint.iri,
+        source_ring="entity",
+        target_ring="subject",
+        source_payload={"constructedFor": "cross-ring assertion shape coverage"},
     )
-    cross_relation = cross_owner.cross_ring_relations[0]
-    endpoint_iris = {cross_relation.subject, cross_relation.object}
-    sampled_documents: list[generator.LoadedRelease] = []
-    for release in document_releases:
-        resources = tuple(
-            resource for resource in release.resources if resource.iri in endpoint_iris
-        )
-        if not resources:
-            continue
-        cross_relations = (cross_relation,) if release is cross_owner else ()
-        sampled_documents.append(
-            dataclasses.replace(
-                release,
-                spec=dataclasses.replace(
-                    release.spec,
-                    expected_resources=len(resources),
-                    expected_relations=0,
-                    expected_cross_ring_relations=len(cross_relations),
-                ),
-                resources=resources,
-                relations=(),
-                cross_ring_relations=cross_relations,
-            )
-        )
-    releases = (sampled_native, *sampled_documents)
+    sampled_entity = dataclasses.replace(
+        entity_ring_release,
+        spec=dataclasses.replace(
+            entity_ring_release.spec,
+            expected_resources=1,
+            expected_relations=0,
+            expected_cross_ring_relations=1,
+        ),
+        resources=(entity_endpoint,),
+        relations=(),
+        cross_ring_relations=(cross_relation,),
+    )
+    releases = (sampled_native, sampled_entity)
 
     producer_receipt = generator._validate_compiled_producer_rows(releases)
     graphs = generator._build_graphs(releases, include_projection=False)
@@ -3442,67 +3446,6 @@ def test_identifier_emission_rejects_non_identifier_schemes(
         )
 
 
-def test_real_document_releases_emit_identifiers_and_cross_ring_assignment(
-    document_releases,
-) -> None:
-    # REF-031: the CBO publication population left; what remains is the GAO
-    # witness and the one topic observed on it.
-    releases = document_releases
-    assert generator._direct_source_counts(releases, label_count=2) == {
-        "crossRingRelations": 1,
-        "identifiers": 1,
-        "labels": 2,
-        "nativeRelations": 0,
-        "resources": 2,
-    }
-    assert [generator._release_direct_source_counts(release) for release in releases] == [
-        {
-            "crossRingRelations": 1,
-            "identifiers": 1,
-            "nativeRelations": 0,
-            "resources": 1,
-        },
-        {
-            "crossRingRelations": 0,
-            "identifiers": 0,
-            "nativeRelations": 0,
-            "resources": 1,
-        },
-    ]
-    graphs = generator._build_graphs(releases)
-    report = URIRef("https://www.gao.gov/products/gao-26-108505")
-    topic = next(
-        resource
-        for resource in graphs.asserted.subjects(
-            RDF.type,
-            generator.ATLAS.SubjectConcept,
-        )
-    )
-    assertions = set(
-        graphs.asserted.subjects(
-            RDF.type,
-            generator.ATLAS.CrossRingRelationAssertion,
-        )
-    )
-
-    assert generator._counts(graphs)["identifiers"] == 1
-    assert generator._counts(graphs)["crossRingRelationAssertions"] == 1
-    assert len(assertions) == 1
-    assertion = next(iter(assertions))
-    assert graphs.asserted.value(assertion, RDF.subject) == report
-    assert graphs.asserted.value(assertion, RDF.predicate) == (
-        generator.ATLAS.hasIndexedSubject
-    )
-    assert graphs.asserted.value(assertion, RDF.object) == topic
-    assert graphs.asserted.value(assertion, generator.ATLAS.sourceRing) == (
-        generator.ATLAS.entity
-    )
-    assert graphs.asserted.value(assertion, generator.ATLAS.targetRing) == (
-        generator.ATLAS.subject
-    )
-    assert (report, generator.ATLAS.hasIndexedSubject, topic) in graphs.projection
-
-
 def test_the_producer_refuses_a_warrant_whose_records_it_cannot_emit() -> None:
     """Fail at intake, not at the end of a full build.
 
@@ -3632,12 +3575,13 @@ def test_registrant_population_releases_are_refused() -> None:
 def test_document_population_releases_are_refused() -> None:
     """REF-031's running check: document populations cannot re-enter the Atlas.
 
-    SpicyRegs acquires CBO publications, FCC ECFS proceedings, and GovInfo
-    CFR packages -- world-generated populations no sealed reference artifact
-    can enumerate honestly. A loader that reintroduces one of their
-    authorities, or a renamed release that re-ingests the same documents,
-    must fail the build. The GAO product page stays: it is the witness that
-    anchors the observed-topics unit, not a population.
+    SpicyRegs acquires CBO publications, FCC ECFS proceedings, GovInfo CFR
+    packages, and GAO products -- world-generated populations no sealed
+    reference artifact can enumerate honestly. A loader that reintroduces one
+    of their authorities, or a renamed release that re-ingests the same
+    documents, must fail the build. REF-032 amended this: the GAO report page
+    that REF-031 kept as a witness left with the topics it witnessed, so GAO
+    products are refused here with the rest.
     """
 
     by_scheme = SimpleNamespace(
@@ -3672,8 +3616,8 @@ def test_document_population_releases_are_refused() -> None:
         with pytest.raises(ValueError, match="REF-031"):
             generator._refuse_document_population_release(by_record)
 
-    # The GAO witness stays, and so do the FCC controls that share the
-    # proceedings' scheme URN.
+    # REF-032: the witness no longer stays. Both its scheme and its product
+    # IRI are refused now.
     witness = SimpleNamespace(
         spec=SimpleNamespace(key="gao-report-gao-26-108505"),
         scheme_iri="urn:ref:atlas-resource-scheme:gao-report-identifiers",
@@ -3681,16 +3625,233 @@ def test_document_population_releases_are_refused() -> None:
             SimpleNamespace(iri="https://www.gao.gov/products/gao-26-108505"),
         ),
     )
-    generator._refuse_document_population_release(witness)
+    with pytest.raises(ValueError, match="REF-031"):
+        generator._refuse_document_population_release(witness)
 
-    fcc_bureaus = SimpleNamespace(
-        spec=SimpleNamespace(key="fcc-ecfs-bureaus"),
+    # The ECFS proceedings' scheme URN stays unguarded here: FCC's *published*
+    # bureau roster is a named REF-032 follow-up and lands under it.
+    documented_fcc_roster = SimpleNamespace(
+        spec=SimpleNamespace(key="fcc-published-bureau-roster"),
         scheme_iri="urn:ref:atlas-resource-scheme:fcc-ecfs-native-controls",
         resources=(
             SimpleNamespace(
-                iri="urn:ref:source-concept:v2:fcc-ecfs-bureaus:"
+                iri="urn:ref:source-concept:v2:fcc-bureaus:"
                 "019fc911-9300-7a37-9efb-3f03b934f065"
             ),
         ),
     )
-    generator._refuse_document_population_release(fcc_bureaus)
+    generator._refuse_document_population_release(documented_fcc_roster)
+
+
+def test_observed_inventory_releases_are_refused() -> None:
+    """REF-032's running check: observed inventories cannot re-enter the Atlas.
+
+    The Atlas carries what a publisher wrote down. It does not carry the
+    distinct values someone scanned out of that publisher's records, one
+    alphabetical page of a paginated roster, the radio buttons on a search
+    form, or a regex inferred from two examples. The refusal is keyed to the
+    observation *substrate* -- the pinned bytes -- plus the minted namespaces
+    that name the observation itself, so a documented publisher list for the
+    same resource still passes.
+    """
+
+    for logical_path in (
+        "output/registry-real-data-sources/regulatory-native-current/documents.parquet",
+        (
+            "research/evidence/regulatory-native-controls-2026-08-03/"
+            "source-native-control-capture.json"
+        ),
+        "output/registry-real-data-sources/OPM-PLUM-all-data-20260804.csv",
+        "output/registry-real-data-sources/fh-orgs-default-page.json",
+        "output/registry-real-data-sources/ferc-accessibility-tips.html",
+        "tests/fixtures/fcc_ecfs_codes/fcc-ecfs-filings-2026-08-03.json",
+        "tests/fixtures/gao_topics/gao-product-gao-26-108505-2026-08-04.html",
+        "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html",
+        "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl",
+        "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl",
+        (
+            "tests/fixtures/epa_enterprise_vocabulary/"
+            "epa-enterprise-vocabulary-tier-1005100-with-definitions.xml"
+        ),
+        "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html",
+    ):
+        by_substrate = SimpleNamespace(
+            spec=SimpleNamespace(
+                key="renamed-observed-inventory",
+                logical_path=logical_path,
+                input_pins=(SimpleNamespace(logical_path=logical_path),),
+            ),
+            scheme_iri="urn:ref:atlas-resource-scheme:renamed",
+            resources=(),
+        )
+        with pytest.raises(ValueError, match="REF-032"):
+            generator._refuse_observed_inventory_release(by_substrate)
+
+    for scheme_iri in (
+        "urn:ref:atlas-resource-scheme:epa-enterprise-vocabulary:captured-label-tree",
+        "urn:ref:atlas-resource-scheme:nrc-adams-identifiers:identifier-shapes",
+        "urn:ref:atlas-resource-scheme:nrc-adams-native-controls:observed-structure",
+    ):
+        by_scheme = SimpleNamespace(
+            spec=SimpleNamespace(
+                key="reintroduced-observation-scheme",
+                logical_path="tests/fixtures/somewhere-else.json",
+                input_pins=(),
+            ),
+            scheme_iri=scheme_iri,
+            resources=(),
+        )
+        with pytest.raises(ValueError, match="REF-032"):
+            generator._refuse_observed_inventory_release(by_scheme)
+
+    for iri in (
+        "urn:ref:gao-cra-facet:priority:0",
+        "urn:ref:nrc-adams-control:apsResultFieldLabels:0f0f",
+        "urn:ref:nrc-adams-identifier-shape:0f0f",
+        "urn:ref:treasury-fast-book:fund-type:0f0f",
+        (
+            "urn:ref:source-concept:v2:federal-register-unresolved-agency-name:"
+            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+        ),
+        (
+            "urn:ref:source-concept:v2:ferc-accession-formats:"
+            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+        ),
+        "urn:ref:source-concept:v2:opm-plum:019fc911-9300-7449-8c7c-4a2e8c3eca11",
+        (
+            "urn:ref:source-concept:v2:regulations-gov-docket-agency-code:"
+            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+        ),
+        (
+            "urn:ref:source-concept:v2:regulations-gov-document-agency-code:"
+            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+        ),
+        (
+            "urn:ref:source-concept:v2:unified-agenda-agency-code:"
+            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+        ),
+    ):
+        by_record = SimpleNamespace(
+            spec=SimpleNamespace(
+                key="renamed-observation-release",
+                logical_path="tests/fixtures/somewhere-else.json",
+                input_pins=(),
+            ),
+            scheme_iri="urn:ref:atlas-resource-scheme:renamed",
+            resources=(SimpleNamespace(iri=iri),),
+        )
+        with pytest.raises(ValueError, match="REF-032"):
+            generator._refuse_observed_inventory_release(by_record)
+
+    # The documented twins that stay. Regulations.gov and the Unified Agenda
+    # publish these lists in an OpenAPI document and a documented schema; the
+    # observed inventories that shared their scheme *and* their minted-IRI
+    # namespace left, which is why neither surface can be guarded and only the
+    # substrate refusal above covers them (REF-032 records this).
+    for key, iri in (
+        (
+            "regulations-gov-docket-type",
+            (
+                "urn:ref:source-concept:v2:regulations-gov-docket-type:"
+                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+            ),
+        ),
+        (
+            "regulations-gov-document-type",
+            (
+                "urn:ref:source-concept:v2:regulations-gov-document-type:"
+                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+            ),
+        ),
+        (
+            "unified-agenda-priority-category",
+            (
+                "urn:ref:source-concept:v2:unified-agenda-priority-category:"
+                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+            ),
+        ),
+        (
+            "unified-agenda-rule-stage",
+            (
+                "urn:ref:source-concept:v2:unified-agenda-rule-stage:"
+                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
+            ),
+        ),
+    ):
+        documented = SimpleNamespace(
+            spec=SimpleNamespace(
+                key=key,
+                logical_path=(
+                    "tests/fixtures/regulations_gov_codes/"
+                    "regulations-gov-openapi-v4-2026-08-03.yaml"
+                ),
+                input_pins=(),
+            ),
+            scheme_iri="urn:ref:atlas-resource-scheme:regulations-gov-native-controls",
+            resources=(SimpleNamespace(iri=iri),),
+        )
+        generator._refuse_observed_inventory_release(documented)
+
+    # The named follow-ups land under the same resources the observations
+    # vacated, and must not trip this guard when they do.
+    for key, scheme_iri, logical_path in (
+        (
+            "federal-register-documented-document-types",
+            "urn:ref:atlas-resource-scheme:federal-register-native-controls",
+            "tests/fixtures/federal_register/document-types-published.json",
+        ),
+        (
+            "federal-hierarchy-orgs-complete",
+            "urn:ref:atlas-resource-scheme:federal-hierarchy:org-identifiers",
+            "output/registry-real-data-sources/fh-orgs-complete-roster.json",
+        ),
+        (
+            "gao-published-topics-index",
+            "urn:ref:atlas-resource-scheme:gao-topics",
+            "tests/fixtures/gao/topics-index.html",
+        ),
+        (
+            "nrc-adams-documented-identifier-shapes",
+            "urn:ref:atlas-resource-scheme:nrc-adams-identifiers",
+            "tests/fixtures/nrc/adams-identifier-reference.html",
+        ),
+    ):
+        follow_up = SimpleNamespace(
+            spec=SimpleNamespace(
+                key=key,
+                logical_path=logical_path,
+                input_pins=(SimpleNamespace(logical_path=logical_path),),
+            ),
+            scheme_iri=scheme_iri,
+            resources=(SimpleNamespace(iri="urn:ref:example:1"),),
+        )
+        generator._refuse_observed_inventory_release(follow_up)
+
+
+def test_producer_emits_no_cross_ring_assertions() -> None:
+    """REF-032's tripwire: the Atlas currently emits zero ring crossings.
+
+    The Atlas 3.1 binding declares ``atlas:CrossRingRelationAssertion`` and
+    the producer still builds one from any release carrying a cross-ring
+    relation. After REF-032 no loaded release carries one: the single live
+    instance was a GAO report page pointing at a topic label observed on that
+    same page, which left with its topics. Declaring that emptiness here is
+    honest; letting a ring crossing appear unannounced is not.
+
+    If this fails, a release started emitting cross-ring relations. That is
+    good news if it is REF-032's named intended carrier -- a genuine
+    institutional-roster -> subject edge, once the Federal Hierarchy roster is
+    completed and an authority publishes subject assignments against it. Check
+    that the new edge crosses rings for a reason a consumer can join against,
+    then retire this tripwire in the decision record that introduces it.
+    """
+
+    carriers = {
+        release.spec.key: len(release.cross_ring_relations)
+        for release in generator.load_releases()
+        if release.cross_ring_relations
+    }
+    assert carriers == {}, (
+        "the Atlas emits cross-ring assertions again; see REF-032 and this "
+        f"test's docstring before pinning a new count: {carriers}"
+    )

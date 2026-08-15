@@ -8,7 +8,6 @@ import pytest
 
 from refspec.atlas import v3_registry_alignments as alignments
 from refspec.atlas import v3_registry_codes as codes
-from refspec.atlas import v3_registry_documents as documents
 from refspec.atlas import v3_registry_large as large
 from refspec.atlas import v3_registry_nonemitters as nonemitters
 from refspec.atlas import v3_registry_vocabularies as vocabularies
@@ -140,27 +139,6 @@ def test_main_eurovoc_claim_input_skips_the_source_parser(
     assert [release.key for release in releases] == ["eurovoc-4.24"]
 
 
-def test_document_loader_calls_only_requested_release(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    called: list[str] = []
-
-    def fake(_root: Path) -> Any:
-        called.append("topic")
-        return _release("gao-topics-observed-on-gao-26-108505")
-
-    monkeypatch.setattr(documents, "load_gao_topic_release", fake)
-    releases = documents.load_registry_document_releases(
-        Path("/repo"),
-        only_keys={"gao-topics-observed-on-gao-26-108505"},
-    )
-
-    assert [release.key for release in releases] == [
-        "gao-topics-observed-on-gao-26-108505"
-    ]
-    assert called == ["topic"]
-
-
 def test_code_loader_parses_one_group_and_filters_its_releases(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -192,23 +170,23 @@ def test_nonemitter_loader_parses_one_group_and_filters_its_releases(
 ) -> None:
     called: list[str] = []
 
-    def nrc(_root: Path) -> tuple[Any, ...]:
-        called.append("nrc")
+    def gsdm(_root: Path) -> tuple[Any, ...]:
+        called.append("gsdm")
         return (
-            _release("nrc-adams-identifier-shapes-2026-08-03"),
-            _release("nrc-adams-native-controls-bounded-2026-08-03"),
+            _release("gsdm-online-data-dictionary-2026-08-03"),
+            _release("gsdm-reviewed-domain-values-2026-08-03"),
         )
 
-    monkeypatch.setattr(nonemitters, "_nrc_releases", nrc)
+    monkeypatch.setattr(nonemitters, "_gsdm_releases", gsdm)
     releases = nonemitters.load_registry_nonemitter_releases(
         Path("/repo"),
-        only_keys={"nrc-adams-native-controls-bounded-2026-08-03"},
+        only_keys={"gsdm-reviewed-domain-values-2026-08-03"},
     )
 
     assert [release.key for release in releases] == [
-        "nrc-adams-native-controls-bounded-2026-08-03"
+        "gsdm-reviewed-domain-values-2026-08-03"
     ]
-    assert called == ["nrc"]
+    assert called == ["gsdm"]
 
 
 def test_mapping_and_alignment_loaders_skip_empty_selections(
@@ -237,7 +215,6 @@ def test_mapping_and_alignment_loaders_skip_empty_selections(
     (
         (large.load_large_registry_releases, ()),
         (vocabularies.load_all_registry_vocabulary_releases, ()),
-        (documents.load_registry_document_releases, ()),
         (codes.load_registry_code_releases, (Path("/repo"),)),
         (nonemitters.load_registry_nonemitter_releases, (Path("/repo"),)),
         (alignments.load_all_registry_mapping_releases, ()),
@@ -262,7 +239,7 @@ def test_empty_code_and_nonemitter_selections_do_not_open_any_group(
     )
     monkeypatch.setattr(
         nonemitters,
-        "_agrovoc_releases",
+        "_fac_releases",
         lambda *_args: pytest.fail("empty nonemitter selection parsed a source"),
     )
 

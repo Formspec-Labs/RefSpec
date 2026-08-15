@@ -644,14 +644,14 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:6497a002846afefaa8fdb30a3dd242d08bdc1164d88c9e9e67c062312414c6c2"
+    "sha256:45abf0930f93ab44c36cb59d5548379c18d0570158192e59da482aad66f5acff"
 )
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:e91eac71386e9d88b240c9bf3de0e6e26279412a82ebcaa3b6d4bacba870e55f"
+    "sha256:a3b0a6a36c8520845b561642fa2eef564726f2ac52ed1abd20b1db15e471ac2a"
 )
 
 
@@ -992,7 +992,6 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         REGISTRY_MAPPING_RELEASE_KEYS,
     )
     from refspec.atlas.v3_registry_codes import REGISTRY_CODE_RELEASE_KEYS
-    from refspec.atlas.v3_registry_documents import REGISTRY_DOCUMENT_RELEASE_KEYS
     from refspec.atlas.v3_registry_large import LARGE_REGISTRY_RELEASE_KEYS
     from refspec.atlas.v3_registry_nonemitters import REGISTRY_NONEMITTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_vocabularies import REGISTRY_VOCABULARY_RELEASE_KEYS
@@ -1001,7 +1000,6 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         (REGISTRY_VOCABULARY_RELEASE_KEYS, "refspec.atlas.v3_registry_vocabularies"),
         (LARGE_REGISTRY_RELEASE_KEYS, "refspec.atlas.v3_registry_large"),
         (REGISTRY_CODE_RELEASE_KEYS, "refspec.atlas.v3_registry_codes"),
-        (REGISTRY_DOCUMENT_RELEASE_KEYS, "refspec.atlas.v3_registry_documents"),
         (REGISTRY_NONEMITTER_RELEASE_KEYS, "refspec.atlas.v3_registry_nonemitters"),
         (
             REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_MAPPING_RELEASE_KEYS,
@@ -2149,7 +2147,6 @@ def _declared_construction_unit_keys() -> frozenset[str]:
         REGISTRY_MAPPING_RELEASE_KEYS,
     )
     from refspec.atlas.v3_registry_codes import REGISTRY_CODE_RELEASE_KEYS
-    from refspec.atlas.v3_registry_documents import REGISTRY_DOCUMENT_RELEASE_KEYS
     from refspec.atlas.v3_registry_large import LARGE_REGISTRY_RELEASE_KEYS
     from refspec.atlas.v3_registry_nonemitters import REGISTRY_NONEMITTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_vocabularies import REGISTRY_VOCABULARY_RELEASE_KEYS
@@ -2165,7 +2162,6 @@ def _declared_construction_unit_keys() -> frozenset[str]:
             *REGISTRY_VOCABULARY_RELEASE_KEYS,
             *LARGE_REGISTRY_RELEASE_KEYS,
             *REGISTRY_CODE_RELEASE_KEYS,
-            *REGISTRY_DOCUMENT_RELEASE_KEYS,
             *REGISTRY_NONEMITTER_RELEASE_KEYS,
             *REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
             *REGISTRY_MAPPING_RELEASE_KEYS,
@@ -2236,12 +2232,21 @@ def _refuse_registrant_population_release(release: LoadedRelease) -> None:
 # re-ingests the same documents. FCC's proceedings shared the
 # ``fcc-ecfs-native-controls`` scheme with bureaus, filing types, and access
 # statuses -- all of which stay -- so only the IRI prefix can name it.
+#
+# Amended by REF-032: GAO products are refused too. REF-031 exempted the one
+# GAO report page because it witnessed the observed-topics unit; that unit has
+# now left, and a report page was always a document population by this
+# decision's own criterion. The FCC controls that shared the proceedings'
+# scheme also left, but their scheme stays unguarded here -- FCC's *published*
+# bureau roster is a named REF-032 follow-up and belongs under it.
 DOCUMENT_POPULATION_SCHEME_PREFIXES = (
     "urn:ref:atlas-resource-scheme:cbo-publication-identifiers",
+    "urn:ref:atlas-resource-scheme:gao-report-identifiers",
     "urn:ref:atlas-resource-scheme:govinfo-cfr-packages",
 )
 DOCUMENT_POPULATION_IRI_PREFIXES = (
     "https://www.cbo.gov/publication/",
+    "https://www.gao.gov/products/",
     "urn:ref:govinfo-cfr-package:",
     "urn:ref:source-concept:v2:fcc-ecfs-proceedings:",
 )
@@ -2258,6 +2263,86 @@ def _refuse_document_population_release(release: LoadedRelease) -> None:
             raise ValueError(
                 "document-population records belong to SpicyRegs, "
                 f"not the Atlas (REF-031): {release.spec.key} emits {resource.iri}"
+            )
+
+
+# Observed inventories are not reference (REF-032). The Atlas carries what a
+# publisher *wrote down* -- a documented code list, a field dictionary, a
+# thesaurus, an account roster. It does not carry the distinct values someone
+# scanned out of that publisher's records, the first page of a paginated
+# roster, the radio buttons on a search form, or a regex inferred from two
+# examples. Those are observations about a data set; they age the moment the
+# data moves, and a sealed reference artifact cannot honour them.
+#
+# The refusal is keyed to the *substrate* rather than to the resource, because
+# the resource itself may legitimately return: FCC's published bureau roster,
+# the Federal Register's documented document types, GAO's published /topics
+# index, and the completed Federal Hierarchy roster are all named follow-ups
+# of REF-032 and all belong in the Atlas the day they are captured from the
+# publisher's own list. What may never return is a release built out of the
+# bytes below -- a SpicyRegs Parquet snapshot, a 25-filing API response, a
+# 15,777-row personnel roster, one product page, one alphabetical first page.
+OBSERVED_INVENTORY_INPUT_PATH_PREFIXES = (
+    # The SpicyRegs data plane: RefSpec's build reads no Parquet snapshot of
+    # SpicyRegs's acquired records, and no capture derived from one.
+    "output/registry-real-data-sources/regulatory-native-current/",
+    "research/evidence/regulatory-native-controls-2026-08-03/",
+    # Rosters and responses that were sampled, not published as lists.
+    "output/registry-real-data-sources/OPM-PLUM-all-data-",
+    "output/registry-real-data-sources/fh-orgs-default-page.json",
+    "output/registry-real-data-sources/fh-orgs-sub-tier-page.json",
+    "output/registry-real-data-sources/ferc-accessibility-tips.html",
+    "tests/fixtures/agrovoc_thesaurus/",
+    "tests/fixtures/epa_enterprise_vocabulary/",
+    "tests/fixtures/fcc_ecfs_codes/",
+    "tests/fixtures/gao_cra_facets/",
+    "tests/fixtures/gao_topics/",
+    "tests/fixtures/nalt_core/",
+    "tests/fixtures/nrc_adams_codes/",
+)
+# Scheme strings that name the observation itself. A documented successor for
+# the same resource uses the bare scheme and passes.
+OBSERVED_INVENTORY_SCHEME_PREFIXES = (
+    "urn:ref:atlas-resource-scheme:epa-enterprise-vocabulary:captured-label-tree",
+    "urn:ref:atlas-resource-scheme:nrc-adams-identifiers:identifier-shapes",
+    "urn:ref:atlas-resource-scheme:nrc-adams-native-controls:observed-structure",
+)
+# Minted namespaces no publisher-written list could ever occupy: a search
+# widget's facet value, a search application's control label, a regexed shape,
+# a Counter over another release's rows, an agency-code census that duplicates
+# SpicyRegs's own ``agency_stats``, and a parse residue whose members include
+# ``"44 CFR Part 64"`` and a bare ``"Rule"``.
+OBSERVED_INVENTORY_IRI_PREFIXES = (
+    "urn:ref:gao-cra-facet:",
+    "urn:ref:nrc-adams-control:",
+    "urn:ref:nrc-adams-identifier-shape:",
+    "urn:ref:source-concept:v2:federal-register-unresolved-agency-name:",
+    "urn:ref:source-concept:v2:ferc-accession-formats:",
+    "urn:ref:source-concept:v2:opm-plum:",
+    "urn:ref:source-concept:v2:regulations-gov-docket-agency-code:",
+    "urn:ref:source-concept:v2:regulations-gov-document-agency-code:",
+    "urn:ref:source-concept:v2:unified-agenda-agency-code:",
+    "urn:ref:treasury-fast-book:fund-type:",
+)
+
+
+def _refuse_observed_inventory_release(release: LoadedRelease) -> None:
+    for pin in (*release.spec.input_pins, release.spec):
+        if pin.logical_path.startswith(OBSERVED_INVENTORY_INPUT_PATH_PREFIXES):
+            raise ValueError(
+                "observed inventories are not reference "
+                f"(REF-032): {release.spec.key} reads {pin.logical_path}"
+            )
+    if release.scheme_iri.startswith(OBSERVED_INVENTORY_SCHEME_PREFIXES):
+        raise ValueError(
+            "observed inventories are not reference "
+            f"(REF-032): {release.spec.key} uses {release.scheme_iri}"
+        )
+    for resource in release.resources:
+        if resource.iri.startswith(OBSERVED_INVENTORY_IRI_PREFIXES):
+            raise ValueError(
+                "observed inventories are not reference "
+                f"(REF-032): {release.spec.key} emits {resource.iri}"
             )
 
 
@@ -2281,10 +2366,6 @@ def load_releases(
     from refspec.atlas.v3_registry_codes import (
         REGISTRY_CODE_RELEASE_KEYS,
         load_registry_code_releases,
-    )
-    from refspec.atlas.v3_registry_documents import (
-        REGISTRY_DOCUMENT_RELEASE_KEYS,
-        load_registry_document_releases,
     )
     from refspec.atlas.v3_registry_large import (
         LARGE_REGISTRY_RELEASE_KEYS,
@@ -2343,10 +2424,6 @@ def load_releases(
             ROOT,
             only_keys=None if selected is None else selected & REGISTRY_CODE_RELEASE_KEYS,
         ),
-        *load_registry_document_releases(
-            ROOT,
-            only_keys=None if selected is None else selected & REGISTRY_DOCUMENT_RELEASE_KEYS,
-        ),
         *load_registry_nonemitter_releases(
             ROOT,
             only_keys=None if selected is None else selected & REGISTRY_NONEMITTER_RELEASE_KEYS,
@@ -2385,6 +2462,7 @@ def load_releases(
     for release in releases:
         _refuse_registrant_population_release(release)
         _refuse_document_population_release(release)
+        _refuse_observed_inventory_release(release)
     return tuple(releases)
 
 
@@ -4721,6 +4799,18 @@ def _build_graphs(
             f"emitted {remap_evidence_count}"
         )
 
+    # The one statement type this producer currently emits none of. The Atlas
+    # 3.1 binding declares atlas:CrossRingRelationAssertion and this loop still
+    # builds one from any release that carries a cross-ring relation -- but
+    # after REF-032 no loaded release carries one. The single live instance was
+    # a GAO report page pointing at a topic label observed on that same page:
+    # not a ring crossing anyone could join against, just one document's own
+    # metadata read twice. Saying so here, and pinning it with
+    # ``test_producer_emits_no_cross_ring_assertions``, is the honest state --
+    # the alternative is a wire type the artifact quietly never exercises.
+    # The intended carrier is named in REF-032: a genuine institutional-roster
+    # -> subject edge, once the Federal Hierarchy roster is completed and an
+    # authority publishes subject assignments against it.
     cross_ring_count = 0
     for release in releases:
         release_instant = _release_instant(release.issued)

@@ -362,10 +362,11 @@ release-job work under item 6.
 ## 4. Production input resolver
 
 `src/refspec` resolves roughly 71 build inputs relative to a checkout root.
-`src/refspec/atlas/v3_registry_codes.py:1389` reads
-`research/evidence/regulatory-native-controls-2026-08-03/source-native-control-capture.json`
+`src/refspec/atlas/v3_registry_nonemitters.py:172` reads
+`tests/fixtures/fac_dictionary/fac-api-dictionary-2026-08-03.html`
 off a `repo_root` parameter. An installed package therefore works only from a
-checkout.
+checkout. (The example this section used to name, the regulatory-native
+control capture, left with its unit under REF-032.)
 
 The resolver maps a logical path plus an expected digest to bytes. It is
 scheduled here, explicitly, in this plan — not named as an unscheduled

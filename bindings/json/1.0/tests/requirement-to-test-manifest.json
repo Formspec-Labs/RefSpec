@@ -1146,8 +1146,7 @@
       ],
       "referenceRuntimeTests": [
         "tests/test_controlled_identifier.py::test_distinct_identifiers_removes_only_exact_repeated_observations",
-        "tests/test_crs_legislative_resources.py::test_api_parser_retains_multiple_structured_identifiers_without_conflict",
-        "tests/test_regulatory_native_controls.py::test_duplicate_and_multiple_legitimate_identifiers_are_preserved"
+        "tests/test_crs_legislative_resources.py::test_api_parser_retains_multiple_structured_identifiers_without_conflict"
       ],
       "validatorChecks": [
         "source observations accept zero, one, or multiple qualified identifiers",
@@ -1167,8 +1166,7 @@
       "referenceRuntimeTests": [
         "tests/test_controlled_identifier.py::test_identifier_dates_accept_iso_dates_and_date_times",
         "tests/test_controlled_identifier.py::test_identifier_dates_reject_non_iso_or_impossible_values",
-        "tests/test_crs_legislative_resources.py::test_repeated_source_labels_remain_distinct_capture_records",
-        "tests/test_regulatory_native_controls.py::test_identifiers_are_zero_or_more_structured_observations"
+        "tests/test_crs_legislative_resources.py::test_repeated_source_labels_remain_distinct_capture_records"
       ],
       "validatorChecks": [
         "zero, one, and multiple identifier sets remain valid without canonical selection",

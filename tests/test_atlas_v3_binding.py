@@ -83,7 +83,7 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
         "caseCount": 132,
         "invalidCount": 119,
         "registryDescriptorCount": 88,
-        "registryDescriptorQuadCount": 994,
+        "registryDescriptorQuadCount": 984,
         "schemaCount": 10,
     }
 
@@ -99,7 +99,7 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
         "caseCount": 132,
         "invalidCount": 119,
         "registryDescriptorCount": 88,
-        "registryDescriptorQuadCount": 994,
+        "registryDescriptorQuadCount": 984,
         "schemaCount": 10,
     }
 

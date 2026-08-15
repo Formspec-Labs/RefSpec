@@ -20,9 +20,13 @@ certification, and release-vintage rules: some incumbent identities may be
 withheld for protected positions, each release must be certified by the
 submitting agency, and a record must be checked against the exact edition
 (vintage) whose codes were pinned. This module encodes those rules as
-refusal-style checks on downstream observation records; it never ingests
-bulk PLUM position rows, only the small, closed appointment-authority and
-incumbent-status-marker vocabulary.
+refusal-style checks on downstream observation records. The parser does read
+the bulk PLUM position rows -- ``parse_opm_plum_all_data_csv`` walks all
+15,777 of them, including the incumbent-name columns -- and keeps none of
+them: what it returns is the appointment-authority, position-status, and
+pay-plan values observed across those rows. Those observed values are not an
+Atlas unit (REF-032); the publisher-defined codes with their definitions
+come from the EHRI workbook instead.
 
 Acquisition accepts a local exact capture or an injected fetcher. Importing
 this module never opens a network connection.

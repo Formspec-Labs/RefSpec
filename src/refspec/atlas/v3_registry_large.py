@@ -49,8 +49,6 @@ FEDERAL_REGISTER_TOPICS_SHA256 = "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510
 FEDERAL_REGISTER_TOPICS_BYTE_LENGTH = 920_705
 OPM_EHRI_SHA256 = "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc"
 OPM_EHRI_BYTE_LENGTH = 1_154_183
-OPM_PLUM_SHA256 = "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f"
-OPM_PLUM_BYTE_LENGTH = 2_737_270
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,13 +97,6 @@ LARGE_REGISTRY_BINDINGS = {
     ),
     "opm-ehri-workforce-codes": RegistryCatalogBinding(
         resource_id="opm-ehri-workforce-codes",
-        source_module="refspec.registry.opm_workforce_codes",
-        resource_kind="codeList",
-        profile="codeScheme",
-        ring="value",
-    ),
-    "opm-plum-position-status-codes": RegistryCatalogBinding(
-        resource_id="opm-plum-position-status-codes",
         source_module="refspec.registry.opm_workforce_codes",
         resource_kind="codeList",
         profile="codeScheme",
@@ -681,12 +672,19 @@ def _federal_register_release_from_snapshot(
     issued: str,
 ) -> RegistryRelease:
     recorded_at = f"{issued}T00:00:00Z"
+    # REF-032: only the publisher's own ``thesaurus`` collection is a
+    # vocabulary. The ``ad_hoc`` collection is document fragments the API
+    # harvested from rule text ("165 as follows:"), so the release is the
+    # complete capture of the thesaurus collection and nothing else. The
+    # split is the publisher's, taken at the collection field its payload
+    # already carries.
+    emitted = snapshot.thesaurus
     iri_by_record: dict[tuple[str, int], str] = {}
     record_by_pair: dict[
         tuple[str, str, str],
         federal_register.FederalRegisterTopicRecord,
     ] = {}
-    for row in snapshot.records:
+    for row in emitted:
         record_key = (row.collection, row.source_ordinal)
         iri_by_record[record_key] = _local_resource_iri(
             namespace_token="federal-register-api",
@@ -702,7 +700,7 @@ def _federal_register_release_from_snapshot(
     resources: list[RegistryResource] = []
     relations: list[RegistryRelation] = []
     predicates = (("see", ATLAS_THESAURUS_USE), ("see_also", SKOS_RELATED))
-    for row in snapshot.records:
+    for row in emitted:
         # `row.source_locator` is a JSON-pointer-ish path (`results.ad_hoc[7]`)
         # whose brackets RFC 3987 excludes from an IRI. Percent-encoding them
         # here, where the string first becomes an IRI, is the fix: `quote`
@@ -756,16 +754,23 @@ def _federal_register_release_from_snapshot(
                         },
                     )
                 )
+    emitted_pairs: dict[tuple[str, str], int] = {}
+    for row in emitted:
+        key = (row.collection, row.slug)
+        emitted_pairs[key] = emitted_pairs.get(key, 0) + 1
     metadata = {
-        "adHocCount": len(snapshot.ad_hoc),
+        "emittedCollection": "thesaurus",
+        "emittedCount": len(resources),
+        "excludedAdHocCount": len(snapshot.ad_hoc),
+        "excludedCollections": ["ad_hoc"],
         "identityStatus": "source-local exact capture; slugs are not identities",
         "managedThesaurus2025Merged": False,
         "relatedRelationCount": sum(relation.predicate == SKOS_RELATED for relation in relations),
-        "slugCollisionGroupCount": len(snapshot.slug_collisions()),
+        "slugCollisionGroupCount": sum(1 for count in emitted_pairs.values() if count > 1),
         "sourceRecordDigestSemantics": ("parser-canonical digest of the exact collection, ordinal, and source row"),
         "sourceRecordSetDigest": snapshot.source_record_set_digest,
         "thesaurusCount": len(snapshot.thesaurus),
-        "totalCount": len(snapshot.records),
+        "totalCapturedCount": len(snapshot.records),
     }
     atlas_release_digest = _release_digest(
         parser=federal_register.FEDERAL_REGISTER_TOPICS_PARSER_VERSION,
@@ -962,147 +967,6 @@ def load_opm_ehri_release(
     return _opm_ehri_release_from_export(export, input_pin, issued=issued)
 
 
-def _opm_plum_release_from_export(
-    export: opm_workforce_codes.OPMPLUMAllDataExport,
-    input_pin: RegistryInputPin,
-    *,
-    issued: str,
-) -> RegistryRelease:
-    """Publish only PLUM's closed non-person values from the pinned row set."""
-
-    categories = (
-        (
-            "appointmentType",
-            "AppointmentTypeDescription",
-            tuple(value for value in export.appointment_types if value),
-        ),
-        (
-            "positionStatus",
-            "PositionStatus",
-            tuple(value for value in export.position_statuses if value),
-        ),
-        (
-            "payPlan",
-            "PaymentPlanDescription",
-            tuple(value for value in export.pay_plans if value),
-        ),
-    )
-    category_counts = {category: len(values) for category, _, values in categories}
-    expected_category_counts = {
-        "appointmentType": 12,
-        "positionStatus": 2,
-        "payPlan": 13,
-    }
-    if category_counts != expected_category_counts:
-        raise ValueError(
-            "OPM PLUM controlled-value counts differ after excluding empty values: "
-            f"expected {expected_category_counts}, got {category_counts}"
-        )
-
-    resources: list[RegistryResource] = []
-    recorded_at = f"{issued}T00:00:00Z"
-    for category, source_column, values in categories:
-        for value in values:
-            source_locator = (
-                opm_workforce_codes.OPM_PLUM_ALL_DATA_URL + "#" + quote(f"{source_column}={value}", safe="=")
-            )
-            resources.append(
-                RegistryResource(
-                    iri=_local_resource_iri(
-                        namespace_token="opm-plum",
-                        recorded_at=recorded_at,
-                        source_iri=opm_workforce_codes.OPM_PLUM_ALL_DATA_URL,
-                        source_key=f"{category}\u001f{value}",
-                    ),
-                    labels=(
-                        RegistryLabel(
-                            value=value,
-                            role="preferred",
-                            source_path=source_locator,
-                        ),
-                    ),
-                    native_payload={
-                        "category": category,
-                        "identityScope": {"category": category, "value": value},
-                        "identityStatus": "sourceObservedClosedValue",
-                        "sourceColumn": source_column,
-                        "value": value,
-                    },
-                    source_locator=source_locator,
-                    source_digest=input_pin.sha256,
-                    notations=(value,),
-                    status="current",
-                )
-            )
-
-    blank_pay_plan_row_count = sum(not row.pay_plan for row in export.records)
-    metadata = {
-        "appointmentTypeCount": category_counts["appointmentType"],
-        "blankPayPlanRowCount": blank_pay_plan_row_count,
-        "blankValuesAreMembers": False,
-        "bulkPositionRowsIncluded": False,
-        "emittedControlledValueCount": len(resources),
-        "payPlanCount": category_counts["payPlan"],
-        "personIdentityFieldsIncluded": False,
-        "personRowsIncluded": False,
-        "positionStatusCount": category_counts["positionStatus"],
-        "sourceRecordCount": len(export.records),
-        "sourceRecordDigestSemantics": ("exact CSV digest plus the source column and observed non-empty value"),
-    }
-    atlas_release_digest = _release_digest(
-        parser="opm-plum-all-data-controlled-values-v1",
-        inputs=(input_pin,),
-        accounting=metadata,
-    )
-    key = f"opm-plum-position-status-codes-{issued}"
-    binding = LARGE_REGISTRY_BINDINGS["opm-plum-position-status-codes"]
-    return RegistryRelease(
-        key=key,
-        resource_id=binding.resource_id,
-        source_module=binding.source_module,
-        profile=binding.profile,
-        ring=binding.ring,
-        scope="completeCapture",
-        issued=issued,
-        source_release_iri=(
-            opm_workforce_codes.OPM_PLUM_ALL_DATA_URL + "#capture-" + export.source_sha256.removeprefix("sha256:")
-        ),
-        source_release_digest=input_pin.sha256,
-        atlas_release_iri=_atlas_release_iri(key, atlas_release_digest),
-        scheme_iri=binding.scheme_iri,
-        inputs=(input_pin,),
-        resources=tuple(resources),
-        metadata=metadata,
-    )
-
-
-def load_opm_plum_release(
-    source_path: Path = (DEFAULT_SOURCE_ROOT / "OPM-PLUM-all-data-20260804.csv"),
-    *,
-    expected_sha256: str = OPM_PLUM_SHA256,
-    expected_byte_length: int = OPM_PLUM_BYTE_LENGTH,
-    expected_record_count: int = 15_777,
-    issued: str = "2026-08-04",
-) -> RegistryRelease:
-    """Load PLUM's 27 non-empty closed values without publishing people rows."""
-
-    input_pin = _pin(
-        source_path,
-        sha256=expected_sha256,
-        byte_length=expected_byte_length,
-        source_iri=opm_workforce_codes.OPM_PLUM_ALL_DATA_URL,
-    )
-    input_pin.verify()
-    export = opm_workforce_codes.parse_opm_plum_all_data_csv(input_pin.path.read_bytes())
-    if len(export.records) != expected_record_count:
-        raise ValueError(
-            f"OPM PLUM record count differs after parsing: expected {expected_record_count}, got {len(export.records)}"
-        )
-    if export.source_sha256 != input_pin.sha256 or export.source_byte_length != input_pin.byte_length:
-        raise ValueError("OPM PLUM parser output differs from its exact input pin")
-    return _opm_plum_release_from_export(export, input_pin, issued=issued)
-
-
 LARGE_REGISTRY_RELEASE_KEYS = frozenset(
     {
         "courtlistener-jurisdictions-2026-08-03",
@@ -1110,7 +974,6 @@ LARGE_REGISTRY_RELEASE_KEYS = frozenset(
         "federal-register-api-topics-2026-08-03",
         "naics-2022",
         "opm-ehri-data-standards-2026-08-04",
-        "opm-plum-position-status-codes-2026-08-04",
         "psc-april-2025",
     }
 )
@@ -1136,11 +999,6 @@ def _large_registry_loader_specs() -> tuple[
             "opm-ehri-data-standards-2026-08-04",
             load_opm_ehri_release,
             "EHRI-Data-Standards-20260804.xlsx",
-        ),
-        (
-            "opm-plum-position-status-codes-2026-08-04",
-            load_opm_plum_release,
-            "OPM-PLUM-all-data-20260804.csv",
         ),
     )
 
@@ -1184,8 +1042,6 @@ __all__ = [
     "LARGE_REGISTRY_RELEASE_KEYS",
     "OPM_EHRI_BYTE_LENGTH",
     "OPM_EHRI_SHA256",
-    "OPM_PLUM_BYTE_LENGTH",
-    "OPM_PLUM_SHA256",
     "RegistryCatalogBinding",
     "load_courtlistener_jurisdictions_release",
     "load_fast_topical_release",
@@ -1193,6 +1049,5 @@ __all__ = [
     "load_large_registry_releases",
     "load_naics_release",
     "load_opm_ehri_release",
-    "load_opm_plum_release",
     "load_psc_release",
 ]

@@ -4,7 +4,6 @@
 <urn:ref:atlas-resource-scheme:agrovoc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:agrovoc> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:agrovoc> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:agrovoc> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:agrovoc> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:cage-authority> <http://purl.org/dc/terms/identifier> "cage-authority" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:cage-authority> <http://purl.org/dc/terms/title> "Defense Logistics Agency CAGE code authority" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:cage-authority> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -143,7 +142,6 @@
 <urn:ref:atlas-resource-scheme:epa-enterprise-vocabulary> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:epa-enterprise-vocabulary> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:epa-enterprise-vocabulary> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:epa-enterprise-vocabulary> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:epa-enterprise-vocabulary> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:epa-substance-identifiers> <http://purl.org/dc/terms/identifier> "epa-substance-identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:epa-substance-identifiers> <http://purl.org/dc/terms/title> "EPA SRS and CompTox substance identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:epa-substance-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -208,7 +206,6 @@
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:federal-register-native-controls> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-thesaurus-1995> <http://purl.org/dc/terms/identifier> "federal-register-thesaurus-1995" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-thesaurus-1995> <http://purl.org/dc/terms/title> "Federal Register Thesaurus of Indexing Terms, 1995" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-thesaurus-1995> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -244,7 +241,6 @@
 <urn:ref:atlas-resource-scheme:gao-cra-database-facets> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-cra-database-facets> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-cra-database-facets> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:gao-cra-database-facets> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:gao-cra-database-facets> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-native-controls> <http://purl.org/dc/terms/identifier> "gao-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-native-controls> <http://purl.org/dc/terms/title> "GAO report native controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -256,7 +252,6 @@
 <urn:ref:atlas-resource-scheme:gao-report-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-report-identifiers> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-report-identifiers> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:gao-report-identifiers> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:gao-report-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-thesaurus-historical> <http://purl.org/dc/terms/identifier> "gao-thesaurus-historical" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-thesaurus-historical> <http://purl.org/dc/terms/title> "GAO Thesaurus" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-thesaurus-historical> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -269,7 +264,6 @@
 <urn:ref:atlas-resource-scheme:gao-topics> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-topics> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gao-topics> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:gao-topics> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:gao-topics> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gcmd-science-keywords> <http://purl.org/dc/terms/identifier> "gcmd-science-keywords" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gcmd-science-keywords> <http://purl.org/dc/terms/title> "NASA GCMD Science Keywords" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:gcmd-science-keywords> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -365,7 +359,6 @@
 <urn:ref:atlas-resource-scheme:nalt-core> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nalt-core> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nalt-core> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:nalt-core> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:nalt-core> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nasa-technology-taxonomy> <http://purl.org/dc/terms/identifier> "nasa-technology-taxonomy" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nasa-technology-taxonomy> <http://purl.org/dc/terms/title> "NASA Technology Taxonomy" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nasa-technology-taxonomy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -410,14 +403,11 @@
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:nrc-adams-identifiers> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#legalIdentity> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <http://purl.org/dc/terms/identifier> "nrc-adams-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <http://purl.org/dc/terms/title> "NRC ADAMS public-search controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:nrc-adams-native-controls> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:oira-review-native-controls> <http://purl.org/dc/terms/identifier> "oira-review-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:oira-review-native-controls> <http://purl.org/dc/terms/title> "OIRA EO 12866 review and meeting controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:oira-review-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .

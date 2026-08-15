@@ -10,14 +10,19 @@ Registrant populations (SAM registrants, CAGE facilities, NPI providers,
 CompTox substances) are not loaded here: they are referents with registry
 cadence, carried by ``refspec.registry.entity_registry_release`` instead, and
 the producer refuses their authorities outright (REF-030).
+
+Observed inventories are not loaded here either (REF-032). What survives is
+publisher-*written* structure: FAC's field dictionary, NPPES's dissemination
+layout, the FAST Book's published account symbols, and GSDM's data
+dictionary. Set-distincts over sampled records, first-page roster slices,
+scraped search widgets, and regexed identifier shapes left the Atlas.
 """
 
 from __future__ import annotations
 
 import dataclasses
-import hashlib
 import tempfile
-from collections import Counter, defaultdict
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -38,20 +43,10 @@ from refspec.atlas.v3_source_data import (
     canonical_digest,
 )
 from refspec.immutable import deep_freeze_json
-from refspec.registry import agrovoc_thesaurus as agrovoc
-from refspec.registry import epa_enterprise_vocabulary as epa_vocabulary
 from refspec.registry import fac_dictionary as fac
-from refspec.registry import federal_hierarchy_orgs as fh
-from refspec.registry import gao_cra_facets as gao_cra
-from refspec.registry import nalt_core
 from refspec.registry import nppes_npi_identifiers as nppes
-from refspec.registry import nrc_adams_codes as nrc
 from refspec.registry import treasury_tas_fast_book as treasury
 from refspec.registry import usaspending_gsdm_codes as gsdm
-from refspec.vocabulary import is_english_language_tag
-
-ATLAS = "https://refspec.org/ns/atlas/v3#"
-SKOS = "http://www.w3.org/2004/02/skos/core#"
 
 
 def _json_value(value: Any) -> Any:
@@ -170,256 +165,6 @@ def _label(value: str, source_path: str, role: str = "preferred") -> RegistryLab
     )
 
 
-def _normalized_english_labels(
-    source_labels: Sequence[Any],
-    *,
-    source_path: str,
-) -> tuple[tuple[RegistryLabel, ...], int]:
-    """Normalize English-family source labels and collapse tagged twins."""
-
-    base_rows = [
-        item
-        for item in source_labels
-        if item.value.language_tag is None
-        or item.value.language_tag.casefold() == "en"
-    ]
-    base_values = {item.value.lexical_form.strip() for item in base_rows}
-    has_base_preferred = any(item.role == "preferred" for item in base_rows)
-    labels: list[RegistryLabel] = []
-    seen: set[tuple[str, str]] = set()
-    dropped = 0
-    for item in source_labels:
-        language = item.value.language_tag
-        if not is_english_language_tag(
-            language,
-            untagged_is_english=True,
-        ):
-            dropped += 1
-            continue
-        value = item.value.lexical_form.strip()
-        is_base_english = language is None or language.casefold() == "en"
-        if not is_base_english and value in base_values:
-            continue
-        role = item.role
-        if not is_base_english and role == "preferred" and has_base_preferred:
-            role = "alternate"
-        key = (role, value)
-        if key in seen:
-            continue
-        seen.add(key)
-        labels.append(_label(value, source_path, role))
-    return tuple(labels), dropped
-
-
-def _agrovoc_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    sample = agrovoc.AGROVOC_C330_SAMPLE
-    pin = _pin(
-        root,
-        f"tests/fixtures/agrovoc_thesaurus/{sample.filename}",
-        sha256=sample.expected_sha256,
-        byte_length=sample.expected_byte_length,
-        source_iri=sample.source_url,
-        role="boundedPublisherConcept",
-    )
-    parsed = agrovoc.parse_agrovoc_file(
-        pin.path,
-        source_url=sample.source_url,
-        expected_sha256=sample.expected_sha256,
-        expected_byte_length=sample.expected_byte_length,
-    )
-    concept = next(item for item in parsed.concepts if item.concept_iri == sample.concept_iri)
-    source_labels = [item for item in parsed.labels if item.subject_iri == concept.concept_iri]
-    labels, dropped_labels = _normalized_english_labels(
-        source_labels,
-        source_path=pin.logical_path,
-    )
-    resource = RegistryResource(
-        iri=concept.concept_iri,
-        labels=labels,
-        native_payload=_frozen(
-            {
-                "concept": concept,
-                "notes": [item for item in parsed.notes if item.subject_iri == concept.concept_iri],
-                "notations": [item for item in parsed.notations if item.subject_iri == concept.concept_iri],
-                "semanticRelations": [
-                    item for item in parsed.semantic_relations if item.subject_iri == concept.concept_iri
-                ],
-                "mappingRelations": [
-                    item for item in parsed.mapping_relations if item.subject_iri == concept.concept_iri
-                ],
-                "captureRole": "mappingReference",
-            }
-        ),
-        source_locator=pin.source_iri,
-        source_digest=pin.sha256,
-        notations=tuple(
-            item.value.lexical_form for item in parsed.notations if item.subject_iri == concept.concept_iri
-        ),
-        status="boundedMappingReference",
-    )
-    return (
-        _release(
-            key="agrovoc-c330-bounded-2026-08-03",
-            resource_id="agrovoc",
-            source_module="refspec.registry.agrovoc_thesaurus",
-            profile="conceptScheme",
-            ring="subject",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(pin,),
-            resources=(resource,),
-            dropped_label_count=dropped_labels,
-            metadata={
-                "completePublisherRelease": False,
-                "mappingReferenceOnly": True,
-                "publisherConceptCount": 1,
-            },
-        ),
-    )
-
-
-def _epa_vocabulary_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    """Emit every captured row as structure, without inventing concept IDs."""
-
-    sample = epa_vocabulary.EPA_REGULATORY_ACTIVITIES_TIER_WITH_DEFINITIONS_CAPTURE
-    pin = _pin(
-        root,
-        f"tests/fixtures/epa_enterprise_vocabulary/{sample.filename}",
-        sha256=sample.expected_sha256,
-        byte_length=sample.expected_byte_length,
-        source_iri=sample.source_url,
-        role="boundedPublisherLabelTree",
-    )
-    parsed = epa_vocabulary.parse_epa_enterprise_vocabulary_file(
-        pin.path,
-        source_url=sample.source_url,
-        expected_sha256=sample.expected_sha256,
-        expected_byte_length=sample.expected_byte_length,
-    )
-    walked = [item for root_row in parsed.rows for item in root_row.walk()]
-    by_path = {row.source_path: row for _depth, row in walked}
-    resources = tuple(
-        RegistryResource(
-            iri="urn:ref:epa-enterprise-vocabulary-row:" + quote(row.source_path, safe=""),
-            labels=(_label(row.label, f"{pin.logical_path}#{row.source_path}"),),
-            native_payload=_frozen(
-                {
-                    "depth": depth,
-                    "row": row,
-                    "publisherConceptIdentityAvailable": False,
-                }
-            ),
-            # `row.source_path` is `Row[1]/Row[0]`; the brackets RFC 3987
-            # excludes from an IRI are percent-encoded here, exactly as the
-            # row IRI above already does. `/` stays raw -- it is legal in a
-            # fragment and keeps the path readable -- and `quote` encodes `%`
-            # itself, so the transform is invertible.
-            source_locator=f"{sample.tier_browse_url}#{quote(row.source_path, safe='/')}",
-            source_digest=pin.sha256,
-            definition=(row.definitions_text or "").strip() or None,
-            notes=tuple(value for value in ((row.scope_note_text or "").strip(),) if value and value != "\xa0"),
-            status="sourcePositionObservation",
-        )
-        for depth, row in walked
-    )
-    relations: list[RegistryRelation] = []
-    for _depth, parent in walked:
-        for child in parent.child_terms:
-            if child.source_path not in by_path:
-                raise ValueError("EPA vocabulary walk omitted a captured child row")
-            relations.append(
-                RegistryRelation(
-                    subject="urn:ref:epa-enterprise-vocabulary-row:" + quote(child.source_path, safe=""),
-                    predicate=SKOS + "broader",
-                    object="urn:ref:epa-enterprise-vocabulary-row:" + quote(parent.source_path, safe=""),
-                    source_payload=_frozen(
-                        {
-                            "publisherNesting": True,
-                            "parentSourcePath": parent.source_path,
-                            "childSourcePath": child.source_path,
-                        }
-                    ),
-                )
-            )
-    return (
-        _release(
-            key="epa-enterprise-vocabulary-label-tree-2026-08-03",
-            resource_id="epa-enterprise-vocabulary",
-            source_module="refspec.registry.epa_enterprise_vocabulary",
-            profile="conceptScheme",
-            ring="subject",
-            scope="completeCapture",
-            issued="2026-08-03",
-            inputs=(pin,),
-            resources=resources,
-            relations=relations,
-            scheme_suffix="captured-label-tree",
-            metadata={
-                "allCapturedRowsEmitted": True,
-                "publisherConceptIdentityAvailable": False,
-                "rowCount": len(resources),
-                "verificationGaps": epa_vocabulary.EPA_ENTERPRISE_VOCABULARY_VERIFICATION_GAPS,
-            },
-        ),
-    )
-
-
-def _gao_cra_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    pin_spec = gao_cra.GAO_CRA_REAL_CAPTURE_2026_08_04
-    source_pin = _pin(
-        root,
-        "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html",
-        sha256=pin_spec.expected_sha256,
-        byte_length=pin_spec.expected_byte_length,
-        source_iri=pin_spec.source_url,
-        role="publisherSearchFacets",
-    )
-    with tempfile.TemporaryDirectory(prefix="refspec-atlas-gao-cra-") as directory:
-        acquired = gao_cra.acquire_gao_cra_facets_page(
-            pin_spec,
-            Path(directory),
-            source_path=source_pin.path,
-        )
-        parsed = gao_cra.parse_gao_cra_facets(acquired)
-    resources: list[RegistryResource] = []
-    for facet_name, values in sorted(parsed.facets.items()):
-        for value in values:
-            identifier = value.identifiers[0]
-            resources.append(
-                RegistryResource(
-                    iri=(
-                        "urn:ref:gao-cra-facet:" + quote(facet_name, safe="") + ":" + quote(identifier.value, safe="")
-                    ),
-                    labels=(_label(value.publisher_label, source_pin.logical_path),),
-                    native_payload=_frozen(value),
-                    source_locator=source_pin.source_iri,
-                    source_digest=source_pin.sha256,
-                    notations=(identifier.value,),
-                    status="default" if value.is_default else "available",
-                )
-            )
-    return (
-        _release(
-            key="gao-cra-database-facets-2026-08-04",
-            resource_id="gao-cra-database-facets",
-            source_module="refspec.registry.gao_cra_facets",
-            profile="codeScheme",
-            ring="value",
-            scope="completeCapture",
-            issued="2026-08-04",
-            inputs=(source_pin,),
-            resources=resources,
-            metadata={
-                "allVisibleFacetValuesEmitted": True,
-                "facetNames": sorted(parsed.facets),
-                "facetValueCount": len(resources),
-                "publisherReleaseUnavailable": True,
-                "sourceGaps": parsed.gaps,
-            },
-        ),
-    )
-
-
 def _fac_releases(root: Path) -> tuple[RegistryRelease, ...]:
     pin_spec = fac.FAC_DICTIONARY_DOC_2026_08_03
     source_pin = _pin(
@@ -465,275 +210,6 @@ def _fac_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 "distinctFieldCount": len(resources),
                 "publisherLastModified": portfolio.publisher_last_modified,
                 "sourceGaps": portfolio.gaps,
-            },
-        ),
-    )
-
-
-def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    captures = (
-        (
-            fh.FH_ORGS_DEFAULT_PAGE_2026_08_03,
-            "output/registry-real-data-sources/fh-orgs-default-page.json",
-        ),
-        (
-            fh.FH_ORGS_SUB_TIER_PAGE_2026_08_03,
-            "output/registry-real-data-sources/fh-orgs-sub-tier-page.json",
-        ),
-    )
-    pins: list[RegistryInputPin] = []
-    parsed_samples: list[fh.ParsedFHOrgsSample] = []
-    with tempfile.TemporaryDirectory(prefix="refspec-atlas-fh-") as directory:
-        for pin_spec, logical_path in captures:
-            source_pin = _pin(
-                root,
-                logical_path,
-                sha256=pin_spec.expected_sha256,
-                byte_length=pin_spec.expected_byte_length,
-                source_iri=pin_spec.source.source_url,
-                role="boundedPublisherOrganizationPage",
-            )
-            pins.append(source_pin)
-            acquired = fh.acquire_fh_orgs_sample(
-                pin_spec,
-                Path(directory),
-                source_path=source_pin.path,
-            )
-            parsed_samples.append(fh.parse_fh_orgs_sample(acquired))
-    records: dict[str, tuple[fh.FHOrgRecord, RegistryInputPin]] = {}
-    for parsed, source_pin in zip(parsed_samples, pins, strict=True):
-        for record in parsed.records:
-            if record.fhorgid in records:
-                raise ValueError(f"Federal Hierarchy captures repeat organization {record.fhorgid}")
-            records[record.fhorgid] = (record, source_pin)
-    resources = tuple(
-        RegistryResource(
-            iri=f"urn:ref:federal-hierarchy-org:{record.fhorgid}",
-            labels=(_label(record.fhorgname, source_pin.logical_path),),
-            native_payload=_frozen(record),
-            source_locator=source_pin.source_iri,
-            source_digest=source_pin.sha256,
-            identifiers=(
-                RegistryIdentifier(
-                    value=record.fhorgid,
-                    scheme_iri="urn:ref:atlas-resource-scheme:federal-hierarchy:org-identifiers",
-                    source_path=f"{source_pin.logical_path}#fhorgid",
-                ),
-            ),
-            status=record.status,
-        )
-        for record, source_pin in records.values()
-    )
-    relations = tuple(
-        RegistryRelation(
-            subject=f"urn:ref:federal-hierarchy-org:{record.fhorgid}",
-            predicate=ATLAS + "parentEntity",
-            object=f"urn:ref:federal-hierarchy-org:{record.parent_fhorgid}",
-            source_payload=_frozen(
-                {
-                    "parentFhorgid": record.parent_fhorgid,
-                    "parentOrgName": record.parent_org_name,
-                }
-            ),
-        )
-        for record, _source_pin in records.values()
-        if record.parent_fhorgid in records and record.parent_fhorgid != record.fhorgid
-    )
-    return (
-        _release(
-            key="federal-hierarchy-orgs-bounded-2026-08-03",
-            resource_id="federal-hierarchy",
-            source_module="refspec.registry.federal_hierarchy_orgs",
-            profile="identifierScheme",
-            ring="entity",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=pins,
-            resources=resources,
-            relations=relations,
-            scheme_suffix="org-identifiers",
-            metadata={
-                "completePublisherRelease": False,
-                "organizationCount": len(resources),
-                "publisherTotals": [parsed.total_records_reported for parsed in parsed_samples],
-                "otherPublisherIdentifiersRetainedInNativePayload": True,
-            },
-        ),
-    )
-
-
-def _nalt_english_definitions(
-    vocabulary: nalt_core.NaltVocabulary,
-    concept_iri: str,
-) -> tuple[str | None, tuple[str, ...], int, int]:
-    """Flatten attributed English NALT definition nodes for Atlas text fields.
-
-    NALT points from a concept to a definition IRI. A definition qualifies
-    only when that node supplies both an English-family ``rdf:value`` literal
-    and a non-empty ``dcterms:source`` attribution. The source-shaped rows
-    remain unchanged in ``native_payload``; this view adds only Atlas's
-    existing definition and note fields.
-    """
-
-    definition_targets = {
-        relation.object_iri
-        for relation in vocabulary.definition_relations
-        if relation.subject_iri == concept_iri
-        and relation.predicate_iri == nalt_core.DEFINITION_PREDICATE_IRI
-    }
-    attributed_targets = {
-        row.subject_iri
-        for row in vocabulary.reified_sources
-        if row.property_iri == nalt_core.REIFIED_SOURCE_PREDICATE_IRI
-        and row.value.lexical_form.strip()
-    }
-    definitions = sorted(
-        {
-            row.value.lexical_form.strip()
-            for row in vocabulary.reified_values
-            if row.subject_iri in definition_targets
-            and row.subject_iri in attributed_targets
-            and row.property_iri == nalt_core.REIFIED_VALUE_PREDICATE_IRI
-            and row.value.lexical_form.strip()
-            and is_english_language_tag(row.value.language_tag)
-        }
-    )
-    resolved_targets = {
-        target
-        for target in definition_targets
-        if any(
-            row.subject_iri == target
-            and row.property_iri == nalt_core.REIFIED_VALUE_PREDICATE_IRI
-            and row.value.lexical_form.strip() in definitions
-            and is_english_language_tag(row.value.language_tag)
-            for row in vocabulary.reified_values
-        )
-        and target in attributed_targets
-    }
-    return (
-        definitions[0] if definitions else None,
-        tuple(definitions[1:]),
-        len(resolved_targets),
-        len(definition_targets - resolved_targets),
-    )
-
-
-def _nalt_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    fixture_root = "tests/fixtures/nalt_core"
-    specs = (
-        nalt_core.NALT_CORE_ANIMAL_WELFARE_CAPTURE,
-        nalt_core.NALT_CORE_TOP_CONCEPT_CAPTURE,
-    )
-    pins: list[RegistryInputPin] = []
-    captures: list[nalt_core.NaltCoreCapture] = []
-    for spec in specs:
-        logical_path = f"{fixture_root}/{spec.filename}"
-        pin = _pin(
-            root,
-            logical_path,
-            sha256=spec.expected_sha256,
-            byte_length=spec.expected_byte_length,
-            source_iri=spec.source_url,
-        )
-        pins.append(pin)
-        captures.append(
-            nalt_core.parse_nalt_core_file(
-                pin.path,
-                source_url=spec.source_url,
-                concept_iri=spec.concept_iri,
-                expected_sha256=spec.expected_sha256,
-                expected_byte_length=spec.expected_byte_length,
-            )
-        )
-
-    requested = {capture.requested_concept_iri for capture in captures}
-    resources: list[RegistryResource] = []
-    dropped_labels = 0
-    resolved_definition_relations = 0
-    unresolved_definition_relations = 0
-    for capture, pin in zip(captures, pins, strict=True):
-        vocabulary = capture.vocabulary
-        source_path = pin.logical_path
-        source_labels = [item for item in vocabulary.labels if item.subject_iri == capture.requested_concept_iri]
-        labels, member_dropped_labels = _normalized_english_labels(
-            source_labels,
-            source_path=source_path,
-        )
-        dropped_labels += member_dropped_labels
-        if sum(label.role == "preferred" for label in labels) != 1:
-            raise ValueError(f"NALT capture has no single English preferred label: {capture.requested_concept_iri}")
-        direct_relations = [
-            relation
-            for relation in vocabulary.semantic_relations
-            if relation.subject_iri == capture.requested_concept_iri
-        ]
-        definition, definition_notes, resolved, unresolved = (
-            _nalt_english_definitions(
-                vocabulary,
-                capture.requested_concept_iri,
-            )
-        )
-        resolved_definition_relations += resolved
-        unresolved_definition_relations += unresolved
-        resources.append(
-            RegistryResource(
-                iri=capture.requested_concept_iri,
-                labels=labels,
-                native_payload=_frozen(
-                    {
-                        "concept": capture.requested_concept,
-                        "directSemanticRelations": direct_relations,
-                        "sourcePredicateCounts": vocabulary.predicate_counts,
-                        "captureScope": "one requested NALT Core concept",
-                    }
-                ),
-                source_locator=pin.source_iri,
-                source_digest=pin.sha256,
-                definition=definition,
-                notes=definition_notes,
-            )
-        )
-
-    relation_rows: dict[tuple[str, str, str], RegistryRelation] = {}
-    for capture in captures:
-        for relation in capture.vocabulary.semantic_relations:
-            if relation.subject_iri not in requested or relation.object_iri not in requested:
-                continue
-            key = (relation.subject_iri, relation.predicate_iri, relation.object_iri)
-            relation_rows[key] = RegistryRelation(
-                subject=relation.subject_iri,
-                predicate=relation.predicate_iri,
-                object=relation.object_iri,
-                source_payload=_frozen(
-                    {
-                        "publisherRelation": dataclasses.asdict(relation),
-                        "captureScope": "relation whose two endpoints are both emitted",
-                    }
-                ),
-            )
-    return (
-        _release(
-            key="nalt-core-bounded-concepts-2026-08-03",
-            resource_id="nalt-core",
-            source_module="refspec.registry.nalt_core",
-            profile="conceptScheme",
-            ring="subject",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=pins,
-            resources=resources,
-            relations=tuple(relation_rows[key] for key in sorted(relation_rows)),
-            dropped_label_count=dropped_labels,
-            metadata={
-                "boundedConceptCount": 2,
-                "completePublisherRelease": False,
-                "englishDefinitionRelationCount": (
-                    resolved_definition_relations
-                ),
-                "licenseEvidenceResolved": False,
-                "unresolvedDefinitionRelationCount": (
-                    unresolved_definition_relations
-                ),
             },
         ),
     )
@@ -787,144 +263,6 @@ def _nppes_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
-def _nrc_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    fixture_root = Path("tests/fixtures/nrc_adams_codes")
-    rows = (
-        (nrc.NRC_ADAMS_LANDING_PAGE_2026_08_03, "nrc-adams-landing-page-2026-08-03.html"),
-        (nrc.NRC_ADAMS_HELP_REFERENCE_2026_08_03, "nrc-adams-help-reference-2026-08-03.html"),
-        (nrc.NRC_ADAMS_FAQ_2026_08_03, "nrc-adams-faq-2026-08-03.html"),
-        (nrc.NRC_ADAMS_SYSTEM_NOTICES_2026_08_03, "nrc-adams-system-notices-2026-08-03.html"),
-        (nrc.NRC_APS_RESULT_FIELD_LABELS_2026_08_03, "nrc-aps-result-field-labels-excerpt-2026-08-03.js"),
-        (nrc.NRC_APS_LIBRARY_FACET_LABELS_2026_08_03, "nrc-aps-library-facet-labels-excerpt-2026-08-03.js"),
-    )
-    pins: dict[str, RegistryInputPin] = {}
-    acquired: dict[str, nrc.AcquiredAdamsSource] = {}
-    import tempfile
-
-    with tempfile.TemporaryDirectory(prefix="refspec-nrc-adams-") as temporary:
-        for pin_spec, filename in rows:
-            logical_path = (fixture_root / filename).as_posix()
-            source_iri = (
-                f"urn:ref:nrc-adams-capture:{pin_spec.source.resource_name}:"
-                + pin_spec.expected_sha256.removeprefix("sha256:")
-            )
-            pin = _pin(
-                root,
-                logical_path,
-                sha256=pin_spec.expected_sha256,
-                byte_length=pin_spec.expected_byte_length,
-                source_iri=source_iri,
-                role=pin_spec.capture_kind,
-            )
-            pins[pin_spec.source.resource_name] = pin
-            acquired[pin_spec.source.resource_name] = nrc.acquire_adams_source(
-                pin_spec,
-                Path(temporary),
-                source_path=pin.path,
-            )
-
-        controls = (
-            *nrc.parse_aps_result_field_labels(acquired["apsResultFieldLabels"]),
-            *nrc.parse_aps_library_facet_labels(acquired["apsLibraryFacetLabels"]),
-            *nrc.parse_docket_number_category_links(acquired["helpReferencePage"]),
-        )
-        shapes = (
-            nrc.parse_docket_number_shape(acquired["faqPage"]),
-            nrc.parse_legacy_library_accession_number_shape(acquired["faqPage"]),
-            nrc.parse_current_accession_number_shape(acquired["landingPage"]),
-            nrc.parse_accession_number_format_notice(acquired["systemNoticesPage"]),
-        )
-
-    control_resources: list[RegistryResource] = []
-    for ordinal, control in enumerate(controls):
-        pin = pins[control.resource_name]
-        identity = control.identifiers[-1].value
-        control_resources.append(
-            RegistryResource(
-                iri=(
-                    f"urn:ref:nrc-adams-control:{control.resource_name}:"
-                    + hashlib.sha256(identity.encode("utf-8")).hexdigest()
-                ),
-                labels=(_label(control.publisher_label, pin.logical_path),),
-                native_payload=_frozen(
-                    {
-                        "ordinal": ordinal,
-                        "control": control,
-                        "completeGovernedList": False,
-                    }
-                ),
-                source_locator=pin.source_iri,
-                source_digest=pin.sha256,
-            )
-        )
-    shape_resources: list[RegistryResource] = []
-    shape_source_names = (
-        "faqPage",
-        "faqPage",
-        "landingPage",
-        "systemNoticesPage",
-    )
-    for ordinal, (shape, source_name) in enumerate(zip(shapes, shape_source_names, strict=True)):
-        pin = pins[source_name]
-        basis = f"{shape.identifier_kind}:{shape.shape_basis}:{shape.pattern}"
-        shape_resources.append(
-            RegistryResource(
-                iri=("urn:ref:nrc-adams-identifier-shape:" + hashlib.sha256(basis.encode("utf-8")).hexdigest()),
-                labels=(
-                    _label(
-                        f"{shape.identifier_kind} format ({shape.shape_basis})",
-                        pin.logical_path,
-                    ),
-                ),
-                native_payload=_frozen(
-                    {
-                        "ordinal": ordinal,
-                        "shape": shape,
-                        "sampleValuesAreAuthorityMembers": False,
-                    }
-                ),
-                source_locator=pin.source_iri,
-                source_digest=pin.sha256,
-                definition=shape.explanation,
-                notations=(shape.pattern,),
-            )
-        )
-    return (
-        _release(
-            key="nrc-adams-native-controls-bounded-2026-08-03",
-            resource_id="nrc-adams-native-controls",
-            source_module="refspec.registry.nrc_adams_codes",
-            profile="structureScheme",
-            ring="value",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=tuple(pins.values()),
-            resources=control_resources,
-            scheme_suffix="observed-structure",
-            metadata={
-                "controlCount": len(control_resources),
-                "completeGovernedList": False,
-            },
-        ),
-        _release(
-            key="nrc-adams-identifier-shapes-2026-08-03",
-            resource_id="nrc-adams-identifiers",
-            source_module="refspec.registry.nrc_adams_codes",
-            profile="structureScheme",
-            ring="value",
-            scope="completeCapture",
-            issued="2026-08-03",
-            inputs=tuple(pins.values()),
-            resources=shape_resources,
-            scheme_suffix="identifier-shapes",
-            metadata={
-                "shapeCount": len(shape_resources),
-                "identifierInstancesEmitted": 0,
-            },
-        ),
-    )
-
-
 def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
     pin_spec = treasury.FAST_BOOK_PART_II_III_2026_07_31
     workbook_pin = _pin(
@@ -971,27 +309,6 @@ def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 status="publishedPartIIOrIII",
             )
         )
-    fund_counts = Counter((account.part, account.fund_type) for account in workbook.accounts)
-    fund_resources: list[RegistryResource] = []
-    for fund_type in sorted({account.fund_type for account in workbook.accounts}):
-        parts = sorted(
-            part for part in {account.part for account in workbook.accounts} if (part, fund_type) in fund_counts
-        )
-        fund_resources.append(
-            RegistryResource(
-                iri=("urn:ref:treasury-fast-book:fund-type:" + hashlib.sha256(fund_type.encode("utf-8")).hexdigest()),
-                labels=(_label(fund_type, workbook_pin.logical_path),),
-                native_payload=_frozen(
-                    {
-                        "fundType": fund_type,
-                        "parts": parts,
-                        "accountCountsByPart": {part: fund_counts[(part, fund_type)] for part in parts},
-                    }
-                ),
-                source_locator=workbook_pin.source_iri,
-                source_digest=workbook_pin.sha256,
-            )
-        )
     return (
         _release(
             key="treasury-fast-book-accounts-parts-ii-iii-2026-07",
@@ -1007,22 +324,6 @@ def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 "publisherRows": len(workbook.accounts),
                 "identifiedAccounts": len(account_resources),
                 "publisherAnomalies": workbook.publisher_anomalies,
-                "partsIncluded": ["II", "III"],
-                "partIMissing": True,
-            },
-        ),
-        _release(
-            key="treasury-fast-book-fund-types-parts-ii-iii-2026-07",
-            resource_id="treasury-fast-book",
-            source_module="refspec.registry.treasury_tas_fast_book",
-            profile="codeScheme",
-            ring="value",
-            scope="completeCapture",
-            issued="2026-07-31",
-            inputs=(workbook_pin,),
-            resources=fund_resources,
-            metadata={
-                "fundTypeCount": len(fund_resources),
                 "partsIncluded": ["II", "III"],
                 "partIMissing": True,
             },
@@ -1147,39 +448,14 @@ def _gsdm_releases(root: Path) -> tuple[RegistryRelease, ...]:
 
 
 REGISTRY_NONEMITTER_RELEASE_GROUPS = (
-    ("agrovoc", frozenset({"agrovoc-c330-bounded-2026-08-03"})),
-    (
-        "epa-vocabulary",
-        frozenset({"epa-enterprise-vocabulary-label-tree-2026-08-03"}),
-    ),
-    ("gao-cra", frozenset({"gao-cra-database-facets-2026-08-04"})),
     ("fac", frozenset({"fac-api-field-dictionary-2026-08-03"})),
-    (
-        "federal-hierarchy",
-        frozenset({"federal-hierarchy-orgs-bounded-2026-08-03"}),
-    ),
-    ("nalt", frozenset({"nalt-core-bounded-concepts-2026-08-03"})),
     (
         "nppes",
         frozenset({"nppes-data-dissemination-layout-v2-2026-08-03"}),
     ),
     (
-        "nrc",
-        frozenset(
-            {
-                "nrc-adams-identifier-shapes-2026-08-03",
-                "nrc-adams-native-controls-bounded-2026-08-03",
-            }
-        ),
-    ),
-    (
         "treasury",
-        frozenset(
-            {
-                "treasury-fast-book-accounts-parts-ii-iii-2026-07",
-                "treasury-fast-book-fund-types-parts-ii-iii-2026-07",
-            }
-        ),
+        frozenset({"treasury-fast-book-accounts-parts-ii-iii-2026-07"}),
     ),
     (
         "gsdm",
@@ -1212,14 +488,8 @@ def load_registry_nonemitter_releases(
     )
     root = Path(repo_root)
     loaders = {
-        "agrovoc": _agrovoc_releases,
-        "epa-vocabulary": _epa_vocabulary_releases,
-        "gao-cra": _gao_cra_releases,
         "fac": _fac_releases,
-        "federal-hierarchy": _federal_hierarchy_releases,
-        "nalt": _nalt_releases,
         "nppes": _nppes_releases,
-        "nrc": _nrc_releases,
         "treasury": _treasury_releases,
         "gsdm": _gsdm_releases,
     }
