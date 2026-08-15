@@ -1715,3 +1715,151 @@ Federal Register's documented document types and its agencies roster.
 Complete the Federal Hierarchy roster past its first page — that one is also
 the cross-ring tripwire's intended carrier. Capture GAO's published /topics
 index. Schedule AGROVOC and NALT enumeration, or retire their catalog rows.
+
+**Amendment (2026-08-15, REF-033).** The Federal Hierarchy follow-up above
+was recorded against "20 organizations of 1,645." The 1,645 double-counted:
+the API's own totals partition 907 total records into 169
+Department/Ind. Agency and 738 Sub-Tier — the 907 already includes the
+sub-tiers beside the departments. The complete roster landed under REF-033
+at 907, witnessed by the API's own per-level totals.
+
+### REF-033: The boundary audit's repair verdicts, and the documented successors land
+
+- **Date:** 2026-08-15
+- **Status:** Accepted; executed. Executes the repair verdicts the REF-032
+  boundary audit left standing, and closes three of its five named
+  follow-ups with documented publisher captures.
+
+**Ring corrections, in the readers' own words.** Two placements contradicted
+the text of the readers that produce them. The LDA reader states "None of
+these values is a general subject concept merely because it has a readable
+label"; the general-issue codes nevertheless sat on the subject ring as a
+concept scheme. The NASA taxonomy reader states the roster "is not promoted
+to a general-subject concept scheme until an evaluation proves
+document-subject value"; no evaluation ever ran. Both move to the value ring
+as code schemes, and the catalog kinds follow (`codeList` for both). The
+GNIS unit inverts the same mistake in the other direction: three cherry-picked
+fields stood in for an identifier authority, when what the publisher actually
+publishes is a complete 21-field National File layout — it is now emitted
+whole, as the `structureScheme` its `structuralSchema` kind implies. FERC's
+class/type rows had used the raw space-joined PDF line as each label; the
+parser's recovered four-column structure now supplies the publisher's Type
+Description as the label, with the exact line retained in the payload as
+provenance of record.
+
+**Subtractions.** What a publisher operates is not what a publisher states.
+The PRA search page's five Burden Range rows are paired low/high `<input>`
+ids and its OMB Control Number entry is a field shape derived from the
+documented convention — form mechanics, still parsed and pinned for drift
+checks, no longer emitted (21 → 15). The Census TIGER unit drops its three
+example GEOIDs — sample values, not vocabulary (14 → 11). GovInfo's
+per-collection `packageCount`/`granuleCount` are live corpus totals, not
+facts about the codes; they leave the emitted records for the pinned raw
+bytes. The Federal Register roster's per-type document counts survive only
+as capture metadata (`facetDocumentCountsAtCapture`), never as members.
+
+**Four deletions.** The ACS geography unit (7) was a byte-span scan of a
+mutable API variables listing; the NASBO unit (7) was seven chapter titles
+scraped from a report-download page; the SCOTUS unit (7) was four side-nav
+links plus three phrases regexed out of page prose; the SEC unit (19) was a
+navigation sidebar and six subpage cards. All four are observations of page
+furniture under REF-032's own criterion. The ACS and NASBO rows go
+`rejected` in the planning index (their readers keep other units); the
+SCOTUS and SEC readers had nothing else to say and were deleted with their
+tests and fixtures (rows 75 → 78 net, source modules 49 → 50, registry
+modules 74 → 75 — two deleted, three added below).
+
+**Completions.** The GSDM domain-value unit grew from a three-element
+reviewed transcription (40 values) to every enumeration the publisher's
+Domain Values column states inline: 1,009 values across 203 elements, with
+the accounting for the 86 elements that defer to external code sources and
+the 168 that publish no domain text carried in release metadata. The
+codeless bare-value path now fails closed on duplicates exactly like the
+pair path (`test_domain_values_fail_closed_on_duplicates_strays_and_lost_columns`).
+And the EHRI workbook's AGENCY/SUBELEMENT element — 798 current values that
+are an organizational roster, not workforce codes — is split out of the
+value-ring release (17,263 → 16,465) and emitted on the entity ring as
+`opm-ehri-agency-subelement-2026-08-04`, its 3,004 past values attached as
+lifecycle context. The split is exhaustive and digest-preserving
+(`test_split_opm_ehri_element_is_exhaustive_and_keeps_the_source_digest`);
+the real-count assertions now run whenever the workbook exists instead of
+hiding behind an environment variable
+(`test_official_ehri_export_shape_counts_and_samples`).
+
+**The documented successors.** Three REF-032 follow-ups close, each from
+the publisher's own list rather than an observation of its data:
+
+- *Federal Register* — the machine-readable OpenAPI description's
+  `DocumentType` enumeration (4, with display names from the publisher's
+  type-facet endpoint), its `PresidentialDocumentType` enumeration (7), and
+  the complete 472-agency roster with the publisher's own 225 `parent_id`
+  relations carried as native entity relations; the documented `Agency`
+  slug enum is cross-checked against the roster and pinned
+  (`documentedAgencyEnumCount: 472`).
+- *FCC* — the published Offices & Bureaus roster from fcc.gov: 12 offices
+  and 7 bureaus. The removed observed inventory had carried the abolished
+  Common Carrier Bureau; the published roster does not
+  (`test_fcc_roster_replaces_the_observed_bureau_inventory`).
+- *Federal Hierarchy* — all 907 organizations the public API returns, as
+  five exact 200-record pages plus two one-record filtered responses that
+  witness the API's own per-level totals (169 + 738), with the 738
+  sub-tier → department relations carried as native entity relations
+  (`test_federal_hierarchy_release_is_the_complete_entity_roster`).
+
+They land in a new adapter group (`v3_registry_rosters`, pinned by
+`test_complete_roster_adapter_set_emits_1409_resources`), with planning rows,
+registry descriptors, source-fidelity specs, and manifest entries. A rebuilt
+distribution gains exactly 2,347 resources, 963 relations, and 2 releases
+net (75 releases; five roster releases and the EHRI roster added; the four
+deleted units and the reviewed GSDM tuple removed; the counts above moved).
+
+**What remains open, and why.** GAO's published /topics index sits behind
+an Akamai challenge no pinned capture has cleared. AGROVOC and NALT
+enumeration remain unscheduled; their catalog rows stand. And eCFR's
+agency → CFR-chapter assignments stay structurally blocked on the
+cross-ring decision — with one material change: the tripwire's intended
+carrier now exists in-Atlas. REF-032 pointed
+`test_producer_emits_no_cross_ring_assertions` at "a genuine
+institutional-roster → subject edge, once the Federal Hierarchy roster is
+completed." The roster is completed. The cross-ring decision is now live
+rather than hypothetical: the day an authority's subject or chapter
+assignments against these 907 organizations are captured, the tripwire
+fires and the decision must be made, not deferred.
+
+**Adversarial review, two catches recorded.** First: an adapter note had
+attributed the Federal Hierarchy's identifier provenance to publisher
+documentation that does not state it — an invented citation. The note now
+says only what the API itself publishes (`identifierAuthorityNote` in the
+roster release metadata). Second: the roster wave initially emitted the 798
+AGENCY/SUBELEMENT rows twice — once inside the 17,263-value EHRI release
+and again as the entity-ring roster. The value-ring loader now performs the
+split before emission, and its release metadata names the extraction
+(`agencySubelementExtracted`); the double emission cannot recur without
+failing both `test_official_ehri_export_shape_counts_and_samples` and
+`test_opm_agency_subelement_roster_is_an_entity_ring_release`. The review
+also retired an unfalsifiable roster claim: the EHRI roster had styled
+itself the Atlas's "first complete federal-organization roster" in the same
+wave that landed the complete Federal Hierarchy; its metadata now claims
+completeness only over what it names — the element's own current values
+(`completeCurrentValueRosterOfElement`).
+
+**The running checks.** The nonemitter census is pinned by
+`test_complete_nonemitter_adapter_set_emits_6338_resources`; the roster
+group by `test_complete_roster_adapter_set_emits_1409_resources`.
+Authority-scoped identifier rows are minted only under schemes the registry
+descriptors declare as identifier authorities — the roster wave first
+minted per-field child schemes no catalog authority backs (the build
+refused them; the publisher's ids now travel as notations and verbatim
+payload fields), and
+`test_emitted_identifier_schemes_are_atlas_identifier_authorities` now
+validates every emitted identifier against the build's own authority set at
+suite time instead of minutes into a build. The
+planning index and coverage summaries by
+`test_checked_atlas_index_is_exact_and_exhaustive` and
+`test_checked_registry_coverage_is_exact_and_compact`; the descriptor
+graph by `test_descriptor_proof_pins_exact_registry_inputs_and_output`. The
+source-fidelity audit carries independent re-parses for all five roster
+releases, the split EHRI pair, the completed GSDM enumeration, and the
+completed 21-field GNIS layout (re-parsed from the pinned PDF with the
+merged description cells reconstructed), so the next distribution build is
+compared against publisher bytes, not against this entry.

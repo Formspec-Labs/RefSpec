@@ -136,14 +136,15 @@ def test_govinfo_collection_codes_are_deterministic_metadata_not_general_subject
     assert len(resource.collections) == 42
     cfr = resource.by_code()["CFR"]
     assert cfr.collection_name == "Code of Federal Regulations"
-    assert cfr.package_count == 6_629
-    assert cfr.granule_count == 7_799_699
     assert cfr.is_general_subject_concept is False
     assert [identifier.value for identifier in cfr.identifiers] == ["CFR"]
     assert cfr.identifiers[0].kind == "govInfoCollectionCode"
     assert cfr.identifiers[0].authority_uri == gc.GOVINFO_IDENTIFIER_AUTHORITY_URI
-    ecfr = resource.by_code()["ECFR"]
-    assert ecfr.granule_count is None
+    # The API's live packageCount/granuleCount holdings numbers are
+    # acquisition coverage, not vocabulary facts, and are not carried on the
+    # parsed record (REF-032); they stay in the pinned raw capture only.
+    assert not hasattr(cfr, "package_count")
+    assert not hasattr(cfr, "granule_count")
     assert all(not entry.is_general_subject_concept for entry in resource.collections)
 
 

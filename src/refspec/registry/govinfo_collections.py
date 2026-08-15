@@ -466,12 +466,18 @@ def _make_identifier(
 
 @dataclass(frozen=True, slots=True)
 class GovInfoCollectionCode:
-    """One official GovInfo collection code and its non-subject display name."""
+    """One official GovInfo collection code and its non-subject display name.
+
+    The API response also reports ``packageCount``/``granuleCount`` per
+    collection -- live holdings numbers that change with every harvest. Those
+    are acquisition coverage about GovInfo's corpus, not vocabulary facts
+    about the code, so this record does not carry them (REF-032); they remain
+    in the pinned raw capture bytes, where the parser still validates their
+    shape.
+    """
 
     collection_code: str
     collection_name: str
-    package_count: int
-    granule_count: int | None
     identifiers: tuple[ControlledIdentifier, ...]
     is_general_subject_concept: bool = False
 
@@ -538,8 +544,6 @@ def parse_govinfo_collections(acquired: AcquiredGovInfoSource) -> ParsedGovInfoC
             GovInfoCollectionCode(
                 collection_code=code,
                 collection_name=name,
-                package_count=package_count,
-                granule_count=granule_count,
                 identifiers=(identifier,),
             )
         )

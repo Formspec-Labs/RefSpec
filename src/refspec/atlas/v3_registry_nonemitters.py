@@ -13,9 +13,12 @@ the producer refuses their authorities outright (REF-030).
 
 Observed inventories are not loaded here either (REF-032). What survives is
 publisher-*written* structure: FAC's field dictionary, NPPES's dissemination
-layout, the FAST Book's published account symbols, and GSDM's data
-dictionary. Set-distincts over sampled records, first-page roster slices,
-scraped search widgets, and regexed identifier shapes left the Atlas.
+layout, the FAST Book's published account symbols, GSDM's data dictionary
+with every domain value its publisher enumerates, and the EHRI workbook's
+AGENCY/SUBELEMENT roster — the publisher's own list of federal agencies and
+subelements, carried in the entity ring as an institutional roster.
+Set-distincts over sampled records, first-page roster slices, scraped search
+widgets, and regexed identifier shapes left the Atlas.
 """
 
 from __future__ import annotations
@@ -45,6 +48,7 @@ from refspec.atlas.v3_source_data import (
 from refspec.immutable import deep_freeze_json
 from refspec.registry import fac_dictionary as fac
 from refspec.registry import nppes_npi_identifiers as nppes
+from refspec.registry import opm_workforce_codes as opm
 from refspec.registry import treasury_tas_fast_book as treasury
 from refspec.registry import usaspending_gsdm_codes as gsdm
 
@@ -207,7 +211,12 @@ def _fac_releases(root: Path) -> tuple[RegistryRelease, ...]:
             resources=resources,
             metadata={
                 "endpointCount": len(portfolio.endpoints),
-                "distinctFieldCount": len(resources),
+                # Each member is one (endpoint, field) pair; the same GSA
+                # field name recurs across endpoints (General.audit_year
+                # appears on 10), so the entry count and the distinct-name
+                # count are different truths and both are stated.
+                "fieldEntryCount": len(resources),
+                "distinctFieldNameCount": len({field.gsa_field for field in portfolio.fields}),
                 "publisherLastModified": portfolio.publisher_last_modified,
                 "sourceGaps": portfolio.gaps,
             },
@@ -373,42 +382,43 @@ def _gsdm_releases(root: Path) -> tuple[RegistryRelease, ...]:
             )
         )
 
+    column = gsdm.parse_gsdm_domain_values(dictionary)
     domain_resources: list[RegistryResource] = []
-    for element in gsdm.GSDM_SCHEMA_CROSSWALK_ELEMENTS:
-        for value in element.domain_values:
-            group = value.domain_group or "default"
-            identity = f"{element.gsdm_element}:{group}:{value.code}"
-            domain_resources.append(
-                RegistryResource(
-                    iri=(
-                        "urn:ref:gsdm:domain-value:"
-                        + quote(element.gsdm_element, safe="")
-                        + ":"
-                        + quote(group, safe="")
-                        + ":"
-                        + quote(value.code, safe="")
+    for value in column.values:
+        group = value.domain_group or "default"
+        identity = f"{value.element}:{group}:{value.identity}"
+        domain_resources.append(
+            RegistryResource(
+                iri=(
+                    "urn:ref:gsdm:domain-value:"
+                    + quote(value.element, safe="")
+                    + ":"
+                    + quote(group, safe="")
+                    + ":"
+                    + quote(value.identity, safe="")
+                ),
+                labels=(
+                    _label(
+                        value.value,
+                        f"{dictionary_pin.logical_path}#{identity}",
                     ),
-                    labels=(
-                        _label(
-                            value.label,
-                            f"{dictionary_pin.logical_path}#{identity}",
-                        ),
-                    ),
-                    native_payload=_frozen(
-                        {
-                            "gsdmElement": element.gsdm_element,
-                            "domainGroup": value.domain_group,
-                            "code": value.code,
-                            "label": value.label,
-                            "codeDescription": value.code_description,
-                        }
-                    ),
-                    source_locator=dictionary_pin.source_iri,
-                    source_digest=dictionary_pin.sha256,
-                    definition=value.code_description,
-                    notations=(value.code,),
-                )
+                ),
+                native_payload=_frozen(
+                    {
+                        "gsdmElement": value.element,
+                        "rowOrdinal": value.row_ordinal,
+                        "domainGroup": value.domain_group,
+                        "code": value.code,
+                        "value": value.value,
+                        "codeDescription": value.code_description,
+                    }
+                ),
+                source_locator=dictionary_pin.source_iri,
+                source_digest=dictionary_pin.sha256,
+                definition=value.code_description,
+                notations=(value.code,) if value.code is not None else (),
             )
+        )
     return (
         _release(
             key="gsdm-online-data-dictionary-2026-08-03",
@@ -428,20 +438,132 @@ def _gsdm_releases(root: Path) -> tuple[RegistryRelease, ...]:
             },
         ),
         _release(
-            key="gsdm-reviewed-domain-values-2026-08-03",
+            key="gsdm-data-dictionary-domain-values-2026-08-03",
             resource_id="governmentwide-spending-data-model",
             source_module="refspec.registry.usaspending_gsdm_codes",
             profile="codeScheme",
             ring="value",
+            # captureSubset because the publisher's Domain Values column is
+            # itself partial: 86 elements defer their domains to external
+            # code sources the column only cites, and 168 publish no domain
+            # text. Every value the publisher enumerates inline is emitted.
             scope="captureSubset",
             issued="2026-08-03",
             inputs=(dictionary_pin,),
             resources=domain_resources,
-            scheme_suffix="reviewed-domain-values",
+            scheme_suffix="domain-values",
             metadata={
                 "domainValueCount": len(domain_resources),
-                "typedElements": [element.gsdm_element for element in gsdm.GSDM_SCHEMA_CROSSWALK_ELEMENTS],
-                "allStructuralRowsEmitted": True,
+                "describedValueCount": column.described_value_count,
+                "elementCount": column.element_count,
+                "enumeratedElementCount": column.enumerated_element_count,
+                "referenceOnlyElementCount": column.reference_only_element_count,
+                "emptyDomainValueElementCount": column.empty_element_count,
+                "codelessValueElements": column.codeless_value_elements,
+                "placeholderLinesExcluded": column.placeholder_lines,
+                "unmatchedDescriptionKeys": column.unmatched_description_keys,
+                "unpairedDescriptionElements": column.unpaired_description_elements,
+                "captureSubsetOf": (
+                    "the publisher's per-element domain space: 86 of 457 elements "
+                    "cite an external code source instead of enumerating, and 168 "
+                    "publish no domain text; every inline enumeration is emitted"
+                ),
+            },
+        ),
+    )
+
+
+def _opm_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    workbook_pin = _pin(
+        root,
+        "output/registry-real-data-sources/EHRI-Data-Standards-20260804.xlsx",
+        sha256=opm.OPM_EHRI_DATA_STANDARDS_SHA256,
+        byte_length=opm.OPM_EHRI_DATA_STANDARDS_BYTE_LENGTH,
+        source_iri=opm.OPM_EHRI_DATA_STANDARDS_URL,
+        role="publisherWorkbook",
+    )
+    export = opm.parse_opm_ehri_data_standards_xlsx(workbook_pin.path.read_bytes())
+    split = opm.split_opm_ehri_element(export)
+    past_by_code: dict[str, list[opm.OPMEHRIValue]] = defaultdict(list)
+    for past_value in split.past_values:
+        past_by_code[past_value.code].append(past_value)
+    roster_resources: list[RegistryResource] = []
+    seen_codes: set[str] = set()
+    for value in split.current_values:
+        if value.code in seen_codes:
+            raise ValueError(f"EHRI AGENCY/SUBELEMENT repeats publisher code {value.code!r}")
+        seen_codes.add(value.code)
+        source_locator = (
+            opm.OPM_EHRI_DATA_STANDARDS_URL
+            + "#CurrentValues/AGENCY-SUBELEMENT/"
+            + quote(value.code, safe="")
+        )
+        roster_resources.append(
+            RegistryResource(
+                iri="urn:ref:opm-ehri-agency-subelement:" + quote(value.code, safe=""),
+                labels=(_label(value.explanation, source_locator),),
+                native_payload=_frozen(
+                    {
+                        "code": value.code,
+                        "publisherName": value.explanation,
+                        "fromDate": value.from_date,
+                        "throughDate": value.through_date,
+                        "pastLifecycle": [
+                            {
+                                "code": row.code,
+                                "explanation": row.explanation,
+                                "fromDate": row.from_date,
+                                "throughDate": row.through_date,
+                            }
+                            for row in past_by_code.get(value.code, ())
+                        ],
+                    }
+                ),
+                source_locator=source_locator,
+                source_digest=workbook_pin.sha256,
+                notations=(value.code,),
+                status="current",
+            )
+        )
+    past_only_codes = set(past_by_code) - seen_codes
+    return (
+        _release(
+            key="opm-ehri-agency-subelement-2026-08-04",
+            resource_id="opm-ehri-workforce-codes",
+            source_module="refspec.registry.opm_workforce_codes",
+            profile="codeScheme",
+            ring="entity",
+            scope="completeCapture",
+            issued="2026-08-04",
+            inputs=(workbook_pin,),
+            resources=roster_resources,
+            scheme_suffix="agency-subelement",
+            metadata={
+                # The publisher's own definition row for this element.
+                "element": {
+                    "name": split.element.name,
+                    "description": split.element.description,
+                    "dataFormat": split.element.data_format,
+                    "dataLength": split.element.data_length,
+                    "validValues": split.element.valid_values,
+                    "currentValues": split.element.current_values,
+                    "pastValues": split.element.past_values,
+                },
+                "rosterSize": len(roster_resources),
+                "currentValueCount": len(split.current_values),
+                "pastValueCount": len(split.past_values),
+                "pastLifecycleAttachedCount": sum(
+                    len(rows) for code, rows in past_by_code.items() if code in seen_codes
+                ),
+                "pastOnlyIdentityCount": len(past_only_codes),
+                "pastValuesAreMembers": False,
+                # Complete over exactly what it names: every current value of
+                # the EHRI AGENCY/SUBELEMENT element, under the publisher's
+                # own codes and names. Falsified whenever rosterSize !=
+                # currentValueCount above; nothing wider is claimed — the
+                # Federal Hierarchy roster is a separate release.
+                "completeCurrentValueRosterOfElement": opm.OPM_EHRI_AGENCY_SUBELEMENT_ELEMENT,
+                "splitFromElementOf": "opm-ehri-data-standards-2026-08-04",
             },
         ),
     )
@@ -462,9 +584,13 @@ REGISTRY_NONEMITTER_RELEASE_GROUPS = (
         frozenset(
             {
                 "gsdm-online-data-dictionary-2026-08-03",
-                "gsdm-reviewed-domain-values-2026-08-03",
+                "gsdm-data-dictionary-domain-values-2026-08-03",
             }
         ),
+    ),
+    (
+        "opm",
+        frozenset({"opm-ehri-agency-subelement-2026-08-04"}),
     ),
 )
 REGISTRY_NONEMITTER_RELEASE_KEYS = frozenset(
@@ -492,6 +618,7 @@ def load_registry_nonemitter_releases(
         "nppes": _nppes_releases,
         "treasury": _treasury_releases,
         "gsdm": _gsdm_releases,
+        "opm": _opm_releases,
     }
     releases: list[RegistryRelease] = []
     for group_name, group_keys in REGISTRY_NONEMITTER_RELEASE_GROUPS:

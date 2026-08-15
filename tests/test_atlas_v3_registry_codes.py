@@ -25,8 +25,11 @@ RESOURCE_IRI = re.compile(
 )
 EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.billstatus_codes": 132,
-    "refspec.registry.census_geo_codes": 24,
-    "refspec.registry.census_gov_finance_codes": 56,
+    # 11 GEOID structure rows + the complete 21-field GNIS National File
+    # layout; the ACS sample and the three example GEOIDs left (REF-032).
+    "refspec.registry.census_geo_codes": 32,
+    # The NASBO program-area chapter titles left (REF-032).
+    "refspec.registry.census_gov_finance_codes": 49,
     "refspec.registry.fec_committee_codes": 129,
     "refspec.registry.ferc_elibrary_codes": 340,
     "refspec.registry.govinfo_collections": 92,
@@ -37,12 +40,12 @@ EXPECTED_RESOURCE_COUNTS = {
     "refspec.registry.oira_review_codes": 20,
     "refspec.registry.omb_a11_budget_codes": 144,
     "refspec.registry.oversight_report_types": 10,
-    "refspec.registry.pra_icr_codes": 21,
+    # 10 request types + 5 ICR statuses; the burden-range form widgets and
+    # the OMB number field shape left the emission (REF-032).
+    "refspec.registry.pra_icr_codes": 15,
     "refspec.registry.regulations_gov_codes": 10,
     "refspec.registry.sam_assistance_listing_codes": 134,
     "refspec.registry.sam_opportunities_codes": 34,
-    "refspec.registry.scotus_opinion_types": 7,
-    "refspec.registry.sec_series_categories": 19,
     "refspec.registry.unified_agenda_codes": 49,
     "refspec.registry.usaspending_gsdm_codes": 33,
 }
@@ -109,9 +112,12 @@ def test_loads_every_supported_small_registry_source_at_measured_counts(
     # 67 before REF-031, when the FCC ECFS proceedings population left for
     # SpicyRegs; 66 before REF-032, when the fourteen regulatory-native
     # inventories, the three remaining ECFS observations, and the FERC
-    # "accession number formats" left as observed inventories.
-    assert len(releases) == 48
-    assert sum(counts.values()) == 1_536
+    # "accession number formats" left as observed inventories; 48 before the
+    # REF-032 repair pass removed the NASBO chapter titles, the SCOTUS
+    # sidebar labels, the SEC sidenav categories, and the ACS variables
+    # sample.
+    assert len(releases) == 44
+    assert sum(counts.values()) == 1_505
     assert dict(counts) == EXPECTED_RESOURCE_COUNTS
     assert all(not release.relations for release in releases)
 
@@ -138,7 +144,6 @@ def test_field_values_formats_and_code_domains_use_the_value_ring(
 ) -> None:
     by_key = {release.key: release for release in releases}
     value_release_keys = {
-        "census-acs-geography-identifiers",
         "census-tiger-geoid-structure",
         "usgs-gnis-identifiers",
         "fec-committee-designation",
@@ -149,10 +154,23 @@ def test_field_values_formats_and_code_domains_use_the_value_ring(
         "ferc-docket-prefixes",
         "grants-gov-funding-categories",
         "unified-agenda-legal-authority-citation-types",
+        # Repaired under the REF-032 pass: filer-selected filing codes and a
+        # publisher technology-area code roster are value-ring code lists,
+        # not subject concept schemes.
+        "lda-general-issue-codes",
+        "nasa-technology-taxonomy-8817",
     }
 
     assert value_release_keys <= by_key.keys()
     assert {by_key[key].ring for key in value_release_keys} == {"value"}
+    assert by_key["lda-general-issue-codes"].profile == "codeScheme"
+    assert by_key["nasa-technology-taxonomy-8817"].profile == "codeScheme"
+    # The TX technology-area codes ride as notations on the NASA roster.
+    assert any(
+        notation.startswith("TX")
+        for resource in by_key["nasa-technology-taxonomy-8817"].resources
+        for notation in resource.notations
+    )
 
 
 def test_resources_have_english_labels_readable_uuid7_ids_and_exact_provenance(
@@ -221,7 +239,8 @@ def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
 
     assert by_key["billstatus-action-codes"].scope == "captureSubset"
     assert by_key["nasa-technology-taxonomy-8817"].scope == "captureSubset"
-    assert by_key["census-acs-geography-identifiers"].scope == "captureSubset"
+    assert by_key["census-tiger-geoid-structure"].scope == "captureSubset"
+    assert by_key["usgs-gnis-identifiers"].scope == "captureSubset"
     assert by_key["omb-a11-functional-classification"].scope == "captureSubset"
     assert by_key["unified-agenda-rule-stage"].scope == "captureSubset"
     assert by_key["unified-agenda-legal-authority-citation-types"].scope == (
@@ -236,3 +255,117 @@ def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
         "publisherPdfTextExtraction",
     }
     assert by_key["ferc-docket-prefixes"].resources[0].status in {"active", "discontinued"}
+
+
+def test_ferc_class_types_emit_type_description_labels_with_recovered_columns(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    release = next(release for release in releases if release.key == "ferc-document-class-types")
+
+    assert len(release.resources) == 235
+    for resource in release.resources:
+        payload = resource.native_payload
+        # The display label is the publisher's Type Description column, and
+        # the recovered Category/Library/Classification structure plus the
+        # exact extracted line travel in the native payload.
+        assert resource.labels[0].value == payload["type_description"]
+        assert payload["category"] in {"Issuance", "Submittal"}
+        assert payload["library"]
+        assert payload["classification"]
+        assert payload["text"].startswith(f"{payload['category']} {payload['library']} ")
+        assert payload["text"].endswith(payload["type_description"])
+        assert payload["sourceMedium"] == "pdf"
+    labels = {resource.labels[0].value for resource in release.resources}
+    assert "ALJ Initial Decision/Certification of Initial Decision and Record" in labels
+    # No resource carries the flat space-joined line as its label.
+    assert not any(
+        resource.labels[0].value.startswith(("Issuance ", "Submittal "))
+        for resource in release.resources
+    )
+
+
+def test_tiger_geoid_structure_emits_only_the_published_composition_rows(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    release = next(release for release in releases if release.key == "census-tiger-geoid-structure")
+
+    assert len(release.resources) == 11
+    assert release.profile == "identifierScheme"
+    # The three example GEOIDs (kind tigerGeoidExampleValue, e.g. Kent
+    # County, Delaware) left under REF-032: example values, not vocabulary.
+    kinds = {
+        identifier["kind"]
+        for resource in release.resources
+        for identifier in resource.native_payload["identifiers"]
+    }
+    assert kinds == {"tigerGeoidComposition"}
+    assert not any(
+        notation.startswith("0500000US")
+        for resource in release.resources
+        for notation in resource.notations
+    )
+    # IRI stability: identity seeds on (resourceId, sourceArtifact, sourcePath,
+    # identifiers), never on bundle position, so subtracting the example rows
+    # must not re-mint the kept eleven. Three sampled pins hold that claim.
+    kept = {resource.iri for resource in release.resources}
+    assert {
+        "urn:ref:source-concept:v2:census-tiger-geoid:019fc915-3c80-7312-89f4-dc856a0c4b63",
+        "urn:ref:source-concept:v2:census-tiger-geoid:019fc915-3c80-7383-98cb-944083ea5dbe",
+        "urn:ref:source-concept:v2:census-tiger-geoid:019fc915-3c80-74bc-a6bd-fde50d00c239",
+    } <= kept
+
+
+def test_gnis_release_is_the_complete_national_file_layout_in_publisher_words(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    release = next(release for release in releases if release.key == "usgs-gnis-identifiers")
+
+    assert release.profile == "structureScheme"
+    assert len(release.resources) == 21
+    by_field = {resource.notations[0]: resource for resource in release.resources}
+    assert by_field["feature_id"].labels[0].value == "feature_id"
+    assert by_field["feature_id"].definition == (
+        "Permanent, unique feature record identifier. See Appendix 3, number 1."
+    )
+    # Every field carries the publisher's description cell; merged cells are
+    # shared verbatim with the group recorded, never paraphrased in
+    # RefSpec's own words.
+    assert all(resource.definition for resource in release.resources)
+    assert by_field["state_numeric"].native_payload["descriptionSharedWithFields"] == (
+        "state_name",
+        "state_numeric",
+    )
+    assert "Two-digit code for the state" not in (by_field["state_numeric"].definition or "")
+    assert "Three-digit code for the county" not in (by_field["county_numeric"].definition or "")
+    assert all(resource.native_payload["sourceMedium"] == "pdf" for resource in release.resources)
+
+
+def test_pra_release_emits_publisher_codes_without_form_mechanics(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    release = next(release for release in releases if release.key == "pra-icr-controls")
+
+    assert len(release.resources) == 15
+    kinds = {
+        identifier["kind"]
+        for resource in release.resources
+        for identifier in resource.native_payload["identifiers"]
+    }
+    assert kinds == {"requestTypeCode", "icrStatusCode"}
+    labels = {resource.labels[0].value for resource in release.resources}
+    assert "OMB Control Number" not in labels
+    assert not any(label.endswith(":") for label in labels)
+
+
+def test_govinfo_collections_emit_codes_and_names_without_holdings_counts(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    release = next(release for release in releases if release.key == "govinfo-collections")
+
+    assert len(release.resources) == 42
+    for resource in release.resources:
+        assert "packageCount" not in resource.native_payload
+        assert "granuleCount" not in resource.native_payload
+        assert resource.notations
+    names = {resource.labels[0].value for resource in release.resources}
+    assert "Code of Federal Regulations" in names

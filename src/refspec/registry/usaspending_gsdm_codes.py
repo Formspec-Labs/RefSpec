@@ -12,12 +12,15 @@ document defines the metadata-registry shape that RefSpec pins to version
 dictionary* it cites (also served by api.usaspending.gov) crosswalks each
 GSDM/DAIMS element to USAspending download files, submission tables, and
 award-category field names, and gives each element's domain values. That
-data dictionary lists 457 elements. RefSpec pins the exact digest of the
-full document for provenance but curates only the three elements in this
-catalog entry's scope -- ActionType, AssistanceType, ContractAwardType --
-as reviewed constants rather than a live-fetched, live-parsed pipeline: the
-same choice this registry makes elsewhere for a large source document whose
-scope is a handful of already-known facts (see the LDA OpenAPI pin). Award
+data dictionary lists 457 elements. RefSpec pins the exact digest of the full
+document, parses every structural row, and parses the publisher's own
+``Domain Values`` and ``Domain Values Code Description`` columns across all
+457 elements (``parse_gsdm_domain_values``): 203 elements enumerate their
+domain values inline and every one of those enumerations is read; 86 carry
+domain text that defers to an external code source instead of enumerating;
+168 publish no domain text. Three elements -- ActionType, AssistanceType,
+ContractAwardType -- additionally remain transcribed as reviewed typed
+constants because the validation helpers below join against them. Award
 Type and Assistance Type codes therefore appear twice in this module, once
 from the live endpoint (short labels) and once from the data dictionary
 (fuller code descriptions); RefSpec preserves both without reconciling them.
@@ -33,7 +36,7 @@ import json
 import os
 import re
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol, cast
@@ -673,6 +676,248 @@ def parse_gsdm_data_dictionary(
     )
 
 
+# --- Publisher domain-value enumerations ------------------------------------
+#
+# The data dictionary's "E:domain_values" cells mix three publisher formats:
+# "CODE = LABEL" lines (optionally under "Assistance:"/"Contracts:" group
+# headings), "N/A= VALUE" lines marking values that travel without a code, and
+# free text deferring the domain to an external code source ("See ...",
+# "Refer to ..."). The parser below reads every enumeration and accounts for
+# every line it does not emit; it never rewords publisher text.
+
+GSDM_DOMAIN_VALUES_HEADER = "E:domain_values"
+GSDM_DOMAIN_VALUES_CODE_DESCRIPTION_HEADER = "F:domain_values_code_description"
+
+# One publisher cell encodes Excel carriage returns as literal "_x000D_"
+# tokens (AssistanceTypeDescriptionTag); decoding them is line-ending
+# normalization, not rewording.
+_DOMAIN_CR_TOKEN = "_x000D_"
+_DOMAIN_PAIR_LINE = re.compile(r"^(?P<code>[^=]{1,80}?)\s*=\s*(?P<text>.+)$")
+_DOMAIN_GROUP_LINE = re.compile(r"^(?P<name>[A-Za-z][A-Za-z /()&-]{0,60}):$")
+# DisasterEmergencyFundName writes two of its rows with "CODE - LABEL"
+# instead of "CODE = LABEL"; the tight code shape keeps this from matching
+# prose.
+_DOMAIN_DASH_LINE = re.compile(r"^(?P<code>[A-Z0-9]{1,8})\s*-\s+(?P<text>.+)$")
+# "[Future Code(s)] = [Future P.L.]" is a publisher placeholder for codes
+# that do not exist yet, not a domain value.
+_DOMAIN_PLACEHOLDER_CODE = re.compile(r"^\[.*\]$")
+# "N/A= sub-contract" marks a value the publisher transmits without a code.
+_DOMAIN_CODELESS_MARKER = "N/A"
+
+
+@dataclass(frozen=True, slots=True)
+class GSDMPublishedDomainValue:
+    """One value a data-dictionary element's Domain Values cell enumerates."""
+
+    element: str
+    row_ordinal: int
+    domain_group: str
+    code: str | None
+    value: str
+    code_description: str | None
+
+    def __post_init__(self) -> None:
+        if not self.element.strip():
+            raise USASpendingSourceDriftError("published domain value must name its element")
+        if self.code is not None and not self.code.strip():
+            raise USASpendingSourceDriftError(f"{self.element} publishes a blank domain value code")
+        if not self.value.strip():
+            raise USASpendingSourceDriftError(f"{self.element} publishes a blank domain value")
+
+    @property
+    def identity(self) -> str:
+        """The publisher token identifying this value within its element and group."""
+
+        return self.code if self.code is not None else self.value
+
+
+@dataclass(frozen=True, slots=True)
+class GSDMDomainValuesColumn:
+    """Everything the publisher's Domain Values column enumerates, with accounting.
+
+    ``values`` carries every publisher-enumerated domain value across all 457
+    elements. The remaining fields say exactly what was not emitted and why:
+    elements whose domain text only cites an external source, elements with no
+    domain text, placeholder lines, and description-column entries that name a
+    code the Domain Values cell does not enumerate.
+    """
+
+    source_sha256: str
+    element_count: int
+    enumerated_element_count: int
+    reference_only_element_count: int
+    empty_element_count: int
+    values: tuple[GSDMPublishedDomainValue, ...]
+    codeless_value_elements: tuple[str, ...]
+    placeholder_lines: tuple[tuple[str, str], ...]
+    unmatched_description_keys: tuple[tuple[str, str, str], ...]
+    unpaired_description_elements: tuple[str, ...]
+    described_value_count: int
+
+
+def _domain_cell_lines(cell: object) -> tuple[str, ...]:
+    if not isinstance(cell, str):
+        return ()
+    return tuple(
+        line for line in (raw.replace(_DOMAIN_CR_TOKEN, "").strip() for raw in cell.split("\n")) if line
+    )
+
+
+def _parse_domain_lines(
+    element: str,
+    lines: Sequence[str],
+) -> tuple[list[tuple[str, str | None, str]], list[str]] | None:
+    """Parse one cell's lines into (group, code, text) triples plus placeholders.
+
+    Returns ``None`` when no line is a ``CODE = LABEL`` pair: the cell is
+    publisher domain text, not an enumeration. A line that is neither a pair,
+    a group heading, nor a dash pair continues the previous value's text (the
+    publisher wraps one label across two lines).
+    """
+
+    if not any(_DOMAIN_PAIR_LINE.match(line) for line in lines):
+        return None
+    values: list[tuple[str, str | None, str]] = []
+    placeholders: list[str] = []
+    group = ""
+    for line in lines:
+        pair = _DOMAIN_PAIR_LINE.match(line)
+        if pair is not None:
+            code = pair.group("code").strip()
+            text = pair.group("text").strip()
+            if _DOMAIN_PLACEHOLDER_CODE.match(code):
+                placeholders.append(line)
+            elif code == _DOMAIN_CODELESS_MARKER:
+                values.append((group, None, text))
+            else:
+                values.append((group, code, text))
+            continue
+        heading = _DOMAIN_GROUP_LINE.match(line)
+        if heading is not None:
+            group = heading.group("name")
+            continue
+        dash = _DOMAIN_DASH_LINE.match(line)
+        if dash is not None:
+            values.append((group, dash.group("code"), dash.group("text").strip()))
+            continue
+        if not values:
+            raise USASpendingSourceDriftError(
+                f"{element} domain values start with an unrecognized line: {line!r}"
+            )
+        previous_group, previous_code, previous_text = values[-1]
+        values[-1] = (previous_group, previous_code, previous_text + " " + line)
+    return values, placeholders
+
+
+def parse_gsdm_domain_values(dictionary: ParsedGSDMDataDictionary) -> GSDMDomainValuesColumn:
+    """Read every publisher-enumerated domain value from the pinned dictionary."""
+
+    positions = {raw: position for position, (raw, _display) in enumerate(dictionary.headers)}
+    for header in (GSDM_DOMAIN_VALUES_HEADER, GSDM_DOMAIN_VALUES_CODE_DESCRIPTION_HEADER):
+        if header not in positions:
+            raise USASpendingSourceDriftError(f"GSDM data dictionary lost its {header!r} column")
+    value_position = positions[GSDM_DOMAIN_VALUES_HEADER]
+    description_position = positions[GSDM_DOMAIN_VALUES_CODE_DESCRIPTION_HEADER]
+
+    enumerated: dict[str, tuple[int, list[tuple[str, str | None, str]]]] = {}
+    reference_only = 0
+    empty = 0
+    codeless_elements: list[str] = []
+    placeholder_lines: list[tuple[str, str]] = []
+    for row in dictionary.rows:
+        lines = _domain_cell_lines(row.cells[value_position])
+        if not lines:
+            empty += 1
+            continue
+        parsed = _parse_domain_lines(row.element, lines)
+        if parsed is None:
+            # A cell with no pairs is enumerable in exactly one publisher
+            # shape: a bare value list whose description cell pairs every
+            # listed value with its definition (PrimaryPlaceOfPerformanceScope).
+            description_lines = _domain_cell_lines(row.cells[description_position])
+            described = _parse_domain_lines(row.element, description_lines) if description_lines else None
+            if described is not None and [code for _group, code, _text in described[0]] == list(lines):
+                # Fail closed like the pair path: a bare value is its own
+                # identity, so a repeated line would silently collapse two
+                # publisher values into one emitted resource.
+                if len(lines) != len(set(lines)):
+                    raise USASpendingSourceDriftError(
+                        f"{row.element} bare domain value list repeats a value"
+                    )
+                enumerated[row.element] = (row.ordinal, [("", None, line) for line in lines])
+                codeless_elements.append(row.element)
+                continue
+            reference_only += 1
+            continue
+        values, placeholders = parsed
+        placeholder_lines.extend((row.element, line) for line in placeholders)
+        if any(code is None for _group, code, _text in values):
+            codeless_elements.append(row.element)
+        identities = [(group, code if code is not None else text) for group, code, text in values]
+        if len(identities) != len(set(identities)):
+            raise USASpendingSourceDriftError(
+                f"{row.element} domain values repeat a (group, identity) pair"
+            )
+        enumerated[row.element] = (row.ordinal, values)
+
+    descriptions: dict[str, dict[tuple[str, str], str]] = {}
+    unmatched_description_keys: list[tuple[str, str, str]] = []
+    unpaired_description_elements: list[str] = []
+    described_value_count = 0
+    for row in dictionary.rows:
+        lines = _domain_cell_lines(row.cells[description_position])
+        if not lines or row.element not in enumerated:
+            continue
+        parsed = _parse_domain_lines(row.element, lines)
+        if parsed is None:
+            unpaired_description_elements.append(row.element)
+            continue
+        emitted = {
+            (group, code if code is not None else text)
+            for group, code, text in enumerated[row.element][1]
+        }
+        element_descriptions: dict[tuple[str, str], str] = {}
+        for group, code, text in parsed[0]:
+            identity = code if code is not None else text
+            if (group, identity) in emitted:
+                element_descriptions[(group, identity)] = text
+                described_value_count += 1
+            else:
+                unmatched_description_keys.append((row.element, group, identity))
+        descriptions[row.element] = element_descriptions
+
+    values: list[GSDMPublishedDomainValue] = []
+    for element, (ordinal, triples) in sorted(enumerated.items(), key=lambda item: item[1][0]):
+        element_descriptions = descriptions.get(element, {})
+        for group, code, text in triples:
+            identity = code if code is not None else text
+            values.append(
+                GSDMPublishedDomainValue(
+                    element=element,
+                    row_ordinal=ordinal,
+                    domain_group=group,
+                    code=code,
+                    value=text,
+                    code_description=element_descriptions.get((group, identity)),
+                )
+            )
+    if reference_only + empty + len(enumerated) != len(dictionary.rows):
+        raise USASpendingSourceDriftError("GSDM domain value accounting does not cover every row")
+    return GSDMDomainValuesColumn(
+        source_sha256=dictionary.source_sha256,
+        element_count=len(dictionary.rows),
+        enumerated_element_count=len(enumerated),
+        reference_only_element_count=reference_only,
+        empty_element_count=empty,
+        values=tuple(values),
+        codeless_value_elements=tuple(codeless_elements),
+        placeholder_lines=tuple(placeholder_lines),
+        unmatched_description_keys=tuple(unmatched_description_keys),
+        unpaired_description_elements=tuple(unpaired_description_elements),
+        described_value_count=described_value_count,
+    )
+
+
 # The following three constants are reviewed, hardcoded transcriptions of the
 # ActionType, AssistanceType, and ContractAwardType rows in the USAspending
 # online data dictionary (GSDM_DATA_DICTIONARY_URL, pinned above). They are
@@ -838,10 +1083,12 @@ GSDM_DOCUMENT = GSDMDocumentPin(
 USASPENDING_GSDM_PORTFOLIO_GAPS = (
     (
         "The USAspending online data dictionary publishes 457 GSDM/DAIMS crosswalk "
-        "elements. RefSpec retains every structural row and gives typed domain-value "
-        "treatment to ActionType, AssistanceType, and ContractAwardType; domain text "
-        "on other rows remains exact source data until a reviewed generic domain parser "
-        "can interpret it without changing publisher meaning."
+        "elements. RefSpec retains every structural row and parses the publisher's "
+        "Domain Values column across all of them (parse_gsdm_domain_values); the "
+        "typed constants below additionally transcribe ActionType, AssistanceType, "
+        "and ContractAwardType for the validation helpers. 86 elements defer their "
+        "domains to external code sources the publisher only cites, and 168 publish "
+        "no domain text; those domains are not enumerable from this document."
     ),
     (
         "Award type and assistance type codes are published twice with independent "

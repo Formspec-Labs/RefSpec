@@ -1238,7 +1238,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 75
+    assert len(generator._validated_registry_index_rows(index, proof)) == 78
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(

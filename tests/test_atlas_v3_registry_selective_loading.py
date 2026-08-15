@@ -174,17 +174,17 @@ def test_nonemitter_loader_parses_one_group_and_filters_its_releases(
         called.append("gsdm")
         return (
             _release("gsdm-online-data-dictionary-2026-08-03"),
-            _release("gsdm-reviewed-domain-values-2026-08-03"),
+            _release("gsdm-data-dictionary-domain-values-2026-08-03"),
         )
 
     monkeypatch.setattr(nonemitters, "_gsdm_releases", gsdm)
     releases = nonemitters.load_registry_nonemitter_releases(
         Path("/repo"),
-        only_keys={"gsdm-reviewed-domain-values-2026-08-03"},
+        only_keys={"gsdm-data-dictionary-domain-values-2026-08-03"},
     )
 
     assert [release.key for release in releases] == [
-        "gsdm-reviewed-domain-values-2026-08-03"
+        "gsdm-data-dictionary-domain-values-2026-08-03"
     ]
     assert called == ["gsdm"]
 

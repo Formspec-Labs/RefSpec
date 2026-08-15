@@ -644,14 +644,14 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:45abf0930f93ab44c36cb59d5548379c18d0570158192e59da482aad66f5acff"
+    "sha256:84456cf1f56df728c5ff685c9921b3c592d158eca21d6fe88f273b9c57262b64"
 )
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:a3b0a6a36c8520845b561642fa2eef564726f2ac52ed1abd20b1db15e471ac2a"
+    "sha256:e63c34368ed3e6df2e3981c71c25eb5e039dd0fa8d2595df9ebd4ebb08ba3c07"
 )
 
 
@@ -994,6 +994,7 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
     from refspec.atlas.v3_registry_codes import REGISTRY_CODE_RELEASE_KEYS
     from refspec.atlas.v3_registry_large import LARGE_REGISTRY_RELEASE_KEYS
     from refspec.atlas.v3_registry_nonemitters import REGISTRY_NONEMITTER_RELEASE_KEYS
+    from refspec.atlas.v3_registry_rosters import REGISTRY_ROSTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_vocabularies import REGISTRY_VOCABULARY_RELEASE_KEYS
 
     groups = (
@@ -1001,6 +1002,7 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         (LARGE_REGISTRY_RELEASE_KEYS, "refspec.atlas.v3_registry_large"),
         (REGISTRY_CODE_RELEASE_KEYS, "refspec.atlas.v3_registry_codes"),
         (REGISTRY_NONEMITTER_RELEASE_KEYS, "refspec.atlas.v3_registry_nonemitters"),
+        (REGISTRY_ROSTER_RELEASE_KEYS, "refspec.atlas.v3_registry_rosters"),
         (
             REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_MAPPING_RELEASE_KEYS,
             "refspec.atlas.v3_registry_alignments",
@@ -2149,6 +2151,7 @@ def _declared_construction_unit_keys() -> frozenset[str]:
     from refspec.atlas.v3_registry_codes import REGISTRY_CODE_RELEASE_KEYS
     from refspec.atlas.v3_registry_large import LARGE_REGISTRY_RELEASE_KEYS
     from refspec.atlas.v3_registry_nonemitters import REGISTRY_NONEMITTER_RELEASE_KEYS
+    from refspec.atlas.v3_registry_rosters import REGISTRY_ROSTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_vocabularies import REGISTRY_VOCABULARY_RELEASE_KEYS
 
     direct = {
@@ -2163,6 +2166,7 @@ def _declared_construction_unit_keys() -> frozenset[str]:
             *LARGE_REGISTRY_RELEASE_KEYS,
             *REGISTRY_CODE_RELEASE_KEYS,
             *REGISTRY_NONEMITTER_RELEASE_KEYS,
+            *REGISTRY_ROSTER_RELEASE_KEYS,
             *REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
             *REGISTRY_MAPPING_RELEASE_KEYS,
         }
@@ -2375,6 +2379,10 @@ def load_releases(
         REGISTRY_NONEMITTER_RELEASE_KEYS,
         load_registry_nonemitter_releases,
     )
+    from refspec.atlas.v3_registry_rosters import (
+        REGISTRY_ROSTER_RELEASE_KEYS,
+        load_registry_roster_releases,
+    )
     from refspec.atlas.v3_registry_vocabularies import (
         REGISTRY_VOCABULARY_RELEASE_KEYS,
         load_all_registry_vocabulary_releases,
@@ -2427,6 +2435,10 @@ def load_releases(
         *load_registry_nonemitter_releases(
             ROOT,
             only_keys=None if selected is None else selected & REGISTRY_NONEMITTER_RELEASE_KEYS,
+        ),
+        *load_registry_roster_releases(
+            ROOT,
+            only_keys=None if selected is None else selected & REGISTRY_ROSTER_RELEASE_KEYS,
         ),
         *load_all_registry_alignment_endpoint_releases(
             only_keys=None

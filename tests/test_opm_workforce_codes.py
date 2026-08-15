@@ -19,6 +19,16 @@ OCCUPATIONAL_SERIES_FIXTURE = FIXTURES / "opm-occupational-series-codes.json"
 PLUM_FIXTURE = FIXTURES / "opm-plum-position-status-codes.json"
 EHRI_REAL_SOURCE_ENV = "REFSPEC_OPM_EHRI_DATA_STANDARDS_PATH"
 PLUM_REAL_SOURCE_ENV = "REFSPEC_OPM_PLUM_ALL_DATA_PATH"
+# The workbook the Atlas loaders read by default; gate on its presence (like
+# the GSDM and roster real-data tests) so the real-count assertions run
+# whenever the capture exists, with the env var kept as an override.
+EHRI_REAL_SOURCE_DEFAULT = (
+    Path(__file__).resolve().parents[1] / "output" / "registry-real-data-sources" / "EHRI-Data-Standards-20260804.xlsx"
+)
+
+
+def _ehri_real_source_path() -> Path:
+    return Path(os.environ.get(EHRI_REAL_SOURCE_ENV) or EHRI_REAL_SOURCE_DEFAULT)
 
 
 def _acquire(
@@ -59,11 +69,11 @@ def test_pinned_fixture_bytes_match_exact_digests() -> None:
 
 
 @pytest.mark.skipif(
-    not os.environ.get(EHRI_REAL_SOURCE_ENV),
-    reason=f"set {EHRI_REAL_SOURCE_ENV} to the pinned official EHRI XLSX export",
+    not _ehri_real_source_path().is_file(),
+    reason=(f"the exact EHRI data-standards workbook capture is not present (or set {EHRI_REAL_SOURCE_ENV})"),
 )
 def test_official_ehri_export_shape_counts_and_samples() -> None:
-    payload = Path(os.environ[EHRI_REAL_SOURCE_ENV]).read_bytes()
+    payload = _ehri_real_source_path().read_bytes()
     export = opm.parse_opm_ehri_data_standards_xlsx(payload)
 
     assert export.source_sha256 == "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc"
@@ -84,6 +94,92 @@ def test_official_ehri_export_shape_counts_and_samples() -> None:
     )
     assert export.current_values_for("OCCUPATION")[-1].code == "9999"
     assert export.current_values_for("OCCUPATION")[-1].explanation == "SECOND RADIO ELECTRONICS TECHNICIAN"
+
+    # The AGENCY/SUBELEMENT split carries every current value of that
+    # element; the remainder keeps every other row under the same digest.
+    split = opm.split_opm_ehri_element(export)
+    assert split.element.name == "AGENCY/SUBELEMENT"
+    assert len(split.current_values) == 798
+    assert len(split.past_values) == 3_004
+    assert split.current_values[0].code == "AA00"
+    assert split.current_values[0].explanation == "ADMINISTRATIVE CONFERENCE OF THE UNITED STATES"
+    assert len(split.remainder.fields) == 533
+    assert len(split.remainder.current_values) == 16_465
+    assert len(split.remainder.past_values) == 13_421
+    assert split.remainder.source_sha256 == export.source_sha256
+
+
+def _ehri_element(name: str) -> opm.OPMEHRIDataElement:
+    return opm.OPMEHRIDataElement(
+        name=name,
+        description=f"{name} description",
+        data_format="Text_F",
+        data_length="4",
+        valid_values="Yes",
+        current_values="Yes",
+        past_values="Yes",
+    )
+
+
+def _ehri_value(name: str, code: str, through_date: str = "PRESENT") -> opm.OPMEHRIValue:
+    return opm.OPMEHRIValue(
+        name=name,
+        code=code,
+        explanation=f"{name} {code} explanation",
+        from_date="2001-01-01",
+        through_date=through_date,
+    )
+
+
+def _ehri_export() -> opm.OPMEHRIDataStandardsExport:
+    return opm.OPMEHRIDataStandardsExport(
+        source_sha256="sha256:" + "ab" * 32,
+        source_byte_length=10,
+        fields=(_ehri_element("AGENCY/SUBELEMENT"), _ehri_element("PAY PLAN")),
+        current_values=(
+            _ehri_value("AGENCY/SUBELEMENT", "AA00"),
+            _ehri_value("PAY PLAN", "AA"),
+        ),
+        past_values=(
+            _ehri_value("AGENCY/SUBELEMENT", "ZZ00", through_date="1999-12-31"),
+            _ehri_value("PAY PLAN", "ZZ", through_date="1999-12-31"),
+        ),
+    )
+
+
+def test_split_opm_ehri_element_is_exhaustive_and_keeps_the_source_digest() -> None:
+    export = _ehri_export()
+
+    split = opm.split_opm_ehri_element(export)
+
+    assert split.element == export.fields[0]
+    assert split.current_values == (export.current_values[0],)
+    assert split.past_values == (export.past_values[0],)
+    assert split.remainder.fields == (export.fields[1],)
+    assert split.remainder.current_values == (export.current_values[1],)
+    assert split.remainder.past_values == (export.past_values[1],)
+    assert split.remainder.source_sha256 == export.source_sha256
+    assert split.remainder.source_byte_length == export.source_byte_length
+    # Nothing is dropped: both sides together are the whole export.
+    assert len(split.current_values) + len(split.remainder.current_values) == len(export.current_values)
+    assert len(split.past_values) + len(split.remainder.past_values) == len(export.past_values)
+
+
+def test_split_opm_ehri_element_fails_closed_on_missing_or_valueless_elements() -> None:
+    export = _ehri_export()
+
+    with pytest.raises(opm.OPMSourceDriftError, match="exactly once"):
+        opm.split_opm_ehri_element(export, "NO SUCH ELEMENT")
+
+    valueless = opm.OPMEHRIDataStandardsExport(
+        source_sha256=export.source_sha256,
+        source_byte_length=export.source_byte_length,
+        fields=export.fields,
+        current_values=(export.current_values[1],),
+        past_values=export.past_values,
+    )
+    with pytest.raises(opm.OPMSourceDriftError, match="no current values"):
+        opm.split_opm_ehri_element(valueless)
 
 
 @pytest.mark.skipif(

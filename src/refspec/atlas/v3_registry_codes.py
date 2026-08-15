@@ -398,16 +398,10 @@ def _load_census(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
             source.build_census_data_flag_code_package,
             16,
         ),
-        (
-            "nasbo-program-areas",
-            "nasbo-state-expenditure-program-areas",
-            "nasbo-program-areas",
-            source.NASBO_PROGRAM_AREA_CHAPTERS_2026_08_03,
-            "tests/fixtures/census_gov_finance_codes/nasbo-ser-program-area-chapters-2026-08-03.html",
-            source.parse_nasbo_program_area_chapters,
-            source.build_nasbo_program_area_chapter_package,
-            7,
-        ),
+        # The NASBO "program areas" unit -- seven chapter titles regexed from
+        # the current State Expenditure Report landing grid -- left under
+        # REF-032: a serial publication's table of contents is not a
+        # publisher-written code list.
     )
     releases: list[RegistryRelease] = []
     for key, resource_id, token, pin, logical_path, parser, builder, count in rows:
@@ -418,7 +412,7 @@ def _load_census(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
             sha256=pin.expected_sha256,
             byte_length=pin.expected_byte_length,
         )
-        acquired = _acquire(source.acquire_census_nasbo_page, pin, input_pin.path, temporary / key)
+        acquired = _acquire(source.acquire_census_finance_page, pin, input_pin.path, temporary / key)
         bundle = builder(acquired, parser(acquired))
         releases.append(
             _bundle_release(
@@ -427,7 +421,7 @@ def _load_census(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
                 resource_id=resource_id,
                 source_module="refspec.registry.census_gov_finance_codes",
                 source_token=token,
-                profile=("conceptScheme" if resource_id == "nasbo-state-expenditure-program-areas" else "codeScheme"),
+                profile="codeScheme",
                 ring="value",
                 scope="completeCapture",
                 inputs=(input_pin,),
@@ -440,49 +434,27 @@ def _load_census(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
 def _load_census_geo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
     from refspec.registry import census_geo_codes as source
 
-    page_rows = (
-        (
-            source.ACS_GEOGRAPHY_AND_PREDICATE_SPAN_2026_08_03,
-            "tests/fixtures/census_geo_codes/acs-variables-2026-08-03.html",
-            "census-acs-variables-page",
-        ),
-        (
-            source.ACS_S0201_ESTIMATE_VARIABLES_SPAN_2026_08_03,
-            "tests/fixtures/census_geo_codes/acs-variables-2026-08-03.html",
-            "census-acs-variables-page",
-        ),
-        (
-            source.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03,
-            "tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html",
-            "census-geoid-guidance-page",
-        ),
-        (
-            source.GEOID_DOWNLOAD_EXAMPLE_TABLE_SPAN_2026_08_03,
-            "tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html",
-            "census-geoid-guidance-page",
-        ),
+    # The ACS variables unit -- a curator-picked 7 of a 635-row auto-generated
+    # variables listing, including two API query keywords -- left under
+    # REF-032: a representative subset chosen in-repo is not a publisher
+    # scheme, and the full auto-listing is not one either.
+    structure_pin = source.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03
+    page_logical_path = "tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html"
+    page_payload = (repo_root / page_logical_path).read_bytes()
+    page_input = _input_pin(
+        repo_root,
+        page_logical_path,
+        source_iri=structure_pin.span.page_url,
+        sha256="sha256:" + hashlib.sha256(page_payload).hexdigest(),
+        byte_length=len(page_payload),
+        role="publisherPageContainingPinnedSpan",
     )
-    full_page_inputs: dict[str, RegistryInputPin] = {}
-    acquired_spans: list[Any] = []
-    for index, (pin, logical_path, input_key) in enumerate(page_rows):
-        if input_key not in full_page_inputs:
-            payload = (repo_root / logical_path).read_bytes()
-            full_page_inputs[input_key] = _input_pin(
-                repo_root,
-                logical_path,
-                source_iri=pin.span.page_url,
-                sha256="sha256:" + hashlib.sha256(payload).hexdigest(),
-                byte_length=len(payload),
-                role="publisherPageContainingPinnedSpan",
-            )
-        acquired_spans.append(
-            _acquire(
-                source.acquire_census_geo_html_span,
-                pin,
-                full_page_inputs[input_key].path,
-                temporary / f"census-geo-{index}",
-            )
-        )
+    structure_span = _acquire(
+        source.acquire_census_geo_html_span,
+        structure_pin,
+        page_input.path,
+        temporary / "census-geo-structure",
+    )
     gnis_pin = source.GNIS_FILE_FORMAT_PIN_2026_08_03
     gnis_input = _input_pin(
         repo_root,
@@ -497,36 +469,33 @@ def _load_census_geo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease,
         gnis_input.path,
         temporary / "census-geo-gnis",
     )
-    bundle = source.build_census_geo_identifier_authority_package(
-        *acquired_spans,
-        gnis,
-    )
+    bundle = source.build_census_geo_identifier_authority_package(structure_span, gnis)
     source_digests = _bundle_source_digests(bundle)
     groups = (
-        (
-            "census-acs-geography-identifiers",
-            "census-acs-geography",
-            lambda iri: iri.startswith(source.CENSUS_ACS_VARIABLES_AUTHORITY_URI),
-            (full_page_inputs["census-acs-variables-page"],),
-            7,
-        ),
+        # The three example GEOIDs from the page's GEO.ID/NAME download-key
+        # table (kind ``tigerGeoidExampleValue``, e.g. Kent County, Delaware)
+        # left under REF-032: example values are not publisher vocabulary.
         (
             "census-tiger-geoid-structure",
             "census-tiger-geoid",
+            "identifierScheme",
             lambda iri: iri.startswith(source.CENSUS_GEOID_GUIDANCE_URL),
-            (full_page_inputs["census-geoid-guidance-page"],),
-            14,
+            (page_input,),
+            11,
         ),
+        # The complete published National File field layout, as a structure
+        # scheme -- every description is the publisher's own wording.
         (
             "usgs-gnis-identifiers",
             "usgs-gnis-identifiers",
+            "structureScheme",
             lambda iri: iri == source.GNIS_FILE_FORMAT_PDF_URL,
             (gnis_input,),
-            3,
+            21,
         ),
     )
     releases: list[RegistryRelease] = []
-    for resource_id, token, selector, inputs, expected_count in groups:
+    for resource_id, token, profile, selector, inputs, expected_count in groups:
         observations = tuple(
             observation for observation in bundle.observations if selector(str(observation["sourceArtifact"]))
         )
@@ -538,7 +507,7 @@ def _load_census_geo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease,
                 resource_id=resource_id,
                 source_module="refspec.registry.census_geo_codes",
                 source_token=token,
-                profile="identifierScheme",
+                profile=profile,
                 ring="value",
                 scope="captureSubset",
                 issued=str(bundle.resource_manifest["capturedAt"]),
@@ -699,9 +668,18 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
     class_capture = source.parse_ferc_class_type_pdf(class_input.path.read_bytes())
     if len(class_capture.rows) != source.FERC_CLASS_TYPE_PDF_ROW_COUNT:
         raise ValueError("FERC class/type PDF count drifted")
+    # The parser recovers the PDF's four columns (Category, Library,
+    # Classification, Type Description); the display label is the Type
+    # Description column, and the full recovered structure -- plus ``text``,
+    # the exact space-joined line the page yielded, as provenance of record --
+    # travels in the native payload so each of the 235 rows is searchable by
+    # its type name and joinable on classification, library, and category.
+    # Type descriptions repeat across classifications in the publisher's own
+    # table (e.g. "Annual Charges Report" appears three times); the full
+    # four-column row is unique, and identity comes from the row position.
     class_items = tuple(
         _Item(
-            label=row.text,
+            label=row.type_description,
             source_path=f"$.rows[{ordinal}]",
             notations=(),
             native_payload=_stamp_source_artifact(
@@ -850,14 +828,18 @@ def _load_lda(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
     from refspec.registry import lda_controlled_codes as source
 
     rows = (
+        # The reader's own position -- "None of these values is a general
+        # subject concept merely because it has a readable label" -- is now
+        # the catalog decision: filer-selected filing codes are value-ring
+        # code lists, not a general-subject concept scheme.
         (
             "lda-general-issue-codes",
             "lda-general-issues",
             source.LDA_GENERAL_ISSUE_CODES_2026_07_30,
             "tests/fixtures/lda-general-issue-codes-2026-07-30.json",
             79,
-            "conceptScheme",
-            "subject",
+            "codeScheme",
+            "value",
         ),
         (
             "lda-filing-types",
@@ -1140,6 +1122,11 @@ def _load_nasa_technology(repo_root: Path) -> tuple[RegistryRelease, ...]:
         byte_length=child_pin.expected_byte_length,
     )
     bundle = source.build_nasa_technology_taxonomy_package(root.path, children.path)
+    # The reader states the binding decision: this roster "is not promoted to
+    # a general-subject concept scheme until an evaluation proves
+    # document-subject value". No evaluation happened, so the adapter honors
+    # the reader's own text: a publisher technology-area code roster, filed
+    # as a value-ring code scheme with the TX codes as notations.
     return (
         _bundle_release(
             bundle,
@@ -1147,8 +1134,8 @@ def _load_nasa_technology(repo_root: Path) -> tuple[RegistryRelease, ...]:
             resource_id="nasa-technology-taxonomy",
             source_module="refspec.registry.nasa_technology_taxonomy",
             source_token="nasa-techport-taxonomy",
-            profile="conceptScheme",
-            ring="subject",
+            profile="codeScheme",
+            ring="value",
             scope="captureSubset",
             inputs=(root, children),
             expected_count=17,
@@ -1332,7 +1319,7 @@ def _load_pra(repo_root: Path) -> tuple[RegistryRelease, ...]:
             ring="value",
             scope="completeCapture",
             inputs=(input_pin,),
-            expected_count=21,
+            expected_count=15,
         ),
     )
 
@@ -1383,69 +1370,6 @@ def _load_regulations_gov(repo_root: Path, temporary: Path) -> tuple[RegistryRel
         )
     source.assemble_regulations_gov_control_portfolio(parsed_resources)
     return tuple(releases)
-
-
-def _load_scotus(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
-    from refspec.registry import scotus_opinion_types as source
-
-    pin = source.SCOTUS_OPINIONS_2026_08_03
-    input_pin = _input_pin(
-        repo_root,
-        "tests/fixtures/scotus_opinion_types/scotus-opinions-2026-08-03.html",
-        source_iri=pin.source_url,
-        sha256=pin.expected_sha256,
-        byte_length=pin.expected_byte_length,
-    )
-    acquired = _acquire(
-        source.acquire_scotus_opinions_page,
-        pin,
-        input_pin.path,
-        temporary / "scotus",
-    )
-    parsed = source.parse_scotus_opinions_page(acquired)
-    return (
-        _bundle_release(
-            source.build_scotus_opinion_type_package(acquired, parsed),
-            key="scotus-opinion-types",
-            resource_id="scotus-opinion-and-package-types",
-            source_module="refspec.registry.scotus_opinion_types",
-            source_token="scotus-opinion-types",
-            profile="codeScheme",
-            ring="value",
-            scope="completeCapture",
-            inputs=(input_pin,),
-            expected_count=7,
-        ),
-    )
-
-
-def _load_sec(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
-    from refspec.registry import sec_series_categories as source
-
-    pin = source.SEC_RULES_REGULATIONS_PIN_2026_08_03
-    input_pin = _input_pin(
-        repo_root,
-        "tests/fixtures/sec_series_categories/sec-rules-regulations-2026-08-03.html",
-        source_iri=pin.source.source_url,
-        sha256=pin.expected_sha256,
-        byte_length=pin.expected_byte_length,
-    )
-    acquired = _acquire(source.acquire_sec_page, pin, input_pin.path, temporary / "sec")
-    parsed = source.parse_sec_rules_regulations_page(acquired)
-    return (
-        _bundle_release(
-            source.build_sec_series_category_package(acquired, parsed),
-            key="sec-series-categories",
-            resource_id="sec-rules-regulations-categories",
-            source_module="refspec.registry.sec_series_categories",
-            source_token="sec-series-categories",
-            profile="codeScheme",
-            ring="value",
-            scope="completeCapture",
-            inputs=(input_pin,),
-            expected_count=19,
-        ),
-    )
 
 
 def _load_usaspending(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
@@ -1621,15 +1545,12 @@ REGISTRY_CODE_RELEASE_GROUPS = (
     ),
     (
         "census",
-        frozenset(
-            {"census-data-flags", "census-function-items", "nasbo-program-areas"}
-        ),
+        frozenset({"census-data-flags", "census-function-items"}),
     ),
     (
         "census-geo",
         frozenset(
             {
-                "census-acs-geography-identifiers",
                 "census-tiger-geoid-structure",
                 "usgs-gnis-identifiers",
             }
@@ -1711,8 +1632,6 @@ REGISTRY_CODE_RELEASE_GROUPS = (
             }
         ),
     ),
-    ("scotus", frozenset({"scotus-opinion-types"})),
-    ("sec", frozenset({"sec-series-categories"})),
     (
         "unified-agenda",
         frozenset(
@@ -1774,8 +1693,6 @@ def load_registry_code_releases(
         "regulations-gov": (_load_regulations_gov, True),
         "sam-assistance": (_load_sam_assistance, True),
         "sam-opportunities": (_load_sam_opportunities, True),
-        "scotus": (_load_scotus, True),
-        "sec": (_load_sec, True),
         "unified-agenda": (_load_unified_agenda, True),
         "usaspending": (_load_usaspending, True),
     }

@@ -45,26 +45,30 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 75,
-        "catalogOnlyDescriptorCount": 23,
+        "atlasIndexRowCount": 78,
+        "catalogOnlyDescriptorCount": 24,
         "catalogResourceCount": 89,
         "implementationModuleCount": 25,
-        "indexedResourceCount": 66,
-        "indexedWithoutExactReleaseCount": 61,
-        "registryModuleCount": 74,
+        "indexedResourceCount": 65,
+        "indexedWithoutExactReleaseCount": 60,
+        "registryModuleCount": 75,
         "releaseReadyIndexedResourceCount": 5,
+        # REF-033 ring corrections move three catalog kinds: the LDA general
+        # issue codes and the NASA technology taxonomy are code lists (the
+        # readers' own text), and the GNIS file layout is publisher-written
+        # structure, not an identifier authority.
         "resourceKindCounts": {
             "classification": 5,
-            "codeList": 23,
+            "codeList": 25,
             "historicalVocabulary": 1,
-            "identifierAuthority": 21,
-            "mappingReference": 13,
+            "identifierAuthority": 20,
+            "mappingReference": 12,
             "resourceFamily": 1,
-            "sourceAssignedVocabulary": 9,
-            "structuralSchema": 9,
+            "sourceAssignedVocabulary": 8,
+            "structuralSchema": 10,
             "subjectVocabulary": 7,
         },
-        "sourceModuleCount": 49,
+        "sourceModuleCount": 50,
     }
     assert all(values == [] for values in generated["unsupported"].values())
 

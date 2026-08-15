@@ -240,8 +240,16 @@ def test_build_pra_icr_controlled_value_package_produces_a_closed_deterministic_
     assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
     assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["observationCount"] == 21
-    assert len(bundle.observations) == 21
+    # Only the publisher's genuine code lists are emitted: 10 request types
+    # + 5 ICR statuses. The 5 burden-range widgets and the OMB number field
+    # shape are parsed for validation but excluded from emission (REF-032).
+    assert bundle.resource_manifest["observationCount"] == 15
+    assert len(bundle.observations) == 15
+    kinds = {identifier["kind"] for observation in bundle.observations for identifier in observation["identifiers"]}
+    assert kinds == {"requestTypeCode", "icrStatusCode"}
+    assert bundle.coverage_report["excludedCount"] == 6
+    assert bundle.coverage_report["sourceObservedCount"] == 21
+    assert {gap["kind"] for gap in bundle.coverage_report["gaps"]} >= {"formMechanicsNotEmitted"}
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
     assert all(observation["uses"] == ("deterministicMetadata",) for observation in bundle.observations)
 
@@ -250,4 +258,4 @@ def test_build_pra_icr_controlled_value_package_produces_a_closed_deterministic_
     reopened = SourceControlledResourceView.open(destination)
 
     assert reopened.logical_digest == bundle.logical_digest
-    assert len(reopened.observations) == 21
+    assert len(reopened.observations) == 15

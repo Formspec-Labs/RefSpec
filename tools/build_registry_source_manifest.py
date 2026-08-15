@@ -234,6 +234,111 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherDistribution",
         },
     ),
+    # The three documented-roster readers (REF-032 follow-ups) consume pinned
+    # captures checked in under tests/fixtures/; each reader verifies its
+    # capture's digest and byte length itself before parsing.
+    "fcc_bureaus_offices.py": (
+        {
+            "name": "fccOfficesBureausPage20260815",
+            "localPath": "tests/fixtures/fcc_bureaus_offices/fcc-offices-bureaus-2026-08-15.html",
+            "publisherUrl": "https://www.fcc.gov/offices-bureaus",
+            "sha256": "sha256:2915ee13f3dc07081671b70720e26ed1c376e7964d60cffa2ca4c1d7cab41f55",
+            "byteLength": 51_748,
+            "acquisition": "zyteRawHttp",
+            "provenance": "publisherPageResponse",
+        },
+    ),
+    "federal_hierarchy_complete.py": (
+        {
+            "name": "fhOrgsAllPage0",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-0.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=0",
+            "sha256": "sha256:b684a583f8775ee109cf113949fe1a1c59d1166d2db718b48583272274bca8ff",
+            "byteLength": 183_892,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "fhOrgsAllPage1",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-1.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=200",
+            "sha256": "sha256:8043dd5bcc850b0036ed1c28c5f36a55d1bb44e4c0c934548c9f8086f21ad6e2",
+            "byteLength": 179_237,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "fhOrgsAllPage2",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-2.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=400",
+            "sha256": "sha256:7dbb2ab10f480f08f661049cda4753d5618983d4ba0c95fca314348f53804c64",
+            "byteLength": 181_649,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "fhOrgsAllPage3",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-3.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=600",
+            "sha256": "sha256:90be1eb4f7dafdea9e26e87596f2c17df8d09cdcc8b0a228758ef29a94af1e96",
+            "byteLength": 182_189,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "fhOrgsAllPage4",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-4.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=800",
+            "sha256": "sha256:bb78b6c039167ef158bea672275c86961be784e269f4db41a52e4b0cd09c277e",
+            "byteLength": 100_030,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "fhOrgsTotalDeptWitness",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-total-dept.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgtype=Department%2FInd.%20Agency&limit=1&offset=0",
+            "sha256": "sha256:e08d262428b48a2539c8db513982510e731978220461e7058c155d2a01ab35b6",
+            "byteLength": 919,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "fhOrgsTotalSubtierWitness",
+            "localPath": "tests/fixtures/federal_hierarchy_complete/fh-orgs-total-subtier.json",
+            "publisherUrl": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgtype=Sub-Tier&limit=1&offset=0",
+            "sha256": "sha256:9f23757566e92492e4eeb0bd272a677048a87985bba9db98930f354359431359",
+            "byteLength": 898,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+    ),
+    "federal_register_native_controls.py": (
+        {
+            "name": "frApiDocumentation20260815",
+            "localPath": "tests/fixtures/federal_register_native_controls/fr-api-documentation-2026-08-15.json",
+            "publisherUrl": "https://www.federalregister.gov/api/v1/documentation.json",
+            "sha256": "sha256:9190df715f0227e62acb57ff924635fc7115732064a5d2c1fb15a57d80879a42",
+            "byteLength": 229_776,
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "frDocumentTypeFacets20260815",
+            "localPath": "tests/fixtures/federal_register_native_controls/fr-documents-facets-type-2026-08-15.json",
+            "publisherUrl": "https://www.federalregister.gov/api/v1/documents/facets/type",
+            "sha256": "sha256:fb6ab236d52938e112fa5ff5f36f6b9a6a7f34a4f8009bb7cc4ad9f507ee53f2",
+            "byteLength": 187,
+            "provenance": "publisherApiResponse",
+        },
+        {
+            "name": "frAgenciesRoster20260815",
+            "localPath": "tests/fixtures/federal_register_native_controls/fr-agencies-2026-08-15.json",
+            "publisherUrl": "https://www.federalregister.gov/api/v1/agencies",
+            "sha256": "sha256:70dd0e8fa373a22d5c9577ac1f70ea736542f0e564f816c3caf28014bd05a92b",
+            "byteLength": 694_024,
+            "provenance": "publisherApiResponse",
+        },
+    ),
     "federal_register_topics_api.py": (
         {
             "name": "federalRegisterTopics",
@@ -699,11 +804,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "constant": "CENSUS_DATA_FLAG_CODES_2026_08_03",
             "localPath": "tests/fixtures/census_gov_finance_codes/census-aspep-data-flag-codes-2026-08-03.html",
         },
-        {
-            "name": "nasboProgramAreas",
-            "constant": "NASBO_PROGRAM_AREA_CHAPTERS_2026_08_03",
-            "localPath": "tests/fixtures/census_gov_finance_codes/nasbo-ser-program-area-chapters-2026-08-03.html",
-        },
     ),
     "fac_dictionary.py": (
         {
@@ -822,20 +922,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "name": "samOpportunitiesDocs",
             "constant": "SAM_OPPORTUNITIES_DOC_2026_08_03",
             "localPath": "tests/fixtures/sam_opportunities_codes/sam-get-opportunities-public-api-2026-08-03.html",
-        },
-    ),
-    "scotus_opinion_types.py": (
-        {
-            "name": "scotusOpinionTypes",
-            "constant": "SCOTUS_OPINIONS_2026_08_03",
-            "localPath": "tests/fixtures/scotus_opinion_types/scotus-opinions-2026-08-03.html",
-        },
-    ),
-    "sec_series_categories.py": (
-        {
-            "name": "secSeriesCategories",
-            "constant": "SEC_RULES_REGULATIONS_PIN_2026_08_03",
-            "localPath": "tests/fixtures/sec_series_categories/sec-rules-regulations-2026-08-03.html",
         },
     ),
     "treasury_tas_fast_book.py": (

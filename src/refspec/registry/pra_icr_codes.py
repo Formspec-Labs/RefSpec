@@ -221,12 +221,6 @@ class ParsedPRAResource:
 
         return _by_identifier_kind(self.icr_statuses, "icrStatusCode")
 
-    def all_codes(self) -> tuple[PRACode, ...]:
-        """Return every captured control value in a stable packaging order."""
-
-        return (self.omb_control_number_shape, *self.request_types, *self.icr_statuses, *self.burden_measures)
-
-
 @dataclass(frozen=True, slots=True)
 class PRACodeAssignment:
     """A control value validated against the exact source snapshot."""
@@ -268,12 +262,19 @@ PRA_PORTFOLIO_GAPS = (
         "No separate Paperwork Reduction Act subject thesaurus exists; every value captured "
         "here is deterministic search or administrative metadata, not a general-subject concept."
     ),
+    (
+        "The page's five Burden Range rows are numeric-range form widgets (paired low/high "
+        "input field ids) and its OMB Control Number entry is a field shape derived from the "
+        "documented NNNN-NNNN convention; both are search-form mechanics rather than publisher "
+        "code lists and are parsed for validation but never emitted as vocabulary (REF-032)."
+    ),
 )
 _PRA_PACKAGE_GAPS = (
     MappingProxyType({"kind": "outOfScopeControlsExcluded", "reason": PRA_PORTFOLIO_GAPS[0]}),
     MappingProxyType({"kind": "javaScriptPopulatedAgencyCodes", "reason": PRA_PORTFOLIO_GAPS[1]}),
     MappingProxyType({"kind": "publisherReleaseUnavailable", "reason": PRA_PORTFOLIO_GAPS[2]}),
     MappingProxyType({"kind": "noSubjectThesaurus", "reason": PRA_PORTFOLIO_GAPS[3]}),
+    MappingProxyType({"kind": "formMechanicsNotEmitted", "reason": PRA_PORTFOLIO_GAPS[4]}),
 )
 
 PRA_ICR_RESOURCE_ID = "pra-icr-search-controlled-values-2026-08-03"
@@ -746,7 +747,17 @@ def _observation_row(code: PRACode, *, ordinal: int) -> dict[str, Any]:
 
 
 def build_pra_icr_controlled_value_package(source_path: Path) -> SourceControlledResourceBundle:
-    """Build one exact, development-only PRA ICR controlled-value package."""
+    """Build one exact, development-only PRA ICR controlled-value package.
+
+    Only the publisher's genuine code lists are packaged: the ten Type of
+    Request codes and the five ICR Status codes. The five Burden Range rows
+    are numeric-range form widgets (paired low/high ``<input>`` ids, e.g.
+    ``lowDollar``/``highDollar``) and the OMB Control Number entry is a
+    field-shape derived from the documented convention -- search-form
+    mechanics, not publisher codes (REF-032). The parser still pins both so
+    ``validate_icr_record`` and the page-shape drift checks keep working;
+    they are simply never emitted as vocabulary.
+    """
 
     path = Path(source_path)
     if path.is_symlink() or not path.is_file():
@@ -761,7 +772,10 @@ def build_pra_icr_controlled_value_package(source_path: Path) -> SourceControlle
         )
         resource = parse_pra_icr_controls(acquired)
 
-    observations = tuple(_observation_row(code, ordinal=ordinal) for ordinal, code in enumerate(resource.all_codes()))
+    emitted = (*resource.request_types, *resource.icr_statuses)
+    observations = tuple(_observation_row(code, ordinal=ordinal) for ordinal, code in enumerate(emitted))
+    not_emitted = (resource.omb_control_number_shape, *resource.burden_measures)
+    excluded = len(not_emitted)
     return build_source_controlled_resource_bundle(
         resource_id=PRA_ICR_RESOURCE_ID,
         title=PRA_ICR_PACKAGE_TITLE,
@@ -771,7 +785,7 @@ def build_pra_icr_controlled_value_package(source_path: Path) -> SourceControlle
         captured_at=resource.retrieved_at,
         observations=observations,
         source_artifacts={resource.source_url: payload},
-        source_observed_count=len(observations),
+        excluded_count=excluded,
         gaps=_PRA_PACKAGE_GAPS,
     )
 

@@ -20,13 +20,20 @@ certification, and release-vintage rules: some incumbent identities may be
 withheld for protected positions, each release must be certified by the
 submitting agency, and a record must be checked against the exact edition
 (vintage) whose codes were pinned. This module encodes those rules as
-refusal-style checks on downstream observation records. The parser does read
-the bulk PLUM position rows -- ``parse_opm_plum_all_data_csv`` walks all
-15,777 of them, including the incumbent-name columns -- and keeps none of
-them: what it returns is the appointment-authority, position-status, and
-pay-plan values observed across those rows. Those observed values are not an
-Atlas unit (REF-032); the publisher-defined codes with their definitions
-come from the EHRI workbook instead.
+refusal-style checks on downstream observation records. The parser does
+ingest the bulk PLUM position rows -- ``parse_opm_plum_all_data_csv`` walks
+all 15,777 of them, including the incumbent-name columns, and returns every
+exact row in ``OPMPLUMAllDataExport.records`` alongside the sorted distinct
+appointment-authority, position-status, and pay-plan values it observed
+across them. Neither the rows nor those observed values are an Atlas unit
+(REF-032); the publisher-defined codes with their definitions come from the
+EHRI workbook instead.
+
+The EHRI workbook's AGENCY/SUBELEMENT element is not a code list like its 80
+siblings: it is the publisher's roster of federal agencies and their
+administrative subdivisions. ``split_opm_ehri_element`` separates that
+element's rows from the rest of the export so the roster can be carried as
+an institutional roster in its own right.
 
 Acquisition accepts a local exact capture or an injected fetcher. Importing
 this module never opens a network connection.
@@ -66,6 +73,14 @@ OPM_PUBLISHER = "U.S. Office of Personnel Management"
 OPM_IDENTIFIER_AUTHORITY_URI = "https://www.opm.gov/"
 OPM_WORKFORCE_DATA_URL = "https://data.opm.gov/explore-data/data/data-downloads"
 OPM_EHRI_DATA_STANDARDS_URL = "https://data.opm.gov/data-standards/ehri-data-standards"
+# Exact identity of the pinned official EHRI data-standards workbook export
+# (EHRI-Data-Standards-20260804.xlsx) every real-data consumer verifies.
+OPM_EHRI_DATA_STANDARDS_SHA256 = "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc"
+OPM_EHRI_DATA_STANDARDS_BYTE_LENGTH = 1_154_183
+# The one EHRI element whose values are an institutional roster rather than
+# a code list: the agency and, where applicable, the administrative
+# subdivision (subelement) in which a person is employed.
+OPM_EHRI_AGENCY_SUBELEMENT_ELEMENT = "AGENCY/SUBELEMENT"
 OPM_PLUM_DATA_URL = "https://www.opm.gov/about-us/open-government/plum-reporting/plum-data/"
 OPM_PLUM_ALL_DATA_URL = "https://escs.opm.gov/escs-net/api/pbpub/download-data"
 
@@ -504,6 +519,52 @@ def parse_opm_ehri_data_standards_xlsx(payload: bytes) -> OPMEHRIDataStandardsEx
         fields=fields,
         current_values=current_values,
         past_values=past_values,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class OPMEHRIElementSplit:
+    """One EHRI element's rows separated from the rest of a workbook export."""
+
+    element: OPMEHRIDataElement
+    current_values: tuple[OPMEHRIValue, ...]
+    past_values: tuple[OPMEHRIValue, ...]
+    remainder: OPMEHRIDataStandardsExport
+
+
+def split_opm_ehri_element(
+    export: OPMEHRIDataStandardsExport,
+    name: str = OPM_EHRI_AGENCY_SUBELEMENT_ELEMENT,
+) -> OPMEHRIElementSplit:
+    """Split one exact element's definition and values out of an EHRI export.
+
+    The split is exhaustive: the element's definition row plus its current and
+    past values on one side, everything else in ``remainder``, both sides
+    keeping the exact source digest. Nothing is reworded and no row is
+    dropped.
+    """
+
+    matching_fields = tuple(field for field in export.fields if field.name == name)
+    if len(matching_fields) != 1:
+        raise OPMSourceDriftError(
+            f"EHRI workbook must define element {name!r} exactly once, found {len(matching_fields)}"
+        )
+    current_values = tuple(value for value in export.current_values if value.name == name)
+    if not current_values:
+        raise OPMSourceDriftError(f"EHRI workbook lists no current values for element {name!r}")
+    past_values = tuple(value for value in export.past_values if value.name == name)
+    remainder = OPMEHRIDataStandardsExport(
+        source_sha256=export.source_sha256,
+        source_byte_length=export.source_byte_length,
+        fields=tuple(field for field in export.fields if field.name != name),
+        current_values=tuple(value for value in export.current_values if value.name != name),
+        past_values=tuple(value for value in export.past_values if value.name != name),
+    )
+    return OPMEHRIElementSplit(
+        element=matching_fields[0],
+        current_values=current_values,
+        past_values=past_values,
+        remainder=remainder,
     )
 
 
@@ -1302,6 +1363,9 @@ __all__ = [
     "OPM_APPOINTMENT_TYPE_CODE_PACKAGE",
     "OPM_CONTROLLED_LIST_PACKAGES",
     "OPM_CONTROLLED_LIST_PACKAGE_VERSION",
+    "OPM_EHRI_AGENCY_SUBELEMENT_ELEMENT",
+    "OPM_EHRI_DATA_STANDARDS_BYTE_LENGTH",
+    "OPM_EHRI_DATA_STANDARDS_SHA256",
     "OPM_EHRI_DATA_STANDARDS_URL",
     "OPM_IDENTIFIER_AUTHORITY_URI",
     "OPM_OCCUPATIONAL_SERIES_CODES",
@@ -1333,6 +1397,7 @@ __all__ = [
     "OPMControlledListView",
     "OPMEHRIDataElement",
     "OPMEHRIDataStandardsExport",
+    "OPMEHRIElementSplit",
     "OPMEHRIValue",
     "OPMFetcher",
     "OPMFieldAssignment",
@@ -1351,6 +1416,7 @@ __all__ = [
     "parse_opm_ehri_data_standards_xlsx",
     "parse_opm_plum_all_data_csv",
     "sha256_digest",
+    "split_opm_ehri_element",
     "validate_plum_position_codes",
     "validate_workforce_observation_codes",
 ]

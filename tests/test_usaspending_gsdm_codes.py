@@ -313,3 +313,176 @@ def test_validate_gsdm_action_type_requires_a_matching_domain(tmp_path: Path) ->
         usg.validate_gsdm_action_type({"action_type_code": "A"}, portfolio, domain="grants")  # type: ignore[arg-type]
     with pytest.raises(usg.USASpendingAssignmentError, match="must carry a string"):
         usg.validate_gsdm_action_type({}, portfolio, domain="assistance")
+
+
+# --- Publisher domain-value enumeration parsing ------------------------------
+
+REAL_DATA_DICTIONARY = Path(__file__).resolve().parents[1] / "output" / "registry-real-data-sources" / "gsdm-data-dictionary-2026-08-03.json"
+
+
+def _dictionary(rows: tuple[tuple[str, object, object], ...]) -> usg.ParsedGSDMDataDictionary:
+    return usg.ParsedGSDMDataDictionary(
+        source_sha256="sha256:" + "cd" * 32,
+        source_byte_length=10,
+        retrieved_at="2026-08-03T00:00:00Z",
+        headers=(
+            ("A:element", "Element"),
+            (usg.GSDM_DOMAIN_VALUES_HEADER, "Domain Values"),
+            (usg.GSDM_DOMAIN_VALUES_CODE_DESCRIPTION_HEADER, "Domain Values Code Description"),
+        ),
+        sections=(),
+        metadata={},
+        rows=tuple(
+            usg.GSDMDataDictionaryRow(ordinal=ordinal, element=element, cells=(element, values, descriptions))
+            for ordinal, (element, values, descriptions) in enumerate(rows)
+        ),
+    )
+
+
+def test_domain_values_pairs_groups_and_descriptions_are_read_exactly() -> None:
+    column = usg.parse_gsdm_domain_values(
+        _dictionary(
+            (
+                ("Flag", "F = False\nT = True", "F = Not set\nT = Set"),
+                ("Grouped", "Assistance:\nA = New\nContracts:\nA = CHANGE", None),
+                ("Reference", "See https://example.gov/list", None),
+                ("Silent", None, None),
+            )
+        )
+    )
+
+    assert column.element_count == 4
+    assert column.enumerated_element_count == 2
+    assert column.reference_only_element_count == 1
+    assert column.empty_element_count == 1
+    assert [
+        (value.element, value.domain_group, value.code, value.value, value.code_description)
+        for value in column.values
+    ] == [
+        ("Flag", "", "F", "False", "Not set"),
+        ("Flag", "", "T", "True", "Set"),
+        ("Grouped", "Assistance", "A", "New", None),
+        ("Grouped", "Contracts", "A", "CHANGE", None),
+    ]
+    assert column.described_value_count == 2
+    assert column.codeless_value_elements == ()
+
+
+def test_domain_values_codeless_markers_and_bare_value_lists_stay_publisher_values() -> None:
+    column = usg.parse_gsdm_domain_values(
+        _dictionary(
+            (
+                ("SubAwardType", "N/A= sub-contract\nN/A= sub-grant", None),
+                (
+                    "Scope",
+                    "Multi-State\nForeign",
+                    "Multi-State = Performance in multiple states.\nForeign = Performance abroad.",
+                ),
+                # A bare list whose description cell does not pair every line
+                # is publisher reference text, not an enumeration.
+                ("Prose", "Values are listed elsewhere", "Unrelated free text"),
+            )
+        )
+    )
+
+    assert column.enumerated_element_count == 2
+    assert column.reference_only_element_count == 1
+    assert column.codeless_value_elements == ("SubAwardType", "Scope")
+    assert [(value.element, value.code, value.value, value.code_description) for value in column.values] == [
+        ("SubAwardType", None, "sub-contract", None),
+        ("SubAwardType", None, "sub-grant", None),
+        ("Scope", None, "Multi-State", "Performance in multiple states."),
+        ("Scope", None, "Foreign", "Performance abroad."),
+    ]
+    assert all(value.identity == value.value for value in column.values)
+
+
+def test_domain_values_placeholders_dashes_and_wrapped_labels_are_handled_exactly() -> None:
+    column = usg.parse_gsdm_domain_values(
+        _dictionary(
+            (
+                (
+                    "Fund",
+                    "A = Emergency P.L. 115-56\nAAC - Wildfire Suppression P.L. 117-328\n[Future Code(s)] = [Future P.L.]",
+                    None,
+                ),
+                ("Wrapped", "Y = Small Disadvantaged Business\nN = Other than Small Disadvantaged\nBusiness", None),
+            )
+        )
+    )
+
+    assert [(value.element, value.code, value.value) for value in column.values] == [
+        ("Fund", "A", "Emergency P.L. 115-56"),
+        ("Fund", "AAC", "Wildfire Suppression P.L. 117-328"),
+        ("Wrapped", "Y", "Small Disadvantaged Business"),
+        ("Wrapped", "N", "Other than Small Disadvantaged Business"),
+    ]
+    assert column.placeholder_lines == (("Fund", "[Future Code(s)] = [Future P.L.]"),)
+
+
+def test_domain_values_fail_closed_on_duplicates_strays_and_lost_columns() -> None:
+    with pytest.raises(usg.USASpendingSourceDriftError, match="repeat a"):
+        usg.parse_gsdm_domain_values(_dictionary((("Dup", "A = One\nA = Two", None),)))
+
+    # The codeless bare-value path fails closed too: a repeated bare line
+    # would collapse two publisher values into one emitted resource.
+    with pytest.raises(usg.USASpendingSourceDriftError, match="repeats a value"):
+        usg.parse_gsdm_domain_values(
+            _dictionary(
+                (
+                    (
+                        "BareDup",
+                        "Multi-State\nMulti-State",
+                        "Multi-State = Performance in multiple states.\nMulti-State = Repeated.",
+                    ),
+                )
+            )
+        )
+
+    with pytest.raises(usg.USASpendingSourceDriftError, match="unrecognized line"):
+        usg.parse_gsdm_domain_values(_dictionary((("Stray", "loose text first\nA = One", None),)))
+
+    lost = usg.ParsedGSDMDataDictionary(
+        source_sha256="sha256:" + "cd" * 32,
+        source_byte_length=10,
+        retrieved_at="2026-08-03T00:00:00Z",
+        headers=(("A:element", "Element"),),
+        sections=(),
+        metadata={},
+        rows=(),
+    )
+    with pytest.raises(usg.USASpendingSourceDriftError, match="lost its"):
+        usg.parse_gsdm_domain_values(lost)
+
+
+@pytest.mark.skipif(
+    not REAL_DATA_DICTIONARY.is_file(),
+    reason="the exact GSDM data-dictionary capture is not present",
+)
+def test_real_domain_values_column_coverage_and_reviewed_elements_reproduce() -> None:
+    dictionary = usg.parse_gsdm_data_dictionary(REAL_DATA_DICTIONARY.read_bytes())
+
+    column = usg.parse_gsdm_domain_values(dictionary)
+
+    assert column.element_count == 457
+    assert column.enumerated_element_count == 203
+    assert column.reference_only_element_count == 86
+    assert column.empty_element_count == 168
+    assert len(column.values) == 1_009
+    assert column.described_value_count == 599
+    assert sum(1 for value in column.values if value.code is None) == 18
+    assert column.unmatched_description_keys == (("NationalInterestAction", "", "O23R"),)
+    assert column.unpaired_description_elements == ("Extent Competed Description Tag",)
+
+    # The generic parse must reproduce the three reviewed typed constants
+    # exactly (their transcription lowercases the two group headings).
+    for constant in usg.GSDM_SCHEMA_CROSSWALK_ELEMENTS:
+        parsed = [
+            (value.domain_group.lower(), value.code, value.value, value.code_description)
+            for value in column.values
+            if value.element == constant.gsdm_element
+        ]
+        assert parsed == [
+            (value.domain_group, value.code, value.label, value.code_description)
+            for value in constant.domain_values
+        ]

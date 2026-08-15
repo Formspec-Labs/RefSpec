@@ -231,7 +231,10 @@ def test_opm_ehri_uses_field_and_code_identity_and_keeps_past_as_metadata(
 
     assert len(release.resources) == 2
     assert release.resources[0].iri != release.resources[1].iri
-    assert all(resource.notations == ("AA",) for resource in release.resources)
+    assert [resource.notations for resource in release.resources] == [
+        ("AA", "FIELD A"),
+        ("AA", "FIELD B"),
+    ]
     assert release.resources[0].native_payload["pastLifecycle"][0]["explanation"] == "Old alpha"
     assert release.metadata["pastOnlyIdentityCount"] == 1
     assert release.metadata["pastValuesAreMembers"] is False
@@ -247,21 +250,26 @@ def test_large_loader_bindings_match_catalog_index_and_profile_map() -> None:
     atlas_index = json.loads((ROOT / "portfolio/atlas-index-v0.json").read_bytes())
     profile_map = json.loads((ROOT / "bindings/atlas/3.1/registry-resource-profiles.json").read_bytes())
     catalog_by_id = {row["resourceId"]: row for row in catalog["resources"]}
-    index_by_id = {
-        row["resourceId"]: row for row in atlas_index["rows"] if row["resourceId"] in large.LARGE_REGISTRY_BINDINGS
-    }
+    # A resource may hold placements in more than one ring (opm-ehri splits
+    # its AGENCY/SUBELEMENT roster to the entity ring), so index rows are
+    # matched per (resourceId, sourceModule, ring), never collapsed by id.
+    index_rows_by_id: dict[str, list[dict]] = {}
+    for row in atlas_index["rows"]:
+        if row["resourceId"] in large.LARGE_REGISTRY_BINDINGS:
+            index_rows_by_id.setdefault(row["resourceId"], []).append(row)
 
-    assert set(index_by_id) == set(large.LARGE_REGISTRY_BINDINGS)
+    assert set(index_rows_by_id) == set(large.LARGE_REGISTRY_BINDINGS)
     for resource_id, binding in large.LARGE_REGISTRY_BINDINGS.items():
         catalog_row = catalog_by_id[resource_id]
-        index_row = index_by_id[resource_id]
         matching_profiles = [
             row["profile"] for row in profile_map["profiles"] if catalog_row["resourceKind"] in row["resourceKinds"]
         ]
         assert matching_profiles == [binding.profile]
         assert catalog_row["resourceKind"] == binding.resource_kind
-        assert index_row["sourceModule"] == binding.source_module
-        assert index_row["semanticRing"] == binding.ring
+        assert any(
+            index_row["sourceModule"] == binding.source_module and index_row["semanticRing"] == binding.ring
+            for index_row in index_rows_by_id[resource_id]
+        )
         assert binding.scheme_iri == f"urn:ref:atlas-resource-scheme:{resource_id}"
 
 

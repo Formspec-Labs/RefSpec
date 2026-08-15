@@ -88,19 +88,27 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["summary"] == {
         "exactReleaseCount": 6,
         "implementationModuleCount": 25,
-        "participationCounts": {"bridge": 10, "core": 1, "specialist": 3},
+        # REF-033: nasa-technology-taxonomy left the subject ring for the
+        # value ring, taking its bridge claim with it (bridge 10 -> 9).
+        "participationCounts": {"bridge": 9, "core": 1, "specialist": 3},
+        # REF-033: four entity-ring placements landed (the Federal Register
+        # agencies roster, the FCC published bureaus/offices roster, the
+        # complete Federal Hierarchy roster, and the EHRI AGENCY/SUBELEMENT
+        # roster split out of the value-ring workbook release); the LDA and
+        # NASA rows moved from the subject ring to the value ring, and the
+        # Federal Register documented document types joined the value ring.
         "semanticRingCounts": {
-            "entity": 11,
+            "entity": 15,
             "legalIdentity": 3,
-            "subject": 21,
-            "value": 40,
+            "subject": 19,
+            "value": 41,
         },
-        "rowCount": 75,
-        "sourceModuleCount": 49,
+        "rowCount": 78,
+        "sourceModuleCount": 50,
         "statusCounts": {
             "deferred": 2,
-            "notApplicable": 41,
-            "planned": 23,
+            "notApplicable": 39,
+            "planned": 26,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
             # the entity-registry object instead. REF-031: the three
@@ -110,13 +118,16 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
             # whose reader survives -- OPM PLUM position statuses and the FAST
             # Book fund types -- while the seven readers left with no unit
             # and no named follow-up were deleted, taking fourteen planning
-            # rows with them.
-            "rejected": 9,
+            # rows with them. REF-033 rejects the two deleted census-family
+            # units whose reader survives (the ACS geography span and the
+            # NASBO chapter scan) and removes the SCOTUS and SEC rows with
+            # their deleted readers.
+            "rejected": 11,
             "superseded": 0,
             "unassessed": 0,
         },
     }
-    assert len(atlas_index_rows(index, semantic_ring="subject")) == 21
+    assert len(atlas_index_rows(index, semantic_ring="subject")) == 19
 
 
 def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(

@@ -1432,3 +1432,16 @@ product's weakest true claim.
       Two evidence/derived digests are IRI-bearing and are NOT cut. Plan
       corrections found while scoping: the 11-vs-13 gate drift is fixed at
       HEAD, and the release workflow exists (ee89f513).
+
+**ARTIFACT OF RECORD, SEALED: `output/atlas-3.1-full-2026-08-15` (2026-08-15).
+Supersedes 13e.** distributionId
+`urn:ref:atlas:distribution:3.1-full-development:4f18d276…8cb910f`, manifest
+`80d38b83…69fb7b`, acceptance `248c3733…323e5e`, parquet view manifest
+`c51c5522…747c67`, signer atlas-release@refspec. Seal verifies: 4 members,
+92 packs, 8 Parquet tables, 935,110,855 bytes. This is the first artifact of
+record consistent with REF-030 through REF-033: no registrant populations, no
+document populations, no observed inventories — 75 releases, 580,983
+resources, 561,385 statements, every one of the 963 new publisher
+parent-entity relations evidence-bound. 13e remains on disk as the prior
+record; its seal still verifies over its own tree but its contents predate
+the three splits and the repair wave.

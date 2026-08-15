@@ -47,8 +47,8 @@ COURTLISTENER_FULL_PIN = courtlistener.CourtListenerJurisdictionsSnapshotPin(
 )
 FEDERAL_REGISTER_TOPICS_SHA256 = "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
 FEDERAL_REGISTER_TOPICS_BYTE_LENGTH = 920_705
-OPM_EHRI_SHA256 = "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc"
-OPM_EHRI_BYTE_LENGTH = 1_154_183
+OPM_EHRI_SHA256 = opm_workforce_codes.OPM_EHRI_DATA_STANDARDS_SHA256
+OPM_EHRI_BYTE_LENGTH = opm_workforce_codes.OPM_EHRI_DATA_STANDARDS_BYTE_LENGTH
 
 
 @dataclass(frozen=True, slots=True)
@@ -891,13 +891,21 @@ def _opm_ehri_release_from_export(
                 native_payload=native_payload,
                 source_locator=source_locator,
                 source_digest=input_pin.sha256,
-                notations=(value.code,),
+                definition=field.description.strip() or None,
+                notations=(value.code, value.name),
                 status="current",
             )
         )
     current_keys = set(seen_keys)
     past_only_keys = set(past_by_key) - current_keys
     metadata = {
+        "agencySubelementExtracted": {
+            "element": opm_workforce_codes.OPM_EHRI_AGENCY_SUBELEMENT_ELEMENT,
+            "toReleaseKey": "opm-ehri-agency-subelement-2026-08-04",
+            "currentValueCount": 798,
+            "pastValueCount": 3004,
+            "fieldDefinitionCount": 1,
+        },
         "bulkPlumRowsIncluded": False,
         "currentFieldCount": len({value.name for value in export.current_values}),
         "currentValueCount": len(export.current_values),
@@ -943,7 +951,14 @@ def load_opm_ehri_release(
     expected_counts: tuple[int, int, int] = (534, 17_263, 16_425),
     issued: str = "2026-08-04",
 ) -> RegistryRelease:
-    """Load all current EHRI field/code values; never load bulk PLUM rows."""
+    """Load current EHRI field/code values; never load bulk PLUM rows.
+
+    The AGENCY/SUBELEMENT element is split out before emission: its rows are
+    an organizational roster, emitted on the entity ring as
+    ``opm-ehri-agency-subelement-2026-08-04`` (see
+    :mod:`refspec.atlas.v3_registry_nonemitters`), not as workforce code
+    values.  The full-workbook counts are still checked before the split.
+    """
 
     input_pin = _pin(
         source_path,
@@ -964,7 +979,8 @@ def load_opm_ehri_release(
         )
     if export.source_sha256 != input_pin.sha256 or export.source_byte_length != input_pin.byte_length:
         raise ValueError("OPM EHRI parser output differs from its exact input pin")
-    return _opm_ehri_release_from_export(export, input_pin, issued=issued)
+    split = opm_workforce_codes.split_opm_ehri_element(export)
+    return _opm_ehri_release_from_export(split.remainder, input_pin, issued=issued)
 
 
 LARGE_REGISTRY_RELEASE_KEYS = frozenset(

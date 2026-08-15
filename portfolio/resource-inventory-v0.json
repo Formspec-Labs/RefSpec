@@ -398,7 +398,7 @@
       "identifierRepresentation": "Preserve the permanent GNIS feature ID and the publisher-documented state and county code fields without substituting the retired FIPS 55 place code.",
       "officialLocator": "https://www.usgs.gov/us-board-on-geographic-names/download-gnis-data",
       "resourceId": "usgs-gnis-identifiers",
-      "resourceKind": "identifierAuthority",
+      "resourceKind": "structuralSchema",
       "title": "USGS GNIS feature identifiers",
       "versionRepresentation": "Pin the official file-format publication, exact artifact digest, observation date, and reviewed field coverage."
     },
@@ -618,7 +618,7 @@
       "identifierRepresentation": "Preserve each official LDA General Issue Code and name as publisher-assigned filing evidence without minting concept identity.",
       "officialLocator": "https://lda.gov/api/v1/constants/general_issues/",
       "resourceId": "lda-general-issue-codes",
-      "resourceKind": "sourceAssignedVocabulary",
+      "resourceKind": "codeList",
       "title": "Lobbying Disclosure Act General Issue Codes",
       "versionRepresentation": "Pin API interface version, endpoint, capture time, exact response digest, complete code count, and parser version."
     },
@@ -658,7 +658,7 @@
       "identifierRepresentation": "Preserve NASA taxonomy root ID, publisher node ID, technology-area code, title, level, and current status; exclude instrument and platform branches from policy topics.",
       "officialLocator": "https://techport.nasa.gov/api/taxonomies",
       "resourceId": "nasa-technology-taxonomy",
-      "resourceKind": "mappingReference",
+      "resourceKind": "codeList",
       "title": "NASA Technology Taxonomy",
       "versionRepresentation": "Pin the taxonomy root roster and selected taxonomy response, capture time, exact digests, release title and status, level coverage, and parser version."
     },

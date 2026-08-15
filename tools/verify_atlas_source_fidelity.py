@@ -2415,14 +2415,26 @@ LDA_FILING_TYPE_JSON_READER = "lda-filing-type-json-v1/1.0"
 ECFR_TITLES_JSON_READER = "ecfr-titles-json-v1/1.0"
 GOVINFO_COLLECTIONS_JSON_READER = "govinfo-collections-json-v1/1.0"
 USASPENDING_AWARD_TYPES_JSON_READER = "usaspending-award-types-json-v1/1.0"
-GSDM_REVIEWED_DOMAIN_JSON_READER = "gsdm-reviewed-domain-json-v1/1.0"
+GSDM_DOMAIN_VALUES_JSON_READER = "gsdm-domain-values-json-v1/1.0"
 NASA_TAXONOMY_JSON_READER = "nasa-taxonomy-json-v1/1.0"
+FR_DOCUMENTED_TYPES_JSON_READER = "fr-documented-types-json-v1/1.0"
+FR_PRESIDENTIAL_SUBTYPES_JSON_READER = "fr-presidential-subtypes-json-v1/1.0"
+FR_AGENCIES_ROSTER_JSON_READER = "fr-agencies-roster-json-v1/1.0"
+FCC_BUREAUS_OFFICES_HTML_READER = "fcc-bureaus-offices-html-v1/1.0"
+FH_COMPLETE_ROSTER_JSON_READER = "fh-complete-roster-json-v1/1.0"
+GNIS_FILE_FORMAT_PDF_READER = "gnis-file-format-pdf-v1/1.0"
 SPEC_SCOPED_RECORD_READERS = frozenset(
     {
         CSV_RECORD_SELECTOR_READER,
         ECFR_TITLES_JSON_READER,
+        FCC_BUREAUS_OFFICES_HTML_READER,
+        FH_COMPLETE_ROSTER_JSON_READER,
+        FR_AGENCIES_ROSTER_JSON_READER,
+        FR_DOCUMENTED_TYPES_JSON_READER,
+        FR_PRESIDENTIAL_SUBTYPES_JSON_READER,
+        GNIS_FILE_FORMAT_PDF_READER,
         GOVINFO_COLLECTIONS_JSON_READER,
-        GSDM_REVIEWED_DOMAIN_JSON_READER,
+        GSDM_DOMAIN_VALUES_JSON_READER,
         JSON_RECORD_SELECTOR_READER,
         LDA_FILING_TYPE_JSON_READER,
         LDA_GENERAL_ISSUE_JSON_READER,
@@ -5120,20 +5132,83 @@ def _read_usaspending_capture(
     return _api_capture_view(records, spec, payloads)
 
 
-def _equals_lines(value: Any, label: str) -> list[tuple[str, str]]:
-    if value is None:
-        return []
-    if not isinstance(value, str):
-        raise ValueError(f"{label} must be text or null")
-    result: list[tuple[str, str]] = []
-    for line in value.splitlines():
-        if not line.strip():
+# --- GSDM domain-values capture -------------------------------------------
+#
+# Independent re-parse of the publisher's per-element "Domain Values" column.
+# The publisher mixes "CODE = LABEL" pair lines (optionally under group
+# headings such as "Assistance:"/"Contracts:"), "CODE - LABEL" dash pairs,
+# "N/A= VALUE" codeless markers, "[...]" placeholders for codes that do not
+# exist yet, bare value lists whose description cell pairs every listed value
+# with its definition, and free text deferring the domain to an external code
+# source. Everything the publisher enumerates inline is emitted; everything
+# else is accounted for. Written from the publisher formats directly -- it
+# imports no registry parsing code.
+
+_GSDM_DOMAIN_PAIR_LINE = re.compile(r"^(?P<code>[^=]{1,80}?)\s*=\s*(?P<text>.+)$")
+_GSDM_DOMAIN_GROUP_LINE = re.compile(r"^(?P<name>[A-Za-z][A-Za-z /()&-]{0,60}):$")
+_GSDM_DOMAIN_DASH_LINE = re.compile(r"^(?P<code>[A-Z0-9]{1,8})\s*-\s+(?P<text>.+)$")
+_GSDM_DOMAIN_PLACEHOLDER_CODE = re.compile(r"^\[.*\]$")
+_GSDM_DOMAIN_CODELESS_MARKER = "N/A"
+_GSDM_DOMAIN_CR_TOKEN = "_x000D_"
+_GSDM_DOMAIN_VALUES_HEADER = "E:domain_values"
+_GSDM_DOMAIN_DESCRIPTION_HEADER = "F:domain_values_code_description"
+_GSDM_DOMAIN_ROW_WIDTH = 18
+_GSDM_EXPECTED_DOMAIN_VALUE_COUNT = 1_009
+
+
+def _gsdm_cell_lines(cell: Any) -> tuple[str, ...]:
+    if not isinstance(cell, str):
+        return ()
+    return tuple(
+        line
+        for line in (
+            raw.replace(_GSDM_DOMAIN_CR_TOKEN, "").strip()
+            for raw in cell.split("\n")
+        )
+        if line
+    )
+
+
+def _gsdm_domain_triples(
+    lines: Sequence[str],
+    label: str,
+) -> list[tuple[str, str | None, str]] | None:
+    """Parse one cell's lines into (group, code, text) triples.
+
+    Returns ``None`` when no line is a ``CODE = LABEL`` pair: the cell is
+    publisher domain text, not an enumeration. Placeholder lines are dropped;
+    a line that is neither a pair, a group heading, nor a dash pair continues
+    the previous value's wrapped label text.
+    """
+    if not any(_GSDM_DOMAIN_PAIR_LINE.match(line) for line in lines):
+        return None
+    triples: list[tuple[str, str | None, str]] = []
+    group = ""
+    for line in lines:
+        pair = _GSDM_DOMAIN_PAIR_LINE.match(line)
+        if pair is not None:
+            code = pair.group("code").strip()
+            text = pair.group("text").strip()
+            if _GSDM_DOMAIN_PLACEHOLDER_CODE.match(code):
+                continue
+            if code == _GSDM_DOMAIN_CODELESS_MARKER:
+                triples.append((group, None, text))
+            else:
+                triples.append((group, code, text))
             continue
-        if " = " not in line:
-            raise ValueError(f"{label} has a malformed domain row {line!r}")
-        code, text = line.split(" = ", 1)
-        result.append((_required_text(code, label), _required_text(text, label)))
-    return result
+        heading = _GSDM_DOMAIN_GROUP_LINE.match(line)
+        if heading is not None:
+            group = heading.group("name")
+            continue
+        dash = _GSDM_DOMAIN_DASH_LINE.match(line)
+        if dash is not None:
+            triples.append((group, dash.group("code"), dash.group("text").strip()))
+            continue
+        if not triples:
+            raise ValueError(f"{label} domain values start with an unrecognized line: {line!r}")
+        previous_group, previous_code, previous_text = triples[-1]
+        triples[-1] = (previous_group, previous_code, previous_text + " " + line)
+    return triples
 
 
 def _read_gsdm_capture(
@@ -5145,78 +5220,121 @@ def _read_gsdm_capture(
     if not isinstance(root, Mapping) or not isinstance(root.get("document"), Mapping):
         raise ValueError(f"{spec.name} must contain one document object")
     document = root["document"]
+    raw_headers = document.get("headers")
+    if not isinstance(raw_headers, list) or not all(
+        isinstance(header, Mapping) and isinstance(header.get("raw"), str)
+        for header in raw_headers
+    ):
+        raise ValueError(f"{spec.name}.document.headers must be raw/display objects")
+    header_positions = {header["raw"]: position for position, header in enumerate(raw_headers)}
+    for header in (_GSDM_DOMAIN_VALUES_HEADER, _GSDM_DOMAIN_DESCRIPTION_HEADER):
+        if header not in header_positions:
+            raise ValueError(f"{spec.name} lost its {header!r} column")
+    value_position = header_positions[_GSDM_DOMAIN_VALUES_HEADER]
+    description_position = header_positions[_GSDM_DOMAIN_DESCRIPTION_HEADER]
     raw_rows = document.get("rows")
     if not isinstance(raw_rows, list) or any(not isinstance(row, list) for row in raw_rows):
         raise ValueError(f"{spec.name}.document.rows must be an array of arrays")
-    rows = list(raw_rows)
-    targets = {"ActionType", "AssistanceType", "ContractAwardType"}
+
+    enumerated_elements = 0
+    reference_only = 0
+    empty = 0
     records: list[_ApiCaptureRecord] = []
     seen_elements: set[str] = set()
-    for row_number, row in enumerate(rows):
-        # The publisher represents each dictionary row as an 18-column array.
+    for row_ordinal, row in enumerate(raw_rows):
         values = list(row)
-        if len(values) != 18:
-            raise ValueError(f"{spec.name}.document.rows[{row_number}] has {len(values)} columns")
+        if len(values) != _GSDM_DOMAIN_ROW_WIDTH:
+            raise ValueError(f"{spec.name}.document.rows[{row_ordinal}] has {len(values)} columns")
         element = values[0]
-        if element not in targets:
-            continue
-        if not isinstance(element, str) or element in seen_elements:
-            raise ValueError(f"{spec.name} repeats reviewed element {element!r}")
+        if not isinstance(element, str) or not element.strip() or element in seen_elements:
+            raise ValueError(f"{spec.name}.document.rows[{row_ordinal}] element name is invalid or repeated")
         seen_elements.add(element)
-        description_by_code = dict(
-            _equals_lines(values[5], f"{spec.name}.{element}.codeDescriptions")
+        lines = _gsdm_cell_lines(values[value_position])
+        if not lines:
+            empty += 1
+            continue
+        row_label = f"{spec.name}.{element}"
+        triples = _gsdm_domain_triples(lines, row_label)
+        description_lines = _gsdm_cell_lines(values[description_position])
+        if triples is None:
+            # A cell with no pairs is enumerable in exactly one publisher
+            # shape: a bare value list whose description cell pairs every
+            # listed value with its definition.
+            described = (
+                _gsdm_domain_triples(description_lines, row_label)
+                if description_lines
+                else None
+            )
+            if described is not None and [code for _group, code, _text in described] == list(lines):
+                if len(lines) != len(set(lines)):
+                    raise ValueError(f"{row_label} bare domain value list repeats a value")
+                triples = [("", None, line) for line in lines]
+            else:
+                reference_only += 1
+                continue
+        enumerated_elements += 1
+        identities = [
+            (group, code if code is not None else text)
+            for group, code, text in triples
+        ]
+        if len(identities) != len(set(identities)):
+            raise ValueError(f"{row_label} domain values repeat a (group, identity) pair")
+        emitted = set(identities)
+        descriptions: dict[tuple[str, str], str] = {}
+        described = (
+            _gsdm_domain_triples(description_lines, row_label)
+            if description_lines
+            else None
         )
-        domain_text = values[4]
-        if not isinstance(domain_text, str):
-            raise ValueError(f"{spec.name}.{element}.domainValues must be text")
-        group = ""
-        parsed: list[tuple[str, str, str]] = []
-        for line in domain_text.splitlines():
-            if not line.strip():
-                continue
-            if line.endswith(":") and " = " not in line:
-                group = line[:-1].strip().lower()
-                continue
-            for code, label in _equals_lines(line, f"{spec.name}.{element}.domainValues"):
-                parsed.append((group, code, label))
-        for domain_group, code, label in parsed:
-            group_token = domain_group or "default"
+        if described is not None:
+            for group, code, text in described:
+                identity = code if code is not None else text
+                if (group, identity) in emitted:
+                    descriptions[(group, identity)] = text
+        for group, code, text in triples:
+            identity = code if code is not None else text
+            group_token = group or "default"
             resource = (
                 "urn:ref:gsdm:domain-value:"
                 f"{urllib.parse.quote(element, safe='')}:"
                 f"{urllib.parse.quote(group_token, safe='')}:"
-                f"{urllib.parse.quote(code, safe='')}"
+                f"{urllib.parse.quote(identity, safe='')}"
             )
-            code_description = description_by_code.get(code)
+            code_description = descriptions.get((group, identity))
             native = {
                 "gsdmElement": element,
-                "domainGroup": domain_group,
+                "rowOrdinal": row_ordinal,
+                "domainGroup": group,
                 "code": code,
-                "label": label,
+                "value": text,
                 "codeDescription": code_description,
             }
             records.append(
                 _ApiCaptureRecord(
                     resource=resource,
-                    preferred_label=label,
-                    notations=(code,),
+                    preferred_label=text,
+                    notations=(code,) if code is not None else (),
                     source_locator=pin.source_iri or "",
                     source_digest=pin.sha256,
                     native_payload=native,
                     definition=code_description,
                 )
             )
-    if seen_elements != targets or len(records) != 40:
+    if enumerated_elements + reference_only + empty != len(raw_rows):
+        raise ValueError(f"{spec.name} domain value accounting does not cover every row")
+    if len(records) != _GSDM_EXPECTED_DOMAIN_VALUE_COUNT:
         raise ValueError(
-            f"{spec.name} reviewed domain selection drifted: "
-            f"elements={sorted(seen_elements)}, records={len(records)}"
+            f"{spec.name} domain value enumeration drifted: "
+            f"expected {_GSDM_EXPECTED_DOMAIN_VALUE_COUNT}, got {len(records)}"
         )
     return _api_capture_view(
         records,
         spec,
         payloads,
         unevaluated_claims=(
-            "the other 454 authenticated GSDM dictionary rows are outside this reviewed release",
+            "elements whose domain cell only cites an external code source are not enumerations",
+            "elements publishing no domain text enumerate nothing",
+            "publisher placeholder lines for future codes are not domain values",
         ),
     )
 
@@ -5324,6 +5442,686 @@ def _read_nasa_capture(
         payloads,
         unevaluated_claims=(
             "NASA root release metadata is authenticated and cross-checked but not represented per node",
+        ),
+    )
+
+
+# --- Documented roster captures (REF-032 follow-ups) -----------------------
+#
+# Five releases carry the documented successors of removed observed
+# inventories: the Federal Register's documented document types, presidential
+# subtypes, and complete agencies roster; FCC's published Offices & Bureaus
+# page; and the complete SAM.gov Federal Hierarchy roster. Each reader below
+# re-parses the pinned publisher bytes with stock JSON/HTML tooling and
+# reconstructs exactly what the Atlas asserts, importing no registry code.
+
+_FR_TYPE_CODE = re.compile(r"^[A-Z]+$")
+_FR_SUBTYPE_CODE = re.compile(r"^[a-z_]+$")
+_FR_SLUG = re.compile(r"^[a-z0-9-]+$")
+_FR_DOCUMENT_TYPE_ENUM_PATH = "components.schemas.DocumentType.items.enum"
+_FR_PRESIDENTIAL_ENUM_PATH = "components.schemas.PresidentialDocumentType.items.enum"
+_FR_AGENCY_FIELDS = frozenset(
+    {
+        "agency_url",
+        "child_ids",
+        "child_slugs",
+        "description",
+        "id",
+        "json_url",
+        "logo",
+        "name",
+        "parent_id",
+        "recent_articles_url",
+        "short_name",
+        "slug",
+        "url",
+    }
+)
+_ATLAS_PARENT_ENTITY = f"{ATLAS}parentEntity"
+
+
+def _fr_schema_enum(
+    root: Any,
+    schema_name: str,
+    pattern: re.Pattern[str],
+    label: str,
+) -> tuple[str, ...]:
+    if not isinstance(root, Mapping):
+        raise ValueError(f"{label} root must be an object")
+    components = root.get("components")
+    if not isinstance(components, Mapping) or not isinstance(components.get("schemas"), Mapping):
+        raise ValueError(f"{label} has no components.schemas object")
+    schema = components["schemas"].get(schema_name)
+    if not isinstance(schema, Mapping) or not isinstance(schema.get("items"), Mapping):
+        raise ValueError(f"{label} schema {schema_name} is not an array schema")
+    enum = schema["items"].get("enum")
+    if not isinstance(enum, list) or not enum:
+        raise ValueError(f"{label} schema {schema_name} declares no enum")
+    values: list[str] = []
+    for ordinal, value in enumerate(enum):
+        if not isinstance(value, str) or pattern.fullmatch(value) is None:
+            raise ValueError(f"{label} {schema_name} enum value {ordinal} has an unsupported shape: {value!r}")
+        values.append(value)
+    if len(set(values)) != len(values):
+        raise ValueError(f"{label} {schema_name} enum repeats a value")
+    return tuple(values)
+
+
+def _read_fr_documented_types_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    documentation_pin, documentation_payload = _pin_with_role(spec, payloads, "publisherApiDescription")
+    _facets_pin, facets_payload = _pin_with_role(spec, payloads, "publisherDisplayNames")
+    root = _json_without_duplicate_keys(documentation_payload, spec.name)
+    codes = _fr_schema_enum(root, "DocumentType", _FR_TYPE_CODE, spec.name)
+    facets = _json_without_duplicate_keys(facets_payload, f"{spec.name} facets")
+    if not isinstance(facets, Mapping) or set(facets) != set(codes):
+        raise ValueError(f"{spec.name} facets keys differ from the documented DocumentType enum")
+    records: list[_ApiCaptureRecord] = []
+    for code in codes:
+        facet = facets[code]
+        if not isinstance(facet, Mapping) or set(facet) != {"count", "name"}:
+            raise ValueError(f"{spec.name} facet {code} fields drifted")
+        name = facet["name"]
+        if not isinstance(name, str) or not name.strip() or name != name.strip():
+            raise ValueError(f"{spec.name} facet {code} has a malformed display name")
+        native = {
+            "code": code,
+            "displayName": name,
+            "enumPath": _FR_DOCUMENT_TYPE_ENUM_PATH,
+        }
+        records.append(
+            _ApiCaptureRecord(
+                resource="urn:ref:federal-register-document-type:" + urllib.parse.quote(code, safe=""),
+                preferred_label=name,
+                notations=(code,),
+                source_locator=documentation_pin.source_iri or "",
+                source_digest=documentation_pin.sha256,
+                native_payload=native,
+            )
+        )
+    if len({record.preferred_label for record in records}) != len(records):
+        raise ValueError(f"{spec.name} facets repeat a display name")
+    if len(records) != 4:
+        raise ValueError(f"{spec.name} documented type enumeration drifted: {len(records)}")
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "per-type facet document counts are corpus counts at capture time, not members",
+        ),
+    )
+
+
+def _read_fr_presidential_subtypes_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    root = _json_without_duplicate_keys(payload, spec.name)
+    codes = _fr_schema_enum(root, "PresidentialDocumentType", _FR_SUBTYPE_CODE, spec.name)
+    if len(codes) != 7:
+        raise ValueError(f"{spec.name} documented subtype enumeration drifted: {len(codes)}")
+    records = [
+        _ApiCaptureRecord(
+            resource="urn:ref:federal-register-presidential-document-type:" + urllib.parse.quote(code, safe=""),
+            preferred_label=code,
+            notations=(code,),
+            source_locator=pin.source_iri or "",
+            source_digest=pin.sha256,
+            native_payload={
+                "code": code,
+                "enumPath": _FR_PRESIDENTIAL_ENUM_PATH,
+                "parentDocumentType": "PRESDOCU",
+            },
+        )
+        for code in codes
+    ]
+    return _api_capture_view(records, spec, payloads)
+
+
+def _read_fr_agencies_roster_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    agencies_pin, agencies_payload = _pin_with_role(spec, payloads, "publisherRoster")
+    _documentation_pin, documentation_payload = _pin_with_role(spec, payloads, "publisherApiDescription")
+    root = _json_without_duplicate_keys(agencies_payload, spec.name)
+    if not isinstance(root, list) or not root:
+        raise ValueError(f"{spec.name} must be a non-empty array")
+    documentation_root = _json_without_duplicate_keys(documentation_payload, f"{spec.name} documentation")
+    documented_slugs = set(_fr_schema_enum(documentation_root, "Agency", _FR_SLUG, spec.name))
+
+    entries: list[Mapping[str, Any]] = []
+    ids: set[int] = set()
+    slugs: set[str] = set()
+    for ordinal, entry in enumerate(root):
+        label = f"{spec.name}[{ordinal}]"
+        if not isinstance(entry, Mapping) or set(entry) != _FR_AGENCY_FIELDS:
+            raise ValueError(f"{label} fields drifted from the reviewed shape")
+        agency_id = entry["id"]
+        if not isinstance(agency_id, int) or isinstance(agency_id, bool) or agency_id <= 0:
+            raise ValueError(f"{label}.id must be a positive integer")
+        slug = entry["slug"]
+        if not isinstance(slug, str) or _FR_SLUG.fullmatch(slug) is None:
+            raise ValueError(f"{label}.slug has an unsupported shape: {slug!r}")
+        name = entry["name"]
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"{label}.name must be non-empty text")
+        ids.add(agency_id)
+        slugs.add(slug)
+        entries.append(entry)
+    if len(ids) != len(entries) or len(slugs) != len(entries):
+        raise ValueError(f"{spec.name} repeats a publisher id or slug")
+    if slugs != documented_slugs:
+        raise ValueError(f"{spec.name} slugs differ from the documented Agency enum")
+
+    records: list[_ApiCaptureRecord] = []
+    parent_relations = 0
+    for entry in entries:
+        agency_id = entry["id"]
+        name = str(entry["name"]).strip()
+        short_name = entry["short_name"]
+        alternates: tuple[str, ...] = ()
+        if isinstance(short_name, str) and short_name.strip() and short_name.strip() != name:
+            alternates = (short_name.strip(),)
+        description = entry["description"]
+        parent_id = entry["parent_id"]
+        relations: tuple[tuple[str, str], ...] = ()
+        if parent_id is not None:
+            if not isinstance(parent_id, int) or isinstance(parent_id, bool) or parent_id not in ids:
+                raise ValueError(f"{spec.name} agency {agency_id} names a parent outside the roster")
+            relations = ((_ATLAS_PARENT_ENTITY, f"urn:ref:federal-register-agency:{parent_id}"),)
+            parent_relations += 1
+        records.append(
+            _ApiCaptureRecord(
+                resource=f"urn:ref:federal-register-agency:{agency_id}",
+                preferred_label=name,
+                notations=(str(entry["slug"]), str(agency_id)),
+                source_locator=agencies_pin.source_iri or "",
+                source_digest=agencies_pin.sha256,
+                native_payload=entry,
+                alternate_labels=alternates,
+                definition=(description if isinstance(description, str) and description else None),
+                relations=relations,
+            )
+        )
+    if len(records) != 472 or parent_relations != 225:
+        raise ValueError(
+            f"{spec.name} roster drifted: {len(records)} agencies, {parent_relations} parent relations"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "child_ids/child_slugs restate the inverse of parent_id and are carried in the payload only",
+        ),
+    )
+
+
+class _FccRosterHtmlParser(HTMLParser):
+    """Collect fcc.gov card-section titles and heading/description entries."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.sections: list[tuple[str, list[dict[str, str]]]] = []
+        self._collect: str | None = None
+        self._buffer: list[str] = []
+        self._depth = 0
+        self._entry_href: str | None = None
+
+    @staticmethod
+    def _text(pieces: list[str]) -> str:
+        return " ".join("".join(pieces).split())
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        classes = dict(attrs).get("class") or ""
+        if tag == "div" and "component-card__field-card-header" in classes:
+            self._collect = "section-title"
+            self._buffer = []
+            return
+        if tag == "div" and "component-card__field-card-body" in classes:
+            self._collect = None
+            self._depth = 1
+            return
+        if self._depth > 0 and tag == "div":
+            self._depth += 1
+            return
+        if self._depth > 0 and tag == "h3":
+            self._collect = "entry-name"
+            self._buffer = []
+            return
+        if self._depth > 0 and self._collect == "entry-name" and tag == "a":
+            self._entry_href = dict(attrs).get("href") or ""
+            return
+        if self._depth > 0 and tag == "p":
+            self._collect = "entry-description"
+            self._buffer = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "div" and self._collect == "section-title":
+            self.sections.append((self._text(self._buffer), []))
+            self._collect = None
+            self._buffer = []
+            return
+        if self._depth > 0 and tag == "div":
+            self._depth -= 1
+            if self._depth == 0:
+                self._collect = None
+            return
+        if tag == "h3" and self._collect == "entry-name":
+            if not self.sections:
+                raise ValueError("FCC roster entry appeared before any section title")
+            self.sections[-1][1].append(
+                {"name": self._text(self._buffer), "href": self._entry_href or "", "description": ""}
+            )
+            self._collect = None
+            self._buffer = []
+            self._entry_href = None
+            return
+        if tag == "p" and self._collect == "entry-description":
+            if not self.sections or not self.sections[-1][1]:
+                raise ValueError("FCC roster description appeared before its heading")
+            current = self.sections[-1][1][-1]
+            current["description"] = self._text([current["description"], " ", *self._buffer])
+            self._collect = None
+            self._buffer = []
+
+    def handle_data(self, data: str) -> None:
+        if self._collect is not None:
+            self._buffer.append(data)
+
+
+_FCC_EXPECTED_SECTIONS = (("Offices", 12), ("Bureaus", 7))
+_FCC_SECTION_KINDS = {"Offices": "office", "Bureaus": "bureau"}
+_FCC_PAGE_HREF = re.compile(r"^/[a-z0-9-]+$")
+
+
+def _read_fcc_bureaus_offices_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    parser = _FccRosterHtmlParser()
+    parser.feed(payload.decode("utf-8"))
+    parser.close()
+    observed = tuple((title, len(entries)) for title, entries in parser.sections)
+    if observed != _FCC_EXPECTED_SECTIONS:
+        raise ValueError(f"{spec.name} sections drifted: {observed!r}")
+    records: list[_ApiCaptureRecord] = []
+    ordinal = 0
+    for title, section_entries in parser.sections:
+        kind = _FCC_SECTION_KINDS[title]
+        for entry in section_entries:
+            ordinal += 1
+            href = entry["href"]
+            if _FCC_PAGE_HREF.fullmatch(href) is None:
+                raise ValueError(f"{spec.name} entry {entry['name']!r} has an unsupported href: {href!r}")
+            if not entry["name"] or not entry["description"]:
+                raise ValueError(f"{spec.name} entry {entry['name']!r} lacks a heading or description")
+            slug = href.removeprefix("/")
+            native = {
+                "kind": kind,
+                "name": entry["name"],
+                "slug": slug,
+                "page_href": href,
+                "page_url": "https://www.fcc.gov" + href,
+                "description": entry["description"],
+                "source_ordinal": ordinal,
+            }
+            records.append(
+                _ApiCaptureRecord(
+                    resource="urn:ref:fcc-organizational-unit:" + urllib.parse.quote(slug, safe=""),
+                    preferred_label=entry["name"],
+                    notations=(slug,),
+                    source_locator=pin.source_iri or "",
+                    source_digest=pin.sha256,
+                    native_payload=native,
+                    definition=entry["description"],
+                )
+            )
+    if len({record.resource for record in records}) != len(records) or len(records) != 19:
+        raise ValueError(f"{spec.name} roster drifted: {len(records)} units")
+    return _api_capture_view(records, spec, payloads)
+
+
+_FH_ORG_ID = re.compile(r"^[1-9]\d{5,9}$")
+_FH_REQUIRED_RECORD_FIELDS = frozenset(
+    {
+        "agencycode",
+        "cgaclist",
+        "fhagencyorgname",
+        "fhdeptindagencyorgid",
+        "fhorgid",
+        "fhorgname",
+        "fhorgnamehistory",
+        "fhorgtype",
+        "links",
+        "status",
+    }
+)
+_FH_OPTIONAL_RECORD_FIELDS = frozenset(
+    {
+        "createdby",
+        "createddate",
+        "fhorgparenthistory",
+        "lastupdateddate",
+        "oldfpdsofficecode",
+        "updatedby",
+    }
+)
+_FH_ALLOWED_RECORD_FIELDS = _FH_REQUIRED_RECORD_FIELDS | _FH_OPTIONAL_RECORD_FIELDS
+
+
+def _fh_page_root(payload: bytes, label: str) -> Mapping[str, Any]:
+    root = _json_without_duplicate_keys(payload, label)
+    if not isinstance(root, Mapping) or set(root) != {"totalrecords", "orglist"}:
+        raise ValueError(f"{label} top-level fields drifted")
+    if not isinstance(root["totalrecords"], int) or isinstance(root["totalrecords"], bool):
+        raise ValueError(f"{label} totalrecords must be an integer")
+    if not isinstance(root["orglist"], list):
+        raise ValueError(f"{label} orglist must be an array")
+    return root
+
+
+def _read_fh_complete_roster_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    page_pins = [pin for pin in spec.inputs if pin.role == "publisherRosterPage"]
+    witness_pins = [pin for pin in spec.inputs if pin.role == "publisherTotalsWitness"]
+    if len(page_pins) != 5 or len(witness_pins) != 2:
+        raise ValueError(f"{spec.name} requires five roster pages and two totals witnesses")
+
+    records: list[_ApiCaptureRecord] = []
+    seen_ids: set[str] = set()
+    dept_ids: set[str] = set()
+    pending_parents: list[tuple[str, str]] = []
+    total_reported: int | None = None
+    for page_index, pin in enumerate(page_pins):
+        label = f"{spec.name} page {page_index}"
+        root = _fh_page_root(payloads[pin], label)
+        if total_reported is None:
+            total_reported = root["totalrecords"]
+        elif root["totalrecords"] != total_reported:
+            raise ValueError(f"{label} totalrecords disagrees across pages")
+        for ordinal, entry in enumerate(root["orglist"]):
+            entry_label = f"{label}.orglist[{ordinal}]"
+            if not isinstance(entry, Mapping):
+                raise ValueError(f"{entry_label} must be an object")
+            present = set(entry)
+            if not _FH_REQUIRED_RECORD_FIELDS.issubset(present) or not present.issubset(_FH_ALLOWED_RECORD_FIELDS):
+                raise ValueError(f"{entry_label} fields drifted: {sorted(present)}")
+            fhorgid = entry["fhorgid"]
+            if not isinstance(fhorgid, int) or isinstance(fhorgid, bool) or _FH_ORG_ID.fullmatch(str(fhorgid)) is None:
+                raise ValueError(f"{entry_label}.fhorgid has a malformed shape: {fhorgid!r}")
+            org_id = str(fhorgid)
+            if org_id in seen_ids:
+                raise ValueError(f"{spec.name} repeats fhorgid {org_id}")
+            seen_ids.add(org_id)
+            org_type = entry["fhorgtype"]
+            if org_type not in {"Department/Ind. Agency", "Sub-Tier"}:
+                raise ValueError(f"{entry_label}.fhorgtype is unsupported: {org_type!r}")
+            name = entry["fhorgname"]
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"{entry_label}.fhorgname must be non-empty text")
+            parent = entry["fhdeptindagencyorgid"]
+            if not isinstance(parent, int) or isinstance(parent, bool) or _FH_ORG_ID.fullmatch(str(parent)) is None:
+                raise ValueError(f"{entry_label}.fhdeptindagencyorgid has a malformed shape")
+            relations: tuple[tuple[str, str], ...] = ()
+            if org_type == "Department/Ind. Agency":
+                if str(parent) != org_id:
+                    raise ValueError(f"{spec.name} department {org_id} does not name itself as its department")
+                dept_ids.add(org_id)
+            else:
+                pending_parents.append((org_id, str(parent)))
+                relations = ((_ATLAS_PARENT_ENTITY, f"urn:ref:federal-hierarchy-org:{parent}"),)
+            records.append(
+                _ApiCaptureRecord(
+                    resource=f"urn:ref:federal-hierarchy-org:{org_id}",
+                    preferred_label=name.strip(),
+                    notations=(org_id,),
+                    source_locator=pin.source_iri or "",
+                    source_digest=pin.sha256,
+                    native_payload=entry,
+                    relations=relations,
+                )
+            )
+    if total_reported is None or len(records) != total_reported:
+        raise ValueError(
+            f"{spec.name} is not complete: API reports {total_reported}, parsed {len(records)}"
+        )
+    for child_id, parent_id in pending_parents:
+        if parent_id not in seen_ids:
+            raise ValueError(f"{spec.name} sub-tier {child_id} names department {parent_id} outside the roster")
+
+    witness_totals: dict[str, int] = {}
+    for pin in witness_pins:
+        source_iri = pin.source_iri or ""
+        root = _fh_page_root(payloads[pin], f"{spec.name} witness {source_iri}")
+        if "fhorgtype=Department" in source_iri:
+            witness_totals["department"] = root["totalrecords"]
+        elif "fhorgtype=Sub-Tier" in source_iri:
+            witness_totals["subTier"] = root["totalrecords"]
+        else:
+            raise ValueError(f"{spec.name} witness pin does not name a level filter: {source_iri}")
+    if witness_totals.get("department") != len(dept_ids):
+        raise ValueError(
+            f"{spec.name} department count {len(dept_ids)} differs from the API's own total "
+            f"{witness_totals.get('department')}"
+        )
+    if witness_totals.get("subTier") != len(records) - len(dept_ids):
+        raise ValueError(
+            f"{spec.name} sub-tier count {len(records) - len(dept_ids)} differs from the API's own total "
+            f"{witness_totals.get('subTier')}"
+        )
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "the two one-record totals-witness responses witness counts, not members",
+        ),
+    )
+
+
+# --- GNIS National File layout (pinned publisher PDF) ----------------------
+#
+# The Atlas emits the complete 21-field National File table parsed from the
+# pinned GNIS data-products file-format PDF. This reader re-parses the same
+# bytes with stock pypdf: it folds the PDF text layer's presentation forms
+# (ligatures and typographic hyphens) exactly as published text is folded
+# elsewhere, recovers the two-page table, and reconstructs the merged
+# description cells the publisher spans across the state, county, BGN, and
+# coordinate groups. It imports no registry parsing code.
+
+_GNIS_PDF_URL = "https://prd-tnm.s3.amazonaws.com/StagedProducts/GeographicNames/GNIS_file_format.pdf"
+_GNIS_AUTHORITY_URI = "https://www.usgs.gov/us-board-on-geographic-names/download-gnis-data"
+_GNIS_RESOURCE_ID = "census-geo-identifier-authority-2026-08-03"
+_GNIS_OBSERVED_AT = "2026-08-03T19:24:00Z"
+_GNIS_EXPECTED_PAGE_COUNT = 23
+_GNIS_TABLE_HEADER = "Field Name Type Length / Decimals Description"
+_GNIS_FIELD_ROW = re.compile(
+    r"\b(?P<name>[a-z]+(?:_[a-z]+)+) (?P<type>Number|Character|Date)\b(?: (?P<length>\d+(?: / \d+)?))?"
+)
+# A PDF text layer stores what the renderer drew: presentation-form
+# ligatures and typographic hyphens that render identically to the plain
+# characters the author wrote. Folding them is line-of-text recovery, not
+# rewording; the closed table mirrors refspec-pdf-text-fold-v1 without
+# importing it.
+_GNIS_PDF_TEXT_FOLDS = str.maketrans(
+    {
+        "\ufb00": "ff",
+        "\ufb01": "fi",
+        "\ufb02": "fl",
+        "\ufb03": "ffi",
+        "\ufb04": "ffl",
+        "\ufb05": "st",
+        "\ufb06": "st",
+        "\u2010": "-",
+        "\u2011": "-",
+    }
+)
+# The reviewed shape of the pinned PDF's National File table: every field's
+# name, Type keyword, and Length/Decimals cell, in table order. Descriptions
+# are read from the PDF itself, never from here.
+_GNIS_EXPECTED_ROWS = (
+    ("feature_id", "Number", "10"),
+    ("feature_name", "Character", "120"),
+    ("feature_class", "Character", "50"),
+    ("state_name", "Character", "100"),
+    ("state_numeric", "Number", "2"),
+    ("county_name", "Character", "100"),
+    ("county_numeric", "Number", "3"),
+    ("map_name", "Character", "100"),
+    ("date_created", "Date", ""),
+    ("date_edited", "Date", ""),
+    ("bgn_type", "Character", "12"),
+    ("bgn_authority", "Character", "25"),
+    ("bgn_date", "Date", ""),
+    ("prim_lat_dms", "Character", "7"),
+    ("prim_long_dms", "Character", "8"),
+    ("prim_lat_dec", "Number", "11 / 7"),
+    ("prim_long_dec", "Number", "12 / 7"),
+    ("source_lat_dms", "Character", "7"),
+    ("source_long_dms", "Character", "8"),
+    ("source_lat_dec", "Number", "11 / 7"),
+    ("source_long_dec", "Number", "12 / 7"),
+)
+
+
+def _read_gnis_file_format_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    pin, payload = _single_pin(spec, payloads)
+    try:
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise ValueError(f"{spec.name} requires pypdf to read the pinned PDF") from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+    except Exception as error:
+        raise ValueError(f"{spec.name} input is not a readable PDF: {error}") from error
+    if len(reader.pages) != _GNIS_EXPECTED_PAGE_COUNT:
+        raise ValueError(f"{spec.name} PDF page count drifted: {len(reader.pages)}")
+    pages = [
+        re.sub(
+            r"\s+",
+            " ",
+            (reader.pages[index].extract_text() or "").translate(_GNIS_PDF_TEXT_FOLDS),
+        ).strip()
+        for index in (0, 1)
+    ]
+    header_index = pages[0].find(_GNIS_TABLE_HEADER)
+    if header_index == -1 or _GNIS_TABLE_HEADER not in pages[1]:
+        raise ValueError(f"{spec.name} National File table header was not found on both pages")
+    table = " ".join(
+        (
+            pages[0][header_index + len(_GNIS_TABLE_HEADER) :].strip(),
+            pages[1].replace(_GNIS_TABLE_HEADER, " ", 1).strip(),
+        )
+    )
+    table = re.sub(r"\s+", " ", table).strip()
+
+    matches = tuple(_GNIS_FIELD_ROW.finditer(table))
+    raw_rows: list[tuple[str, str, str, str]] = []
+    for index, match in enumerate(matches):
+        cell_end = matches[index + 1].start() if index + 1 < len(matches) else len(table)
+        raw_rows.append(
+            (
+                match.group("name"),
+                match.group("type"),
+                match.group("length") or "",
+                table[match.end() : cell_end].strip(),
+            )
+        )
+    observed_shape = tuple((name, field_type, length) for name, field_type, length, _ in raw_rows)
+    if observed_shape != _GNIS_EXPECTED_ROWS:
+        raise ValueError(f"{spec.name} National File table shape drifted: {observed_shape!r}")
+
+    # An empty description cell continues the previous row's merged cell; the
+    # group's first row carries the publisher's text for every member.
+    groups: list[list[int]] = []
+    for ordinal, (name, _field_type, _length, description) in enumerate(raw_rows):
+        if description:
+            groups.append([ordinal])
+        elif not groups:
+            raise ValueError(f"{spec.name} field {name!r} has no description cell and no preceding row")
+        else:
+            groups[-1].append(ordinal)
+
+    records: list[_ApiCaptureRecord] = []
+    for group in groups:
+        member_names = tuple(raw_rows[ordinal][0] for ordinal in group)
+        shared = member_names if len(group) > 1 else ()
+        description = raw_rows[group[0]][3]
+        for ordinal in group:
+            name, field_type, length, _ = raw_rows[ordinal]
+            source_path = f"nationalFileFieldTable.field.{name}"
+            identifier = {
+                "value": name,
+                "kind": "gnisNationalFileFieldName",
+                "authorityUri": _GNIS_AUTHORITY_URI,
+                "sourceUri": _GNIS_PDF_URL,
+                "sourcePath": source_path,
+                "observedAt": _GNIS_OBSERVED_AT,
+                "sourceDigest": pin.sha256,
+            }
+            observation_id = _source_observation_id(
+                resource_id=_GNIS_RESOURCE_ID,
+                source_artifact=_GNIS_PDF_URL,
+                source_path=source_path,
+                identifiers=(identifier,),
+            )
+            native: dict[str, Any] = {
+                "id": observation_id,
+                "sourceArtifact": _GNIS_PDF_URL,
+                "sourcePath": source_path,
+                "sourceOrdinal": ordinal,
+                "labels": [{"value": name, "language": "en", "role": "preferred"}],
+                "identifiers": [identifier],
+                "uses": ["deterministicMetadata"],
+                "conceptIdentityClaimed": False,
+                "product": "gnisNationalFile",
+                "fieldType": field_type,
+                "lengthDecimals": length,
+                "sourceMedium": "pdf",
+                "description": description,
+            }
+            if shared:
+                native["descriptionSharedWithFields"] = list(shared)
+            records.append(
+                _ApiCaptureRecord(
+                    resource=_source_concept_iri(
+                        token="usgs-gnis-identifiers",
+                        recorded_at=_GNIS_OBSERVED_AT,
+                        source_locator=_GNIS_PDF_URL,
+                        source_path=source_path,
+                        notations=(name,),
+                        identity_hint=observation_id,
+                    ),
+                    preferred_label=name,
+                    notations=(name,),
+                    source_locator=_GNIS_PDF_URL,
+                    source_digest=pin.sha256,
+                    native_payload=native,
+                    definition=description,
+                )
+            )
+    records.sort(key=lambda record: record.native_payload["sourceOrdinal"])
+    if len(records) != len(_GNIS_EXPECTED_ROWS):
+        raise ValueError(f"{spec.name} National File field count drifted: {len(records)}")
+    return _api_capture_view(
+        records,
+        spec,
+        payloads,
+        unevaluated_claims=(
+            "the PDF's other file formats and appendices are outside this capture",
+            "prose outside the two-page National File table is not field vocabulary",
         ),
     )
 
@@ -9795,8 +10593,14 @@ _PUBLISHER_READERS: Mapping[
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
     ECFR_TITLES_JSON_READER: _read_ecfr_titles_capture,
+    FCC_BUREAUS_OFFICES_HTML_READER: _read_fcc_bureaus_offices_capture,
+    FH_COMPLETE_ROSTER_JSON_READER: _read_fh_complete_roster_capture,
+    FR_AGENCIES_ROSTER_JSON_READER: _read_fr_agencies_roster_capture,
+    GNIS_FILE_FORMAT_PDF_READER: _read_gnis_file_format_capture,
+    FR_DOCUMENTED_TYPES_JSON_READER: _read_fr_documented_types_capture,
+    FR_PRESIDENTIAL_SUBTYPES_JSON_READER: _read_fr_presidential_subtypes_capture,
     GOVINFO_COLLECTIONS_JSON_READER: _read_govinfo_collections_capture,
-    GSDM_REVIEWED_DOMAIN_JSON_READER: _read_gsdm_capture,
+    GSDM_DOMAIN_VALUES_JSON_READER: _read_gsdm_capture,
     LDA_FILING_TYPE_JSON_READER: _read_lda_filing_type_capture,
     LDA_GENERAL_ISSUE_JSON_READER: _read_lda_general_issue_capture,
     NASA_TAXONOMY_JSON_READER: _read_nasa_capture,
@@ -11407,300 +12211,6 @@ def _oversight_pattern_source() -> SourceSpec:
 OVERSIGHT_PATTERN_ROW_SOURCES = (_oversight_pattern_source(),)
 
 
-_SEC_PATTERN_PIN = SourcePin(
-    path=(
-        "tests/fixtures/sec_series_categories/"
-        "sec-rules-regulations-2026-08-03.html"
-    ),
-    sha256=(
-        "sha256:2f39c9d08f0dc55462e30fbda57315fd5159d47a4894dd113dc0bf226112c1b1"
-    ),
-    byte_length=70_936,
-    fmt="html",
-    role="publisherSource",
-    source_iri="https://www.sec.gov/rules-regulations",
-)
-
-
-def _sec_pattern_source() -> SourceSpec:
-    observed_at = "2026-08-03T19:25:10Z"
-    source_digest_hex = _SEC_PATTERN_PIN.sha256.removeprefix("sha256:")
-    source_artifact = (
-        "urn:ref:sec-source-artifact:rules-regulations:" + source_digest_hex
-    )
-    common_native_payload = {
-        "collection": "{collection}",
-        "conceptIdentityClaimed": False,
-        "id": "{record_id}",
-        "identifiers": [],
-        "labels": [
-            {"language": "en", "role": "preferred", "value": "{label}"}
-        ],
-        "sourceArtifact": source_artifact,
-        "sourceObservedAt": observed_at,
-        "sourceOrdinal": "{pattern_ordinal_one_based}",
-        "sourcePath": "{source_path}",
-        "sourceUrl": "{source_iri}",
-        "targetPath": "{target_path}",
-        "uses": ["navigation"],
-    }
-    side_payload = dict(common_native_payload)
-    card_payload = {**common_native_payload, "description": "{description}"}
-    selector = PatternRowSelector(
-        patterns=(
-            PatternRowPattern(
-                input_pattern=re.escape(_SEC_PATTERN_PIN.path),
-                region_pattern=(
-                    r'<ul class="usa-sidenav">(?P<region>.*?)</ul>.*?'
-                    r'<ul class="usa-sidenav">.*?</ul>'
-                ),
-                row_pattern=(
-                    r'<a href="(?P<target_path>[^"]+)"[^>]*>\s*'
-                    r"<span>(?P<label>.*?)</span>\s*</a>"
-                ),
-                expected_input_count=1,
-                expected_region_count=1,
-                expected_row_count=13,
-                constants=(
-                    ("collection", "sideNavigation"),
-                    ("description", ""),
-                ),
-                normalizers=(
-                    PatternFieldNormalizer("label", ("html-visible-text",)),
-                    PatternFieldNormalizer("target_path", ("html-unescape",)),
-                ),
-                row_filters=(
-                    PatternRowFilter(
-                        "target_path", r"/rules-regulations", False
-                    ),
-                ),
-                native_payload_template_json=_canonical_json_bytes(
-                    side_payload
-                ).decode("utf-8"),
-                native_payload_fields=tuple(sorted(side_payload)),
-            ),
-            PatternRowPattern(
-                input_pattern=re.escape(_SEC_PATTERN_PIN.path),
-                region_pattern=r"(?P<region>[\s\S]+)",
-                row_pattern=(
-                    r'<div class="subpage-card">\s*'
-                    r'<h2 class="subpage-card__headline">\s*'
-                    r'<a class="subpage-card__headline__link" '
-                    r'href="(?P<target_path>[^"]+)">(?P<label>.*?)</a>\s*'
-                    r"</h2>\s*<p class=\"subpage-card__body\">"
-                    r"(?P<description>.*?)</p>"
-                ),
-                expected_input_count=1,
-                expected_region_count=1,
-                expected_row_count=6,
-                constants=(("collection", "subpageCard"),),
-                normalizers=(
-                    PatternFieldNormalizer("label", ("html-visible-text",)),
-                    PatternFieldNormalizer(
-                        "description", ("html-visible-text",)
-                    ),
-                    PatternFieldNormalizer("target_path", ("html-unescape",)),
-                ),
-                native_payload_template_json=_canonical_json_bytes(
-                    card_payload
-                ).decode("utf-8"),
-                native_payload_fields=tuple(sorted(card_payload)),
-            ),
-        ),
-        row_key="{source_path}",
-        identity_mode="source-local-record",
-        identity_template="urn:ref:source-concept:v2:sec-series-categories:{source_uuid7}",
-        source_locator_template=source_artifact,
-        claim_map=(
-            ("preferred_label", "{label}"),
-            ("definition", "{description}"),
-            ("source_path", "{source_path}"),
-            ("observed_at", observed_at),
-            ("identity_hint", "{record_id}"),
-        ),
-        native_payload_template_json="{}",
-        native_payload_fields=(),
-        expected_count=19,
-        declared_unevaluated_fields=(
-            "secondNavigationCopyAndHtmlOutsideSelectedCollections",
-        ),
-        derived_fields=(
-            PatternDerivedField(
-                field="source_path",
-                operation="template",
-                template_json=json.dumps(
-                    "{collection}[{pattern_ordinal_one_based}]"
-                ),
-            ),
-            PatternDerivedField(
-                field="record_id",
-                operation="template",
-                template_json=json.dumps(
-                    "urn:ref:sec-source-record:"
-                    + source_digest_hex
-                    + ":{collection}:%2Frules-regulations:"
-                    "{pattern_ordinal_one_based}"
-                ),
-            ),
-        ),
-    )
-    return _pattern_row_source_spec(
-        "sec-series-categories", (_SEC_PATTERN_PIN,), selector
-    )
-
-
-SEC_PATTERN_ROW_SOURCES = (_sec_pattern_source(),)
-
-
-_SCOTUS_PATTERN_PIN = SourcePin(
-    path=(
-        "tests/fixtures/scotus_opinion_types/"
-        "scotus-opinions-2026-08-03.html"
-    ),
-    sha256=(
-        "sha256:26d9c70afb7ee7b66678eea7eb32851c74a10ee8e60249ffc5433a45a82b2bd5"
-    ),
-    byte_length=42_237,
-    fmt="html",
-    role="publisherSource",
-    source_iri="https://www.supremecourt.gov/opinions/opinions.aspx",
-)
-
-
-def _scotus_pattern_source() -> SourceSpec:
-    observed_at = "2026-08-03T19:15:13Z"
-    source_digest_hex = _SCOTUS_PATTERN_PIN.sha256.removeprefix("sha256:")
-    common_native_payload = {
-        "conceptIdentityClaimed": False,
-        "facet": "{facet}",
-        "id": "{record_id}",
-        "identifiers": [],
-        "labels": [
-            {"language": "en", "role": "preferred", "value": "{label}"}
-        ],
-        "sourceArtifact": "{source_iri}",
-        "sourceOrdinal": "{source_ordinal}",
-        "sourcePath": "{source_path}",
-        "uses": ["deterministicMetadata"],
-    }
-    navigation_payload = {
-        **common_native_payload,
-        "navigationHref": "{navigation_href}",
-    }
-    stage_payload = {**common_native_payload, "stageOrder": "{stage_order}"}
-    navigation_declarations = (
-        ("hypOpinion", "opinionType", 0),
-        ("hypRelating", "opinionType", 1),
-        ("hypInChamber", "opinionType", 2),
-        ("hypusreports", "reporterSeries", 3),
-    )
-    stage_declarations = (
-        ("slip opinion format", "Slip opinion", 1, 0, 4),
-        ("preliminary prints", "Preliminary print", 2, 1, 5),
-        ("bound volumes", "Bound volume", 3, 2, 6),
-    )
-    patterns = tuple(
-        PatternRowPattern(
-            input_pattern=re.escape(_SCOTUS_PATTERN_PIN.path),
-            region_pattern=(
-                r'<ul class="sidenav-list">(?P<region>.*?)</ul>'
-            ),
-            row_pattern=(
-                r'<a id="[^"]*_' + re.escape(suffix) + r'" '
-                r'href="(?P<navigation_href>[^"]+)">(?P<label>.*?)</a>'
-            ),
-            expected_input_count=1,
-            expected_region_count=1,
-            expected_row_count=1,
-            constants=(
-                ("facet", facet),
-                (
-                    "record_id",
-                    "urn:ref:scotus-opinion-type:"
-                    + source_digest_hex
-                    + f":{facet}:{source_ordinal}",
-                ),
-                ("source_ordinal", source_ordinal),
-                ("source_path", f"sidenav.categories[{source_ordinal}]"),
-            ),
-            normalizers=(
-                PatternFieldNormalizer("label", ("html-visible-text",)),
-                PatternFieldNormalizer(
-                    "navigation_href", ("html-unescape",)
-                ),
-            ),
-            native_payload_template_json=_canonical_json_bytes(
-                navigation_payload
-            ).decode("utf-8"),
-            native_payload_fields=tuple(sorted(navigation_payload)),
-        )
-        for suffix, facet, source_ordinal in navigation_declarations
-    ) + tuple(
-        PatternRowPattern(
-            input_pattern=re.escape(_SCOTUS_PATTERN_PIN.path),
-            region_pattern=(
-                r'<div id="ctl00_ctl00_MainEditable_mainContent_RadEditor1">'
-                r"(?P<region>.*?)</div>"
-            ),
-            row_pattern=re.escape(phrase),
-            expected_input_count=1,
-            expected_region_count=1,
-            expected_row_count=1,
-            constants=(
-                ("facet", "packageVersionStage"),
-                ("label", label),
-                (
-                    "record_id",
-                    "urn:ref:scotus-opinion-type:"
-                    + source_digest_hex
-                    + f":packageVersionStage:{record_ordinal}",
-                ),
-                ("source_ordinal", source_ordinal),
-                ("source_path", "content.paragraphs[5]"),
-                ("stage_order", stage_order),
-            ),
-            native_payload_template_json=_canonical_json_bytes(
-                stage_payload
-            ).decode("utf-8"),
-            native_payload_fields=tuple(sorted(stage_payload)),
-        )
-        for (
-            phrase,
-            label,
-            stage_order,
-            record_ordinal,
-            source_ordinal,
-        ) in stage_declarations
-    )
-    selector = PatternRowSelector(
-        patterns=patterns,
-        row_key="{record_id}",
-        identity_mode="source-local-record",
-        identity_template=(
-            "urn:ref:source-concept:v2:scotus-opinion-types:{source_uuid7}"
-        ),
-        source_locator_template="{source_iri}",
-        claim_map=(
-            ("preferred_label", "{label}"),
-            ("source_path", "{source_path}"),
-            ("observed_at", observed_at),
-            ("identity_hint", "{record_id}"),
-        ),
-        native_payload_template_json="{}",
-        native_payload_fields=(),
-        expected_count=7,
-        declared_unevaluated_fields=(
-            "htmlOutsideSelectedNavigationAndVersionPhrases",
-        ),
-    )
-    return _pattern_row_source_spec(
-        "scotus-opinion-types", (_SCOTUS_PATTERN_PIN,), selector
-    )
-
-
-SCOTUS_PATTERN_ROW_SOURCES = (_scotus_pattern_source(),)
-
-
 _CENSUS_FINANCE_PATTERN_DECLARATIONS = (
     (
         "census-function-items",
@@ -11887,107 +12397,6 @@ CENSUS_FINANCE_PATTERN_ROW_SOURCES = tuple(
 )
 
 
-_NASBO_PATTERN_PIN = SourcePin(
-    path=(
-        "tests/fixtures/census_gov_finance_codes/"
-        "nasbo-ser-program-area-chapters-2026-08-03.html"
-    ),
-    sha256=(
-        "sha256:cff509abccd46a7bba32e5261164a430934db29004024c2b66d389d83ef9ba57"
-    ),
-    byte_length=189_899,
-    fmt="html",
-    role="publisherSource",
-    source_iri=(
-        "https://www.nasbo.org/mainsite/reports-data/state-expenditure-report"
-    ),
-)
-
-
-def _nasbo_pattern_source() -> SourceSpec:
-    observed_at = "2026-08-03T19:15:00Z"
-    resource_id = "nasbo-ser-program-area-chapters-2026-08-03"
-    native_payload_template = {
-        "conceptIdentityClaimed": False,
-        "id": "{observation_id}",
-        "identifiers": [],
-        "labels": [
-            {"language": "en", "role": "preferred", "value": "{label}"}
-        ],
-        "sourceArtifact": "{source_iri}",
-        "sourceOrdinal": "{ordinal}",
-        "sourcePath": "{source_path}",
-        "uses": ["deterministicMetadata"],
-    }
-    selector = PatternRowSelector(
-        patterns=(
-            PatternRowPattern(
-                input_pattern=re.escape(_NASBO_PATTERN_PIN.path),
-                region_pattern=(
-                    r"<h2>Chapters</h2>.*?<table[^>]*>(?P<region>.*?)</table>"
-                ),
-                row_pattern=(
-                    r"<p class=\"card-description text-break font-size-md\"[^>]*>"
-                    r"(?:<strong>|<span[^>]*>)(?P<label>.*?)"
-                    r"(?:</strong>|</span>)</p>"
-                ),
-                expected_input_count=1,
-                expected_region_count=1,
-                expected_row_count=7,
-                normalizers=(
-                    PatternFieldNormalizer("label", ("html-visible-text",)),
-                ),
-                row_filters=(PatternRowFilter("label", r".+", True),),
-            ),
-        ),
-        row_key="{label}",
-        identity_mode="source-local-record",
-        identity_template=(
-            "urn:ref:source-concept:v2:nasbo-program-areas:{source_uuid7}"
-        ),
-        source_locator_template="{source_iri}",
-        claim_map=(
-            ("preferred_label", "{label}"),
-            ("source_path", "{source_path}"),
-            ("observed_at", observed_at),
-            ("identity_hint", "{observation_id}"),
-        ),
-        native_payload_template_json=_canonical_json_bytes(
-            native_payload_template
-        ).decode("utf-8"),
-        native_payload_fields=tuple(sorted(native_payload_template)),
-        expected_count=7,
-        declared_unevaluated_fields=("htmlOutsideSelectedChapterTitles",),
-        derived_fields=(
-            PatternDerivedField(
-                field="source_path",
-                operation="template",
-                template_json=json.dumps("$.rows[{ordinal}]"),
-            ),
-            PatternDerivedField(
-                field="observation_id",
-                operation="canonical-json-sha256",
-                template_json=_canonical_json_bytes(
-                    {
-                        "identifiers": [],
-                        "publisherLabel": "{label}",
-                        "resourceId": resource_id,
-                        "sourceArtifact": "{source_iri}",
-                        "sourceOrdinal": "{ordinal}",
-                    }
-                ).decode("utf-8"),
-                prefix=f"urn:ref:source-observation:{resource_id}:",
-            ),
-        ),
-    )
-    return _pattern_row_source_spec(
-        "nasbo-program-areas", (_NASBO_PATTERN_PIN,), selector
-    )
-
-
-NASBO_PATTERN_ROW_SOURCES = (_nasbo_pattern_source(),)
-
-
 _PRA_PATTERN_PIN = SourcePin(
     path="tests/fixtures/pra_icr_codes/pra-search-2026-08-03.html",
     sha256=(
@@ -12071,16 +12480,7 @@ def _pra_pattern_source() -> SourceSpec:
     single_identifier = _pra_identifier_payload(
         "{identifier_1}", "{identifier_1_kind}", "{source_path}/@value"
     )
-    paired_identifiers = [
-        _pra_identifier_payload(
-            "{identifier_1}", "{identifier_1_kind}", "{identifier_1_path}"
-        ),
-        _pra_identifier_payload(
-            "{identifier_2}", "{identifier_2_kind}", "{identifier_2_path}"
-        ),
-    ]
     single_payload, payload_fields = _pra_native_payload([single_identifier])
-    paired_payload, paired_payload_fields = _pra_native_payload(paired_identifiers)
 
     def source_path(template: str) -> PatternDerivedField:
         return PatternDerivedField(
@@ -12094,44 +12494,6 @@ def _pra_pattern_source() -> SourceSpec:
 
     selector = PatternRowSelector(
         patterns=(
-            PatternRowPattern(
-                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
-                region_pattern=r"(?P<region>[\s\S]+)",
-                row_pattern=(
-                    r'<input id="ombControlNumber"'
-                    r'(?=[^>]*\bname="(?P<identifier_1>[^"]*)")'
-                    r'(?=[^>]*\bmaxlength="(?P<identifier_2>\d+)")[^>]*>'
-                ),
-                expected_input_count=1,
-                expected_region_count=1,
-                expected_row_count=1,
-                constants=(
-                    ("label", "OMB Control Number"),
-                    ("identifier_1_kind", "ombControlNumberFieldId"),
-                    ("identifier_1_path", 'input[@id="ombControlNumber"]/@name'),
-                    ("identifier_2_kind", "ombControlNumberMaxLength"),
-                    (
-                        "identifier_2_path",
-                        'input[@id="ombControlNumber"]/@maxlength',
-                    ),
-                ),
-                native_payload_template_json=paired_payload,
-                native_payload_fields=paired_payload_fields,
-                derived_fields=(
-                    source_path('input[@id="ombControlNumber"]'),
-                    _pra_observation_id_field(
-                        resource_id,
-                        [
-                            identity_identifier(
-                                "{identifier_1}", "ombControlNumberFieldId"
-                            ),
-                            identity_identifier(
-                                "{identifier_2}", "ombControlNumberMaxLength"
-                            ),
-                        ],
-                    ),
-                ),
-            ),
             PatternRowPattern(
                 input_pattern=re.escape(_PRA_PATTERN_PIN.path),
                 region_pattern=(
@@ -12202,54 +12564,6 @@ def _pra_pattern_source() -> SourceSpec:
                     ),
                 ),
             ),
-            PatternRowPattern(
-                input_pattern=re.escape(_PRA_PATTERN_PIN.path),
-                region_pattern=r"(?P<region>[\s\S]+)",
-                row_pattern=(
-                    r'<td[^>]*style="font-weight:600;">\s*'
-                    r"(?P<label>[^<]+?)\s*</td>\s*<td[^>]*>\s*Between\s*"
-                    r'<input id="(?P<identifier_1>low\w+)"[^>]*/>.*?'
-                    r'<input id="(?P<identifier_2>high\w+)"[^>]*/>'
-                ),
-                expected_input_count=1,
-                expected_region_count=1,
-                expected_row_count=5,
-                constants=(
-                    ("identifier_1_kind", "burdenMeasureLowFieldId"),
-                    ("identifier_2_kind", "burdenMeasureHighFieldId"),
-                ),
-                normalizers=(
-                    PatternFieldNormalizer("label", ("html-unescape", "strip")),
-                ),
-                native_payload_template_json=paired_payload,
-                native_payload_fields=paired_payload_fields,
-                derived_fields=(
-                    source_path(
-                        'input[@id="{identifier_1}"]|input[@id="{identifier_2}"]'
-                    ),
-                    PatternDerivedField(
-                        field="identifier_1_path",
-                        operation="template",
-                        template_json=json.dumps("{source_path}/@id"),
-                    ),
-                    PatternDerivedField(
-                        field="identifier_2_path",
-                        operation="template",
-                        template_json=json.dumps("{source_path}/@id"),
-                    ),
-                    _pra_observation_id_field(
-                        resource_id,
-                        [
-                            identity_identifier(
-                                "{identifier_1}", "burdenMeasureLowFieldId"
-                            ),
-                            identity_identifier(
-                                "{identifier_2}", "burdenMeasureHighFieldId"
-                            ),
-                        ],
-                    ),
-                ),
-            ),
         ),
         row_key="{source_path}",
         identity_mode="source-local-record",
@@ -12265,7 +12579,7 @@ def _pra_pattern_source() -> SourceSpec:
         ),
         native_payload_template_json=single_payload,
         native_payload_fields=payload_fields,
-        expected_count=21,
+        expected_count=15,
         declared_unevaluated_fields=("htmlOutsideSelectedControls",),
     )
     return _pattern_row_source_spec("pra-icr-controls", (_PRA_PATTERN_PIN,), selector)
@@ -12445,17 +12759,6 @@ def _fac_pattern_source() -> SourceSpec:
 FAC_PATTERN_ROW_SOURCES = (_fac_pattern_source(),)
 
 
-_CENSUS_ACS_GEO_PATTERN_PIN = SourcePin(
-    path="tests/fixtures/census_geo_codes/acs-variables-2026-08-03.html",
-    sha256=(
-        "sha256:cc018ff0aa9b5e9c73d57f537d281add5211fc47f2e3023940dbd0498386b416"
-    ),
-    byte_length=5_326,
-    fmt="html",
-    role="publisherPageContainingPinnedSpan",
-    source_iri="https://api.census.gov/data/2024/acs/acs1/spp/variables.html",
-)
-
 _CENSUS_TIGER_GEOID_PATTERN_PIN = SourcePin(
     path="tests/fixtures/census_geo_codes/geoid-structure-2026-08-03.html",
     sha256=(
@@ -12527,161 +12830,9 @@ def _census_geo_pattern_derivations(source_path_template: str) -> tuple[PatternD
     )
 
 
-_ACS_PATTERN_ROW = (
-    r'<tr>\s*<td><a name="(?P<identifier_value>[^"]+)"[^>]*>[^<]*</a></td>'
-    r"<td>(?P<label>.*?)</td><td>(?P<universe>.*?)</td>"
-    r"<td>(?P<required>.*?)</td><td>(?P<attributes>.*?)</td>"
-    r"<td>(?P<limit>.*?)</td><td>(?P<predicate_type>.*?)</td>"
-    r"<td>(?P<group>.*?)</td>\s*</tr>"
-)
-
-_ACS_FIELD_NORMALIZERS = (
-    PatternFieldNormalizer("label", ("strip",)),
-    PatternFieldNormalizer("universe", ("strip", "none-if-empty")),
-    PatternFieldNormalizer("required", ("strip",)),
-    PatternFieldNormalizer("predicate_type", ("html-visible-text",)),
-    PatternFieldNormalizer("group", ("collapse-whitespace",)),
-)
-
-
-def _census_acs_pattern_source() -> SourceSpec:
-    geography_artifact = _CENSUS_ACS_GEO_PATTERN_PIN.source_iri + "#geography-and-predicate-variables"
-    estimates_artifact = _CENSUS_ACS_GEO_PATTERN_PIN.source_iri + "#s0201-estimate-variables"
-    geography_region = (
-        r"(?P<region><table>[\s\S]*?"
-        r'<a name="in"[\s\S]*?</tr>)'
-    )
-    estimates_region = (
-        r'(?P<region><tr>\s*<td><a name="S0201_001E"[\s\S]+)'
-    )
-    common_constants = (
-        ("identifier_authority", _CENSUS_ACS_GEO_PATTERN_PIN.source_iri),
-        ("identifier_source_uri", geography_artifact),
-        ("identifier_observed_at", "2026-08-03T19:17:10Z"),
-        ("recorded_at", "2026-08-03T19:24:00Z"),
-        (
-            "record_source_digest",
-            "sha256:66ac97d792d55cbb0ace1d4a26305a7c0fe704db94f83f2bade342f6c743e025",
-        ),
-        ("source_artifact", geography_artifact),
-    )
-    acs_payload, acs_payload_fields = _census_geo_native_payload(
-        {
-            "group": "{group}",
-            "predicateType": "{predicate_type}",
-            "product": "acs1",
-            "required": "{required}",
-            "universe": "{universe}",
-            "vintage": "2024",
-        }
-    )
-    patterns = (
-        PatternRowPattern(
-            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
-            region_pattern=geography_region,
-            row_pattern=_ACS_PATTERN_ROW,
-            expected_input_count=1,
-            expected_region_count=1,
-            expected_row_count=2,
-            constants=(
-                *common_constants,
-                ("identifier_kind", "acsApiPredicateParameterName"),
-            ),
-            normalizers=_ACS_FIELD_NORMALIZERS,
-            row_filters=(PatternRowFilter("identifier_value", r"(?:for|in)"),),
-            native_payload_template_json=acs_payload,
-            native_payload_fields=acs_payload_fields,
-            derived_fields=_census_geo_pattern_derivations(
-                "variablesTable.row.{identifier_value}"
-            ),
-        ),
-        PatternRowPattern(
-            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
-            region_pattern=geography_region,
-            row_pattern=_ACS_PATTERN_ROW,
-            expected_input_count=1,
-            expected_region_count=1,
-            expected_row_count=3,
-            constants=(
-                *common_constants,
-                ("identifier_kind", "acsVariableName"),
-            ),
-            normalizers=_ACS_FIELD_NORMALIZERS,
-            row_filters=(
-                PatternRowFilter(
-                    "identifier_value",
-                    r"(?:COUNTY|GEO_ID|GEOCOMP)",
-                ),
-            ),
-            native_payload_template_json=acs_payload,
-            native_payload_fields=acs_payload_fields,
-            derived_fields=_census_geo_pattern_derivations(
-                "variablesTable.row.{identifier_value}"
-            ),
-        ),
-        PatternRowPattern(
-            input_pattern=re.escape(_CENSUS_ACS_GEO_PATTERN_PIN.path),
-            region_pattern=estimates_region,
-            row_pattern=_ACS_PATTERN_ROW,
-            expected_input_count=1,
-            expected_region_count=1,
-            expected_row_count=2,
-            constants=(
-                ("identifier_authority", _CENSUS_ACS_GEO_PATTERN_PIN.source_iri),
-                ("identifier_kind", "acsVariableName"),
-                ("identifier_source_uri", estimates_artifact),
-                ("identifier_observed_at", "2026-08-03T19:17:10Z"),
-                ("recorded_at", "2026-08-03T19:24:00Z"),
-                (
-                    "record_source_digest",
-                    "sha256:4d386957911b76830b53b64e47df1c5e0fb98bcca6253c0e32f722ce2ae520b7",
-                ),
-                ("source_artifact", estimates_artifact),
-            ),
-            normalizers=_ACS_FIELD_NORMALIZERS,
-            native_payload_template_json=acs_payload,
-            native_payload_fields=acs_payload_fields,
-            derived_fields=_census_geo_pattern_derivations(
-                "variablesTable.row.{identifier_value}"
-            ),
-        ),
-    )
-    selector = PatternRowSelector(
-        patterns=patterns,
-        row_key="{source_artifact}:{identifier_value}",
-        identity_mode="source-local-record",
-        identity_template=(
-            "urn:ref:source-concept:v2:census-acs-geography:{source_uuid7}"
-        ),
-        source_locator_template="{source_artifact}",
-        claim_map=(
-            ("preferred_label", "{label}"),
-            ("notation", "{identifier_value}"),
-            ("source_path", "{source_path}"),
-            ("observed_at", "{recorded_at}"),
-            ("identity_hint", "{observation_id}"),
-        ),
-        native_payload_template_json=acs_payload,
-        native_payload_fields=acs_payload_fields,
-        expected_count=7,
-        declared_unevaluated_fields=(
-            "attributes",
-            "excludedAcsSpanRows",
-            "fullPageOutsidePinnedSpans",
-            "limit",
-        ),
-    )
-    return _pattern_row_source_spec(
-        "census-acs-geography-identifiers",
-        (_CENSUS_ACS_GEO_PATTERN_PIN,),
-        selector,
-    )
-
-
 def _census_tiger_pattern_source() -> SourceSpec:
     guidance = _CENSUS_TIGER_GEOID_PATTERN_PIN.source_iri
     structure_artifact = guidance + "#geoid-structure-table"
-    example_artifact = guidance + "#geoid-download-example-table"
     structure_payload, structure_fields = _census_geo_native_payload(
         {
             "areaType": "{label}",
@@ -12689,12 +12840,6 @@ def _census_tiger_pattern_source() -> SourceSpec:
             "exampleGeoid": "{example_geoid}",
             "numberOfDigits": "{digits}",
             "product": "tigerLineGeoid",
-        }
-    )
-    example_payload, example_fields = _census_geo_native_payload(
-        {
-            "exampleGeographicArea": "{label}",
-            "product": "dataCensusGovGeoId",
         }
     )
     common_constants = (
@@ -12743,41 +12888,6 @@ def _census_tiger_pattern_source() -> SourceSpec:
                 "geoidStructureTable.row.{match_ordinal}"
             ),
         ),
-        PatternRowPattern(
-            input_pattern=re.escape(_CENSUS_TIGER_GEOID_PATTERN_PIN.path),
-            region_pattern=(
-                r'<table class="datatable"[^>]*>(?P<region>.*?)</table>'
-            ),
-            row_pattern=(
-                r"<tr>\s*<td scope=\"row\"[^>]*>"
-                r"(?P<identifier_value>.*?)</td>\s*"
-                r"<td[^>]*>(?P<label>.*?)</td>\s*</tr>"
-            ),
-            expected_input_count=1,
-            expected_region_count=1,
-            expected_row_count=3,
-            constants=(
-                *common_constants,
-                ("identifier_kind", "tigerGeoidExampleValue"),
-                (
-                    "record_source_digest",
-                    "sha256:2b9d6087100846298ed8aa56cc8164e8fdeb360bd5ee19d42667ce94ca88597a",
-                ),
-                ("source_artifact", example_artifact),
-            ),
-            normalizers=(
-                PatternFieldNormalizer("identifier_value", ("html-visible-text",)),
-                PatternFieldNormalizer("label", ("html-visible-text",)),
-            ),
-            row_filters=(
-                PatternRowFilter("identifier_value", r"0500000US\d{5}"),
-            ),
-            native_payload_template_json=example_payload,
-            native_payload_fields=example_fields,
-            derived_fields=_census_geo_pattern_derivations(
-                "geoidExampleTable.row.{match_ordinal}"
-            ),
-        ),
     )
     selector = PatternRowSelector(
         patterns=patterns,
@@ -12796,9 +12906,8 @@ def _census_tiger_pattern_source() -> SourceSpec:
         ),
         native_payload_template_json=structure_payload,
         native_payload_fields=structure_fields,
-        expected_count=14,
+        expected_count=11,
         declared_unevaluated_fields=(
-            "exampleTableHeaderRow",
             "fullPageOutsidePinnedSpans",
             "structureTableFootnotes",
         ),
@@ -12810,10 +12919,7 @@ def _census_tiger_pattern_source() -> SourceSpec:
     )
 
 
-CENSUS_GEO_PATTERN_ROW_SOURCES = (
-    _census_acs_pattern_source(),
-    _census_tiger_pattern_source(),
-)
+CENSUS_GEO_PATTERN_ROW_SOURCES = (_census_tiger_pattern_source(),)
 
 
 _OMB_A11_DOCUMENT_URL = "https://www.whitehouse.gov/wp-content/uploads/2025/08/a11.pdf"
@@ -14510,7 +14616,13 @@ def _opm_ehri_ooxml_source() -> SourceSpec:
         ),
         primary_table="current",
         union_tables=(),
-        filters=(),
+        # The AGENCY/SUBELEMENT element is the publisher's organizational
+        # roster; the Atlas emits it as a separate entity-ring release
+        # (opm-ehri-agency-subelement-2026-08-04, checked below), so its 798
+        # rows are excluded here exactly as the emission splits them out.
+        filters=(
+            OoxmlRowFilter("name", "not-equals", "AGENCY/SUBELEMENT"),
+        ),
         sort_by=(),
         group_by=(),
         joins=(
@@ -14543,6 +14655,12 @@ def _opm_ehri_ooxml_source() -> SourceSpec:
                 template_json=_EHRI_FIELD_TEMPLATE,
             ),
             OoxmlAggregate(
+                "field_description",
+                "one",
+                "field",
+                template_json=json.dumps("{description}"),
+            ),
+            OoxmlAggregate(
                 "past_lifecycle",
                 "rows",
                 "past",
@@ -14555,6 +14673,11 @@ def _opm_ehri_ooxml_source() -> SourceSpec:
                 "strip",
                 inputs=("explanation",),
             ),
+            OoxmlDerivedField(
+                "definition",
+                "strip",
+                inputs=("field_description",),
+            ),
         ),
         row_key="source_path",
         identity_mode="registry-source-key",
@@ -14566,14 +14689,17 @@ def _opm_ehri_ooxml_source() -> SourceSpec:
         claim_map=(
             ("preferred_label", "preferred_label"),
             ("notation", "code"),
+            ("notation", "name"),
+            ("definition", "definition"),
             ("source_path", "source_path"),
         ),
         native_payload_template_json=native_template,
         native_payload_fields=tuple(json.loads(native_template)),
-        expected_count=17_263,
+        expected_count=16_465,
         declared_unevaluated_fields=(
             "field definitions with no current controlled values",
             "past-only field/code identities are lifecycle context, not current members",
+            "AGENCY/SUBELEMENT rows are the entity-ring roster release, not workforce code values",
         ),
     )
     return SourceSpec(
@@ -14589,11 +14715,148 @@ def _opm_ehri_ooxml_source() -> SourceSpec:
     )
 
 
+_EHRI_AGENCY_PAST_TEMPLATE = json.dumps(
+    {
+        "code": "{code}",
+        "explanation": "{explanation}",
+        "fromDate": "{from_date}",
+        "throughDate": "{through_date}",
+    },
+    sort_keys=True,
+    separators=(",", ":"),
+)
+
+
+def _opm_ehri_agency_subelement_ooxml_source() -> SourceSpec:
+    """The AGENCY/SUBELEMENT element's current values, split to the entity ring.
+
+    Same workbook pin as the value-ring EHRI spec above; this spec covers the
+    798 rows that spec excludes. The emission mints the publisher code
+    directly into the IRI, keeps the publisher's Explanation as the label and
+    the Code as the notation, and attaches the element's past values as
+    lifecycle context rather than members.
+    """
+    pin = _registry_source_pin(
+        "EHRI-Data-Standards-20260804.xlsx",
+        "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc",
+        1_154_183,
+        "https://data.opm.gov/data-standards/ehri-data-standards",
+        fmt="xlsx",
+    )
+    native_template = json.dumps(
+        {
+            "code": "{code}",
+            "publisherName": "{explanation}",
+            "fromDate": "{from_date}",
+            "throughDate": "{through_date}",
+            "pastLifecycle": "{past_lifecycle}",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    selector = OoxmlRelationalSelector(
+        input_role="publisherSource",
+        expected_sheets=_EHRI_SHEETS,
+        tables=(
+            OoxmlTable(
+                name="fields",
+                sheet="AllDataElements",
+                header_row=1,
+                expected_header=_EHRI_ELEMENT_HEADER,
+                fields=tuple(
+                    OoxmlTableField(field, column, "cell-text")
+                    for column, field in enumerate(
+                        (
+                            "name",
+                            "description",
+                            "data_format",
+                            "data_length",
+                            "valid_values",
+                            "current_values",
+                            "past_values",
+                        )
+                    )
+                ),
+                expected_rows=534,
+            ),
+            _ehri_value_table("current", "CurrentValues", 17_263),
+            _ehri_value_table("past", "PastValues", 16_425),
+        ),
+        primary_table="current",
+        union_tables=(),
+        filters=(
+            OoxmlRowFilter("name", "equals", "AGENCY/SUBELEMENT"),
+        ),
+        sort_by=(),
+        group_by=(),
+        joins=(
+            OoxmlJoin(
+                "past",
+                "past",
+                ("name", "code"),
+                ("name", "code"),
+                "many",
+            ),
+        ),
+        aggregates=(
+            OoxmlAggregate(
+                "past_lifecycle",
+                "rows",
+                "past",
+                template_json=_EHRI_AGENCY_PAST_TEMPLATE,
+            ),
+        ),
+        derived_fields=(
+            OoxmlDerivedField(
+                "preferred_label",
+                "strip",
+                inputs=("explanation",),
+            ),
+            OoxmlDerivedField(
+                "quoted_code",
+                "url-quote",
+                inputs=("code",),
+            ),
+        ),
+        row_key="code",
+        identity_mode="publisher-key",
+        identity_template="urn:ref:opm-ehri-agency-subelement:{quoted_code}",
+        source_path_template=(
+            "{input_source_iri}#CurrentValues/AGENCY-SUBELEMENT/{quoted_code}"
+        ),
+        source_locator_template="{source_path}",
+        claim_map=(
+            ("preferred_label", "preferred_label"),
+            ("notation", "code"),
+            ("source_path", "source_path"),
+        ),
+        native_payload_template_json=native_template,
+        native_payload_fields=tuple(json.loads(native_template)),
+        expected_count=798,
+        declared_unevaluated_fields=(
+            "every other element's rows belong to the value-ring EHRI spec above",
+            "past AGENCY/SUBELEMENT values are lifecycle context, not roster members",
+        ),
+    )
+    return SourceSpec(
+        name="opm-ehri-agency-subelement-2026-08-04",
+        kind="vocabulary",
+        release_keys=("opm-ehri-agency-subelement-2026-08-04",),
+        inputs=(pin,),
+        reader=OOXML_RELATIONAL_READER,
+        ooxml_relational=selector,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(frozenset(json.loads(native_template))),
+    )
+
+
 OOXML_RELATIONAL_SOURCES = (
     _naics_ooxml_source(),
     _psc_ooxml_source(),
     _fast_book_ooxml_source(),
     _opm_ehri_ooxml_source(),
+    _opm_ehri_agency_subelement_ooxml_source(),
 )
 
 
@@ -14675,13 +14938,48 @@ SOURCES: tuple[SourceSpec, ...] = (
     *GRANTS_GOV_PATTERN_ROW_SOURCES,
     *OIRA_PATTERN_ROW_SOURCES,
     *OVERSIGHT_PATTERN_ROW_SOURCES,
-    *SEC_PATTERN_ROW_SOURCES,
-    *SCOTUS_PATTERN_ROW_SOURCES,
     *CENSUS_FINANCE_PATTERN_ROW_SOURCES,
-    *NASBO_PATTERN_ROW_SOURCES,
     *PRA_PATTERN_ROW_SOURCES,
     *FAC_PATTERN_ROW_SOURCES,
     *CENSUS_GEO_PATTERN_ROW_SOURCES,
+    SourceSpec(
+        name="usgs-gnis-identifiers",
+        kind="vocabulary",
+        release_keys=("usgs-gnis-identifiers",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/census_geo_codes/gnis-file-format-2026-08-03.pdf",
+                sha256="sha256:cd9dad49f8584f60ab4a68ab43cb416d06513688329463846cc1156b78cd0eea",
+                byte_length=283_712,
+                fmt="pdf",
+                role="publisherSource",
+                source_iri=_GNIS_PDF_URL,
+            ),
+        ),
+        reader=GNIS_FILE_FORMAT_PDF_READER,
+        identity_policy="source-local-record",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "conceptIdentityClaimed",
+                    "description",
+                    "descriptionSharedWithFields",
+                    "fieldType",
+                    "id",
+                    "identifiers",
+                    "labels",
+                    "lengthDecimals",
+                    "product",
+                    "sourceArtifact",
+                    "sourceMedium",
+                    "sourceOrdinal",
+                    "sourcePath",
+                    "uses",
+                }
+            )
+        ),
+    ),
     *OMB_A11_PATTERN_ROW_SOURCES,
     *USCOURTS_NOS_PATTERN_ROW_SOURCES,
     *COURTLISTENER_PATTERN_ROW_SOURCES,
@@ -14689,6 +14987,258 @@ SOURCES: tuple[SourceSpec, ...] = (
     *JSON_RECORD_SELECTOR_SOURCES,
     *CSV_RECORD_SELECTOR_SOURCES,
     *OOXML_RELATIONAL_SOURCES,
+    SourceSpec(
+        name="federal-register-documented-document-types-2026-08-15",
+        kind="vocabulary",
+        release_keys=("federal-register-documented-document-types-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/federal_register_native_controls/"
+                    "fr-api-documentation-2026-08-15.json"
+                ),
+                sha256="sha256:9190df715f0227e62acb57ff924635fc7115732064a5d2c1fb15a57d80879a42",
+                byte_length=229_776,
+                fmt="json",
+                role="publisherApiDescription",
+                source_iri="https://www.federalregister.gov/api/v1/documentation.json",
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/federal_register_native_controls/"
+                    "fr-documents-facets-type-2026-08-15.json"
+                ),
+                sha256="sha256:fb6ab236d52938e112fa5ff5f36f6b9a6a7f34a4f8009bb7cc4ad9f507ee53f2",
+                byte_length=187,
+                fmt="json",
+                role="publisherDisplayNames",
+                source_iri="https://www.federalregister.gov/api/v1/documents/facets/type",
+            ),
+        ),
+        reader=FR_DOCUMENTED_TYPES_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"code", "displayName", "enumPath"})
+        ),
+    ),
+    SourceSpec(
+        name="federal-register-documented-presidential-document-types-2026-08-15",
+        kind="vocabulary",
+        release_keys=(
+            "federal-register-documented-presidential-document-types-2026-08-15",
+        ),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/federal_register_native_controls/"
+                    "fr-api-documentation-2026-08-15.json"
+                ),
+                sha256="sha256:9190df715f0227e62acb57ff924635fc7115732064a5d2c1fb15a57d80879a42",
+                byte_length=229_776,
+                fmt="json",
+                role="publisherApiDescription",
+                source_iri="https://www.federalregister.gov/api/v1/documentation.json",
+            ),
+        ),
+        reader=FR_PRESIDENTIAL_SUBTYPES_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset({"code", "enumPath", "parentDocumentType"})
+        ),
+    ),
+    SourceSpec(
+        name="federal-register-agencies-roster-2026-08-15",
+        kind="vocabulary",
+        release_keys=("federal-register-agencies-roster-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/federal_register_native_controls/"
+                    "fr-agencies-2026-08-15.json"
+                ),
+                sha256="sha256:70dd0e8fa373a22d5c9577ac1f70ea736542f0e564f816c3caf28014bd05a92b",
+                byte_length=694_024,
+                fmt="json",
+                role="publisherRoster",
+                source_iri="https://www.federalregister.gov/api/v1/agencies",
+            ),
+            SourcePin(
+                path=(
+                    "tests/fixtures/federal_register_native_controls/"
+                    "fr-api-documentation-2026-08-15.json"
+                ),
+                sha256="sha256:9190df715f0227e62acb57ff924635fc7115732064a5d2c1fb15a57d80879a42",
+                byte_length=229_776,
+                fmt="json",
+                role="publisherApiDescription",
+                source_iri="https://www.federalregister.gov/api/v1/documentation.json",
+            ),
+        ),
+        reader=FR_AGENCIES_ROSTER_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "agency_url",
+                    "child_ids",
+                    "child_slugs",
+                    "description",
+                    "id",
+                    "json_url",
+                    "logo",
+                    "name",
+                    "parent_id",
+                    "recent_articles_url",
+                    "short_name",
+                    "slug",
+                    "url",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}parentEntity",),
+        ),
+    ),
+    SourceSpec(
+        name="fcc-bureaus-offices-roster-2026-08-15",
+        kind="vocabulary",
+        release_keys=("fcc-bureaus-offices-roster-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/fcc_bureaus_offices/"
+                    "fcc-offices-bureaus-2026-08-15.html"
+                ),
+                sha256="sha256:2915ee13f3dc07081671b70720e26ed1c376e7964d60cffa2ca4c1d7cab41f55",
+                byte_length=51_748,
+                fmt="html",
+                role="publisherRosterPage",
+                source_iri="https://www.fcc.gov/offices-bureaus",
+            ),
+        ),
+        reader=FCC_BUREAUS_OFFICES_HTML_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "description",
+                    "kind",
+                    "name",
+                    "page_href",
+                    "page_url",
+                    "slug",
+                    "source_ordinal",
+                }
+            )
+        ),
+    ),
+    SourceSpec(
+        name="federal-hierarchy-orgs-complete-2026-08-15",
+        kind="vocabulary",
+        release_keys=("federal-hierarchy-orgs-complete-2026-08-15",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-0.json",
+                sha256="sha256:b684a583f8775ee109cf113949fe1a1c59d1166d2db718b48583272274bca8ff",
+                byte_length=183_892,
+                fmt="json",
+                role="publisherRosterPage",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=0"
+                ),
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-1.json",
+                sha256="sha256:8043dd5bcc850b0036ed1c28c5f36a55d1bb44e4c0c934548c9f8086f21ad6e2",
+                byte_length=179_237,
+                fmt="json",
+                role="publisherRosterPage",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=200"
+                ),
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-2.json",
+                sha256="sha256:7dbb2ab10f480f08f661049cda4753d5618983d4ba0c95fca314348f53804c64",
+                byte_length=181_649,
+                fmt="json",
+                role="publisherRosterPage",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=400"
+                ),
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-3.json",
+                sha256="sha256:90be1eb4f7dafdea9e26e87596f2c17df8d09cdcc8b0a228758ef29a94af1e96",
+                byte_length=182_189,
+                fmt="json",
+                role="publisherRosterPage",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=600"
+                ),
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-4.json",
+                sha256="sha256:bb78b6c039167ef158bea672275c86961be784e269f4db41a52e4b0cd09c277e",
+                byte_length=100_030,
+                fmt="json",
+                role="publisherRosterPage",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs?limit=200&offset=800"
+                ),
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-total-dept.json",
+                sha256="sha256:e08d262428b48a2539c8db513982510e731978220461e7058c155d2a01ab35b6",
+                byte_length=919,
+                fmt="json",
+                role="publisherTotalsWitness",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs"
+                    "?fhorgtype=Department%2FInd.%20Agency&limit=1&offset=0"
+                ),
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_hierarchy_complete/fh-orgs-total-subtier.json",
+                sha256="sha256:9f23757566e92492e4eeb0bd272a677048a87985bba9db98930f354359431359",
+                byte_length=898,
+                fmt="json",
+                role="publisherTotalsWitness",
+                source_iri=(
+                    "https://api.sam.gov/prod/federalorganizations/v1/orgs"
+                    "?fhorgtype=Sub-Tier&limit=1&offset=0"
+                ),
+            ),
+        ),
+        reader=FH_COMPLETE_ROSTER_JSON_READER,
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "agencycode",
+                    "cgaclist",
+                    "createdby",
+                    "createddate",
+                    "fhagencyorgname",
+                    "fhdeptindagencyorgid",
+                    "fhorgid",
+                    "fhorgnamehistory",
+                    "fhorgname",
+                    "fhorgparenthistory",
+                    "fhorgtype",
+                    "lastupdateddate",
+                    "links",
+                    "oldfpdsofficecode",
+                    "status",
+                    "updatedby",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}parentEntity",),
+        ),
+    ),
     SourceSpec(
         name="lda-general-issue-codes",
         kind="vocabulary",
@@ -14863,9 +15413,9 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
     ),
     SourceSpec(
-        name="gsdm-reviewed-domain-values-2026-08-03",
+        name="gsdm-data-dictionary-domain-values-2026-08-03",
         kind="vocabulary",
-        release_keys=("gsdm-reviewed-domain-values-2026-08-03",),
+        release_keys=("gsdm-data-dictionary-domain-values-2026-08-03",),
         inputs=(
             _registry_source_pin(
                 "gsdm-data-dictionary-2026-08-03.json",
@@ -14880,12 +15430,19 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
         ),
-        reader=GSDM_REVIEWED_DOMAIN_JSON_READER,
+        reader=GSDM_DOMAIN_VALUES_JSON_READER,
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
             frozenset(
-                {"code", "codeDescription", "domainGroup", "gsdmElement", "label"}
+                {
+                    "code",
+                    "codeDescription",
+                    "domainGroup",
+                    "gsdmElement",
+                    "rowOrdinal",
+                    "value",
+                }
             )
         ),
     ),
