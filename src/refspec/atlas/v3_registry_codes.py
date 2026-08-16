@@ -1662,6 +1662,14 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
                     "fieldName": field.field_name,
                     "value": value,
                     "identifier": _json_value(identifier),
+                    **(
+                        {
+                            "documentation": field.documentation,
+                            "sourceElementName": field.source_element_name,
+                        }
+                        if field.field_name == "priorityCategory"
+                        else {}
+                    ),
                 },
             )
             for ordinal, (value, identifier) in enumerate(zip(field.values, field.identifiers, strict=True))

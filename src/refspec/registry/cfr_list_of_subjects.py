@@ -12,6 +12,13 @@ one part, and it does not turn topic labels into concept identifiers.  The
 result is source-assigned filing evidence for candidate ranking and
 evaluation, not a governed vocabulary or accepted-output authority.
 
+The separate eCFR administrative agencies endpoint is a publisher-authored
+roster, not List of Subjects evidence. ``parse_ecfr_agency_roster`` preserves
+all 316 agency rows and their 487 CFR structure references from one exact,
+digest-pinned response. The Atlas roster adapter carries those references as
+direct agency-to-CFR-title relations without matching agencies by name to any
+other publisher's roster.
+
 Importing this module performs no network access.  Callers provide exact
 publisher bytes, normally captured through the shared Zyte transport.
 """
@@ -37,6 +44,10 @@ ECFR_STRUCTURE_TITLE_1_2026_07_31_URL = "https://www.ecfr.gov/api/versioner/v1/s
 ECFR_FULL_TITLE_1_PART_18_2026_07_31_URL = "https://www.ecfr.gov/api/versioner/v1/full/2026-07-31/title-1.xml?part=18"
 FEDERAL_REGISTER_DOCUMENT_2026_15493_URL = "https://www.federalregister.gov/api/v1/documents/2026-15493.json"
 FEDERAL_REGISTER_DOCUMENT_96_32865_URL = "https://www.federalregister.gov/api/v1/documents/96-32865.json"
+ECFR_AGENCIES_LICENSE_RIGHTS_STATEMENT = "US federal public domain (17 USC 105) with no explicit CC license"
+ECFR_AGENCIES_SOURCE_VERSION_NOTE = (
+    "The publisher exposes this as a rolling, unversioned endpoint; no versioned URL is available."
+)
 ASSIGNMENT_EVIDENCE_VERSION = "2.0"
 CFR_LANGUAGE = "en"
 
@@ -45,6 +56,13 @@ IdentityStatus = Literal["publisherIdentifierAbsent"]
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _DOCUMENT_NUMBER = re.compile(r"^[A-Za-z0-9-]+$")
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+ECFR_AGENCIES_EXPECTED_TOP_LEVEL_COUNT = 153
+ECFR_AGENCIES_EXPECTED_AGENCY_COUNT = 316
+ECFR_AGENCIES_EXPECTED_REFERENCE_COUNT = 487
+ECFR_AGENCIES_EXPECTED_REFERENCED_AGENCY_COUNT = 315
+ECFR_AGENCIES_EXPECTED_REFERENCED_TITLE_COUNT = 49
 
 
 class CFRListOfSubjectsError(ValueError):
@@ -142,6 +160,257 @@ def _flatten_agencies(value: Sequence[object]) -> tuple[Mapping[str, Any], ...]:
         rows.append(item)
         rows.extend(_flatten_agencies(children))
     return tuple(rows)
+
+
+@dataclass(frozen=True, slots=True)
+class EcfrAgenciesSnapshotPin:
+    """Exact identity and rights record for one eCFR agencies response."""
+
+    source_url: str
+    retrieved_at: str
+    expected_sha256: str
+    expected_byte_length: int
+    license_rights_statement: str
+    source_version_note: str
+
+    def __post_init__(self) -> None:
+        parsed = urlsplit(self.source_url)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "www.ecfr.gov"
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise CFRListOfSubjectsError("eCFR agencies source_url must be the official credential-free HTTPS endpoint")
+        if parsed.query or parsed.fragment:
+            raise CFRListOfSubjectsError("eCFR agencies source_url must not carry a query or fragment")
+        if _SHA256.fullmatch(self.expected_sha256) is None:
+            raise CFRListOfSubjectsError("eCFR agencies expected_sha256 must be sha256:<64 lowercase hex>")
+        if self.expected_byte_length <= 0:
+            raise CFRListOfSubjectsError("eCFR agencies expected_byte_length must be positive")
+        if not self.retrieved_at.endswith("Z"):
+            raise CFRListOfSubjectsError("eCFR agencies retrieved_at must be a UTC timestamp")
+        if not self.license_rights_statement:
+            raise CFRListOfSubjectsError("eCFR agencies license/rights statement must not be empty")
+        if "unversioned" not in self.source_version_note:
+            raise CFRListOfSubjectsError("eCFR agencies source version note must record the rolling endpoint")
+
+
+ECFR_AGENCIES_2026_08_15 = EcfrAgenciesSnapshotPin(
+    source_url=ECFR_AGENCIES_URL,
+    retrieved_at="2026-08-15T22:51:57Z",
+    expected_sha256="sha256:766685f466d62fa558a504cdeac23eef1d41f3ea24a2f5a3f78b38f2bcd5365e",
+    expected_byte_length=98_197,
+    license_rights_statement=ECFR_AGENCIES_LICENSE_RIGHTS_STATEMENT,
+    source_version_note=ECFR_AGENCIES_SOURCE_VERSION_NOTE,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class EcfrAgencyCfrReference:
+    """One eCFR-published agency reference to CFR structure."""
+
+    title: int
+    source_ordinal: int
+    chapter: str | None
+    subtitle: str | None
+    subchapter: str | None
+    part: str | None
+    raw: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class EcfrAgencyRecord:
+    """One agency row from the nested eCFR administrative roster."""
+
+    name: str
+    short_name: str | None
+    display_name: str
+    sortable_name: str
+    slug: str
+    parent_slug: str | None
+    child_slugs: tuple[str, ...]
+    source_path: str
+    references: tuple[EcfrAgencyCfrReference, ...]
+    raw: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class EcfrAgencyRoster:
+    """The complete digest-pinned eCFR agency roster and all CFR references."""
+
+    source_url: str
+    retrieved_at: str
+    source_sha256: str
+    source_byte_length: int
+    records: tuple[EcfrAgencyRecord, ...]
+    top_level_agency_count: int
+    reference_count: int
+    referenced_agency_count: int
+    referenced_title_count: int
+
+    def by_slug(self) -> dict[str, EcfrAgencyRecord]:
+        return {record.slug: record for record in self.records}
+
+
+_ECFR_AGENCY_FIELDS = frozenset(
+    {
+        "name",
+        "short_name",
+        "display_name",
+        "sortable_name",
+        "slug",
+        "cfr_references",
+    }
+)
+_ECFR_REFERENCE_FIELD_SETS = frozenset(
+    {
+        frozenset({"title", "chapter"}),
+        frozenset({"title", "subtitle"}),
+        frozenset({"title", "chapter", "subchapter"}),
+        frozenset({"title", "chapter", "part"}),
+        frozenset({"title", "chapter", "subtitle"}),
+    }
+)
+
+
+def _ecfr_optional_text(value: object, label: str) -> str | None:
+    if value is None or value == "":
+        return None
+    return _required_text(value, label)
+
+
+def _parse_ecfr_agency_reference(value: object, *, path: str, ordinal: int) -> EcfrAgencyCfrReference:
+    label = f"{path}.cfr_references[{ordinal}]"
+    if not isinstance(value, Mapping) or frozenset(value) not in _ECFR_REFERENCE_FIELD_SETS:
+        fields = sorted(value) if isinstance(value, Mapping) else type(value).__name__
+        raise CFRSourceDriftError(f"{label} fields drifted: {fields}")
+    title = value["title"]
+    if not isinstance(title, int) or isinstance(title, bool) or not 1 <= title <= 50:
+        raise CFRSourceDriftError(f"{label}.title must be an integer from 1 through 50")
+    return EcfrAgencyCfrReference(
+        title=title,
+        source_ordinal=ordinal,
+        chapter=_ecfr_optional_text(value.get("chapter"), f"{label}.chapter"),
+        subtitle=_ecfr_optional_text(value.get("subtitle"), f"{label}.subtitle"),
+        subchapter=_ecfr_optional_text(value.get("subchapter"), f"{label}.subchapter"),
+        part=_ecfr_optional_text(value.get("part"), f"{label}.part"),
+        raw=value,
+    )
+
+
+def _parse_ecfr_agency_rows(
+    values: object,
+    *,
+    path: str,
+    parent_slug: str | None,
+) -> tuple[EcfrAgencyRecord, ...]:
+    if not isinstance(values, list):
+        raise CFRSourceDriftError(f"{path} must be an array")
+    parsed: list[EcfrAgencyRecord] = []
+    for ordinal, value in enumerate(values):
+        row_path = f"{path}[{ordinal}]"
+        if not isinstance(value, Mapping):
+            raise CFRSourceDriftError(f"{row_path} must be an object")
+        fields = frozenset(value)
+        if fields not in {_ECFR_AGENCY_FIELDS, _ECFR_AGENCY_FIELDS | {"children"}}:
+            raise CFRSourceDriftError(f"{row_path} fields drifted: {sorted(fields)}")
+        slug = _required_text(value["slug"], f"{row_path}.slug")
+        short_name = _ecfr_optional_text(value["short_name"], f"{row_path}.short_name")
+        references_value = value["cfr_references"]
+        if not isinstance(references_value, list):
+            raise CFRSourceDriftError(f"{row_path}.cfr_references must be an array")
+        references = tuple(
+            _parse_ecfr_agency_reference(item, path=row_path, ordinal=reference_ordinal)
+            for reference_ordinal, item in enumerate(references_value)
+        )
+        child_values = value.get("children", [])
+        if not isinstance(child_values, list):
+            raise CFRSourceDriftError(f"{row_path}.children must be an array")
+        child_slugs = tuple(
+            _required_text(child.get("slug"), f"{row_path}.children[{child_ordinal}].slug")
+            if isinstance(child, Mapping)
+            else ""
+            for child_ordinal, child in enumerate(child_values)
+        )
+        if "" in child_slugs:
+            raise CFRSourceDriftError(f"{row_path}.children entries must be objects")
+        parsed.append(
+            EcfrAgencyRecord(
+                name=_required_text(value["name"], f"{row_path}.name"),
+                short_name=short_name,
+                display_name=_required_text(value["display_name"], f"{row_path}.display_name"),
+                sortable_name=_required_text(value["sortable_name"], f"{row_path}.sortable_name"),
+                slug=slug,
+                parent_slug=parent_slug,
+                child_slugs=child_slugs,
+                source_path=row_path,
+                references=references,
+                raw=value,
+            )
+        )
+        parsed.extend(_parse_ecfr_agency_rows(child_values, path=f"{row_path}.children", parent_slug=slug))
+    return tuple(parsed)
+
+
+def parse_ecfr_agency_roster(
+    payload: bytes,
+    *,
+    pin: EcfrAgenciesSnapshotPin = ECFR_AGENCIES_2026_08_15,
+) -> EcfrAgencyRoster:
+    """Parse the complete eCFR agency roster after refusing byte or shape drift."""
+
+    if len(payload) != pin.expected_byte_length:
+        raise CFRSourceDriftError(
+            f"eCFR agencies byte length drift: expected {pin.expected_byte_length}, got {len(payload)}"
+        )
+    digest = sha256_digest(payload)
+    if digest != pin.expected_sha256:
+        raise CFRSourceDriftError(f"eCFR agencies digest drift: expected {pin.expected_sha256}, got {digest}")
+    root = _json_object(payload, "eCFR agencies response")
+    if set(root) != {"agencies"}:
+        raise CFRSourceDriftError(f"eCFR agencies response fields drifted: {sorted(root)}")
+    top_level = root["agencies"]
+    records = _parse_ecfr_agency_rows(top_level, path="$.agencies", parent_slug=None)
+    if not isinstance(top_level, list):
+        raise CFRSourceDriftError("eCFR agencies response must contain an agencies array")
+
+    slugs = [record.slug for record in records]
+    if len(slugs) != len(set(slugs)):
+        raise CFRSourceDriftError("eCFR agencies response repeats an agency slug")
+    references = [reference for record in records for reference in record.references]
+    referenced_agencies = sum(bool(record.references) for record in records)
+    referenced_titles = {reference.title for reference in references}
+    observed = (
+        len(top_level),
+        len(records),
+        len(references),
+        referenced_agencies,
+        len(referenced_titles),
+    )
+    expected = (
+        ECFR_AGENCIES_EXPECTED_TOP_LEVEL_COUNT,
+        ECFR_AGENCIES_EXPECTED_AGENCY_COUNT,
+        ECFR_AGENCIES_EXPECTED_REFERENCE_COUNT,
+        ECFR_AGENCIES_EXPECTED_REFERENCED_AGENCY_COUNT,
+        ECFR_AGENCIES_EXPECTED_REFERENCED_TITLE_COUNT,
+    )
+    if observed != expected:
+        raise CFRSourceDriftError(
+            "eCFR agencies counts drifted: "
+            f"expected top/total/references/referenced-agencies/titles={expected}, got {observed}"
+        )
+    return EcfrAgencyRoster(
+        source_url=pin.source_url,
+        retrieved_at=pin.retrieved_at,
+        source_sha256=digest,
+        source_byte_length=len(payload),
+        records=records,
+        top_level_agency_count=len(top_level),
+        reference_count=len(references),
+        referenced_agency_count=referenced_agencies,
+        referenced_title_count=len(referenced_titles),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -530,6 +799,14 @@ def cfr_list_of_subjects_assignment_evidence_bytes(
 __all__ = [
     "ASSIGNMENT_EVIDENCE_VERSION",
     "CFR_LANGUAGE",
+    "ECFR_AGENCIES_2026_08_15",
+    "ECFR_AGENCIES_EXPECTED_AGENCY_COUNT",
+    "ECFR_AGENCIES_EXPECTED_REFERENCED_AGENCY_COUNT",
+    "ECFR_AGENCIES_EXPECTED_REFERENCED_TITLE_COUNT",
+    "ECFR_AGENCIES_EXPECTED_REFERENCE_COUNT",
+    "ECFR_AGENCIES_EXPECTED_TOP_LEVEL_COUNT",
+    "ECFR_AGENCIES_LICENSE_RIGHTS_STATEMENT",
+    "ECFR_AGENCIES_SOURCE_VERSION_NOTE",
     "ECFR_AGENCIES_URL",
     "ECFR_API_DOCUMENTATION_URL",
     "ECFR_API_OPENAPI_URL",
@@ -545,12 +822,17 @@ __all__ = [
     "CFRReference",
     "CFRSourceDriftError",
     "CFRSubjectTermEvidence",
+    "EcfrAgenciesSnapshotPin",
+    "EcfrAgencyCfrReference",
+    "EcfrAgencyRecord",
+    "EcfrAgencyRoster",
     "EcfrPartSourceInspection",
     "FederalRegisterDocumentAssignments",
     "IdentityStatus",
     "cfr_list_of_subjects_assignment_evidence",
     "cfr_list_of_subjects_assignment_evidence_bytes",
     "inspect_ecfr_part_sources",
+    "parse_ecfr_agency_roster",
     "parse_federal_register_document_assignments",
     "sha256_digest",
 ]

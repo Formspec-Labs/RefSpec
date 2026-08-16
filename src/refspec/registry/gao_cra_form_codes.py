@@ -15,6 +15,11 @@ two pinned revisions of that form:
   revision is the last publisher statement of that list, and the current
   form's bytes are checked to still omit it.
 
+The module also reads pinned report GAO-09-205. That report ties GAO's
+CRA-form-backed Federal Rules Database to the Unified Agenda priority
+categories used by the mapping release. It supplies institutional evidence;
+it does not add another form vocabulary.
+
 The current revision's download URL carries the publisher's own typo
 ("Sumission"); it is preserved exactly because it is the publisher's URL.
 
@@ -51,6 +56,7 @@ GAO_CRA_CURRENT_FORM_URL = (
     "%20Act%20-%202025.pdf"
 )
 GAO_CRA_RETIRED_FORM_URL = "https://www.gao.gov/assets/2023-11/Blank%20CRA%20Form-Updated.pdf"
+GAO_CRA_INSTITUTIONAL_BRIDGE_URL = "https://www.gao.gov/assets/gao-09-205.pdf"
 
 GAO_CRA_CURRENT_REVISION = "Rev. 12/24"
 GAO_CRA_RETIRED_REVISION = "11/17/23"
@@ -66,6 +72,29 @@ class GaoCraFormError(ValueError):
 
 class GaoCraFormSourceDriftError(GaoCraFormError):
     """A pinned form revision no longer matches the reviewed bytes or wording."""
+
+
+@dataclass(frozen=True, slots=True)
+class GaoCraInstitutionalEvidencePin:
+    """Exact identity of the GAO report used as institutional evidence."""
+
+    report_number: str
+    source_url: str
+    retrieved_at: str
+    expected_sha256: str
+    expected_byte_length: int
+
+    def __post_init__(self) -> None:
+        if not self.source_url.startswith("https://www.gao.gov/"):
+            raise GaoCraFormError("source_url must be an official HTTPS gao.gov URL")
+        if _DIGEST.fullmatch(self.expected_sha256) is None:
+            raise GaoCraFormError(
+                "expected_sha256 must be a lowercase sha256:<64 hex> digest"
+            )
+        if self.expected_byte_length <= 0:
+            raise GaoCraFormError("expected_byte_length must be positive")
+        if not self.retrieved_at or not self.report_number:
+            raise GaoCraFormError("retrieved_at and report_number must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +136,15 @@ GAO_CRA_RETIRED_FORM_2026_08_15 = GaoCraFormPin(
     retrieved_at="2026-08-15T13:57:12Z",
     expected_sha256="sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d",
     expected_byte_length=111_887,
+)
+GAO_CRA_INSTITUTIONAL_BRIDGE_2026_08_15 = GaoCraInstitutionalEvidencePin(
+    report_number="GAO-09-205",
+    source_url=GAO_CRA_INSTITUTIONAL_BRIDGE_URL,
+    retrieved_at="2026-08-15",
+    expected_sha256=(
+        "sha256:7cb03a0114456ccfaf4d4071f92ea7a6b1a3d286ec2da4de58a1ba9d0ed63277"
+    ),
+    expected_byte_length=1_869_486,
 )
 
 
@@ -192,6 +230,18 @@ class GaoCraRetiredFormCapture:
     major_dichotomy_text: str
     source_url: str
     revision: str
+    retrieved_at: str
+    source_sha256: str
+    source_byte_length: int
+
+
+@dataclass(frozen=True, slots=True)
+class GaoCraInstitutionalBridgeCapture:
+    """The verified GAO statements that connect CRA data to Agenda priority."""
+
+    report_number: str
+    records: tuple[str, ...]
+    source_url: str
     retrieved_at: str
     source_sha256: str
     source_byte_length: int
@@ -314,10 +364,77 @@ def parse_gao_cra_retired_form(
     )
 
 
+def parse_gao_cra_institutional_bridge(
+    payload: bytes,
+    *,
+    pin: GaoCraInstitutionalEvidencePin = (
+        GAO_CRA_INSTITUTIONAL_BRIDGE_2026_08_15
+    ),
+) -> GaoCraInstitutionalBridgeCapture:
+    """Parse the report statements that license the institutional bridge."""
+
+    if len(payload) != pin.expected_byte_length:
+        raise GaoCraFormSourceDriftError(
+            "GAO CRA institutional evidence byte length drift: "
+            f"expected {pin.expected_byte_length}, got {len(payload)}"
+        )
+    actual = sha256_digest(payload)
+    if actual != pin.expected_sha256:
+        raise GaoCraFormSourceDriftError(
+            "GAO CRA institutional evidence digest drift: "
+            f"expected {pin.expected_sha256}, got {actual}"
+        )
+    if payload[:5] != b"%PDF-":
+        raise GaoCraFormSourceDriftError(
+            "GAO CRA institutional evidence no longer starts with a PDF header"
+        )
+    try:
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise GaoCraFormSourceDriftError(
+            "pypdf is required to read the GAO institutional evidence"
+        ) from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+        text = " ".join(
+            " ".join(fold_pdf_text(page.extract_text() or "").split())
+            for page in reader.pages
+        )
+    except Exception as error:  # pragma: no cover - unreadable pinned source
+        raise GaoCraFormSourceDriftError(
+            "GAO CRA institutional evidence text layer is unreadable"
+        ) from error
+    records = (
+        "GAO established a database and created a standardized submission form",
+        "priority of the rule (for example, whether it is a significant rule)",
+        "We randomly selected 16 major or other significant final rules",
+        (
+            "As defined in the Introduction to The Regulatory Plan and the "
+            "Unified Agenda of Federal Regulatory and Deregulatory Actions"
+        ),
+    )
+    missing = [record for record in records if record not in text]
+    if missing:
+        raise GaoCraFormSourceDriftError(
+            "GAO institutional evidence no longer states the reviewed CRA-form "
+            f"and Unified Agenda link: {missing!r}"
+        )
+    return GaoCraInstitutionalBridgeCapture(
+        report_number=pin.report_number,
+        records=records,
+        source_url=pin.source_url,
+        retrieved_at=pin.retrieved_at,
+        source_sha256=pin.expected_sha256,
+        source_byte_length=pin.expected_byte_length,
+    )
+
+
 __all__ = [
     "GAO_CRA_CURRENT_FORM_2026_08_15",
     "GAO_CRA_CURRENT_FORM_URL",
     "GAO_CRA_CURRENT_REVISION",
+    "GAO_CRA_INSTITUTIONAL_BRIDGE_2026_08_15",
+    "GAO_CRA_INSTITUTIONAL_BRIDGE_URL",
     "GAO_CRA_PRIORITY_OPTIONS",
     "GAO_CRA_PRIORITY_ROUTING_NOTE",
     "GAO_CRA_RETIRED_FORM_2026_08_15",
@@ -331,8 +448,11 @@ __all__ = [
     "GaoCraFormOption",
     "GaoCraFormPin",
     "GaoCraFormSourceDriftError",
+    "GaoCraInstitutionalBridgeCapture",
+    "GaoCraInstitutionalEvidencePin",
     "GaoCraRetiredFormCapture",
     "parse_gao_cra_current_form",
+    "parse_gao_cra_institutional_bridge",
     "parse_gao_cra_retired_form",
     "sha256_digest",
 ]

@@ -99,31 +99,32 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
         "sha256": _file_sha256(dataset_bytes),
     }
     resource_ids = sorted(resource["resourceId"] for resource in catalog["resources"])
-    assert len(resource_ids) == len(set(resource_ids)) == 87
-    assert len(index["rows"]) == 82
+    assert len(resource_ids) == len(set(resource_ids)) == 114
+    assert len(index["rows"]) == 110
     assert proof["resourceIdSetDigest"] == _canonical_sha256(resource_ids)
     # REF-034: the retired AGROVOC and NALT rows and the closed EPA row left
     # the catalog (89 -> 87, three concept schemes with them); the GAO CRA
     # submission-form row joined; four index placements landed for the
-    # documented successors (78 -> 82).
+    # documented successors. REF-035 through REF-037 add the mapping-only and
+    # contentful endpoint descriptors recorded by the acquisition wave.
     assert proof["counts"] == {
-        "atlasIndexPlacementCount": 82,
-        "conceptSchemeCount": 24,
+        "atlasIndexPlacementCount": 110,
+        "conceptSchemeCount": 41,
         "memberDispositionCounts": {
             "assignmentEvidenceOnly": 4,
             "childReleaseOnly": 6,
             "definitionOnly": 1,
             "historicalEvidenceOnly": 2,
-            "memberRelease": 68,
-            "mappingAssertionsOnly": 1,
+            "memberRelease": 86,
+            "mappingAssertionsOnly": 10,
             "noPublisherRecord": 3,
             "resourceFamily": 1,
             "reviewWithheld": 1,
         },
-        "quadCount": 964,
-        "registrySourceCount": 87,
-        "resourceSchemeCount": 86,
-        "supportedRingStatementCount": 75,
+        "quadCount": 1225,
+        "registrySourceCount": 114,
+        "resourceSchemeCount": 104,
+        "supportedRingStatementCount": 94,
     }
 
 
@@ -178,13 +179,13 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
     rings_by_resource: dict[str, set[str]] = defaultdict(set)
     for row in index["rows"]:
         rings_by_resource[row["resourceId"]].add(row["semanticRing"])
-    assert sum(len(rings) for rings in rings_by_resource.values()) == 76
+    assert sum(len(rings) for rings in rings_by_resource.values()) == 104
 
     resources = {resource["resourceId"]: resource for resource in catalog["resources"]}
     scheme_nodes = set(graph.subjects(RDF.type, ATLAS.ResourceScheme))
     source_nodes = set(graph.subjects(RDF.type, ATLAS.RegistrySource))
-    assert len(scheme_nodes) == len(resources) - 1 == 86
-    assert len(source_nodes) == len(resources) == 87
+    assert len(scheme_nodes) == len(resources) - 10 == 104
+    assert len(source_nodes) == len(resources) == 114
     for resource_id, resource in resources.items():
         node = URIRef("urn:ref:atlas-resource-scheme:" + quote(resource_id, safe="-._~"))
         source = URIRef("urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~"))
@@ -193,7 +194,18 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
         expected_rings = rings_by_resource.get(resource_id, set())
         assert expected_rings <= supported_by_profile[profile]
 
-        if resource_id == "eurovoc-lcsh-alignment":
+        if resource_id in {
+            "eurovoc-gemet-alignment",
+            "eurovoc-lcsh-alignment",
+            "eurovoc-mesh-alignment",
+            "fast-bulk-external-links-delta",
+            "fast-lcsh-adopted-mapping",
+            "gemet-alignments",
+            "gemet-umthes-alignments",
+            "lcsh-external-links-mapping",
+            "northwestern-mesh-lcsh-mapping",
+            "unified-agenda-gao-cra-priority-mapping",
+        }:
             assert node not in scheme_nodes
         else:
             assert node in scheme_nodes
@@ -203,23 +215,28 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
             assert list(graph.objects(node, DCTERMS.title)) == [Literal(resource["title"])]
             assert list(graph.objects(node, ATLAS.resourceProfile)) == [ATLAS[profile]]
             assert list(graph.objects(node, ATLAS.sourceDescriptor)) == [source]
-            assert set(graph.objects(node, ATLAS.supportedRing)) == {
-                ATLAS[ring] for ring in expected_rings
-            }
+            assert set(graph.objects(node, ATLAS.supportedRing)) == {ATLAS[ring] for ring in expected_rings}
 
             types = set(graph.objects(node, RDF.type))
             assert ATLAS.ResourceScheme in types
-            assert (SKOS.ConceptScheme in types) is (
-                profile == "conceptScheme" or "subject" in expected_rings
-            )
+            assert (SKOS.ConceptScheme in types) is (profile == "conceptScheme" or "subject" in expected_rings)
 
         assert not list(graph.objects(node, ATLAS.descriptorPayload))
         assert list(graph.objects(source, DCTERMS.identifier)) == [Literal(resource_id)]
         assert list(graph.objects(source, DCTERMS.title)) == [Literal(resource["title"])]
         disposition = {
+            "eurovoc-gemet-alignment": "mappingAssertionsOnly",
             "eurovoc-lcsh-alignment": "mappingAssertionsOnly",
+            "eurovoc-mesh-alignment": "mappingAssertionsOnly",
+            "fast-bulk-external-links-delta": "mappingAssertionsOnly",
+            "fast-lcsh-adopted-mapping": "mappingAssertionsOnly",
             "federal-register-thesaurus-1995": "historicalEvidenceOnly",
             "gao-thesaurus-historical": "historicalEvidenceOnly",
+            "gemet-alignments": "mappingAssertionsOnly",
+            "gemet-umthes-alignments": "mappingAssertionsOnly",
+            "lcsh-external-links-mapping": "mappingAssertionsOnly",
+            "northwestern-mesh-lcsh-mapping": "mappingAssertionsOnly",
+            "unified-agenda-gao-cra-priority-mapping": ("mappingAssertionsOnly"),
         }.get(resource_id)
         observed_dispositions = list(graph.objects(source, ATLAS.memberDisposition))
         assert len(observed_dispositions) == 1
@@ -239,8 +256,8 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
         assert list(graph.objects(node, ATLAS.contentDigest)) == []
         assert list(graph.objects(source, ATLAS.contentDigest)) == []
 
-    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 24
-    assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 75
+    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 41
+    assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 94
 
 
 def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
@@ -267,7 +284,7 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
     assert completed.returncode == 0, completed.stderr
     assert completed.stderr == ""
     assert completed.stdout == (
-        "Atlas 3.1 registry descriptors are current: 86 schemes, 82 index placements, 964 quads\n"
+        "Atlas 3.1 registry descriptors are current: 104 schemes, 110 index placements, 1225 quads\n"
     )
 
 

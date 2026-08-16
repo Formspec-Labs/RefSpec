@@ -237,7 +237,7 @@ determinism-atlas-federal-register-thesaurus:
 # and conflating the two survived a green FR staging artifact and failed the
 # ~25-minute full build. These four units cost about a minute and cover what
 # the single-unit artifact cannot: two dotted keys, one path-safe key, one
-# mapping unit, and the three cross-release endpoint dependencies it declares.
+# mapping units and every endpoint dependency they declare.
 ATLAS_MAPPING_STAGE_ROOT ?= output/atlas-3.1-mapping-topology-staging
 
 stage-atlas-mapping-topology:
@@ -247,6 +247,11 @@ stage-atlas-mapping-topology:
 		--only-release eurovoc-domains-4.24 \
 		--only-release lcsh-eurovoc-alignment-endpoints-2026-08-06 \
 		--only-release eurovoc-lcsh-alignment-20240711 \
+		--only-release fast-topical-current \
+		--only-release fast-lcsh-adopted-2026-08-15 \
+		--only-release unified-agenda-priority-category \
+		--only-release gao-cra-priority-of-regulation \
+		--only-release unified-agenda-gao-cra-priority-2026-08-15 \
 		--output "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/validate.py \

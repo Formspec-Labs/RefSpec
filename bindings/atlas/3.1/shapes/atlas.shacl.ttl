@@ -580,8 +580,7 @@ atlas:SkosXlLabelShape
     sh:nodeKind sh:Literal ;
     sh:minLength 1 ;
     sh:datatype rdf:langString ;
-    sh:languageIn ( "en" ) ;
-    sh:message "Atlas 3.1 label literals MUST use the English language tag @en."
+    sh:message "Atlas 3.1 label literals MUST carry a language tag. The canonical RDF layer requires lowercase BCP 47 spelling."
   ] ;
   sh:property [
     sh:path atlas:inRelease ;

@@ -19,6 +19,9 @@ from refspec.registry import gao_cra_form_codes as gao
 FIXTURES = Path(__file__).parent / "fixtures" / "gao_cra_form_codes"
 CURRENT_FIXTURE = FIXTURES / "gao-cra-submission-form-rev-12-24-2026-08-15.pdf"
 RETIRED_FIXTURE = FIXTURES / "gao-cra-blank-form-rev-11-17-23-2026-08-15.pdf"
+INSTITUTIONAL_BRIDGE_FIXTURE = (
+    FIXTURES / "gao-09-205-2009-04-20-2026-08-15.pdf"
+)
 
 
 def test_pins_match_the_exact_captured_bytes() -> None:
@@ -33,6 +36,29 @@ def test_pins_match_the_exact_captured_bytes() -> None:
     assert gao.sha256_digest(retired) == (
         "sha256:4dc381d7305111a92c9cc1334e6e523fa0c3f719518f6784145b91e83a591d9d"
     )
+
+
+def test_gao_09_205_pins_and_states_the_institutional_priority_bridge() -> None:
+    """The mapping citation must remain checkable without mapping code."""
+
+    payload = INSTITUTIONAL_BRIDGE_FIXTURE.read_bytes()
+    capture = gao.parse_gao_cra_institutional_bridge(payload)
+
+    assert capture.report_number == "GAO-09-205"
+    assert len(capture.records) == 4
+    assert capture.source_url == gao.GAO_CRA_INSTITUTIONAL_BRIDGE_URL
+    assert capture.source_sha256 == (
+        "sha256:7cb03a0114456ccfaf4d4071f92ea7a6b1a3d286ec2da4de58a1ba9d0ed63277"
+    )
+    assert capture.source_byte_length == 1_869_486
+
+
+def test_gao_09_205_byte_drift_is_refused_before_parsing() -> None:
+    payload = bytearray(INSTITUTIONAL_BRIDGE_FIXTURE.read_bytes())
+    payload[1000] ^= 0xFF
+
+    with pytest.raises(gao.GaoCraFormSourceDriftError, match="digest drift"):
+        gao.parse_gao_cra_institutional_bridge(bytes(payload))
 
 
 def test_current_form_url_preserves_the_publishers_own_typo() -> None:

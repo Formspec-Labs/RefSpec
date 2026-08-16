@@ -15,9 +15,20 @@ land here, each captured from the publisher's own documented list:
 * the complete SAM.gov Federal Hierarchy organization roster — all 907
   records the public API reports, verified against the API's own per-level
   totals, with sub-tier -> department relations carried as native entity
-  relations. REF-032's cross-ring tripwire names this roster as the intended
-  carrier of a future entity -> subject crossing; no such publisher
-  assignment exists yet, so no cross-ring relation is emitted;
+  relations and every Federal Hierarchy organization/Treasury FAST Book
+  account pair sharing a publisher-reported CGAC Agency Identifier carried as
+  the weakest admitted same-ring entity relation;
+* the complete eCFR administrative agency roster — 316 publisher-authored
+  agency records, 487 CFR structure references preserved in 446 unique
+  agency-to-title assertions, and publisher nesting carried as parent entity
+  relations. This is the first current entity -> legalIdentity cross-ring
+  carrier after REF-032; it uses only eCFR's own references and performs no
+  agency-name reconciliation;
+* the complete regulations.gov agency roster — 331 publisher-authored agency
+  records whose acronyms are docket-ID prefixes, with 160 publisher ``parent``
+  relations. The rolling endpoint requires a project-owned API key and is not
+  documented in the public OpenAPI file, so the release carries both caveats
+  and an explicit recapture-and-diff obligation;
 * GAO's published /topics browse index — the complete 30-term topic
   vocabulary the publisher itself serves, each term carrying the publisher's
   own /topics/<slug> path and numeric Drupal taxonomy term id. The documented
@@ -35,17 +46,20 @@ anomalies are recorded verbatim in release metadata, never repaired.
 from __future__ import annotations
 
 import dataclasses
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import quote
 
+from refspec.atlas import v3_registry_codes as registry_codes
 from refspec.atlas.v3_registry_selection import (
     normalize_only_keys,
     select_declared_group,
     wants_group,
 )
 from refspec.atlas.v3_source_data import (
+    RegistryCrossRingRelation,
     RegistryInputPin,
     RegistryLabel,
     RegistryRelation,
@@ -54,17 +68,32 @@ from refspec.atlas.v3_source_data import (
     canonical_digest,
 )
 from refspec.immutable import deep_freeze_json
+from refspec.registry import cfr_list_of_subjects as cfr
 from refspec.registry import fcc_bureaus_offices as fcc
 from refspec.registry import federal_hierarchy_complete as fh
 from refspec.registry import federal_register_native_controls as fr
 from refspec.registry import gao_published_topics as gao
+from refspec.registry import govinfo_collections as govinfo
+from refspec.registry import regulations_gov_agencies as regulations_gov
+from refspec.registry import treasury_tas_fast_book as treasury
 
 ATLAS_PARENT_ENTITY = "https://refspec.org/ns/atlas/v3#parentEntity"
+ATLAS_RELATED_ENTITY = "https://refspec.org/ns/atlas/v3#relatedEntity"
+ATLAS_REFERENCES_LEGAL_IDENTITY = "https://refspec.org/ns/atlas/v3#referencesLegalIdentity"
+
+FH_TREASURY_EXPECTED_SHARED_CGAC_CODES = 130
+FH_TREASURY_EXPECTED_ACCOUNT_ROWS = 3_544
+FH_TREASURY_EXPECTED_DISTINCT_TAS = 3_543
+FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS = 85_462
 
 _FR_FIXTURES = "tests/fixtures/federal_register_native_controls"
 _FCC_FIXTURES = "tests/fixtures/fcc_bureaus_offices"
 _FH_FIXTURES = "tests/fixtures/federal_hierarchy_complete"
 _GAO_FIXTURES = "tests/fixtures/gao_published_topics"
+_CFR_FIXTURES = "tests/fixtures/cfr_list_of_subjects"
+_REGULATIONS_GOV_AGENCIES_FIXTURES = "tests/fixtures/regulations_gov_agencies"
+_TREASURY_FIXTURES = "tests/fixtures/treasury_tas_fast_book"
+_GOVINFO_FIXTURES = "tests/fixtures/govinfo_collections"
 
 
 def _json_value(value: Any) -> Any:
@@ -121,6 +150,7 @@ def _release(
     inputs: Sequence[RegistryInputPin],
     resources: Sequence[RegistryResource],
     relations: Sequence[RegistryRelation] = (),
+    cross_ring_relations: Sequence[RegistryCrossRingRelation] = (),
     scheme_suffix: str | None = None,
     metadata: Mapping[str, Any] | None = None,
     dropped_label_count: int = 0,
@@ -149,6 +179,16 @@ def _release(
                 }
                 for relation in relations
             ],
+            "crossRingRelations": [
+                {
+                    "subject": relation.subject,
+                    "predicate": relation.predicate,
+                    "object": relation.object,
+                    "sourceRing": relation.source_ring,
+                    "targetRing": relation.target_ring,
+                }
+                for relation in cross_ring_relations
+            ],
         }
     )
     token = digest.removeprefix("sha256:")
@@ -170,6 +210,7 @@ def _release(
         inputs=tuple(inputs),
         resources=tuple(resources),
         relations=tuple(relations),
+        cross_ring_relations=tuple(cross_ring_relations),
         dropped_label_count=dropped_label_count,
         metadata=_frozen(metadata or {}),
     )
@@ -180,6 +221,41 @@ def _label(value: str, source_path: str, role: str = "preferred") -> RegistryLab
         value=value.strip(),
         role=role,  # type: ignore[arg-type]
         source_path=source_path,
+    )
+
+
+def _source_capture_metadata(
+    pin: RegistryInputPin,
+    *,
+    retrieved_at: str,
+    source_version_note: str,
+) -> dict[str, Any]:
+    """Keep the capture facts the 3.1 RegistryInputPin cannot yet carry."""
+
+    return {
+        "sourceUrl": pin.source_iri,
+        "retrievedAt": retrieved_at,
+        "sha256": pin.sha256,
+        "byteLength": pin.byte_length,
+        "sourceVersionNote": source_version_note,
+    }
+
+
+def _ecfr_title_resource_iri(
+    title: govinfo.ECFRCFRTitle,
+    *,
+    ordinal: int,
+) -> str:
+    """Derive the exact identity used by the held ``ecfr-cfr-titles`` release."""
+
+    pin = govinfo.ECFR_CFR_TITLES_2026_08_03
+    return registry_codes._mint_resource_iri(
+        source_token="ecfr-cfr-titles",
+        issued=pin.retrieved_at,
+        source_locator=pin.source.source_url,
+        source_path=f"$.titles[{ordinal}]",
+        notations=(str(title.title_number),),
+        identity_hint=title.name,
     )
 
 
@@ -429,10 +505,23 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
         source_iri=fh.FH_TOTAL_SUBTIER_WITNESS_2026_08_15.source_url,
         role="publisherTotalsWitness",
     )
+    fast_book_pin_spec = treasury.FAST_BOOK_PART_II_III_2026_07_31
+    fast_book_pin = _pin(
+        root,
+        f"{_TREASURY_FIXTURES}/{fast_book_pin_spec.filename}",
+        sha256=fast_book_pin_spec.expected_sha256,
+        byte_length=fast_book_pin_spec.expected_byte_length,
+        source_iri=fast_book_pin_spec.source_url,
+        role="publisherCgacJoinSource",
+    )
     roster = fh.parse_complete_roster(
         [pin.path.read_bytes() for pin in page_pins],
         dept_witness_pin.path.read_bytes(),
         sub_tier_witness_pin.path.read_bytes(),
+    )
+    fast_book = treasury.parse_fast_book_workbook(
+        fast_book_pin.path,
+        pin=fast_book_pin_spec,
     )
 
     # Authority-scoped identifier rows are minted only under schemes the
@@ -458,7 +547,7 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 status=record.status,
             )
         )
-    relations = tuple(
+    parent_relations = tuple(
         RegistryRelation(
             subject=f"urn:ref:federal-hierarchy-org:{record.fhorgid}",
             predicate=ATLAS_PARENT_ENTITY,
@@ -473,6 +562,98 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
         for record in roster.records
         if record.org_type == "Sub-Tier"
     )
+
+    accounts_by_cgac: dict[str, dict[str, list[treasury.FASTBookPublishedAccount]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for account in fast_book.accounts:
+        accounts_by_cgac[account.agency_identifier][account.treasury_account_symbol].append(account)
+    hierarchy_cgac_codes = {cgac_code for record in roster.records for cgac_code in record.cgac_codes}
+    shared_cgac_codes = hierarchy_cgac_codes & set(accounts_by_cgac)
+    shared_account_rows = sum(
+        len(rows) for cgac_code in shared_cgac_codes for rows in accounts_by_cgac[cgac_code].values()
+    )
+    shared_distinct_tas = sum(len(accounts_by_cgac[cgac_code]) for cgac_code in shared_cgac_codes)
+    observed_join_counts = (
+        len(shared_cgac_codes),
+        shared_account_rows,
+        shared_distinct_tas,
+    )
+    expected_join_counts = (
+        FH_TREASURY_EXPECTED_SHARED_CGAC_CODES,
+        FH_TREASURY_EXPECTED_ACCOUNT_ROWS,
+        FH_TREASURY_EXPECTED_DISTINCT_TAS,
+    )
+    if observed_join_counts != expected_join_counts:
+        raise ValueError(
+            "Federal Hierarchy/Treasury CGAC join counts drifted: "
+            f"expected {expected_join_counts}, got {observed_join_counts}"
+        )
+
+    cgac_relations = tuple(
+        RegistryRelation(
+            subject=f"urn:ref:federal-hierarchy-org:{record.fhorgid}",
+            predicate=ATLAS_RELATED_ENTITY,
+            object=f"urn:ref:treasury-account:{quote(tas, safe='')}",
+            source_payload=_frozen(
+                {
+                    "sourceProperty": "cgaclist[].cgac",
+                    "targetProperty": "TAS Agency Identifier",
+                    "cgacAgencyIdentifier": cgac_code,
+                    "treasuryAccountSymbol": tas,
+                    "matchingPublisherRowCount": len(rows),
+                    "identityEquivalenceClaimed": False,
+                    "administrationClaimed": False,
+                    "relationMeaning": (
+                        "the Federal Hierarchy organization and Treasury account "
+                        "share the publishers' CGAC Agency Identifier"
+                    ),
+                }
+            ),
+        )
+        for record in roster.records
+        for cgac_code in record.cgac_codes
+        if cgac_code in shared_cgac_codes
+        for tas, rows in sorted(accounts_by_cgac[cgac_code].items())
+    )
+    if len(cgac_relations) != FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS:
+        raise ValueError(
+            "Federal Hierarchy/Treasury related-entity count drifted: "
+            f"expected {FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS}, "
+            f"got {len(cgac_relations)}"
+        )
+    relations = (*parent_relations, *cgac_relations)
+    source_captures = [
+        _source_capture_metadata(
+            pin,
+            retrieved_at=pin_spec.retrieved_at,
+            source_version_note=fh.FH_COMPLETE_SOURCE_VERSION_NOTE,
+        )
+        for pin, pin_spec in zip(
+            page_pins,
+            fh.FH_COMPLETE_PAGES_2026_08_15,
+            strict=True,
+        )
+    ]
+    source_captures.extend(
+        (
+            _source_capture_metadata(
+                dept_witness_pin,
+                retrieved_at=fh.FH_TOTAL_DEPT_WITNESS_2026_08_15.retrieved_at,
+                source_version_note=fh.FH_COMPLETE_SOURCE_VERSION_NOTE,
+            ),
+            _source_capture_metadata(
+                sub_tier_witness_pin,
+                retrieved_at=fh.FH_TOTAL_SUBTIER_WITNESS_2026_08_15.retrieved_at,
+                source_version_note=fh.FH_COMPLETE_SOURCE_VERSION_NOTE,
+            ),
+            _source_capture_metadata(
+                fast_book_pin,
+                retrieved_at=fast_book_pin_spec.retrieved_at,
+                source_version_note=treasury.FAST_BOOK_SOURCE_VERSION_NOTE,
+            ),
+        )
+    )
     return (
         _release(
             key="federal-hierarchy-orgs-complete-2026-08-15",
@@ -482,7 +663,7 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
             ring="entity",
             scope="completeCapture",
             issued="2026-08-15",
-            inputs=(*page_pins, dept_witness_pin, sub_tier_witness_pin),
+            inputs=(*page_pins, dept_witness_pin, sub_tier_witness_pin, fast_book_pin),
             resources=resources,
             relations=relations,
             metadata={
@@ -493,7 +674,28 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
                     "Department/Ind. Agency": roster.dept_witness_total,
                     "Sub-Tier": roster.sub_tier_witness_total,
                 },
-                "parentRelationCount": len(relations),
+                "parentRelationCount": len(parent_relations),
+                "cgacRelatedEntityRelationCount": len(cgac_relations),
+                "cgacJoin": {
+                    "sharedCgacAgencyIdentifierCount": len(shared_cgac_codes),
+                    "treasuryAccountRowCount": shared_account_rows,
+                    "distinctTreasuryAccountSymbolCount": shared_distinct_tas,
+                    "federalHierarchyOrganizationCount": len(
+                        {record.fhorgid for record in roster.records if set(record.cgac_codes) & shared_cgac_codes}
+                    ),
+                    "predicate": ATLAS_RELATED_ENTITY,
+                    "identityEquivalenceClaimed": False,
+                    "administrationClaimed": False,
+                    "relationMeaning": (
+                        "Each assertion states only that its endpoints share a "
+                        "publisher-reported CGAC Agency Identifier."
+                    ),
+                },
+                "licenseRightsStatements": {
+                    "federalHierarchy": fh.FH_COMPLETE_LICENSE_RIGHTS_STATEMENT,
+                    "treasuryFastBook": treasury.FAST_BOOK_LICENSE_RIGHTS_STATEMENT,
+                },
+                "sourceCaptures": source_captures,
                 "identifierAuthorityNote": (
                     "agencycode and oldfpdsofficecode originate in FPDS and cgac in "
                     "Treasury's CGAC classification; the Federal Hierarchy API "
@@ -505,6 +707,306 @@ def _federal_hierarchy_releases(root: Path) -> tuple[RegistryRelease, ...]:
                     "Department/Ind. Agency and 738 Sub-Tier; the REF-032 ledger's "
                     "1,645 double-counted the sub-tiers beside the total."
                 ),
+            },
+        ),
+    )
+
+
+def _ecfr_agency_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    agencies_pin_spec = cfr.ECFR_AGENCIES_2026_08_15
+    agencies_pin = _pin(
+        root,
+        f"{_CFR_FIXTURES}/ecfr-agencies-2026-08-15.json",
+        sha256=agencies_pin_spec.expected_sha256,
+        byte_length=agencies_pin_spec.expected_byte_length,
+        source_iri=agencies_pin_spec.source_url,
+        role="publisherAgencyRoster",
+    )
+    title_pin_spec = govinfo.ECFR_CFR_TITLES_2026_08_03
+    title_pin = _pin(
+        root,
+        f"{_GOVINFO_FIXTURES}/ecfr-cfr-titles-2026-08-03.json",
+        sha256=title_pin_spec.expected_sha256,
+        byte_length=title_pin_spec.expected_byte_length,
+        source_iri=title_pin_spec.source.source_url,
+        role="targetRosterWitness",
+    )
+    roster = cfr.parse_ecfr_agency_roster(
+        agencies_pin.path.read_bytes(),
+        pin=agencies_pin_spec,
+    )
+    titles = govinfo.parse_ecfr_cfr_titles(
+        govinfo.AcquiredGovInfoSource(
+            pin=title_pin_spec,
+            path=title_pin.path,
+            sha256=title_pin.sha256,
+            byte_length=title_pin.byte_length,
+            source_url=title_pin.source_iri,
+            resolved_url=None,
+            content_type="application/json",
+            acquisition_mode="local",
+            cache_hit=False,
+            local_source_path=title_pin.path,
+        )
+    )
+    title_iris = {
+        title.title_number: _ecfr_title_resource_iri(title, ordinal=ordinal)
+        for ordinal, title in enumerate(titles.titles)
+    }
+
+    resources: list[RegistryResource] = []
+    parent_relations: list[RegistryRelation] = []
+    cross_ring_relations: list[RegistryCrossRingRelation] = []
+    for record in roster.records:
+        labels = [_label(record.display_name, record.source_path)]
+        for candidate in (record.name, record.short_name):
+            if candidate and candidate not in {label.value for label in labels}:
+                labels.append(_label(candidate, record.source_path, role="alternate"))
+        native_payload = {key: value for key, value in record.raw.items() if key != "children"}
+        native_payload.update(
+            {
+                "childAgencySlugs": list(record.child_slugs),
+                "parentAgencySlug": record.parent_slug,
+            }
+        )
+        resources.append(
+            RegistryResource(
+                iri=f"urn:ref:ecfr-agency:{quote(record.slug, safe='')}",
+                labels=tuple(labels),
+                native_payload=_frozen(native_payload),
+                source_locator=agencies_pin.source_iri,
+                source_digest=agencies_pin.sha256,
+                notations=(record.slug,),
+            )
+        )
+        if record.parent_slug is not None:
+            parent_relations.append(
+                RegistryRelation(
+                    subject=f"urn:ref:ecfr-agency:{quote(record.slug, safe='')}",
+                    predicate=ATLAS_PARENT_ENTITY,
+                    object=f"urn:ref:ecfr-agency:{quote(record.parent_slug, safe='')}",
+                    source_payload=_frozen(
+                        {
+                            "sourceProperty": "children",
+                            "childAgencySlug": record.slug,
+                            "parentAgencySlug": record.parent_slug,
+                        }
+                    ),
+                )
+            )
+
+        references_by_title: dict[int, list[cfr.EcfrAgencyCfrReference]] = defaultdict(list)
+        for reference in record.references:
+            references_by_title[reference.title].append(reference)
+        for title_number, references in sorted(references_by_title.items()):
+            cross_ring_relations.append(
+                RegistryCrossRingRelation(
+                    subject=f"urn:ref:ecfr-agency:{quote(record.slug, safe='')}",
+                    predicate=ATLAS_REFERENCES_LEGAL_IDENTITY,
+                    object=title_iris[title_number],
+                    source_ring="entity",
+                    target_ring="legalIdentity",
+                    source_payload=_frozen(
+                        {
+                            "sourceProperty": "cfr_references",
+                            "agencySlug": record.slug,
+                            "cfrTitle": title_number,
+                            "publisherReferences": [
+                                {
+                                    "sourceOrdinal": reference.source_ordinal,
+                                    **dict(reference.raw),
+                                }
+                                for reference in references
+                            ],
+                            "relationMeaning": (
+                                "the eCFR agency record references this CFR title; "
+                                "chapter, subtitle, subchapter, and part qualifiers "
+                                "remain in publisherReferences"
+                            ),
+                        }
+                    ),
+                )
+            )
+
+    if len(parent_relations) != 163:
+        raise ValueError(f"eCFR agency parent relation count drifted: expected 163, got {len(parent_relations)}")
+    if len(cross_ring_relations) != 446:
+        raise ValueError(f"eCFR agency/title assertion count drifted: expected 446, got {len(cross_ring_relations)}")
+    return (
+        _release(
+            key="ecfr-agencies-roster-2026-08-15",
+            resource_id="ecfr-agencies",
+            source_module="refspec.registry.cfr_list_of_subjects",
+            profile="codeScheme",
+            ring="entity",
+            scope="completeCapture",
+            issued=agencies_pin_spec.retrieved_at[:10],
+            inputs=(agencies_pin, title_pin),
+            resources=resources,
+            relations=parent_relations,
+            cross_ring_relations=cross_ring_relations,
+            metadata={
+                "topLevelAgencyCount": roster.top_level_agency_count,
+                "agencyCount": len(roster.records),
+                "parentRelationCount": len(parent_relations),
+                "publisherCfrReferenceCount": roster.reference_count,
+                "referencedAgencyCount": roster.referenced_agency_count,
+                "referencedTitleCount": roster.referenced_title_count,
+                "crossRingRelationCount": len(cross_ring_relations),
+                "crossRingDirection": "entity agency -> legalIdentity CFR title",
+                "crossRingPredicate": ATLAS_REFERENCES_LEGAL_IDENTITY,
+                "chapterQualifierNote": (
+                    "The held legal-identity release names CFR titles. Multiple "
+                    "publisher chapter/subtitle/subchapter/part rows for one agency "
+                    "and title are retained together in one assertion payload."
+                ),
+                "nameMatchingRefused": (
+                    "No eCFR agency was matched by name to Federal Register, Federal Hierarchy, or OPM rosters."
+                ),
+                "licenseRightsStatement": agencies_pin_spec.license_rights_statement,
+                "sourceCaptures": [
+                    _source_capture_metadata(
+                        agencies_pin,
+                        retrieved_at=agencies_pin_spec.retrieved_at,
+                        source_version_note=agencies_pin_spec.source_version_note,
+                    ),
+                    _source_capture_metadata(
+                        title_pin,
+                        retrieved_at=title_pin_spec.retrieved_at,
+                        source_version_note=(
+                            "The publisher exposes the title roster as a rolling, "
+                            "unversioned endpoint; the pinned digest detects drift."
+                        ),
+                    ),
+                ],
+                "ref032CrossRingTripwireRetirement": (
+                    "This publisher-authored agency-to-CFR-title release is a current "
+                    "cross-ring carrier. The REF-032 zero-cross-ring tripwire must be "
+                    "retired when the integrator admits this release to the full build."
+                ),
+            },
+        ),
+    )
+
+
+def _regulations_gov_agency_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    pin_spec = regulations_gov.REGULATIONS_GOV_AGENCIES_2026_08_16
+    roster_pin = _pin(
+        root,
+        (
+            f"{_REGULATIONS_GOV_AGENCIES_FIXTURES}/"
+            "regulations-gov-agencies-2026-08-16.json"
+        ),
+        sha256=pin_spec.expected_sha256,
+        byte_length=pin_spec.expected_byte_length,
+        source_iri=pin_spec.source_url,
+        role="publisherAgencyRoster",
+    )
+    roster = regulations_gov.parse_regulations_gov_agencies(
+        roster_pin.path.read_bytes(),
+        pin=pin_spec,
+    )
+    resources = tuple(
+        RegistryResource(
+            iri=f"urn:ref:regulations-gov-agency:{quote(record.agency_id, safe='')}",
+            labels=(
+                _label(
+                    record.name,
+                    (
+                        f"{roster_pin.logical_path}#data[{record.source_ordinal}]"
+                        ".attributes.name"
+                    ),
+                ),
+            ),
+            native_payload=_frozen(
+                {
+                    "id": record.agency_id,
+                    "type": "agencies",
+                    "parent": record.parent,
+                    "participate": record.participate,
+                    "partner": record.partner,
+                    "postingGuidelines": record.posting_guidelines,
+                    "name": record.name,
+                    "agencyType": record.agency_type,
+                    "links": record.raw["links"],
+                }
+            ),
+            source_locator=record.self_link,
+            source_digest=roster_pin.sha256,
+            notations=(record.agency_id,),
+        )
+        for record in roster.records
+    )
+    parent_relations = tuple(
+        RegistryRelation(
+            subject=f"urn:ref:regulations-gov-agency:{quote(record.agency_id, safe='')}",
+            predicate=ATLAS_PARENT_ENTITY,
+            object=f"urn:ref:regulations-gov-agency:{quote(record.parent, safe='')}",
+            source_payload=_frozen(
+                {
+                    "sourceProperty": "attributes.parent",
+                    "childAgencyId": record.agency_id,
+                    "parentAgencyId": record.parent,
+                }
+            ),
+        )
+        for record in roster.records
+        if record.parent is not None
+    )
+    if len(parent_relations) != regulations_gov.REGULATIONS_GOV_EXPECTED_PARENT_RELATION_COUNT:
+        raise ValueError(
+            "regulations.gov parent-relation count drifted during adaptation: "
+            f"expected {regulations_gov.REGULATIONS_GOV_EXPECTED_PARENT_RELATION_COUNT}, "
+            f"got {len(parent_relations)}"
+        )
+    return (
+        _release(
+            key="regulations-gov-agencies-roster-2026-08-16",
+            resource_id="regulations-gov-native-controls",
+            source_module="refspec.registry.regulations_gov_agencies",
+            profile="codeScheme",
+            ring="entity",
+            scope="completeCapture",
+            issued=pin_spec.retrieved_at[:10],
+            inputs=(roster_pin,),
+            resources=resources,
+            relations=parent_relations,
+            scheme_suffix="agencies",
+            metadata={
+                "agencyCount": len(resources),
+                "parentRelationCount": len(parent_relations),
+                "distinctParentAgencyCount": roster.distinct_parent_count,
+                "docketIdPrefixCount": len(resources),
+                "docketIdPrefixNote": (
+                    "The publisher's agency id is the docket-ID prefix used by "
+                    "regulations.gov dockets and documents."
+                ),
+                "undocumentedEndpoint": True,
+                "endpointDocumentationNote": (
+                    "The v4 agencies endpoint is publisher-operated but absent "
+                    "from the public regulations.gov OpenAPI description."
+                ),
+                "recaptureObligation": regulations_gov.REGULATIONS_GOV_RECAPTURE_OBLIGATION,
+                "apiKeyRequirement": {
+                    "environmentVariable": regulations_gov.REGULATIONS_GOV_API_KEY_ENV_VAR,
+                    "requestHeader": regulations_gov.REGULATIONS_GOV_API_KEY_HEADER,
+                    "keyValueIncluded": False,
+                },
+                "identifierAuthorityNote": (
+                    "The publisher's id travels as the resource notation, not an "
+                    "authority-scoped identifier row; regulations-gov-native-controls "
+                    "is not an Atlas identifier authority."
+                ),
+                "licenseRightsStatement": (
+                    regulations_gov.REGULATIONS_GOV_LICENSE_RIGHTS_STATEMENT
+                ),
+                "sourceCaptures": [
+                    _source_capture_metadata(
+                        roster_pin,
+                        retrieved_at=pin_spec.retrieved_at,
+                        source_version_note=regulations_gov.REGULATIONS_GOV_SOURCE_VERSION_NOTE,
+                    )
+                ],
             },
         ),
     )
@@ -610,6 +1112,11 @@ REGISTRY_ROSTER_RELEASE_GROUPS = (
         "federal-hierarchy",
         frozenset({"federal-hierarchy-orgs-complete-2026-08-15"}),
     ),
+    ("ecfr-agencies", frozenset({"ecfr-agencies-roster-2026-08-15"})),
+    (
+        "regulations-gov-agencies",
+        frozenset({"regulations-gov-agencies-roster-2026-08-16"}),
+    ),
     ("gao", frozenset({"gao-published-topics-index-2026-08-15"})),
 )
 REGISTRY_ROSTER_RELEASE_KEYS = frozenset(
@@ -636,6 +1143,8 @@ def load_registry_roster_releases(
         "federal-register": _federal_register_releases,
         "fcc": _fcc_releases,
         "federal-hierarchy": _federal_hierarchy_releases,
+        "ecfr-agencies": _ecfr_agency_releases,
+        "regulations-gov-agencies": _regulations_gov_agency_releases,
         "gao": _gao_releases,
     }
     releases: list[RegistryRelease] = []
@@ -658,6 +1167,12 @@ def load_registry_roster_releases(
 
 __all__ = [
     "ATLAS_PARENT_ENTITY",
+    "ATLAS_REFERENCES_LEGAL_IDENTITY",
+    "ATLAS_RELATED_ENTITY",
+    "FH_TREASURY_EXPECTED_ACCOUNT_ROWS",
+    "FH_TREASURY_EXPECTED_DISTINCT_TAS",
+    "FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS",
+    "FH_TREASURY_EXPECTED_SHARED_CGAC_CODES",
     "REGISTRY_ROSTER_RELEASE_GROUPS",
     "REGISTRY_ROSTER_RELEASE_KEYS",
     "load_registry_roster_releases",

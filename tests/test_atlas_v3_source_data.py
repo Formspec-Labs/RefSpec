@@ -13,6 +13,7 @@ from refspec.atlas.v3_source_data import (
     RegistryMappingEvidence,
     RegistryMappingRelease,
     RegistryResource,
+    canonical_digest,
 )
 
 _DIGEST = "sha256:" + ("0" * 64)
@@ -55,6 +56,8 @@ def _mapping(
     *,
     asserted_at: str = "2026-08-06T01:00:00+00:00",
     evidence: tuple[RegistryMappingEvidence, ...] | None = None,
+    effective_from: str | None = None,
+    effective_through: str | None = None,
 ) -> RegistryMapping:
     return RegistryMapping(
         subject="urn:example:subject",
@@ -64,12 +67,15 @@ def _mapping(
         object_atlas_release_iri="urn:example:atlas-release:object:v1",
         asserted_at=asserted_at,
         evidence=evidence or (_mapping_evidence(),),
+        effective_from=effective_from,
+        effective_through=effective_through,
     )
 
 
 def _mapping_release(
     *,
     mappings: tuple[RegistryMapping, ...] | None = None,
+    ring: str = "subject",
 ) -> RegistryMappingRelease:
     pin = RegistryInputPin(
         path=Path("mapping.json"),
@@ -83,7 +89,7 @@ def _mapping_release(
         key="example-mappings-v1",
         resource_id="example-mappings",
         source_module="tests.example",
-        ring="subject",
+        ring=ring,
         scope="captureSubset",
         issued="2026-08-06",
         source_release_iri="urn:example:mapping-release:v1",
@@ -118,6 +124,32 @@ def test_registry_resource_rejects_multiple_preferred_labels() -> None:
         _resource(labels)
 
 
+def test_registry_resource_accepts_one_preferred_label_per_language() -> None:
+    resource = _resource(
+        (
+            RegistryLabel(value="Environment", role="preferred", source_path="$.labels[0]"),
+            RegistryLabel(
+                value="Umwelt",
+                role="preferred",
+                source_path="$.labels[1]",
+                language="de",
+            ),
+        )
+    )
+
+    assert {label.language for label in resource.labels} == {"de", "en"}
+
+
+def test_registry_label_requires_a_lowercase_bcp47_tag() -> None:
+    with pytest.raises(ValueError, match="lowercase BCP 47"):
+        RegistryLabel(
+            value="Environment",
+            role="preferred",
+            source_path="$.labels[0]",
+            language="EN",
+        )
+
+
 def test_registry_resource_rejects_duplicate_label_claim() -> None:
     label = RegistryLabel(
         value="Repeated",
@@ -148,7 +180,7 @@ def test_registry_resource_rejects_label_value_across_roles() -> None:
 
 
 def test_registry_resource_requires_at_least_one_label() -> None:
-    with pytest.raises(ValueError, match="has no English label"):
+    with pytest.raises(ValueError, match="has no label"):
         _resource(())
 
 
@@ -273,11 +305,79 @@ def test_registry_mapping_requires_an_approval_no_later_than_the_assertion() -> 
         _mapping(evidence=(first, second))
 
 
+@pytest.mark.parametrize("effective_from", ("2026-8-15", "2026-08-15T00:00:00Z"))
+def test_registry_mapping_requires_a_canonical_effective_date(
+    effective_from: str,
+) -> None:
+    with pytest.raises(ValueError, match="effective_from must"):
+        _mapping(effective_from=effective_from)
+
+
+def test_registry_mapping_rejects_an_inverted_effective_period() -> None:
+    with pytest.raises(ValueError, match="precedes effective_from"):
+        _mapping(
+            effective_from="2026-08-15",
+            effective_through="2026-08-14",
+        )
+
+
 def test_registry_mapping_release_carries_scope_and_editorial_policy() -> None:
     release = _mapping_release()
 
     assert release.scope == "captureSubset"
     assert release.editorial_policy == {"version": "example-v1"}
+
+
+def test_mapping_release_requires_periods_only_for_dated_rings() -> None:
+    with pytest.raises(ValueError, match="value mapping has no effective period"):
+        _mapping_release(ring="value")
+
+    value_release = _mapping_release(
+        ring="value",
+        mappings=(_mapping(effective_from="2026-08-15"),),
+    )
+    assert value_release.mappings[0].effective_from == "2026-08-15"
+
+    with pytest.raises(ValueError, match="subject mapping must not carry"):
+        _mapping_release(
+            mappings=(_mapping(effective_from="2026-08-15"),),
+        )
+
+
+def test_mapping_release_can_pin_a_composite_source_release() -> None:
+    release = _mapping_release()
+    second = replace(
+        release.inputs[0],
+        path=Path("selection.json"),
+        logical_path="test/selection.json",
+        sha256="sha256:" + "1" * 64,
+        byte_length=2,
+        source_iri="urn:example:selection-source",
+        role="selectionSource",
+    )
+    inputs = (release.inputs[0], second)
+    digest = canonical_digest(
+        [
+            {
+                "byteLength": item.byte_length,
+                "role": item.role,
+                "sha256": item.sha256,
+                "sourceIri": item.source_iri,
+            }
+            for item in inputs
+        ]
+    )
+
+    composite = replace(
+        release,
+        inputs=inputs,
+        source_release_digest=digest,
+        source_release_input_roles=("mappingSource", "selectionSource"),
+    )
+    assert composite.source_release_digest == digest
+
+    with pytest.raises(ValueError, match="differs from its declared source"):
+        replace(composite, source_release_digest=_DIGEST)
 
 
 def test_registry_mapping_release_rejects_an_unsupported_scope() -> None:

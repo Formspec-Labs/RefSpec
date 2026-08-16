@@ -1,4 +1,4 @@
-"""Generate the full English Atlas 3.1 distribution from pinned registry data.
+"""Generate the full Atlas 3.1 distribution from pinned registry data.
 
 The generator reads every supported complete release or explicitly bounded
 capture whose exact bytes are available locally. It preserves publisher label
@@ -38,7 +38,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TextIO
 from typing import Literal as TypeLiteral
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit, urlunsplit
 
 try:  # Python 3.14+
     from compression import zstd
@@ -134,31 +134,23 @@ EDITORIAL_POLICY_PAYLOADS = MappingProxyType(
         "sourceNative": SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD,
     }
 )
-_FORBIDDEN_PORTABLE_POLICY_TERMS = frozenset(
-    {"eligibility", "ceiling", "searchonly", "usagepermission"}
-)
+_FORBIDDEN_PORTABLE_POLICY_TERMS = frozenset({"eligibility", "ceiling", "searchonly", "usagepermission"})
 _FALLBACK_NAMESPACE_TOKEN = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _PACK_PATH_TOKEN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _PACK_PATH_UNSAFE = re.compile(r"[^a-z0-9]+")
 _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD = 50_000
 _PACK_LARGE_RELEASE_BUCKETS = 16
 _PACK_ZSTD_LEVEL = 1
-_COMPILED_PRODUCER_PROFILE = (
-    "atlas-3-source-and-evidence-backed-mapping-v1"
-)
-_COMPILED_PRODUCER_MODE = (
-    "compiledSourceAndEvidenceBackedMappingProducerValidation"
-)
+_COMPILED_PRODUCER_PROFILE = "atlas-3-source-and-evidence-backed-mapping-v1"
+_COMPILED_PRODUCER_MODE = "compiledSourceAndEvidenceBackedMappingProducerValidation"
 _CONSTRUCTION_SUMMARY_PROFILE = "atlas-3-release-local-construction-v1"
 _LANGUAGE_SCOPE = {
-    "includedLanguageFamilies": ["en"],
-    "selectionRule": "bcp47-primary-language-subtag",
+    "includedLanguageFamilies": ["de", "en", "es", "fi", "fr", "it", "ja"],
+    "selectionRule": "publisher-or-deterministic-lowercase-bcp47",
     "unselectedPublisherContent": "notRepresented",
-    "wireLanguageTag": "en",
+    "wireLanguageTag": "lowercase-bcp47",
 }
-_CONSTRUCTION_SUMMARY_RECEIPT_PROFILE = (
-    "atlas-3-authenticated-construction-summary-v1"
-)
+_CONSTRUCTION_SUMMARY_RECEIPT_PROFILE = "atlas-3-authenticated-construction-summary-v1"
 _ROLE_GRAPH_IDS = MappingProxyType(
     {
         "asserted": "urn:ref:atlas:graph:v3:asserted",
@@ -175,17 +167,14 @@ _GENERATED_CARRIER_IRI_PREFIXES = (
     "urn:ref:atlas-source-record:",
 )
 _TRANSFORMED_RELATION_ACCOUNTING_REASON = (
-    "Evidence-only publisher relation plus deterministic "
-    "SKOS S27-preserving transformation."
+    "Evidence-only publisher relation plus deterministic SKOS S27-preserving transformation."
 )
 _SOURCE_CLAIM_ACCOUNTING_REASON = "source-fidelity-claim-record-v1"
 _FALLBACK_SOURCE_NAMESPACES = MappingProxyType(
     {
         "loc-lst": "http://id.loc.gov/vocabulary/subjectSchemes/lst",
         "loc-cgpa": "http://id.loc.gov/vocabulary/subjectSchemes/cgpa",
-        "icpsr-subject-thesaurus": (
-            "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001"
-        ),
+        "icpsr-subject-thesaurus": ("https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001"),
     }
 )
 
@@ -219,11 +208,7 @@ class _StatusReporter:
         if not self.enabled:
             return
         now = self.clock()
-        if (
-            not force
-            and self.last_emitted_at is not None
-            and now - self.last_emitted_at < self.interval_seconds
-        ):
+        if not force and self.last_emitted_at is not None and now - self.last_emitted_at < self.interval_seconds:
             return
         fields = [
             "atlas-build",
@@ -411,6 +396,18 @@ class CompiledProducerValidationReceipt:
     source_release_count: int
 
 
+@dataclass(frozen=True, slots=True)
+class ProducerPrebuildValidation:
+    """All producer checks that can run before constructing distribution RDF."""
+
+    compiled_rows: CompiledProducerValidationReceipt
+    construction_seeds: tuple[ReleaseConstructionSeed, ...]
+    generation_report: Mapping[str, Any]
+    input_inventory: Mapping[str, Any]
+    pack_plans: tuple[ReleasePackPlan, ...]
+    deep_compiled_output: Mapping[str, Any] | None = None
+
+
 @dataclass(slots=True)
 class BuildGraphs:
     asserted: Graph
@@ -474,17 +471,10 @@ def _v3_fallback_source_identity(
     remain evidence facts rather than being encoded only as a hash.
     """
 
-    if (
-        not isinstance(namespace_token, str)
-        or _FALLBACK_NAMESPACE_TOKEN.fullmatch(namespace_token) is None
-    ):
-        raise ValueError(
-            "fallback namespace token must be a lowercase hyphenated identifier"
-        )
+    if not isinstance(namespace_token, str) or _FALLBACK_NAMESPACE_TOKEN.fullmatch(namespace_token) is None:
+        raise ValueError("fallback namespace token must be a lowercase hyphenated identifier")
     if identity_kind != "refspecSourceScoped":
-        raise ValueError(
-            "only refspecSourceScoped identities may use an Atlas fallback IRI"
-        )
+        raise ValueError("only refspecSourceScoped identities may use an Atlas fallback IRI")
     if not isinstance(local_record_id, str):
         raise TypeError("fallback localRecordId must be a UUIDv7 URN")
     try:
@@ -505,13 +495,9 @@ def _v3_fallback_source_identity(
         raise ValueError(str(error)) from error
     expected_source_scheme = _FALLBACK_SOURCE_NAMESPACES.get(namespace_token)
     if source_scheme != expected_source_scheme:
-        raise ValueError(
-            "fallback namespace token does not identify the exact sourceScheme"
-        )
+        raise ValueError("fallback namespace token does not identify the exact sourceScheme")
     if prior_iri != expected_prior_iri:
-        raise ValueError(
-            "fallback prior source concept IRI does not match its scheme and UUIDv7"
-        )
+        raise ValueError("fallback prior source concept IRI does not match its scheme and UUIDv7")
 
     local_uuid = durable_key.removeprefix("urn:uuid:")
     iri = f"urn:ref:source-concept:v2:{namespace_token}:{local_uuid}"
@@ -528,12 +514,10 @@ SOURCE_SPECS = (
     SourceSpec(
         key="crs-legislative-entities",
         kind="sourceConceptRelease",
-        path=ROOT
-        / "research/evidence/crs-source-concept-releases-2026-08-04/"
+        path=ROOT / "research/evidence/crs-source-concept-releases-2026-08-04/"
         "legislative-entities/bundle-manifest.json",
         logical_path=(
-            "refspec/research/evidence/crs-source-concept-releases-2026-08-04/"
-            "legislative-entities/bundle-manifest.json"
+            "refspec/research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/bundle-manifest.json"
         ),
         expected_digest="sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd",
         expected_resources=478,
@@ -546,12 +530,10 @@ SOURCE_SPECS = (
     SourceSpec(
         key="crs-legislative-subjects",
         kind="sourceConceptRelease",
-        path=ROOT
-        / "research/evidence/crs-source-concept-releases-2026-08-04/"
+        path=ROOT / "research/evidence/crs-source-concept-releases-2026-08-04/"
         "legislative-subjects/bundle-manifest.json",
         logical_path=(
-            "refspec/research/evidence/crs-source-concept-releases-2026-08-04/"
-            "legislative-subjects/bundle-manifest.json"
+            "refspec/research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/bundle-manifest.json"
         ),
         expected_digest="sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7",
         expected_resources=565,
@@ -564,12 +546,9 @@ SOURCE_SPECS = (
     SourceSpec(
         key="crs-policy-areas",
         kind="sourceConceptRelease",
-        path=ROOT
-        / "research/evidence/crs-source-concept-releases-2026-08-04/"
-        "policy-areas/bundle-manifest.json",
+        path=ROOT / "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/bundle-manifest.json",
         logical_path=(
-            "refspec/research/evidence/crs-source-concept-releases-2026-08-04/"
-            "policy-areas/bundle-manifest.json"
+            "refspec/research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/bundle-manifest.json"
         ),
         expected_digest="sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8",
         expected_resources=32,
@@ -582,12 +561,9 @@ SOURCE_SPECS = (
     SourceSpec(
         key="elsst-r6",
         kind="managedRelease",
-        path=ROOT
-        / "output/elsst-r6-atlas2-bench-input-2026-08-04/managed-release/"
-        "managed-release-bundle.json",
+        path=ROOT / "output/elsst-r6-atlas2-bench-input-2026-08-04/managed-release/managed-release-bundle.json",
         logical_path=(
-            "refspec/output/elsst-r6-atlas2-bench-input-2026-08-04/managed-release/"
-            "managed-release-bundle.json"
+            "refspec/output/elsst-r6-atlas2-bench-input-2026-08-04/managed-release/managed-release-bundle.json"
         ),
         expected_digest="sha256:466a4464cd252bf0b0c0e872927abc430f7532610100cf01e8104eec0ee69f25",
         expected_resources=3470,
@@ -598,8 +574,7 @@ SOURCE_SPECS = (
     SourceSpec(
         key="federal-register-thesaurus-2025",
         kind="managedRelease",
-        path=SPICY_REGS_ROOT
-        / "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/"
+        path=SPICY_REGS_ROOT / "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/"
         "managed-release/managed-release.json",
         logical_path=(
             "spicy-regs/output/refspec-vocabulary-portfolio/"
@@ -614,12 +589,10 @@ SOURCE_SPECS = (
     SourceSpec(
         key="icpsr-subject-thesaurus",
         kind="managedReleaseWithCoverageUnion",
-        path=SPICY_REGS_ROOT
-        / "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/"
+        path=SPICY_REGS_ROOT / "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/"
         "managed-release.json",
         logical_path=(
-            "spicy-regs/output/refspec-vocabulary-portfolio/icpsr/2026-07-30/"
-            "managed-release/managed-release.json"
+            "spicy-regs/output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/managed-release.json"
         ),
         expected_digest="sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a",
         expected_resources=3810,
@@ -643,16 +616,10 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:9af71462acb4579bbf6308e0ad4598617dbdadc50984853f66dad122175cffdf"
-)
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:cc6c198d86ec38f15a8a98a792bd112a79287b3649548ebbf51a73ea66d3655e"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
-    "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-)
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:c13c1cd1d04fbeac59ba1a77fae37ca68fc69e797338d6ba5d58ecac54c2ed63"
-)
+REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:d626bd54ec57ed7d74721ef621fc9d9b2054bd81b7901e512c83493967d92966"
 
 
 def _load_validator() -> Any:
@@ -743,10 +710,7 @@ def _verify_pinned_file(
         raise FileNotFoundError(f"pinned Atlas input is not a regular file: {logical_path}")
     observed = _sha256_file(path)
     if observed != expected_digest:
-        raise ValueError(
-            f"pinned Atlas input drifted: {logical_path}; "
-            f"expected={expected_digest}, observed={observed}"
-        )
+        raise ValueError(f"pinned Atlas input drifted: {logical_path}; expected={expected_digest}, observed={observed}")
     return observed
 
 
@@ -759,10 +723,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _plain(value: Any) -> Any:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return {
-            field.name: _plain(getattr(value, field.name))
-            for field in dataclasses.fields(value)
-        }
+        return {field.name: _plain(getattr(value, field.name)) for field in dataclasses.fields(value)}
     if isinstance(value, (dict, MappingProxyType, Mapping)):
         return {str(key): _plain(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
@@ -804,9 +765,7 @@ def _portable_policy_term_violations(
         (str, bytes, bytearray),
     ):
         for index, item in enumerate(value):
-            violations.extend(
-                _portable_policy_term_violations(item, path=f"{path}/{index}")
-            )
+            violations.extend(_portable_policy_term_violations(item, path=f"{path}/{index}"))
     elif isinstance(value, str):
         normalized_value = re.sub(r"[^a-z0-9]", "", value.casefold())
         for term in sorted(_FORBIDDEN_PORTABLE_POLICY_TERMS):
@@ -819,9 +778,7 @@ def _assert_portable_editorial_policy_payload(payload: Mapping[str, Any]) -> Non
     violations = _portable_policy_term_violations(payload)
     if violations:
         raise ValueError(
-            "Atlas 3 editorial policy contains serving eligibility or permission "
-            "language: "
-            + "; ".join(violations)
+            "Atlas 3 editorial policy contains serving eligibility or permission language: " + "; ".join(violations)
         )
 
 
@@ -866,24 +823,14 @@ def distribution_identity(accounting: Mapping[str, Any]) -> str:
     changes the digest the identity carries beside it.
     """
 
-    content = {
-        key: value for key, value in accounting.items() if key != "distributionId"
-    }
+    content = {key: value for key, value in accounting.items() if key != "distributionId"}
     if set(content) != {"inputs", "totals", "type", "version"}:
-        raise ValueError(
-            "distribution identity requires the closed source accounting content"
-        )
+        raise ValueError("distribution identity requires the closed source accounting content")
     totals = content["totals"]
-    if not isinstance(totals, Mapping) or not isinstance(
-        totals.get("sourceReleases"), int
-    ):
+    if not isinstance(totals, Mapping) or not isinstance(totals.get("sourceReleases"), int):
         raise ValueError("source accounting totals declare no source release count")
-    prefix = DISTRIBUTION_ID_PREFIXES[
-        distribution_scope_profile(totals["sourceReleases"])
-    ]
-    digest = _canonical_digest(
-        {"content": content, "profile": _DISTRIBUTION_IDENTITY_PROFILE}
-    )
+    prefix = DISTRIBUTION_ID_PREFIXES[distribution_scope_profile(totals["sourceReleases"])]
+    digest = _canonical_digest({"content": content, "profile": _DISTRIBUTION_IDENTITY_PROFILE})
     return prefix + digest.removeprefix("sha256:")
 
 
@@ -991,6 +938,18 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         REGISTRY_MAPPING_RELEASE_KEYS,
     )
+    from refspec.atlas.v3_registry_alignments_bulk import (
+        BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        BULK_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
+    from refspec.atlas.v3_registry_alignments_lc import (
+        LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        LC_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
+    from refspec.atlas.v3_registry_alignments_subject import (
+        REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
+    )
     from refspec.atlas.v3_registry_codes import REGISTRY_CODE_RELEASE_KEYS
     from refspec.atlas.v3_registry_large import LARGE_REGISTRY_RELEASE_KEYS
     from refspec.atlas.v3_registry_nonemitters import REGISTRY_NONEMITTER_RELEASE_KEYS
@@ -1007,11 +966,29 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
             REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_MAPPING_RELEASE_KEYS,
             "refspec.atlas.v3_registry_alignments",
         ),
+        (
+            LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | LC_REGISTRY_MAPPING_RELEASE_KEYS,
+            "refspec.atlas.v3_registry_alignments_lc",
+        ),
+        (
+            BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | BULK_REGISTRY_MAPPING_RELEASE_KEYS,
+            "refspec.atlas.v3_registry_alignments_bulk",
+        ),
+        (
+            REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
+            "refspec.atlas.v3_registry_alignments_subject",
+        ),
     )
     matches = [module for keys, module in groups if key in keys]
     if len(matches) > 1:
         raise ValueError(f"construction unit belongs to multiple adapter groups: {key}")
-    if kind == "mapping" and matches != ["refspec.atlas.v3_registry_alignments"]:
+    mapping_modules = {
+        "refspec.atlas.v3_registry_alignments",
+        "refspec.atlas.v3_registry_alignments_bulk",
+        "refspec.atlas.v3_registry_alignments_lc",
+        "refspec.atlas.v3_registry_alignments_subject",
+    }
+    if kind == "mapping" and (len(matches) != 1 or matches[0] not in mapping_modules):
         raise ValueError(f"mapping construction unit has no alignment adapter: {key}")
     return matches[0] if matches else None
 
@@ -1079,12 +1056,6 @@ def _adapter_recipe_digest(
     )
 
 
-
-
-
-
-
-
 def _native_digest(value: Any) -> str:
     payload = ATLAS_VALIDATE.canonical_native_json_bytes(_plain(value))
     return "sha256:" + hashlib.sha256(payload).hexdigest()
@@ -1096,12 +1067,8 @@ def _rdf_datetime(value: str) -> str:
     return value[:-1] + "+00:00" if value.endswith("Z") else value
 
 
-_LANGUAGE_TAG_RE = re.compile(
-    r"^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"
-)
-_EXPLICIT_LANGUAGE_KEYS = frozenset(
-    {"@language", "lang", "language", "languagetag"}
-)
+_LANGUAGE_TAG_RE = re.compile(r"^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$")
+_EXPLICIT_LANGUAGE_KEYS = frozenset({"@language", "lang", "language", "languagetag"})
 
 
 def _is_registry_claim_payload(value: object) -> bool:
@@ -1112,6 +1079,8 @@ def _is_registry_claim_payload(value: object) -> bool:
         and isinstance(value.get("claims"), Sequence)
         and not isinstance(value.get("claims"), (str, bytes))
     )
+
+
 ELSST_LANGUAGE_MAP_FIELDS = frozenset(
     {
         "skos:altLabel",
@@ -1142,15 +1111,11 @@ def _language_map_values(
         raise TypeError(f"language map at {location} is not an object")
     result: dict[str, list[str]] = {}
     for raw_language, raw_values in value.items():
-        if (
-            not isinstance(raw_language, str)
-            or _LANGUAGE_TAG_RE.fullmatch(raw_language) is None
-        ):
+        if not isinstance(raw_language, str) or _LANGUAGE_TAG_RE.fullmatch(raw_language) is None:
             raise ValueError(f"language map at {location} has an invalid tag")
         values = (
             list(raw_values)
-            if isinstance(raw_values, Sequence)
-            and not isinstance(raw_values, (str, bytes))
+            if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes))
             else [raw_values]
         )
         if not all(isinstance(item, str) for item in values):
@@ -1180,22 +1145,14 @@ def _normalize_english_language_content(
 
     def visit(item: object, path: tuple[str, ...]) -> Any:
         if isinstance(item, (dict, MappingProxyType, Mapping)):
-            explicit_keys = [
-                str(key)
-                for key in item
-                if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
-            ]
+            explicit_keys = [str(key) for key in item if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS]
             if len(explicit_keys) > 1:
-                raise ValueError(
-                    f"multiple language tags at {'/'.join(path) or '<root>'}"
-                )
+                raise ValueError(f"multiple language tags at {'/'.join(path) or '<root>'}")
             explicit_key = explicit_keys[0] if explicit_keys else None
             if explicit_key is not None:
                 explicit_language = item[explicit_key]
                 if not isinstance(explicit_language, str):
-                    raise TypeError(
-                        f"language tag at {'/'.join(path) or '<root>'} is not text"
-                    )
+                    raise TypeError(f"language tag at {'/'.join(path) or '<root>'} is not text")
                 if not is_english_language_tag(explicit_language):
                     dropped.append(
                         {
@@ -1235,18 +1192,9 @@ def _normalize_english_language_content(
                                     "values": values,
                                 }
                             )
-                    child = (
-                        {"en": list(dict.fromkeys(english_values))}
-                        if english_values
-                        else {}
-                    )
-                elif (
-                    key.startswith(("skos:", "xkos:"))
-                    and _looks_like_language_map(raw_child)
-                ):
-                    raise ValueError(
-                        f"unprofiled language-bearing field at {'/'.join(child_path)}"
-                    )
+                    child = {"en": list(dict.fromkeys(english_values))} if english_values else {}
+                elif key.startswith(("skos:", "xkos:")) and _looks_like_language_map(raw_child):
+                    raise ValueError(f"unprofiled language-bearing field at {'/'.join(child_path)}")
                 elif explicit_key is not None and key == explicit_key:
                     child = "en"
                 else:
@@ -1265,8 +1213,7 @@ def _normalize_english_language_content(
                 and raw_child.get("role") == "preferred"
                 and isinstance(raw_child.get("value"), str)
                 and any(
-                    isinstance(raw_child.get(key), str)
-                    and str(raw_child[key]).casefold() == "en"
+                    isinstance(raw_child.get(key), str) and str(raw_child[key]).casefold() == "en"
                     for key in raw_child
                     if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
                 )
@@ -1274,33 +1221,19 @@ def _normalize_english_language_content(
             for index, raw_child in enumerate(item):
                 child = visit(raw_child, (*path, str(index)))
                 if child is not _DROP_LANGUAGE_VALUE:
-                    if isinstance(child, Mapping) and any(
-                        str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
-                        for key in child
-                    ):
+                    if isinstance(child, Mapping) and any(str(key).lower() in _EXPLICIT_LANGUAGE_KEYS for key in child):
                         raw_language = (
                             next(
-                                (
-                                    raw_child[key]
-                                    for key in raw_child
-                                    if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS
-                                ),
+                                (raw_child[key] for key in raw_child if str(key).lower() in _EXPLICIT_LANGUAGE_KEYS),
                                 None,
                             )
                             if isinstance(raw_child, Mapping)
                             else None
                         )
-                        is_variant = (
-                            isinstance(raw_language, str)
-                            and raw_language.casefold() != "en"
-                        )
+                        is_variant = isinstance(raw_language, str) and raw_language.casefold() != "en"
                         if is_variant and child.get("value") in base_preferred_values:
                             continue
-                        if (
-                            is_variant
-                            and base_preferred_values
-                            and child.get("role") == "preferred"
-                        ):
+                        if is_variant and base_preferred_values and child.get("role") == "preferred":
                             child = {**child, "role": "alternate"}
                         identity = json.dumps(
                             _plain(child),
@@ -1344,17 +1277,10 @@ def _audit_english_language_content(
                         pass
                     else:
                         explicit_tags += 1
-                    if not (
-                        child is None and allow_untagged_explicit_language
-                    ) and not (
+                    if not (child is None and allow_untagged_explicit_language) and not (
                         isinstance(child, str)
-                        and (
-                            child.casefold() == "en"
-                            or (
-                                allow_untagged_explicit_language
-                                and is_english_language_tag(child)
-                            )
-                        )
+                        and child == child.lower()
+                        and _LANGUAGE_TAG_RE.fullmatch(child) is not None
                     ):
                         violations.append(f"{location}/{key}:tag={child!r}")
                 child_path = (*path, key)
@@ -1368,22 +1294,11 @@ def _audit_english_language_content(
                     except (TypeError, ValueError) as error:
                         violations.append(str(error))
                         continue
-                    unexpected = sorted(
-                        language
-                        for language in language_values
-                        if language.lower() != "en"
-                    )
+                    unexpected = sorted(language for language in language_values if language != language.lower())
                     if unexpected:
-                        violations.append(
-                            f"{'/'.join(child_path)}:languageMap={unexpected}"
-                        )
-                elif (
-                    key.startswith(("skos:", "xkos:"))
-                    and _looks_like_language_map(child)
-                ):
-                    violations.append(
-                        f"{'/'.join(child_path)}:unprofiledLanguageMap"
-                    )
+                        violations.append(f"{'/'.join(child_path)}:languageMap={unexpected}")
+                elif key.startswith(("skos:", "xkos:")) and _looks_like_language_map(child):
+                    violations.append(f"{'/'.join(child_path)}:unprofiledLanguageMap")
                 else:
                     visit(child, child_path)
         elif isinstance(item, Sequence) and not isinstance(item, (str, bytes)):
@@ -1404,9 +1319,7 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
         spec.path,
         expected_manifest_digest=spec.expected_digest,
     )
-    observations = {
-        str(row["id"]): row for row in view.source_bundle.observations
-    }
+    observations = {str(row["id"]): row for row in view.source_bundle.observations}
     resources: list[SourceResource] = []
     dropped_label_count = 0
     for concept in view.concepts:
@@ -1427,12 +1340,8 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
         elif identity_kind == "publisherConceptIri":
             resource_iri = str(concept["id"])
         else:
-            raise ValueError(
-                f"{spec.key} concept {concept.get('id')!r} has unsupported identityKind"
-            )
-        normalized_observation, dropped_language_content = (
-            _normalize_english_language_content(observation)
-        )
+            raise ValueError(f"{spec.key} concept {concept.get('id')!r} has unsupported identityKind")
+        normalized_observation, dropped_language_content = _normalize_english_language_content(observation)
         if not isinstance(normalized_observation, Mapping):
             raise TypeError(f"{spec.key} observation {observation_id} is not an object")
         normalized_labels = normalized_observation.get("labels")
@@ -1448,18 +1357,14 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
             value = row.get("value")
             language = row.get("language")
             if not isinstance(value, str) or language != "en":
-                raise ValueError(
-                    f"{spec.key} observation {observation_id} label is not normalized English text"
-                )
+                raise ValueError(f"{spec.key} observation {observation_id} label is not normalized English text")
             labels_list.append(
                 SourceLabel(
                     value=value,
                     language=language,
                     role=_source_label_role(
                         row.get("role"),
-                        context=(
-                            f"{spec.key} observation {observation_id} label"
-                        ),
+                        context=(f"{spec.key} observation {observation_id} label"),
                     ),
                     source_path=str(observation["sourcePath"]),
                 )
@@ -1470,13 +1375,9 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
         native_payload = {
             "englishOnlyObservation": _plain(normalized_observation),
             "sourceEvidence": {
-                "droppedLanguageContentDigest": _native_digest(
-                    dropped_language_content
-                ),
+                "droppedLanguageContentDigest": _native_digest(dropped_language_content),
                 "droppedLanguageValueCount": len(dropped_language_content),
-                "languageNormalizationAlgorithm": (
-                    "recursiveEnglishFamilyLanguageMapsAndTaggedValuesV2"
-                ),
+                "languageNormalizationAlgorithm": ("recursiveEnglishFamilyLanguageMapsAndTaggedValuesV2"),
                 "originalObservationDigest": _native_digest(observation),
                 "sourceTextLanguage": "en",
             },
@@ -1491,16 +1392,12 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
                 source_locator=observation_id,
                 source_digest=str(concept["sourceObservationDigest"]),
                 definition=(
-                    str(normalized_observation["definition"])
-                    if normalized_observation.get("definition")
-                    else None
+                    str(normalized_observation["definition"]) if normalized_observation.get("definition") else None
                 ),
             )
         )
     if len(resources) != spec.expected_resources:
-        raise ValueError(
-            f"{spec.key} expected {spec.expected_resources} resources; found {len(resources)}"
-        )
+        raise ValueError(f"{spec.key} expected {spec.expected_resources} resources; found {len(resources)}")
     scheme_iri = (
         "urn:ref:atlas-resource-scheme:crs-policy-areas"
         if spec.key == "crs-policy-areas"
@@ -1528,27 +1425,20 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
     view = FederalRegisterThesaurus2025ManagedReleaseView.open(spec.path)
     relations_by_source: dict[str, list[Mapping[str, Any]]] = {}
     for relation in view.relations:
-        relations_by_source.setdefault(str(relation["sourceConceptIri"]), []).append(
-            relation
-        )
+        relations_by_source.setdefault(str(relation["sourceConceptIri"]), []).append(relation)
     resources: list[SourceResource] = []
     for concept in view.concepts:
         locator = concept["sourceLocator"]
         payload = {
             "concept": _plain(concept),
-            "relations": [
-                _plain(row)
-                for row in relations_by_source.get(str(concept["conceptIri"]), ())
-            ],
+            "relations": [_plain(row) for row in relations_by_source.get(str(concept["conceptIri"]), ())],
         }
         labels = [
             SourceLabel(
                 value=str(concept["preferredLabel"]),
                 language="en",
                 role="preferred",
-                source_path=json.dumps(
-                    _plain(locator), sort_keys=True, separators=(",", ":")
-                ),
+                source_path=json.dumps(_plain(locator), sort_keys=True, separators=(",", ":")),
             )
         ]
         labels.extend(
@@ -1556,9 +1446,7 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
                 value=str(value),
                 language="en",
                 role="alternate",
-                source_path=json.dumps(
-                    _plain(locator), sort_keys=True, separators=(",", ":")
-                ),
+                source_path=json.dumps(_plain(locator), sort_keys=True, separators=(",", ":")),
             )
             for value in concept.get("alternateLabels", ())
         )
@@ -1568,8 +1456,7 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
                 labels=tuple(labels),
                 native_payload=payload,
                 source_locator=(
-                    "urn:ref:federal-register-thesaurus:2025-04-01:source-record:"
-                    + str(concept["conceptId"])
+                    "urn:ref:federal-register-thesaurus:2025-04-01:source-record:" + str(concept["conceptId"])
                 ),
                 source_digest=_native_digest(payload),
             )
@@ -1591,13 +1478,9 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
     release = view.manifest["release"]
     return LoadedRelease(
         spec=spec,
-        source_release_iri=(
-            "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
-        ),
+        source_release_iri=("urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"),
         source_release_digest=str(view.manifest["canonicalPayloadDigest"]),
-        atlas_release_iri=(
-            "urn:ref:federal-register-thesaurus:2025-04-01:atlas-release:3"
-        ),
+        atlas_release_iri=("urn:ref:federal-register-thesaurus:2025-04-01:atlas-release:3"),
         scheme_iri="urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025",
         issued=str(release["issued"]),
         resources=tuple(resources),
@@ -1624,11 +1507,9 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
         member_dropped_label_count = 0
         member_dropped_label_counts_by_language: dict[str, int] = {}
         record = member.record
-        normalized_record, dropped_language_content = (
-            _normalize_english_language_content(
-                record,
-                language_map_fields=ELSST_LANGUAGE_MAP_FIELDS,
-            )
+        normalized_record, dropped_language_content = _normalize_english_language_content(
+            record,
+            language_map_fields=ELSST_LANGUAGE_MAP_FIELDS,
         )
         if not isinstance(normalized_record, Mapping):
             raise TypeError(f"ELSST member {member.member_iri} is not an object")
@@ -1637,14 +1518,10 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
             language = str(dropped["language"])
             raw_values = dropped["values"]
             value_count = (
-                len(raw_values)
-                if isinstance(raw_values, Sequence)
-                and not isinstance(raw_values, (str, bytes))
-                else 1
+                len(raw_values) if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes)) else 1
             )
             dropped_language_value_counts_by_language[language] = (
-                dropped_language_value_counts_by_language.get(language, 0)
-                + value_count
+                dropped_language_value_counts_by_language.get(language, 0) + value_count
             )
             if dropped["path"] in {
                 "skos:altLabel",
@@ -1654,8 +1531,7 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
                 dropped_label_count += value_count
                 member_dropped_label_count += value_count
                 member_dropped_label_counts_by_language[language] = (
-                    member_dropped_label_counts_by_language.get(language, 0)
-                    + value_count
+                    member_dropped_label_counts_by_language.get(language, 0) + value_count
                 )
         for property_name, role in (
             ("skos:prefLabel", "preferred"),
@@ -1664,14 +1540,11 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
         ):
             language_map = normalized_record.get(property_name, {})
             if not isinstance(language_map, Mapping):
-                raise TypeError(
-                    f"ELSST member {member.member_iri} {property_name} is not a language map"
-                )
+                raise TypeError(f"ELSST member {member.member_iri} {property_name} is not a language map")
             for language, raw_values in sorted(language_map.items()):
                 values = (
                     raw_values
-                    if isinstance(raw_values, Sequence)
-                    and not isinstance(raw_values, (str, bytes))
+                    if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes))
                     else (raw_values,)
                 )
                 for value in values:
@@ -1696,8 +1569,7 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
             raw_values = language_map.get("en", ())
             rows = (
                 raw_values
-                if isinstance(raw_values, Sequence)
-                and not isinstance(raw_values, (str, bytes))
+                if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes))
                 else (raw_values,)
             )
             return tuple(str(row) for row in rows)
@@ -1706,24 +1578,12 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
             "englishOnlyMember": _plain(normalized_record),
             "sourceEvidence": {
                 "droppedLabelCount": member_dropped_label_count,
-                "droppedLabelCountsByLanguage": (
-                    member_dropped_label_counts_by_language
-                ),
-                "droppedLanguageValueCount": sum(
-                    dropped_language_value_counts_by_language.values()
-                ),
-                "droppedLanguageValueCountsByLanguage": (
-                    dropped_language_value_counts_by_language
-                ),
-                "droppedLanguageContentDigest": _native_digest(
-                    dropped_language_content
-                ),
-                "droppedLanguageFieldCount": len(
-                    {str(row["path"]) for row in dropped_language_content}
-                ),
-                "languageNormalizationAlgorithm": (
-                    "recursiveEnglishFamilyLanguageMapsAndJsonLdLanguageValuesV2"
-                ),
+                "droppedLabelCountsByLanguage": (member_dropped_label_counts_by_language),
+                "droppedLanguageValueCount": sum(dropped_language_value_counts_by_language.values()),
+                "droppedLanguageValueCountsByLanguage": (dropped_language_value_counts_by_language),
+                "droppedLanguageContentDigest": _native_digest(dropped_language_content),
+                "droppedLanguageFieldCount": len({str(row["path"]) for row in dropped_language_content}),
+                "languageNormalizationAlgorithm": ("recursiveEnglishFamilyLanguageMapsAndJsonLdLanguageValuesV2"),
                 "originalMemberDigest": _native_digest(record),
                 "originalSourceLocator": member.member_iri,
                 "rawMultilingualContent": "externalByLocatorAndDigestOnly",
@@ -1760,9 +1620,7 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
                     )
                 )
     if len(resources) != spec.expected_resources:
-        raise ValueError(
-            f"{spec.key} expected {spec.expected_resources} resources; found {len(resources)}"
-        )
+        raise ValueError(f"{spec.key} expected {spec.expected_resources} resources; found {len(resources)}")
     return LoadedRelease(
         spec=spec,
         source_release_iri="https://elsst.cessda.eu/id/6",
@@ -1804,9 +1662,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
     recorded_at = str(view.coverage["recordedAt"])
     xml_by_label = {term.label: term for term in sources.xml.terms}
     index_by_iri = {term.concept_iri: term for term in sources.index.terms}
-    label_to_resource = {
-        term.label: term.concept_iri for term in sources.index.terms
-    }
+    label_to_resource = {term.label: term.concept_iri for term in sources.index.terms}
 
     minted_by_label: dict[
         str,
@@ -1814,11 +1670,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
     ] = {}
     for label in view.coverage["gaps"]["xmlOnlyLabels"]:
         term = xml_by_label[str(label)]
-        seed = (
-            scheme_iri
-            + "#source-local-record-number="
-            + term.source_local_record_number
-        )
+        seed = scheme_iri + "#source-local-record-number=" + term.source_local_record_number
         local_record_id = "urn:uuid:" + derive_uuid7(
             recorded_at,
             seed=seed.encode("utf-8"),
@@ -1879,10 +1731,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
                         language="en",
                         role=_source_label_role(
                             concept["officialLabelRole"],
-                            context=(
-                                "ICPSR managed concept "
-                                f"{concept['conceptIri']} official label"
-                            ),
+                            context=(f"ICPSR managed concept {concept['conceptIri']} official label"),
                         ),
                         source_path=source_path,
                     ),
@@ -1955,10 +1804,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
                         language="en",
                         role=_source_label_role_from_preferred(
                             term.preferred,
-                            context=(
-                                "ICPSR XML term "
-                                f"{term.source_local_record_number} label"
-                            ),
+                            context=(f"ICPSR XML term {term.source_local_record_number} label"),
                         ),
                         source_path=str(payload["sourcePath"]),
                     ),
@@ -1985,9 +1831,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
                 try:
                     target = label_to_resource[target_label]
                 except KeyError as error:
-                    raise ValueError(
-                        f"ICPSR relation target remains unresolved: {target_label!r}"
-                    ) from error
+                    raise ValueError(f"ICPSR relation target remains unresolved: {target_label!r}") from error
                 raw_relations.append(
                     (
                         subject,
@@ -2028,9 +1872,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
     relations: list[SourceRelation] = []
     for subject, relation_name, target, payload in raw_relations:
         predicate = _icpsr_relation_predicate(relation_name)
-        if relation_name == "related" and (
-            target in ancestors(subject) or subject in ancestors(target)
-        ):
+        if relation_name == "related" and (target in ancestors(subject) or subject in ancestors(target)):
             predicate = "https://refspec.org/ns/atlas/v3#thesaurusRelated"
             payload = {
                 "editorialTransformation": {
@@ -2056,9 +1898,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
             f"relations={len(relations)}, remappedRelated={remapped_related}"
         )
     if len(resources) != spec.expected_resources:
-        raise ValueError(
-            f"{spec.key} expected {spec.expected_resources} resources; found {len(resources)}"
-        )
+        raise ValueError(f"{spec.key} expected {spec.expected_resources} resources; found {len(resources)}")
     release = view.manifest["release"]
     union_basis = {
         "indexCaptureDigest": sources.source_capture_digest,
@@ -2067,10 +1907,7 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
         "subjectXmlDigest": sources.xml.source_sha256,
     }
     union_digest = _canonical_digest(union_basis)
-    source_release_iri = (
-        "urn:ref:icpsr:source-release:union:"
-        + union_digest.removeprefix("sha256:")
-    )
+    source_release_iri = "urn:ref:icpsr:source-release:union:" + union_digest.removeprefix("sha256:")
     return LoadedRelease(
         spec=spec,
         source_release_iri=source_release_iri,
@@ -2095,10 +1932,7 @@ def _validate_loaded_release(release: LoadedRelease) -> LoadedRelease:
         "resources": release.spec.expected_resources,
     }
     if observed != expected:
-        raise ValueError(
-            f"{release.spec.key} source counts differ: "
-            f"expected={expected}, observed={observed}"
-        )
+        raise ValueError(f"{release.spec.key} source counts differ: expected={expected}, observed={observed}")
     return release
 
 
@@ -2148,17 +1982,25 @@ def _declared_construction_unit_keys() -> frozenset[str]:
         REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         REGISTRY_MAPPING_RELEASE_KEYS,
     )
+    from refspec.atlas.v3_registry_alignments_bulk import (
+        BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        BULK_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
+    from refspec.atlas.v3_registry_alignments_lc import (
+        LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        LC_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
+    from refspec.atlas.v3_registry_alignments_subject import (
+        REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
+    )
     from refspec.atlas.v3_registry_codes import REGISTRY_CODE_RELEASE_KEYS
     from refspec.atlas.v3_registry_large import LARGE_REGISTRY_RELEASE_KEYS
     from refspec.atlas.v3_registry_nonemitters import REGISTRY_NONEMITTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_rosters import REGISTRY_ROSTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_vocabularies import REGISTRY_VOCABULARY_RELEASE_KEYS
 
-    direct = {
-        spec.key
-        for spec in SOURCE_SPECS
-        if spec.key not in {"elsst-r6", "federal-register-thesaurus-2025"}
-    }
+    direct = {spec.key for spec in SOURCE_SPECS if spec.key not in {"elsst-r6", "federal-register-thesaurus-2025"}}
     return frozenset(
         {
             *direct,
@@ -2169,6 +2011,12 @@ def _declared_construction_unit_keys() -> frozenset[str]:
             *REGISTRY_ROSTER_RELEASE_KEYS,
             *REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
             *REGISTRY_MAPPING_RELEASE_KEYS,
+            *LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+            *LC_REGISTRY_MAPPING_RELEASE_KEYS,
+            *BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+            *BULK_REGISTRY_MAPPING_RELEASE_KEYS,
+            *REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+            *REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
         }
     )
 
@@ -2184,13 +2032,21 @@ def split_construction_unit_keys(
     """
 
     from refspec.atlas.v3_registry_alignments import REGISTRY_MAPPING_RELEASE_KEYS
+    from refspec.atlas.v3_registry_alignments_bulk import BULK_REGISTRY_MAPPING_RELEASE_KEYS
+    from refspec.atlas.v3_registry_alignments_lc import LC_REGISTRY_MAPPING_RELEASE_KEYS
+    from refspec.atlas.v3_registry_alignments_subject import REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS
 
     if not include_keys:
         raise ValueError("a bounded Atlas build names at least one release key")
     unknown = sorted(include_keys - _declared_construction_unit_keys())
     if unknown:
         raise ValueError(f"unknown Atlas construction units: {unknown}")
-    mapping_keys = include_keys & REGISTRY_MAPPING_RELEASE_KEYS
+    mapping_keys = include_keys & (
+        REGISTRY_MAPPING_RELEASE_KEYS
+        | LC_REGISTRY_MAPPING_RELEASE_KEYS
+        | BULK_REGISTRY_MAPPING_RELEASE_KEYS
+        | REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS
+    )
     return frozenset(include_keys - mapping_keys), frozenset(mapping_keys)
 
 
@@ -2334,20 +2190,250 @@ def _refuse_observed_inventory_release(release: LoadedRelease) -> None:
     for pin in (*release.spec.input_pins, release.spec):
         if pin.logical_path.startswith(OBSERVED_INVENTORY_INPUT_PATH_PREFIXES):
             raise ValueError(
-                "observed inventories are not reference "
-                f"(REF-032): {release.spec.key} reads {pin.logical_path}"
+                f"observed inventories are not reference (REF-032): {release.spec.key} reads {pin.logical_path}"
             )
     if release.scheme_iri.startswith(OBSERVED_INVENTORY_SCHEME_PREFIXES):
         raise ValueError(
-            "observed inventories are not reference "
-            f"(REF-032): {release.spec.key} uses {release.scheme_iri}"
+            f"observed inventories are not reference (REF-032): {release.spec.key} uses {release.scheme_iri}"
         )
     for resource in release.resources:
         if resource.iri.startswith(OBSERVED_INVENTORY_IRI_PREFIXES):
             raise ValueError(
-                "observed inventories are not reference "
-                f"(REF-032): {release.spec.key} emits {resource.iri}"
+                f"observed inventories are not reference (REF-032): {release.spec.key} emits {resource.iri}"
             )
+
+
+_ENDPOINT_OWNERSHIP_PREFERENCE_RANK = MappingProxyType(
+    {
+        "publisherOwnedVocabulary": 0,
+        "publisherVocabularyViaPublisherSelection": 1,
+        "mappingPublisherSuppliedTargetContent": 2,
+        "publisherVocabularyViaThirdPartySelection": 3,
+    }
+)
+
+
+def _iri_space(iri: str) -> str:
+    """Derive the publisher IRI space from one concrete resource IRI."""
+
+    parsed = urlsplit(iri)
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        path = parsed.path
+        if not path or path.endswith("/"):
+            prefix_path = path
+        elif "/" in path:
+            prefix_path = path.rsplit("/", 1)[0] + "/"
+        else:
+            prefix_path = "/"
+        return urlunsplit((parsed.scheme, parsed.netloc, prefix_path, "", ""))
+    if parsed.scheme == "urn" and ":" in iri:
+        return iri.rsplit(":", 1)[0] + ":"
+    raise ValueError(f"cannot derive an IRI space from {iri!r}")
+
+
+def _assert_unique_release_resource_iris(
+    releases: Sequence[LoadedRelease | RegistryRelease],
+) -> None:
+    """Fail at release-load time if two releases claim one resource IRI."""
+
+    owner_by_iri: dict[str, str] = {}
+    for release in releases:
+        key = release.spec.key if isinstance(release, LoadedRelease) else release.key
+        for resource in release.resources:
+            previous = owner_by_iri.setdefault(resource.iri, key)
+            if previous != key:
+                raise ValueError(f"Atlas releases repeat resource IRI {resource.iri}: {previous}, {key}")
+
+
+def _reconcile_endpoint_release_ownership(
+    held_releases: Sequence[LoadedRelease | RegistryRelease],
+    endpoint_releases: Sequence[RegistryRelease],
+) -> tuple[RegistryRelease, ...]:
+    """Keep one owner for each endpoint IRI and record every ownership choice."""
+
+    _assert_unique_release_resource_iris(held_releases)
+    held_owner_by_iri: dict[str, tuple[str, str]] = {}
+    held_spaces: dict[str, set[str]] = defaultdict(set)
+    for release in held_releases:
+        key = release.spec.key if isinstance(release, LoadedRelease) else release.key
+        for resource in release.resources:
+            held_owner_by_iri[resource.iri] = (key, release.atlas_release_iri)
+            held_spaces[_iri_space(resource.iri)].add(key)
+
+    endpoint_by_key = {release.key: release for release in endpoint_releases}
+    if len(endpoint_by_key) != len(endpoint_releases):
+        raise ValueError("endpoint ownership input repeats a release key")
+    candidates_by_iri: dict[str, list[str]] = defaultdict(list)
+    candidate_spaces: set[str] = set()
+    for release in endpoint_releases:
+        preference = release.metadata.get("endpointOwnershipPreference")
+        if preference not in _ENDPOINT_OWNERSHIP_PREFERENCE_RANK:
+            raise ValueError(f"{release.key} has no supported endpoint ownership preference")
+        release_iris: set[str] = set()
+        for resource in release.resources:
+            if resource.iri in release_iris:
+                raise ValueError(f"{release.key} repeats endpoint resource IRI {resource.iri}")
+            release_iris.add(resource.iri)
+            candidates_by_iri[resource.iri].append(release.key)
+            candidate_spaces.add(_iri_space(resource.iri))
+
+    owner_by_iri = dict(held_owner_by_iri)
+    ownership_basis_by_iri: dict[str, str] = dict.fromkeys(
+        held_owner_by_iri,
+        "existingHeldRelease",
+    )
+    for iri, candidate_keys in candidates_by_iri.items():
+        if iri in owner_by_iri:
+            continue
+        owner_key = min(
+            candidate_keys,
+            key=lambda key: (
+                _ENDPOINT_OWNERSHIP_PREFERENCE_RANK[str(endpoint_by_key[key].metadata["endpointOwnershipPreference"])],
+                key,
+            ),
+        )
+        owner_by_iri[iri] = (
+            owner_key,
+            endpoint_by_key[owner_key].atlas_release_iri,
+        )
+        competing_preferences = {
+            str(endpoint_by_key[key].metadata["endpointOwnershipPreference"]) for key in candidate_keys
+        }
+        ownership_basis_by_iri[iri] = (
+            "publisherContentPreference" if len(competing_preferences) > 1 else "stableReleaseKeyOrder"
+        )
+
+    held_candidate_spaces = sorted(candidate_spaces & held_spaces.keys())
+    reconciled: list[RegistryRelease] = []
+    for release in endpoint_releases:
+        owned_resources = tuple(
+            resource for resource in release.resources if owner_by_iri[resource.iri][0] == release.key
+        )
+        owned_iris = {resource.iri for resource in owned_resources}
+        excluded_by_owner = Counter(
+            owner_by_iri[resource.iri][0] for resource in release.resources if resource.iri not in owned_iris
+        )
+        owned_relations = tuple(relation for relation in release.relations if relation.subject in owned_iris)
+        owned_cross_ring_relations = tuple(
+            relation for relation in release.cross_ring_relations if relation.subject in owned_iris
+        )
+        decisions: dict[tuple[str, str, str], int] = Counter()
+        for resource in release.resources:
+            candidate_keys = candidates_by_iri[resource.iri]
+            if len(candidate_keys) == 1 and resource.iri not in held_owner_by_iri:
+                continue
+            owner_key = owner_by_iri[resource.iri][0]
+            decisions[
+                (
+                    _iri_space(resource.iri),
+                    owner_key,
+                    ownership_basis_by_iri[resource.iri],
+                )
+            ] += 1
+        ownership_metadata = {
+            "candidateResourceCount": len(release.resources),
+            "candidateRelationCount": len(release.relations),
+            "emittedResourceCount": len(owned_resources),
+            "emittedRelationCount": len(owned_relations),
+            "excludedResourceCount": len(release.resources) - len(owned_resources),
+            "excludedRelationCount": len(release.relations) - len(owned_relations),
+            "excludedResourceCountsByOwningRelease": dict(sorted(excluded_by_owner.items())),
+            "heldIriSpacesBeforeAcquisition": held_candidate_spaces,
+            "iriSpaces": sorted({_iri_space(resource.iri) for resource in release.resources}),
+            "ownershipDecisions": [
+                {
+                    "iriSpace": space,
+                    "ownerReleaseKey": owner_key,
+                    "resourceCount": count,
+                    "selectionBasis": basis,
+                }
+                for (space, owner_key, basis), count in sorted(decisions.items())
+            ],
+            "preference": release.metadata["endpointOwnershipPreference"],
+            "rule": (
+                "reuse an exact resource from an existing held release; otherwise "
+                "prefer target-publisher content and break equal-preference ties by release key"
+            ),
+        }
+        if not owned_resources:
+            continue
+        metadata = dict(release.metadata)
+        for count_key in ("activeEndpointCount", "newEndpointCount", "resourceCount"):
+            if count_key in metadata:
+                metadata[count_key] = len(owned_resources)
+        if "deprecatedEndpointCount" in metadata:
+            metadata["deprecatedEndpointCount"] = sum(
+                resource.status == "deprecatedAlignmentEndpoint" for resource in owned_resources
+            )
+        if "emittedRelationCount" in metadata:
+            metadata["emittedRelationCount"] = len(owned_relations)
+        if "languageDistribution" in metadata:
+            metadata["languageDistribution"] = dict(
+                sorted(Counter(label.language for resource in owned_resources for label in resource.labels).items())
+            )
+        if "publisherLabelCount" in metadata:
+            metadata["publisherLabelCount"] = sum(
+                len(publisher_labels)
+                for resource in owned_resources
+                if isinstance(
+                    (publisher_labels := resource.native_payload.get("publisherLabels")),
+                    list,
+                )
+            )
+        metadata["endpointOwnership"] = ownership_metadata
+        reconciled.append(
+            dataclasses.replace(
+                release,
+                resources=owned_resources,
+                relations=owned_relations,
+                cross_ring_relations=owned_cross_ring_relations,
+                metadata=metadata,
+            )
+        )
+    _assert_unique_release_resource_iris((*held_releases, *reconciled))
+    return tuple(reconciled)
+
+
+def _pin_mapping_endpoints_to_loaded_releases(
+    releases: Sequence[LoadedRelease],
+    mapping_releases: Sequence[RegistryMappingRelease],
+) -> tuple[RegistryMappingRelease, ...]:
+    """Point every unchanged mapping at the release that owns each endpoint."""
+
+    _assert_unique_release_resource_iris(releases)
+    owner_by_iri = {resource.iri: release.atlas_release_iri for release in releases for resource in release.resources}
+    pinned_releases: list[RegistryMappingRelease] = []
+    for release in mapping_releases:
+        repinned = 0
+        mappings: list[RegistryMapping] = []
+        for mapping in release.mappings:
+            try:
+                subject_release = owner_by_iri[mapping.subject]
+                object_release = owner_by_iri[mapping.object]
+            except KeyError as error:
+                raise ValueError(
+                    f"{release.key} mapping endpoint is outside loaded releases: {error.args[0]}"
+                ) from error
+            if (
+                subject_release != mapping.subject_atlas_release_iri
+                or object_release != mapping.object_atlas_release_iri
+            ):
+                repinned += 1
+            mappings.append(
+                dataclasses.replace(
+                    mapping,
+                    subject_atlas_release_iri=subject_release,
+                    object_atlas_release_iri=object_release,
+                )
+            )
+        metadata = dict(release.metadata)
+        metadata["endpointOwnership"] = {
+            "mappingCount": len(mappings),
+            "repinnedMappingCount": repinned,
+            "rule": "pin each mapping endpoint to its unique owning loaded Atlas release",
+        }
+        pinned_releases.append(dataclasses.replace(release, mappings=tuple(mappings), metadata=metadata))
+    return tuple(pinned_releases)
 
 
 def load_releases(
@@ -2366,6 +2452,18 @@ def load_releases(
     from refspec.atlas.v3_registry_alignments import (
         REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         load_all_registry_alignment_endpoint_releases,
+    )
+    from refspec.atlas.v3_registry_alignments_bulk import (
+        BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        load_all_registry_bulk_alignment_endpoint_releases,
+    )
+    from refspec.atlas.v3_registry_alignments_lc import (
+        LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        load_lc_registry_alignment_endpoint_releases,
+    )
+    from refspec.atlas.v3_registry_alignments_subject import (
+        REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
+        load_subject_registry_alignment_endpoint_releases,
     )
     from refspec.atlas.v3_registry_codes import (
         REGISTRY_CODE_RELEASE_KEYS,
@@ -2387,6 +2485,7 @@ def load_releases(
         REGISTRY_VOCABULARY_RELEASE_KEYS,
         load_all_registry_vocabulary_releases,
     )
+
     loaders = {
         "sourceConceptRelease": _load_crs,
         "managedRelease": _load_elsst,
@@ -2418,16 +2517,12 @@ def load_releases(
 
     selected = None if include_keys is None else include_keys
     _STATUS.phase("load-registry-releases")
-    registry_releases = (
+    held_registry_releases = (
         *load_all_registry_vocabulary_releases(
-            only_keys=None
-            if selected is None
-            else selected & REGISTRY_VOCABULARY_RELEASE_KEYS,
+            only_keys=None if selected is None else selected & REGISTRY_VOCABULARY_RELEASE_KEYS,
             registry_claim_inputs=claim_inputs,
         ),
-        *load_large_registry_releases(
-            only_keys=None if selected is None else selected & LARGE_REGISTRY_RELEASE_KEYS
-        ),
+        *load_large_registry_releases(only_keys=None if selected is None else selected & LARGE_REGISTRY_RELEASE_KEYS),
         *load_registry_code_releases(
             ROOT,
             only_keys=None if selected is None else selected & REGISTRY_CODE_RELEASE_KEYS,
@@ -2441,23 +2536,34 @@ def load_releases(
             only_keys=None if selected is None else selected & REGISTRY_ROSTER_RELEASE_KEYS,
         ),
         *load_all_registry_alignment_endpoint_releases(
-            only_keys=None
-            if selected is None
-            else selected & REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS
+            only_keys=None if selected is None else selected & REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS
+        ),
+    )
+    acquisition_endpoint_releases = (
+        *load_lc_registry_alignment_endpoint_releases(
+            only_keys=None if selected is None else selected & LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS
+        ),
+        *load_all_registry_bulk_alignment_endpoint_releases(
+            only_keys=(None if selected is None else selected & BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS)
+        ),
+        *load_subject_registry_alignment_endpoint_releases(
+            only_keys=(None if selected is None else selected & REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS)
+        ),
+    )
+    registry_releases = (
+        *held_registry_releases,
+        *_reconcile_endpoint_release_ownership(
+            (*releases, *held_registry_releases),
+            acquisition_endpoint_releases,
         ),
     )
     _validate_registry_release_descriptors(registry_releases)
     registry_keys = {release.key for release in registry_releases}
     unknown_claim_inputs = sorted(set(claim_inputs) - registry_keys)
     if unknown_claim_inputs:
-        raise ValueError(
-            "registry claim inputs do not match loaded registry releases: "
-            f"{unknown_claim_inputs}"
-        )
+        raise ValueError(f"registry claim inputs do not match loaded registry releases: {unknown_claim_inputs}")
     registry_releases = tuple(
-        inject_registry_claim_release(release, claim_inputs[release.key])
-        if release.key in claim_inputs
-        else release
+        inject_registry_claim_release(release, claim_inputs[release.key]) if release.key in claim_inputs else release
         for release in registry_releases
     )
     releases.extend(_adapt_registry_release(release) for release in registry_releases)
@@ -2480,34 +2586,181 @@ def load_releases(
 
 def load_mapping_releases(
     include_keys: frozenset[str] | None = None,
+    *,
+    source_releases: Sequence[LoadedRelease] | None = None,
 ) -> tuple[RegistryMappingRelease, ...]:
     """Load evidence-backed mapping artifacts independently from vocabularies."""
 
     from refspec.atlas.v3_registry_alignments import (
+        REGISTRY_MAPPING_RELEASE_KEYS,
         load_all_registry_mapping_releases,
+    )
+    from refspec.atlas.v3_registry_alignments_bulk import (
+        BULK_REGISTRY_MAPPING_RELEASE_KEYS,
+        load_all_registry_bulk_mapping_releases,
+    )
+    from refspec.atlas.v3_registry_alignments_lc import (
+        LC_REGISTRY_MAPPING_RELEASE_KEYS,
+        load_lc_registry_mapping_releases,
+    )
+    from refspec.atlas.v3_registry_alignments_subject import (
+        REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
+        load_subject_registry_mapping_releases,
     )
 
     if include_keys is not None and not include_keys:
         return ()
     _STATUS.phase("load-mapping-releases")
-    releases = tuple(load_all_registry_mapping_releases(only_keys=include_keys))
+    releases = (
+        *load_all_registry_mapping_releases(
+            only_keys=None if include_keys is None else include_keys & REGISTRY_MAPPING_RELEASE_KEYS
+        ),
+        *load_lc_registry_mapping_releases(
+            only_keys=None if include_keys is None else include_keys & LC_REGISTRY_MAPPING_RELEASE_KEYS
+        ),
+        *load_all_registry_bulk_mapping_releases(
+            only_keys=(None if include_keys is None else include_keys & BULK_REGISTRY_MAPPING_RELEASE_KEYS)
+        ),
+        *load_subject_registry_mapping_releases(
+            only_keys=(None if include_keys is None else include_keys & REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS)
+        ),
+    )
+    releases = _reconcile_fast_lcsh_s27_mapping_conflicts(releases)
     if include_keys is not None and {release.key for release in releases} != set(include_keys):
         raise ValueError("selective Atlas mapping loaders do not know every dirty key")
+    if source_releases is not None:
+        releases = _pin_mapping_endpoints_to_loaded_releases(
+            source_releases,
+            releases,
+        )
     _validate_registry_mapping_release_descriptors(releases)
     _STATUS.progress("load-mapping-releases", len(releases), len(releases))
     return releases
 
 
-def _registry_source_descriptor_iri(resource_id: str) -> URIRef:
-    return URIRef(
-        "urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~")
+def _reconcile_fast_lcsh_s27_mapping_conflicts(
+    releases: Sequence[RegistryMappingRelease],
+) -> tuple[RegistryMappingRelease, ...]:
+    """Refuse OCLC relatedMatch claims that conflict with LC hierarchy claims."""
+
+    from refspec.atlas.v3_registry_alignments import (
+        FAST_LCSH_S27_REFUSAL_COUNT,
+        FAST_LCSH_S27_REFUSAL_DIGEST,
     )
+    from refspec.atlas.v3_registry_alignments_lc import (
+        LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY,
+    )
+
+    loaded = tuple(releases)
+    by_key = {release.key: release for release in loaded}
+    fast_release = by_key.get("fast-lcsh-adopted-2026-08-15")
+    lc_release = by_key.get(LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY)
+    if fast_release is None or lc_release is None:
+        return loaded
+
+    hierarchy: dict[URIRef, URIRef | set[URIRef]] = {}
+    for mapping in lc_release.mappings:
+        subject = URIRef(mapping.subject)
+        predicate = URIRef(mapping.predicate)
+        obj = URIRef(mapping.object)
+        if predicate == SKOS.broadMatch:
+            ATLAS_VALIDATE._add_compact_target(hierarchy, subject, obj)
+        elif predicate == SKOS.narrowMatch:
+            ATLAS_VALIDATE._add_compact_target(hierarchy, obj, subject)
+
+    related_rows = tuple(mapping for mapping in fast_release.mappings if mapping.predicate == str(SKOS.relatedMatch))
+    related_pairs = {
+        ATLAS_VALIDATE._canonical_pair(
+            URIRef(mapping.subject),
+            URIRef(mapping.object),
+        )
+        for mapping in related_rows
+    }
+    conflicts = ATLAS_VALIDATE._hierarchy_connected_pairs(
+        hierarchy,
+        iter(related_pairs),
+    )
+    refused = tuple(
+        mapping
+        for mapping in related_rows
+        if ATLAS_VALIDATE._canonical_pair(
+            URIRef(mapping.subject),
+            URIRef(mapping.object),
+        )
+        in conflicts
+    )
+    frozen_list = [
+        {"fastIri": mapping.subject, "lcshIri": mapping.object}
+        for mapping in sorted(refused, key=lambda row: (row.subject, row.object))
+    ]
+    observed_digest = _canonical_digest(frozen_list)
+    if len(refused) != FAST_LCSH_S27_REFUSAL_COUNT or observed_digest != FAST_LCSH_S27_REFUSAL_DIGEST:
+        raise ValueError(
+            "FAST--LCSH SKOS S27 refusal list drifted: "
+            f"expected=({FAST_LCSH_S27_REFUSAL_COUNT}, "
+            f"{FAST_LCSH_S27_REFUSAL_DIGEST}), "
+            f"observed=({len(refused)}, {observed_digest})"
+        )
+
+    refused_claims = {(mapping.subject, mapping.predicate, mapping.object) for mapping in refused}
+    admitted = tuple(
+        mapping
+        for mapping in fast_release.mappings
+        if (mapping.subject, mapping.predicate, mapping.object) not in refused_claims
+    )
+    admitted_related = tuple(mapping for mapping in admitted if mapping.predicate == str(SKOS.relatedMatch))
+    admitted_exact = tuple(mapping for mapping in admitted if mapping.predicate == str(SKOS.exactMatch))
+
+    metadata = dict(fast_release.metadata)
+    composition = dict(metadata["assertionComposition"])
+    composition["publisherVerbatimRelatedMatch"] = {
+        **composition["publisherVerbatimRelatedMatch"],
+        "assertionCount": len(admitted_related),
+        "heldEndpointPublisherAssertionCount": len(related_rows),
+    }
+    composition["reconciliationRefusedPublisherLinks"] = {
+        "skosRelatedMatchCount": len(refused),
+    }
+    metadata["assertionComposition"] = composition
+    metadata["emittedRelatedMatchCount"] = len(admitted_related)
+    metadata["reachedEndpointCount"] = len({mapping.object for mapping in (*admitted_exact, *admitted_related)})
+    metadata["relatedMatchTargetCount"] = len({mapping.object for mapping in admitted_related})
+    metadata["reconciliationDependencies"] = [
+        {
+            "mappingReleaseKey": lc_release.key,
+            "sourceReleaseDigest": lc_release.source_release_digest,
+            "sourceReleaseIri": lc_release.source_release_iri,
+        }
+    ]
+    metadata["skosS27Reconciliation"] = {
+        "admissionRule": (
+            "retain LC hierarchy claims and refuse OCLC relatedMatch claims for the same hierarchy-connected pair"
+        ),
+        "frozenConflictList": {
+            "canonicalItemShape": {"fastIri": "IRI", "lcshIri": "IRI"},
+            "count": len(refused),
+            "digest": observed_digest,
+        },
+        "publisherClaimsRemainInPinnedEvidenceInputs": True,
+        "status": "passed",
+    }
+    s46_safety = dict(metadata["s46Safety"])
+    s46_safety["relatedMatchSubjectCount"] = len({mapping.subject for mapping in admitted_related})
+    metadata["s46Safety"] = s46_safety
+    reconciled_fast = dataclasses.replace(
+        fast_release,
+        mappings=admitted,
+        metadata=metadata,
+    )
+    return tuple(reconciled_fast if release.key == reconciled_fast.key else release for release in loaded)
+
+
+def _registry_source_descriptor_iri(resource_id: str) -> URIRef:
+    return URIRef("urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~"))
 
 
 def _registry_primary_scheme_iri(resource_id: str) -> URIRef:
-    return URIRef(
-        "urn:ref:atlas-resource-scheme:" + quote(resource_id, safe="-._~")
-    )
+    return URIRef("urn:ref:atlas-resource-scheme:" + quote(resource_id, safe="-._~"))
 
 
 def _validated_registry_index_rows(
@@ -2517,9 +2770,7 @@ def _validated_registry_index_rows(
     actual_index_digest = _registry_index_content_digest(index)
     if index.get("indexDigest") != actual_index_digest:
         raise ValueError("Atlas registry index content digest differs")
-    expected_index_id = (
-        "urn:ref:atlas-index:" + actual_index_digest.removeprefix("sha256:")
-    )
+    expected_index_id = "urn:ref:atlas-index:" + actual_index_digest.removeprefix("sha256:")
     if index.get("indexId") != expected_index_id:
         raise ValueError("Atlas registry index identity differs")
 
@@ -2541,11 +2792,7 @@ def _validated_registry_index_rows(
 
 
 def _registry_index_content_digest(index: Mapping[str, Any]) -> str:
-    index_basis = {
-        key: value
-        for key, value in index.items()
-        if key not in {"indexDigest", "indexId"}
-    }
+    index_basis = {key: value for key, value in index.items() if key not in {"indexDigest", "indexId"}}
     return refspec_canonical_sha256(index_basis)
 
 
@@ -2571,25 +2818,15 @@ def _validate_registry_mapping_release_policy(
 
     source_descriptor = _registry_source_descriptor_iri(release.resource_id)
     if (source_descriptor, RDF.type, ATLAS.RegistrySource) not in descriptors:
-        raise ValueError(
-            f"{release.key} names unknown registry source {release.resource_id!r}"
-        )
+        raise ValueError(f"{release.key} names unknown registry source {release.resource_id!r}")
 
-    dispositions = list(
-        descriptors.objects(source_descriptor, ATLAS.memberDisposition)
-    )
+    dispositions = list(descriptors.objects(source_descriptor, ATLAS.memberDisposition))
     if dispositions != [Literal("mappingAssertionsOnly")]:
-        raise ValueError(
-            f"{release.key} registry source {release.resource_id!r} is not "
-            "mappingAssertionsOnly"
-        )
+        raise ValueError(f"{release.key} registry source {release.resource_id!r} is not mappingAssertionsOnly")
 
     scheme = _registry_primary_scheme_iri(release.resource_id)
     if (scheme, RDF.type, ATLAS.ResourceScheme) in descriptors:
-        raise ValueError(
-            f"{release.key} mapping-only registry source unexpectedly has a "
-            "ResourceScheme"
-        )
+        raise ValueError(f"{release.key} mapping-only registry source unexpectedly has a ResourceScheme")
 
     payloads = list(descriptors.objects(source_descriptor, ATLAS.descriptorPayload))
     if len(payloads) != 1 or not isinstance(payloads[0], Literal):
@@ -2597,42 +2834,27 @@ def _validate_registry_mapping_release_policy(
     try:
         descriptor_payload = json.loads(str(payloads[0]))
     except json.JSONDecodeError as error:
-        raise ValueError(
-            f"{release.key} registry source descriptor payload is not JSON"
-        ) from error
+        raise ValueError(f"{release.key} registry source descriptor payload is not JSON") from error
     if not isinstance(descriptor_payload, Mapping):
-        raise TypeError(
-            f"{release.key} registry source descriptor payload is not an object"
-        )
+        raise TypeError(f"{release.key} registry source descriptor payload is not an object")
     if descriptor_payload.get("resourceId") != release.resource_id:
         raise ValueError(f"{release.key} registry source descriptor identity differs")
     if descriptor_payload.get("resourceKind") != "mappingReference":
-        raise ValueError(
-            f"{release.key} registry source is not a mappingReference"
-        )
+        raise ValueError(f"{release.key} registry source is not a mappingReference")
 
-    resource_rows = [
-        row for row in index_rows if row.get("resourceId") == release.resource_id
-    ]
+    resource_rows = [row for row in index_rows if row.get("resourceId") == release.resource_id]
     if not resource_rows:
-        raise ValueError(
-            f"{release.key} registry source is absent from the Atlas index"
-        )
+        raise ValueError(f"{release.key} registry source is absent from the Atlas index")
     matching_rows = [
         row
         for row in resource_rows
-        if row.get("sourceModule") == release.source_module
-        and row.get("semanticRing") == release.ring
+        if row.get("sourceModule") == release.source_module and row.get("semanticRing") == release.ring
     ]
     if len(matching_rows) != 1:
-        raise ValueError(
-            f"{release.key} registry source module/ring differs from the Atlas index"
-        )
+        raise ValueError(f"{release.key} registry source module/ring differs from the Atlas index")
     intended_uses = matching_rows[0].get("intendedUses")
     if not isinstance(intended_uses, list) or "mappingReference" not in intended_uses:
-        raise ValueError(
-            f"{release.key} Atlas index row is not a mappingReference"
-        )
+        raise ValueError(f"{release.key} Atlas index row is not a mappingReference")
 
 
 def _validate_registry_mapping_release_descriptors(
@@ -2661,33 +2883,24 @@ def _validate_registry_release_descriptors(
     for release in releases:
         source_descriptor = _registry_source_descriptor_iri(release.resource_id)
         if (source_descriptor, RDF.type, ATLAS.RegistrySource) not in descriptors:
-            raise ValueError(
-                f"{release.key} names unknown registry source {release.resource_id!r}"
-            )
+            raise ValueError(f"{release.key} names unknown registry source {release.resource_id!r}")
         scheme = URIRef(release.scheme_iri)
         scheme_prefix = "urn:ref:atlas-resource-scheme:" + release.resource_id
         if str(scheme) != scheme_prefix and not str(scheme).startswith(scheme_prefix + ":"):
-            raise ValueError(
-                f"{release.key} scheme is outside its registry source namespace: {scheme}"
-            )
+            raise ValueError(f"{release.key} scheme is outside its registry source namespace: {scheme}")
         if (scheme, RDF.type, ATLAS.ResourceScheme) in descriptors:
             if (scheme, ATLAS.sourceDescriptor, source_descriptor) not in descriptors:
                 raise ValueError(f"{release.key} scheme differs from its source descriptor")
             if (scheme, ATLAS.resourceProfile, ATLAS[release.profile]) not in descriptors:
-                raise ValueError(
-                    f"{release.key} profile {release.profile!r} differs from its descriptor"
-                )
+                raise ValueError(f"{release.key} profile {release.profile!r} differs from its descriptor")
             if (scheme, ATLAS.supportedRing, ATLAS[release.ring]) not in descriptors:
-                raise ValueError(
-                    f"{release.key} ring {release.ring!r} differs from its descriptor"
-                )
+                raise ValueError(f"{release.key} ring {release.ring!r} differs from its descriptor")
         else:
             policies = ATLAS_VALIDATE._profile_policies()
             policy = policies.get(ATLAS[release.profile])
             if policy is None or release.ring not in policy["applicableSemanticRings"]:
                 raise ValueError(
-                    f"{release.key} child scheme profile/ring is not allowed: "
-                    f"{release.profile}/{release.ring}"
+                    f"{release.key} child scheme profile/ring is not allowed: {release.profile}/{release.ring}"
                 )
         if not any(
             isinstance(row, Mapping)
@@ -2696,9 +2909,7 @@ def _validate_registry_release_descriptors(
             and row.get("semanticRing") == release.ring
             for row in index_rows
         ):
-            raise ValueError(
-                f"{release.key} source module/ring differs from the Atlas index"
-            )
+            raise ValueError(f"{release.key} source module/ring differs from the Atlas index")
 
 
 def _node_iri(prefix: str, basis: Any) -> URIRef:
@@ -2715,9 +2926,7 @@ def _add_policy(graph: Graph, payload: Mapping[str, Any]) -> URIRef:
             pending,
             ATLAS.policyPayload,
             Literal(
-                ATLAS_VALIDATE.canonical_json_bytes(
-                    _plain(payload), terminal_lf=False
-                ).decode("utf-8"),
+                ATLAS_VALIDATE.canonical_json_bytes(_plain(payload), terminal_lf=False).decode("utf-8"),
                 datatype=RDF.JSON,
                 normalize=False,
             ),
@@ -2811,23 +3020,16 @@ def _source_record_constructor(
     _, _, language_violations = _audit_english_language_content(
         native_payload,
         language_map_fields=language_map_fields,
-        allow_untagged_explicit_language=(
-            _is_registry_claim_payload(native_payload)
-        ),
+        allow_untagged_explicit_language=(_is_registry_claim_payload(native_payload)),
     )
     if language_violations:
         raise ValueError(
-            "SourceRecord native payload is not English-only: "
-            + ", ".join(language_violations[:5])
+            "SourceRecord native payload has invalid language metadata: " + ", ".join(language_violations[:5])
         )
     plain_payload = _plain(native_payload)
-    native_payload_bytes = ATLAS_VALIDATE.canonical_native_json_bytes(
-        plain_payload
-    )
+    native_payload_bytes = ATLAS_VALIDATE.canonical_native_json_bytes(plain_payload)
     basis = {
-        "nativePayloadDigest": (
-            "sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()
-        ),
+        "nativePayloadDigest": ("sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()),
         "sourceDigest": source_digest,
         "sourceLocator": str(source_locator),
         "sourceRelease": str(source_release),
@@ -2847,13 +3049,9 @@ def _add_identifier(
 
     scheme = URIRef(identifier_row.scheme_iri)
     profiles = set(graph.objects(scheme, ATLAS.resourceProfile))
-    if (
-        (scheme, RDF.type, ATLAS.ResourceScheme) not in graph
-        or profiles != {ATLAS.identifierScheme}
-    ):
+    if (scheme, RDF.type, ATLAS.ResourceScheme) not in graph or profiles != {ATLAS.identifierScheme}:
         raise ValueError(
-            "identifier scheme must be an atlas:ResourceScheme with the "
-            f"atlas:identifierScheme profile: {scheme}"
+            f"identifier scheme must be an atlas:ResourceScheme with the atlas:identifierScheme profile: {scheme}"
         )
     identifier = _node_iri(
         "atlas-identifier",
@@ -2891,11 +3089,7 @@ def _review_method_for_assertion(
         ATLAS.NativeRelationAssertion,
         ATLAS.SourceAssignment,
     }:
-        return (
-            "deterministicTransformation"
-            if deterministic_transformation
-            else "publisherAssertion"
-        )
+        return "deterministicTransformation" if deterministic_transformation else "publisherAssertion"
     raise ValueError(f"unsupported assertion review method: {assertion_type}")
 
 
@@ -2931,49 +3125,31 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
     return review_method
 
 
-# The two mapping rings this producer cannot honour, for the same reason and
-# with the same shape as the warrant above. Since ring temporal context landed
-# on the Atlas 3.1 wire, a value-ring or legal-identity-ring MappingAssertion
-# must carry an rkaf:hasEffectivePeriod resolving to a well-formed
-# rkaf:EffectivePeriod -- a crosswalk between two code editions and an
-# equivalence between two codifications are claims about a period, and an
-# undated one cannot be applied to a dated question. Nothing in
-# refspec.atlas.v3_source_data carries an effective date for a mapping:
-# RegistryMapping has a subject, an object, a predicate, two endpoint release
-# pins, an assertedAt and its evidence, and no temporal field at all. So this
-# producer has no date to emit, and the honest failure is to refuse the input
-# rather than to invent one -- a fabricated period would be indistinguishable
-# on the wire from a real one, which is worse than no mapping.
-#
-# Both real mapping releases are subject-ring today
-# (src/refspec/atlas/v3_registry_alignments.py, EuroVoc<->LCSH), so this is the
-# expected case rather than a live gap. Adding the field to RegistryMapping and
-# threading it into _add_assertion's effective_period argument is the work owed
-# before a value-ring or legal-identity mapping source arrives. The registry
-# states both bounds as ISO calendar days, so that work also has to promote
-# them: `<effectiveFrom>T00:00:00+00:00` and `<effectiveThrough>T23:59:59+00:00`,
-# the one promotion sh:pattern on atlas:EffectivePeriodShape admits. Nothing
-# here has to remember that -- a distribution promoting a day any other way is
-# refused -- but a producer written against this comment starts out conforming.
-UNEMITTABLE_MAPPING_RINGS = frozenset({"legalIdentity", "value"})
-
-
 def _mapping_release_ring(ring: str) -> URIRef:
     """Resolve one mapping release's declared ring to its wire individual."""
 
     if ring not in SEMANTIC_RINGS:
         raise ValueError(f"unsupported mapping semantic ring: {ring!r}")
-    if ring in UNEMITTABLE_MAPPING_RINGS:
-        raise ValueError(
-            f"mapping semantic ring {ring!r} is not emittable by this producer: "
-            "the Atlas 3.1 binding requires every mapping assertion on this ring "
-            "to carry an rkaf:hasEffectivePeriod resolving to a well-formed "
-            "rkaf:EffectivePeriod, and no registry mapping source states an "
-            "effective date for this producer to emit. Carry the dates on "
-            "RegistryMapping and emit them before a source needs this ring; "
-            "fabricating a period would publish a claim no source made."
-        )
     return ATLAS[ring]
+
+
+def _mapping_effective_period(
+    mapping: RegistryMapping,
+    *,
+    ring: str,
+) -> tuple[str, str | None] | None:
+    """Promote source calendar days to the binding's exact UTC instants."""
+
+    dated_ring = ring in {"legalIdentity", "value"}
+    if not dated_ring:
+        if mapping.effective_from is not None or mapping.effective_through is not None:
+            raise ValueError(f"{ring} mapping must not carry an effective period: {mapping}")
+        return None
+    if mapping.effective_from is None:
+        raise ValueError(f"{ring} mapping has no effective period: {mapping}")
+    start = f"{mapping.effective_from}T00:00:00+00:00"
+    end = None if mapping.effective_through is None else f"{mapping.effective_through}T23:59:59+00:00"
+    return start, end
 
 
 def _transformed_relation_evidence(
@@ -2983,30 +3159,37 @@ def _transformed_relation_evidence(
 
     publisher_relation = relation.source_payload.get("publisherRelation")
     transformation = relation.source_payload.get("editorialTransformation")
-    expected_transformation = {
-        "fromPredicate": str(SKOS.related),
-        "reason": "SKOS-S27-hierarchy-path",
-        "rule": "preserveAuthoredAssociationOutsideSkosProjection",
-        "toPredicate": str(ATLAS.thesaurusRelated),
-    }
+    from_predicate = transformation.get("fromPredicate") if isinstance(transformation, Mapping) else None
+    if from_predicate == str(SKOS.related):
+        expected_transformation = {
+            "fromPredicate": str(SKOS.related),
+            "reason": "SKOS-S27-hierarchy-path",
+            "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+            "toPredicate": str(ATLAS.thesaurusRelated),
+        }
+    elif from_predicate == "http://www.w3.org/2000/01/rdf-schema#seeAlso":
+        expected_transformation = {
+            "adoptedBy": "urn:ref:actor:refspec",
+            "fromPredicate": "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            "reason": "publisher-see-also-navigation",
+            "rule": "preservePublisherSeeAlsoAsAtlasThesaurusRelated",
+            "toPredicate": str(ATLAS.thesaurusRelated),
+        }
+    else:
+        expected_transformation = {}
     if (
         relation.predicate != str(ATLAS.thesaurusRelated)
         or not isinstance(publisher_relation, Mapping)
         or transformation != expected_transformation
     ):
-        raise ValueError(
-            "atlas:thesaurusRelated lacks exact deterministic transformation evidence"
-        )
+        raise ValueError("atlas:thesaurusRelated lacks exact deterministic transformation evidence")
     publisher_relation_digest = _native_digest(publisher_relation)
     evidence_payload = {
         "editorialTransformation": expected_transformation,
         "publisherRelation": _plain(publisher_relation),
         "publisherRelationDigest": publisher_relation_digest,
     }
-    locator = URIRef(
-        "urn:ref:publisher-relation:"
-        + publisher_relation_digest.removeprefix("sha256:")
-    )
+    locator = URIRef("urn:ref:publisher-relation:" + publisher_relation_digest.removeprefix("sha256:"))
     return locator, publisher_relation_digest, evidence_payload
 
 
@@ -3021,13 +3204,10 @@ def _mapping_evidence(
         pin
         for pin in release.inputs
         if pin.sha256 == evidence.source_digest
-        and pin.source_iri == evidence.source_locator
+        and (pin.source_iri == evidence.source_locator or evidence.source_locator.startswith(pin.source_iri + "#"))
     ]
     if len(matching_pins) != 1:
-        raise ValueError(
-            f"{release.key} mapping evidence locator and digest must identify "
-            "exactly one pinned input"
-        )
+        raise ValueError(f"{release.key} mapping evidence locator and digest must identify exactly one pinned input")
     payload = _plain(evidence.native_payload)
     if not isinstance(payload, Mapping):
         raise TypeError(f"{release.key} mapping payload must be an object")
@@ -3037,20 +3217,48 @@ def _mapping_evidence(
         "subjectIri": mapping.subject,
     }
     if any(payload.get(key) != value for key, value in expected_triple.items()):
-        raise ValueError(
-            f"{release.key} mapping payload differs from its exact triple"
-        )
+        raise ValueError(f"{release.key} mapping payload differs from its exact triple")
     triple_digest = mapping_triple_digest(
         subject_iri=mapping.subject,
         predicate_iri=mapping.predicate,
         object_iri=mapping.object,
     )
     if payload.get("mappingTripleDigest", triple_digest) != triple_digest:
-        raise ValueError(
-            f"{release.key} mapping payload has the wrong triple digest"
-        )
+        raise ValueError(f"{release.key} mapping payload has the wrong triple digest")
     ATLAS_VALIDATE.canonical_native_json_bytes(payload)
     return URIRef(evidence.source_locator), evidence.source_digest, payload
+
+
+def _add_effective_period(
+    graph: Graph,
+    *,
+    start: str,
+    end: str | None,
+) -> URIRef:
+    """Mint one content-addressed rkaf effective-period record."""
+
+    basis = {"effectivePeriodStart": start}
+    if end is not None:
+        basis["effectivePeriodEnd"] = end
+    digest = _canonical_digest(basis)
+    period = URIRef("urn:ref:atlas-effective-period:" + digest.removeprefix("sha256:"))
+    graph.add((period, RDF.type, RKAF.EffectivePeriod))
+    graph.add(
+        (
+            period,
+            RKAF.effectivePeriodStart,
+            Literal(start, datatype=XSD.dateTime, normalize=False),
+        )
+    )
+    if end is not None:
+        graph.add(
+            (
+                period,
+                RKAF.effectivePeriodEnd,
+                Literal(end, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+    return period
 
 
 def _add_assertion(
@@ -3065,6 +3273,7 @@ def _add_assertion(
     target_release: URIRef,
     policy: URIRef,
     asserted_at: str,
+    effective_period: tuple[str, str | None] | None = None,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
 ) -> URIRef:
@@ -3081,23 +3290,21 @@ def _add_assertion(
     }
     if assertion_type == ATLAS.CrossRingRelationAssertion:
         if ring is not None or source_ring is None or target_ring is None:
-            raise ValueError(
-                "cross-ring assertions require sourceRing and targetRing only"
-            )
+            raise ValueError("cross-ring assertions require sourceRing and targetRing only")
         if source_ring == target_ring:
             raise ValueError("cross-ring assertion endpoints use one ring")
         basis["sourceRing"] = str(source_ring)
         basis["targetRing"] = str(target_ring)
     else:
         if ring is None or source_ring is not None or target_ring is not None:
-            raise ValueError(
-                "same-ring assertions require one semanticRing only"
-            )
+            raise ValueError("same-ring assertions require one semanticRing only")
         basis["semanticRing"] = str(ring)
+    if effective_period is not None:
+        basis["effectivePeriodStart"] = effective_period[0]
+        if effective_period[1] is not None:
+            basis["effectivePeriodEnd"] = effective_period[1]
     identity_digest = _canonical_digest(basis)
-    assertion = URIRef(
-        "urn:ref:atlas-assertion:" + identity_digest.removeprefix("sha256:")
-    )
+    assertion = URIRef("urn:ref:atlas-assertion:" + identity_digest.removeprefix("sha256:"))
     graph.add((assertion, RDF.type, ATLAS.RelationAssertion))
     graph.add((assertion, RDF.type, assertion_type))
     if assertion_type == ATLAS.MappingAssertion and ring == ATLAS.subject:
@@ -3113,6 +3320,18 @@ def _add_assertion(
     graph.add((assertion, ATLAS.sourceRelease, source_release))
     graph.add((assertion, ATLAS.targetRelease, target_release))
     graph.add((assertion, ATLAS.governedByPolicy, policy))
+    if effective_period is not None:
+        graph.add(
+            (
+                assertion,
+                RKAF.hasEffectivePeriod,
+                _add_effective_period(
+                    graph,
+                    start=effective_period[0],
+                    end=effective_period[1],
+                ),
+            )
+        )
     graph.add(
         (
             assertion,
@@ -3135,9 +3354,7 @@ def _add_evidence_binding(
 ) -> URIRef:
     """Attach one immutable approval to an existing assertion."""
 
-    evidence_source_digest = Literal(
-        ATLAS_VALIDATE.rdf_node_digest(graph, evidence_record)
-    )
+    evidence_source_digest = Literal(ATLAS_VALIDATE.rdf_node_digest(graph, evidence_record))
     evidence_facts: list[tuple[URIRef, object]] = [
         (RDF.type, RKAF.EvidenceBinding),
         (RKAF.bindsAssertion, assertion),
@@ -3157,13 +3374,9 @@ def _add_evidence_binding(
         ),
     ]
     evidence_digest = ATLAS_VALIDATE._outgoing_facts_digest(evidence_facts)
-    evidence = URIRef(
-        "urn:ref:atlas-evidence:" + evidence_digest.removeprefix("sha256:")
-    )
+    evidence = URIRef("urn:ref:atlas-evidence:" + evidence_digest.removeprefix("sha256:"))
     if (evidence, RDF.type, None) in graph:
-        raise ValueError(
-            f"evidence decisions collapse to one binding: {evidence}"
-        )
+        raise ValueError(f"evidence decisions collapse to one binding: {evidence}")
     for evidence_predicate, evidence_object in evidence_facts:
         graph.add((evidence, evidence_predicate, evidence_object))
     graph.add((evidence, ATLAS.contentDigest, Literal(evidence_digest)))
@@ -3186,6 +3399,7 @@ def _add_evidenced_assertion(
     reviewer: URIRef,
     review_warrant: str,
     decided_at: str,
+    effective_period: tuple[str, str | None] | None = None,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
 ) -> URIRef:
@@ -3202,6 +3416,7 @@ def _add_evidenced_assertion(
         target_release=target_release,
         policy=policy,
         asserted_at=asserted_at,
+        effective_period=effective_period,
         source_ring=source_ring,
         target_ring=target_ring,
     )
@@ -3237,6 +3452,10 @@ def _expected_mapping_asserted_graph(
                 target_release=URIRef(mapping.object_atlas_release_iri),
                 policy=policy,
                 asserted_at=mapping.asserted_at,
+                effective_period=_mapping_effective_period(
+                    mapping,
+                    ring=release.ring,
+                ),
             )
             for evidence in mapping.evidence:
                 locator, digest, payload = _mapping_evidence(
@@ -3269,31 +3488,17 @@ def _mapping_accounting_expectations(
     """Group exact mapping assertion identities by evidence SourceRecord."""
 
     graph = _expected_mapping_asserted_graph(mapping_releases)
-    expected: dict[str, dict[str, set[str]]] = defaultdict(
-        lambda: defaultdict(set)
-    )
+    expected: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
     try:
         for binding in graph.subjects(RDF.type, RKAF.EvidenceBinding):
             assertion = graph.value(binding, RKAF.bindsAssertion)
             record = graph.value(binding, ATLAS.evidenceSourceRecord)
-            source_release = (
-                graph.value(record, ATLAS.inSourceRelease)
-                if isinstance(record, URIRef)
-                else None
-            )
-            if not all(
-                isinstance(value, URIRef)
-                for value in (assertion, record, source_release)
-            ):
-                raise AssertionError(
-                    "expected mapping evidence lacks assertion or release ownership"
-                )
+            source_release = graph.value(record, ATLAS.inSourceRelease) if isinstance(record, URIRef) else None
+            if not all(isinstance(value, URIRef) for value in (assertion, record, source_release)):
+                raise AssertionError("expected mapping evidence lacks assertion or release ownership")
             expected[str(source_release)][str(record)].add(str(assertion))
         return {
-            release: {
-                record: set(assertions)
-                for record, assertions in records.items()
-            }
+            release: {record: set(assertions) for record, assertions in records.items()}
             for release, records in expected.items()
         }
     finally:
@@ -3309,12 +3514,8 @@ def _validate_compiled_evidence_output(
 
     expected_mapping = _expected_mapping_asserted_graph(mapping_releases)
     try:
-        expected_assertions = set(
-            expected_mapping.subjects(RDF.type, ATLAS.MappingAssertion)
-        )
-        actual_assertions = set(
-            asserted.subjects(RDF.type, ATLAS.MappingAssertion)
-        )
+        expected_assertions = set(expected_mapping.subjects(RDF.type, ATLAS.MappingAssertion))
+        actual_assertions = set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
         if actual_assertions != expected_assertions:
             raise ValueError("compiled mapping assertion identities differ")
 
@@ -3343,27 +3544,18 @@ def _validate_compiled_evidence_output(
         if actual_subjects != expected_subjects:
             raise ValueError("compiled mapping evidence identities differ")
         for subject in expected_subjects:
-            if set(asserted.predicate_objects(subject)) != set(
-                expected_mapping.predicate_objects(subject)
-            ):
-                raise ValueError(
-                    f"compiled mapping evidence facts differ: {subject}"
-                )
+            if set(asserted.predicate_objects(subject)) != set(expected_mapping.predicate_objects(subject)):
+                raise ValueError(f"compiled mapping evidence facts differ: {subject}")
 
         all_assertions = {
             URIRef(assertion)
             for assertion_type in ATLAS_VALIDATE.ASSERTION_TYPES
             for assertion in asserted.subjects(RDF.type, assertion_type)
         }
-        typed_bindings = set(
-            asserted.subjects(RDF.type, RKAF.EvidenceBinding)
-        )
+        typed_bindings = set(asserted.subjects(RDF.type, RKAF.EvidenceBinding))
         bound_bindings: set[URIRef] = set()
         for assertion in all_assertions:
-            bindings = {
-                URIRef(binding)
-                for binding in asserted.subjects(RKAF.bindsAssertion, assertion)
-            }
+            bindings = {URIRef(binding) for binding in asserted.subjects(RKAF.bindsAssertion, assertion)}
             expected_count = (
                 len(
                     set(
@@ -3377,9 +3569,7 @@ def _validate_compiled_evidence_output(
                 else 1
             )
             if len(bindings) != expected_count:
-                raise ValueError(
-                    f"compiled assertion evidence count differs: {assertion}"
-                )
+                raise ValueError(f"compiled assertion evidence count differs: {assertion}")
             bound_bindings.update(bindings)
         expected_binding_count = (
             expected_counts["relationAssertions"]
@@ -3393,10 +3583,7 @@ def _validate_compiled_evidence_output(
                 )
             )
         )
-        if (
-            typed_bindings != bound_bindings
-            or len(typed_bindings) != expected_binding_count
-        ):
+        if typed_bindings != bound_bindings or len(typed_bindings) != expected_binding_count:
             raise ValueError("compiled evidence binding inventory differs")
     finally:
         expected_mapping.close()
@@ -3446,14 +3633,10 @@ def _ensure_release_schemes(
         if (scheme, RDF.type, ATLAS.ResourceScheme) in graph:
             if set(graph.objects(scheme, ATLAS.resourceProfile)) != {profile}:
                 raise ValueError(f"registry scheme profile differs across releases: {scheme}")
-            if not {ATLAS[ring] for ring in rings} <= set(
-                graph.objects(scheme, ATLAS.supportedRing)
-            ):
+            if not {ATLAS[ring] for ring in rings} <= set(graph.objects(scheme, ATLAS.supportedRing)):
                 raise ValueError(f"registry scheme omits a release ring: {scheme}")
             if "subject" in rings and (scheme, RDF.type, SKOS.ConceptScheme) not in graph:
-                raise ValueError(
-                    f"registry subject scheme is not a SKOS ConceptScheme: {scheme}"
-                )
+                raise ValueError(f"registry subject scheme is not a SKOS ConceptScheme: {scheme}")
             continue
         if resource_id is None:
             raise ValueError(f"registry child scheme has no catalog source owner: {scheme}")
@@ -3490,8 +3673,7 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
         if len(values) != len(set(values)):
             raise ValueError(f"Atlas releases repeat a {label}")
     language_profiles = {
-        key: SOURCE_LANGUAGE_PROFILES.get(key, "registryEnglishOnlyV1")
-        for key in sorted(release_keys)
+        key: SOURCE_LANGUAGE_PROFILES.get(key, "registryLowercaseBcp47V1") for key in sorted(release_keys)
     }
     label_count = 0
     language_map_count = 0
@@ -3499,6 +3681,7 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
     native_payload_count = 0
     relation_payload_count = 0
     resource_iris: set[str] = set()
+    emitted_languages: Counter[str] = Counter()
     violations: list[str] = []
     for release in releases:
         for resource in release.resources:
@@ -3508,69 +3691,51 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
             native_payload_count += 1
             for label in resource.labels:
                 label_count += 1
-                if label.language != "en":
+                if label.language != label.language.lower() or _LANGUAGE_TAG_RE.fullmatch(label.language) is None:
                     raise ValueError(
-                        "Atlas source normalization retained a non-English label: "
+                        "Atlas source normalization retained an invalid language tag: "
                         f"{release.spec.key}/{resource.iri}"
                     )
+                emitted_languages[label.language] += 1
             maps, tags, payload_violations = _audit_english_language_content(
                 resource.native_payload,
-                language_map_fields=(
-                    ELSST_LANGUAGE_MAP_FIELDS
-                    if release.spec.key == "elsst-r6"
-                    else frozenset()
-                ),
+                language_map_fields=(ELSST_LANGUAGE_MAP_FIELDS if release.spec.key == "elsst-r6" else frozenset()),
             )
             language_map_count += maps
             explicit_language_tag_count += tags
-            violations.extend(
-                f"{release.spec.key}/{resource.iri}/{violation}"
-                for violation in payload_violations
-            )
+            violations.extend(f"{release.spec.key}/{resource.iri}/{violation}" for violation in payload_violations)
         for relation in (*release.relations, *release.cross_ring_relations):
             relation_payload_count += 1
             maps, tags, payload_violations = _audit_english_language_content(
                 relation.source_payload,
-                language_map_fields=(
-                    ELSST_LANGUAGE_MAP_FIELDS
-                    if release.spec.key == "elsst-r6"
-                    else frozenset()
-                ),
+                language_map_fields=(ELSST_LANGUAGE_MAP_FIELDS if release.spec.key == "elsst-r6" else frozenset()),
             )
             language_map_count += maps
             explicit_language_tag_count += tags
             violations.extend(
-                f"{release.spec.key}/{relation.subject}/{relation.predicate}/"
-                f"{relation.object}/{violation}"
+                f"{release.spec.key}/{relation.subject}/{relation.predicate}/{relation.object}/{violation}"
                 for violation in payload_violations
             )
         for record in release.supplemental_source_records:
             native_payload_count += 1
             maps, tags, payload_violations = _audit_english_language_content(
                 record.native_payload,
-                allow_untagged_explicit_language=(
-                    _is_registry_claim_payload(record.native_payload)
-                ),
+                allow_untagged_explicit_language=(_is_registry_claim_payload(record.native_payload)),
             )
             language_map_count += maps
             explicit_language_tag_count += tags
             violations.extend(
-                f"{release.spec.key}/{record.source_record_id}/{violation}"
-                for violation in payload_violations
+                f"{release.spec.key}/{record.source_record_id}/{violation}" for violation in payload_violations
             )
     if violations:
-        raise ValueError(
-            "Atlas native source content retained non-English language values: "
-            + ", ".join(violations[:5])
-        )
+        raise ValueError("Atlas native source content retained invalid language values: " + ", ".join(violations[:5]))
     return {
         "emittedLabels": label_count,
         "explicitLanguageTagsChecked": explicit_language_tag_count,
         "languageMapsChecked": language_map_count,
         "nativePayloadsChecked": native_payload_count,
-        "nonEnglishAtlasLabels": 0,
-        "nonEnglishNativeLanguageFields": 0,
-        "normalizedLanguageTag": "en",
+        "emittedLabelLanguages": dict(sorted(emitted_languages.items())),
+        "languageTagRule": "lowercase-bcp47",
         "relationPayloadsChecked": relation_payload_count,
         "scanAlgorithm": "recursiveLanguageMapsAndExplicitLanguageTagsV1",
         "sourceLanguageProfiles": language_profiles,
@@ -3579,16 +3744,9 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
 
 
 def _require_absolute_iri(value: object, *, context: str) -> str:
-    if (
-        not isinstance(value, str)
-        or ATLAS_VALIDATE.ABSOLUTE_IRI_RE.fullmatch(value) is None
-    ):
+    if not isinstance(value, str) or ATLAS_VALIDATE.ABSOLUTE_IRI_RE.fullmatch(value) is None:
         raise ValueError(f"{context} must be an absolute IRI")
     return value
-
-
-
-
 
 
 def _validate_compiled_producer_rows(
@@ -3635,17 +3793,11 @@ def _validate_compiled_producer_rows(
             if (subject, RDF.type, ATLAS.ResourceScheme) in descriptor_graph
         }
 
-        resource_source_release_iris = {
-            release.source_release_iri for release in releases
-        }
-        mapping_source_release_iris = {
-            release.source_release_iri for release in mapping_releases
-        }
+        resource_source_release_iris = {release.source_release_iri for release in releases}
+        mapping_source_release_iris = {release.source_release_iri for release in mapping_releases}
         if resource_source_release_iris & mapping_source_release_iris:
             raise ValueError("resource and mapping source release identities overlap")
-        source_release_iris = (
-            resource_source_release_iris | mapping_source_release_iris
-        )
+        source_release_iris = resource_source_release_iris | mapping_source_release_iris
         atlas_release_iris = {release.atlas_release_iri for release in releases}
         if source_release_iris & atlas_release_iris:
             raise ValueError("source and Atlas release identities overlap")
@@ -3668,9 +3820,7 @@ def _validate_compiled_producer_rows(
             if not release.spec.key:
                 raise ValueError("source release key must be non-empty")
             if not release.resources:
-                raise ValueError(
-                    f"{release.spec.key} source release has no Atlas resources"
-                )
+                raise ValueError(f"{release.spec.key} source release has no Atlas resources")
             for field, value in (
                 ("source release", release.source_release_iri),
                 ("Atlas release", release.atlas_release_iri),
@@ -3681,23 +3831,15 @@ def _validate_compiled_producer_rows(
                     context=f"{release.spec.key} {field}",
                 )
                 if iri.startswith(_GENERATED_CARRIER_IRI_PREFIXES):
-                    raise ValueError(
-                        f"{release.spec.key} {field} uses a generated carrier namespace"
-                    )
+                    raise ValueError(f"{release.spec.key} {field} uses a generated carrier namespace")
             if ATLAS_VALIDATE.DIGEST_RE.fullmatch(release.source_release_digest) is None:
-                raise ValueError(
-                    f"{release.spec.key} source release digest is not SHA-256"
-                )
+                raise ValueError(f"{release.spec.key} source release digest is not SHA-256")
             try:
                 parsed_issued = date.fromisoformat(release.issued)
             except (TypeError, ValueError) as error:
-                raise ValueError(
-                    f"{release.spec.key} issued date is not canonical YYYY-MM-DD"
-                ) from error
+                raise ValueError(f"{release.spec.key} issued date is not canonical YYYY-MM-DD") from error
             if parsed_issued.isoformat() != release.issued:
-                raise ValueError(
-                    f"{release.spec.key} issued date is not canonical YYYY-MM-DD"
-                )
+                raise ValueError(f"{release.spec.key} issued date is not canonical YYYY-MM-DD")
             if release.dropped_label_count < 0:
                 raise ValueError(f"{release.spec.key} dropped label count is negative")
             _release_label_role_conflict_count(release)
@@ -3708,28 +3850,17 @@ def _validate_compiled_producer_rows(
             profile_policy = profile_policies.get(profile)
             if (
                 profile_policy is None
-                or release.spec.ring
-                not in profile_policy["applicableSemanticRings"]
-                or str(resource_class)
-                not in profile_policy["applicableEntryClasses"]
+                or release.spec.ring not in profile_policy["applicableSemanticRings"]
+                or str(resource_class) not in profile_policy["applicableEntryClasses"]
             ):
-                raise ValueError(
-                    f"{release.spec.key} profile/ring/resource class is unsupported"
-                )
+                raise ValueError(f"{release.spec.key} profile/ring/resource class is unsupported")
             scheme = URIRef(release.scheme_iri)
             if set(descriptor_graph.objects(scheme, ATLAS.resourceProfile)) != {
                 profile
             } or ring not in descriptor_graph.objects(scheme, ATLAS.supportedRing):
-                raise ValueError(
-                    f"{release.spec.key} release ownership differs from its scheme"
-                )
-            if (
-                ring == ATLAS.subject
-                and (scheme, RDF.type, SKOS.ConceptScheme) not in descriptor_graph
-            ):
-                raise ValueError(
-                    f"{release.spec.key} subject scheme is not a SKOS ConceptScheme"
-                )
+                raise ValueError(f"{release.spec.key} release ownership differs from its scheme")
+            if ring == ATLAS.subject and (scheme, RDF.type, SKOS.ConceptScheme) not in descriptor_graph:
+                raise ValueError(f"{release.spec.key} subject scheme is not a SKOS ConceptScheme")
 
             for resource in release.resources:
                 resource_iri = _require_absolute_iri(
@@ -3742,9 +3873,7 @@ def _validate_compiled_producer_rows(
                     or resource_iri in atlas_release_iris
                     or resource_iri.startswith(_GENERATED_CARRIER_IRI_PREFIXES)
                 ):
-                    raise ValueError(
-                        f"resource identity overlaps another carrier: {resource_iri}"
-                    )
+                    raise ValueError(f"resource identity overlaps another carrier: {resource_iri}")
                 if resource_iri in resource_index:
                     raise ValueError(f"Atlas releases repeat resource IRI {resource_iri}")
                 resource_index[resource_iri] = (
@@ -3761,57 +3890,46 @@ def _validate_compiled_producer_rows(
                     not isinstance(resource.source_digest, str)
                     or ATLAS_VALIDATE.DIGEST_RE.fullmatch(resource.source_digest) is None
                 ):
-                    raise ValueError(
-                        f"{release.spec.key}/{resource_iri} source digest is not SHA-256"
-                    )
+                    raise ValueError(f"{release.spec.key}/{resource_iri} source digest is not SHA-256")
                 if not isinstance(resource.labels, Sequence) or not resource.labels:
-                    raise ValueError(f"{resource_iri} has no English label")
-                preferred_count = 0
-                value_roles: dict[str, SourceLabelRole] = {}
+                    raise ValueError(f"{resource_iri} has no label")
+                preferred_languages: set[str] = set()
+                value_roles: dict[tuple[str, str], SourceLabelRole] = {}
                 for label in resource.labels:
                     if (
                         not isinstance(label.value, str)
                         or not label.value
-                        or label.language != "en"
+                        or label.language != label.language.lower()
+                        or _LANGUAGE_TAG_RE.fullmatch(label.language) is None
                         or label.role not in SOURCE_LABEL_ROLES
                         or not isinstance(label.source_path, str)
                         or not label.source_path
                     ):
+                        raise ValueError(f"{resource_iri} has an invalid label row")
+                    if label.role == "preferred" and label.language in preferred_languages:
                         raise ValueError(
-                            f"{resource_iri} has an invalid English label row"
+                            f"{resource_iri} has more than one preferred label for language {label.language}"
                         )
-                    preferred_count += label.role == "preferred"
-                    previous_role = value_roles.setdefault(label.value, label.role)
+                    if label.role == "preferred":
+                        preferred_languages.add(label.language)
+                    previous_role = value_roles.setdefault((label.value, label.language), label.role)
                     if previous_role != label.role:
-                        raise ValueError(
-                            f"{resource_iri} reuses label value {label.value!r} "
-                            "across SKOS-XL roles"
-                        )
+                        raise ValueError(f"{resource_iri} reuses label value {label.value!r} across SKOS-XL roles")
                     label_count += 1
-                if preferred_count > 1:
-                    raise ValueError(
-                        f"{resource_iri} has more than one preferred English label"
-                    )
-
                 for field, values, allow_empty in (
                     ("notes", resource.notes, True),
                     ("notations", resource.notations, False),
                 ):
                     if not isinstance(values, Sequence) or isinstance(values, str):
                         raise TypeError(f"{resource_iri} {field} must be a sequence")
-                    if any(
-                        not isinstance(value, str) or (not allow_empty and not value)
-                        for value in values
-                    ):
+                    if any(not isinstance(value, str) or (not allow_empty and not value) for value in values):
                         raise ValueError(f"{resource_iri} has invalid {field}")
                 if resource.definition is not None and not isinstance(
                     resource.definition,
                     str,
                 ):
                     raise ValueError(f"{resource_iri} definition must be text")
-                if resource.status is not None and (
-                    not isinstance(resource.status, str) or not resource.status
-                ):
+                if resource.status is not None and (not isinstance(resource.status, str) or not resource.status):
                     raise ValueError(f"{resource_iri} status must be non-empty text")
 
                 for identifier in resource.identifiers:
@@ -3821,8 +3939,7 @@ def _validate_compiled_producer_rows(
                     )
                     if scheme_iri not in identifier_schemes:
                         raise ValueError(
-                            f"{resource_iri} identifier scheme is not an "
-                            f"Atlas identifier authority: {scheme_iri}"
+                            f"{resource_iri} identifier scheme is not an Atlas identifier authority: {scheme_iri}"
                         )
                     if (
                         not isinstance(identifier.value, str)
@@ -3874,32 +3991,19 @@ def _validate_compiled_producer_rows(
                 source = resource_facts(relation.subject)
                 target = resource_facts(relation.object)
                 if source is None or target is None:
-                    raise ValueError(
-                        f"native relation endpoint is outside loaded releases: {relation}"
-                    )
-                if source[0] != release.spec.key:
-                    raise ValueError(
-                        f"native relation is not owned by its subject release: {relation}"
-                    )
+                    raise ValueError(f"native relation endpoint is outside loaded releases: {relation}")
                 if source[2] != release_ring or target[2] != release_ring:
                     raise ValueError(f"native relation endpoint ring differs: {relation}")
                 predicate = URIRef(relation.predicate)
+                if source[0] != release.spec.key and predicate != ATLAS.thesaurusRelated:
+                    raise ValueError(f"native relation is not owned by its subject release: {relation}")
                 if predicate not in allowed:
-                    raise ValueError(
-                        f"native relation predicate is not allowed for "
-                        f"{release.spec.ring}: {predicate}"
-                    )
+                    raise ValueError(f"native relation predicate is not allowed for {release.spec.ring}: {predicate}")
                 if not isinstance(relation.source_payload, Mapping):
-                    raise TypeError(
-                        f"native relation source payload is not an object: {relation}"
-                    )
-                ATLAS_VALIDATE.canonical_native_json_bytes(
-                    _plain(relation.source_payload)
-                )
+                    raise TypeError(f"native relation source payload is not an object: {relation}")
+                ATLAS_VALIDATE.canonical_native_json_bytes(_plain(relation.source_payload))
                 if predicate == ATLAS.thesaurusRelated:
-                    evidence_locator, evidence_digest, evidence_payload = (
-                        _transformed_relation_evidence(relation)
-                    )
+                    evidence_locator, evidence_digest, evidence_payload = _transformed_relation_evidence(relation)
                     evidence_record, _ = _source_record_constructor(
                         source_release=URIRef(release.source_release_iri),
                         source_locator=evidence_locator,
@@ -3907,9 +4011,7 @@ def _validate_compiled_producer_rows(
                         native_payload=evidence_payload,
                     )
                     if evidence_record in relation_evidence_records:
-                        raise ValueError(
-                            f"relation evidence SourceRecord is repeated: {evidence_record}"
-                        )
+                        raise ValueError(f"relation evidence SourceRecord is repeated: {evidence_record}")
                     relation_evidence_records.add(evidence_record)
                     remap_evidence_count += 1
                 triple = (
@@ -3935,42 +4037,28 @@ def _validate_compiled_producer_rows(
                 source = resource_facts(relation.subject)
                 target = resource_facts(relation.object)
                 if source is None or target is None:
-                    raise ValueError(
-                        f"cross-ring relation endpoint is outside loaded releases: {relation}"
-                    )
+                    raise ValueError(f"cross-ring relation endpoint is outside loaded releases: {relation}")
                 source_ring = ATLAS[relation.source_ring]
                 target_ring = ATLAS[relation.target_ring]
                 if source[0] != release.spec.key:
-                    raise ValueError(
-                        f"cross-ring relation is not owned by its subject release: {relation}"
-                    )
+                    raise ValueError(f"cross-ring relation is not owned by its subject release: {relation}")
                 if (source[2], target[2]) != (source_ring, target_ring):
-                    raise ValueError(
-                        f"cross-ring relation endpoint ring differs: {relation}"
-                    )
+                    raise ValueError(f"cross-ring relation endpoint ring differs: {relation}")
                 if URIRef(relation.predicate) not in cross_ring_policies.get(
                     (source_ring, target_ring),
                     frozenset(),
                 ):
-                    raise ValueError(
-                        f"cross-ring relation predicate is not allowed: {relation}"
-                    )
+                    raise ValueError(f"cross-ring relation predicate is not allowed: {relation}")
                 if not isinstance(relation.source_payload, Mapping):
-                    raise TypeError(
-                        f"cross-ring relation source payload is not an object: {relation}"
-                    )
-                ATLAS_VALIDATE.canonical_native_json_bytes(
-                    _plain(relation.source_payload)
-                )
+                    raise TypeError(f"cross-ring relation source payload is not an object: {relation}")
+                ATLAS_VALIDATE.canonical_native_json_bytes(_plain(relation.source_payload))
                 triple = (
                     URIRef(relation.subject),
                     URIRef(relation.predicate),
                     URIRef(relation.object),
                 )
                 if triple in current_relations:
-                    raise ValueError(
-                        f"cross-ring relation duplicates another relation: {triple}"
-                    )
+                    raise ValueError(f"cross-ring relation duplicates another relation: {triple}")
                 current_relations[triple] = ()
                 claim = (
                     relation.subject,
@@ -3987,35 +4075,26 @@ def _validate_compiled_producer_rows(
         for mapping_release in mapping_releases:
             if not mapping_release.key:
                 raise ValueError("mapping release key must be non-empty")
-            if (
-                ATLAS_VALIDATE.DIGEST_RE.fullmatch(
-                    mapping_release.source_release_digest
-                )
-                is None
-            ):
-                raise ValueError(
-                    f"{mapping_release.key} source release digest is not SHA-256"
-                )
+            if ATLAS_VALIDATE.DIGEST_RE.fullmatch(mapping_release.source_release_digest) is None:
+                raise ValueError(f"{mapping_release.key} source release digest is not SHA-256")
             try:
                 parsed_issued = date.fromisoformat(mapping_release.issued)
             except (TypeError, ValueError) as error:
-                raise ValueError(
-                    f"{mapping_release.key} issued date is not canonical YYYY-MM-DD"
-                ) from error
+                raise ValueError(f"{mapping_release.key} issued date is not canonical YYYY-MM-DD") from error
             if parsed_issued.isoformat() != mapping_release.issued:
-                raise ValueError(
-                    f"{mapping_release.key} issued date is not canonical YYYY-MM-DD"
-                )
+                raise ValueError(f"{mapping_release.key} issued date is not canonical YYYY-MM-DD")
             _accounting_membership_mode(mapping_release.scope)
-            _assert_portable_editorial_policy_payload(
-                mapping_release.editorial_policy
-            )
+            _assert_portable_editorial_policy_payload(mapping_release.editorial_policy)
             release_ring = _mapping_release_ring(mapping_release.ring)
             allowed = relation_policies.get(release_ring, {}).get(
                 ATLAS.MappingAssertion,
                 frozenset(),
             )
             for mapping in mapping_release.mappings:
+                _mapping_effective_period(
+                    mapping,
+                    ring=mapping_release.ring,
+                )
                 for field, value in (
                     ("subject", mapping.subject),
                     ("predicate", mapping.predicate),
@@ -4036,33 +4115,18 @@ def _validate_compiled_producer_rows(
                 source = resource_facts(mapping.subject)
                 target = resource_facts(mapping.object)
                 if source is None or target is None:
-                    raise ValueError(
-                        f"mapping endpoint is outside loaded releases: {mapping}"
-                    )
+                    raise ValueError(f"mapping endpoint is outside loaded releases: {mapping}")
                 if source[1] == target[1]:
-                    raise ValueError(
-                        f"mapping endpoints use one release: {mapping}"
-                    )
+                    raise ValueError(f"mapping endpoints use one release: {mapping}")
                 if source[1] != URIRef(mapping.subject_atlas_release_iri):
-                    raise ValueError(
-                        "mapping subject endpoint release differs from its exact pin: "
-                        f"{mapping}"
-                    )
+                    raise ValueError(f"mapping subject endpoint release differs from its exact pin: {mapping}")
                 if target[1] != URIRef(mapping.object_atlas_release_iri):
-                    raise ValueError(
-                        "mapping object endpoint release differs from its exact pin: "
-                        f"{mapping}"
-                    )
+                    raise ValueError(f"mapping object endpoint release differs from its exact pin: {mapping}")
                 if source[2] != release_ring or target[2] != release_ring:
-                    raise ValueError(
-                        f"mapping endpoint ring differs: {mapping}"
-                    )
+                    raise ValueError(f"mapping endpoint ring differs: {mapping}")
                 predicate = URIRef(mapping.predicate)
                 if predicate not in allowed:
-                    raise ValueError(
-                        f"mapping predicate is not allowed for "
-                        f"{mapping_release.ring}: {predicate}"
-                    )
+                    raise ValueError(f"mapping predicate is not allowed for {mapping_release.ring}: {predicate}")
                 _rdf_datetime(mapping.asserted_at)
                 for evidence in mapping.evidence:
                     _require_absolute_iri(
@@ -4093,9 +4157,7 @@ def _validate_compiled_producer_rows(
                     URIRef(mapping.object),
                 )
                 if triple in current_relations:
-                    raise ValueError(
-                        f"mapping duplicates another relation: {triple}"
-                    )
+                    raise ValueError(f"mapping duplicates another relation: {triple}")
                 current_relations[triple] = ()
 
         if relation_payload_count != english_only_scan["relationPayloadsChecked"]:
@@ -4114,12 +4176,7 @@ def _validate_compiled_producer_rows(
             "mappingAssertions": mapping_count,
             "nativeRelationAssertions": native_relation_count,
             "projectedRelations": 0,
-            "relationAssertions": (
-                source_assignment_count
-                + native_relation_count
-                + cross_ring_count
-                + mapping_count
-            ),
+            "relationAssertions": (source_assignment_count + native_relation_count + cross_ring_count + mapping_count),
             "releases": len(releases),
             "resources": resource_count,
             "sourceAssignments": source_assignment_count,
@@ -4127,10 +4184,7 @@ def _validate_compiled_producer_rows(
                 resource_count
                 + remap_evidence_count
                 + len(mapping_evidence_records)
-                + sum(
-                    len(release.supplemental_source_records)
-                    for release in releases
-                )
+                + sum(len(release.supplemental_source_records) for release in releases)
             ),
         }
     finally:
@@ -4175,9 +4229,7 @@ def _validate_compiled_source_accounting(
             raise ValueError("compiled producer source accounting repeats a release")
         rows_by_release[source_release] = row
 
-    expected_releases = {
-        release.source_release_iri for release in releases
-    } | {
+    expected_releases = {release.source_release_iri for release in releases} | {
         release.source_release_iri for release in mapping_releases
     }
     if set(rows_by_release) != expected_releases:
@@ -4190,32 +4242,24 @@ def _validate_compiled_source_accounting(
     for release in releases:
         row = rows_by_release[release.source_release_iri]
         if row["membershipMode"] != _accounting_membership_mode(release.spec.scope):
-            raise ValueError(
-                f"{release.spec.key} source accounting membership mode differs"
-            )
+            raise ValueError(f"{release.spec.key} source accounting membership mode differs")
         dispositions = row["dispositions"]
         if not isinstance(dispositions, list):
-            raise ValueError(
-                f"{release.spec.key} source accounting dispositions are not a list"
-            )
+            raise ValueError(f"{release.spec.key} source accounting dispositions are not a list")
         expected_resources = {resource.iri for resource in release.resources}
         represented_resources: set[str] = set()
         excluded = 0
         supplemental_records: set[str] = set()
         for disposition in dispositions:
             if not isinstance(disposition, Mapping):
-                raise TypeError(
-                    f"{release.spec.key} source accounting disposition is not an object"
-                )
+                raise TypeError(f"{release.spec.key} source accounting disposition is not an object")
             source_record = disposition.get("sourceRecord")
             if (
                 not isinstance(source_record, str)
                 or not source_record.startswith("urn:ref:atlas-source-record:")
                 or source_record in source_records
             ):
-                raise ValueError(
-                    f"{release.spec.key} source accounting SourceRecord is invalid or repeated"
-                )
+                raise ValueError(f"{release.spec.key} source accounting SourceRecord is invalid or repeated")
             source_records.add(source_record)
             status = disposition.get("status")
             if status == "represented":
@@ -4224,19 +4268,13 @@ def _validate_compiled_source_accounting(
                     "sourceRecord",
                     "status",
                 }:
-                    raise ValueError(
-                        f"{release.spec.key} represented disposition fields differ"
-                    )
+                    raise ValueError(f"{release.spec.key} represented disposition fields differ")
                 resources = disposition.get("atlasResources")
                 if not isinstance(resources, list) or len(resources) != 1:
-                    raise ValueError(
-                        f"{release.spec.key} represented disposition is not one resource"
-                    )
+                    raise ValueError(f"{release.spec.key} represented disposition is not one resource")
                 resource = resources[0]
                 if not isinstance(resource, str) or resource in represented_resources:
-                    raise ValueError(
-                        f"{release.spec.key} represented resource is invalid or repeated"
-                    )
+                    raise ValueError(f"{release.spec.key} represented resource is invalid or repeated")
                 represented_resources.add(resource)
             elif status == "excluded":
                 reason = disposition.get("reason")
@@ -4244,24 +4282,15 @@ def _validate_compiled_source_accounting(
                     _TRANSFORMED_RELATION_ACCOUNTING_REASON,
                     _SOURCE_CLAIM_ACCOUNTING_REASON,
                 }:
-                    raise ValueError(
-                        f"{release.spec.key} excluded disposition differs"
-                    )
+                    raise ValueError(f"{release.spec.key} excluded disposition differs")
                 if reason == _SOURCE_CLAIM_ACCOUNTING_REASON:
                     supplemental_records.add(source_record)
                 excluded += 1
             else:
-                raise ValueError(
-                    f"{release.spec.key} source accounting status is unsupported"
-                )
+                raise ValueError(f"{release.spec.key} source accounting status is unsupported")
         if represented_resources != expected_resources:
-            raise ValueError(
-                f"{release.spec.key} source accounting resource membership differs"
-            )
-        expected_transformed = sum(
-            relation.predicate == str(ATLAS.thesaurusRelated)
-            for relation in release.relations
-        )
+            raise ValueError(f"{release.spec.key} source accounting resource membership differs")
+        expected_transformed = sum(relation.predicate == str(ATLAS.thesaurusRelated) for relation in release.relations)
         expected_supplemental = set()
         for supplemental in release.supplemental_source_records:
             record, _ = _source_record_constructor(
@@ -4272,30 +4301,20 @@ def _validate_compiled_source_accounting(
             )
             expected_supplemental.add(str(record))
         if supplemental_records != expected_supplemental:
-            raise ValueError(
-                f"{release.spec.key} supplemental SourceRecord membership differs"
-            )
+            raise ValueError(f"{release.spec.key} supplemental SourceRecord membership differs")
         expected_excluded = expected_transformed + len(expected_supplemental)
         if excluded != expected_excluded:
-            raise ValueError(
-                f"{release.spec.key} source accounting excluded count differs"
-            )
+            raise ValueError(f"{release.spec.key} source accounting excluded count differs")
         represented_total += len(represented_resources)
         excluded_total += excluded
 
     for mapping_release in mapping_releases:
         row = rows_by_release[mapping_release.source_release_iri]
-        if row["membershipMode"] != _accounting_membership_mode(
-            mapping_release.scope
-        ):
-            raise ValueError(
-                f"{mapping_release.key} mapping source accounting membership mode differs"
-            )
+        if row["membershipMode"] != _accounting_membership_mode(mapping_release.scope):
+            raise ValueError(f"{mapping_release.key} mapping source accounting membership mode differs")
         dispositions = row["dispositions"]
         if not isinstance(dispositions, list):
-            raise ValueError(
-                f"{mapping_release.key} mapping source accounting dispositions are not a list"
-            )
+            raise ValueError(f"{mapping_release.key} mapping source accounting dispositions are not a list")
         expected_records = mapping_expectations.get(
             mapping_release.source_release_iri,
             {},
@@ -4313,18 +4332,14 @@ def _validate_compiled_source_accounting(
                 or disposition.get("status") != "represented"
                 or not isinstance(disposition.get("atlasAssertions"), list)
             ):
-                raise ValueError(
-                    f"{mapping_release.key} represented mapping disposition differs"
-                )
+                raise ValueError(f"{mapping_release.key} represented mapping disposition differs")
             source_record = disposition.get("sourceRecord")
             if (
                 not isinstance(source_record, str)
                 or source_record in source_records
                 or source_record in observed_records
             ):
-                raise ValueError(
-                    f"{mapping_release.key} mapping SourceRecord is invalid or repeated"
-                )
+                raise ValueError(f"{mapping_release.key} mapping SourceRecord is invalid or repeated")
             assertions = disposition["atlasAssertions"]
             expected_assertions = expected_records.get(source_record)
             if (
@@ -4333,14 +4348,10 @@ def _validate_compiled_source_accounting(
                 or len(assertions) != len(set(assertions))
                 or set(assertions) != expected_assertions
             ):
-                raise ValueError(
-                    f"{mapping_release.key} represented mapping assertions differ"
-                )
+                raise ValueError(f"{mapping_release.key} represented mapping assertions differ")
             observed_records.add(source_record)
         if observed_records != set(expected_records):
-            raise ValueError(
-                f"{mapping_release.key} mapping SourceRecord membership differs"
-            )
+            raise ValueError(f"{mapping_release.key} mapping SourceRecord membership differs")
         source_records.update(observed_records)
         represented_total += len(observed_records)
 
@@ -4356,8 +4367,6 @@ def _validate_compiled_source_accounting(
     return _canonical_digest(accounting)
 
 
-
-
 def _validate_compiled_producer_output(
     releases: Sequence[LoadedRelease],
     graphs: BuildGraphs,
@@ -4367,13 +4376,9 @@ def _validate_compiled_producer_output(
     """Close the proof over fixed constructors without rewalking every quad."""
 
     if dict(producer_validation.binding_profile) != ATLAS_VALIDATE._binding_digests():
-        raise ValueError(
-            "the binding changed on disk between row validation and output validation"
-        )
+        raise ValueError("the binding changed on disk between row validation and output validation")
     if graphs.projection or graphs.derived:
-        raise ValueError(
-            "compiled producer requires empty projection and derived graphs"
-        )
+        raise ValueError("compiled producer requires empty projection and derived graphs")
     if any(graphs.asserted.triples((None, RKAF.supersedesAssertion, None))):
         raise ValueError("compiled producer does not support supersession")
     observed_counts = _counts(graphs)
@@ -4450,10 +4455,7 @@ def _build_graphs(
     asserted = _registry_asserted_graph()
     _ensure_release_schemes(asserted, releases)
     native_policy = _add_policy(asserted, SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD)
-    mapping_policies = {
-        release.key: _add_policy(asserted, release.editorial_policy)
-        for release in mapping_releases
-    }
+    mapping_policies = {release.key: _add_policy(asserted, release.editorial_policy) for release in mapping_releases}
 
     source_release_nodes: dict[str, URIRef] = {}
     resource_facts: dict[str, tuple[str, URIRef, URIRef]] = {}
@@ -4462,9 +4464,7 @@ def _build_graphs(
         try:
             return resource_facts[resource_iri]
         except KeyError as error:
-            raise ValueError(
-                f"resource endpoint is outside loaded releases: {resource_iri}"
-            ) from error
+            raise ValueError(f"resource endpoint is outside loaded releases: {resource_iri}") from error
 
     resource_record: dict[str, URIRef] = {}
     identifier_targets: dict[tuple[str, str], str] = {}
@@ -4479,10 +4479,7 @@ def _build_graphs(
             current=release.spec.key,
         )
         release_instant = _release_instant(release.issued)
-        source_locator = URIRef(
-            "urn:ref:source-artifact-set:"
-            + release.source_release_digest.removeprefix("sha256:")
-        )
+        source_locator = URIRef("urn:ref:source-artifact-set:" + release.source_release_digest.removeprefix("sha256:"))
         source_release = _add_source_release(
             asserted,
             identifier=release.source_release_iri,
@@ -4493,17 +4490,13 @@ def _build_graphs(
         source_release_nodes[release.source_release_iri] = source_release
         atlas_release = URIRef(release.atlas_release_iri)
         profile = ATLAS[release.spec.profile]
-        ring, resource_class, assignment_predicate = _ring_dispatch(
-            release.spec.ring
-        )
+        ring, resource_class, assignment_predicate = _ring_dispatch(release.spec.ring)
         scheme = URIRef(release.scheme_iri)
         asserted.add((atlas_release, RDF.type, ATLAS.AtlasRelease))
         asserted.add((atlas_release, ATLAS.resourceProfile, profile))
         asserted.add((atlas_release, ATLAS.semanticRing, ring))
         asserted.add((atlas_release, ATLAS.inScheme, scheme))
-        asserted.add(
-            (atlas_release, RKAF.membershipMode, RKAF.completeMembership)
-        )
+        asserted.add((atlas_release, RKAF.membershipMode, RKAF.completeMembership))
         asserted.add((atlas_release, DCTERMS.identifier, Literal(release.spec.key)))
         asserted.add(
             (
@@ -4523,15 +4516,10 @@ def _build_graphs(
                     "construct-source-graphs",
                     release_position - 1,
                     len(releases),
-                    current=(
-                        f"{release.spec.key} resources="
-                        f"{resource_position}/{len(release.resources)}"
-                    ),
+                    current=(f"{release.spec.key} resources={resource_position}/{len(release.resources)}"),
                 )
             if resource_row.iri in resource_facts:
-                raise ValueError(
-                    f"Atlas releases repeat resource IRI {resource_row.iri}"
-                )
+                raise ValueError(f"Atlas releases repeat resource IRI {resource_row.iri}")
             resource = URIRef(resource_row.iri)
             record = _add_source_record(
                 asserted,
@@ -4540,11 +4528,7 @@ def _build_graphs(
                 source_digest=resource_row.source_digest,
                 native_payload=resource_row.native_payload,
                 represents_resource=resource,
-                language_map_fields=(
-                    ELSST_LANGUAGE_MAP_FIELDS
-                    if release.spec.key == "elsst-r6"
-                    else frozenset()
-                ),
+                language_map_fields=(ELSST_LANGUAGE_MAP_FIELDS if release.spec.key == "elsst-r6" else frozenset()),
             )
             resource_record[resource_row.iri] = record
             resource_facts[resource_row.iri] = (
@@ -4565,10 +4549,6 @@ def _build_graphs(
             asserted.add((atlas_release, PROV.hadMember, resource))
 
             for label_row in resource_row.labels:
-                if label_row.language != "en":
-                    raise ValueError(
-                        f"Atlas label is not normalized to English: {resource_row.iri}"
-                    )
                 label = _node_iri(
                     "atlas-label",
                     {
@@ -4579,9 +4559,7 @@ def _build_graphs(
                         "value": label_row.value,
                     },
                 )
-                asserted.add(
-                    (resource, _source_label_predicate(label_row.role), label)
-                )
+                asserted.add((resource, _source_label_predicate(label_row.role), label))
                 asserted.add((label, RDF.type, SKOSXL.Label))
                 asserted.add(
                     (
@@ -4647,9 +4625,7 @@ def _build_graphs(
                     asserted_at=release_instant,
                     evidence_record=record,
                     reviewer=NATIVE_REVIEWER,
-                    review_warrant=_review_method_for_assertion(
-                        ATLAS.SourceAssignment
-                    ),
+                    review_warrant=_review_method_for_assertion(ATLAS.SourceAssignment),
                     decided_at=release_instant,
                 )
             dispositions.append(
@@ -4667,9 +4643,7 @@ def _build_graphs(
                 native_payload=supplemental.native_payload,
             )
             if (expected_record, RDF.type, ATLAS.SourceRecord) in asserted:
-                raise ValueError(
-                    f"supplemental source record is repeated: {expected_record}"
-                )
+                raise ValueError(f"supplemental source record is repeated: {expected_record}")
             record = _add_source_record(
                 asserted,
                 source_release=source_release,
@@ -4679,9 +4653,7 @@ def _build_graphs(
                 represents_resource=None,
             )
             if record != expected_record:
-                raise ValueError(
-                    f"supplemental source record identity changed: {record}"
-                )
+                raise ValueError(f"supplemental source record identity changed: {record}")
             dispositions.append(
                 {
                     "reason": _SOURCE_CLAIM_ACCOUNTING_REASON,
@@ -4724,9 +4696,7 @@ def _build_graphs(
             "sourceRelease": str(source_release),
         }
         accounting_inputs.append(accounting_row)
-        source_accounting_by_release[
-            mapping_release.source_release_iri
-        ] = accounting_row
+        source_accounting_by_release[mapping_release.source_release_iri] = accounting_row
         _STATUS.progress(
             "construct-mapping-graphs",
             mapping_position,
@@ -4746,9 +4716,7 @@ def _build_graphs(
                 evidence_record = resource_record[relation.subject]
             except KeyError as error:
                 raise ValueError(f"native relation endpoint is outside loaded releases: {relation}") from error
-            review_warrant = _review_method_for_assertion(
-                ATLAS.NativeRelationAssertion
-            )
+            review_warrant = _review_method_for_assertion(ATLAS.NativeRelationAssertion)
             if relation.predicate == str(ATLAS.thesaurusRelated):
                 (
                     evidence_locator,
@@ -4763,9 +4731,7 @@ def _build_graphs(
                     native_payload=evidence_payload,
                     represents_resource=None,
                 )
-                accounting_row = source_accounting_by_release[
-                    release.source_release_iri
-                ]
+                accounting_row = source_accounting_by_release[release.source_release_iri]
                 accounting_row["dispositions"].append(
                     {
                         "reason": _TRANSFORMED_RELATION_ACCOUNTING_REASON,
@@ -4797,32 +4763,18 @@ def _build_graphs(
             native_count += 1
     expected_native_count = sum(len(release.relations) for release in releases)
     expected_remap_count = sum(
-        relation.predicate == str(ATLAS.thesaurusRelated)
-        for release in releases
-        for relation in release.relations
+        relation.predicate == str(ATLAS.thesaurusRelated) for release in releases for relation in release.relations
     )
     if native_count != expected_native_count:
-        raise ValueError(
-            f"expected {expected_native_count} native assertions; emitted {native_count}"
-        )
+        raise ValueError(f"expected {expected_native_count} native assertions; emitted {native_count}")
     if remap_evidence_count != expected_remap_count:
-        raise ValueError(
-            f"expected {expected_remap_count} remap evidence records; "
-            f"emitted {remap_evidence_count}"
-        )
+        raise ValueError(f"expected {expected_remap_count} remap evidence records; emitted {remap_evidence_count}")
 
-    # The one statement type this producer currently emits none of. The Atlas
-    # 3.1 binding declares atlas:CrossRingRelationAssertion and this loop still
-    # builds one from any release that carries a cross-ring relation -- but
-    # after REF-032 no loaded release carries one. The single live instance was
-    # a GAO report page pointing at a topic label observed on that same page:
-    # not a ring crossing anyone could join against, just one document's own
-    # metadata read twice. Saying so here, and pinning it with
-    # ``test_producer_emits_no_cross_ring_assertions``, is the honest state --
-    # the alternative is a wire type the artifact quietly never exercises.
-    # The intended carrier is named in REF-032: a genuine institutional-roster
-    # -> subject edge, once the Federal Hierarchy roster is completed and an
-    # authority publishes subject assignments against it.
+    # REF-037 ends REF-032's zero-carrier state. The eCFR agency roster now
+    # carries publisher-written agency -> CFR title references as directed
+    # entity -> legalIdentity assertions. The generic loop remains because the
+    # binding admits three cross-ring cells; the generator test pins the eCFR
+    # release as today's only carrier and fixes its count at 446.
     cross_ring_count = 0
     for release in releases:
         release_instant = _release_instant(release.issued)
@@ -4836,23 +4788,16 @@ def _build_graphs(
                 observed_source_ring = source_facts[2]
                 observed_target_ring = target_facts[2]
             except KeyError as error:
-                raise ValueError(
-                    f"cross-ring relation endpoint is outside loaded releases: {relation}"
-                ) from error
+                raise ValueError(f"cross-ring relation endpoint is outside loaded releases: {relation}") from error
             source_ring = ATLAS[relation.source_ring]
             target_ring = ATLAS[relation.target_ring]
             if source_atlas_release != URIRef(release.atlas_release_iri):
-                raise ValueError(
-                    "cross-ring relation must be owned by its subject release: "
-                    f"{relation}"
-                )
+                raise ValueError(f"cross-ring relation must be owned by its subject release: {relation}")
             if (observed_source_ring, observed_target_ring) != (
                 source_ring,
                 target_ring,
             ):
-                raise ValueError(
-                    f"cross-ring relation endpoint ring differs: {relation}"
-                )
+                raise ValueError(f"cross-ring relation endpoint ring differs: {relation}")
             _add_evidenced_assertion(
                 asserted,
                 assertion_type=ATLAS.CrossRingRelationAssertion,
@@ -4866,36 +4811,24 @@ def _build_graphs(
                 asserted_at=release_instant,
                 evidence_record=evidence_record,
                 reviewer=NATIVE_REVIEWER,
-                review_warrant=_review_method_for_assertion(
-                    ATLAS.CrossRingRelationAssertion
-                ),
+                review_warrant=_review_method_for_assertion(ATLAS.CrossRingRelationAssertion),
                 decided_at=release_instant,
                 source_ring=source_ring,
                 target_ring=target_ring,
             )
             cross_ring_count += 1
-    expected_cross_ring_count = sum(
-        len(release.cross_ring_relations) for release in releases
-    )
+    expected_cross_ring_count = sum(len(release.cross_ring_relations) for release in releases)
     if cross_ring_count != expected_cross_ring_count:
-        raise ValueError(
-            "expected "
-            f"{expected_cross_ring_count} cross-ring assertions; "
-            f"emitted {cross_ring_count}"
-        )
+        raise ValueError(f"expected {expected_cross_ring_count} cross-ring assertions; emitted {cross_ring_count}")
 
     mapping_count = 0
     for mapping_release in mapping_releases:
         try:
             mapping_policy = mapping_policies[mapping_release.key]
         except KeyError as error:
-            raise AssertionError(
-                "mapping editorial policy was not constructed"
-            ) from error
+            raise AssertionError("mapping editorial policy was not constructed") from error
         mapping_ring = _mapping_release_ring(mapping_release.ring)
-        accounting_row = source_accounting_by_release[
-            mapping_release.source_release_iri
-        ]
+        accounting_row = source_accounting_by_release[mapping_release.source_release_iri]
         mapping_dispositions: dict[str, set[str]] = defaultdict(set)
         for mapping in mapping_release.mappings:
             try:
@@ -4906,30 +4839,18 @@ def _build_graphs(
                 observed_source_ring = source_facts[2]
                 observed_target_ring = target_facts[2]
             except KeyError as error:
-                raise ValueError(
-                    f"mapping endpoint is outside loaded releases: {mapping}"
-                ) from error
+                raise ValueError(f"mapping endpoint is outside loaded releases: {mapping}") from error
             if source_atlas_release == target_atlas_release:
-                raise ValueError(
-                    f"mapping endpoints use one release: {mapping}"
-                )
+                raise ValueError(f"mapping endpoints use one release: {mapping}")
             if source_atlas_release != URIRef(mapping.subject_atlas_release_iri):
-                raise ValueError(
-                    "mapping subject endpoint release differs from its exact pin: "
-                    f"{mapping}"
-                )
+                raise ValueError(f"mapping subject endpoint release differs from its exact pin: {mapping}")
             if target_atlas_release != URIRef(mapping.object_atlas_release_iri):
-                raise ValueError(
-                    "mapping object endpoint release differs from its exact pin: "
-                    f"{mapping}"
-                )
+                raise ValueError(f"mapping object endpoint release differs from its exact pin: {mapping}")
             if (observed_source_ring, observed_target_ring) != (
                 mapping_ring,
                 mapping_ring,
             ):
-                raise ValueError(
-                    f"mapping endpoint ring differs: {mapping}"
-                )
+                raise ValueError(f"mapping endpoint ring differs: {mapping}")
             assertion = _add_assertion(
                 asserted,
                 assertion_type=ATLAS.MappingAssertion,
@@ -4941,16 +4862,18 @@ def _build_graphs(
                 target_release=target_atlas_release,
                 policy=mapping_policy,
                 asserted_at=mapping.asserted_at,
+                effective_period=_mapping_effective_period(
+                    mapping,
+                    ring=mapping_release.ring,
+                ),
             )
             for evidence in mapping.evidence:
-                evidence_locator, evidence_digest, evidence_payload = (
-                    _mapping_evidence(mapping_release, mapping, evidence)
+                evidence_locator, evidence_digest, evidence_payload = _mapping_evidence(
+                    mapping_release, mapping, evidence
                 )
                 evidence_record = _add_source_record(
                     asserted,
-                    source_release=source_release_nodes[
-                        mapping_release.source_release_iri
-                    ],
+                    source_release=source_release_nodes[mapping_release.source_release_iri],
                     source_locator=evidence_locator,
                     source_digest=evidence_digest,
                     native_payload=evidence_payload,
@@ -4961,9 +4884,7 @@ def _build_graphs(
                     assertion=assertion,
                     evidence_record=evidence_record,
                     reviewer=URIRef(evidence.reviewer_iri),
-                    review_warrant=_mapping_review_method(
-                        evidence.review_warrant
-                    ),
+                    review_warrant=_mapping_review_method(evidence.review_warrant),
                     decided_at=evidence.attested_at,
                 )
                 mapping_dispositions[str(evidence_record)].add(str(assertion))
@@ -4976,32 +4897,20 @@ def _build_graphs(
             }
             for source_record, assertions in sorted(mapping_dispositions.items())
         )
-    expected_mapping_count = sum(
-        len(release.mappings) for release in mapping_releases
-    )
+    expected_mapping_count = sum(len(release.mappings) for release in mapping_releases)
     if mapping_count != expected_mapping_count:
-        raise ValueError(
-            f"expected {expected_mapping_count} mappings; emitted {mapping_count}"
-        )
-    projection = (
-        _expected_projection_graph(asserted) if include_projection else _new_build_graph()
-    )
+        raise ValueError(f"expected {expected_mapping_count} mappings; emitted {mapping_count}")
+    projection = _expected_projection_graph(asserted) if include_projection else _new_build_graph()
     derived = _new_build_graph()
     _finalize_source_accounting_inputs(accounting_inputs)
     represented = sum(
-        disposition["status"] == "represented"
-        for row in accounting_inputs
-        for disposition in row["dispositions"]
+        disposition["status"] == "represented" for row in accounting_inputs for disposition in row["dispositions"]
     )
     excluded = sum(
-        disposition["status"] == "excluded"
-        for row in accounting_inputs
-        for disposition in row["dispositions"]
+        disposition["status"] == "excluded" for row in accounting_inputs for disposition in row["dispositions"]
     )
     unresolved = sum(
-        disposition["status"] == "unresolved"
-        for row in accounting_inputs
-        for disposition in row["dispositions"]
+        disposition["status"] == "unresolved" for row in accounting_inputs for disposition in row["dispositions"]
     )
     accounting = _identified_source_accounting(
         {
@@ -5028,9 +4937,7 @@ def _build_graphs(
 def _counts(graphs: BuildGraphs) -> dict[str, int]:
     asserted = graphs.asserted
     return {
-        "derivedRelations": len(
-            set(graphs.derived.subjects(RDF.type, ATLAS.DerivedRelation))
-        ),
+        "derivedRelations": len(set(graphs.derived.subjects(RDF.type, ATLAS.DerivedRelation))),
         "crossRingRelationAssertions": len(
             set(
                 asserted.subjects(
@@ -5041,18 +4948,11 @@ def _counts(graphs: BuildGraphs) -> dict[str, int]:
         ),
         "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
-        "mappingAssertions": len(
-            set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-        ),
-        "nativeRelationAssertions": len(
-            set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))
-        ),
-        "projectedRelations": len(
-            set(graphs.projection.subjects(RDF.type, ATLAS.ProjectedRelation))
-        ),
+        "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
+        "nativeRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))),
+        "projectedRelations": len(set(graphs.projection.subjects(RDF.type, ATLAS.ProjectedRelation))),
         "relationAssertions": sum(
-            len(set(asserted.subjects(RDF.type, assertion_type)))
-            for assertion_type in ATLAS_VALIDATE.ASSERTION_TYPES
+            len(set(asserted.subjects(RDF.type, assertion_type))) for assertion_type in ATLAS_VALIDATE.ASSERTION_TYPES
         ),
         "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
         "resources": len(
@@ -5062,9 +4962,7 @@ def _counts(graphs: BuildGraphs) -> dict[str, int]:
                 for subject in asserted.subjects(RDF.type, resource_type)
             }
         ),
-        "sourceAssignments": len(
-            set(asserted.subjects(RDF.type, ATLAS.SourceAssignment))
-        ),
+        "sourceAssignments": len(set(asserted.subjects(RDF.type, ATLAS.SourceAssignment))),
         "sourceRecords": len(set(asserted.subjects(RDF.type, ATLAS.SourceRecord))),
     }
 
@@ -5086,9 +4984,7 @@ def _production_relation_scope_from_counts(
         "mode": "sourceClaimsAndEvidenceBackedMappings",
     }
     if scope["derivedRelations"]:
-        raise ValueError(
-            "evidence-backed Atlas build must contain zero derived relations"
-        )
+        raise ValueError("evidence-backed Atlas build must contain zero derived relations")
     return scope
 
 
@@ -5230,9 +5126,7 @@ def _compress_nquads(source: Path, target: Path) -> PackWriteReceipt:
                 output_stream.write(block)
     transport_byte_length = target.stat().st_size
     if transport_byte_length != transport_writer.byte_length:
-        raise OSError(
-            "stored Atlas pack length differs from bytes accepted by its writer"
-        )
+        raise OSError("stored Atlas pack length differs from bytes accepted by its writer")
     return PackWriteReceipt(
         content_byte_length=content_byte_length,
         content_digest="sha256:" + content_digest.hexdigest(),
@@ -5283,9 +5177,7 @@ def _release_subject_owners(
         if release.atlas_release_iri is not None:
             atlas_release = URIRef(release.atlas_release_iri)
             if atlas_release in atlas_release_owners:
-                raise ValueError(
-                    f"Atlas release is emitted more than once: {atlas_release}"
-                )
+                raise ValueError(f"Atlas release is emitted more than once: {atlas_release}")
             atlas_release_owners[atlas_release] = key
         if source_release in source_release_owners:
             raise ValueError(f"source release is emitted more than once: {source_release}")
@@ -5310,9 +5202,7 @@ def _release_subject_owners(
             target = asserted.value(node, predicate)
             owner = target_owners.get(target) if isinstance(target, URIRef) else None
             if owner is None:
-                raise ValueError(
-                    f"{node_type} {node} has no release-owned {predicate} target"
-                )
+                raise ValueError(f"{node_type} {node} has no release-owned {predicate} target")
             owners[URIRef(node)] = owner
 
     own_from_object(ATLAS.AtlasResource, ATLAS.inRelease, atlas_release_owners)
@@ -5331,33 +5221,21 @@ def _release_subject_owners(
         owners[URIRef(identifier)] = owner
 
     for assertion in asserted.subjects(RDF.type, ATLAS.RelationAssertion):
-        evidence_bindings = list(
-            asserted.subjects(RKAF.bindsAssertion, assertion)
-        )
+        evidence_bindings = list(asserted.subjects(RKAF.bindsAssertion, assertion))
         if not evidence_bindings:
-            raise ValueError(
-                f"relation assertion {assertion} has no evidence binding"
-            )
+            raise ValueError(f"relation assertion {assertion} has no evidence binding")
         evidence_owners = set()
         for binding in evidence_bindings:
             evidence_record = asserted.value(
                 binding,
                 ATLAS.evidenceSourceRecord,
             )
-            owner = (
-                owners.get(evidence_record)
-                if isinstance(evidence_record, URIRef)
-                else None
-            )
+            owner = owners.get(evidence_record) if isinstance(evidence_record, URIRef) else None
             if owner is None:
-                raise ValueError(
-                    f"relation assertion {assertion} has no evidence release owner"
-                )
+                raise ValueError(f"relation assertion {assertion} has no evidence release owner")
             evidence_owners.add(owner)
         if len(evidence_owners) != 1:
-            raise ValueError(
-                f"relation assertion {assertion} has evidence from multiple releases"
-            )
+            raise ValueError(f"relation assertion {assertion} has evidence from multiple releases")
         owners[URIRef(assertion)] = next(iter(evidence_owners))
 
     own_from_object(
@@ -5387,6 +5265,12 @@ def _release_pack_partition(
     release: ReleasePackPlan,
     subject: URIRef,
 ) -> str | None:
+    # A mapping release is packed whole: `packs/mappings/<key>.nq.zst` has no
+    # partition segment, and the packer refuses one. Bucketing is a
+    # source-release device for large member sets, and a large mapping release
+    # is large in assertions, not members.
+    if release.kind == "mapping":
+        return None
     if release.resource_count < _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD:
         return None
     digest = hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
@@ -5454,8 +5338,7 @@ def _compact_record_role(graph: Graph, subject: URIRef) -> CompactRecordRole:
     }
     if len(candidates) != 1:
         raise ValueError(
-            f"release-owned subject {subject} does not map to one compact role: "
-            f"{sorted(str(value) for value in types)}"
+            f"release-owned subject {subject} does not map to one compact role: {sorted(str(value) for value in types)}"
         )
     return candidates.pop()
 
@@ -5559,14 +5442,18 @@ def _compact_record_from_graph(
             SKOSXL.literalForm,
             expected_type=Literal,
         )
-        if literal.language != "en":
-            raise ValueError(f"label {subject} is not English")
+        if (
+            literal.language is None
+            or literal.language != literal.language.lower()
+            or _LANGUAGE_TAG_RE.fullmatch(literal.language) is None
+        ):
+            raise ValueError(f"label {subject} lacks a lowercase BCP 47 language tag")
         record.update(
             {
                 "resource": str(claims[0][1]),
                 "labelRole": claims[0][0],
                 "value": str(literal),
-                "language": "en",
+                "language": literal.language,
                 "release": str(
                     _one_graph_object(
                         graph,
@@ -5608,15 +5495,9 @@ def _compact_record_from_graph(
                     statement_type,
                     context=f"{subject} statement type",
                 ),
-                "subject": str(
-                    _one_graph_object(graph, subject, RDF.subject, expected_type=URIRef)
-                ),
-                "predicate": str(
-                    _one_graph_object(graph, subject, RDF.predicate, expected_type=URIRef)
-                ),
-                "object": str(
-                    _one_graph_object(graph, subject, RDF.object, expected_type=URIRef)
-                ),
+                "subject": str(_one_graph_object(graph, subject, RDF.subject, expected_type=URIRef)),
+                "predicate": str(_one_graph_object(graph, subject, RDF.predicate, expected_type=URIRef)),
+                "object": str(_one_graph_object(graph, subject, RDF.object, expected_type=URIRef)),
                 "sourceRelease": str(
                     _one_graph_object(
                         graph,
@@ -5948,13 +5829,9 @@ def _compact_record_from_graph(
         return record
     if role == CompactRecordRole.LIFECYCLE_EVENT:
         source_records = sorted(
-            str(value)
-            for value in graph.objects(subject, ATLAS.sourceRecord)
-            if isinstance(value, URIRef)
+            str(value) for value in graph.objects(subject, ATLAS.sourceRecord) if isinstance(value, URIRef)
         )
-        if not source_records or len(source_records) != len(
-            list(graph.objects(subject, ATLAS.sourceRecord))
-        ):
+        if not source_records or len(source_records) != len(list(graph.objects(subject, ATLAS.sourceRecord))):
             raise ValueError(f"lifecycle event {subject} has invalid source records")
         record.update(
             {
@@ -6000,10 +5877,6 @@ def _compact_record_from_graph(
     raise AssertionError(f"unsupported compact role: {role}")
 
 
-
-
-
-
 def _project_logical_records(
     asserted: Graph,
     *,
@@ -6036,16 +5909,10 @@ def _project_logical_records(
     maps one to the other and is the only place that translation happens.
     """
 
-    unit_key_by_token = {
-        token: release.key for token, release in releases_by_key.items()
-    }
-    subjects_by_role: dict[CompactRecordRole, list[tuple[URIRef, str]]] = {
-        role: [] for role in CompactRecordRole
-    }
+    unit_key_by_token = {token: release.key for token, release in releases_by_key.items()}
+    subjects_by_role: dict[CompactRecordRole, list[tuple[URIRef, str]]] = {role: [] for role in CompactRecordRole}
     for subject, (token, _) in pack_owners.items():
-        subjects_by_role[_compact_record_role(asserted, subject)].append(
-            (subject, unit_key_by_token[token])
-        )
+        subjects_by_role[_compact_record_role(asserted, subject)].append((subject, unit_key_by_token[token]))
     record_counts: dict[str, dict[str, int]] = {
         unit_key_by_token[token]: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
         for token, _ in pack_owners.values()
@@ -6094,20 +5961,19 @@ def _write_asserted_packs(
         temporary = Path(raw_temp)
         spool_paths: dict[tuple[str | None, str | None], Path] = {}
         line_counts: Counter[tuple[str | None, str | None]] = Counter()
-        cross_pack_dependencies: dict[
-            tuple[str | None, str | None], set[tuple[str | None, str | None]]
-        ] = defaultdict(set)
+        cross_pack_dependencies: dict[tuple[str | None, str | None], set[tuple[str | None, str | None]]] = defaultdict(
+            set
+        )
         with ExitStack() as stack:
             streams: dict[tuple[str | None, str | None], TextIO] = {}
+
             def stream_for(key: tuple[str | None, str | None]) -> TextIO:
                 stream = streams.get(key)
                 if stream is not None:
                     return stream
                 path = temporary / (_pack_spool_name(*key) + ".unsorted.nq")
                 spool_paths[key] = path
-                stream = stack.enter_context(
-                    path.open("w", encoding="utf-8", newline="")
-                )
+                stream = stack.enter_context(path.open("w", encoding="utf-8", newline=""))
                 streams[key] = stream
                 return stream
 
@@ -6116,14 +5982,9 @@ def _write_asserted_packs(
                     raise TypeError("Atlas asserted graph contains a non-IRI subject")
                 key = pack_owners.get(subject, (None, None))
                 owner, _ = key
-                line = (
-                    ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id)
-                    + "\n"
-                )
+                line = ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
                 if len(line.encode("utf-8")) > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
-                    raise ValueError(
-                        "canonical Atlas N-Quads line exceeds the binding limit"
-                    )
+                    raise ValueError("canonical Atlas N-Quads line exceeds the binding limit")
                 stream_for(key).write(line)
                 line_counts[key] += 1
                 if owner is None or not isinstance(obj, URIRef):
@@ -6135,9 +5996,7 @@ def _write_asserted_packs(
                     cross_pack_dependencies[key].add(object_key)
 
         staged: dict[tuple[str | None, str | None], dict[str, Any]] = {}
-        for key, spool_path in sorted(
-            spool_paths.items(), key=lambda row: _pack_spool_name(*row[0])
-        ):
+        for key, spool_path in sorted(spool_paths.items(), key=lambda row: _pack_spool_name(*row[0])):
             owner, partition = key
             if owner is None:
                 relative = Path("packs") / "catalog.nq.zst"
@@ -6171,16 +6030,11 @@ def _write_asserted_packs(
                     "derived": 0,
                     "projection": 0,
                 },
-                "kind": (
-                    "catalog" if owner is None else releases_by_key[owner].kind
-                ),
-                "packId": "urn:ref:atlas:pack:"
-                + receipt.content_digest.removeprefix("sha256:"),
+                "kind": ("catalog" if owner is None else releases_by_key[owner].kind),
+                "packId": "urn:ref:atlas:pack:" + receipt.content_digest.removeprefix("sha256:"),
                 "path": relative.as_posix(),
                 "rings": [] if owner is None else [releases_by_key[owner].ring],
-                "sourceReleases": (
-                    [] if owner is None else [releases_by_key[owner].source_release_iri]
-                ),
+                "sourceReleases": ([] if owner is None else [releases_by_key[owner].source_release_iri]),
                 "transport": {
                     "byteLength": receipt.transport_byte_length,
                     "compression": "zstd",
@@ -6207,9 +6061,7 @@ def _write_asserted_packs(
                 try:
                     dependency_ids.add(staged[dependency]["packId"])
                 except KeyError as error:
-                    raise ValueError(
-                        f"RDF pack dependency has no written pack: {dependency}"
-                    ) from error
+                    raise ValueError(f"RDF pack dependency has no written pack: {dependency}") from error
             pack["dependencies"] = sorted(dependency_ids)
         if record_counts is not None:
             record_counts.update(
@@ -6261,10 +6113,7 @@ def _write_view_pack(
         graph_id = URIRef(_ROLE_GRAPH_IDS[role])
         _write_sorted_lines(
             sorted_path,
-            (
-                ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
-                for subject, predicate, obj in graph
-            ),
+            (ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n" for subject, predicate, obj in graph),
         )
         receipt = _materialize_nquads_pack(
             sorted_path,
@@ -6285,8 +6134,7 @@ def _write_view_pack(
         "graphCounts": graph_counts,
         "inputAssertedDigest": asserted_inventory_digest,
         "kind": "view",
-        "packId": "urn:ref:atlas:pack:"
-        + receipt.content_digest.removeprefix("sha256:"),
+        "packId": "urn:ref:atlas:pack:" + receipt.content_digest.removeprefix("sha256:"),
         "path": relative.as_posix(),
         "rings": [],
         "sourceReleases": [],
@@ -6344,8 +6192,7 @@ def _write_graph_packs(
                 "dependencies": [],
                 "graphCounts": graph_counts,
                 "kind": "aggregate",
-                "packId": "urn:ref:atlas:pack:"
-                + receipt.content_digest.removeprefix("sha256:"),
+                "packId": "urn:ref:atlas:pack:" + receipt.content_digest.removeprefix("sha256:"),
                 "path": relative.as_posix(),
                 "rings": [],
                 "sourceReleases": [],
@@ -6358,10 +6205,7 @@ def _write_graph_packs(
             }
         ]
     asserted_inventory_digest = _graph_inventory_digest(asserted_packs, "asserted")
-    if not releases and (
-        asserted_packs[0]["graphCounts"]["projection"]
-        or asserted_packs[0]["graphCounts"]["derived"]
-    ):
+    if not releases and (asserted_packs[0]["graphCounts"]["projection"] or asserted_packs[0]["graphCounts"]["derived"]):
         asserted_packs[0]["inputAssertedDigest"] = asserted_inventory_digest
     packs = list(asserted_packs)
     if releases:
@@ -6434,14 +6278,11 @@ def _trusted_writer_receipt_checks(
         *(pack["path"] for pack in manifest["packs"]),
     }
     observed_files = {
-        path.relative_to(output).as_posix()
-        for path in output.rglob("*")
-        if path.is_file() or path.is_symlink()
+        path.relative_to(output).as_posix() for path in output.rglob("*") if path.is_file() or path.is_symlink()
     }
     if observed_files != expected_files:
         raise ValueError(
-            "distribution member closure differs: "
-            f"expected={sorted(expected_files)}, observed={sorted(observed_files)}"
+            f"distribution member closure differs: expected={sorted(expected_files)}, observed={sorted(observed_files)}"
         )
 
     stored_byte_length = 0
@@ -6450,15 +6291,9 @@ def _trusted_writer_receipt_checks(
         transport = pack["transport"]
         if path.is_symlink() or not path.is_file():
             raise ValueError(f"stored pack is missing or unsafe: {pack['path']}")
-        if (
-            path.stat().st_size != transport["byteLength"]
-            or _sha256_file(path) != transport["digest"]
-        ):
+        if path.stat().st_size != transport["byteLength"] or _sha256_file(path) != transport["digest"]:
             raise ValueError(f"stored pack transport differs: {pack['path']}")
-        expected_pack_id = (
-            "urn:ref:atlas:pack:"
-            + pack["content"]["digest"].removeprefix("sha256:")
-        )
+        expected_pack_id = "urn:ref:atlas:pack:" + pack["content"]["digest"].removeprefix("sha256:")
         if pack["packId"] != expected_pack_id:
             raise ValueError(f"stored pack identity differs: {pack['path']}")
         stored_byte_length += transport["byteLength"]
@@ -6467,9 +6302,7 @@ def _trusted_writer_receipt_checks(
         path = output / member["path"]
         if path.is_symlink() or not path.is_file():
             raise ValueError(f"manifest member is missing or unsafe: {member['path']}")
-        if path.stat().st_size != member["byteLength"] or _sha256_file(path) != member[
-            "digest"
-        ]:
+        if path.stat().st_size != member["byteLength"] or _sha256_file(path) != member["digest"]:
             raise ValueError(f"serialized member differs from manifest: {path.name}")
 
     return {
@@ -6480,12 +6313,8 @@ def _trusted_writer_receipt_checks(
             "manifest member lengths and digests",
             "closed distribution file inventory",
         ],
-        "contentQuadCount": sum(
-            pack["content"]["quadCount"] for pack in manifest["packs"]
-        ),
-        "graphQuadCounts": {
-            row["role"]: row["quadCount"] for row in manifest["graphs"]
-        },
+        "contentQuadCount": sum(pack["content"]["quadCount"] for pack in manifest["packs"]),
+        "graphQuadCounts": {row["role"]: row["quadCount"] for row in manifest["graphs"]},
         "mode": "trustedWriterReceipts",
         "packCount": len(manifest["packs"]),
         "status": "passed",
@@ -6592,14 +6421,10 @@ def _construction_summary(
         seeds,
         contract_digest=contract_digest,
     )
-    accounting_rows = {
-        row["sourceRelease"]: row for row in accounting.get("inputs", ())
-    }
+    accounting_rows = {row["sourceRelease"]: row for row in accounting.get("inputs", ())}
     if len(accounting_rows) != len(accounting.get("inputs", ())):
         raise ValueError("source accounting contains duplicate release rows")
-    expected_accounting_releases = {
-        seed.source_release_iri for seed in seeds_by_key.values()
-    }
+    expected_accounting_releases = {seed.source_release_iri for seed in seeds_by_key.values()}
     if set(accounting_rows) != expected_accounting_releases:
         raise ValueError("source accounting and construction release sets differ")
     if set(record_counts) != set(plans_by_key):
@@ -6643,8 +6468,7 @@ def _construction_summary(
                     "path": pack["path"],
                 }
                 for pack in packs
-                if pack["kind"] == plan.kind
-                and pack["sourceReleases"] == [plan.source_release_iri]
+                if pack["kind"] == plan.kind and pack["sourceReleases"] == [plan.source_release_iri]
             ),
             key=lambda pack: pack["path"],
         )
@@ -6660,11 +6484,7 @@ def _construction_summary(
             "adapterRecipeDigest": base_keys[key]["adapterRecipeDigest"],
             "adapterRecipeInputCount": base_keys[key]["adapterRecipeInputCount"],
             "adapterRecipeInputs": base_keys[key]["adapterRecipeInputs"],
-            **(
-                {"atlasRelease": seed.atlas_release_iri}
-                if seed.atlas_release_iri is not None
-                else {}
-            ),
+            **({"atlasRelease": seed.atlas_release_iri} if seed.atlas_release_iri is not None else {}),
             "baseBuildKey": base_keys[key]["baseBuildKey"],
             "buildKey": build_key,
             "endpointDependencies": endpoint_dependencies,
@@ -6680,40 +6500,25 @@ def _construction_summary(
             **(
                 {
                     "resourceProfile": seed.resource_profile,
-                    **(
-                        {"registrySource": seed.registry_source_iri}
-                        if seed.registry_source_iri is not None
-                        else {}
-                    ),
+                    **({"registrySource": seed.registry_source_iri} if seed.registry_source_iri is not None else {}),
                     "scheme": seed.scheme_iri,
                 }
                 if seed.kind == "sourceRelease"
                 else {}
             ),
         }
-        if seed.kind == "sourceRelease" and (
-            seed.resource_profile is None or seed.scheme_iri is None
-        ):
+        if seed.kind == "sourceRelease" and (seed.resource_profile is None or seed.scheme_iri is None):
             raise ValueError(f"source construction unit {key} lacks scheme metadata")
         if seed.kind == "mapping" and (
-            seed.resource_profile is not None
-            or seed.scheme_iri is not None
-            or seed.registry_source_iri is not None
+            seed.resource_profile is not None or seed.scheme_iri is not None or seed.registry_source_iri is not None
         ):
             raise ValueError(f"mapping construction unit {key} has scheme metadata")
         releases.append(release_row)
 
-    owned_rdf_path_counts = Counter(
-        rdf_pack["path"] for release in releases for rdf_pack in release["rdfPacks"]
-    )
-    expected_owned_rdf_paths = {
-        pack["path"]
-        for pack in packs
-        if pack["kind"] in {"sourceRelease", "mapping"}
-    }
-    if (
-        set(owned_rdf_path_counts) != expected_owned_rdf_paths
-        or any(count != 1 for count in owned_rdf_path_counts.values())
+    owned_rdf_path_counts = Counter(rdf_pack["path"] for release in releases for rdf_pack in release["rdfPacks"])
+    expected_owned_rdf_paths = {pack["path"] for pack in packs if pack["kind"] in {"sourceRelease", "mapping"}}
+    if set(owned_rdf_path_counts) != expected_owned_rdf_paths or any(
+        count != 1 for count in owned_rdf_path_counts.values()
     ):
         raise ValueError("release construction RDF ownership is incomplete")
 
@@ -6744,11 +6549,7 @@ def _construction_summary(
             "atlasRelease": row["atlasRelease"],
             "key": row["key"],
             "resourceProfile": row["resourceProfile"],
-            **(
-                {"registrySource": row["registrySource"]}
-                if "registrySource" in row
-                else {}
-            ),
+            **({"registrySource": row["registrySource"]} if "registrySource" in row else {}),
             "semanticRing": row["semanticRing"],
             "scheme": row["scheme"],
         }
@@ -6776,9 +6577,7 @@ def _construction_summary(
         },
     }
     asserted_inventory_digest = next(
-        descriptor["inventoryDigest"]
-        for descriptor in graph_descriptors
-        if descriptor["role"] == "asserted"
+        descriptor["inventoryDigest"] for descriptor in graph_descriptors if descriptor["role"] == "asserted"
     )
     summary: dict[str, Any] = {
         "assertedInventoryDigest": asserted_inventory_digest,
@@ -6859,10 +6658,7 @@ def _producer_validation_receipt(
     # unlike the compiled pin table this replaced.
     if any(binding.get(field) != digest for field, digest in binding_profile.items()):
         raise ValueError("the binding changed on disk during this build")
-    if (
-        not isinstance(report.get("sourceReleaseCount"), int)
-        or report["sourceReleaseCount"] < 1
-    ):
+    if not isinstance(report.get("sourceReleaseCount"), int) or report["sourceReleaseCount"] < 1:
         raise ValueError("producer validation report is incomplete")
     return {
         "assertedInventoryDigest": asserted_inventory_digest,
@@ -6912,11 +6708,7 @@ def _check_producer_validation_receipt(
         raise ValueError("producer validation receipt identity differs")
     if report.get("binding") != manifest.get("binding"):
         raise ValueError("producer validation binding differs")
-    asserted_inventory_digest = next(
-        row["inventoryDigest"]
-        for row in manifest["graphs"]
-        if row["role"] == "asserted"
-    )
+    asserted_inventory_digest = next(row["inventoryDigest"] for row in manifest["graphs"] if row["role"] == "asserted")
     if report.get("assertedInventoryDigest") != asserted_inventory_digest:
         raise ValueError("producer asserted inventory digest differs")
     if report.get("counts") != manifest.get("counts"):
@@ -6924,9 +6716,7 @@ def _check_producer_validation_receipt(
     if report.get("sourceAccountingDigest") != _sha256_file(accounting_path):
         raise ValueError("producer source accounting digest differs")
     accounting = json.loads(accounting_path.read_bytes())
-    if report.get("sourceReleaseCount") != accounting.get("totals", {}).get(
-        "sourceReleases"
-    ):
+    if report.get("sourceReleaseCount") != accounting.get("totals", {}).get("sourceReleases"):
         raise ValueError("producer source release count differs")
     construction_summary = json.loads(construction_summary_path.read_bytes())
     expected_construction_receipt = _construction_summary_receipt(
@@ -6967,9 +6757,7 @@ def _write_candidate_distribution(
         or graphs.sealed_asserted_revision is None
         or graphs.asserted.revision != graphs.sealed_asserted_revision
     ):
-        raise ValueError(
-            "asserted graph changed after compiled producer validation"
-        )
+        raise ValueError("asserted graph changed after compiled producer validation")
 
     incremental = ColdPackMaterialization()
     output.mkdir(parents=True, exist_ok=True)
@@ -7012,9 +6800,7 @@ def _write_candidate_distribution(
         if graphs.asserted.revision != graphs.sealed_asserted_revision:
             raise ValueError("asserted graph changed while checking the Parquet view")
     _STATUS.phase("write-receipts-and-manifest")
-    accounting_path.write_bytes(
-        ATLAS_VALIDATE.canonical_json_bytes(graphs.accounting)
-    )
+    accounting_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(graphs.accounting))
 
     binding_digests = ATLAS_VALIDATE._binding_digests()
     binding = {
@@ -7032,9 +6818,7 @@ def _write_candidate_distribution(
         seeds=construction_seeds,
         source_accounting_digest=_sha256_file(accounting_path),
     )
-    construction_summary_path.write_bytes(
-        ATLAS_VALIDATE.canonical_json_bytes(construction_summary)
-    )
+    construction_summary_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(construction_summary))
     producer_validation = _producer_validation_receipt(
         compiled_validation,
         binding=binding,
@@ -7044,9 +6828,7 @@ def _write_candidate_distribution(
             construction_summary,
         ),
     )
-    producer_validation_path.write_bytes(
-        ATLAS_VALIDATE.canonical_json_bytes(producer_validation)
-    )
+    producer_validation_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(producer_validation))
     acceptance_inputs = {
         "atlasDigest": graph_descriptors[0]["inventoryDigest"],
         **binding_digests,
@@ -7116,9 +6898,7 @@ def _write_candidate_distribution(
         "schemaVersion": "3.1",
         "type": "AtlasManifest",
     }
-    manifest["canonicalPayloadDigest"] = ATLAS_VALIDATE.canonical_sha256(
-        manifest, terminal_lf=False
-    )
+    manifest["canonicalPayloadDigest"] = ATLAS_VALIDATE.canonical_sha256(manifest, terminal_lf=False)
     manifest_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(manifest))
 
     _STATUS.phase("validate-candidate-metadata")
@@ -7140,9 +6920,7 @@ def _write_candidate_distribution(
     ATLAS_VALIDATE._check_manifest_digest(manifest)
     ATLAS_VALIDATE._check_pack_manifest(manifest)
     ATLAS_VALIDATE._check_binding_pins(manifest, acceptance)
-    member_digests = {
-        member["path"]: member["digest"] for member in manifest["members"]
-    }
+    member_digests = {member["path"]: member["digest"] for member in manifest["members"]}
     ATLAS_VALIDATE._check_construction_summary_identity(
         manifest,
         producer_validation,
@@ -7178,9 +6956,7 @@ def _write_candidate_distribution(
         "independentFileConsumerValidation": {
             "performedByGenerator": False,
             "requiredForIndependentConsumers": True,
-            "validator": (
-                "bindings/atlas/3.1/tools/validate.py:validate_distribution"
-            ),
+            "validator": ("bindings/atlas/3.1/tools/validate.py:validate_distribution"),
         },
         "compiledProducerValidation": producer_validation,
         "packMaterialization": incremental.report(),
@@ -7292,12 +7068,8 @@ def _write_distribution(
         if manifest["distributionId"] != distribution_id:
             raise ValueError("candidate manifest distribution identity differs")
         report_path = _generation_report_path(output)
-        if report_path.exists() and not (
-            report_path.is_file() or report_path.is_symlink()
-        ):
-            raise FileExistsError(
-                f"generation report path is not replaceable: {report_path}"
-            )
+        if report_path.exists() and not (report_path.is_file() or report_path.is_symlink()):
+            raise FileExistsError(f"generation report path is not replaceable: {report_path}")
         _STATUS.phase("promote-validated-distribution")
         _promote_validated_distribution(
             candidate,
@@ -7334,10 +7106,7 @@ def _source_input_pins(source: SourceSpec) -> tuple[RegistryInputPin, ...]:
             logical_path=source.logical_path,
             sha256=source.expected_digest,
             byte_length=byte_length,
-            source_iri=(
-                "urn:ref:source-artifact:"
-                + source.expected_digest.removeprefix("sha256:")
-            ),
+            source_iri=("urn:ref:source-artifact:" + source.expected_digest.removeprefix("sha256:")),
         ),
     )
 
@@ -7349,17 +7118,11 @@ def _mapping_release_summary(
 
     return {
         "editorialPolicyDigest": _canonical_digest(release.editorial_policy),
-        "evidenceBindingCount": sum(
-            len(mapping.evidence) for mapping in release.mappings
-        ),
+        "evidenceBindingCount": sum(len(mapping.evidence) for mapping in release.mappings),
         "key": release.key,
         "mappingCount": len(release.mappings),
         "reviewMethods": sorted(
-            {
-                evidence.review_warrant
-                for mapping in release.mappings
-                for evidence in mapping.evidence
-            }
+            {evidence.review_warrant for mapping in release.mappings for evidence in mapping.evidence}
         ),
         "scope": release.scope,
         "sourceRelease": release.source_release_iri,
@@ -7377,11 +7140,7 @@ def verify_inputs(
         logical_path=REGISTRY_DESCRIPTORS_LOGICAL_PATH,
         expected_digest=REGISTRY_DESCRIPTORS_EXPECTED_DIGEST,
     )
-    sources = (
-        SOURCE_SPECS
-        if releases is None
-        else tuple(release.spec for release in releases)
-    )
+    sources = SOURCE_SPECS if releases is None else tuple(release.spec for release in releases)
     verified_pins: dict[str, tuple[str, int]] = {}
     for source in sources:
         for pin in _source_input_pins(source):
@@ -7389,9 +7148,7 @@ def verify_inputs(
             previous = verified_pins.get(pin.logical_path)
             if previous is not None:
                 if previous != identity:
-                    raise ValueError(
-                        f"pinned input identity conflicts for {pin.logical_path}"
-                    )
+                    raise ValueError(f"pinned input identity conflicts for {pin.logical_path}")
                 continue
             _verify_pinned_file(
                 pin.path,
@@ -7399,9 +7156,7 @@ def verify_inputs(
                 expected_digest=pin.sha256,
             )
             if pin.path.stat().st_size != pin.byte_length:
-                raise ValueError(
-                    f"pinned input byte length differs for {pin.logical_path}"
-                )
+                raise ValueError(f"pinned input byte length differs for {pin.logical_path}")
             verified_pins[pin.logical_path] = identity
     for mapping_release in mapping_releases:
         for pin in mapping_release.inputs:
@@ -7409,19 +7164,17 @@ def verify_inputs(
             previous = verified_pins.get(pin.logical_path)
             if previous is not None:
                 if previous != identity:
-                    raise ValueError(
-                        f"pinned input identity conflicts for {pin.logical_path}"
-                    )
+                    raise ValueError(f"pinned input identity conflicts for {pin.logical_path}")
                 continue
             pin.verify()
             verified_pins[pin.logical_path] = identity
     registry = Dataset(default_union=True)
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
     descriptors = set(registry.subjects(RDF.type, ATLAS.ResourceScheme))
-    # REF-034: three retired rows left the catalog and the GAO CRA form row
-    # joined (88 -> 86 schemes; eurovoc-lcsh-alignment still has none).
-    if len(descriptors) != 86:
-        raise ValueError(f"expected 86 registry descriptors; found {len(descriptors)}")
+    # REF-037 adds the acquisition-wave endpoint schemes while its ten
+    # mapping-only sources remain descriptor records without schemes.
+    if len(descriptors) != 104:
+        raise ValueError(f"expected 104 registry descriptors; found {len(descriptors)}")
 
     return {
         "expectedResources": sum(source.expected_resources for source in sources),
@@ -7453,33 +7206,31 @@ def verify_inputs(
             for release in mapping_releases
         ],
         "sources": [
-            _omit_absent_fields({
-                "expectedResources": source.expected_resources,
-                "expectedRelations": source.expected_relations,
-                "inputRole": (
-                    "registrySource"
-                    if source.kind == "registryRelease"
-                    else "upstreamManagedRelease"
-                ),
-                "key": source.key,
-                "kind": source.kind,
-                "path": source.logical_path,
-                "inputs": [
-                    {
-                        "byteLength": pin.byte_length,
-                        "path": pin.logical_path,
-                        "role": pin.role,
-                        "sha256": pin.sha256,
-                        "sourceIri": pin.source_iri,
-                    }
-                    for pin in _source_input_pins(source)
-                ],
-                "resourceId": source.resource_id,
-                "scope": source.scope,
-                "sourceModule": source.source_module,
-                "sha256": source.expected_digest,
-                "usesPriorAtlasGraph": False,
-            })
+            _omit_absent_fields(
+                {
+                    "expectedResources": source.expected_resources,
+                    "expectedRelations": source.expected_relations,
+                    "inputRole": ("registrySource" if source.kind == "registryRelease" else "upstreamManagedRelease"),
+                    "key": source.key,
+                    "kind": source.kind,
+                    "path": source.logical_path,
+                    "inputs": [
+                        {
+                            "byteLength": pin.byte_length,
+                            "path": pin.logical_path,
+                            "role": pin.role,
+                            "sha256": pin.sha256,
+                            "sourceIri": pin.source_iri,
+                        }
+                        for pin in _source_input_pins(source)
+                    ],
+                    "resourceId": source.resource_id,
+                    "scope": source.scope,
+                    "sourceModule": source.source_module,
+                    "sha256": source.expected_digest,
+                    "usesPriorAtlasGraph": False,
+                }
+            )
             for source in sources
         ],
     }
@@ -7495,28 +7246,21 @@ def _release_direct_source_counts(release: LoadedRelease) -> dict[str, int]:
         "resources": len(release.resources),
     }
     if release.supplemental_source_records:
-        counts["supplementalSourceRecords"] = len(
-            release.supplemental_source_records
-        )
+        counts["supplementalSourceRecords"] = len(release.supplemental_source_records)
     return counts
 
 
 def _release_label_role_conflict_count(release: LoadedRelease) -> int:
     value = release.metadata.get("labelRoleConflictCount", 0)
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise ValueError(
-            f"{release.spec.key} labelRoleConflictCount is not a non-negative integer"
-        )
+        raise ValueError(f"{release.spec.key} labelRoleConflictCount is not a non-negative integer")
     return value
 
 
 def _release_english_family_duplicate_label_count(release: LoadedRelease) -> int:
     value = release.metadata.get("englishFamilyDuplicateLabelCount", 0)
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise ValueError(
-            f"{release.spec.key} englishFamilyDuplicateLabelCount is not a "
-            "non-negative integer"
-        )
+        raise ValueError(f"{release.spec.key} englishFamilyDuplicateLabelCount is not a non-negative integer")
     return value
 
 
@@ -7547,9 +7291,7 @@ def _release_pack_plans(
     )
     tokens = [_release_pack_token(plan) for plan in plans]
     if len(tokens) != len(set(tokens)):
-        raise ValueError(
-            "Atlas release keys collide after safe pack-path normalization"
-        )
+        raise ValueError("Atlas release keys collide after safe pack-path normalization")
     return plans
 
 
@@ -7576,18 +7318,13 @@ def _release_construction_seeds(
         for resource in release.resources:
             previous = resource_owner.setdefault(resource.iri, release.spec.key)
             if previous != release.spec.key:
-                raise ValueError(
-                    f"Atlas resource belongs to multiple construction units: {resource.iri}"
-                )
+                raise ValueError(f"Atlas resource belongs to multiple construction units: {resource.iri}")
 
     def endpoint_owner(resource_iri: str, *, context: str) -> str:
         owner = resource_owner.get(resource_iri)
         if owner is not None:
             return owner
-        raise ValueError(
-            f"{context} endpoint is outside the loaded construction units: "
-            f"{resource_iri}"
-        )
+        raise ValueError(f"{context} endpoint is outside the loaded construction units: {resource_iri}")
 
     seeds: list[ReleaseConstructionSeed] = []
     for release in releases:
@@ -7596,6 +7333,22 @@ def _release_construction_seeds(
             for relation in (*release.relations, *release.cross_ring_relations)
             for endpoint in (relation.subject, relation.object)
         }
+        endpoint_ownership = release.metadata.get("endpointOwnership", {})
+        if not isinstance(endpoint_ownership, Mapping):
+            raise TypeError(f"{release.spec.key} endpoint ownership metadata is not an object")
+        ownership_decisions = endpoint_ownership.get("ownershipDecisions", ())
+        if not isinstance(ownership_decisions, Sequence) or isinstance(
+            ownership_decisions,
+            (str, bytes),
+        ):
+            raise TypeError(f"{release.spec.key} endpoint ownership decisions are not a list")
+        for decision in ownership_decisions:
+            if not isinstance(decision, Mapping):
+                raise TypeError(f"{release.spec.key} endpoint ownership decision is not an object")
+            owner_key = decision.get("ownerReleaseKey")
+            if not isinstance(owner_key, str) or not owner_key:
+                raise ValueError(f"{release.spec.key} endpoint ownership decision has no owner release key")
+            dependency_keys.add(owner_key)
         dependency_keys.discard(release.spec.key)
         seeds.append(
             ReleaseConstructionSeed(
@@ -7638,8 +7391,7 @@ def _release_construction_seeds(
                 atlas_release_iri=None,
                 ring=release.ring,
                 input_pins=tuple(
-                    _construction_input_pin(pin)
-                    for pin in sorted(release.inputs, key=lambda item: item.logical_path)
+                    _construction_input_pin(pin) for pin in sorted(release.inputs, key=lambda item: item.logical_path)
                 ),
                 adapter_recipe_inputs=_adapter_recipe_inputs(
                     key=release.key,
@@ -7657,9 +7409,7 @@ def _release_construction_seeds(
     for seed in seeds:
         unknown = sorted(set(seed.endpoint_release_keys) - known_keys)
         if unknown:
-            raise ValueError(
-                f"{seed.key} construction dependencies are missing: {unknown}"
-            )
+            raise ValueError(f"{seed.key} construction dependencies are missing: {unknown}")
         if not seed.input_pins:
             raise ValueError(f"{seed.key} construction unit has no raw-input pins")
     return tuple(sorted(seeds, key=lambda seed: seed.key))
@@ -7726,9 +7476,7 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
                     strict=True,
                 ):
                     if hashlib.sha256(payload).digest() != digest:
-                        raise ValueError(
-                            f"Parquet native_payload does not hash to source_digest: {identity}"
-                        )
+                        raise ValueError(f"Parquet native_payload does not hash to source_digest: {identity}")
                     identities.append(identity)
                     payload_rows += 1
         else:
@@ -7772,9 +7520,7 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
             position += length
     return {
         "comparand": "bindings/atlas/3.1/tools/validate.py:parquet_row_from_rdf",
-        "reachabilityComparand": (
-            "bindings/atlas/3.1/tools/validate.py:_check_explorer_reachability"
-        ),
+        "reachabilityComparand": ("bindings/atlas/3.1/tools/validate.py:_check_explorer_reachability"),
         "reachabilityRows": sum(len(rows) for rows in served_ids.values()),
         "sampledRowsAgainstRdf": sampled_rows,
         "sourceRecordPayloadRows": payload_rows,
@@ -7791,6 +7537,192 @@ def _parquet_view_path(output: Path) -> Path:
     """
 
     return output.parent / "parquet-view"
+
+
+def _producer_generation_report(
+    releases: tuple[LoadedRelease, ...],
+    mapping_releases: Sequence[RegistryMappingRelease],
+    *,
+    input_inventory: Mapping[str, Any],
+    producer_validation: CompiledProducerValidationReceipt,
+) -> dict[str, Any]:
+    """Build and wire-check the metadata prepared before RDF construction."""
+
+    english_only_scan = producer_validation.english_only_scan
+    dropped_label_count = sum(release.dropped_label_count for release in releases)
+    label_role_conflict_count = sum(_release_label_role_conflict_count(release) for release in releases)
+    english_family_duplicate_label_count = sum(
+        _release_english_family_duplicate_label_count(release) for release in releases
+    )
+    observed_counts = _direct_source_counts(
+        releases,
+        label_count=english_only_scan["emittedLabels"],
+    )
+    expected_counts = {
+        "crossRingRelations": sum(release.spec.expected_cross_ring_relations for release in releases),
+        "nativeRelations": sum(release.spec.expected_relations for release in releases),
+        "resources": sum(release.spec.expected_resources for release in releases),
+    }
+    if {key: observed_counts[key] for key in expected_counts} != expected_counts:
+        raise ValueError(f"direct source counts differ: expected={expected_counts}, actual={observed_counts}")
+    report = {
+        "createdAt": _distribution_instant(releases),
+        "directSourceCounts": observed_counts,
+        "droppedLabelCount": dropped_label_count,
+        "englishFamilyDuplicateLabelCount": english_family_duplicate_label_count,
+        "labelRoleConflictCount": label_role_conflict_count,
+        "retainedLabelCount": observed_counts["labels"],
+        "sourceLabelCountBeforeLanguageFilter": (
+            observed_counts["labels"]
+            + dropped_label_count
+            + english_family_duplicate_label_count
+            + label_role_conflict_count
+        ),
+        "labelLanguagePolicy": {
+            "atlasLabelLanguage": "lowercase-bcp47",
+            "multilingualLabelTextInRdf": "admittedForDeclaredLanguageFamilies",
+            "untaggedPublisherLabels": "requireRecordedDeterministicClassification",
+        },
+        "languageMetadataScan": english_only_scan,
+        "inputInventory": input_inventory,
+        "mappingReleases": [
+            {
+                **_mapping_release_summary(release),
+                "metadata": _plain(release.metadata),
+            }
+            for release in mapping_releases
+        ],
+        "sourceReleases": [
+            _omit_absent_fields(
+                {
+                    "atlasRelease": release.atlas_release_iri,
+                    **_release_direct_source_counts(release),
+                    "key": release.spec.key,
+                    "metadata": _plain(release.metadata),
+                    "resourceId": release.spec.resource_id,
+                    "scope": release.spec.scope,
+                    "sourceRelease": release.source_release_iri,
+                }
+            )
+            for release in releases
+        ],
+        "type": "AtlasGenerationReport",
+        "version": "3.1-development",
+    }
+    # The portable JSON grammar refuses nulls and non-interoperable numbers.
+    # Run it over every wire-bound release/mapping metadata row before the
+    # producer constructs the large RDF graph.
+    ATLAS_VALIDATE.canonical_json_bytes(report)
+    return report
+
+
+def _validate_release_pack_partitions(
+    plans: Sequence[ReleasePackPlan],
+) -> None:
+    """Exercise the writer's partition decision before any graph is built."""
+
+    probe = URIRef("urn:ref:atlas:prebuild-pack-partition-probe")
+    for plan in plans:
+        partition = _release_pack_partition(plan, probe)
+        if plan.kind == "mapping" and partition is not None:
+            raise ValueError(f"mapping release {plan.key} must not use a source pack partition")
+
+
+def validate_prebuild_loaded_releases(
+    releases: Sequence[LoadedRelease],
+    mapping_releases: Sequence[RegistryMappingRelease] = (),
+    *,
+    deep: bool = False,
+) -> ProducerPrebuildValidation:
+    """Run the producer's pre-write checks over already loaded releases.
+
+    The default path stops before the expensive RDF construction. ``deep``
+    additionally constructs the graph and runs the producer's compiled-output
+    validation, but still writes no distribution bytes.
+    """
+
+    loaded_releases = tuple(releases)
+    loaded_mappings = tuple(mapping_releases)
+    if not loaded_releases:
+        raise ValueError("producer pre-build validation requires source releases")
+
+    for release in loaded_releases:
+        _validate_loaded_release(release)
+        _refuse_registrant_population_release(release)
+        _refuse_document_population_release(release)
+        _refuse_observed_inventory_release(release)
+    _assert_unique_release_resource_iris(loaded_releases)
+    _validate_registry_mapping_release_descriptors(loaded_mappings)
+
+    input_inventory = verify_inputs(loaded_releases, loaded_mappings)
+    compiled_rows = _validate_compiled_producer_rows(
+        loaded_releases,
+        loaded_mappings,
+    )
+    pack_plans = _release_pack_plans(loaded_releases, loaded_mappings)
+    _validate_release_pack_partitions(pack_plans)
+    construction_seeds = _release_construction_seeds(
+        loaded_releases,
+        loaded_mappings,
+    )
+    generation_report = _producer_generation_report(
+        loaded_releases,
+        loaded_mappings,
+        input_inventory=input_inventory,
+        producer_validation=compiled_rows,
+    )
+
+    deep_compiled_output: Mapping[str, Any] | None = None
+    if deep:
+        graphs = _build_graphs(
+            loaded_releases,
+            mapping_releases=loaded_mappings,
+            include_projection=False,
+            all_plans=pack_plans,
+        )
+        try:
+            deep_compiled_output = _validate_compiled_producer_output(
+                loaded_releases,
+                graphs,
+                compiled_rows,
+                loaded_mappings,
+            )
+        finally:
+            graphs.release()
+
+    return ProducerPrebuildValidation(
+        compiled_rows=compiled_rows,
+        construction_seeds=construction_seeds,
+        generation_report=generation_report,
+        input_inventory=input_inventory,
+        pack_plans=pack_plans,
+        deep_compiled_output=deep_compiled_output,
+    )
+
+
+def validate_prebuild(
+    *,
+    registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
+    include_keys: frozenset[str] | None = None,
+    deep: bool = False,
+) -> ProducerPrebuildValidation:
+    """Load the producer topology and validate it without writing a build."""
+
+    claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
+    source_keys, mapping_keys = (None, None) if include_keys is None else split_construction_unit_keys(include_keys)
+    releases = load_releases(
+        include_keys=source_keys,
+        registry_claim_inputs=claim_inputs,
+    )
+    mapping_releases = load_mapping_releases(
+        include_keys=mapping_keys,
+        source_releases=releases,
+    )
+    return validate_prebuild_loaded_releases(
+        releases,
+        mapping_releases,
+        deep=deep,
+    )
 
 
 def build_distribution(
@@ -7818,110 +7750,34 @@ def build_distribution(
     output.parent.mkdir(parents=True, exist_ok=True)
     claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
     if claim_inputs and output.exists():
-        raise ValueError(
-            "injected registry claim builds currently require a new output"
-        )
-    source_keys, mapping_keys = (
-        (None, None)
-        if include_keys is None
-        else split_construction_unit_keys(include_keys)
-    )
+        raise ValueError("injected registry claim builds currently require a new output")
+    source_keys, mapping_keys = (None, None) if include_keys is None else split_construction_unit_keys(include_keys)
     _STATUS.phase("load-source-releases")
     releases = load_releases(
         include_keys=source_keys,
         registry_claim_inputs=claim_inputs,
     )
-    mapping_releases = load_mapping_releases(include_keys=mapping_keys)
-    _STATUS.phase("verify-pinned-inputs")
-    inventory = verify_inputs(releases, mapping_releases)
-    _STATUS.phase("validate-normalized-rows")
-    producer_validation = _validate_compiled_producer_rows(
+    mapping_releases = load_mapping_releases(
+        include_keys=mapping_keys,
+        source_releases=releases,
+    )
+    _STATUS.phase("validate-prebuild")
+    prebuild = validate_prebuild_loaded_releases(
         releases,
         mapping_releases,
     )
-    english_only_scan = producer_validation.english_only_scan
-    dropped_label_count = sum(release.dropped_label_count for release in releases)
-    label_role_conflict_count = sum(
-        _release_label_role_conflict_count(release) for release in releases
-    )
-    english_family_duplicate_label_count = sum(
-        _release_english_family_duplicate_label_count(release)
-        for release in releases
-    )
-    observed_counts = _direct_source_counts(
-        releases,
-        label_count=english_only_scan["emittedLabels"],
-    )
-    expected_counts = {
-        "crossRingRelations": sum(
-            release.spec.expected_cross_ring_relations for release in releases
-        ),
-        "nativeRelations": sum(
-            release.spec.expected_relations for release in releases
-        ),
-        "resources": sum(release.spec.expected_resources for release in releases),
-    }
-    if {key: observed_counts[key] for key in expected_counts} != expected_counts:
-        raise ValueError(
-            f"direct source counts differ: expected={expected_counts}, actual={observed_counts}"
-        )
-    generation_report = {
-        "createdAt": _distribution_instant(releases),
-        "directSourceCounts": observed_counts,
-        "droppedLabelCount": dropped_label_count,
-        "englishFamilyDuplicateLabelCount": english_family_duplicate_label_count,
-        "labelRoleConflictCount": label_role_conflict_count,
-        "retainedEnglishLabelCount": observed_counts["labels"],
-        "sourceLabelCountBeforeLanguageFilter": (
-            observed_counts["labels"]
-            + dropped_label_count
-            + english_family_duplicate_label_count
-            + label_role_conflict_count
-        ),
-        "englishOnlyPolicy": {
-            "atlasLabelLanguage": "en",
-            "multilingualLabelTextInRdf": "prohibited",
-            "rawMultilingualSources": "externalByExactLocatorAndDigest",
-        },
-        "englishOnlyScan": english_only_scan,
-        "inputInventory": inventory,
-        "mappingReleases": [
-            {
-                **_mapping_release_summary(release),
-                "metadata": _plain(release.metadata),
-            }
-            for release in mapping_releases
-        ],
-        "sourceReleases": [
-            _omit_absent_fields({
-                "atlasRelease": release.atlas_release_iri,
-                **_release_direct_source_counts(release),
-                "key": release.spec.key,
-                "metadata": _plain(release.metadata),
-                "resourceId": release.spec.resource_id,
-                "scope": release.spec.scope,
-                "sourceRelease": release.source_release_iri,
-            })
-            for release in releases
-        ],
-        "type": "AtlasGenerationReport",
-        "version": "3.1-development",
-    }
-    pack_releases = _release_pack_plans(releases, mapping_releases)
-    construction_seeds = _release_construction_seeds(releases, mapping_releases)
-    # Fail on nulls or non-interoperable numbers before constructing the large graph.
-    ATLAS_VALIDATE.canonical_json_bytes(generation_report)
     _STATUS.phase("construct-graphs")
     graphs = _build_graphs(
         releases,
         mapping_releases=mapping_releases,
         include_projection=False,
+        all_plans=prebuild.pack_plans,
     )
     _STATUS.phase("validate-constructed-graphs")
     compiled_validation = _validate_compiled_producer_output(
         releases,
         graphs,
-        producer_validation,
+        prebuild.compiled_rows,
         mapping_releases,
     )
     del releases
@@ -7930,9 +7786,9 @@ def build_distribution(
     result = _write_distribution(
         output,
         graphs,
-        releases=pack_releases,
-        construction_seeds=construction_seeds,
-        generation_report=generation_report,
+        releases=prebuild.pack_plans,
+        construction_seeds=prebuild.construction_seeds,
+        generation_report=prebuild.generation_report,
         compiled_validation=compiled_validation,
         parquet_view=_parquet_view_path(output) if parquet_view else None,
     )
@@ -7959,27 +7815,18 @@ def main() -> int:
         action="append",
         nargs=3,
         metavar=("RELEASE_KEY", "BUNDLE_PATH", "MANIFEST_SHA256"),
-        help=(
-            "inject one verified registry claim bundle; repeat for additional "
-            "release keys"
-        ),
+        help=("inject one verified registry claim bundle; repeat for additional release keys"),
     )
     parser.add_argument(
         "--only-release",
         action="append",
         metavar="RELEASE_KEY",
-        help=(
-            "bound the build to this construction unit; repeat for additional "
-            "keys"
-        ),
+        help=("bound the build to this construction unit; repeat for additional keys"),
     )
     parser.add_argument(
         "--no-parquet-view",
         action="store_true",
-        help=(
-            "skip the typed Parquet view emitted beside the distribution "
-            "during the build's single graph walk"
-        ),
+        help=("skip the typed Parquet view emitted beside the distribution during the build's single graph walk"),
     )
     args = parser.parse_args()
     registry_claim_inputs: dict[str, AtlasRegistryClaimInput] = {}
@@ -8007,7 +7854,8 @@ def main() -> int:
                 registry_claim_inputs=registry_claim_inputs,
             )
             mapping_releases = load_mapping_releases(
-                include_keys=None if include_keys is None else mapping_keys
+                include_keys=None if include_keys is None else mapping_keys,
+                source_releases=releases,
             )
             _STATUS.phase("verify-pinned-inputs")
             print(

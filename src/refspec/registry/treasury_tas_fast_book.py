@@ -63,6 +63,11 @@ from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitio
 
 TREASURY_PUBLISHER = "Bureau of the Fiscal Service, U.S. Department of the Treasury"
 TREASURY_IDENTIFIER_AUTHORITY_URI = "https://fiscal.treasury.gov/accounting/"
+FAST_BOOK_LICENSE_RIGHTS_STATEMENT = "US federal public domain (17 USC 105) with no explicit CC license"
+FAST_BOOK_SOURCE_VERSION_NOTE = (
+    "The publisher provides an edition in the workbook, but the download URL is rolling and unversioned; "
+    "the pinned digest detects drift."
+)
 
 ResourceName = Literal["tasComponentFormat", "fastBookDescriptionOfContents"]
 FASTBookPart = Literal["I", "II", "III"]
@@ -1389,8 +1394,10 @@ __all__ = [
     "FAST_BOOK_DESCRIPTION_2026_08_03",
     "FAST_BOOK_DESCRIPTION_SOURCE",
     "FAST_BOOK_FUND_GROUP_HEADING",
+    "FAST_BOOK_LICENSE_RIGHTS_STATEMENT",
     "FAST_BOOK_PART_II_III_2026_07_31",
     "FAST_BOOK_PART_II_III_SOURCE_URL",
+    "FAST_BOOK_SOURCE_VERSION_NOTE",
     "PART_FUND_GROUPS",
     "TAS_COMPONENT_FORMAT_2026_08_03",
     "TAS_COMPONENT_FORMAT_SOURCE",

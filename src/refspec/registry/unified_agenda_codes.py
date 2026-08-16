@@ -310,6 +310,8 @@ class UAControlledFieldValues:
     values: tuple[str, ...]
     raw_observed_count: int
     identifiers: tuple[ControlledIdentifier, ...]
+    documentation: str
+    source_element_name: str
     is_general_subject_concept: bool = False
 
     def by_value(self) -> dict[str, ControlledIdentifier]:
@@ -609,6 +611,8 @@ def _controlled_field(
     source_url: str,
     retrieved_at: str,
     source_digest: str,
+    documentation: str,
+    source_element_name: str,
 ) -> UAControlledFieldValues:
     # Fold literal duplicates (a documented publisher typo, see UA_PORTFOLIO_GAPS)
     # into one value while preserving first-seen order and the raw count.
@@ -630,6 +634,8 @@ def _controlled_field(
         values=distinct,
         raw_observed_count=len(raw_values),
         identifiers=identifiers,
+        documentation=documentation,
+        source_element_name=source_element_name,
     )
 
 
@@ -774,6 +780,8 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
             source_url=acquired.pin.document.source_url,
             retrieved_at=acquired.pin.retrieved_at,
             source_digest=acquired.sha256,
+            documentation=documentation,
+            source_element_name=element_name,
         )
         if len(field_values.values) != expected_distinct or field_values.raw_observed_count != expected_raw:
             raise UnifiedAgendaSourceDriftError(

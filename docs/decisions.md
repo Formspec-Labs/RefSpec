@@ -2108,3 +2108,460 @@ graph by `test_descriptor_proof_pins_exact_registry_inputs_and_output`,
 and the GAO CRA catalog landing retired its own scaffold: the
 `PENDING_CATALOG_RESOURCE_IDS` pin deleted itself the day the catalog row
 landed, exactly as its comment directed.
+
+### REF-035: Mapping evidence has two axes; standing governs warrant and recoverability governs default serving
+
+- **Date:** 2026-08-15
+- **Status:** Accepted; the cheap structural checks execute in the 3.1
+  validator. Payload and pin fields that change the binding remain recorded
+  work, not an implicit contract edit.
+
+**The decision.** Mapping evidence has two independent axes, not one quality
+rank. *Standing* asks whether the asserter owns either endpoint vocabulary. It
+is computable from the graph RefSpec already ships:
+`AtlasResource -> atlas:inScheme -> atlas:ResourceScheme ->
+atlas:sourceDescriptor -> atlas:RegistrySource`. Standing decides which
+evidence warrant tells the truth. *Recoverability* asks whether an independent
+reader can derive the claim again from bytes RefSpec did not author.
+Recoverability decides what RefSpec serves by default. A claim can have strong
+standing and poor recovery, or no standing and excellent recovery; collapsing
+the two questions hides exactly the distinction evidence is meant to preserve.
+
+The evidence tiers are:
+
+1. **E1 — one publisher owns both vocabularies.** Preserve the publisher's
+   assertion as `publisherAssertion`; serve it by default.
+2. **E2 — a publisher maps its vocabulary into another publisher's
+   vocabulary.** OCLC FAST-to-LCSH is the current example. A verbatim predicate
+   remains `publisherAssertion`; an admitted predicate translation is
+   `operatorAdoption`. Both are default-served. The assertion describes the
+   asserting publisher's record only. It never establishes bilateral
+   agreement.
+3. **E3 — a third party owns neither endpoint.** Wikidata and UMLS are the
+   examples. Admit only a verbatim pinned claim as `operatorAdoption`, and only
+   through an opt-in graph.
+4. **E4 — RefSpec adjudicates the relationship.** Use `humanReview` or
+   `twoMachineAdjudication`, assert the weakest predicate the evidence
+   licenses, and keep it opt-in until the adjudication record is satisfied.
+5. **E5 — graph closure.** An inferred edge is never an assertion. It belongs
+   only in the derived graph and remains opt-in.
+
+The non-obvious ordering is deliberate: **E3 outranks E4 by default**. A pinned
+third-party artifact is checkable against bytes RefSpec did not write; RefSpec's
+own adjudication has no external comparand. E3 loses that advantage when the
+artifact cannot be pinned, its method is undisclosed, or either endpoint does
+not resolve. This ordering does not grant a third party endpoint ownership. It
+states why its recoverable claim is stronger evidence than our unrecoverable
+judgment.
+
+**Predicate rule.** RefSpec serves the weakest admitted predicate in the
+semantic ring that the publisher's definition of its own predicate supports.
+If no admitted predicate states the source claim without adding meaning,
+RefSpec refuses the mapping and records the refusal. The three outcomes are:
+verbatim preservation; explicit adoption with `operatorAdoption`, source and
+target predicate IRIs, and `adoptedBy`; or refusal.
+
+Several tempting rewrites are never honest. `owl:sameAs` merges properties as
+well as identity and is not an Atlas mapping substitute. “See also” and
+“derived from” do not license `skos:relatedMatch`, which is itself a positive
+semantic claim. MARC `$w nnd` cannot be promoted. No weaker predicate can be
+rewritten to a stronger one. The value, entity, and legal-identity rings each
+admit exactly one mapping predicate, so a non-identity source claim in those
+rings has no weaker fallback and must be refused.
+
+**Direction and inverse.** Direction belongs to the attestation, not the
+proposition. Assert the row once in the direction the evidence states; a
+consumer may serve both directions when the predicate is symmetric by
+definition. Minting a second assertion fabricates an attestation nobody made.
+For E2 it also changes the speaker: turning OCLC's FAST-to-LCSH statement into
+LCSH-to-FAST would attribute OCLC's unilateral claim to the Library of
+Congress.
+
+**Transitivity.** RefSpec never asserts closure: a closure row has no attestor
+and no source record. RefSpec always measures it. Before FAST, the binding
+measured 5,939 inferred exact-match pairs; with FAST it measures 13,001. The
+FAST join has 1,605 shared LCSH targets, 1,801 components, 2,013 genuinely new
+pairs, and zero cycles. RefSpec materializes selected closure rows into the
+derived graph only when a named consumer states which rows it needs. Query-time
+path expansion is always permitted and is not materialized closure.
+`skos:closeMatch` never closes; SKOS S45 gives transitivity only to
+`skos:exactMatch`.
+
+**Default serving.** The default view is computed, never declared: the row must
+be in the asserted graph; its `rkaf:evidenceRole` must be one of
+`officialSourceMetadata`, `formalAdoptionEvent`, or `structuralEvidence`; and
+the asserter's standing must not be `none`. Those facts already ship in the
+assertion, evidence binding, resource scheme, and registry descriptors. An
+extra “trusted” flag would be unfalsifiable metadata and is forbidden.
+
+**Failures this decision legislates against.** Each failure has a running or
+required check:
+
+- silent predicate rewriting — the predicate-translation gate compares the
+  publisher claim, asserted predicate, admitted translation, and `adoptedBy`;
+- unfalsifiable metadata — serving is computed from graph columns rather than
+  a producer-declared rank;
+- invented citations — source fidelity independently reconstructs every
+  evidence locator, digest, payload, and mapping triple from pinned bytes;
+- unmeasurable coverage — emitted, rejected, unmatched, and inferred counts
+  are pinned and recomputed;
+- structure without a running check — every new rule lands with a rejecting
+  conformance case;
+- retroactive integrity breakage — every build runs a corpus-wide SKOS S46
+  preflight, because a new `skos:exactMatch` can merge components and invalidate
+  a `skos:relatedMatch` in a release nobody edited. FAST is S46-safe today only
+  because the endpoint filter leaves its exact-match and related-match subject
+  sets disjoint. That is an artifact of the filter, not a property of FAST.
+
+**Contract ledger.** The current 3.1 contract already carries the complete
+warrant taxonomy, E3 adoption, warrant-based serving inputs, the facts needed
+to compute standing, derived materialization, and the predicate-translation
+record. Four rules require only executable checks: the predicate-translation
+gate, the standing gate that refuses `publisherAssertion` when the attestor
+owns neither endpoint, canonical IRI direction for derived symmetric rows, and
+the corpus-wide S46 preflight. The first three now have named negative
+conformance cases; S46 was already global in both producer preflight and the
+portable validator, with direct, reverse, and transitive conflict cases.
+
+Four changes require a future binding revision and are **recorded only** here.
+First, close the `operatorAdoption` payload: it currently carries edition,
+predicate, and source adoptions distinguished only by unvalidated JSON. This is
+the highest-value contract change. Second, put candidate accounting on the
+wire. Third, close `decisionBasis` to a vocabulary. Fourth, add `retrievedAt`
+and `license` to `RegistryInputPin`; an explicit license is a precondition for
+admitting third-party crosswalks. None of those fields is smuggled into 3.1 by
+this decision.
+
+### REF-036: Public crosswalk survey — capture GEMET-to-EuroVoc; record the definitive rejects
+
+- **Date:** 2026-08-15
+- **Status:** Accepted as the REF-035 companion. Records the survey result;
+  does not add a mapping release.
+
+**Capture next.** Eionet publishes GEMET crosswalks under CC BY 4.0. The
+GEMET-to-EuroVoc distribution has 1,938 assertions: 1,683 exact, 217 broad, and
+38 narrow, covering 34.18% of GEMET concepts. The GEMET-to-AGROVOC distribution
+has 1,199 assertions: 1,188 exact, 5 close, 4 broad, and 2 narrow, covering
+21.48%. The EuroVoc set is the one usable now. AGROVOC is not in the current
+corpus because REF-034 retired its exemplar.
+
+**Do not research these again without new publisher evidence.** The survey
+rejected:
+
+- UMLS, because its license restricts redistribution and therefore also kills
+  the proposed MeSH hub;
+- MeSH-to-SNOMED, because it depends on UMLS plus SNOMED affiliate licensing;
+- Wikidata as an authoritative mapping, because CC0 solves reuse but not
+  provenance: its community asserted equivalences are E3 claims the vocabulary
+  owners never made;
+- VIAF and ISNI, because they reconcile names rather than subjects;
+- UMTHES content, because CC BY-NC blocks commercial use, while mapping-only
+  URIs remain a possible future input;
+- ICPSR, because it publishes no machine crosswalk and uses CC BY-NC;
+- ELSST R6, because CC BY-SA permits reuse but the release contains zero
+  external mapping predicates;
+- GCMD, the NASA Thesaurus, and DOE OSTI, because none publishes a crosswalk
+  distribution;
+- NAICS-to-PSC, because neither publisher publishes it and award co-occurrence
+  is not equivalence;
+- NAICS 2022-to-SIC/ISIC, because only older-edition concordances exist and
+  chaining editions would be an Atlas derivation;
+- CRS-to-LCSH, because no distribution exists;
+- Federal Register topics-to-Federal Register thesaurus, because the common
+  publisher supplies no identifier bridge;
+- agency-name matching across Federal Register, SAM, OPM, and eCFR, because no
+  common publisher identifier exists and inferred identity is refused; and
+- GAO topics, because GAO publishes no mapping dataset.
+
+**Consequence.** For most vocabulary pairs RefSpec holds, no publisher
+crosswalk exists. E4 adjudication is therefore the only remaining path. The
+adjudication record in REF-035 is not optional explanatory metadata; it is the
+load-bearing evidence for most future mappings.
+
+### REF-037: The publisher-alignment acquisition wave lands seven mapping releases and the first current cross-ring carrier
+
+- **Date:** 2026-08-15
+- **Status:** Accepted. Licensing is recorded evidence, not an admission gate;
+  REF-035 standing and recoverability decide warrant and default service.
+
+**The decision.** Admit the mappings and native relations whose exact publisher
+bytes and contentful endpoints support them. Record licensing exactly as source
+evidence; do not use it as an admission gate. Keep every omitted row counted,
+and never replace missing publisher content with a stub. This entry executes
+REF-036's GEMET capture and supersedes both its “does not add a mapping release”
+state and its licensing-based UMTHES rejection. It does not reopen inferred
+name matching, community equivalence, or unowned crosswalks.
+
+**Library of Congress.** The pinned 239,565,667-byte LC external-links ZIP
+contains 802,592 LCSH external-authority assertions and states **“CC0 1.0
+Universal.”** LC owns the LCSH endpoint, so the mapping release is E2. The
+binding's explicit adoption table translates the four LC MADS/RDF external-
+authority predicates to `skos:exactMatch`, `skos:closeMatch`,
+`skos:broadMatch`, or `skos:narrowMatch`. The release emits 801,992 mappings:
+534,968 to FAST and 267,024 to the other captured vocabularies. It omits 600
+rows only because 469 LCSH source concepts are absent from the separately
+pinned current LCSH bulk file.
+
+LC publishes 792,166 authoritative target-label statements for 792,134 target
+IRIs with no language tag. The first implementation withheld those endpoints.
+The owner then directed a deterministic recovery: each target authority has a
+fixed recorded language convention, every resulting lowercase BCP 47 tag and
+rule stays in the native payload, and an unclassified label still fails closed.
+Fifteen target endpoint releases now carry the mapping-selected AGROVOC, BNCF,
+BNE, FAST residue, Getty AAT and ULAN, GND, Homosaurus, NALT, NDL Names and
+Subjects, PeriodO, RAMEAU, Wikidata, and YSO records. Their source capture has
+792,166 labels, which resolve to German, English, Spanish, Finnish, French,
+Italian, or Japanese. The releases collectively emit 353,706 resources. The
+FAST endpoint release emits 96,944 resources after 11,587 resources with
+stronger OCLC publisher content move to the OCLC-owned endpoint release. The
+LCSH dependency release carries 359,728 additional contentful subjects.
+This is a deliberate Atlas 3.1 label-contract change: labels are no longer
+English-only, but remain non-empty, explicitly language-tagged, canonical
+lowercase BCP 47 literals with at most one preferred label per language.
+Definitions and notes remain English-only.
+
+**OCLC and the Publications Office.** OCLC's pinned FAST bulk is licensed under
+the **“Open Data Commons Attribution License (ODC-By) v1.0.”** It contains
+935,540 admitted topical relations or mappings: 311,890 `schema:sameAs`,
+468,479 `skos:relatedMatch`, and 155,171 topical `rdfs:seeAlso` rows. The first
+two mapping predicates reconcile against the later MARC-derived FAST adoption:
+64,452 held-endpoint claims occur in both sources, nine occur only in bulk, and
+twelve occur only in the current release. The E2 bulk mapping release emits
+only those nine bulk-only `skos:relatedMatch` claims, so it does not double-
+assert a claim. The current FAST-to-LCSH release holds 64,464 OCLC claims. It
+emits 40,274: all 1,683 adopted exact matches and 38,591 verbatim related
+matches. The producer records but refuses 24,190 OCLC `relatedMatch` claims
+whose exact pair LC independently publishes as a hierarchy claim. Emitting
+both would violate SKOS S27. The canonical refused-pair list has the frozen
+digest
+`sha256:fc9afdc9c1da43839d133ff0efe409dd0c6c0624152bacdfb65e9bd9320653bd`;
+a changed count or pair fails producer loading. The LC mapping release remains
+the declared reconciliation dependency, not an OCLC evidence input.
+
+The native endpoint release preserves 47,049 content-backed
+FAST-to-FAST `rdfs:seeAlso` rows as `atlas:thesaurusRelated`, with the exact
+predicate translation in evidence. It omits 31,932 rows whose 668 FAST targets
+lack publisher content, 76,190 Wikipedia targets for which the file supplies
+links but no target records, two non-topical `rdfs:seeAlso` rows, and two
+`owl:sameAs` rows. Its 45,929-resource endpoint release owns the 11,587 exact
+FAST IRIs that also occur in LC's endpoint-label capture because OCLC owns and
+best documents FAST. No omitted target becomes a stub.
+
+The remaining seventeen EuroVoc alignment files contain 22,710 assertions.
+The alignment pages state no license for those files; the record therefore says
+**“publisher states no license”** and names Commission Decision 2011/833 as the
+general reuse basis, including its third-party-rights limit. The two held pairs
+are E2 Publications Office claims. EuroVoc-to-GEMET holds 2,035 publisher
+assertions and emits 1,998 (1,919 exact and 79 close). It records but refuses
+37 close matches that conflict with the combined GEMET/EuroVoc `exactMatch`
+components under SKOS S46. EuroVoc-to-MeSH emits five exact mappings.
+Every other portfolio row remains counted and unemitted because its source
+release, target release, or exact endpoint is not held. The five MeSH objects
+retain the publisher's HTTP identifiers in evidence and use the independently
+verified HTTPS endpoint identifiers in the assertion.
+
+**GEMET and UMTHES.** The versioned GEMET 4.2.3 RDF gzip contains 9,658 mapping
+rows under **“Attribution 4.0 International (CC BY 4.0).”** GEMET owns the
+source endpoint, so its mappings are E2. GEMET-to-EuroVoc holds 1,938 publisher
+assertions and emits 1,936 in the publisher's direction: 1,683 exact, 215 broad,
+and 38 narrow. It records but refuses two broad matches that conflict with the
+same `exactMatch` components. The combined frozen refusal list contains all 39
+publisher divergences, so an unlisted S46 conflict fails producer validation.
+
+The owner separately directed capture of real UMTHES endpoint content despite
+the recorded non-commercial term. The deterministic publisher-response archive
+pins 3,365 of 3,378 requested concepts, 17,243 German and English publisher
+label claims, and the publisher's German **“CC BY-NC 4.0 (Namensnennung –
+Nicht-kommerziell)”** and attribution wording. Thirteen endpoints return HTTP
+404. The endpoint release emits 17,241 normalized labels and 4,900 of 13,060
+native relations whose targets are also held; it omits 8,160 relations outside
+the selected subset. Fifty reciprocal `skos:related` statements form 25 pairs
+that the same held release also connects through its hierarchy. The endpoint
+release preserves those authored associations as `atlas:thesaurusRelated`, as
+required by SKOS S27, and freezes the 25-pair list at
+`sha256:47d7ff80a1ec4525cec72a723b6100182f8cc210031beef54d1d4bebfb4f732b`.
+The producer refuses a changed count or pair. GEMET-to-UMTHES emits 3,470
+mappings (3,469 close and one exact) and omits the thirteen unavailable
+targets. AGROVOC, DBpedia, and other unheld GEMET targets remain counted and
+unemitted. Licensing remains recorded, not gating.
+
+**Northwestern/Galter MeSH-to-LCSH.** The DOI release states **“Creative
+Commons Public Domain Mark 1.0.”** Its publisher page declares 13,453 records;
+the exact ZIP contains 13,329. The reader finds 13,270 unique translatable
+candidates and emits 13,251 mappings against 12,694 current MeSH subjects and
+12,844 held active LCSH endpoints: 13,053 exact, 134 broad, 35 narrow, and 29
+related. Northwestern/Galter owns neither vocabulary, so these claims are E3
+`operatorAdoption` evidence and remain opt-in under REF-035.
+The 12,844 active LCSH objects resolve across the already held EuroVoc endpoint
+subset (642), the LC external-links endpoint release (12,186), and the
+Northwestern-selected residue (16). The Northwestern endpoint release therefore
+mints only 16 resources and carries two native broader relations; all 13,251
+mappings remain, with 13,235 repinned to the existing LCSH owners.
+
+The MeSH release does not change the Atlas 3.1 wire. The current binding
+already requires an explicit source-predicate translation record and validates
+the publisher predicate, asserted predicate, and adopting actor. Adding the
+four `ad750` translations to exact, broad, narrow, and related match extends
+that executable table. It does not add a field, change graph closure, or relax
+endpoint checks. REF-035's future work to close the JSON adoption payload
+remains future binding work; this release does not smuggle it into 3.1.
+
+**Federal publisher relations.** The complete eCFR administrative roster adds
+316 entity resources and 163 publisher nesting relations. Its 487 published
+CFR references group into 446 distinct entity-to-legal-identity
+`atlas:referencesLegalIdentity` assertions against held CFR title resources.
+This is the institutional-roster crossing REF-032's zero-state tripwire named
+as its intended successor. The tripwire therefore retires and a positive test
+pins this carrier at 446. REF-032 remains the authority for the rejected
+observed inventories; only its “no current cross-ring carrier” state ends.
+
+The Federal Hierarchy-to-Treasury join also lands. The two federal publishers
+share 130 CGAC Agency Identifiers across 3,544 FAST Book rows and 3,543 distinct
+Treasury Account Symbols, producing 85,462 same-ring `atlas:relatedEntity`
+assertions. They claim only a shared CGAC code, never identity or
+administration. eCFR, the Federal Hierarchy API, and the Treasury FAST Book are
+recorded as **“US federal public domain (17 USC 105) with no explicit CC
+license.”** These native roster relations do not receive an REF-035 E-tier;
+the tiers classify vocabulary mappings.
+
+**The running proof.** Every new construction unit has an independent source
+reader over its exact pinned bytes. The source manifest adds the LC and OCLC
+archives, all seventeen EuroVoc alignment files, GEMET, the Northwestern
+MARCXML ZIP, the composite UMTHES response archive, eCFR agencies, and
+GAO-09-205. Catalog, index, descriptors, coverage, generator proof pins, and
+binding fixtures regenerate in that order. The corpus-wide S46 check, exact
+mapping-evidence comparison, cross-ring predicate gate, canonical-language
+negative fixture, and source readers remain the executable boundary; the
+counts above are failures, not descriptive estimates.
+
+The producer derives candidate IRI spaces and exact resource owners from the
+loaded releases before adapting acquisition endpoints. An existing exact IRI
+wins. For a duplicate among new endpoint captures, target-publisher content
+wins; equal-quality candidates use stable release-key order. The suite loads
+the complete producer release set and fails if any resource IRI has two owners,
+then verifies that every unchanged mapping names the selected endpoint release.
+
+### REF-038: The regulations.gov agency roster lands, and reviewed identity claims govern the agency projection
+
+- **Date:** 2026-08-16
+- **Status:** Accepted. The pinned reader, entity roster, identifier census,
+  321-assertion entity mapping release, and pure projection builder execute in
+  source and tests. Producer, portfolio, binding, and Parquet integration remain
+  an explicit handoff because those files were under concurrent ownership.
+
+**The roster closes REF-034's credential barrier.** The owner supplied a
+`REGULATIONS_GOV_API_KEY`, and the publisher returned 331 records from
+`https://api.regulations.gov/v4/agencies`. The pinned response has digest
+`sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2`,
+length 91,408 bytes, and retrieval time `2026-08-16T04:53:51Z`. The key travels
+only in the `X-Api-Key` header; no capture, release, evidence artifact, or URL
+contains its value. The reader refuses digest, length, record-count, and field-
+shape drift. The release emits 331 entity resources and 160
+`atlas:parentEntity` relations to 17 distinct publisher-named parents. It keeps
+the regulations.gov `id` as notation and as the docket-ID prefix in native
+data, never as an Atlas identifier row. It records the endpoint as
+`undocumentedEndpoint: true`, requires recapture and semantic diff before an
+update, and records **“US federal public domain (17 USC 105) with no explicit
+CC license.”** The publisher roster now supplies the relevant inventory, so
+REF-034's question about re-admitting the former observed inventory is moot.
+
+**The identifier census is the first pass; per-value review is the second.**
+Equality between identifiers issued under the same authority forms a direct
+bridge by default. No such cross-roster bridge occurs in this five-roster
+census. RefSpec may separately adjudicate equality between publisher-minted
+agency acronyms under REF-035 E4. Each accepted identity must retain the exact
+two source records, `humanReview` warrant, reviewer, decision date, decision
+record, approved relation, basis, both publishers' verbatim names, and a
+specific reasoning sentence. This is a RefSpec decision, not a publisher
+assertion. Equal strings from different identifier authorities remain refused,
+including Federal Register numeric ID versus CGAC, Federal Register slug versus
+eCFR slug, and OPM EHRI code versus agency acronym.
+
+The owner amended the earlier abstention rule: **“It's not a guess if it's
+obvious.”** Abstention now means that no defensible answer exists, not that no
+identifier was handy. Roster-wide fuzzy name similarity remains banned.
+Per-value comparison of publisher-stated names, obvious name variants, acronym
+expansion corroborated by the name and parent, and parent context is an E4
+decision. A value abstains only when publisher names cannot break a genuine
+collision or no held roster contains the same entity. Each abstention states
+which reason applies and records the closest rejected candidate when one
+exists.
+
+**The five-roster census is reproducible.** The exact identifier inventory is:
+
+| Roster | Identifier kind | Claims | Distinct values | Collision values |
+| --- | --- | ---: | ---: | ---: |
+| Federal Register, 472 resources | Numeric ID | 472 | 472 | 0 |
+| Federal Register, 472 resources | Slug | 472 | 472 | 0 |
+| Federal Register, 472 resources | Short name | 419 | 409 | 10 |
+| Federal Hierarchy, 907 resources | Organization ID | 907 | 907 | 0 |
+| Federal Hierarchy, 907 resources | FPDS agency code | 906 | 743 | 162 |
+| Federal Hierarchy, 907 resources | CGAC Agency Identifier | 908 | 143 | 141 |
+| Federal Hierarchy, 907 resources | Legacy FPDS office code | 472 | 463 | 9 |
+| OPM EHRI, 798 resources | Agency-subelement code | 798 | 798 | 0 |
+| eCFR, 316 resources | Agency slug | 316 | 316 | 0 |
+| eCFR, 316 resources | Agency short name | 242 | 241 | 1 |
+| regulations.gov, 331 resources | Agency ID | 331 | 331 | 0 |
+
+The complete cross-roster equality census is:
+
+| Left kind | Right kind | Disposition | Shared | Edges | Unambiguous | Ambiguous |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| Federal Register numeric ID | CGAC | Refused: different authorities | 52 | 126 | 1 | 51 |
+| Federal Register slug | eCFR slug | Refused: different authorities | 252 | 252 | 252 | 0 |
+| Federal Register short name | OPM EHRI code | Refused: different authorities | 3 | 3 | 3 | 0 |
+| Federal Register short name | eCFR short name | E4 acronym adjudication | 238 | 249 | 229 | 9 |
+| Federal Register short name | regulations.gov ID | E4 acronym adjudication | 279 | 287 | 271 | 8 |
+| OPM EHRI code | eCFR short name | Refused: different authorities | 3 | 3 | 3 | 0 |
+| OPM EHRI code | regulations.gov ID | Refused: different authorities | 3 | 3 | 3 | 0 |
+| eCFR short name | regulations.gov ID | E4 acronym adjudication | 200 | 201 | 199 | 1 |
+
+The first-pass identifier paths cover 279 regulations.gov IDs. Its 52-value
+residue contains one identifier collision (`FS`) and 51 values without an exact
+identifier path. These are first-pass results, not final abstentions. The dated
+artifact in
+`research/evidence/agency-identifier-census-2026-08-16/` records every equality,
+collision, endpoint, and first-pass residue value. Its identifier-census digest
+remains
+`sha256:98ee78e352f019a4b33090f0397fdf145c6876d7f6033508172db144912d9420`.
+
+**The second pass adopts 42 of the 52 residue values.** Exact publisher-name
+equality resolves 27; obvious publisher-name variants resolve 11; publisher
+name plus parent context resolves `FS`; and acronym expansion corroborated by
+publisher name and parent resolves three. The remaining ten values have no
+same-entity counterpart in any held roster:
+`ARCTICGAS`, `BSC`, `EOA`, `GAPFAC`, `MMA`, `NCRIRS`, `OIRA`, `PCSCOTUS`,
+`PRES`, and `USC`. No genuine collision remains. The final split is
+`331 = 321 + 10`. The artifact layers every decision over the unchanged census
+and gives the adjudication its own digest.
+
+**Identity claims live in the asserted entity graph; the Parquet table adds
+nothing.** The mapping release
+`regulations-gov-agency-identity-2026-08-16` contains 321 one-way
+`atlas:sameEntityAs` assertions from regulations.gov resources to the true
+Federal Register, eCFR, or Federal Hierarchy counterpart. It emits no inverse.
+Each assertion has two E4 `humanReview` evidence records, for 642 records total.
+Release metadata accounts for all 331 candidate decisions and carries the ten
+abstentions. The entity ring admits no mapping predicate other than
+`atlas:sameEntityAs`. A broader regulations.gov publisher record does not
+justify identity with its subunits: those candidates remain recorded
+non-emissions, and this release emits no subunit relation.
+
+`build_agency_projection()` is a pure function of that mapping release and the
+five roster releases. It joins asserted subjects and objects to publisher names,
+labels, and parent relations; it projects abstentions only from release
+metadata. It performs no matching and invents no claim. The builder emits 321
+rows, including 159 with a target-roster parent, and ten unresolved rows. Its
+parity test proves that projection rows equal graph assertions, unresolved rows
+equal metadata abstentions, and `331 = 321 + 10`.
+
+Each projection mapping row keeps the source value, selected organization,
+labels, parent, relation, E4 warrant and basis, and a projection evidence record
+that identifies both publisher records, both verbatim names, and the reasoning.
+Each unresolved row keeps the abstention reason, reasoning, and closest rejected
+candidate where one exists. The tables contain no scalar confidence. Tests fail
+on an unasserted adoption, incomplete E4 evidence, an entity-ring predicate
+violation, forbidden identifier emission, inverse minting, input reordering,
+publisher-name drift, or any assertion/metadata/projection parity loss. Producer
+and Parquet integration must preserve these assertions, rows, evidence records,
+coverage counts, and digests exactly.

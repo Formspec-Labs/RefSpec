@@ -46,6 +46,21 @@ def test_fast_keeps_exact_ids_and_only_active_direct_hierarchy(
         heading="Export trade",
         alt_labels=("Exports", "", " Exports ", "   ", "International exports "),
         broader_ids=("200", "999"),
+        lcsh_links=(
+            fast_topical.FASTLcshLink(
+                predicate_iri=fast_topical.FAST_SCHEMA_SAME_AS,
+                target_iri=(
+                    "http://id.loc.gov/authorities/subjects/sh85000001"
+                ),
+                native_statement=(
+                    "<http://id.worldcat.org/fast/100> "
+                    "<http://schema.org/sameAs> "
+                    "<http://id.loc.gov/authorities/subjects/sh85000001> ."
+                ),
+                source_record_digest="sha256:" + "2" * 64,
+                source_encoding="ntriplesStatement",
+            ),
+        ),
     )
     parent = fast_topical.FASTTopicalNativeRow(
         numeric_id="200",
@@ -93,6 +108,20 @@ def test_fast_keeps_exact_ids_and_only_active_direct_hierarchy(
         "Exports",
         "International exports",
     ]
+    assert release.resources[0].native_payload["lcshLinks"] == [
+        {
+            "nativeStatement": (
+                "<http://id.worldcat.org/fast/100> "
+                "<http://schema.org/sameAs> "
+                "<http://id.loc.gov/authorities/subjects/sh85000001> ."
+            ),
+            "publisherPredicateIri": fast_topical.FAST_SCHEMA_SAME_AS,
+            "sourceEncoding": "ntriplesStatement",
+            "sourceRecordDigest": "sha256:" + "2" * 64,
+            "targetIri": "http://id.loc.gov/authorities/subjects/sh85000001",
+        }
+    ]
+    assert release.metadata["recordsWithLcshLinks"] == 1
     assert [(relation.subject, relation.object) for relation in release.relations] == [(first.uri, parent.uri)]
     assert release.metadata["tombstoneCount"] == 1
     assert release.metadata["tombstonesAreMembers"] is False

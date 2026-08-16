@@ -36,6 +36,7 @@ _COUNT_FIELDS = frozenset(
         "values",
     }
 )
+_MAX_SOURCE_EVIDENCE_SEQUENCE_ITEMS = 100
 
 
 def pytest_addoption(parser: Any) -> None:
@@ -175,7 +176,11 @@ def _source_evidence(value: object, result: dict[str, set[Any]], *, depth: int =
             _source_evidence(child, result, depth=depth + 1)
         return
     if isinstance(value, Sequence) and not isinstance(value, (bytearray, str)):
-        for child in value[:10]:
+        # A source portfolio may legitimately contain more than ten pinned
+        # artifacts (the EuroVoc alignment portfolio contains seventeen).
+        # Keep the walk bounded, but do not silently drop ordinary portfolio
+        # members from the fail-closed real-data receipt.
+        for child in value[:_MAX_SOURCE_EVIDENCE_SEQUENCE_ITEMS]:
             _source_evidence(child, result, depth=depth + 1)
 
 

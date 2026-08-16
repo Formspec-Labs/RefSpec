@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:skos="http://www.w3.org/2004/02/skos/core#">
+  <rdf:Description rdf:about="http://eurovoc.europa.eu/1">
+    <skos:exactMatch rdf:resource="http://example.test/vocabulary/one"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://eurovoc.europa.eu/2">
+    <skos:closeMatch rdf:resource="http://example.test/vocabulary/two"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://example.test/internal/3">
+    <skos:exactMatch rdf:resource="http://example.test/vocabulary/three"/>
+  </rdf:Description>
+</rdf:RDF>

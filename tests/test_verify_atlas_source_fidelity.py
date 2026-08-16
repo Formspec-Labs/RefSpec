@@ -127,9 +127,9 @@ def publisher_turtle(
         if spec["alt"]:
             parts.append(f'  skos:altLabel "{spec["alt"]}"@en')
         if spec["broader"] and drop_relation != (iri, f"{SKOS}broader", spec["broader"]):
-            parts.append(f'  skos:broader <{spec["broader"]}>')
+            parts.append(f"  skos:broader <{spec['broader']}>")
         if spec["related"] and drop_relation != (iri, f"{SKOS}related", spec["related"]):
-            parts.append(f'  skos:related <{spec["related"]}>')
+            parts.append(f"  skos:related <{spec['related']}>")
         lines.append(" ;\n".join(parts) + " .")
         lines.append("")
     lines.append(extra_triples)
@@ -171,9 +171,7 @@ def atlas_pack_lines(
     extra_native_payload_by_resource = extra_native_payload_by_resource or {}
     source_locators = source_locators or {}
     if source_digest is None:
-        source_digest = "sha256:" + hashlib.sha256(
-            publisher_turtle().encode("utf-8")
-        ).hexdigest()
+        source_digest = "sha256:" + hashlib.sha256(publisher_turtle().encode("utf-8")).hexdigest()
     lines: list[str] = [
         _quad(
             scheme_target,
@@ -202,9 +200,7 @@ def atlas_pack_lines(
         if include_source_digest:
             lines.append(_plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest))
         lines.append(_quad(record, f"{ATLAS}representsResource", resource))
-        native_payload: dict[str, object] = {
-            "schemeIris": list(native_scheme_iris.get(iri, (SCHEME,)))
-        }
+        native_payload: dict[str, object] = {"schemeIris": list(native_scheme_iris.get(iri, (SCHEME,)))}
         if iri in top_concepts:
             native_payload["topConceptOfIris"] = list(top_concepts[iri])
         if iri in native_literal_evidence:
@@ -276,9 +272,7 @@ class Fixture:
                     "top-concept-source-shape-inverse",
                 }
             ),
-            rdf_source=RdfSourcePolicy(
-                evaluated_native_payload_fields=frozenset({"schemeIris"})
-            ),
+            rdf_source=RdfSourcePolicy(evaluated_native_payload_fields=frozenset({"schemeIris"})),
         )
 
     @property
@@ -457,10 +451,7 @@ def _add_native_control(
         "unresolvedValueCount": 0,
         "use": control_use,
         "valueOccurrenceCount": sum(capture_counts.values()),
-        "values": [
-            {"count": count, "value": value}
-            for value, count in sorted(capture_counts.items())
-        ],
+        "values": [{"count": count, "value": value} for value, count in sorted(capture_counts.items())],
     }
     control.update(capture_policy_overrides or {})
     capture_path = suite.source_root / "tiny-controls.json"
@@ -533,11 +524,7 @@ def _add_native_control(
             [
                 _quad(resource, f"{RDF}type", f"{ATLAS}AtlasResource"),
                 _quad(resource, f"{RDF}type", f"{ATLAS}ValueResource"),
-                *(
-                    [_quad(resource, f"{RDF}type", f"{SKOS}Concept")]
-                    if add_skos_concept_type
-                    else []
-                ),
+                *([_quad(resource, f"{RDF}type", f"{SKOS}Concept")] if add_skos_concept_type else []),
                 _quad(resource, f"{ATLAS}inScheme", scheme_iri),
                 _quad(resource, f"{ATLAS}resourceProfile", f"{ATLAS}{atlas_profile}"),
                 _quad(resource, f"{ATLAS}semanticRing", f"{ATLAS}value"),
@@ -612,20 +599,12 @@ def _repin_native_capture(suite: Fixture, spec: SourceSpec) -> SourceSpec:
         sha256="sha256:" + hashlib.sha256(capture_payload).hexdigest(),
         byte_length=len(capture_payload),
     )
-    new_inputs = tuple(
-        new_capture_pin if pin == old_capture_pin else pin for pin in spec.inputs
-    )
+    new_inputs = tuple(new_capture_pin if pin == old_capture_pin else pin for pin in spec.inputs)
 
     summary_path = suite.distribution / "atlas-construction-summary.json"
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    native_release = next(
-        row for row in summary["releases"] if row["key"] == "tiny-code-release"
-    )
-    capture_row = next(
-        row
-        for row in native_release["inputs"]
-        if row["path"] == old_capture_pin.path
-    )
+    native_release = next(row for row in summary["releases"] if row["key"] == "tiny-code-release")
+    capture_row = next(row for row in native_release["inputs"] if row["path"] == old_capture_pin.path)
     capture_row["sha256"] = new_capture_pin.sha256
     capture_row["byteLength"] = new_capture_pin.byte_length
     summary_path.write_text(json.dumps(summary), encoding="utf-8")
@@ -638,9 +617,7 @@ def _add_lda_general_issue_json_source(
     atlas_label: str = "Agriculture",
 ) -> SourceSpec:
     """Add one LDA JSON row and the independently expected Atlas record."""
-    source_iri = (
-        "https://lda.gov/api/v1/constants/filing/lobbyingactivityissues/"
-    )
+    source_iri = "https://lda.gov/api/v1/constants/filing/lobbyingactivityissues/"
     source_bytes = json.dumps(
         [{"value": "AGR", "name": "Agriculture"}],
         separators=(",", ":"),
@@ -656,10 +633,7 @@ def _add_lda_general_issue_json_source(
         role="publisherSource",
         source_iri=source_iri,
     )
-    resource = (
-        "urn:ref:source-concept:v2:lda-general-issues:"
-        "019fb30e-b790-7c09-986e-3c53706a707b"
-    )
+    resource = "urn:ref:source-concept:v2:lda-general-issues:019fb30e-b790-7c09-986e-3c53706a707b"
     native_payload = {
         "identifiers": [
             {
@@ -694,9 +668,7 @@ def _add_lda_general_issue_json_source(
                 "top-concept-source-shape-inverse",
             }
         ),
-        rdf_source=RdfSourcePolicy(
-            evaluated_native_payload_fields=frozenset(native_payload)
-        ),
+        rdf_source=RdfSourcePolicy(evaluated_native_payload_fields=frozenset(native_payload)),
     )
     record = "urn:example:source-record:lda-general-issue-codes"
     label = "urn:example:label:lda-general-issue-codes"
@@ -1033,9 +1005,7 @@ def _add_federal_register_json_source(
         },
         separators=(",", ":"),
     ).encode()
-    row_digest = (
-        "sha256:c738ce75de29d72b6f927c05c2e42701e784a1b3f9c6df5f9fd51057dbe456cc"
-    )
+    row_digest = "sha256:c738ce75de29d72b6f927c05c2e42701e784a1b3f9c6df5f9fd51057dbe456cc"
     return _add_single_record_stock_source(
         suite,
         name="tiny-federal-register-json",
@@ -1045,10 +1015,7 @@ def _add_federal_register_json_source(
         source_bytes=source_bytes,
         reader=FEDERAL_REGISTER_TOPICS_JSON_READER,
         identity_policy="source-local-record",
-        resource=(
-            "urn:ref:source-concept:v2:federal-register-api:"
-            "019fc4eb-9000-715b-b0d0-6dfc94b25f1a"
-        ),
+        resource=("urn:ref:source-concept:v2:federal-register-api:019fc4eb-9000-715b-b0d0-6dfc94b25f1a"),
         source_locator=source_iri + "#results.thesaurus%5B0%5D",
         source_digest=row_digest,
         native_payload={
@@ -1064,9 +1031,7 @@ def _add_federal_register_json_source(
             "sourceOrdinal": 0,
             "sourceRecordDigest": row_digest,
         },
-        evaluated_native_fields=frozenset(
-            {"collection", "record", "sourceOrdinal", "sourceRecordDigest"}
-        ),
+        evaluated_native_fields=frozenset({"collection", "record", "sourceOrdinal", "sourceRecordDigest"}),
         atlas_only_native_fields=frozenset({"identityStatus"}),
         atlas_label=atlas_label,
         notation="agriculture",
@@ -1079,10 +1044,7 @@ def _add_gcmd_csv_source(
     *,
     atlas_label: str = "AEROSOLS",
 ) -> SourceSpec:
-    source_iri = (
-        "https://gcmd.earthdata.nasa.gov/kms/concepts/"
-        "concept_scheme/sciencekeywords?format=csv"
-    )
+    source_iri = "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
     concept_uuid = "11111111-1111-4111-8111-111111111111"
     source_bytes = (
         "Keyword Version: 24.4,Revision: 2026-07-22T11:07:16.739Z\n"
@@ -1090,10 +1052,7 @@ def _add_gcmd_csv_source(
         "Variable_Level_3,Detailed_Variable,UUID\n"
         f"EARTH SCIENCE,ATMOSPHERE,AEROSOLS,,,,,{concept_uuid}\n"
     ).encode()
-    resource = (
-        "urn:ref:source-concept:v2:gcmd-science-keywords:"
-        "019fc902-aa98-7051-ab80-744873a9f923"
-    )
+    resource = "urn:ref:source-concept:v2:gcmd-science-keywords:019fc902-aa98-7051-ab80-744873a9f923"
     source_pin_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
     return _add_single_record_stock_source(
         suite,
@@ -1148,9 +1107,7 @@ def _add_gcmd_csv_source(
                 "detailedVariable",
             }
         ),
-        atlas_only_native_fields=frozenset(
-            {"hierarchyIsDescriptiveNotInferred"}
-        ),
+        atlas_only_native_fields=frozenset({"hierarchyIsDescriptiveNotInferred"}),
         atlas_label=atlas_label,
         notation=concept_uuid,
     )
@@ -1169,10 +1126,7 @@ def _add_pattern_row_source(
         b"<td>Publisher definition</td></tr></table>"
     )
     native_payload = {
-        "id": (
-            "urn:ref:source-observation:fec-test:"
-            "2a1ebe17ebb7e3fd3bf5a00d9bb6c9889534a24caa299be1fe3cd03eea5b9110"
-        ),
+        "id": ("urn:ref:source-observation:fec-test:2a1ebe17ebb7e3fd3bf5a00d9bb6c9889534a24caa299be1fe3cd03eea5b9110"),
         "sourceArtifact": source_iri,
         "sourcePath": "$.committeeType.C",
         "sourceOrdinal": 0,
@@ -1191,9 +1145,7 @@ def _add_pattern_row_source(
                 "sourceUri": source_iri,
                 "sourcePath": "$.committeeType.C",
                 "observedAt": "2026-08-03T19:24:00Z",
-                "sourceDigest": (
-                    "sha256:8a476cc04732ef521b2d8255f960ad9690bd8d2fb448d2fd9b4de43e65c683cb"
-                ),
+                "sourceDigest": ("sha256:8a476cc04732ef521b2d8255f960ad9690bd8d2fb448d2fd9b4de43e65c683cb"),
             }
         ],
         "uses": ["deterministicMetadata"],
@@ -1209,14 +1161,9 @@ def _add_pattern_row_source(
         source_bytes=source_bytes,
         reader=PATTERN_ROW_READER,
         identity_policy="source-local-record",
-        resource=(
-            "urn:ref:source-concept:v2:tiny-fec-html:"
-            "019fc915-3c80-7e2d-993c-37d7192fb3a4"
-        ),
+        resource=("urn:ref:source-concept:v2:tiny-fec-html:019fc915-3c80-7e2d-993c-37d7192fb3a4"),
         source_locator=source_iri,
-        source_digest=(
-            "sha256:a4c88fbef590a8a5ada1db0802c86ab346e59c893a40ced63fb06356eafad644"
-        ),
+        source_digest=("sha256:a4c88fbef590a8a5ada1db0802c86ab346e59c893a40ced63fb06356eafad644"),
         native_payload=native_payload,
         evaluated_native_fields=frozenset(native_payload),
         atlas_only_native_fields=frozenset(),
@@ -1244,17 +1191,13 @@ def _add_pattern_row_source(
                     normalizers=(
                         PatternFieldNormalizer("code", ("html-visible-text",)),
                         PatternFieldNormalizer("label", ("html-visible-text",)),
-                        PatternFieldNormalizer(
-                            "description", ("html-visible-text",)
-                        ),
+                        PatternFieldNormalizer("description", ("html-visible-text",)),
                     ),
                 ),
             ),
             row_key="{code}",
             identity_mode="source-local-record",
-            identity_template=(
-                "urn:ref:source-concept:v2:{source_token}:{source_uuid7}"
-            ),
+            identity_template=("urn:ref:source-concept:v2:{source_token}:{source_uuid7}"),
             source_locator_template="{source_iri}",
             claim_map=(
                 ("preferred_label", "{label}"),
@@ -1619,9 +1562,7 @@ def _add_nrc_multi_artifact_source(
     spec = replace(spec, inputs=tuple(pins))
     summary_path = suite.distribution / "atlas-construction-summary.json"
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    release = next(
-        row for row in summary["releases"] if row["key"] == spec.name
-    )
+    release = next(row for row in summary["releases"] if row["key"] == spec.name)
     release["inputs"] = [
         {
             "path": pin.path,
@@ -1727,9 +1668,7 @@ def test_mesh_xml_reader_faithful_pair_passes_every_check(suite: Fixture) -> Non
         (suite.spec, mesh_spec),
     )
 
-    assert failed(results) == set(), [
-        item.failures for item in results if not item.passed
-    ]
+    assert failed(results) == set(), [item.failures for item in results if not item.passed]
 
 
 def test_mesh_xml_reader_catches_rewritten_preferred_label(suite: Fixture) -> None:
@@ -1746,10 +1685,7 @@ def test_mesh_xml_reader_catches_rewritten_preferred_label(suite: Fixture) -> No
     )
 
     assert not label_check.passed
-    assert any(
-        "Atlas prefLabel" in failure and "'Rewritten'" in failure
-        for failure in label_check.failures
-    )
+    assert any("Atlas prefLabel" in failure and "'Rewritten'" in failure for failure in label_check.failures)
 
 
 def test_federal_register_json_reader_faithful_pair_passes_every_check(
@@ -1764,9 +1700,7 @@ def test_federal_register_json_reader_faithful_pair_passes_every_check(
         (suite.spec, spec),
     )
 
-    assert failed(results) == set(), [
-        item.failures for item in results if not item.passed
-    ]
+    assert failed(results) == set(), [item.failures for item in results if not item.passed]
 
 
 def test_federal_register_json_reader_catches_rewritten_label(
@@ -1800,9 +1734,7 @@ def test_gcmd_csv_reader_faithful_pair_passes_every_check(
         (suite.spec, spec),
     )
 
-    assert failed(results) == set(), [
-        item.failures for item in results if not item.passed
-    ]
+    assert failed(results) == set(), [item.failures for item in results if not item.passed]
 
 
 def test_gcmd_csv_reader_catches_rewritten_label(suite: Fixture) -> None:
@@ -1834,9 +1766,7 @@ def test_lda_general_issue_json_reader_faithful_pair_passes_every_check(
         (suite.spec, spec),
     )
 
-    assert failed(results) == set(), [
-        item.failures for item in results if not item.passed
-    ]
+    assert failed(results) == set(), [item.failures for item in results if not item.passed]
 
 
 def test_lda_general_issue_json_reader_catches_rewritten_label(
@@ -1870,9 +1800,7 @@ def test_pattern_row_reader_faithful_pair_passes_every_check(
         (suite.spec, spec),
     )
 
-    assert failed(results) == set(), [
-        item.failures for item in results if not item.passed
-    ]
+    assert failed(results) == set(), [item.failures for item in results if not item.passed]
 
 
 def test_pattern_row_reader_catches_rewritten_label(suite: Fixture) -> None:
@@ -1905,9 +1833,7 @@ def test_xml_record_selector_reader_passes_and_catches_fault(
         (suite.spec, spec),
     )
     if atlas_label == "Alpha":
-        assert failed(results) == set(), [
-            item.failures for item in results if not item.passed
-        ]
+        assert failed(results) == set(), [item.failures for item in results if not item.passed]
     else:
         label_check = result(results, "label-fidelity")
         assert not label_check.passed
@@ -1927,9 +1853,7 @@ def test_json_record_selector_reader_passes_and_catches_fault(
         (suite.spec, spec),
     )
     if atlas_label == "Alpha":
-        assert failed(results) == set(), [
-            item.failures for item in results if not item.passed
-        ]
+        assert failed(results) == set(), [item.failures for item in results if not item.passed]
     else:
         label_check = result(results, "label-fidelity")
         assert not label_check.passed
@@ -1949,9 +1873,7 @@ def test_csv_record_selector_reader_passes_and_catches_fault(
         (suite.spec, spec),
     )
     if atlas_label == "Alpha":
-        assert failed(results) == set(), [
-            item.failures for item in results if not item.passed
-        ]
+        assert failed(results) == set(), [item.failures for item in results if not item.passed]
     else:
         label_check = result(results, "label-fidelity")
         assert not label_check.passed
@@ -1971,9 +1893,7 @@ def test_ooxml_relational_reader_passes_and_catches_fault(
         (suite.spec, spec),
     )
     if atlas_label == "Alpha":
-        assert failed(results) == set(), [
-            item.failures for item in results if not item.passed
-        ]
+        assert failed(results) == set(), [item.failures for item in results if not item.passed]
     else:
         label_check = result(results, "label-fidelity")
         assert not label_check.passed
@@ -1993,9 +1913,7 @@ def test_nrc_multi_artifact_reader_passes_and_catches_fault(
         (suite.spec, spec),
     )
     if atlas_label == "Alpha":
-        assert failed(results) == set(), [
-            item.failures for item in results if not item.passed
-        ]
+        assert failed(results) == set(), [item.failures for item in results if not item.passed]
     else:
         label_check = result(results, "label-fidelity")
         assert not label_check.passed
@@ -2021,12 +1939,11 @@ def test_pattern_row_fixed_width_column_accepts_wrap_and_rejects_bad_indent() ->
         "revisionPattern": r"\(Rev\. \d{2}/\d{2}\)",
     }
 
-    assert _fixed_width_layout_column(value, "fixture") == (
-        "Environmental Matters Continued title"
+    assert _fixed_width_layout_column(value, "fixture") == ("Environmental Matters Continued title")
+    assert (
+        _fixed_width_layout_column({**value, "column": "description"}, "fixture")
+        == "First line. Second line. Cross-page description."
     )
-    assert _fixed_width_layout_column(
-        {**value, "column": "description"}, "fixture"
-    ) == "First line. Second line. Cross-page description."
 
     bad_value = {
         **value,
@@ -2070,14 +1987,12 @@ def test_native_control_raw_parquet_catches_colluding_capture_and_atlas(
     native_check = result(results, "native-control-fidelity")
     assert not native_check.passed
     assert any(
-        "normalized control capture valueOccurrenceCount differs from direct Parquet scan"
-        in failure
+        "normalized control capture valueOccurrenceCount differs from direct Parquet scan" in failure
         and "expected 3, observed 2" in failure
         for failure in native_check.failures
     )
     assert any(
-        "normalized control capture count for 'Alpha' differs -- publisher 2, observed 1"
-        in failure
+        "normalized control capture count for 'Alpha' differs -- publisher 2, observed 1" in failure
         for failure in native_check.failures
     )
     assert any(
@@ -2283,8 +2198,7 @@ def test_shared_capture_requires_exact_declared_control_closure(
     native_check = result(results, "native-control-fidelity")
     assert not native_check.passed
     assert any(
-        "normalized control capture has undeclared controls: ['undeclared-control']"
-        in failure
+        "normalized control capture has undeclared controls: ['undeclared-control']" in failure
         for failure in native_check.failures
     )
     assert result(results, "label-fidelity").passed
@@ -2358,9 +2272,7 @@ def test_invalid_zero_label_floor_fails_closed_but_other_checks_continue(suite: 
 
 
 def test_weakened_coverage_setting_is_a_failed_configuration(suite: Fixture) -> None:
-    results = suite.run(
-        Expectations(minimum_label_sample=1, require_complete_coverage=False)
-    )
+    results = suite.run(Expectations(minimum_label_sample=1, require_complete_coverage=False))
     check = result(results, "configuration")
     assert not check.passed
     assert any("cannot produce a source-fidelity verdict" in text for text in check.failures)
@@ -2398,8 +2310,7 @@ def test_coverage_fails_when_adapter_kind_disagrees_with_construction_unit(
     check = result(results, "distribution-coverage")
     assert not check.passed
     assert any(
-        "comparison kind 'vocabulary' requires construction kind 'sourceRelease'" in text
-        for text in check.failures
+        "comparison kind 'vocabulary' requires construction kind 'sourceRelease'" in text for text in check.failures
     )
     assert result(results, "relation-fidelity").passed
 
@@ -2417,11 +2328,7 @@ def test_manifest_pack_without_a_construction_owner_fails_closed(
     extra_relative = "sources/unowned/all.nq.zst"
     extra_path = suite.distribution / "packs" / extra_relative
     extra_path.parent.mkdir(parents=True)
-    transport = zstd.compress(
-        (_quad(f"{EX}c1", f"{SKOS}related", f"{EX}ghost") + "\n").encode(
-            "utf-8"
-        )
-    )
+    transport = zstd.compress((_quad(f"{EX}c1", f"{SKOS}related", f"{EX}ghost") + "\n").encode("utf-8"))
     extra_path.write_bytes(transport)
     manifest_path = suite.distribution / "atlas-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -2440,9 +2347,7 @@ def test_manifest_pack_without_a_construction_owner_fails_closed(
 
     assert not check.passed
     assert any(
-        "not owned by any construction unit" in failure
-        and extra_relative in failure
-        for failure in check.failures
+        "not owned by any construction unit" in failure and extra_relative in failure for failure in check.failures
     )
 
 
@@ -2450,36 +2355,25 @@ def test_claim_scope_fails_when_generic_member_literal_is_unrepresented(
     suite: Fixture,
 ) -> None:
     predicate = "http://example.org/vocab/unhandled"
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{predicate}> "This claim must not disappear."@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{predicate}> "This claim must not disappear."@en .')
 
     check = result(suite.run(), "claim-scope")
 
     assert not check.passed
-    assert any(
-        "memberMetadataLiterals source claims are unrepresented" in text
-        for text in check.failures
-    )
+    assert any("memberMetadataLiterals source claims are unrepresented" in text for text in check.failures)
 
 
 def test_source_claim_coverage_fails_on_an_unowned_publisher_resource(
     suite: Fixture,
 ) -> None:
     predicate = "http://purl.org/dc/terms/title"
-    suite.write_publisher(
-        extra_triples=f'<{EX}dataset> <{predicate}> "Publisher dataset"@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}dataset> <{predicate}> "Publisher dataset"@en .')
     suite.write_pack()
 
     check = result(suite.run(), "source-claim-coverage")
 
     assert not check.passed
-    assert any(
-        predicate in failure
-        and "outside every executable comparison" in failure
-        for failure in check.failures
-    )
+    assert any(predicate in failure and "outside every executable comparison" in failure for failure in check.failures)
     assert not result(suite.run(), "claim-scope").passed
 
 
@@ -2502,9 +2396,7 @@ def test_source_claim_coverage_rejects_a_label_on_an_unknown_atlas_subject(
 
     assert not check.passed
     assert any(
-        "Atlas literal claim" in failure
-        and f"{SKOS}prefLabel" in failure
-        and f"{EX}ghost" in failure
+        "Atlas literal claim" in failure and f"{SKOS}prefLabel" in failure and f"{EX}ghost" in failure
         for failure in check.failures
     )
     assert not result(results, "claim-scope").passed
@@ -2538,9 +2430,7 @@ def test_source_claim_coverage_rejects_common_source_fields_on_unknown_subjects(
 
     assert not check.passed
     assert any(
-        predicate in failure
-        and f"{EX}ghost" in failure
-        and "Atlas literal claim" in failure
+        predicate in failure and f"{EX}ghost" in failure and "Atlas literal claim" in failure
         for failure in check.failures
     )
 
@@ -2585,9 +2475,7 @@ def test_record_status_on_a_known_source_subject_is_atlas_minted_structure(
     hole.
     """
     lines = atlas_pack_lines()
-    lines.append(
-        _quad(f"{EX}c1", f"{ATLAS}recordStatus", "active", literal=True)
-    )
+    lines.append(_quad(f"{EX}c1", f"{ATLAS}recordStatus", "active", literal=True))
     suite.write_pack_lines(lines)
 
     results = suite.run()
@@ -2622,9 +2510,7 @@ def test_record_status_is_declared_in_the_receipt_not_silently_dropped(
 
     receipt = json.loads(output.read_text(encoding="utf-8"))
     excluded = receipt["comparisons"][0]["claimScope"]["intentionallyExcludedFamilies"]
-    structure = next(
-        row for row in excluded if row["name"] == "atlasRepresentationStructure"
-    )
+    structure = next(row for row in excluded if row["name"] == "atlasRepresentationStructure")
     assert f"{ATLAS}recordStatus" in structure["predicates"]
     assert "Atlas-minted" in structure["reason"]
 
@@ -2637,9 +2523,7 @@ RDFS = "http://www.w3.org/2000/01/rdf-schema#"
 GROUP = f"{EX}group/1"
 GROUP_TYPE = f"{EX}Group"
 GROUP_TRIPLES = (
-    f"<{GROUP}> a <{GROUP_TYPE}> ;\n"
-    f'  <{RDFS}label> "Browsing group"@en ;\n'
-    f"  <{SKOS}member> <{EX}c1>, <{EX}c2> ."
+    f'<{GROUP}> a <{GROUP_TYPE}> ;\n  <{RDFS}label> "Browsing group"@en ;\n  <{SKOS}member> <{EX}c1>, <{EX}c2> .'
 )
 GROUP_EXCLUSION = DeclaredClaimExclusion(
     name="publisherBrowsingGroups",
@@ -2670,9 +2554,7 @@ def test_a_declared_exclusion_accounts_for_the_layer_instead_of_hiding_it(
 
     fixture = Fixture(tmp_path)
     _with_group(fixture)
-    fixture.spec = replace(
-        fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,)
-    )
+    fixture.spec = replace(fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
     monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
     output = tmp_path / "receipt.json"
     verifier.main(
@@ -2689,17 +2571,13 @@ def test_a_declared_exclusion_accounts_for_the_layer_instead_of_hiding_it(
     )
 
     receipt = json.loads(output.read_text(encoding="utf-8"))
-    coverage = next(
-        row for row in receipt["results"] if row["check"] == "source-claim-coverage"
-    )
+    coverage = next(row for row in receipt["results"] if row["check"] == "source-claim-coverage")
     assert coverage["passed"]
     assert "declared out of scope" in coverage["summary"]
 
     family = next(
         row
-        for row in receipt["comparisons"][0]["claimScope"][
-            "intentionallyExcludedFamilies"
-        ]
+        for row in receipt["comparisons"][0]["claimScope"]["intentionallyExcludedFamilies"]
         if row["name"] == "publisherBrowsingGroups"
     )
     assert family["status"] == "declared-out-of-scope"
@@ -2724,15 +2602,10 @@ def test_a_declared_exclusion_fails_closed_when_atlas_asserts_the_layer(
 
     coverage = result(results, "source-claim-coverage")
     assert not coverage.passed
-    assert any(
-        "Atlas literal claim" in failure and GROUP in failure
-        for failure in coverage.failures
-    )
+    assert any("Atlas literal claim" in failure and GROUP in failure for failure in coverage.failures)
     scope = result(results, "claim-scope")
     assert not scope.passed
-    assert any(
-        "publisherBrowsingGroups does not hold" in failure for failure in scope.failures
-    )
+    assert any("publisherBrowsingGroups does not hold" in failure for failure in scope.failures)
 
 
 def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
@@ -2757,9 +2630,7 @@ def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
         )
     )
     fixture.write_pack(source_digest=fixture.publisher_content_digest())
-    fixture.spec = replace(
-        fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,)
-    )
+    fixture.spec = replace(fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
     monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
     output = tmp_path / "receipt.json"
     verifier.main(
@@ -2776,18 +2647,14 @@ def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
     )
 
     receipt = json.loads(output.read_text(encoding="utf-8"))
-    coverage = next(
-        row for row in receipt["results"] if row["check"] == "source-claim-coverage"
-    )
+    coverage = next(row for row in receipt["results"] if row["check"] == "source-claim-coverage")
     assert not coverage["passed"]
     assert any(SCHEME in failure for failure in coverage["failures"])
     assert not any(GROUP in failure for failure in coverage["failures"])
 
     family = next(
         row
-        for row in receipt["comparisons"][0]["claimScope"][
-            "intentionallyExcludedFamilies"
-        ]
+        for row in receipt["comparisons"][0]["claimScope"]["intentionallyExcludedFamilies"]
         if row["name"] == "publisherBrowsingGroups"
     )
     assert family["publisherBlankNodeClaimCount"] == 2
@@ -2815,21 +2682,17 @@ def _language_declaration(
         "schemaVersion": "1.0",
         "exclusionType": "languageFamily",
         "selection": {
-            "countUnit": (
-                "unique auditor semantic literal claim after SourceSpec subset selection"
-            ),
+            "countUnit": ("unique auditor semantic literal claim after SourceSpec subset selection"),
             "excludedClaimRule": (
-                "language tag is present and primary language subtag is not en"
+                "language tag is present and primary language subtag is outside the admitted families"
             ),
-            "includedLanguageFamilies": ["en"],
-            "selectionRule": "bcp47-primary-language-subtag",
+            "includedLanguageFamilies": ["de", "en", "es", "fi", "fr", "it", "ja"],
+            "selectionRule": "publisher-or-deterministic-lowercase-bcp47",
         },
         "predicateFamilies": families,
         "countsBySourceAndLanguage": {"example": counts_by_language},
         "totalExcludedClaims": sum(
-            count
-            for family_counts in counts_by_language.values()
-            for count in family_counts.values()
+            count for family_counts in counts_by_language.values() for count in family_counts.values()
         ),
     }
     payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
@@ -2837,9 +2700,7 @@ def _language_declaration(
         name="testNonEnglishPublisherLiterals",
         reason="this fixture declares an English-only product scope",
         payload_json=payload_json,
-        payload_sha256=(
-            "sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
-        ),
+        payload_sha256=("sha256:" + hashlib.sha256(payload_json.encode("utf-8")).hexdigest()),
     )
 
 
@@ -2850,10 +2711,10 @@ def _declare_fixture_language_scope(
     summary_path = suite.distribution / "atlas-construction-summary.json"
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     summary["languageScope"] = {
-        "includedLanguageFamilies": ["en"],
-        "selectionRule": "bcp47-primary-language-subtag",
+        "includedLanguageFamilies": ["de", "en", "es", "fi", "fr", "it", "ja"],
+        "selectionRule": "publisher-or-deterministic-lowercase-bcp47",
         "unselectedPublisherContent": "notRepresented",
-        "wireLanguageTag": "en",
+        "wireLanguageTag": "lowercase-bcp47",
     }
     summary_path.write_text(json.dumps(summary), encoding="utf-8")
     return replace(suite.spec, declared_language_exclusion=declaration)
@@ -2866,11 +2727,9 @@ def test_language_exclusion_is_exact_and_itemised_in_the_receipt(
     import tools.verify_atlas_source_fidelity as verifier
 
     fixture = Fixture(tmp_path)
-    fixture.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
-    )
+    fixture.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt .')
     fixture.write_pack(source_digest=fixture.publisher_content_digest())
-    declaration = _language_declaration({"fr": {"preferredLabels": 1}})
+    declaration = _language_declaration({"pt": {"preferredLabels": 1}})
     fixture.spec = _declare_fixture_language_scope(fixture, declaration)
     monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
     output = tmp_path / "receipt.json"
@@ -2890,25 +2749,17 @@ def test_language_exclusion_is_exact_and_itemised_in_the_receipt(
 
     assert return_code == 0
     receipt = json.loads(output.read_text(encoding="utf-8"))
-    language = next(
-        row for row in receipt["results"] if row["check"] == "language-scope"
-    )
+    language = next(row for row in receipt["results"] if row["check"] == "language-scope")
     assert language["passed"]
     assert "1 non-English publisher" in language["summary"]
     family = next(
         row
-        for row in receipt["comparisons"][0]["claimScope"][
-            "intentionallyExcludedFamilies"
-        ]
+        for row in receipt["comparisons"][0]["claimScope"]["intentionallyExcludedFamilies"]
         if row["name"] == "testNonEnglishPublisherLiterals"
     )
     assert family["status"] == "declared-out-of-scope"
-    assert family["expectedCountsByLanguage"] == {
-        "fr": {"preferredLabels": 1}
-    }
-    assert family["actualCountsByLanguage"] == {
-        "fr": {"preferredLabels": 1}
-    }
+    assert family["expectedCountsByLanguage"] == {"pt": {"preferredLabels": 1}}
+    assert family["actualCountsByLanguage"] == {"pt": {"preferredLabels": 1}}
     assert family["publisherClaimCount"] == 1
     assert family["publisherClaimsDigest"].startswith("sha256:")
     assert family["atlasClaimCount"] == 0
@@ -2922,7 +2773,7 @@ def test_language_exclusion_never_removes_untagged_or_iri_claims(
     iri_predicate = f"{EX}iriMetadata"
     suite.write_publisher(
         extra_triples=(
-            f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr ;\n'
+            f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt ;\n'
             f'  <{literal_predicate}> "must remain" ;\n'
             f"  <{iri_predicate}> <{EX}target> ."
         )
@@ -2930,7 +2781,7 @@ def test_language_exclusion_never_removes_untagged_or_iri_claims(
     suite.write_pack(source_digest=suite.publisher_content_digest())
     spec = _declare_fixture_language_scope(
         suite,
-        _language_declaration({"fr": {"preferredLabels": 1}}),
+        _language_declaration({"pt": {"preferredLabels": 1}}),
     )
 
     results = suite.run(spec=spec)
@@ -2946,14 +2797,10 @@ def test_language_exclusion_never_removes_untagged_or_iri_claims(
 def test_language_exclusion_keeps_a_scheme_label_in_its_comparison_family(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=(
-            f'<{SCHEME}> <{SKOS}altLabel> "Vocabolario di esempio"@it .'
-        )
-    )
+    suite.write_publisher(extra_triples=(f'<{SCHEME}> <{SKOS}altLabel> "Vocabulário de exemplo"@pt .'))
     suite.write_pack(source_digest=suite.publisher_content_digest())
     declaration = _language_declaration(
-        {"it": {"sourceSchemeLiterals": 1}},
+        {"pt": {"sourceSchemeLiterals": 1}},
         predicate_families={
             "alternateLabels": [
                 f"{SKOS}altLabel",
@@ -2977,8 +2824,8 @@ def test_language_exclusion_keeps_a_scheme_label_in_its_comparison_family(
 @pytest.mark.parametrize(
     ("counts", "source_language"),
     (
-        ({"fr": {"preferredLabels": 2}}, "fr"),
-        ({"fr": {"preferredLabels": 1}}, "de"),
+        ({"pt": {"preferredLabels": 2}}, "pt"),
+        ({"pt": {"preferredLabels": 1}}, "nl"),
     ),
 )
 def test_language_exclusion_fails_closed_on_count_or_language_drift(
@@ -2986,11 +2833,7 @@ def test_language_exclusion_fails_closed_on_count_or_language_drift(
     counts: dict[str, dict[str, int]],
     source_language: str,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=(
-            f'<{EX}c1> <{SKOS}prefLabel> "Out of declared scope"@{source_language} .'
-        )
-    )
+    suite.write_publisher(extra_triples=(f'<{EX}c1> <{SKOS}prefLabel> "Out of declared scope"@{source_language} .'))
     suite.write_pack(source_digest=suite.publisher_content_digest())
     spec = _declare_fixture_language_scope(
         suite,
@@ -3009,9 +2852,7 @@ def test_language_exclusion_fails_closed_on_an_undeclared_predicate_family(
     suite: Fixture,
 ) -> None:
     predicate = f"{EX}localizedMetadata"
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{predicate}> "Hors périmètre"@fr .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{predicate}> "Fora do escopo"@pt .')
     suite.write_pack(source_digest=suite.publisher_content_digest())
     spec = _declare_fixture_language_scope(
         suite,
@@ -3029,15 +2870,11 @@ def test_language_exclusion_fails_closed_on_an_undeclared_predicate_family(
 def test_language_scope_fails_when_construction_statement_is_omitted(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt .')
     suite.write_pack(source_digest=suite.publisher_content_digest())
     spec = replace(
         suite.spec,
-        declared_language_exclusion=_language_declaration(
-            {"fr": {"preferredLabels": 1}}
-        ),
+        declared_language_exclusion=_language_declaration({"pt": {"preferredLabels": 1}}),
     )
 
     results = suite.run(spec=spec)
@@ -3051,9 +2888,7 @@ def test_language_scope_fails_when_construction_statement_is_omitted(
 def test_language_scope_fails_on_a_non_english_atlas_literal_anywhere(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Société du café"@fr .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt .')
     lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
     atlas_only = "urn:ref:atlas-release:language-test"
     lines.extend(
@@ -3064,29 +2899,27 @@ def test_language_scope_fails_on_a_non_english_atlas_literal_anywhere(
                 f"{ATLAS}description",
                 "Ne devrait pas être ici",
                 literal=True,
-                lang="fr",
+                lang="pt",
             ),
         )
     )
     suite.write_pack_lines(lines)
     spec = _declare_fixture_language_scope(
         suite,
-        _language_declaration({"fr": {"preferredLabels": 1}}),
+        _language_declaration({"pt": {"preferredLabels": 1}}),
     )
 
     results = suite.run(spec=spec)
 
     language = result(results, "language-scope")
     assert not language.passed
-    assert any("non-English" in failure for failure in language.failures)
+    assert any("out-of-scope" in failure for failure in language.failures)
 
 
 def test_language_exclusion_leaves_english_claims_compared_both_directions(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Source English"@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Source English"@en .')
     lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
     lines.append(
         _quad(
@@ -3104,14 +2937,8 @@ def test_language_exclusion_leaves_english_claims_compared_both_directions(
     assert result(results, "language-scope").passed
     label = result(results, "label-fidelity")
     assert not label.passed
-    assert any(
-        "Source English" in failure and "missing from Atlas" in failure
-        for failure in label.failures
-    )
-    assert any(
-        "Atlas English" in failure and "absent from publisher" in failure
-        for failure in label.failures
-    )
+    assert any("Source English" in failure and "missing from Atlas" in failure for failure in label.failures)
+    assert any("Atlas English" in failure and "absent from publisher" in failure for failure in label.failures)
 
 
 RELEASE = f"{EX}release/2026-01-01"
@@ -3141,12 +2968,8 @@ def test_release_metadata_reports_publisher_fields_atlas_drops_by_family(
     check = result(suite.run(), "source-release-metadata")
 
     assert not check.passed
-    assert any(
-        "title family are missing from Atlas" in failure for failure in check.failures
-    )
-    assert any(
-        "version family are missing from Atlas" in failure for failure in check.failures
-    )
+    assert any("title family are missing from Atlas" in failure for failure in check.failures)
+    assert any("version family are missing from Atlas" in failure for failure in check.failures)
 
 
 def test_release_metadata_fires_when_atlas_states_an_unsupported_release_field(
@@ -3168,10 +2991,7 @@ def test_release_metadata_fires_when_atlas_states_an_unsupported_release_field(
     check = result(suite.run(), "source-release-metadata")
 
     assert not check.passed
-    assert any(
-        "Atlas adds" in failure and "dates family" in failure
-        for failure in check.failures
-    )
+    assert any("Atlas adds" in failure and "dates family" in failure for failure in check.failures)
 
 
 def test_an_adopted_release_iri_can_never_be_declared_out_of_scope(
@@ -3193,9 +3013,7 @@ def test_an_adopted_release_iri_can_never_be_declared_out_of_scope(
         reason="an exclusion worded broadly enough to reach the adopted release",
         subject_types=frozenset({f"{EX}Work"}),
     )
-    fixture.spec = replace(
-        fixture.spec, declared_claim_exclusions=(overreaching,)
-    )
+    fixture.spec = replace(fixture.spec, declared_claim_exclusions=(overreaching,))
     monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
     output = tmp_path / "receipt.json"
     verifier.main(
@@ -3214,20 +3032,13 @@ def test_an_adopted_release_iri_can_never_be_declared_out_of_scope(
     receipt = json.loads(output.read_text(encoding="utf-8"))
     family = next(
         row
-        for row in receipt["comparisons"][0]["claimScope"][
-            "intentionallyExcludedFamilies"
-        ]
+        for row in receipt["comparisons"][0]["claimScope"]["intentionallyExcludedFamilies"]
         if row["name"] == "allPublisherWorks"
     )
     assert family["routedToReleaseComparison"] == [RELEASE]
     assert family["publisherClaimCount"] == 0
-    release = next(
-        row for row in receipt["results"] if row["check"] == "source-release-metadata"
-    )
-    assert any(
-        "title family are missing from Atlas" in failure
-        for failure in release["failures"]
-    )
+    release = next(row for row in receipt["results"] if row["check"] == "source-release-metadata")
+    assert any("title family are missing from Atlas" in failure for failure in release["failures"])
 
 
 def test_release_metadata_ignores_atlas_minted_provenance(suite: Fixture) -> None:
@@ -3260,10 +3071,7 @@ def test_a_declared_exclusion_may_not_cover_a_subject_the_comparison_compares(
 
     scope = result(results, "claim-scope")
     assert not scope.passed
-    assert any(
-        "everyConcept covers" in failure and "also compares" in failure
-        for failure in scope.failures
-    )
+    assert any("everyConcept covers" in failure and "also compares" in failure for failure in scope.failures)
 
 
 def test_a_declared_exclusion_must_name_the_subjects_it_covers() -> None:
@@ -3322,10 +3130,7 @@ def test_source_claim_coverage_rejects_source_relations_on_unknown_subjects(
 
     assert not check.passed
     assert any(
-        "Atlas IRI claim" in failure
-        and predicate in failure
-        and f"{EX}ghost" in failure
-        for failure in check.failures
+        "Atlas IRI claim" in failure and predicate in failure and f"{EX}ghost" in failure for failure in check.failures
     )
 
 
@@ -3372,9 +3177,7 @@ def test_source_claim_coverage_rejects_an_orphan_literal_form_on_a_source_concep
 
     assert not check.passed
     assert any(
-        f"{SKOSXL}literalForm" in failure
-        and "Manufactured orphan form" in failure
-        for failure in check.failures
+        f"{SKOSXL}literalForm" in failure and "Manufactured orphan form" in failure for failure in check.failures
     )
 
 
@@ -3427,10 +3230,7 @@ def test_adapter_exclusion_cannot_waive_missing_publisher_data(
     check = result(suite.run(spec=excluded), "claim-scope")
 
     assert not check.passed
-    assert any(
-        "memberMetadataLiterals source claims are unrepresented" in text
-        for text in check.failures
-    )
+    assert any("memberMetadataLiterals source claims are unrepresented" in text for text in check.failures)
 
 
 def test_explicit_bounded_capture_compares_only_its_named_publisher_concepts(
@@ -3541,8 +3341,7 @@ def test_graph_structure_accepts_a_digested_source_shaped_editorial_relation(
             _quad(
                 record,
                 f"{ATLAS}sourceLocator",
-                "urn:ref:publisher-relation:"
-                + relation_digest.removeprefix("sha256:"),
+                "urn:ref:publisher-relation:" + relation_digest.removeprefix("sha256:"),
             ),
             _plain_literal_quad(
                 record,
@@ -3586,10 +3385,7 @@ def test_graph_structure_accepts_a_digested_source_shaped_editorial_relation(
         suite.distribution,
         ("sources/example/all.nq.zst",),
     )
-    assert any(
-        "invalid nativePayload.publisherRelation" in failure
-        for failure in fault.structural_failures
-    )
+    assert any("invalid nativePayload.publisherRelation" in failure for failure in fault.structural_failures)
 
 
 def test_compact_native_payload_index_keeps_exact_digests_and_field_faults(
@@ -3598,13 +3394,16 @@ def test_compact_native_payload_index_keeps_exact_digests_and_field_faults(
     source_subjects = frozenset(CONCEPTS)
     expected_fields = frozenset({"schemeIris"})
     expected_payload = {"schemeIris": [SCHEME]}
-    expected_digest = "sha256:" + hashlib.sha256(
-        json.dumps(
-            expected_payload,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode()
-    ).hexdigest()
+    expected_digest = (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(
+                expected_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        ).hexdigest()
+    )
     suite.write_pack(source_digest=expected_digest)
     faithful = read_atlas_source(
         suite.distribution,
@@ -3616,8 +3415,7 @@ def test_compact_native_payload_index_keeps_exact_digests_and_field_faults(
 
     assert not faithful.native_payloads
     assert faithful.compact_native_payload_records == frozenset(
-        f"urn:ref:atlas-source-record:{resource.rsplit('/', 1)[-1]}"
-        for resource in CONCEPTS
+        f"urn:ref:atlas-source-record:{resource.rsplit('/', 1)[-1]}" for resource in CONCEPTS
     )
     assert not faithful.native_payload_digest_differences
     assert not faithful.native_payload_field_differences
@@ -3634,9 +3432,7 @@ def test_compact_native_payload_index_keeps_exact_digests_and_field_faults(
         compact_native_payload_fields=expected_fields,
     )
 
-    assert set(fault.native_payload_field_differences.values()) == {
-        (("unexpectedField",), ())
-    }
+    assert set(fault.native_payload_field_differences.values()) == {(("unexpectedField",), ())}
     assert len(fault.native_payload_digest_differences) == len(CONCEPTS)
 
 
@@ -3644,16 +3440,13 @@ def test_graph_structure_reports_a_pack_that_differs_from_its_manifest_pin(
     suite: Fixture,
 ) -> None:
     lines = atlas_pack_lines(labels={f"{EX}c1": "Changed after the manifest was written"})
-    suite.pack_path.write_bytes(
-        zstd.compress(("\n".join(lines) + "\n").encode("utf-8"))
-    )
+    suite.pack_path.write_bytes(zstd.compress(("\n".join(lines) + "\n").encode("utf-8")))
 
     check = result(suite.run(), "graph-structure")
 
     assert not check.passed
     assert any(
-        "transport differs from atlas-manifest.json" in text
-        and "sources/example/all.nq.zst" in text
+        "transport differs from atlas-manifest.json" in text and "sources/example/all.nq.zst" in text
         for text in check.failures
     )
 
@@ -3692,9 +3485,7 @@ def test_rdf_provenance_collects_every_independent_source_mismatch(
     assert any("locator differs" in text and f"<{EX}c1>" in text for text in check.failures)
     assert any("schemeIris differs" in text and "observed []" in text for text in check.failures)
     assert any(
-        "nativePayload field 'opaqueTransform' is not independently evaluated"
-        in text
-        and "3 source records" in text
+        "nativePayload field 'opaqueTransform' is not independently evaluated" in text and "3 source records" in text
         for text in check.failures
     )
     assert not result(results, "claim-scope").passed
@@ -3709,8 +3500,7 @@ def test_rdf_provenance_fails_closed_on_an_unevaluated_native_field(
 
     assert not check.passed
     assert any(
-        "nativePayload field 'publisherRepair' is not independently evaluated" in text
-        for text in check.failures
+        "nativePayload field 'publisherRepair' is not independently evaluated" in text for text in check.failures
     )
 
 
@@ -3862,10 +3652,7 @@ def test_rdf_provenance_rejects_an_untyped_fabricated_record_target(
     check = result(suite.run(), "rdf-provenance-fidelity")
 
     assert not check.passed
-    assert any(
-        ghost in failure and "not a publisher concept" in failure
-        for failure in check.failures
-    )
+    assert any(ghost in failure and "not a publisher concept" in failure for failure in check.failures)
 
 
 # --------------------------------------------------------------------------------------
@@ -3925,7 +3712,9 @@ def test_label_fidelity_fires_when_one_alternate_label_is_omitted(suite: Fixture
     suite.write_pack(drop_alt_label=f"{EX}c2")
     check = result(suite.run(), "label-fidelity")
     assert not check.passed
-    assert any("publisher altLabel" in text and "Pubs" in text and "missing from Atlas" in text for text in check.failures)
+    assert any(
+        "publisher altLabel" in text and "Pubs" in text and "missing from Atlas" in text for text in check.failures
+    )
 
 
 def test_label_fidelity_rejects_a_direct_manufactured_source_label(
@@ -3946,8 +3735,7 @@ def test_label_fidelity_rejects_a_direct_manufactured_source_label(
 
     assert not check.passed
     assert any(
-        "Manufactured direct label" in failure
-        and "absent from publisher bytes" in failure
+        "Manufactured direct label" in failure and "absent from publisher bytes" in failure
         for failure in check.failures
     )
 
@@ -3955,18 +3743,13 @@ def test_label_fidelity_rejects_a_direct_manufactured_source_label(
 def test_label_fidelity_does_not_waive_a_non_english_source_label(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Societe du cafe"@fr .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Societe du cafe"@fr .')
     suite.write_pack()
 
     check = result(suite.run(), "label-fidelity")
 
     assert not check.passed
-    assert any(
-        "Societe du cafe" in failure and "@fr" in failure
-        for failure in check.failures
-    )
+    assert any("Societe du cafe" in failure and "@fr" in failure for failure in check.failures)
 
 
 def test_label_fidelity_fires_when_a_hidden_label_is_omitted(suite: Fixture) -> None:
@@ -4005,9 +3788,7 @@ def test_empty_publisher_label_node_is_a_defect_not_an_uncovered_claim(
     the edge itself is compared as an IRI claim on its concept.
     """
     empty_node = f"{EX}label/empty-c1"
-    suite.write_publisher(
-        extra_triples=f"<{EX}c1> <{SKOSXL}prefLabel> <{empty_node}> ."
-    )
+    suite.write_publisher(extra_triples=f"<{EX}c1> <{SKOSXL}prefLabel> <{empty_node}> .")
     suite.write_pack(source_digest=suite.publisher_content_digest())
 
     results = suite.run()
@@ -4016,8 +3797,7 @@ def test_empty_publisher_label_node_is_a_defect_not_an_uncovered_claim(
     defects = result(results, "source-defects")
     assert defects.passed
     assert any(
-        "0 skosxl:literalForm values" in finding.detail
-        and empty_node in finding.detail
+        "0 skosxl:literalForm values" in finding.detail and empty_node in finding.detail
         for finding in defects.source_findings
     )
 
@@ -4038,10 +3818,7 @@ def test_publisher_label_node_with_two_literal_forms_stays_uncovered(
     check = result(suite.run(), "source-claim-coverage")
 
     assert not check.passed
-    assert any(
-        "2 skosxl:literalForm values" in failure and node in failure
-        for failure in check.failures
-    )
+    assert any("2 skosxl:literalForm values" in failure and node in failure for failure in check.failures)
 
 
 def test_label_fidelity_fires_when_language_changes(suite: Fixture) -> None:
@@ -4054,10 +3831,7 @@ def test_label_fidelity_fires_when_language_changes(suite: Fixture) -> None:
 
 def test_label_fidelity_fires_when_datatype_replaces_language(suite: Fixture) -> None:
     datatype = "http://www.w3.org/2001/XMLSchema#string"
-    lines = [
-        line.replace('"Café Society"@en', f'"Café Society"^^<{datatype}>')
-        for line in atlas_pack_lines()
-    ]
+    lines = [line.replace('"Café Society"@en', f'"Café Society"^^<{datatype}>') for line in atlas_pack_lines()]
     suite.write_pack_lines(lines)
     check = result(suite.run(), "label-fidelity")
     assert not check.passed
@@ -4104,8 +3878,7 @@ def test_untagged_label_inverse_fails_closed_if_source_adds_a_language_tag(
 
     assert not check.passed
     assert any(
-        "atlas-en-to-source-untagged cannot be applied" in failure
-        and "language-tagged" in failure
+        "atlas-en-to-source-untagged cannot be applied" in failure and "language-tagged" in failure
         for failure in check.failures
     )
 
@@ -4125,24 +3898,22 @@ def test_notation_fidelity_fires_when_a_publisher_notation_is_omitted(suite: Fix
     suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}notation> "C-001" .')
     check = result(suite.run(), "notation-fidelity")
     assert not check.passed
-    assert any("publisher notation" in text and "C-001" in text and "missing from Atlas" in text for text in check.failures)
+    assert any(
+        "publisher notation" in text and "C-001" in text and "missing from Atlas" in text for text in check.failures
+    )
 
 
 def test_plain_rdf_notation_matches_explicit_xsd_string(suite: Fixture) -> None:
     suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}notation> "C-001" .')
     lines = atlas_pack_lines()
-    lines.append(
-        f'<{EX}c1> <{ATLAS}notation> "C-001"^^<http://www.w3.org/2001/XMLSchema#string> <{GRAPH}> .'
-    )
+    lines.append(f'<{EX}c1> <{ATLAS}notation> "C-001"^^<http://www.w3.org/2001/XMLSchema#string> <{GRAPH}> .')
     suite.write_pack_lines(lines)
     assert result(suite.run(), "notation-fidelity").passed
 
 
 def test_typed_notation_lexical_form_is_not_normalized(suite: Fixture) -> None:
     datatype = "http://www.w3.org/2001/XMLSchema#integer"
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}notation> "01"^^<{datatype}> .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}notation> "01"^^<{datatype}> .')
     lines = atlas_pack_lines()
     lines.append(f'<{EX}c1> <{ATLAS}notation> "1"^^<{datatype}> <{GRAPH}> .')
     suite.write_pack_lines(lines)
@@ -4156,10 +3927,7 @@ def test_iri_notation_cannot_match_an_atlas_literal_with_the_same_text(suite: Fi
     notation_iri = "http://example.org/notation/C-001"
     suite.write_publisher(extra_triples=f"<{EX}c1> <{SKOS}notation> <{notation_iri}> .")
     lines = atlas_pack_lines()
-    lines.append(
-        f'<{EX}c1> <{ATLAS}notation> "{notation_iri}"'
-        f'^^<http://www.w3.org/2001/XMLSchema#string> <{GRAPH}> .'
-    )
+    lines.append(f'<{EX}c1> <{ATLAS}notation> "{notation_iri}"^^<http://www.w3.org/2001/XMLSchema#string> <{GRAPH}> .')
     suite.write_pack_lines(lines)
     check = result(suite.run(), "notation-fidelity")
     assert not check.passed
@@ -4174,15 +3942,11 @@ def test_iri_notation_cannot_match_an_atlas_literal_with_the_same_text(suite: Fi
 
 
 def test_annotation_fidelity_fires_when_a_definition_is_omitted(suite: Fixture) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}definition> "An exact source definition."@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}definition> "An exact source definition."@en .')
     check = result(suite.run(), "annotation-fidelity")
     assert not check.passed
     assert any(
-        "publisher definition" in text
-        and "An exact source definition." in text
-        and "missing from Atlas" in text
+        "publisher definition" in text and "An exact source definition." in text and "missing from Atlas" in text
         for text in check.failures
     )
 
@@ -4190,20 +3954,14 @@ def test_annotation_fidelity_fires_when_a_definition_is_omitted(suite: Fixture) 
 def test_malformed_publisher_annotation_cannot_receive_an_exact_verdict(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=(
-            f"<{EX}c1> <{SKOS}definition> "
-            f'[ <{RDF}value> "Blank-node definition"@en ] .'
-        )
-    )
+    suite.write_publisher(extra_triples=(f'<{EX}c1> <{SKOS}definition> [ <{RDF}value> "Blank-node definition"@en ] .'))
     suite.write_pack()
 
     coverage = result(suite.run(), "source-claim-coverage")
 
     assert not coverage.passed
     assert any(
-        "could not enter an exact comparison" in failure
-        and "wrong RDF term kind" in failure
+        "could not enter an exact comparison" in failure and "wrong RDF term kind" in failure
         for failure in coverage.failures
     )
     assert result(suite.run(), "source-defects").passed
@@ -4227,20 +3985,14 @@ def test_exact_definition_and_generic_note_mapping_pass(suite: Fixture) -> None:
             )
         }
     )
-    lines.append(
-        _quad(f"{EX}c1", f"{ATLAS}definition", "An exact source definition.", literal=True)
-    )
-    lines.append(
-        _quad(f"{EX}c1", f"{ATLAS}note", "Use only for the exact scope.", literal=True)
-    )
+    lines.append(_quad(f"{EX}c1", f"{ATLAS}definition", "An exact source definition.", literal=True))
+    lines.append(_quad(f"{EX}c1", f"{ATLAS}note", "Use only for the exact scope.", literal=True))
     suite.write_pack_lines(lines)
     assert result(suite.run(), "annotation-fidelity").passed
 
 
 def test_definition_cannot_be_demoted_to_a_generic_note(suite: Fixture) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}definition> "Definition role matters."@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}definition> "Definition role matters."@en .')
     lines = atlas_pack_lines()
     lines.append(_quad(f"{EX}c1", f"{ATLAS}note", "Definition role matters.", literal=True))
     suite.write_pack_lines(lines)
@@ -4250,9 +4002,7 @@ def test_definition_cannot_be_demoted_to_a_generic_note(suite: Fixture) -> None:
 
 
 def test_generic_note_without_source_predicate_evidence_is_lossy(suite: Fixture) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}historyNote> "Role must survive."@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}historyNote> "Role must survive."@en .')
     lines = atlas_pack_lines()
     lines.append(_quad(f"{EX}c1", f"{ATLAS}note", "Role must survive.", literal=True))
     suite.write_pack_lines(lines)
@@ -4267,9 +4017,7 @@ def test_generic_note_without_source_predicate_evidence_is_lossy(suite: Fixture)
 def test_single_declared_note_predicate_round_trips_generic_atlas_note(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{SKOS}historyNote> "Role is source-wide."@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}historyNote> "Role is source-wide."@en .')
     lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
     lines.append(
         _quad(
@@ -4320,13 +4068,11 @@ def test_resource_valued_definition_is_not_misclassified_as_a_source_defect(
 
     assert not check.passed
     assert any(
-        "publisher resource-valued annotation" in text
-        and "1 additional direct claims" in text
+        "publisher resource-valued annotation" in text and "1 additional direct claims" in text
         for text in check.failures
     )
     assert not any(
-        "wrong RDF term kind" in finding.detail
-        and f"<{SKOS}definition>" in finding.detail
+        "wrong RDF term kind" in finding.detail and f"<{SKOS}definition>" in finding.detail
         for finding in result(results, "source-defects").source_findings
     )
 
@@ -4341,18 +4087,14 @@ def test_resource_annotation_target_closure_is_compared_after_edge_survives(
             f'<{definition}> <{RDF}value> "Exact reified definition."@en .'
         )
     )
-    suite.write_pack(
-        extra_relations=((f"{EX}c1", f"{SKOS}definition", definition),)
-    )
+    suite.write_pack(extra_relations=((f"{EX}c1", f"{SKOS}definition", definition),))
 
     check = result(suite.run(), "annotation-fidelity")
 
     assert not check.passed
     assert not any("resource-valued annotation" in text for text in check.failures)
     assert any(
-        "publisher annotation-target literal" in text
-        and "Exact reified definition." in text
-        for text in check.failures
+        "publisher annotation-target literal" in text and "Exact reified definition." in text for text in check.failures
     )
 
 
@@ -4422,10 +4164,7 @@ def test_resource_annotation_target_closure_rejects_a_novel_atlas_predicate(
     check = result(suite.run(), "annotation-fidelity")
 
     assert not check.passed
-    assert any(
-        novel in failure and "absent from publisher bytes" in failure
-        for failure in check.failures
-    )
+    assert any(novel in failure and "absent from publisher bytes" in failure for failure in check.failures)
 
 
 def test_resource_annotation_target_closure_ignores_a_direct_atlas_classification(
@@ -4498,10 +4237,7 @@ def test_resource_annotation_target_closure_rejects_a_native_source_type(
     check = result(suite.run(), "annotation-fidelity")
 
     assert not check.passed
-    assert any(
-        fabricated_class in failure and "absent from publisher bytes" in failure
-        for failure in check.failures
-    )
+    assert any(fabricated_class in failure and "absent from publisher bytes" in failure for failure in check.failures)
 
 
 # --------------------------------------------------------------------------------------
@@ -4513,17 +4249,12 @@ def test_member_iri_metadata_fires_when_source_claim_is_dropped(
     suite: Fixture,
 ) -> None:
     predicate = "http://purl.org/dc/terms/isVersionOf"
-    suite.write_publisher(
-        extra_triples=f"<{EX}c1> <{predicate}> <{EX}c2> ."
-    )
+    suite.write_publisher(extra_triples=f"<{EX}c1> <{predicate}> <{EX}c2> .")
 
     check = result(suite.run(), "member-iri-fidelity")
 
     assert not check.passed
-    assert any(
-        predicate in failure and "absent from reversible Atlas" in failure
-        for failure in check.failures
-    )
+    assert any(predicate in failure and "absent from reversible Atlas" in failure for failure in check.failures)
 
 
 def test_member_iri_metadata_round_trips_without_interpretation(
@@ -4531,9 +4262,7 @@ def test_member_iri_metadata_round_trips_without_interpretation(
 ) -> None:
     predicate = "http://purl.org/dc/terms/isVersionOf"
     relation = (f"{EX}c1", predicate, f"{EX}c2")
-    suite.write_publisher(
-        extra_triples=f"<{relation[0]}> <{relation[1]}> <{relation[2]}> ."
-    )
+    suite.write_publisher(extra_triples=f"<{relation[0]}> <{relation[1]}> <{relation[2]}> .")
     suite.write_pack(extra_relations=(relation,))
 
     assert result(suite.run(), "member-iri-fidelity").passed
@@ -4543,17 +4272,12 @@ def test_member_iri_metadata_rejects_a_novel_atlas_predicate(
     suite: Fixture,
 ) -> None:
     predicate = "http://example.org/source/novel"
-    suite.write_pack(
-        extra_relations=((f"{EX}c1", predicate, f"{EX}c2"),)
-    )
+    suite.write_pack(extra_relations=((f"{EX}c1", predicate, f"{EX}c2"),))
 
     check = result(suite.run(), "member-iri-fidelity")
 
     assert not check.passed
-    assert any(
-        predicate in failure and "absent from publisher bytes" in failure
-        for failure in check.failures
-    )
+    assert any(predicate in failure and "absent from publisher bytes" in failure for failure in check.failures)
 
 
 def test_member_iri_metadata_ignores_a_direct_atlas_classification(
@@ -4588,10 +4312,7 @@ def test_member_iri_metadata_rejects_a_native_source_type(
     check = result(suite.run(), "member-iri-fidelity")
 
     assert not check.passed
-    assert any(
-        fabricated_class in failure and "absent from publisher bytes" in failure
-        for failure in check.failures
-    )
+    assert any(fabricated_class in failure and "absent from publisher bytes" in failure for failure in check.failures)
 
 
 def test_member_iri_metadata_ignores_an_atlas_owned_type(
@@ -4607,9 +4328,7 @@ def test_member_iri_metadata_ignores_an_atlas_owned_type(
 def test_member_metadata_literal_round_trips_datatype_iri(suite: Fixture) -> None:
     predicate = "http://purl.org/dc/terms/created"
     datatype = "http://www.w3.org/2001/XMLSchema#date"
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{predicate}> "2026-08-07"^^<{datatype}> .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{predicate}> "2026-08-07"^^<{datatype}> .')
     suite.write_pack(
         extra_native_payload_by_resource={
             f"{EX}c1": {
@@ -4625,9 +4344,7 @@ def test_member_metadata_literal_round_trips_datatype_iri(suite: Fixture) -> Non
     )
     policy = replace(
         suite.spec.rdf_source,
-        evaluated_native_payload_fields=(
-            suite.spec.rdf_source.evaluated_native_payload_fields | {"metadata"}
-        ),
+        evaluated_native_payload_fields=(suite.spec.rdf_source.evaluated_native_payload_fields | {"metadata"}),
     )
     spec = replace(suite.spec, rdf_source=policy)
 
@@ -4641,9 +4358,7 @@ def test_member_metadata_literal_fires_when_source_claim_is_dropped(
     suite: Fixture,
 ) -> None:
     predicate = "http://purl.org/dc/terms/created"
-    suite.write_publisher(
-        extra_triples=f'<{EX}c1> <{predicate}> "2026-08-07" .'
-    )
+    suite.write_publisher(extra_triples=f'<{EX}c1> <{predicate}> "2026-08-07" .')
 
     check = result(suite.run(), "member-literal-fidelity")
 
@@ -4664,9 +4379,7 @@ def test_top_concept_fidelity_fires_when_native_evidence_is_omitted(suite: Fixtu
 
 
 def test_top_concept_fidelity_accepts_exact_native_evidence(suite: Fixture) -> None:
-    suite.write_publisher(
-        extra_triples=f"<{EX}c1> <{SKOS}topConceptOf> <{SCHEME}> ."
-    )
+    suite.write_publisher(extra_triples=f"<{EX}c1> <{SKOS}topConceptOf> <{SCHEME}> .")
     lines = atlas_pack_lines(top_concepts={f"{EX}c1": (SCHEME,)})
     suite.write_pack_lines(lines)
     assert result(suite.run(), "top-concept-fidelity").passed
@@ -4676,10 +4389,7 @@ def test_top_concept_fidelity_reconstructs_both_publisher_directions(
     suite: Fixture,
 ) -> None:
     suite.write_publisher(
-        extra_triples=(
-            f"<{EX}c1> <{SKOS}topConceptOf> <{SCHEME}> .\n"
-            f"<{SCHEME}> <{SKOS}hasTopConcept> <{EX}c1> ."
-        )
+        extra_triples=(f"<{EX}c1> <{SKOS}topConceptOf> <{SCHEME}> .\n<{SCHEME}> <{SKOS}hasTopConcept> <{EX}c1> .")
     )
     suite.write_pack_lines(atlas_pack_lines(top_concepts={f"{EX}c1": (SCHEME,)}))
 
@@ -4701,19 +4411,14 @@ def test_top_concept_fidelity_rejects_an_inverse_assignment_to_a_ghost(
     check = result(suite.run(), "top-concept-fidelity")
 
     assert not check.passed
-    assert any(
-        ghost in failure and "absent from publisher bytes" in failure
-        for failure in check.failures
-    )
+    assert any(ghost in failure and "absent from publisher bytes" in failure for failure in check.failures)
 
 
 def test_dangling_publisher_has_top_concept_is_reported_and_not_waived(
     suite: Fixture,
 ) -> None:
     dangling = f"{EX}missing-top-concept"
-    suite.write_publisher(
-        extra_triples=f"<{SCHEME}> <{SKOS}hasTopConcept> <{dangling}> ."
-    )
+    suite.write_publisher(extra_triples=f"<{SCHEME}> <{SKOS}hasTopConcept> <{dangling}> .")
 
     results = suite.run()
 
@@ -4722,8 +4427,7 @@ def test_dangling_publisher_has_top_concept_is_reported_and_not_waived(
     assert any(dangling in failure for failure in top_check.failures)
     defects = result(results, "source-defects")
     assert any(
-        "not declared skos:Concept" in finding.detail
-        and dangling in finding.detail
+        "not declared skos:Concept" in finding.detail and dangling in finding.detail
         for finding in defects.source_findings
     )
 
@@ -4797,8 +4501,7 @@ def test_relation_fidelity_rejects_a_direct_manufactured_source_relation(
 
     assert not check.passed
     assert any(
-        ghost in failure and "no counterpart in the pinned publisher bytes" in failure
-        for failure in check.failures
+        ghost in failure and "no counterpart in the pinned publisher bytes" in failure for failure in check.failures
     )
 
 
@@ -4828,11 +4531,7 @@ def test_relation_round_trips_from_native_payload_source_shape(suite: Fixture) -
     )
     spec = replace(
         suite.spec,
-        rdf_source=RdfSourcePolicy(
-            evaluated_native_payload_fields=frozenset(
-                {"schemeIris", "semanticRelations"}
-            )
-        ),
+        rdf_source=RdfSourcePolicy(evaluated_native_payload_fields=frozenset({"schemeIris", "semanticRelations"})),
     )
 
     results = suite.run(spec=spec)
@@ -4848,12 +4547,8 @@ def test_relation_round_trips_through_a_declared_predicate_inverse(
     source_predicate = "http://example.org/source/use"
     atlas_predicate = f"{ATLAS}sourceUse"
     relation = (f"{EX}c1", source_predicate, f"{EX}c2")
-    suite.write_publisher(
-        extra_triples=f"<{relation[0]}> <{relation[1]}> <{relation[2]}> ."
-    )
-    suite.write_pack(
-        extra_relations=((relation[0], atlas_predicate, relation[2]),)
-    )
+    suite.write_publisher(extra_triples=f"<{relation[0]}> <{relation[1]}> <{relation[2]}> .")
+    suite.write_pack(extra_relations=((relation[0], atlas_predicate, relation[2]),))
     policy = replace(
         suite.spec.rdf_source,
         additional_relation_predicates=(source_predicate,),
@@ -5074,9 +4769,7 @@ def test_valid_policy_cannot_waive_an_unrelated_drop(suite: Fixture) -> None:
 def test_source_scheme_memberships_round_trip_through_native_payload(
     suite: Fixture,
 ) -> None:
-    lines = atlas_pack_lines(
-        scheme_target="urn:ref:atlas-resource-scheme:example"
-    )
+    lines = atlas_pack_lines(scheme_target="urn:ref:atlas-resource-scheme:example")
     lines.append(_quad(SCHEME, f"{RDF}type", f"{SKOS}ConceptScheme"))
     suite.write_pack_lines(lines)
     check = result(suite.run(), "scheme-organisation")
@@ -5102,20 +4795,13 @@ def test_source_scheme_membership_fails_when_native_payload_omits_it(
 def test_source_scheme_identity_does_not_leak_from_membership_strings(
     suite: Fixture,
 ) -> None:
-    lines = [
-        line
-        for line in atlas_pack_lines()
-        if line != _quad(SCHEME, f"{RDF}type", f"{SKOS}ConceptScheme")
-    ]
+    lines = [line for line in atlas_pack_lines() if line != _quad(SCHEME, f"{RDF}type", f"{SKOS}ConceptScheme")]
     suite.write_pack_lines(lines)
 
     check = result(suite.run(), "scheme-organisation")
 
     assert not check.passed
-    assert any(
-        f"publisher scheme <{SCHEME}> cannot be reconstructed" in failure
-        for failure in check.failures
-    )
+    assert any(f"publisher scheme <{SCHEME}> cannot be reconstructed" in failure for failure in check.failures)
 
 
 def test_scheme_organisation_ignores_an_added_atlas_only_scheme_type(
@@ -5138,11 +4824,7 @@ def test_scheme_organisation_ignores_an_added_atlas_only_scheme_type(
 def test_source_scheme_membership_fails_when_native_payload_adds_an_edge(
     suite: Fixture,
 ) -> None:
-    suite.write_pack(
-        native_scheme_iris={
-            f"{EX}c1": (SCHEME, "http://example.org/scheme/not-published")
-        }
-    )
+    suite.write_pack(native_scheme_iris={f"{EX}c1": (SCHEME, "http://example.org/scheme/not-published")})
 
     check = result(suite.run(), "scheme-organisation")
 
@@ -5153,27 +4835,19 @@ def test_source_scheme_membership_fails_when_native_payload_adds_an_edge(
 def test_source_scheme_literal_fails_when_it_is_not_reversible(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{SCHEME}> <{SKOS}prefLabel> "Publisher scheme"@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{SCHEME}> <{SKOS}prefLabel> "Publisher scheme"@en .')
     suite.write_pack()
 
     check = result(suite.run(), "scheme-organisation")
 
     assert not check.passed
-    assert any(
-        "publisher scheme literal" in failure
-        and "Publisher scheme" in failure
-        for failure in check.failures
-    )
+    assert any("publisher scheme literal" in failure and "Publisher scheme" in failure for failure in check.failures)
 
 
 def test_source_scheme_literal_round_trips_from_normalized_atlas_label(
     suite: Fixture,
 ) -> None:
-    suite.write_publisher(
-        extra_triples=f'<{SCHEME}> <{SKOS}prefLabel> "Publisher scheme"@en .'
-    )
+    suite.write_publisher(extra_triples=f'<{SCHEME}> <{SKOS}prefLabel> "Publisher scheme"@en .')
     label = f"{EX}scheme-label"
     lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
     lines.extend(
@@ -5204,9 +4878,7 @@ def test_source_scheme_rejects_an_invented_normalized_atlas_label(
 
     assert not check.passed
     assert any(
-        "Invented scheme label" in failure
-        and "absent from publisher bytes" in failure
-        for failure in check.failures
+        "Invented scheme label" in failure and "absent from publisher bytes" in failure for failure in check.failures
     )
 
 
@@ -5256,18 +4928,14 @@ def test_source_scheme_iri_metadata_fails_when_it_is_not_reversible(
 ) -> None:
     predicate = "http://www.w3.org/2002/07/owl#versionIRI"
     value = "http://example.org/scheme/version/1"
-    suite.write_publisher(
-        extra_triples=f"<{SCHEME}> <{predicate}> <{value}> ."
-    )
+    suite.write_publisher(extra_triples=f"<{SCHEME}> <{predicate}> <{value}> .")
     suite.write_pack()
 
     check = result(suite.run(), "scheme-organisation")
 
     assert not check.passed
     assert any(
-        predicate in failure
-        and value in failure
-        and "missing from reversible Atlas" in failure
+        predicate in failure and value in failure and "missing from reversible Atlas" in failure
         for failure in check.failures
     )
 
@@ -5302,10 +4970,7 @@ def test_source_scheme_rejects_a_native_source_type(suite: Fixture) -> None:
     check = result(suite.run(), "scheme-organisation")
 
     assert not check.passed
-    assert any(
-        fabricated_class in failure and "absent from publisher bytes" in failure
-        for failure in check.failures
-    )
+    assert any(fabricated_class in failure and "absent from publisher bytes" in failure for failure in check.failures)
 
 
 def test_source_scheme_ignores_an_atlas_owned_type(suite: Fixture) -> None:
@@ -5322,7 +4987,7 @@ def test_source_scheme_ignores_an_atlas_owned_type(suite: Fixture) -> None:
 
 
 def test_source_defects_reports_a_class_used_as_a_predicate(suite: Fixture) -> None:
-    suite.write_publisher(extra_triples=f'<{EX}c1> <http://www.w3.org/ns/dcat#CatalogRecord> "<a href=\'x\'>y</a>" .')
+    suite.write_publisher(extra_triples=f"<{EX}c1> <http://www.w3.org/ns/dcat#CatalogRecord> \"<a href='x'>y</a>\" .")
     check = result(suite.run(), "source-defects")
     assert check.passed, "a publisher defect must never fail our pipeline"
     assert any("as a predicate on" in finding.detail for finding in check.source_findings)
@@ -5338,15 +5003,14 @@ def test_source_defects_detects_an_explicitly_declared_lowercase_class_predicate
         )
     )
     check = result(suite.run(), "source-defects")
-    assert any(predicate in finding.detail and "explicitly declared" in finding.detail for finding in check.source_findings)
+    assert any(
+        predicate in finding.detail and "explicitly declared" in finding.detail for finding in check.source_findings
+    )
 
 
 def test_source_defects_reports_whitespace_in_a_namespace_iri(suite: Fixture) -> None:
     text = publisher_turtle()
-    text = (
-        f"@prefix terms: <http://purl.org/dc/terms/%20#> .\n{text}\n"
-        f'<{EX}c1> terms:bad "publisher value" .\n'
-    )
+    text = f'@prefix terms: <http://purl.org/dc/terms/%20#> .\n{text}\n<{EX}c1> terms:bad "publisher value" .\n'
     suite.publisher_path.write_text(text, encoding="utf-8")
     suite.pin_input("example.ttl")
     check = result(suite.run(), "source-defects")
@@ -5366,22 +5030,18 @@ def test_source_defects_aggregates_ill_typed_literals_without_rdflib_tracebacks(
     suite.write_publisher(
         extra_triples=(
             f'<{EX}c1> <{EX}modified> ""^^'
-            '<http://www.w3.org/2001/XMLSchema#dateTime> .\n'
+            "<http://www.w3.org/2001/XMLSchema#dateTime> .\n"
             f'<{EX}c2> <{EX}modified> ""^^'
-            '<http://www.w3.org/2001/XMLSchema#dateTime> .'
+            "<http://www.w3.org/2001/XMLSchema#dateTime> ."
         )
     )
     check = result(suite.run(), "source-defects")
     assert check.passed
     assert any(
-        "2 ill-typed literal occurrence(s)" in finding.detail
-        and "XMLSchema#dateTime" in finding.detail
+        "2 ill-typed literal occurrence(s)" in finding.detail and "XMLSchema#dateTime" in finding.detail
         for finding in check.source_findings
     )
-    assert not any(
-        "Failed to convert Literal lexical form" in record.getMessage()
-        for record in caplog.records
-    )
+    assert not any("Failed to convert Literal lexical form" in record.getMessage() for record in caplog.records)
 
 
 def test_source_findings_never_fail_the_check() -> None:
@@ -5620,12 +5280,9 @@ def test_receipt_never_uses_last_write_wins_for_duplicate_adapter_ownership(
 
     assert code == 1
     receipt = json.loads(output.read_text(encoding="utf-8"))
-    configuration = next(
-        row for row in receipt["results"] if row["check"] == "configuration"
-    )
+    configuration = next(row for row in receipt["results"] if row["check"] == "configuration")
     assert any(
-        "construction-unit comparison ownership must be unique" in failure
-        for failure in configuration["failures"]
+        "construction-unit comparison ownership must be unique" in failure for failure in configuration["failures"]
     )
     assert receipt["coverage"]["constructionUnits"][0]["status"] != "exact"
 
@@ -5697,21 +5354,18 @@ def test_receipt_caps_a_long_failure_list_but_still_proves_the_whole_of_it() -> 
 
     limit = verifier.RECEIPT_LIST_LIMIT
     failures = [f"failure-{index}" for index in range(limit + 137)]
-    findings = [
-        Finding(kind="source", source="example", detail=f"defect-{index}")
-        for index in range(limit + 5)
-    ]
+    findings = [Finding(kind="source", source="example", detail=f"defect-{index}") for index in range(limit + 5)]
 
-    row = verifier._capped_result(
-        CheckResult("many-errors", False, "capped", failures, findings)
-    )
+    row = verifier._capped_result(CheckResult("many-errors", False, "capped", failures, findings))
 
     assert row["failures"] == failures[:limit]
     assert row["failuresTotalCount"] == len(failures)
     assert row["failuresTruncated"] is True
-    assert row["failuresDigest"] == "sha256:" + hashlib.sha256(
-        json.dumps(failures, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).hexdigest()
+    assert (
+        row["failuresDigest"]
+        == "sha256:"
+        + hashlib.sha256(json.dumps(failures, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    )
     assert row["sourceFindingsTotalCount"] == len(findings)
     assert row["sourceFindingsTruncated"] is True
     assert len(row["sourceFindings"]) == limit
@@ -5974,8 +5628,7 @@ def test_source_claim_coverage_still_reports_an_rkaf_claim_on_an_unknown_subject
 
     assert not coverage.passed
     assert any(
-        "urn:ref:atlas-evidence:ghost" in failure and f"{RKAF}decision" in failure
-        for failure in coverage.failures
+        "urn:ref:atlas-evidence:ghost" in failure and f"{RKAF}decision" in failure for failure in coverage.failures
     )
 
 
@@ -5989,10 +5642,7 @@ def test_source_claim_coverage_reports_an_rkaf_claim_planted_on_a_publisher_conc
     coverage = result(suite.run(), "source-claim-coverage")
 
     assert not coverage.passed
-    assert any(
-        f"{EX}c1" in failure and f"{RKAF}decision" in failure
-        for failure in coverage.failures
-    )
+    assert any(f"{EX}c1" in failure and f"{RKAF}decision" in failure for failure in coverage.failures)
 
 
 # --------------------------------------------------------------------------------------
@@ -6080,10 +5730,7 @@ def test_scoped_run_still_fails_on_a_unit_no_declared_comparison_owns(
     coverage = result(results, "distribution-coverage")
 
     assert not coverage.passed
-    assert any(
-        "second: no independent publisher comparison was performed" in failure
-        for failure in coverage.failures
-    )
+    assert any("second: no independent publisher comparison was performed" in failure for failure in coverage.failures)
 
 
 def test_scoped_run_keeps_source_claim_coverage_failing_closed(suite: Fixture) -> None:
@@ -6122,10 +5769,7 @@ def test_scoped_configuration_review_still_sees_every_declared_comparison(
     configuration = result(results, "configuration")
 
     assert not configuration.passed
-    assert any(
-        "comparison ownership must be unique" in failure
-        for failure in configuration.failures
-    )
+    assert any("comparison ownership must be unique" in failure for failure in configuration.failures)
 
 
 def test_only_selection_rejects_an_undeclared_comparison_name() -> None:
@@ -6176,9 +5820,7 @@ def _extract_payload(
     overrides = labels or {}
     official = []
     variants = []
-    for ordinal, (concept_id, (entry_id, label, alts)) in enumerate(
-        EXTRACT_TERMS.items(), start=1
-    ):
+    for ordinal, (concept_id, (entry_id, label, alts)) in enumerate(EXTRACT_TERMS.items(), start=1):
         official.append(
             {
                 "concept_id": concept_id,
@@ -6282,9 +5924,7 @@ def _extract_pack_lines(
         ),
         *extra_relations,
     ]
-    for ordinal, (concept_id, (entry_id, label, alts)) in enumerate(
-        EXTRACT_TERMS.items(), start=1
-    ):
+    for ordinal, (concept_id, (entry_id, label, alts)) in enumerate(EXTRACT_TERMS.items(), start=1):
         resource = f"urn:ref:source-concept:v2:example:{ordinal}"
         record = f"urn:ref:atlas-source-record:{ordinal}"
         lines.extend(
@@ -6362,9 +6002,7 @@ class ExtractFixture:
             source_iri=EXTRACT_SOURCE_IRI,
         )
         self.write_extract(_extract_payload(publisher_digest=self.publisher_digest))
-        self.write_pack_lines(
-            _extract_pack_lines(publisher_digest=self.publisher_digest)
-        )
+        self.write_pack_lines(_extract_pack_lines(publisher_digest=self.publisher_digest))
         (self.distribution / "atlas-construction-summary.json").write_text(
             json.dumps(
                 {
@@ -6381,9 +6019,7 @@ class ExtractFixture:
                                     "sourceIri": EXTRACT_SOURCE_IRI,
                                 }
                             ],
-                            "rdfPacks": [
-                                {"path": "packs/sources/extract-example/all.nq.zst"}
-                            ],
+                            "rdfPacks": [{"path": "packs/sources/extract-example/all.nq.zst"}],
                             "recordCounts": {"resources": 2},
                         }
                     ]
@@ -6416,8 +6052,7 @@ class ExtractFixture:
                             "path": "packs/sources/extract-example/all.nq.zst",
                             "transport": {
                                 "byteLength": len(transport),
-                                "digest": "sha256:"
-                                + hashlib.sha256(transport).hexdigest(),
+                                "digest": "sha256:" + hashlib.sha256(transport).hexdigest(),
                             },
                         }
                     ]
@@ -6459,9 +6094,7 @@ def extract_suite(tmp_path: Path) -> ExtractFixture:
 
 def test_source_extract_pair_passes_every_check(extract_suite: ExtractFixture) -> None:
     results = extract_suite.run()
-    assert failed(results) == set(), [
-        (item.name, item.failures) for item in results if not item.passed
-    ]
+    assert failed(results) == set(), [(item.name, item.failures) for item in results if not item.passed]
 
 
 def test_source_extract_fires_when_a_preferred_label_is_rewritten(
@@ -6477,9 +6110,7 @@ def test_source_extract_fires_when_a_preferred_label_is_rewritten(
     check = result(extract_suite.run(), "source-extract-fidelity")
 
     assert not check.passed
-    assert any(
-        "ex-concept-0001 preferred label differs" in failure for failure in check.failures
-    )
+    assert any("ex-concept-0001 preferred label differs" in failure for failure in check.failures)
 
 
 def test_source_extract_fires_when_an_unresolved_relation_is_asserted(
@@ -6495,9 +6126,7 @@ def test_source_extract_fires_when_an_unresolved_relation_is_asserted(
     check = result(extract_suite.run(), "source-extract-fidelity")
 
     assert not check.passed
-    assert any(
-        "does not record as resolved" in failure for failure in check.failures
-    )
+    assert any("does not record as resolved" in failure for failure in check.failures)
 
 
 def test_source_extract_fires_when_a_recorded_relation_is_dropped(
@@ -6505,9 +6134,7 @@ def test_source_extract_fires_when_a_recorded_relation_is_dropped(
 ) -> None:
     lines = [
         line
-        for line in _extract_pack_lines(
-            publisher_digest=extract_suite.publisher_digest
-        )
+        for line in _extract_pack_lines(publisher_digest=extract_suite.publisher_digest)
         if "urn:ref:atlas-assertion:0" not in line
     ]
     extract_suite.write_pack_lines(lines)
@@ -6543,32 +6170,23 @@ def test_source_extract_fires_when_the_source_locator_is_rewritten(
 def test_source_extract_fires_when_the_release_digest_is_not_the_pinned_artifact(
     extract_suite: ExtractFixture,
 ) -> None:
-    extract_suite.write_pack_lines(
-        _extract_pack_lines(publisher_digest="sha256:" + "b" * 64)
-    )
+    extract_suite.write_pack_lines(_extract_pack_lines(publisher_digest="sha256:" + "b" * 64))
 
     check = result(extract_suite.run(), "source-extract-fidelity")
 
     assert not check.passed
-    assert any(
-        "not the authenticated publisher bytes" in failure for failure in check.failures
-    )
+    assert any("not the authenticated publisher bytes" in failure for failure in check.failures)
 
 
 def test_source_extract_fires_when_the_extract_binds_other_publisher_bytes(
     extract_suite: ExtractFixture,
 ) -> None:
-    extract_suite.write_extract(
-        _extract_payload(publisher_digest="sha256:" + "c" * 64)
-    )
+    extract_suite.write_extract(_extract_payload(publisher_digest="sha256:" + "c" * 64))
 
     check = result(extract_suite.run(), "source-extract-fidelity")
 
     assert not check.passed
-    assert any(
-        "binds a different publisher artifact sha256" in failure
-        for failure in check.failures
-    )
+    assert any("binds a different publisher artifact sha256" in failure for failure in check.failures)
 
 
 def test_source_extract_fails_closed_when_the_extract_is_not_authenticated(
@@ -6632,10 +6250,7 @@ def test_source_extract_fails_closed_on_an_atlas_concept_the_extract_lacks(
     check = result(extract_suite.run(), "source-extract-fidelity")
 
     assert not check.passed
-    assert any(
-        "which the checked source extract does not contain" in failure
-        for failure in check.failures
-    )
+    assert any("which the checked source extract does not contain" in failure for failure in check.failures)
 
 
 def test_lcsh_jsonld_reader_accepts_a_faithful_pair_and_rejects_context_fault() -> None:
@@ -6696,14 +6311,10 @@ def test_lcsh_jsonld_reader_accepts_a_faithful_pair_and_rejects_context_fault() 
     )
 
     assert view.concepts == frozenset({endpoint})
-    assert view.notations[endpoint] == frozenset(
-        {verifier._literal_value("sh1", None, None)}
-    )
+    assert view.notations[endpoint] == frozenset({verifier._literal_value("sh1", None, None)})
     broken_document = dict(document)
     broken_document["@context"] = "https://example.org/wrong-context"
-    broken_bulk = gzip.compress(
-        json.dumps(broken_document, separators=(",", ":")).encode() + b"\n"
-    )
+    broken_bulk = gzip.compress(json.dumps(broken_document, separators=(",", ":")).encode() + b"\n")
     with pytest.raises(ValueError, match="unexpected @context"):
         verifier._read_lcsh_alignment_endpoint_jsonld(
             spec,
@@ -6790,9 +6401,7 @@ def test_fast_native_reader_accepts_a_faithful_pair_and_rejects_marc_identity_fa
     )
 
     resource = "http://id.worldcat.org/fast/1"
-    assert view.pref_labels[resource] == frozenset(
-        {verifier._literal_value("Changed heading", None, None)}
-    )
+    assert view.pref_labels[resource] == frozenset({verifier._literal_value("Changed heading", None, None)})
     broken_marc = marc.replace(
         b"http://id.worldcat.org/fast/1",
         b"http://id.worldcat.org/fast/9",
@@ -6869,10 +6478,7 @@ def _icpsr_managed_fixture(
     capture_basis = {
         "parserVersion": "stock-html-parser-test-v1",
         "schemeIri": scheme_iri,
-        "robots": {
-            key: robots_descriptor[key]
-            for key in ("url", "sha256", "byteLength")
-        },
+        "robots": {key: robots_descriptor[key] for key in ("url", "sha256", "byteLength")},
         "pages": [
             {
                 key: page_descriptor[key]
@@ -7083,9 +6689,7 @@ def test_icpsr_managed_reader_reconstructs_the_complete_union(
     )
     assert len(view.annotations) == 1
     assert len(view.relations) == 2
-    assert view.expected_native_payloads[xml_only_iri]["identityStatus"] == (
-        "publisherIdentifierAbsent"
-    )
+    assert view.expected_native_payloads[xml_only_iri]["identityStatus"] == ("publisherIdentifierAbsent")
     assert view.resource_locators[xml_only_iri].endswith("#record=2")
 
 
@@ -7123,9 +6727,7 @@ def test_icpsr_managed_reader_rejects_reconstructed_evidence_faults(
 
     def repin_outer(relative_path: str, payload: bytes) -> None:
         (root / relative_path).write_bytes(payload)
-        descriptor = next(
-            row for row in manifest["artifacts"] if row["path"] == relative_path
-        )
+        descriptor = next(row for row in manifest["artifacts"] if row["path"] == relative_path)
         descriptor["byteLength"] = len(payload)
         descriptor["sha256"] = digest(payload)
 
@@ -7168,11 +6770,7 @@ def test_icpsr_managed_reader_rejects_reconstructed_evidence_faults(
         coverage = json.loads(coverage_path.read_bytes())
         coverage["gaps"]["indexOnlyCount"] = 0
         coverage["canonicalPayloadDigest"] = verifier._canonical_json_digest(
-            {
-                key: value
-                for key, value in coverage.items()
-                if key != "canonicalPayloadDigest"
-            }
+            {key: value for key, value in coverage.items() if key != "canonicalPayloadDigest"}
         )
         repin_outer("records/coverage.json", canonical(coverage))
     else:  # pragma: no cover - parametrization is exhaustive
@@ -7180,11 +6778,7 @@ def test_icpsr_managed_reader_rejects_reconstructed_evidence_faults(
 
     if fault != "artifact-pin":
         manifest["canonicalPayloadDigest"] = verifier._canonical_json_digest(
-            {
-                key: value
-                for key, value in manifest.items()
-                if key != "canonicalPayloadDigest"
-            }
+            {key: value for key, value in manifest.items() if key != "canonicalPayloadDigest"}
         )
         manifest_payload = canonical(manifest)
         (root / "managed-release.json").write_bytes(manifest_payload)
@@ -7231,19 +6825,14 @@ def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
     observation = {
         "definition": "The exact definition.",
         "id": "urn:test:crs-observation:1",
-        "labels": [
-            {"language": "en", "role": "preferred", "value": "Faithful term"}
-        ],
+        "labels": [{"language": "en", "role": "preferred", "value": "Faithful term"}],
         "localRecordId": local_id,
         "sourceArtifact": "urn:test:crs-source-artifact:1",
     }
     observation_payload = canonical(observation)
     namespace_digest = hashlib.sha256(scheme["id"].encode()).hexdigest()
     concept = {
-        "id": (
-            "urn:ref:source-concept:v1:"
-            f"{namespace_digest}:{local_id.removeprefix('urn:uuid:')}"
-        ),
+        "id": (f"urn:ref:source-concept:v1:{namespace_digest}:{local_id.removeprefix('urn:uuid:')}"),
         "identityKind": "refspecSourceScoped",
         "issuer": "https://refspec.org/",
         "localRecordId": local_id,
@@ -7318,10 +6907,7 @@ def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
     release_digest = digest(canonical(release_basis))
     release = {
         **release_basis,
-        "id": (
-            "urn:ref:source-concept-release:subject:"
-            f"{release_digest.removeprefix('sha256:')}"
-        ),
+        "id": (f"urn:ref:source-concept-release:subject:{release_digest.removeprefix('sha256:')}"),
         "releaseDigest": release_digest,
     }
     package_artifacts = {
@@ -7330,10 +6916,7 @@ def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
         "reconciliation.json": (reconciliation_payload, "reconciliation"),
         "release-manifest.json": (canonical(release), "releaseManifest"),
         "rights.jsonl": (rights_payload, "rights"),
-        **{
-            f"source/{path}": (payload, "sourceCaptureArtifact")
-            for path, payload in source_artifacts.items()
-        },
+        **{f"source/{path}": (payload, "sourceCaptureArtifact") for path, payload in source_artifacts.items()},
     }
     outer_artifacts = [
         {
@@ -7377,14 +6960,9 @@ def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
 
     view = verifier._read_crs_source_concept_release(spec, {pin: manifest_payload})
 
-    resource = (
-        "urn:ref:source-concept:v2:loc-cgpa:"
-        "019fc9f2-c758-70b4-a2c9-214f4e3410e4"
-    )
+    resource = "urn:ref:source-concept:v2:loc-cgpa:019fc9f2-c758-70b4-a2c9-214f4e3410e4"
     assert view.concepts == frozenset({resource})
-    assert view.pref_labels[resource] == frozenset(
-        {verifier._literal_value("Faithful term", "en", None)}
-    )
+    assert view.pref_labels[resource] == frozenset({verifier._literal_value("Faithful term", "en", None)})
     assert len(view.annotations) == 1
     (root / "source" / "sources" / "source.bin").write_bytes(b"fault")
     with pytest.raises(ValueError, match="artifact pin differs"):

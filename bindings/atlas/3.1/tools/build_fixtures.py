@@ -26,15 +26,13 @@ REVIEWER = URIRef("urn:ref:agent:atlas-fixture-reviewer")
 CREATED_AT = "2026-08-05T12:00:00+00:00"
 CONSTRUCTION_PROFILE = "atlas-3-release-local-construction-v1"
 LANGUAGE_SCOPE = {
-    "includedLanguageFamilies": ["en"],
-    "selectionRule": "bcp47-primary-language-subtag",
+    "includedLanguageFamilies": ["de", "en", "es", "fi", "fr", "it", "ja"],
+    "selectionRule": "publisher-or-deterministic-lowercase-bcp47",
     "unselectedPublisherContent": "notRepresented",
-    "wireLanguageTag": "en",
+    "wireLanguageTag": "lowercase-bcp47",
 }
 CONSTRUCTION_RECEIPT_PROFILE = "atlas-3-authenticated-construction-summary-v1"
-CONSTRUCTOR_PROFILE = (
-    "atlas-3-source-and-evidence-backed-mapping-v1"
-)
+CONSTRUCTOR_PROFILE = "atlas-3-source-and-evidence-backed-mapping-v1"
 COMPACT_ROLE_ORDER = (
     "Release",
     "SourceRecord",
@@ -261,9 +259,7 @@ def _add_effective_period(
     if end is not None:
         basis["effectivePeriodEnd"] = end
     digest = atlas_validate.canonical_sha256(basis)
-    period = URIRef(
-        "urn:ref:atlas-effective-period:" + digest.removeprefix("sha256:")
-    )
+    period = URIRef("urn:ref:atlas-effective-period:" + digest.removeprefix("sha256:"))
     graph.add((period, RDF.type, RKAF.EffectivePeriod))
     graph.add(
         (
@@ -306,9 +302,7 @@ def _add_assertion(
 ) -> URIRef:
     if assertion_type == ATLAS.CrossRingRelationAssertion:
         if ring is not None or source_ring is None or target_ring is None:
-            raise ValueError(
-                "cross-ring assertions require source_ring and target_ring, not ring"
-            )
+            raise ValueError("cross-ring assertions require source_ring and target_ring, not ring")
     elif ring is None or source_ring is not None or target_ring is not None:
         raise ValueError("same-ring assertions require ring only")
     if review_warrant not in atlas_validate.evidence_warrant_axis_values():
@@ -383,7 +377,14 @@ def _add_assertion(
     graph.add((evidence, RDF.type, RKAF.EvidenceBinding))
     graph.add((evidence, RKAF.bindsAssertion, assertion))
     graph.add((evidence, ATLAS.evidenceSourceRecord, evidence_record))
-    graph.add((evidence, RKAF.attestor, REVIEWER))
+    attestor = REVIEWER
+    if assertion_type == ATLAS.MappingAssertion and review_warrant == "publisherAssertion":
+        endpoint_scheme = graph.value(subject, ATLAS.inScheme)
+        endpoint_source = graph.value(endpoint_scheme, ATLAS.sourceDescriptor) if endpoint_scheme is not None else None
+        if not isinstance(endpoint_source, URIRef):
+            raise ValueError("publisherAssertion mapping fixtures require a source-owned endpoint")
+        attestor = endpoint_source
+    graph.add((evidence, RKAF.attestor, attestor))
     graph.add((evidence, RKAF.decision, RKAF.approved))
     for axis, value in atlas_validate.evidence_warrant_facts(review_warrant):
         graph.add((evidence, axis, value))
@@ -522,9 +523,7 @@ def _add_adjudication_lineage(
     graph.add((lineage, RDF.type, RKAF.AILineage))
     graph.add((lineage, RKAF.modelId, Literal(f"{key}-adjudicator-2026-01")))
     graph.add((lineage, RKAF.modelVersion, Literal("2026.01.15")))
-    graph.add(
-        (lineage, RKAF.promptTemplateRef, _adjudication_iri("prompt-template", key, "v1"))
-    )
+    graph.add((lineage, RKAF.promptTemplateRef, _adjudication_iri("prompt-template", key, "v1")))
     graph.add(
         (
             lineage,
@@ -674,9 +673,7 @@ def _add_adjudication(
         )
     )
     graph.add((comparison, RKAF.comparisonPolicyVersion, Literal("machine-adjudication-v1")))
-    graph.add(
-        (comparison, RKAF.comparisonDetector, _adjudication_iri("detector", "relation-comparator"))
-    )
+    graph.add((comparison, RKAF.comparisonDetector, _adjudication_iri("detector", "relation-comparator")))
     graph.add((comparison, RKAF.comparisonDetectorVersion, Literal("1.0.0")))
     graph.add(
         (
@@ -830,9 +827,7 @@ def _base_fixture() -> Fixture:
         name="mixed-code-subject",
         profile=ATLAS.codeScheme,
         ring=ATLAS.subject,
-        resources=[
-            ("mixed-code-subject", ATLAS.SubjectConcept, "Mixed code topic")
-        ],
+        resources=[("mixed-code-subject", ATLAS.SubjectConcept, "Mixed code topic")],
         scheme=mixed_code_scheme,
     )
     (
@@ -845,9 +840,7 @@ def _base_fixture() -> Fixture:
         name="mixed-code-value",
         profile=ATLAS.codeScheme,
         ring=ATLAS.value,
-        resources=[
-            ("mixed-code-value", ATLAS.ValueResource, "Mixed code value")
-        ],
+        resources=[("mixed-code-value", ATLAS.ValueResource, "Mixed code value")],
         scheme=mixed_code_scheme,
     )
     collection_scheme = URIRef("urn:ref:atlas-fixture:scheme:collection")
@@ -1252,9 +1245,7 @@ def _nquad_line(triple: tuple[Any, Any, Any], graph_id: URIRef) -> str:
 def _counts(fixture: Fixture) -> dict[str, int]:
     asserted = fixture.asserted
     return {
-        "crossRingRelationAssertions": len(
-            set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))
-        ),
+        "crossRingRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))),
         "derivedRelations": len(set(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))),
         "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
@@ -1262,8 +1253,7 @@ def _counts(fixture: Fixture) -> dict[str, int]:
         "nativeRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))),
         "projectedRelations": len(set(fixture.projection.subjects(RDF.type, ATLAS.ProjectedRelation))),
         "relationAssertions": sum(
-            len(set(asserted.subjects(RDF.type, assertion_type)))
-            for assertion_type in atlas_validate.ASSERTION_TYPES
+            len(set(asserted.subjects(RDF.type, assertion_type))) for assertion_type in atlas_validate.ASSERTION_TYPES
         ),
         "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
         "resources": len(
@@ -1308,9 +1298,7 @@ def _atlas_name(value: URIRef) -> str:
 
 def _construction_units(graph: Graph) -> tuple[ConstructionUnit, ...]:
     units: list[ConstructionUnit] = []
-    for atlas_release in sorted(
-        graph.subjects(RDF.type, ATLAS.AtlasRelease), key=str
-    ):
+    for atlas_release in sorted(graph.subjects(RDF.type, ATLAS.AtlasRelease), key=str):
         identifier = graph.value(atlas_release, DCTERMS.identifier)
         scheme = graph.value(atlas_release, ATLAS.inScheme)
         ring = graph.value(atlas_release, ATLAS.semanticRing)
@@ -1330,9 +1318,7 @@ def _construction_units(graph: Graph) -> tuple[ConstructionUnit, ...]:
             if isinstance(source_release, URIRef)
         }
         registry_sources = {
-            source
-            for source in graph.objects(scheme, ATLAS.sourceDescriptor)
-            if isinstance(source, URIRef)
+            source for source in graph.objects(scheme, ATLAS.sourceDescriptor) if isinstance(source, URIRef)
         }
         if len(source_releases) != 1 or len(registry_sources) != 1:
             raise ValueError(
@@ -1394,18 +1380,10 @@ def _logical_owner(
         return atlas_owner.get(release) if isinstance(release, URIRef) else None
     if role == "EvidenceBinding":
         source_record = iri(ATLAS.evidenceSourceRecord)
-        source_release = (
-            graph.value(source_record, ATLAS.inSourceRelease)
-            if source_record is not None
-            else None
-        )
+        source_release = graph.value(source_record, ATLAS.inSourceRelease) if source_record is not None else None
         return source_owner.get(source_release) if isinstance(source_release, URIRef) else None
     if role == "Statement":
-        bindings = [
-            binding
-            for binding in graph.subjects(RKAF.bindsAssertion, subject)
-            if isinstance(binding, URIRef)
-        ]
+        bindings = [binding for binding in graph.subjects(RKAF.bindsAssertion, subject) if isinstance(binding, URIRef)]
         if len(bindings) == 1:
             source_record = graph.value(bindings[0], ATLAS.evidenceSourceRecord)
             if isinstance(source_record, URIRef):
@@ -1490,10 +1468,7 @@ def _partition_triples_by_subject(
     subjects = sorted({subject for subject, _, _ in triples}, key=str)
     if len(subjects) < 2:
         raise ValueError("cannot partition an RDF pack with fewer than two subjects")
-    digests = {
-        subject: hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
-        for subject in subjects
-    }
+    digests = {subject: hashlib.sha256(str(subject).encode("utf-8")).hexdigest() for subject in subjects}
     prefix_len = 1
     buckets: dict[str, list[Any]] = defaultdict(list)
     while prefix_len <= 8:
@@ -1505,11 +1480,7 @@ def _partition_triples_by_subject(
         prefix_len += 1
     else:
         raise ValueError("subjects share a sha256 prefix through 8 hex characters")
-    subject_bucket = {
-        subject: prefix
-        for prefix, bucket_subjects in buckets.items()
-        for subject in bucket_subjects
-    }
+    subject_bucket = {subject: prefix for prefix, bucket_subjects in buckets.items() for subject in bucket_subjects}
     grouped: dict[str, list[tuple[Any, Any, Any]]] = defaultdict(list)
     for triple in triples:
         grouped[subject_bucket[triple[0]]].append(triple)
@@ -1538,13 +1509,16 @@ def _write_rdf_packs(
         if isinstance(subject, URIRef):
             role = _record_role(fixture.asserted, subject)
             if role is not None:
-                owner = _logical_owner(
-                    fixture.asserted,
-                    subject,
-                    role,
-                    atlas_owner=atlas_owner,
-                    source_owner=source_owner,
-                ) or "catalog"
+                owner = (
+                    _logical_owner(
+                        fixture.asserted,
+                        subject,
+                        role,
+                        atlas_owner=atlas_owner,
+                        source_owner=source_owner,
+                    )
+                    or "catalog"
+                )
         asserted_subject_owner[subject] = owner
         asserted_groups[owner].extend(fixture.asserted.triples((subject, None, None)))
 
@@ -1554,9 +1528,7 @@ def _write_rdf_packs(
     # asserted triples physically written into this pack, which is what lets
     # dependency computation below work uniformly whether or not an owner's
     # facts were split across more than one partitioned pack.
-    packs_with_payloads: list[
-        tuple[dict[str, Any], bytes, str, list[tuple[Any, Any, Any]]]
-    ] = []
+    packs_with_payloads: list[tuple[dict[str, Any], bytes, str, list[tuple[Any, Any, Any]]]] = []
     for owner in sorted(asserted_groups):
         triples = asserted_groups[owner]
         if owner == "catalog":
@@ -1642,9 +1614,7 @@ def _write_rdf_packs(
 
     packs = [pack for pack, _, _, _ in packs_with_payloads]
     asserted_inventory = atlas_validate._graph_inventory_digest(packs, "asserted")
-    asserted_pack_ids = sorted(
-        pack["packId"] for pack in packs if pack["graphCounts"]["asserted"]
-    )
+    asserted_pack_ids = sorted(pack["packId"] for pack in packs if pack["graphCounts"]["asserted"])
     for pack in packs:
         if pack["kind"] == "view":
             pack["dependencies"] = asserted_pack_ids
@@ -1750,9 +1720,7 @@ def _compact_logical_rows(
                 append_row(baseline, subject, role, fallback=True)
         if len(seen_by_role[role]) < expected[role]:
             for subject in sorted(subjects(baseline, role) - seen_by_role[role], key=str):
-                if append_row(baseline, subject, role, fallback=True) and len(
-                    seen_by_role[role]
-                ) == expected[role]:
+                if append_row(baseline, subject, role, fallback=True) and len(seen_by_role[role]) == expected[role]:
                     break
         if len(seen_by_role[role]) != expected[role]:
             raise ValueError(
@@ -1868,9 +1836,7 @@ def _construction_summary(
         unit_rdf_packs = sorted(rdf_by_unit[unit.key], key=lambda pack: pack["path"])
         release_rows.append(
             {
-                "accountingRowDigest": atlas_validate.canonical_sha256(
-                    accounting_rows[str(unit.source_release)]
-                ),
+                "accountingRowDigest": atlas_validate.canonical_sha256(accounting_rows[str(unit.source_release)]),
                 **base_rows[unit.key],
                 "atlasRelease": str(unit.atlas_release),
                 "buildKey": atlas_validate.canonical_sha256(
@@ -1953,9 +1919,7 @@ def _construction_summary(
             "path": catalog_pack["path"],
         },
     }
-    asserted_inventory = next(
-        row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted"
-    )
+    asserted_inventory = next(row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted")
     summary = {
         "assertedInventoryDigest": asserted_inventory,
         "contractDigest": binding["contractDigest"],
@@ -1970,9 +1934,7 @@ def _construction_summary(
         "type": "AtlasConstructionSummary",
         "version": "3.1",
     }
-    summary["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
-        summary, terminal_lf=False
-    )
+    summary["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(summary, terminal_lf=False)
     return summary
 
 
@@ -2029,9 +1991,7 @@ def _write_case(
     )
     construction_bytes = atlas_validate.canonical_json_bytes(construction)
     construction_digest = _sha256(construction_bytes)
-    asserted_inventory = next(
-        row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted"
-    )
+    asserted_inventory = next(row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted")
     producer = {
         "assertedInventoryDigest": asserted_inventory,
         "binding": binding,
@@ -2119,9 +2079,7 @@ def _write_case(
         "type": "AtlasManifest",
     }
     manifest.update(fixture.manifest_patch)
-    manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
-        manifest, terminal_lf=False
-    )
+    manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(manifest, terminal_lf=False)
     (path / "atlas-source-accounting.json").write_bytes(accounting_bytes)
     (path / "atlas-acceptance.json").write_bytes(acceptance_bytes)
     (path / "atlas-producer-validation.json").write_bytes(producer_bytes)
@@ -2192,8 +2150,7 @@ def _reseal_evidence_to_fixed_point(graph: Graph) -> None:
             evidence
             for evidence in set(graph.subjects(RDF.type, RKAF.EvidenceBinding))
             if isinstance(evidence, URIRef)
-            and str(graph.value(evidence, ATLAS.contentDigest) or "")
-            != _evidence_digest_without_pin(graph, evidence)
+            and str(graph.value(evidence, ATLAS.contentDigest) or "") != _evidence_digest_without_pin(graph, evidence)
         ]
         if not stale:
             return
@@ -2239,6 +2196,49 @@ def _reidentify_derived(graph: Graph, node: URIRef) -> URIRef:
 
 
 def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
+    def publisher_mapping_evidence(fixture: Fixture) -> tuple[URIRef, URIRef]:
+        for evidence in fixture.asserted.subjects(RKAF.evidenceRole, RKAF.officialSourceMetadata):
+            assertion = fixture.asserted.value(evidence, RKAF.bindsAssertion)
+            if (
+                isinstance(assertion, URIRef)
+                and (
+                    assertion,
+                    RDF.type,
+                    ATLAS.MappingAssertion,
+                )
+                in fixture.asserted
+            ):
+                return assertion, evidence
+        raise ValueError("fixture has no publisherAssertion mapping evidence")
+
+    def replace_native_payload(
+        fixture: Fixture,
+        source_record: URIRef,
+        payload: Mapping[str, Any],
+    ) -> None:
+        native_payload_bytes = atlas_validate.canonical_native_json_bytes(payload)
+        _remove_subject_predicate(fixture.asserted, source_record, ATLAS.nativePayload)
+        fixture.asserted.add(
+            (
+                source_record,
+                ATLAS.nativePayload,
+                Literal(
+                    native_payload_bytes.decode("utf-8"),
+                    datatype=RDF.JSON,
+                    normalize=False,
+                ),
+            )
+        )
+        _remove_subject_predicate(fixture.asserted, source_record, ATLAS.sourceDigest)
+        fixture.asserted.add(
+            (
+                source_record,
+                ATLAS.sourceDigest,
+                Literal("sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()),
+            )
+        )
+        _refresh_evidence_for_source(fixture.asserted, source_record)
+
     def cross_assertion(
         fixture: Fixture,
         source_ring: URIRef,
@@ -2246,9 +2246,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     ) -> URIRef:
         return next(
             assertion
-            for assertion in fixture.asserted.subjects(
-                RDF.type, ATLAS.CrossRingRelationAssertion
-            )
+            for assertion in fixture.asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion)
             if fixture.asserted.value(assertion, ATLAS.sourceRing) == source_ring
             and fixture.asserted.value(assertion, ATLAS.targetRing) == target_ring
         )
@@ -2275,9 +2273,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
             )
         )
-        release_predicate = (
-            ATLAS.fromRelease if kind == RKAF.rescission else ATLAS.toRelease
-        )
+        release_predicate = ATLAS.fromRelease if kind == RKAF.rescission else ATLAS.toRelease
         fixture.asserted.add((event, release_predicate, release))
         fixture.asserted.add((event, ATLAS.sourceRecord, source_record))
         return event
@@ -2368,18 +2364,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         old = next(
             assertion
             for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
-            if fixture.asserted.value(assertion, RDF.subject)
-            == URIRef("urn:ref:atlas-fixture:resource:subject-a")
+            if fixture.asserted.value(assertion, RDF.subject) == URIRef("urn:ref:atlas-fixture:resource:subject-a")
         )
-        _, (subject, predicate, obj) = atlas_validate._assertion_basis(
-            fixture.asserted, old
-        )
+        _, (subject, predicate, obj) = atlas_validate._assertion_basis(fixture.asserted, old)
         source_release = next(fixture.asserted.objects(old, ATLAS.sourceRelease))
         target_release = next(fixture.asserted.objects(old, ATLAS.targetRelease))
         evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, old))
-        evidence_record = next(
-            fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
-        )
+        evidence_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         policy = _add_policy(fixture.asserted, version="2")
         _add_assertion(
             fixture.asserted,
@@ -2412,18 +2403,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         old = next(
             assertion
             for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
-            if fixture.asserted.value(assertion, RDF.subject)
-            == URIRef("urn:ref:atlas-fixture:resource:subject-a")
+            if fixture.asserted.value(assertion, RDF.subject) == URIRef("urn:ref:atlas-fixture:resource:subject-a")
         )
-        _, (subject, predicate, obj) = atlas_validate._assertion_basis(
-            fixture.asserted, old
-        )
+        _, (subject, predicate, obj) = atlas_validate._assertion_basis(fixture.asserted, old)
         source_release = next(fixture.asserted.objects(old, ATLAS.sourceRelease))
         target_release = next(fixture.asserted.objects(old, ATLAS.targetRelease))
         evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, old))
-        evidence_record = next(
-            fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
-        )
+        evidence_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         policy = _add_policy(fixture.asserted, version="2")
         _add_assertion(
             fixture.asserted,
@@ -2507,21 +2493,17 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
         _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
 
-    def non_english_label(fixture: Fixture) -> None:
+    def multilingual_label(fixture: Fixture) -> None:
         label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
         _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
-        fixture.asserted.add(
-            (label, SKOSXL.literalForm, Literal("Agence exemplaire", lang="fr"))
-        )
+        fixture.asserted.add((label, SKOSXL.literalForm, Literal("Agence exemplaire", lang="fr")))
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def non_english_definition(fixture: Fixture) -> None:
         resource = next(fixture.asserted.subjects(ATLAS.definition, None))
         definition = next(fixture.asserted.objects(resource, ATLAS.definition))
         _remove_subject_predicate(fixture.asserted, resource, ATLAS.definition)
-        fixture.asserted.add(
-            (resource, ATLAS.definition, Literal(str(definition), lang="fr"))
-        )
+        fixture.asserted.add((resource, ATLAS.definition, Literal(str(definition), lang="fr")))
 
     def construction_language_scope_missing(fixture: Fixture) -> None:
         def mutate(path: Path) -> None:
@@ -2534,30 +2516,22 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 payload,
                 terminal_lf=False,
             )
-            summary_path.write_bytes(
-                atlas_validate.canonical_json_bytes(summary)
-            )
+            summary_path.write_bytes(atlas_validate.canonical_json_bytes(summary))
 
             producer_path = path / "atlas-producer-validation.json"
             producer = json.loads(producer_path.read_bytes())
-            producer["constructionSummary"]["digest"] = _sha256(
-                summary_path.read_bytes()
-            )
+            producer["constructionSummary"]["digest"] = _sha256(summary_path.read_bytes())
             producer_bytes = atlas_validate.canonical_json_bytes(producer)
             producer_path.write_bytes(producer_bytes)
 
             acceptance_path = path / "atlas-acceptance.json"
             acceptance = json.loads(acceptance_path.read_bytes())
-            acceptance["inputs"]["producerValidationDigest"] = _sha256(
-                producer_bytes
-            )
+            acceptance["inputs"]["producerValidationDigest"] = _sha256(producer_bytes)
             for gate in acceptance["gates"]:
-                gate["evidenceDigest"] = (
-                    atlas_validate.acceptance_gate_evidence_digest(
-                        gate["name"],
-                        inputs=acceptance["inputs"],
-                        validator=acceptance["validator"],
-                    )
+                gate["evidenceDigest"] = atlas_validate.acceptance_gate_evidence_digest(
+                    gate["name"],
+                    inputs=acceptance["inputs"],
+                    validator=acceptance["validator"],
                 )
             acceptance_bytes = atlas_validate.canonical_json_bytes(acceptance)
             acceptance_path.write_bytes(acceptance_bytes)
@@ -2576,15 +2550,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                     member["digest"] = _sha256(payload_bytes)
             manifest_payload = dict(manifest)
             manifest_payload.pop("canonicalPayloadDigest", None)
-            manifest["canonicalPayloadDigest"] = (
-                atlas_validate.canonical_sha256(
-                    manifest_payload,
-                    terminal_lf=False,
-                )
+            manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
+                manifest_payload,
+                terminal_lf=False,
             )
-            manifest_path.write_bytes(
-                atlas_validate.canonical_json_bytes(manifest)
-            )
+            manifest_path.write_bytes(atlas_validate.canonical_json_bytes(manifest))
 
         fixture.post_write = mutate
 
@@ -2618,19 +2588,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def cross_ring_disallowed_predicate(fixture: Fixture) -> None:
         assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.legalIdentity)
-        _, (subject, _, obj) = atlas_validate._assertion_basis(
-            fixture.asserted, assertion
-        )
-        source_release = next(
-            fixture.asserted.objects(assertion, ATLAS.sourceRelease)
-        )
-        target_release = next(
-            fixture.asserted.objects(assertion, ATLAS.targetRelease)
-        )
+        _, (subject, _, obj) = atlas_validate._assertion_basis(fixture.asserted, assertion)
+        source_release = next(fixture.asserted.objects(assertion, ATLAS.sourceRelease))
+        target_release = next(fixture.asserted.objects(assertion, ATLAS.targetRelease))
         evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
-        evidence_record = next(
-            fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
-        )
+        evidence_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         _remove_assertion_with_evidence(fixture.asserted, assertion)
         _add_assertion(
             fixture.asserted,
@@ -2722,6 +2684,54 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.derived.add((node, ATLAS.relationObject, endpoint))
         _reidentify_derived(fixture.derived, node)
 
+    def derived_noncanonical_direction(fixture: Fixture) -> None:
+        node = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
+        subject = next(fixture.derived.objects(node, ATLAS.relationSubject))
+        obj = next(fixture.derived.objects(node, ATLAS.relationObject))
+        _remove_subject_predicate(fixture.derived, node, ATLAS.relationSubject)
+        _remove_subject_predicate(fixture.derived, node, ATLAS.relationObject)
+        fixture.derived.add((node, ATLAS.relationSubject, obj))
+        fixture.derived.add((node, ATLAS.relationObject, subject))
+        _reidentify_derived(fixture.derived, node)
+
+    def mapping_publisher_without_standing(fixture: Fixture) -> None:
+        _assertion, evidence = publisher_mapping_evidence(fixture)
+        _remove_subject_predicate(fixture.asserted, evidence, RKAF.attestor)
+        fixture.asserted.add((evidence, RKAF.attestor, REVIEWER))
+        _reseal_evidence_to_fixed_point(fixture.asserted)
+
+    def mapping_silent_predicate_rewrite(fixture: Fixture) -> None:
+        assertion, evidence = publisher_mapping_evidence(fixture)
+        source_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
+        subject = next(fixture.asserted.objects(assertion, RDF.subject))
+        predicate = next(fixture.asserted.objects(assertion, RDF.predicate))
+        obj = next(fixture.asserted.objects(assertion, RDF.object))
+        replace_native_payload(
+            fixture,
+            source_record,
+            {
+                "mappingTripleDigest": atlas_validate.canonical_sha256(
+                    {
+                        "object": str(obj),
+                        "predicate": str(predicate),
+                        "subject": str(subject),
+                    },
+                    terminal_lf=False,
+                ),
+                "objectIri": str(obj),
+                "predicateIri": str(predicate),
+                "publisherClaim": {
+                    "nativeStatement": "synthetic publisher assertion",
+                    "objectIri": str(obj),
+                    "predicateIri": "http://schema.org/sameAs",
+                    "sourceEncoding": "syntheticFixture",
+                    "sourceRecordDigest": "sha256:" + "1" * 64,
+                    "subjectIri": str(subject),
+                },
+                "subjectIri": str(subject),
+            },
+        )
+
     def derived_extra_branch(fixture: Fixture) -> None:
         node = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
         subject = URIRef("urn:ref:atlas-fixture:resource:subject-a-child")
@@ -2763,8 +2773,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         assertion = next(
             row
             for row in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
-            if fixture.asserted.value(row, RDF.subject)
-            == URIRef("urn:ref:atlas-fixture:resource:subject-a")
+            if fixture.asserted.value(row, RDF.subject) == URIRef("urn:ref:atlas-fixture:resource:subject-a")
         )
         evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
         add_lifecycle_event(
@@ -2773,9 +2782,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             assertion=assertion,
             kind=RKAF.rescission,
             release=next(fixture.asserted.objects(assertion, ATLAS.sourceRelease)),
-            source_record=next(
-                fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
-            ),
+            source_record=next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)),
         )
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
@@ -2879,9 +2886,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             (
                 record,
                 RKAF.detectedAt,
-                detected_at
-                if detected_at is not None
-                else Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+                detected_at if detected_at is not None else Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
             )
         )
         return record
@@ -2992,9 +2997,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         predicate: URIRef,
         value: Literal,
     ) -> None:
-        period = next(
-            fixture.asserted.objects(dated_mapping(fixture, ring), RKAF.hasEffectivePeriod)
-        )
+        period = next(fixture.asserted.objects(dated_mapping(fixture, ring), RKAF.hasEffectivePeriod))
         _remove_subject_predicate(fixture.asserted, period, predicate)
         fixture.asserted.add((period, predicate, value))
 
@@ -3069,17 +3072,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
 
     def auxiliary_type_only(fixture: Fixture) -> None:
-        fixture.asserted.add(
-            (URIRef("urn:ref:atlas-fixture:auxiliary-only"), RDF.type, SKOS.Concept)
-        )
+        fixture.asserted.add((URIRef("urn:ref:atlas-fixture:auxiliary-only"), RDF.type, SKOS.Concept))
 
     def evidence_retargeted(fixture: Fixture) -> None:
         evidence = next(fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding))
         current = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         replacement = next(
-            record
-            for record in fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord)
-            if record != current
+            record for record in fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord) if record != current
         )
         _remove_subject_predicate(fixture.asserted, evidence, ATLAS.evidenceSourceRecord)
         fixture.asserted.add((evidence, ATLAS.evidenceSourceRecord, replacement))
@@ -3087,16 +3086,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def evidence_reviewer_retargeted(fixture: Fixture) -> None:
         evidence = next(fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding))
         _remove_subject_predicate(fixture.asserted, evidence, RKAF.attestor)
-        fixture.asserted.add(
-            (evidence, RKAF.attestor, URIRef("urn:ref:agent:unreviewed-replacement"))
-        )
+        fixture.asserted.add((evidence, RKAF.attestor, URIRef("urn:ref:agent:unreviewed-replacement")))
 
     def _some_evidence(fixture: Fixture) -> URIRef:
         return next(fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding))
 
-    def _replace_evidence_fact(
-        fixture: Fixture, predicate: URIRef, obj: object
-    ) -> None:
+    def _replace_evidence_fact(fixture: Fixture, predicate: URIRef, obj: object) -> None:
         evidence = _some_evidence(fixture)
         _remove_subject_predicate(fixture.asserted, evidence, predicate)
         fixture.asserted.add((evidence, predicate, obj))
@@ -3107,14 +3102,10 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _replace_evidence_fact(fixture, RKAF.decision, RKAF.rejected)
 
     def evidence_attestor_kind_unknown(fixture: Fixture) -> None:
-        _replace_evidence_fact(
-            fixture, RKAF.attestorKind, URIRef("urn:ref:attestor-kind:invented")
-        )
+        _replace_evidence_fact(fixture, RKAF.attestorKind, URIRef("urn:ref:attestor-kind:invented"))
 
     def evidence_attested_at_not_datetime(fixture: Fixture) -> None:
-        _replace_evidence_fact(
-            fixture, RKAF.attestedAt, Literal("2026-08-09")
-        )
+        _replace_evidence_fact(fixture, RKAF.attestedAt, Literal("2026-08-09"))
 
     def evidence_function_unknown(fixture: Fixture) -> None:
         _replace_evidence_fact(
@@ -3134,23 +3125,16 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def assertion_asserted_at_not_datetime(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.RelationAssertion))
         _remove_subject_predicate(fixture.asserted, assertion, RKAF.assertedAt)
-        fixture.asserted.add(
-            (assertion, RKAF.assertedAt, Literal("2026-08-09"))
-        )
+        fixture.asserted.add((assertion, RKAF.assertedAt, Literal("2026-08-09")))
 
     def release_membership_mode_unknown(fixture: Fixture) -> None:
         release = next(fixture.asserted.subjects(RDF.type, ATLAS.AtlasRelease))
         _remove_subject_predicate(fixture.asserted, release, RKAF.membershipMode)
-        fixture.asserted.add(
-            (release, RKAF.membershipMode, URIRef("urn:ref:membership-mode:invented"))
-        )
+        fixture.asserted.add((release, RKAF.membershipMode, URIRef("urn:ref:membership-mode:invented")))
 
     def _declares_adoption(fixture: Fixture, binding: URIRef) -> bool:
         return "operatorAdoption" in atlas_validate.declared_evidence_warrants(
-            {
-                axis: fixture.asserted.value(binding, axis)
-                for axis in atlas_validate.EVIDENCE_WARRANT_AXES
-            }
+            {axis: fixture.asserted.value(binding, axis) for axis in atlas_validate.EVIDENCE_WARRANT_AXES}
         )
 
     def _operator_adopted_evidence(fixture: Fixture) -> URIRef:
@@ -3199,9 +3183,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # the adoption chain resolver runs before identity checks and must
         # reject the cycle on its own terms.
         later_evidence = _operator_adopted_evidence(fixture)
-        earlier_evidence = next(
-            fixture.asserted.objects(later_evidence, RKAF.basedOnAttestation)
-        )
+        earlier_evidence = next(fixture.asserted.objects(later_evidence, RKAF.basedOnAttestation))
         for axis, value in atlas_validate.evidence_warrant_facts("operatorAdoption"):
             _remove_subject_predicate(fixture.asserted, earlier_evidence, axis)
             fixture.asserted.add((earlier_evidence, axis, value))
@@ -3231,9 +3213,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def source_accounting_swap(fixture: Fixture) -> None:
         dispositions = next(
-            source["dispositions"]
-            for source in fixture.accounting["inputs"]
-            if len(source["dispositions"]) >= 2
+            source["dispositions"] for source in fixture.accounting["inputs"] if len(source["dispositions"]) >= 2
         )
         dispositions[0]["atlasResources"], dispositions[1]["atlasResources"] = (
             dispositions[1]["atlasResources"],
@@ -3258,9 +3238,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             for row in source["dispositions"]
             if row["sourceRecord"] == str(record)
         )
-        disposition["atlasResources"] = sorted(
-            [*disposition["atlasResources"], str(resource)]
-        )
+        disposition["atlasResources"] = sorted([*disposition["atlasResources"], str(resource)])
 
     def cross_role_identity(fixture: Fixture) -> None:
         derived = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
@@ -3294,9 +3272,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def wrong_derived_endpoint(fixture: Fixture) -> None:
         derived = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
-        source_release = next(
-            fixture.asserted.subjects(RDF.type, ATLAS.SourceRelease)
-        )
+        source_release = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRelease))
         _remove_subject_predicate(fixture.derived, derived, ATLAS.relationSubject)
         fixture.derived.add((derived, ATLAS.relationSubject, source_release))
 
@@ -3335,9 +3311,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def skos_mapping_reverse_conflict(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-        _, (subject, _, obj) = atlas_validate._assertion_basis(
-            fixture.asserted, assertion
-        )
+        _, (subject, _, obj) = atlas_validate._assertion_basis(fixture.asserted, assertion)
         source_release = next(fixture.asserted.objects(obj, ATLAS.inRelease))
         target_release = next(fixture.asserted.objects(subject, ATLAS.inRelease))
         evidence_record = next(fixture.asserted.objects(obj, ATLAS.sourceRecord))
@@ -3418,19 +3392,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def unjustified_thesaurus_related(fixture: Fixture) -> None:
         assertion = next(
             row
-            for row in fixture.asserted.subjects(
-                RDF.type, ATLAS.NativeRelationAssertion
-            )
+            for row in fixture.asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion)
             if fixture.asserted.value(row, RDF.predicate) == SKOS.broader
         )
-        _, (subject, _, obj) = atlas_validate._assertion_basis(
-            fixture.asserted, assertion
-        )
+        _, (subject, _, obj) = atlas_validate._assertion_basis(fixture.asserted, assertion)
         release = next(fixture.asserted.objects(assertion, ATLAS.sourceRelease))
         evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
-        evidence_record = next(
-            fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
-        )
+        evidence_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         fixture.asserted.remove((assertion, None, None))
         fixture.asserted.remove((evidence, None, None))
         _add_assertion(
@@ -3509,9 +3477,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # atlas:eventType admitted any IRI. rkaf:lifecycleEventKind does not.
         event = rescind_inert_cross_ring_assertion(fixture)
         _remove_subject_predicate(fixture.asserted, event, RKAF.lifecycleEventKind)
-        fixture.asserted.add(
-            (event, RKAF.lifecycleEventKind, URIRef("urn:ref:atlas-event:admitted"))
-        )
+        fixture.asserted.add((event, RKAF.lifecycleEventKind, URIRef("urn:ref:atlas-event:admitted")))
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def lifecycle_effective_date_not_datetime(fixture: Fixture) -> None:
@@ -3555,9 +3521,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         label = URIRef("urn:ref:atlas-fixture:label:subject-c:hidden:en")
         fixture.asserted.add((resource, SKOSXL.hiddenLabel, label))
         fixture.asserted.add((label, RDF.type, SKOSXL.Label))
-        fixture.asserted.add(
-            (label, SKOSXL.literalForm, Literal("Admin law (deprecated term)", lang="en"))
-        )
+        fixture.asserted.add((label, SKOSXL.literalForm, Literal("Admin law (deprecated term)", lang="en")))
         fixture.asserted.add((label, ATLAS.inRelease, release))
         fixture.asserted.add((label, ATLAS.sourceRecord, source_record))
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
@@ -3565,9 +3529,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def native_payload_digest_mismatch(fixture: Fixture) -> None:
         record = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord))
         _remove_subject_predicate(fixture.asserted, record, ATLAS.sourceDigest)
-        fixture.asserted.add(
-            (record, ATLAS.sourceDigest, Literal("sha256:" + "9" * 64))
-        )
+        fixture.asserted.add((record, ATLAS.sourceDigest, Literal("sha256:" + "9" * 64)))
         _refresh_evidence_for_source(fixture.asserted, record)
 
     # ---- machine adjudication -------------------------------------------
@@ -3588,9 +3550,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         return _adjudication_iri("proof", ADJUDICATED, key)
 
     def adjudicated_assertion(fixture: Fixture) -> URIRef:
-        return next(
-            fixture.asserted.objects(comparison_node(), RKAF.comparisonExpectedAssertion)
-        )
+        return next(fixture.asserted.objects(comparison_node(), RKAF.comparisonExpectedAssertion))
 
     def restate(fixture: Fixture, subject: URIRef, predicate: URIRef, value: Any) -> None:
         _remove_subject_predicate(fixture.asserted, subject, predicate)
@@ -3712,17 +3672,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         second = _add_artifact(
             fixture.asserted,
             _adjudication_iri("artifact", "request", ADJUDICATED, "second"),
-            identifiers=[
-                str(_adjudication_iri("artifact", "request", ADJUDICATED, "second"))
-            ],
+            identifiers=[str(_adjudication_iri("artifact", "request", ADJUDICATED, "second"))],
             digest="sha256:" + "3" * 64,
         )
         fixture.asserted.remove((beta, RKAF.proofInput, request_artifact()))
         fixture.asserted.add((beta, RKAF.proofInput, second))
         restate(fixture, beta, RKAF.sealedRequestDigest, Literal("sha256:" + "3" * 64))
-        restate(
-            fixture, lineage_node("beta"), RKAF.inputContextHash, Literal("sha256:" + "3" * 64)
-        )
+        restate(fixture, lineage_node("beta"), RKAF.inputContextHash, Literal("sha256:" + "3" * 64))
 
     def adjudication_foreign_comparison(fixture: Fixture) -> None:
         """A stale pass, replayed to license a comparison it was not run for.
@@ -3745,14 +3701,10 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def adjudication_relation_not_licensed(fixture: Fixture) -> None:
         for key in ("alpha", "beta"):
-            restate(
-                fixture, proof_node(key), RKAF.adjudicationVerdict, RKAF.verdictTargetBroader
-            )
+            restate(fixture, proof_node(key), RKAF.adjudicationVerdict, RKAF.verdictTargetBroader)
 
     def adjudication_verdicts_disagree(fixture: Fixture) -> None:
-        restate(
-            fixture, proof_node("beta"), RKAF.adjudicationVerdict, RKAF.verdictTargetBroader
-        )
+        restate(fixture, proof_node("beta"), RKAF.adjudicationVerdict, RKAF.verdictTargetBroader)
 
     def adjudication_response_artifact_cardinality(fixture: Fixture) -> None:
         """The bypass a reviewer found upstream: a shared artifact plus a decoy.
@@ -3819,8 +3771,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         other = next(
             assertion
             for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
-            if fixture.asserted.value(assertion, RDF.subject)
-            == URIRef("urn:ref:atlas-fixture:resource:subject-b")
+            if fixture.asserted.value(assertion, RDF.subject) == URIRef("urn:ref:atlas-fixture:resource:subject-b")
         )
         restate(fixture, comparison_node(), RKAF.comparisonExpectedAssertion, other)
 
@@ -3828,26 +3779,18 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         """The warrant with nothing behind it -- the claim, unaccompanied."""
 
         comparison = comparison_node()
-        for proof in list(
-            fixture.asserted.subjects(RKAF.proofComparisonContext, comparison)
-        ):
+        for proof in list(fixture.asserted.subjects(RKAF.proofComparisonContext, comparison)):
             drop_node(fixture, proof)
         drop_node(fixture, comparison)
 
     def adjudication_issuer_incomplete(fixture: Fixture) -> None:
-        _remove_subject_predicate(
-            fixture.asserted, _adjudication_iri("proof-issuer", "beta"), RKAF.proofPolicyVersion
-        )
+        _remove_subject_predicate(fixture.asserted, _adjudication_iri("proof-issuer", "beta"), RKAF.proofPolicyVersion)
 
     def adjudication_lineage_incomplete(fixture: Fixture) -> None:
-        _remove_subject_predicate(
-            fixture.asserted, lineage_node("beta"), RKAF.promptTemplateRef
-        )
+        _remove_subject_predicate(fixture.asserted, lineage_node("beta"), RKAF.promptTemplateRef)
 
     def adjudication_comparison_incomplete(fixture: Fixture) -> None:
-        _remove_subject_predicate(
-            fixture.asserted, comparison_node(), RKAF.comparisonDetectorVersion
-        )
+        _remove_subject_predicate(fixture.asserted, comparison_node(), RKAF.comparisonDetectorVersion)
 
     def adjudication_proof_rationale_empty(fixture: Fixture) -> None:
         restate(fixture, proof_node("alpha"), RKAF.proofRationale, Literal(""))
@@ -3861,9 +3804,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         drop_node(fixture, request_artifact())
 
     def adjudication_request_digest_mismatch(fixture: Fixture) -> None:
-        restate(
-            fixture, request_artifact(), RKAF.hasContentDigest, Literal("sha256:" + "7" * 64)
-        )
+        restate(fixture, request_artifact(), RKAF.hasContentDigest, Literal("sha256:" + "7" * 64))
 
     def adjudication_response_artifact_unbundled(fixture: Fixture) -> None:
         drop_node(fixture, response_artifact("alpha"))
@@ -3878,9 +3819,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
 
     def adjudication_input_context_hash(fixture: Fixture) -> None:
-        restate(
-            fixture, lineage_node("alpha"), RKAF.inputContextHash, Literal("sha256:" + "9" * 64)
-        )
+        restate(fixture, lineage_node("alpha"), RKAF.inputContextHash, Literal("sha256:" + "9" * 64))
 
     def adjudication_foreign_snapshot(fixture: Fixture) -> None:
         restate(
@@ -3939,12 +3878,21 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         mixed = URIRef("urn:ref:atlas-fixture:resource:mixed-code-subject")
         subject_c = URIRef("urn:ref:atlas-fixture:resource:subject-c")
         branches = (
-            ("close", resource, SKOS.closeMatch, mixed,
-             (("alpha", RKAF.verdictSame), ("beta", RKAF.verdictNearSame))),
-            ("narrow", mixed, SKOS.narrowMatch, subject_c,
-             (("alpha", RKAF.verdictTargetNarrower), ("beta", RKAF.verdictTargetNarrower))),
-            ("related", resource, SKOS.relatedMatch, subject_c,
-             (("alpha", RKAF.verdictRelated), ("beta", RKAF.verdictRelated))),
+            ("close", resource, SKOS.closeMatch, mixed, (("alpha", RKAF.verdictSame), ("beta", RKAF.verdictNearSame))),
+            (
+                "narrow",
+                mixed,
+                SKOS.narrowMatch,
+                subject_c,
+                (("alpha", RKAF.verdictTargetNarrower), ("beta", RKAF.verdictTargetNarrower)),
+            ),
+            (
+                "related",
+                resource,
+                SKOS.relatedMatch,
+                subject_c,
+                (("alpha", RKAF.verdictRelated), ("beta", RKAF.verdictRelated)),
+            ),
         )
         for name, subject, predicate, obj, machines in branches:
             assertion = _add_assertion(
@@ -3980,14 +3928,10 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         def mutate(path: Path) -> None:
             manifest_path = path / "atlas-manifest.json"
             manifest = json.loads(manifest_path.read_bytes())
-            manifest["packs"][0]["content"]["byteLength"] = (
-                atlas_validate.NQUADS_MAX_CONTENT_BYTES + 1
-            )
+            manifest["packs"][0]["content"]["byteLength"] = atlas_validate.NQUADS_MAX_CONTENT_BYTES + 1
             payload = dict(manifest)
             payload.pop("canonicalPayloadDigest", None)
-            manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
-                payload, terminal_lf=False
-            )
+            manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(payload, terminal_lf=False)
             manifest_path.write_bytes(atlas_validate.canonical_json_bytes(manifest))
 
         fixture.post_write = mutate
@@ -4019,9 +3963,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def iri_credentials(fixture: Fixture) -> None:
         record = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord))
         _remove_subject_predicate(fixture.asserted, record, ATLAS.sourceLocator)
-        fixture.asserted.add(
-            (record, ATLAS.sourceLocator, URIRef("https://user:pass@example.org/x"))
-        )
+        fixture.asserted.add((record, ATLAS.sourceLocator, URIRef("https://user:pass@example.org/x")))
 
     def iri_forbidden_character(fixture: Fixture) -> None:
         """Mint the locator form that reached a published pack unrefused.
@@ -4114,7 +4056,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("dataset-digest-mismatch", ["dataset"], "pack.content", digest_mismatch),
         ("blank-node", ["rdf"], "rdf.blank-node", blank_node),
         ("label-missing-literal", ["shacl"], "shacl.data", label_missing_literal),
-        ("non-english-label", ["shacl"], "shacl.data", non_english_label),
+        (
+            "multilingual-label",
+            ["rdf", "shacl", "dataset"],
+            "valid",
+            multilingual_label,
+        ),
         (
             "non-english-definition",
             ["shacl"],
@@ -4152,6 +4099,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("derived-is-authoritative", ["shacl", "reasoning"], "shacl.data", derived_authoritative),
         ("derived-extra-type", ["dataset", "reasoning"], "dataset.graph-placement", derived_extra_type),
         ("derived-reflexive-output", ["dataset", "reasoning"], "dataset.derived-rule", derived_reflexive_output),
+        (
+            "derived-noncanonical-direction",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            derived_noncanonical_direction,
+        ),
         ("derived-extra-branch", ["dataset", "reasoning"], "dataset.derived-rule", derived_extra_branch),
         ("derived-rescinded-input", ["dataset", "reasoning", "lifecycle"], "dataset.derived", derived_rescinded_input),
         (
@@ -4278,6 +4231,18 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("evidence-attested-at-not-datetime", ["shacl", "dataset"], "shacl.data", evidence_attested_at_not_datetime),
         ("evidence-function-unknown", ["shacl", "dataset"], "shacl.data", evidence_function_unknown),
         ("evidence-warrant-unsanctioned", ["shacl", "dataset"], "shacl.data", evidence_warrant_unsanctioned),
+        (
+            "mapping-publisher-without-standing",
+            ["dataset"],
+            "dataset.mapping-standing",
+            mapping_publisher_without_standing,
+        ),
+        (
+            "mapping-silent-predicate-rewrite",
+            ["dataset"],
+            "dataset.mapping-predicate-translation",
+            mapping_silent_predicate_rewrite,
+        ),
         ("assertion-asserted-at-not-datetime", ["shacl", "dataset"], "shacl.data", assertion_asserted_at_not_datetime),
         ("release-membership-mode-unknown", ["shacl", "dataset"], "shacl.data", release_membership_mode_unknown),
         ("adoption-without-referent", ["shacl", "dataset"], "shacl.data", adoption_without_referent),
@@ -4321,10 +4286,30 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             label_role_overlap,
         ),
         ("skos-mapping-conflict", ["shacl", "dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_conflict),
-        ("skos-mapping-reverse-conflict", ["dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_reverse_conflict),
-        ("skos-mapping-transitive-conflict", ["dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_transitive_conflict),
-        ("skos-mapping-hierarchy-conflict", ["dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_hierarchy_conflict),
-        ("skos-hierarchy-conflict", ["shacl", "dataset", "reasoning"], "dataset.skos-integrity", skos_hierarchy_conflict),
+        (
+            "skos-mapping-reverse-conflict",
+            ["dataset", "reasoning"],
+            "dataset.skos-integrity",
+            skos_mapping_reverse_conflict,
+        ),
+        (
+            "skos-mapping-transitive-conflict",
+            ["dataset", "reasoning"],
+            "dataset.skos-integrity",
+            skos_mapping_transitive_conflict,
+        ),
+        (
+            "skos-mapping-hierarchy-conflict",
+            ["dataset", "reasoning"],
+            "dataset.skos-integrity",
+            skos_mapping_hierarchy_conflict,
+        ),
+        (
+            "skos-hierarchy-conflict",
+            ["shacl", "dataset", "reasoning"],
+            "dataset.skos-integrity",
+            skos_hierarchy_conflict,
+        ),
         (
             "unjustified-thesaurus-related",
             ["dataset", "reasoning"],
@@ -4734,9 +4719,7 @@ def _derive_shacl_components(
     """
 
     selected = [
-        (name, mutation)
-        for name, _, expected_or_issue, mutation in mutations
-        if expected_or_issue == "shacl.data"
+        (name, mutation) for name, _, expected_or_issue, mutation in mutations if expected_or_issue == "shacl.data"
     ]
     if not selected:
         return {}
@@ -4789,8 +4772,7 @@ def _derive_shacl_components(
 def build(*, check: bool) -> None:
     if check and _receipt_is_current():
         print(
-            f"Atlas 3.1 fixtures are current: receipt matches {len(_receipt_inputs())} "
-            "inputs and the committed corpus"
+            f"Atlas 3.1 fixtures are current: receipt matches {len(_receipt_inputs())} inputs and the committed corpus"
         )
         return
     # Has anyone built the case tree here yet? `--check` compares against it
@@ -4839,15 +4821,13 @@ def build(*, check: bool) -> None:
         )
 
     expected_files = {
-        path.relative_to(temporary_root): path.read_bytes()
-        for path in temporary_root.rglob("*")
-        if path.is_file()
+        path.relative_to(temporary_root): path.read_bytes() for path in temporary_root.rglob("*") if path.is_file()
     }
-    current_files = {
-        path.relative_to(output_root): path.read_bytes()
-        for path in output_root.rglob("*")
-        if path.is_file()
-    } if output_root.exists() else {}
+    current_files = (
+        {path.relative_to(output_root): path.read_bytes() for path in output_root.rglob("*") if path.is_file()}
+        if output_root.exists()
+        else {}
+    )
     if check and materialized:
         shutil.rmtree(temporary_root)
         if current_files != expected_files:
@@ -4901,10 +4881,7 @@ def build(*, check: bool) -> None:
         # The committed receipt already pins exactly these bytes, so leave it
         # alone: rewriting it here would dirty a checked-in file on every cold
         # build for no new information.
-        print(
-            f"Atlas 3.1 fixtures materialized and matched the committed receipt: "
-            f"{len(expected_files)} files"
-        )
+        print(f"Atlas 3.1 fixtures materialized and matched the committed receipt: {len(expected_files)} files")
         return
     RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
     print(f"Atlas 3.1 fixtures written: {len(expected_files)} files, receipt over {len(_receipt_inputs())} inputs")

@@ -104,17 +104,23 @@
       "properties": {
         "includedLanguageFamilies": {
           "const": [
-            "en"
+            "de",
+            "en",
+            "es",
+            "fi",
+            "fr",
+            "it",
+            "ja"
           ]
         },
         "selectionRule": {
-          "const": "bcp47-primary-language-subtag"
+          "const": "publisher-or-deterministic-lowercase-bcp47"
         },
         "unselectedPublisherContent": {
           "const": "notRepresented"
         },
         "wireLanguageTag": {
-          "const": "en"
+          "const": "lowercase-bcp47"
         }
       },
       "required": [

@@ -417,6 +417,8 @@ class FASTTopicalNativeRow:
     heading: str
     alt_labels: tuple[str, ...]
     broader_ids: tuple[str, ...]
+    lcsh_links: tuple[FASTLcshLink, ...] = ()
+    source_filename: str = "FASTTopical.nt.zip"
 
 
 @dataclass(frozen=True, slots=True)
@@ -465,6 +467,9 @@ _NT_BLANK_NODE_OBJECT = re.compile(r"^<[^>]+>\s+<[^>]+>\s+_:[^\s]+\s+\.$")
 _SKOS_PREF = "http://www.w3.org/2004/02/skos/core#prefLabel"
 _SKOS_ALT = "http://www.w3.org/2004/02/skos/core#altLabel"
 _SKOS_BROADER = "http://www.w3.org/2004/02/skos/core#broader"
+FAST_SCHEMA_SAME_AS = "http://schema.org/sameAs"
+FAST_SKOS_RELATED_MATCH = "http://www.w3.org/2004/02/skos/core#relatedMatch"
+LCSH_SUBJECT_IRI_BASE = "http://id.loc.gov/authorities/subjects/"
 _OWL_DEPRECATED = "http://www.w3.org/2002/07/owl#deprecated"
 _DCTERMS_IDENTIFIER = "http://purl.org/dc/terms/identifier"
 _NT_ESCAPES = {"\\": "\\", '"': '"', "n": "\n", "r": "\r", "t": "\t"}
@@ -476,6 +481,18 @@ _MARC_LINK_TAGS = frozenset({"500", "510", "511", "530", "547", "548", "550", "5
 _MARC_REPLACEMENT_TAGS = frozenset({"700", "710", "711", "730", "747", "748", "750", "751", "755"})
 _MARC_CONTENT_CODES = frozenset("abcdefghjklmnopqrstu")
 _MARC_SUBDIVISION_CODES = frozenset("vxyz")
+_MARC_LCSH_CONTROL_NUMBER = re.compile(r"^\(DLC\)sh\s*([0-9]+)\s*$")
+
+
+@dataclass(frozen=True, slots=True)
+class FASTLcshLink:
+    """One publisher-authored FAST link to an LCSH authority record."""
+
+    predicate_iri: str
+    target_iri: str
+    native_statement: str
+    source_record_digest: str
+    source_encoding: Literal["marc21Record", "ntriplesStatement"]
 
 
 def _unescape_ntriples_literal(value: str) -> str:
@@ -527,6 +544,7 @@ def _parse_native_base(path: Path) -> dict[str, FASTTopicalNativeRow]:
     identifiers: dict[str, str] = {}
     alt_labels: dict[str, list[str]] = {}
     broader_ids: dict[str, list[str]] = {}
+    lcsh_links: dict[str, list[FASTLcshLink]] = {}
     deprecated: set[str] = set()
     with zipfile.ZipFile(path) as archive:
         members = [name for name in archive.namelist() if name.lower().endswith(".nt")]
@@ -556,6 +574,23 @@ def _parse_native_base(path: Path) -> dict[str, FASTTopicalNativeRow]:
                     alt_labels.setdefault(numeric_id, []).append(_unescape_ntriples_literal(literal))
                 elif predicate == _SKOS_BROADER and iri_object is not None and iri_object.startswith(FAST_URI_BASE):
                     broader_ids.setdefault(numeric_id, []).append(str(int(iri_object.removeprefix(FAST_URI_BASE))))
+                elif (
+                    predicate in {FAST_SCHEMA_SAME_AS, FAST_SKOS_RELATED_MATCH}
+                    and iri_object is not None
+                    and iri_object.startswith(LCSH_SUBJECT_IRI_BASE)
+                ):
+                    native_statement = stripped
+                    lcsh_links.setdefault(numeric_id, []).append(
+                        FASTLcshLink(
+                            predicate_iri=predicate,
+                            target_iri=iri_object,
+                            native_statement=native_statement,
+                            source_record_digest=sha256_digest(
+                                native_statement.encode("utf-8")
+                            ),
+                            source_encoding="ntriplesStatement",
+                        )
+                    )
                 elif predicate == _DCTERMS_IDENTIFIER and literal is not None:
                     identifiers.setdefault(numeric_id, _unescape_ntriples_literal(literal))
                 elif predicate == _OWL_DEPRECATED:
@@ -574,6 +609,8 @@ def _parse_native_base(path: Path) -> dict[str, FASTTopicalNativeRow]:
             heading=heading,
             alt_labels=tuple(dict.fromkeys(alt_labels.get(numeric_id, ()))),
             broader_ids=tuple(dict.fromkeys(broader_ids.get(numeric_id, ()))),
+            lcsh_links=tuple(dict.fromkeys(lcsh_links.get(numeric_id, ()))),
+            source_filename=FAST_TOPICAL_NATIVE_BASE_PIN.filename,
         )
     if len(rows) != FAST_TOPICAL_BASE_ACTIVE_COUNT:
         raise FASTTopicalSourceDriftError(
@@ -632,7 +669,52 @@ def _validate_marc_identity(record: Any, numeric_id: str) -> None:
         raise FASTTopicalSourceDriftError(f"FAST MARC {numeric_id} 024 URI does not match 001")
 
 
-def _native_row_from_marc(record: Any, numeric_id: str) -> FASTTopicalNativeRow:
+def _marc_lcsh_links(record: Any) -> tuple[FASTLcshLink, ...]:
+    """Read OCLC's LCSH 750 fields without strengthening ``$w nnd``."""
+
+    links: list[FASTLcshLink] = []
+    source_record_digest = sha256_digest(record.as_marc())
+    for field in record.get_fields("750"):
+        if field.indicators is None or field.indicators[1] != "0":
+            continue
+        targets: list[str] = []
+        for control_number in field.get_subfields("0"):
+            match = _MARC_LCSH_CONTROL_NUMBER.fullmatch(control_number)
+            if match is None:
+                continue
+            targets.append(f"{LCSH_SUBJECT_IRI_BASE}sh{match.group(1)}")
+        if not targets:
+            continue
+        link_control = tuple(field.get_subfields("w"))
+        if link_control not in {(), ("nnd",)}:
+            raise FASTTopicalSourceDriftError(
+                "FAST MARC LCSH 750 field has an unsupported $w control: "
+                f"{link_control!r}"
+            )
+        predicate = (
+            FAST_SKOS_RELATED_MATCH
+            if link_control == ("nnd",)
+            else FAST_SCHEMA_SAME_AS
+        )
+        for target in targets:
+            links.append(
+                FASTLcshLink(
+                    predicate_iri=predicate,
+                    target_iri=target,
+                    native_statement=str(field),
+                    source_record_digest=source_record_digest,
+                    source_encoding="marc21Record",
+                )
+            )
+    return tuple(dict.fromkeys(links))
+
+
+def _native_row_from_marc(
+    record: Any,
+    numeric_id: str,
+    *,
+    source_filename: str,
+) -> FASTTopicalNativeRow:
     topical = record.get_fields("150")
     if len(topical) != 1:
         raise FASTTopicalSourceDriftError(f"FAST MARC topical record {numeric_id} must contain one 150")
@@ -653,6 +735,8 @@ def _native_row_from_marc(record: Any, numeric_id: str) -> FASTTopicalNativeRow:
         heading=_render_marc_heading(topical[0]),
         alt_labels=alternatives,
         broader_ids=tuple(parents),
+        lcsh_links=_marc_lcsh_links(record),
+        source_filename=source_filename,
     )
 
 
@@ -738,7 +822,11 @@ def parse_fast_topical_native_snapshot(
                         tombstones[numeric_id] = _replacement_tombstone(record, numeric_id, status)
                     continue
                 if topical:
-                    rows[numeric_id] = _native_row_from_marc(record, numeric_id)
+                    rows[numeric_id] = _native_row_from_marc(
+                        record,
+                        numeric_id,
+                        source_filename=pin.filename,
+                    )
                     tombstones.pop(numeric_id, None)
                 elif numeric_id in rows:
                     # OCLC changed the record's authority facet. It no longer
@@ -989,6 +1077,8 @@ __all__ = [
     "FAST_LANDING_PAGE_URL",
     "FAST_LICENSE_URL",
     "FAST_PUBLISHER",
+    "FAST_SCHEMA_SAME_AS",
+    "FAST_SKOS_RELATED_MATCH",
     "FAST_TOPICAL_BASE_ACTIVE_COUNT",
     "FAST_TOPICAL_BULK_NT_ZIP_ARCHIVE_URL",
     "FAST_TOPICAL_CHANGE_PINS",
@@ -1000,6 +1090,7 @@ __all__ = [
     "FAST_TOPICAL_RESOURCE_ID",
     "FAST_URI_BASE",
     "AcquiredFASTTopicalExtract",
+    "FASTLcshLink",
     "FASTTopicalAcquisitionError",
     "FASTTopicalChangeSummary",
     "FASTTopicalError",

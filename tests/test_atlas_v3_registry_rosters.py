@@ -13,7 +13,7 @@ from refspec.atlas import v3_registry_rosters as adapters
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_complete_roster_adapter_set_emits_1439_resources() -> None:
+def test_complete_roster_adapter_set_emits_native_relations_and_one_cross_ring_carrier() -> None:
     releases = adapters.load_registry_roster_releases(ROOT)
 
     assert [release.key for release in releases] == [
@@ -22,12 +22,16 @@ def test_complete_roster_adapter_set_emits_1439_resources() -> None:
         "federal-register-agencies-roster-2026-08-15",
         "fcc-bureaus-offices-roster-2026-08-15",
         "federal-hierarchy-orgs-complete-2026-08-15",
+        "ecfr-agencies-roster-2026-08-15",
+        "regulations-gov-agencies-roster-2026-08-16",
         "gao-published-topics-index-2026-08-15",
     ]
-    assert sum(len(release.resources) for release in releases) == 1_439
-    assert sum(len(release.relations) for release in releases) == 963
+    assert sum(len(release.resources) for release in releases) == 2_086
+    assert sum(len(release.relations) for release in releases) == 86_748
     assert all(release.scope == "completeCapture" for release in releases)
-    assert all(not release.cross_ring_relations for release in releases)
+    assert {release.key: len(release.cross_ring_relations) for release in releases if release.cross_ring_relations} == {
+        "ecfr-agencies-roster-2026-08-15": 446
+    }
 
 
 def test_federal_register_document_types_are_a_value_ring_code_release() -> None:
@@ -113,22 +117,27 @@ def test_fcc_roster_replaces_the_observed_bureau_inventory() -> None:
 
 
 def test_federal_hierarchy_release_is_the_complete_entity_roster() -> None:
+    from refspec.atlas import v3_registry_nonemitters as nonemitters
+
     (release,) = adapters._federal_hierarchy_releases(ROOT)
+    treasury_accounts = nonemitters._treasury_releases(ROOT)[0]
 
     assert release.resource_id == "federal-hierarchy"
     assert release.scheme_iri == "urn:ref:atlas-resource-scheme:federal-hierarchy"
     assert (release.profile, release.ring) == ("codeScheme", "entity")
     assert len(release.resources) == 907
-    assert len(release.relations) == 738
+    assert len(release.relations) == 86_200
     assert release.metadata["departmentOrIndependentAgencyCount"] == 169
     assert release.metadata["subTierCount"] == 738
     assert release.metadata["publisherTypeTotalsWitness"] == {
         "Department/Ind. Agency": 169,
         "Sub-Tier": 738,
     }
-    # Seven pinned inputs: five roster pages and two totals witnesses.
-    assert len(release.inputs) == 7
+    # Eight pinned inputs: five roster pages, two totals witnesses, and the
+    # exact Treasury workbook used for the publisher-code join.
+    assert len(release.inputs) == 8
     assert [pin.role for pin in release.inputs].count("publisherTotalsWitness") == 2
+    assert release.inputs[-1].role == "publisherCgacJoinSource"
 
     by_iri = {resource.iri: resource for resource in release.resources}
     dod = by_iri["urn:ref:federal-hierarchy-org:100000000"]
@@ -145,9 +154,189 @@ def test_federal_hierarchy_release_is_the_complete_entity_roster() -> None:
     anomalies = release.metadata["publisherAnomalies"]
     assert anomalies["emptyAgencyCodeRecords"][0]["fhorgname"] == "Testing DEPT"
 
+    parent_relations = [
+        relation for relation in release.relations if relation.predicate == adapters.ATLAS_PARENT_ENTITY
+    ]
+    cgac_relations = [relation for relation in release.relations if relation.predicate == adapters.ATLAS_RELATED_ENTITY]
+    assert len(parent_relations) == 738
+    assert len(cgac_relations) == adapters.FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS
+    assert len({(relation.subject, relation.predicate, relation.object) for relation in cgac_relations}) == len(
+        cgac_relations
+    )
+    assert {relation.subject for relation in cgac_relations} <= {resource.iri for resource in release.resources}
+    assert {relation.object for relation in cgac_relations} < {resource.iri for resource in treasury_accounts.resources}
+    assert "urn:ref:federal-hierarchy-org:100000000" not in {relation.subject for relation in parent_relations}
+    dod_accounts = [
+        relation for relation in cgac_relations if relation.subject == "urn:ref:federal-hierarchy-org:100000000"
+    ]
+    assert {relation.source_payload["cgacAgencyIdentifier"] for relation in dod_accounts} == {
+        "017",
+        "021",
+        "057",
+        "096",
+        "097",
+    }
+    assert all(relation.source_payload["identityEquivalenceClaimed"] is False for relation in dod_accounts)
+    assert all(relation.source_payload["administrationClaimed"] is False for relation in dod_accounts)
+    assert release.metadata["cgacJoin"] == {
+        "sharedCgacAgencyIdentifierCount": 130,
+        "treasuryAccountRowCount": 3_544,
+        "distinctTreasuryAccountSymbolCount": 3_543,
+        "federalHierarchyOrganizationCount": 874,
+        "predicate": adapters.ATLAS_RELATED_ENTITY,
+        "identityEquivalenceClaimed": False,
+        "administrationClaimed": False,
+        "relationMeaning": (
+            "Each assertion states only that its endpoints share a publisher-reported CGAC Agency Identifier."
+        ),
+    }
+    assert release.metadata["licenseRightsStatements"] == {
+        "federalHierarchy": "US federal public domain (17 USC 105) with no explicit CC license",
+        "treasuryFastBook": "US federal public domain (17 USC 105) with no explicit CC license",
+    }
+    assert len(release.metadata["sourceCaptures"]) == 8
+    assert all(
+        {"sourceUrl", "retrievedAt", "sha256", "byteLength", "sourceVersionNote"} == set(capture)
+        for capture in release.metadata["sourceCaptures"]
+    )
+
+
+def test_ecfr_agencies_are_an_entity_roster_with_directed_cfr_title_relations(
+    tmp_path: Path,
+) -> None:
+    from refspec.atlas import v3_registry_codes as code_adapters
+
+    (release,) = adapters._ecfr_agency_releases(ROOT)
+    held_titles = next(item for item in code_adapters._load_govinfo(ROOT, tmp_path) if item.key == "ecfr-cfr-titles")
+
+    assert release.key == "ecfr-agencies-roster-2026-08-15"
+    assert release.resource_id == "ecfr-agencies"
+    assert release.scheme_iri == "urn:ref:atlas-resource-scheme:ecfr-agencies"
+    assert (release.profile, release.ring) == ("codeScheme", "entity")
+    assert len(release.resources) == 316
+    assert len(release.relations) == 163
+    assert len(release.cross_ring_relations) == 446
+    assert (
+        len({(relation.subject, relation.predicate, relation.object) for relation in release.cross_ring_relations})
+        == 446
+    )
+    assert {relation.predicate for relation in release.cross_ring_relations} == {
+        adapters.ATLAS_REFERENCES_LEGAL_IDENTITY
+    }
+    assert {(relation.source_ring, relation.target_ring) for relation in release.cross_ring_relations} == {
+        ("entity", "legalIdentity")
+    }
+    assert len({relation.subject for relation in release.cross_ring_relations}) == 315
+    assert all(
+        relation.subject.startswith("urn:ref:ecfr-agency:")
+        for relation in release.cross_ring_relations
+    )
+    assert len({relation.object for relation in release.cross_ring_relations}) == 49
+    assert {relation.object for relation in release.cross_ring_relations} < {
+        resource.iri for resource in held_titles.resources
+    }
+    assert sum(len(relation.source_payload["publisherReferences"]) for relation in release.cross_ring_relations) == 487
+    duplicate_reference = next(
+        relation
+        for relation in release.cross_ring_relations
+        if relation.subject == "urn:ref:ecfr-agency:foreign-service-impasse-disputes-panel"
+        and relation.source_payload["cfrTitle"] == 22
+    )
+    assert duplicate_reference.source_payload["publisherReferences"] == (
+        {"sourceOrdinal": 0, "title": 22, "chapter": "XIV", "subchapter": "B"},
+        {"sourceOrdinal": 1, "title": 22, "chapter": "XIV", "subchapter": "D"},
+    )
     assert all(relation.predicate == adapters.ATLAS_PARENT_ENTITY for relation in release.relations)
-    subjects = {relation.subject for relation in release.relations}
-    assert "urn:ref:federal-hierarchy-org:100000000" not in subjects
+
+    by_iri = {resource.iri: resource for resource in release.resources}
+    ams = by_iri["urn:ref:ecfr-agency:agricultural-marketing-service"]
+    assert ams.labels[0].value == "Agricultural Marketing Service, Department of Agriculture"
+    assert ams.notations == ("agricultural-marketing-service",)
+    assert ams.identifiers == ()
+    assert ams.native_payload["parentAgencySlug"] == "agriculture-department"
+
+    assert release.metadata["publisherCfrReferenceCount"] == 487
+    assert release.metadata["referencedAgencyCount"] == 315
+    assert release.metadata["referencedTitleCount"] == 49
+    assert release.metadata["crossRingPredicate"] == adapters.ATLAS_REFERENCES_LEGAL_IDENTITY
+    assert release.metadata["licenseRightsStatement"] == (
+        "US federal public domain (17 USC 105) with no explicit CC license"
+    )
+    assert "zero-cross-ring tripwire must be retired" in release.metadata["ref032CrossRingTripwireRetirement"]
+    assert "unversioned" in release.metadata["sourceCaptures"][0]["sourceVersionNote"]
+    assert release.metadata["nameMatchingRefused"].startswith("No eCFR agency was matched by name")
+
+
+def test_regulations_gov_agencies_are_an_entity_roster_with_pinned_parents() -> None:
+    (release,) = adapters._regulations_gov_agency_releases(ROOT)
+
+    assert release.key == "regulations-gov-agencies-roster-2026-08-16"
+    assert release.resource_id == "regulations-gov-native-controls"
+    assert release.scheme_iri == (
+        "urn:ref:atlas-resource-scheme:regulations-gov-native-controls:agencies"
+    )
+    assert (release.profile, release.ring) == ("codeScheme", "entity")
+    assert len(release.resources) == 331
+    assert len(release.relations) == 160
+    assert all(relation.predicate == adapters.ATLAS_PARENT_ENTITY for relation in release.relations)
+
+    by_iri = {resource.iri: resource for resource in release.resources}
+    abmc = by_iri["urn:ref:regulations-gov-agency:ABMC"]
+    assert abmc.labels[0].value == "American Battle Monuments Commission"
+    assert abmc.notations == ("ABMC",)
+    assert abmc.identifiers == ()
+    assert abmc.native_payload == {
+        "id": "ABMC",
+        "type": "agencies",
+        "parent": None,
+        "participate": False,
+        "partner": False,
+        "postingGuidelines": None,
+        "name": "American Battle Monuments Commission",
+        "agencyType": "Federal",
+        "links": {"self": "https://api.regulations.gov/v4/agencies/ABMC"},
+    }
+
+    whd_parent = [
+        relation
+        for relation in release.relations
+        if relation.subject == "urn:ref:regulations-gov-agency:WHD"
+    ]
+    assert len(whd_parent) == 1
+    assert whd_parent[0].object == "urn:ref:regulations-gov-agency:DOL"
+    assert whd_parent[0].source_payload == {
+        "sourceProperty": "attributes.parent",
+        "childAgencyId": "WHD",
+        "parentAgencyId": "DOL",
+    }
+
+    assert release.metadata["agencyCount"] == 331
+    assert release.metadata["parentRelationCount"] == 160
+    assert release.metadata["distinctParentAgencyCount"] == 17
+    assert release.metadata["undocumentedEndpoint"] is True
+    assert "recapture" in release.metadata["recaptureObligation"].lower()
+    assert release.metadata["apiKeyRequirement"] == {
+        "environmentVariable": "REGULATIONS_GOV_API_KEY",
+        "requestHeader": "X-Api-Key",
+        "keyValueIncluded": False,
+    }
+    assert release.metadata["licenseRightsStatement"] == (
+        "US federal public domain (17 USC 105) with no explicit CC license"
+    )
+    assert release.metadata["sourceCaptures"] == (
+        {
+            "sourceUrl": "https://api.regulations.gov/v4/agencies",
+            "retrievedAt": "2026-08-16T04:53:51Z",
+            "sha256": (
+                "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2"
+            ),
+            "byteLength": 91_408,
+            "sourceVersionNote": (
+                "The publisher exposes this as a rolling, unversioned endpoint; "
+                "the pinned digest detects drift."
+            ),
+        },
+    )
 
 
 def test_gao_topics_release_is_a_subject_ring_concept_scheme() -> None:

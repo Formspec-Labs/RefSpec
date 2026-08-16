@@ -231,16 +231,8 @@ def test_same_release_cross_partition_reference_pins_target_pack(
     )
     packs = generator._write_asserted_packs(tmp_path, asserted, (release,))
     release_packs = [pack for pack in packs if pack["kind"] == "sourceRelease"]
-    source_pack = next(
-        pack
-        for pack in packs
-        if pack.get("partition", {}).get("prefix") == source_partition
-    )
-    target_pack = next(
-        pack
-        for pack in packs
-        if pack.get("partition", {}).get("prefix") == target_partition
-    )
+    source_pack = next(pack for pack in packs if pack.get("partition", {}).get("prefix") == source_partition)
+    target_pack = next(pack for pack in packs if pack.get("partition", {}).get("prefix") == target_partition)
 
     assert len(release_packs) == 2
     assert source_pack["sourceReleases"] == [release.source_release_iri]
@@ -270,9 +262,7 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
     monkeypatch.setattr(
         generator.ATLAS_VALIDATE,
         "validate_preparsed_distribution",
-        lambda *args, **kwargs: pytest.fail(
-            "trusted producer must not run resident-graph RDF validation"
-        ),
+        lambda *args, **kwargs: pytest.fail("trusted producer must not run resident-graph RDF validation"),
     )
 
     result, manifest = generator._write_candidate_distribution(
@@ -289,9 +279,7 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
     assert not graphs.projection
     assert not graphs.derived
     assert graphs.accounting == {}
-    assert result["compiledProducerValidation"]["type"] == (
-        "AtlasProducerValidation"
-    )
+    assert result["compiledProducerValidation"]["type"] == ("AtlasProducerValidation")
     assert result["compiledProducerValidation"]["binding"] == manifest["binding"]
     assert result["trustedWriterReceiptChecks"]["mode"] == "trustedWriterReceipts"
     assert result["packMaterialization"] == {
@@ -343,9 +331,7 @@ def test_the_builder_derives_its_binding_block_instead_of_asserting_a_pin(
         **generator.ATLAS_VALIDATE._binding_digests(),
     }
     # Contract identity is in the manifest; proof identity is in the receipt.
-    acceptance = json.loads(
-        (tmp_path / "distribution" / "atlas-acceptance.json").read_bytes()
-    )
+    acceptance = json.loads((tmp_path / "distribution" / "atlas-acceptance.json").read_bytes())
     assert acceptance["corpusDigest"] == generator.ATLAS_VALIDATE.corpus_digest()
     assert "corpusDigest" not in manifest["binding"]
     assert "contractDigest" in manifest["binding"]
@@ -423,9 +409,7 @@ def _receipted_test_graphs() -> generator.BuildGraphs:
     asserted.add((atlas_release, generator.ATLAS.resourceProfile, generator.ATLAS.conceptScheme))
     asserted.add((atlas_release, generator.ATLAS.semanticRing, generator.ATLAS.subject))
     asserted.add((atlas_release, generator.ATLAS.inScheme, URIRef("urn:test:scheme")))
-    asserted.add(
-        (atlas_release, generator.RKAF.membershipMode, generator.RKAF.completeMembership)
-    )
+    asserted.add((atlas_release, generator.RKAF.membershipMode, generator.RKAF.completeMembership))
     asserted.add((atlas_release, generator.DCTERMS.identifier, Literal("unit-test-release")))
     asserted.add(
         (
@@ -476,14 +460,13 @@ def test_bounded_build_loads_only_the_named_release(
 
     requested: dict[str, object] = {}
 
-    def load_sources(
-        *, include_keys: object, registry_claim_inputs: object
-    ) -> tuple[object, ...]:
+    def load_sources(*, include_keys: object, registry_claim_inputs: object) -> tuple[object, ...]:
         requested["sources"] = include_keys
         return ()
 
-    def load_mappings(*, include_keys: object) -> None:
+    def load_mappings(*, include_keys: object, source_releases: object) -> None:
         requested["mappings"] = include_keys
+        requested["mapping_sources"] = source_releases
         raise RuntimeError("bounded load reached")
 
     monkeypatch.setattr(generator, "load_releases", load_sources)
@@ -496,6 +479,7 @@ def test_bounded_build_loads_only_the_named_release(
 
     assert requested["sources"] == frozenset({"federal-register-thesaurus-2025"})
     assert requested["mappings"] == frozenset()
+    assert requested["mapping_sources"] == ()
 
 
 def test_trusted_writer_receipts_reject_same_size_stored_pack_tampering(
@@ -545,9 +529,7 @@ def test_distribution_identity_is_the_digest_of_the_content_it_labels() -> None:
     accounting = _compiled_test_accounting()
     identity = accounting["distributionId"]
 
-    bounded_prefix = generator.DISTRIBUTION_ID_PREFIXES[
-        generator.BOUNDED_SELECTION_SCOPE
-    ]
+    bounded_prefix = generator.DISTRIBUTION_ID_PREFIXES[generator.BOUNDED_SELECTION_SCOPE]
 
     assert identity == generator.distribution_identity(accounting)
     assert identity == generator.distribution_identity(_compiled_test_accounting())
@@ -580,44 +562,28 @@ def test_distribution_identity_names_its_scope_and_cannot_be_relabelled() -> Non
 
     declared = len(generator._declared_construction_unit_keys())
 
-    assert generator.distribution_scope_profile(declared) == (
-        generator.COMPLETE_TOPOLOGY_SCOPE
-    )
-    assert generator.distribution_scope_profile(1) == (
-        generator.BOUNDED_SELECTION_SCOPE
-    )
+    assert generator.distribution_scope_profile(declared) == (generator.COMPLETE_TOPOLOGY_SCOPE)
+    assert generator.distribution_scope_profile(1) == (generator.BOUNDED_SELECTION_SCOPE)
     for outside in (0, declared + 1):
         with pytest.raises(ValueError, match="code-declared construction units"):
             generator.distribution_scope_profile(outside)
 
     bounded = _compiled_test_accounting()
     complete = generator._identified_source_accounting(
-        {
-            key: value
-            for key, value in bounded.items()
-            if key != "distributionId"
-        }
+        {key: value for key, value in bounded.items() if key != "distributionId"}
         | {"totals": {**bounded["totals"], "sourceReleases": declared}}
     )
 
-    assert bounded["distributionId"].startswith(
-        generator.DISTRIBUTION_ID_PREFIXES[generator.BOUNDED_SELECTION_SCOPE]
-    )
-    assert complete["distributionId"].startswith(
-        generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE]
-    )
+    assert bounded["distributionId"].startswith(generator.DISTRIBUTION_ID_PREFIXES[generator.BOUNDED_SELECTION_SCOPE])
+    assert complete["distributionId"].startswith(generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE])
     # Claiming the wider scope moves the digest beside it, because the release
     # count the scope is read from is inside the content the digest covers.
     assert bounded["distributionId"].removeprefix(
         generator.DISTRIBUTION_ID_PREFIXES[generator.BOUNDED_SELECTION_SCOPE]
-    ) != complete["distributionId"].removeprefix(
-        generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE]
-    )
+    ) != complete["distributionId"].removeprefix(generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE])
     relabelled = {
         **bounded,
-        "distributionId": generator.DISTRIBUTION_ID_PREFIXES[
-            generator.COMPLETE_TOPOLOGY_SCOPE
-        ]
+        "distributionId": generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE]
         + bounded["distributionId"].split(":")[-1],
     }
     with pytest.raises(ValueError, match="not its own content digest"):
@@ -634,12 +600,8 @@ def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
     older = SimpleNamespace(issued="2025-04-01")
     newer = SimpleNamespace(issued="2026-08-04")
 
-    assert generator._distribution_instant((older, newer)) == (
-        "2026-08-04T00:00:00+00:00"
-    )
-    assert generator._distribution_instant((newer, older)) == (
-        generator._distribution_instant((older, newer))
-    )
+    assert generator._distribution_instant((older, newer)) == ("2026-08-04T00:00:00+00:00")
+    assert generator._distribution_instant((newer, older)) == (generator._distribution_instant((older, newer)))
 
 
 def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
@@ -684,10 +646,7 @@ def test_v3_fallback_identity_is_readable_deterministic_and_source_preserving() 
         source_scheme=source_scheme,
     )
 
-    assert iri == (
-        "urn:ref:source-concept:v2:loc-lst:"
-        "019fc9f2-c758-7134-9432-2a0de8fde1dd"
-    )
+    assert iri == ("urn:ref:source-concept:v2:loc-lst:019fc9f2-c758-7134-9432-2a0de8fde1dd")
     assert source_identity == {
         "identityKind": "refspecSourceScoped",
         "localRecordId": local_record_id,
@@ -727,9 +686,7 @@ def test_v3_fallback_identity_fails_closed(
             "019fc9f2-c758-7134-9432-2a0de8fde1dd"
         ),
         "identity_kind": "refspecSourceScoped",
-        "local_record_id": (
-            "urn:uuid:019fc9f2-c758-7134-9432-2a0de8fde1dd"
-        ),
+        "local_record_id": ("urn:uuid:019fc9f2-c758-7134-9432-2a0de8fde1dd"),
         "source_scheme": "http://id.loc.gov/vocabulary/subjectSchemes/lst",
     }
     values.update(overrides)
@@ -820,9 +777,7 @@ def _compiled_descriptor_graph() -> Graph:
     scheme = URIRef("urn:test:scheme:subjects")
     graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
     graph.add((scheme, RDF.type, generator.SKOS.ConceptScheme))
-    graph.add(
-        (scheme, generator.ATLAS.resourceProfile, generator.ATLAS.conceptScheme)
-    )
+    graph.add((scheme, generator.ATLAS.resourceProfile, generator.ATLAS.conceptScheme))
     graph.add((scheme, generator.ATLAS.supportedRing, generator.ATLAS.subject))
     return graph
 
@@ -840,11 +795,9 @@ def test_shared_row_validator_rejects_a_malformed_label_row(
     )
     dirty = dataclasses.replace(
         dirty,
-        resources=(
-            dataclasses.replace(dirty.resources[0], labels=(malformed_label,)),
-        ),
+        resources=(dataclasses.replace(dirty.resources[0], labels=(malformed_label,)),),
     )
-    with pytest.raises(ValueError, match="invalid English label row"):
+    with pytest.raises(ValueError, match="invalid label row"):
         generator._validate_compiled_producer_rows((dirty, clean))
 
 
@@ -1134,8 +1087,161 @@ def test_load_mapping_releases_applies_registry_policy_gate(
         lambda releases: observed.extend(releases),
     )
 
-    assert generator.load_mapping_releases() == (mapping_release,)
+    assert generator.load_mapping_releases(frozenset({mapping_release.key})) == (mapping_release,)
     assert observed == [mapping_release]
+
+
+def _endpoint_ownership_release(
+    tmp_path: Path,
+    *,
+    key: str,
+    iris: tuple[str, ...],
+    preference: str,
+) -> RegistryRelease:
+    source = tmp_path / f"{key}.json"
+    source.write_text("{}", encoding="utf-8")
+    digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    pin = RegistryInputPin(
+        path=source,
+        logical_path=f"tests/{source.name}",
+        sha256=digest,
+        byte_length=source.stat().st_size,
+        source_iri=f"https://example.test/{source.name}",
+        role="publisherEndpointSource",
+    )
+    return RegistryRelease(
+        key=key,
+        resource_id=key,
+        source_module="refspec.registry.test_endpoints",
+        profile="conceptScheme",
+        ring="subject",
+        scope="captureSubset",
+        issued="2026-08-15",
+        source_release_iri=f"urn:test:source-release:{key}",
+        source_release_digest=digest,
+        atlas_release_iri=f"urn:test:atlas-release:{key}",
+        scheme_iri=f"urn:test:scheme:{key}",
+        inputs=(pin,),
+        resources=tuple(
+            RegistryResource(
+                iri=iri,
+                labels=(
+                    RegistryLabel(
+                        value=iri.rsplit("/", 1)[-1],
+                        role="preferred",
+                        source_path="$.label",
+                    ),
+                ),
+                native_payload={"iri": iri},
+                source_locator=f"https://example.test/{key}#{index}",
+                source_digest=digest,
+            )
+            for index, iri in enumerate(iris)
+        ),
+        metadata={"endpointOwnershipPreference": preference},
+    )
+
+
+def test_endpoint_ownership_reuses_held_resources_and_drops_empty_release(
+    tmp_path: Path,
+) -> None:
+    held = _endpoint_ownership_release(
+        tmp_path,
+        key="held-vocabulary",
+        iris=("https://example.test/vocabulary/held",),
+        preference="publisherOwnedVocabulary",
+    )
+    publisher = _endpoint_ownership_release(
+        tmp_path,
+        key="publisher-endpoints",
+        iris=("https://example.test/vocabulary/shared",),
+        preference="publisherOwnedVocabulary",
+    )
+    duplicate_only = _endpoint_ownership_release(
+        tmp_path,
+        key="third-party-endpoints",
+        iris=(
+            "https://example.test/vocabulary/held",
+            "https://example.test/vocabulary/shared",
+        ),
+        preference="publisherVocabularyViaThirdPartySelection",
+    )
+
+    reconciled = generator._reconcile_endpoint_release_ownership(
+        (held,),
+        (duplicate_only, publisher),
+    )
+
+    assert [release.key for release in reconciled] == ["publisher-endpoints"]
+    assert reconciled[0].metadata["endpointOwnership"] == {
+        "candidateResourceCount": 1,
+        "candidateRelationCount": 0,
+        "emittedResourceCount": 1,
+        "emittedRelationCount": 0,
+        "excludedResourceCount": 0,
+        "excludedRelationCount": 0,
+        "excludedResourceCountsByOwningRelease": {},
+        "heldIriSpacesBeforeAcquisition": ["https://example.test/vocabulary/"],
+        "iriSpaces": ["https://example.test/vocabulary/"],
+        "ownershipDecisions": [
+            {
+                "iriSpace": "https://example.test/vocabulary/",
+                "ownerReleaseKey": "publisher-endpoints",
+                "resourceCount": 1,
+                "selectionBasis": "publisherContentPreference",
+            }
+        ],
+        "preference": "publisherOwnedVocabulary",
+        "rule": (
+            "reuse an exact resource from an existing held release; otherwise "
+            "prefer target-publisher content and break equal-preference ties by release key"
+        ),
+    }
+
+
+def test_release_resource_uniqueness_tripwire_rejects_a_duplicate(
+    tmp_path: Path,
+) -> None:
+    first = _endpoint_ownership_release(
+        tmp_path,
+        key="first",
+        iris=("https://example.test/vocabulary/shared",),
+        preference="publisherOwnedVocabulary",
+    )
+    second = _endpoint_ownership_release(
+        tmp_path,
+        key="second",
+        iris=("https://example.test/vocabulary/shared",),
+        preference="publisherOwnedVocabulary",
+    )
+
+    with pytest.raises(ValueError, match="Atlas releases repeat resource IRI"):
+        generator._assert_unique_release_resource_iris((first, second))
+
+
+def test_mapping_endpoints_are_repinned_without_dropping_assertions(
+    tmp_path: Path,
+) -> None:
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    stale_mapping = dataclasses.replace(
+        mapping_release.mappings[0],
+        subject_atlas_release_iri="urn:test:atlas-release:stale-subject",
+        object_atlas_release_iri="urn:test:atlas-release:stale-object",
+    )
+    stale_release = dataclasses.replace(
+        mapping_release,
+        mappings=(stale_mapping,),
+    )
+
+    (repinned,) = generator._pin_mapping_endpoints_to_loaded_releases(
+        releases,
+        (stale_release,),
+    )
+
+    assert len(repinned.mappings) == len(stale_release.mappings) == 1
+    assert repinned.mappings[0].subject_atlas_release_iri == releases[0].atlas_release_iri
+    assert repinned.mappings[0].object_atlas_release_iri == releases[1].atlas_release_iri
+    assert repinned.metadata["endpointOwnership"]["repinnedMappingCount"] == 1
 
 
 def test_mapping_release_matches_mapping_only_registry_policy(tmp_path: Path) -> None:
@@ -1238,23 +1344,17 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 82
+    assert len(generator._validated_registry_index_rows(index, proof)) == 109
 
     changed_index = json.loads(json.dumps(index))
-    mapping_row = next(
-        row
-        for row in changed_index["rows"]
-        if row["resourceId"] == "eurovoc-lcsh-alignment"
-    )
+    mapping_row = next(row for row in changed_index["rows"] if row["resourceId"] == "eurovoc-lcsh-alignment")
     mapping_row["sourceModule"] = "refspec.registry.unapproved_alignment"
     with pytest.raises(ValueError, match="index content digest differs"):
         generator._validated_registry_index_rows(changed_index, proof)
 
     changed_digest = generator._registry_index_content_digest(changed_index)
     changed_index["indexDigest"] = changed_digest
-    changed_index["indexId"] = (
-        "urn:ref:atlas-index:" + changed_digest.removeprefix("sha256:")
-    )
+    changed_index["indexId"] = "urn:ref:atlas-index:" + changed_digest.removeprefix("sha256:")
     with pytest.raises(ValueError, match="differs from the descriptor proof"):
         generator._validated_registry_index_rows(changed_index, proof)
 
@@ -1272,7 +1372,7 @@ def test_mapping_release_pins_its_primary_source_artifact(tmp_path: Path) -> Non
         dataclasses.replace(mapping_release, source_release_iri="relative-release")
     with pytest.raises(ValueError, match="digest is not SHA-256"):
         dataclasses.replace(mapping_release, source_release_digest="sha256:not-a-digest")
-    with pytest.raises(ValueError, match="differs from its primary mapping input"):
+    with pytest.raises(ValueError, match="differs from its declared source release inputs"):
         dataclasses.replace(
             mapping_release,
             source_release_digest="sha256:" + "0" * 64,
@@ -1296,9 +1396,7 @@ def test_mapping_release_rejects_unknown_or_member_registry_source(
 
     descriptors = _mapping_policy_graph(mapping_release.resource_id)
     source = generator._registry_source_descriptor_iri(mapping_release.resource_id)
-    descriptors.set(
-        (source, generator.ATLAS.memberDisposition, Literal("memberRelease"))
-    )
+    descriptors.set((source, generator.ATLAS.memberDisposition, Literal("memberRelease")))
     with pytest.raises(ValueError, match="not mappingAssertionsOnly"):
         generator._validate_registry_mapping_release_policy(
             mapping_release,
@@ -1396,7 +1494,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
 
     inventory = generator.verify_inputs(releases, mapping_releases)
     assert inventory["expectedResources"] == 2
-    assert inventory["registryDescriptors"] == 86
+    assert inventory["registryDescriptors"] == 104
     mapping_source = inventory["mappingSources"][0]
     assert [row["role"] for row in mapping_source["inputs"]] == [
         "publisherAlignment",
@@ -1417,6 +1515,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         include_projection=False,
     )
     try:
+        assert len(graphs.derived) == 0
         report = generator._validate_compiled_producer_output(
             releases,
             graphs,
@@ -1439,9 +1538,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         }
         assert report["sourceReleaseCount"] == 3
 
-        mapping_assertions = set(
-            graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
-        )
+        mapping_assertions = set(graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion))
         assert len(mapping_assertions) == 1
         assertion = next(iter(mapping_assertions))
         assert (
@@ -1458,9 +1555,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
             assertion,
             generator.ATLAS.targetRelease,
         ) == URIRef(mapping_row.object_atlas_release_iri)
-        evidence_bindings = set(
-            graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion)
-        )
+        evidence_bindings = set(graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion))
         assert len(evidence_bindings) == 1
         evidence = next(iter(evidence_bindings))
         evidence_row = mapping_release.mappings[0].evidence[0]
@@ -1505,9 +1600,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         ) == URIRef(evidence_row.source_locator)
 
         accounting_row = next(
-            row
-            for row in graphs.accounting["inputs"]
-            if row["sourceRelease"] == mapping_release.source_release_iri
+            row for row in graphs.accounting["inputs"] if row["sourceRelease"] == mapping_release.source_release_iri
         )
         assert len(accounting_row["dispositions"]) == 1
         assert accounting_row["membershipMode"] == "complete"
@@ -1530,9 +1623,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         catalog_pack = next(pack for pack in packs if pack["kind"] == "catalog")
         source_packs = [pack for pack in packs if pack["kind"] == "sourceRelease"]
         assert len(packs) == 4
-        assert mapping_pack["path"] == (
-            "packs/mappings/eurovoc-lcsh-alignment-20240711.nq.zst"
-        )
+        assert mapping_pack["path"] == ("packs/mappings/eurovoc-lcsh-alignment-20240711.nq.zst")
         assert set(mapping_pack["dependencies"]) == {
             catalog_pack["packId"],
             *(pack["packId"] for pack in source_packs),
@@ -1590,9 +1681,7 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
         include_projection=False,
     )
     try:
-        base_assertions = set(
-            base_graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
-        )
+        base_assertions = set(base_graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion))
         expanded_assertions = set(
             expanded_graphs.asserted.subjects(
                 RDF.type,
@@ -1635,10 +1724,7 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
             if row["sourceRelease"] == expanded_release.source_release_iri
         )
         assert len(accounting_row["dispositions"]) == 2
-        assert all(
-            disposition["atlasAssertions"] == [str(assertion)]
-            for disposition in accounting_row["dispositions"]
-        )
+        assert all(disposition["atlasAssertions"] == [str(assertion)] for disposition in accounting_row["dispositions"])
     finally:
         base_graphs.release()
         expanded_graphs.release()
@@ -1680,12 +1766,8 @@ def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
         include_projection=False,
     )
     try:
-        assertion = next(
-            graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
-        )
-        bindings = list(
-            graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion)
-        )
+        assertion = next(graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion))
+        bindings = list(graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion))
         assert len(bindings) == 2
         graphs.asserted.remove((bindings[-1], None, None))
 
@@ -1722,13 +1804,9 @@ def test_compiled_output_rejects_wrong_mapping_assertion_in_source_accounting(
     )
     try:
         accounting_row = next(
-            row
-            for row in graphs.accounting["inputs"]
-            if row["sourceRelease"] == mapping_release.source_release_iri
+            row for row in graphs.accounting["inputs"] if row["sourceRelease"] == mapping_release.source_release_iri
         )
-        accounting_row["dispositions"][0]["atlasAssertions"] = [
-            "urn:ref:atlas-assertion:" + "0" * 64
-        ]
+        accounting_row["dispositions"][0]["atlasAssertions"] = ["urn:ref:atlas-assertion:" + "0" * 64]
 
         with pytest.raises(ValueError):
             generator._validate_compiled_producer_output(
@@ -1867,14 +1945,9 @@ def test_compiled_producer_retains_supplemental_source_claim_records(
             RDF.type,
             generator.ATLAS.SourceRecord,
         )
-        if not list(
-            graphs.asserted.objects(subject, generator.ATLAS.representsResource)
-        )
+        if not list(graphs.asserted.objects(subject, generator.ATLAS.representsResource))
     }
     assert len(supplemental_nodes) == 1
-
-
-
 
 
 def test_compiled_producer_rejects_empty_release(
@@ -1917,9 +1990,7 @@ def test_compiled_producer_rejects_subject_scheme_without_skos_type(
     monkeypatch.setattr(generator, "_registry_asserted_graph", lambda: descriptor)
 
     with pytest.raises(ValueError, match="not a SKOS ConceptScheme"):
-        generator._validate_compiled_producer_rows(
-            (_compiled_source_release(tmp_path),)
-        )
+        generator._validate_compiled_producer_rows((_compiled_source_release(tmp_path),))
 
 
 def test_asserted_pack_writer_rejects_oversized_nquads_line(
@@ -1930,9 +2001,7 @@ def test_asserted_pack_writer_rejects_oversized_nquads_line(
         (
             URIRef("urn:test:subject"),
             URIRef("urn:test:predicate"),
-            generator.Literal(
-                "x" * generator.ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES
-            ),
+            generator.Literal("x" * generator.ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES),
         )
     )
 
@@ -2036,15 +2105,9 @@ def test_builder_emits_parquet_from_the_graph_it_already_walks(
         for owned in record_counts.values():
             for field, count in owned.items():
                 expected[field] += count
-        by_field = {
-            generator._COMPACT_ROLE_COUNT_FIELDS[role]: count
-            for role, count in counts.items()
-            if count
-        }
+        by_field = {generator._COMPACT_ROLE_COUNT_FIELDS[role]: count for role, count in counts.items() if count}
         assert by_field == {field: count for field, count in expected.items() if count}
-        assert {member["role"] for member in members} == {
-            role.value for role in generator.CompactRecordRole
-        }
+        assert {member["role"] for member in members} == {role.value for role in generator.CompactRecordRole}
 
         receipt = generator._check_parquet_view_against_graph(tables, graphs.asserted)
         assert receipt["status"] == "passed"
@@ -2052,9 +2115,7 @@ def test_builder_emits_parquet_from_the_graph_it_already_walks(
         assert receipt["sourceRecordPayloadRows"] == counts["SourceRecord"]
         assert receipt["reachabilityRows"] == sum(counts.values())
         assert receipt["comparand"].endswith("validate.py:parquet_row_from_rdf")
-        assert receipt["reachabilityComparand"].endswith(
-            "validate.py:_check_explorer_reachability"
-        )
+        assert receipt["reachabilityComparand"].endswith("validate.py:_check_explorer_reachability")
     finally:
         graphs.release()
 
@@ -2319,9 +2380,7 @@ def test_compiled_producer_rejects_projection_and_accounting_mutations(
     # represented resources the ledger names against the resources the release
     # actually carries. The `declaredMemberCount` self-count that used to fire
     # first said only that the producer could count its own list.
-    graphs.accounting["distributionId"] = generator.distribution_identity(
-        graphs.accounting
-    )
+    graphs.accounting["distributionId"] = generator.distribution_identity(graphs.accounting)
     with pytest.raises(ValueError, match="resource membership differs"):
         generator._validate_compiled_producer_output(
             (release,),
@@ -2476,56 +2535,30 @@ def crs_releases():
 def test_all_1075_crs_fallback_ids_are_readable_and_reversible(
     crs_releases,
 ) -> None:
-    resources = [
-        (release, resource)
-        for release in crs_releases
-        for resource in release.resources
-    ]
+    resources = [(release, resource) for release in crs_releases for resource in release.resources]
     counts_by_namespace = {
-        token: sum(
-            len(release.resources)
-            for release in crs_releases
-            if release.spec.fallback_namespace_token == token
-        )
+        token: sum(len(release.resources) for release in crs_releases if release.spec.fallback_namespace_token == token)
         for token in ("loc-lst", "loc-cgpa")
     }
 
     assert len(resources) == 1_075
     assert counts_by_namespace == {"loc-lst": 1_043, "loc-cgpa": 32}
-    assert not any(
-        resource.iri.startswith("urn:ref:source-concept:v1:")
-        for _, resource in resources
-    )
+    assert not any(resource.iri.startswith("urn:ref:source-concept:v1:") for _, resource in resources)
     for release, resource in resources:
         token = release.spec.fallback_namespace_token
-        assert resource.iri.startswith(
-            f"urn:ref:source-concept:v2:{token}:"
-        )
+        assert resource.iri.startswith(f"urn:ref:source-concept:v2:{token}:")
         assert resource.native_payload is not None
         source_identity = resource.native_payload["sourceIdentity"]
         assert source_identity["identityKind"] == "refspecSourceScoped"
         assert source_identity["namespaceToken"] == token
-        assert source_identity["priorSourceConceptIri"].startswith(
-            "urn:ref:source-concept:v1:"
-        )
-        assert resource.iri.endswith(
-            source_identity["localRecordId"].removeprefix("urn:uuid:")
-        )
+        assert source_identity["priorSourceConceptIri"].startswith("urn:ref:source-concept:v1:")
+        assert resource.iri.endswith(source_identity["localRecordId"].removeprefix("urn:uuid:"))
 
-    entity_release = next(
-        release
-        for release in crs_releases
-        if release.spec.key == "crs-legislative-entities"
-    )
+    entity_release = next(release for release in crs_releases if release.spec.key == "crs-legislative-entities")
     brazil = next(
-        resource
-        for resource in entity_release.resources
-        if any(label.value == "Brazil" for label in resource.labels)
+        resource for resource in entity_release.resources if any(label.value == "Brazil" for label in resource.labels)
     )
-    assert brazil.iri == (
-        "urn:ref:source-concept:v2:loc-lst:"
-        "019fc9f2-c758-7134-9432-2a0de8fde1dd"
-    )
+    assert brazil.iri == ("urn:ref:source-concept:v2:loc-lst:019fc9f2-c758-7134-9432-2a0de8fde1dd")
     assert brazil.native_payload is not None
     assert brazil.native_payload["sourceIdentity"] == {
         "identityKind": "refspecSourceScoped",
@@ -2557,10 +2590,7 @@ def registry_code_releases():
 
     if not (ROOT / "output" / "registry-real-data-sources").is_dir():
         pytest.skip("pinned registry code sources are not present: output/registry-real-data-sources")
-    return tuple(
-        generator._adapt_registry_release(release)
-        for release in load_registry_code_releases(ROOT)
-    )
+    return tuple(generator._adapt_registry_release(release) for release in load_registry_code_releases(ROOT))
 
 
 def test_only_five_icpsr_xml_gaps_receive_readable_fallback_ids(
@@ -2570,50 +2600,35 @@ def test_only_five_icpsr_xml_gaps_receive_readable_fallback_ids(
         resource
         for resource in icpsr_release.resources
         if resource.native_payload is not None
-        and resource.native_payload.get("identityStatus")
-        == "publisherIdentifierAbsent"
+        and resource.native_payload.get("identityStatus") == "publisherIdentifierAbsent"
     ]
     publisher_resources = [
         resource
         for resource in icpsr_release.resources
         if resource.native_payload is not None
-        and resource.native_payload.get("identityStatus")
-        != "publisherIdentifierAbsent"
+        and resource.native_payload.get("identityStatus") != "publisherIdentifierAbsent"
     ]
     fallback_ids = {resource.iri for resource in fallback_resources}
     fallback_relation_endpoints = {
         endpoint
         for relation in icpsr_release.relations
         for endpoint in (relation.subject, relation.object)
-        if endpoint.startswith(
-            "urn:ref:source-concept:v2:icpsr-subject-thesaurus:"
-        )
+        if endpoint.startswith("urn:ref:source-concept:v2:icpsr-subject-thesaurus:")
     }
 
     assert len(fallback_resources) == 5
     assert len(publisher_resources) == 3_805
     assert all(
-        resource.iri.startswith(
-            "urn:ref:source-concept:v2:icpsr-subject-thesaurus:"
-        )
-        for resource in fallback_resources
+        resource.iri.startswith("urn:ref:source-concept:v2:icpsr-subject-thesaurus:") for resource in fallback_resources
     )
     assert all(
         resource.native_payload is not None
-        and resource.native_payload["sourceIdentity"]["priorSourceConceptIri"].startswith(
-            "urn:ref:source-concept:v1:"
-        )
+        and resource.native_payload["sourceIdentity"]["priorSourceConceptIri"].startswith("urn:ref:source-concept:v1:")
         for resource in fallback_resources
     )
-    assert all(
-        resource.iri == resource.source_locator
-        for resource in publisher_resources
-    )
+    assert all(resource.iri == resource.source_locator for resource in publisher_resources)
     assert fallback_relation_endpoints == fallback_ids
-    assert not any(
-        resource.iri.startswith("urn:ref:source-concept:v1:")
-        for resource in icpsr_release.resources
-    )
+    assert not any(resource.iri.startswith("urn:ref:source-concept:v1:") for resource in icpsr_release.resources)
     assert not any(
         endpoint.startswith("urn:ref:source-concept:v1:")
         for relation in icpsr_release.relations
@@ -2629,29 +2644,21 @@ def entity_ring_release():
         load_courtlistener_jurisdictions_release,
     )
 
-    return generator._adapt_registry_release(
-        load_courtlistener_jurisdictions_release()
-    )
+    return generator._adapt_registry_release(load_courtlistener_jurisdictions_release())
 
 
 def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
     icpsr_release,
     entity_ring_release,
 ) -> None:
-    # REF-032 left the Atlas emitting zero cross-ring assertions, and
-    # `test_producer_emits_no_cross_ring_assertions` pins that. The wire type
-    # is still normative, so the SHACL variant coverage builds one here from
-    # two real releases in two rings rather than dropping the shape from the
-    # only test that exercises it.
+    # This test keeps an isolated entity -> subject variant because the live
+    # REF-037 carrier exercises entity -> legalIdentity. Together they cover
+    # two distinct admitted cells without making the compiled-SHACL check load
+    # the full eCFR and CFR releases.
     native_relation = icpsr_release.relations[0]
-    native_resources = {
-        resource.iri: resource for resource in icpsr_release.resources
-    }
+    native_resources = {resource.iri: resource for resource in icpsr_release.resources}
     sampled_native_resources = tuple(
-        native_resources[iri]
-        for iri in dict.fromkeys(
-            (native_relation.subject, native_relation.object)
-        )
+        native_resources[iri] for iri in dict.fromkeys((native_relation.subject, native_relation.object))
     )
     native_spec = dataclasses.replace(
         icpsr_release.spec,
@@ -2740,9 +2747,7 @@ def test_grants_filter_codes_use_the_value_ring(
     graphs = generator._build_graphs(releases, include_projection=False)
     ontology, shapes = generator.ATLAS_VALIDATE._parse_binding_graphs()
     try:
-        scheme = generator.URIRef(
-            "urn:ref:atlas-resource-scheme:grants-gov-status-codes"
-        )
+        scheme = generator.URIRef("urn:ref:atlas-resource-scheme:grants-gov-status-codes")
         assert all(release.spec.ring == "value" for release in releases)
         assert (
             scheme,
@@ -2770,19 +2775,14 @@ def test_grants_filter_codes_use_the_value_ring(
 
 
 def test_mapping_evidence_archive_preserves_all_exact_proof_bytes() -> None:
-    archive_root = (
-        ROOT / "research" / "evidence" / "atlas-3-mapping-evidence-2026-08-05"
-    )
+    archive_root = ROOT / "research" / "evidence" / "atlas-3-mapping-evidence-2026-08-05"
     manifest_path = archive_root / "manifest.json"
     manifest_bytes = manifest_path.read_bytes()
     assert "sha256:" + hashlib.sha256(manifest_bytes).hexdigest() == (
         "sha256:287858f602d3073f81584e43f2692c1f35575bc62c767bf1ed90b217ac19f9e8"
     )
     archive = json.loads(manifest_bytes)
-    counts = {
-        row["id"]: row["mappingAssertionCount"]
-        for row in archive["pairs"]
-    }
+    counts = {row["id"]: row["mappingAssertionCount"] for row in archive["pairs"]}
 
     assert counts == {
         "elsst-icpsr": 191,
@@ -2806,9 +2806,7 @@ def test_mapping_evidence_archive_preserves_all_exact_proof_bytes() -> None:
         artifact = archive_root / relative_path
         payload = artifact.read_bytes()
         assert descriptor["byteLength"] == len(payload)
-        assert descriptor["sha256"] == (
-            "sha256:" + hashlib.sha256(payload).hexdigest()
-        )
+        assert descriptor["sha256"] == ("sha256:" + hashlib.sha256(payload).hexdigest())
 
 
 def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() -> None:
@@ -2898,14 +2896,14 @@ def test_english_normalization_fails_closed_for_unprofiled_language_field() -> N
         )
 
 
-def test_source_record_rejects_nested_non_english_tagged_content() -> None:
-    with pytest.raises(ValueError, match="not English-only"):
+def test_source_record_rejects_noncanonical_language_metadata() -> None:
+    with pytest.raises(ValueError, match="invalid language metadata"):
         generator._add_source_record(
             Graph(),
             source_release=URIRef("urn:test:release"),
             source_locator=URIRef("urn:test:locator"),
             source_digest="sha256:" + "0" * 64,
-            native_payload={"proofDetails": {"language": "fr", "value": "preuve"}},
+            native_payload={"proofDetails": {"language": "FR", "value": "preuve"}},
             represents_resource=None,
         )
 
@@ -2953,9 +2951,7 @@ def test_source_record_canonicalizes_native_payload_once_and_preserves_identity(
             "sourceRelease": str(source_release),
         },
     )
-    assert str(graph.value(record, generator.ATLAS.nativePayload)) == expected_bytes.decode(
-        "utf-8"
-    )
+    assert str(graph.value(record, generator.ATLAS.nativePayload)) == expected_bytes.decode("utf-8")
     # The record does not publish its own digest: nothing derives its IRI
     # from one, so the wire carries none and the closed shapes refuse one.
     assert list(graph.objects(record, generator.ATLAS.contentDigest)) == []
@@ -2991,31 +2987,22 @@ def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() ->
         decided_at="2026-08-06T00:00:00Z",
     )
 
-    bindings = set(
-        graph.subjects(RDF.type, generator.RKAF.EvidenceBinding)
-    )
+    bindings = set(graph.subjects(RDF.type, generator.RKAF.EvidenceBinding))
     assert len(bindings) == 1
     binding = next(iter(bindings))
     stored_digest = str(graph.value(binding, generator.ATLAS.contentDigest))
-    assert binding == URIRef(
-        "urn:ref:atlas-evidence:" + stored_digest.removeprefix("sha256:")
-    )
+    assert binding == URIRef("urn:ref:atlas-evidence:" + stored_digest.removeprefix("sha256:"))
     assert stored_digest == generator.ATLAS_VALIDATE.rdf_node_digest(
         graph,
         binding,
     )
-    assert not any(
-        str(subject).startswith("urn:ref:atlas-evidence:pending:")
-        for subject in graph.subjects()
-    )
+    assert not any(str(subject).startswith("urn:ref:atlas-evidence:pending:") for subject in graph.subjects())
 
 
 def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> None:
     observed = {
         generator._review_method_for_assertion(generator.ATLAS.SourceAssignment),
-        generator._review_method_for_assertion(
-            generator.ATLAS.NativeRelationAssertion
-        ),
+        generator._review_method_for_assertion(generator.ATLAS.NativeRelationAssertion),
         generator._review_method_for_assertion(
             generator.ATLAS.NativeRelationAssertion,
             deterministic_transformation=True,
@@ -3027,10 +3014,7 @@ def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> Non
     with pytest.raises(ValueError, match="unsupported assertion"):
         generator._review_method_for_assertion(generator.ATLAS.MappingAssertion)
 
-    for method in (
-        generator.MAPPING_REVIEW_METHODS
-        - generator.UNEMITTABLE_MAPPING_REVIEW_METHODS
-    ):
+    for method in generator.MAPPING_REVIEW_METHODS - generator.UNEMITTABLE_MAPPING_REVIEW_METHODS:
         assert generator._mapping_review_method(method) == method
     with pytest.raises(ValueError, match="unsupported mapping review method"):
         generator._mapping_review_method("inventedReview")
@@ -3243,9 +3227,7 @@ def test_build_graphs_emits_content_derived_registry_identifiers(
     ):
         descriptor_graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
         descriptor_graph.add((scheme, generator.ATLAS.resourceProfile, profile))
-    descriptor_graph.add(
-        (resource_scheme, generator.ATLAS.supportedRing, generator.ATLAS.value)
-    )
+    descriptor_graph.add((resource_scheme, generator.ATLAS.supportedRing, generator.ATLAS.value))
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -3305,9 +3287,7 @@ def test_build_graphs_emits_content_derived_registry_identifiers(
     )
 
     graphs = generator._build_graphs((release,))
-    identifiers = set(
-        graphs.asserted.subjects(RDF.type, generator.ATLAS.Identifier)
-    )
+    identifiers = set(graphs.asserted.subjects(RDF.type, generator.ATLAS.Identifier))
 
     assert len(identifiers) == 1
     identifier = next(iter(identifiers))
@@ -3350,9 +3330,7 @@ def test_build_graphs_rejects_one_authority_identifier_for_two_resources(
     ):
         descriptor_graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
         descriptor_graph.add((scheme, generator.ATLAS.resourceProfile, profile))
-    descriptor_graph.add(
-        (resource_scheme, generator.ATLAS.supportedRing, generator.ATLAS.value)
-    )
+    descriptor_graph.add((resource_scheme, generator.ATLAS.supportedRing, generator.ATLAS.value))
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -3464,8 +3442,7 @@ def test_the_producer_refuses_a_warrant_whose_records_it_cannot_emit() -> None:
     """
 
     assert "twoMachineAdjudication" in generator.MAPPING_REVIEW_METHODS, (
-        "the binding still admits this warrant, so the producer's refusal is "
-        "still the thing keeping the two in step"
+        "the binding still admits this warrant, so the producer's refusal is still the thing keeping the two in step"
     )
     with pytest.raises(ValueError) as failure:
         generator._mapping_review_method("twoMachineAdjudication")
@@ -3478,9 +3455,7 @@ def test_the_producer_refuses_a_warrant_whose_records_it_cannot_emit() -> None:
 def test_every_other_binding_warrant_still_passes_producer_intake() -> None:
     """The refusal is one named warrant, not a narrowing of the enum."""
 
-    emittable = sorted(
-        generator.MAPPING_REVIEW_METHODS - generator.UNEMITTABLE_MAPPING_REVIEW_METHODS
-    )
+    emittable = sorted(generator.MAPPING_REVIEW_METHODS - generator.UNEMITTABLE_MAPPING_REVIEW_METHODS)
     assert emittable == [
         "deterministicTransformation",
         "humanReview",
@@ -3492,47 +3467,60 @@ def test_every_other_binding_warrant_still_passes_producer_intake() -> None:
         assert generator._mapping_review_method(warrant) == warrant
 
 
-def test_the_producer_refuses_a_mapping_ring_whose_dates_it_cannot_emit() -> None:
-    """The same fail-at-intake rule, for the rings that need a period.
+def test_every_mapping_ring_passes_producer_intake() -> None:
+    """The producer now emits the periods required by dated mapping rings."""
 
-    Since ring temporal context landed on the Atlas 3.1 wire, a value-ring or
-    legal-identity-ring MappingAssertion must carry an rkaf:hasEffectivePeriod
-    resolving to a well-formed rkaf:EffectivePeriod. Nothing in
-    refspec.atlas.v3_source_data carries an effective date for a mapping, so
-    this producer has no date to emit: a source declaring either ring would
-    build a distribution its own binding validator refuses, and it would learn
-    that after the whole registry had been constructed rather than at the input
-    responsible for it. Fabricating a period instead would be worse -- on the
-    wire an invented period is indistinguishable from a stated one.
-
-    Both real mapping releases are subject-ring today, so this is the expected
-    case; the guard keeps the gap honest until the dates are carried.
-    """
-
-    assert not hasattr(generator.RegistryMapping, "effective_period"), (
-        "a mapping now carries a period, so this refusal is no longer the thing "
-        "keeping the producer and the wire in step -- emit it instead"
-    )
-    for ring in ("value", "legalIdentity"):
-        with pytest.raises(ValueError) as failure:
-            generator._mapping_release_ring(ring)
-        message = str(failure.value)
-        assert ring in message
-        assert "rkaf:hasEffectivePeriod" in message
-        assert "rkaf:EffectivePeriod" in message
-
-
-def test_every_other_mapping_ring_still_passes_producer_intake() -> None:
-    """The refusal is two named rings, not a narrowing of the ring set."""
-
-    emittable = sorted(
-        set(generator.SEMANTIC_RINGS) - generator.UNEMITTABLE_MAPPING_RINGS
-    )
-    assert emittable == ["entity", "subject"]
-    for ring in emittable:
+    for ring in sorted(generator.SEMANTIC_RINGS):
         assert generator._mapping_release_ring(ring) == generator.ATLAS[ring]
     with pytest.raises(ValueError, match="unsupported mapping semantic ring"):
         generator._mapping_release_ring("inventedRing")
+
+
+def test_mapping_assertion_emits_a_content_addressed_effective_period() -> None:
+    graph = generator._new_build_graph()
+    policy = URIRef("urn:test:mapping-policy")
+    graph.add((policy, RDF.type, generator.ATLAS.EditorialPolicy))
+    assertion = generator._add_assertion(
+        graph,
+        assertion_type=generator.ATLAS.MappingAssertion,
+        ring=generator.ATLAS.value,
+        subject=URIRef("urn:test:value:first"),
+        predicate=generator.ATLAS.equivalentValue,
+        obj=URIRef("urn:test:value:second"),
+        source_release=URIRef("urn:test:release:first"),
+        target_release=URIRef("urn:test:release:second"),
+        policy=policy,
+        asserted_at="2026-08-15T00:00:00+00:00",
+        effective_period=("2026-08-15T00:00:00+00:00", None),
+    )
+
+    period = graph.value(assertion, generator.RKAF.hasEffectivePeriod)
+    assert period is not None
+    assert (period, RDF.type, generator.RKAF.EffectivePeriod) in graph
+    assert str(graph.value(period, generator.RKAF.effectivePeriodStart)) == ("2026-08-15T00:00:00+00:00")
+
+
+def test_mapping_periods_are_required_exactly_for_dated_rings(
+    tmp_path: Path,
+) -> None:
+    _, release = _compiled_mapping_case(tmp_path)
+    mapping = release.mappings[0]
+
+    assert generator._mapping_effective_period(mapping, ring="subject") is None
+    with pytest.raises(ValueError, match="value mapping has no effective period"):
+        generator._mapping_effective_period(mapping, ring="value")
+
+    dated = dataclasses.replace(
+        mapping,
+        effective_from="2026-08-15",
+        effective_through="2026-08-31",
+    )
+    assert generator._mapping_effective_period(dated, ring="value") == (
+        "2026-08-15T00:00:00+00:00",
+        "2026-08-31T23:59:59+00:00",
+    )
+    with pytest.raises(ValueError, match="subject mapping must not carry"):
+        generator._mapping_effective_period(dated, ring="subject")
 
 
 def test_registrant_population_releases_are_refused() -> None:
@@ -3555,9 +3543,7 @@ def test_registrant_population_releases_are_refused() -> None:
     by_record = SimpleNamespace(
         spec=SimpleNamespace(key="renamed-entity-release"),
         scheme_iri="urn:ref:atlas-resource-scheme:renamed",
-        resources=(
-            SimpleNamespace(iri="urn:ref:sam-entity:uei:YLQMY5SGNE55"),
-        ),
+        resources=(SimpleNamespace(iri="urn:ref:sam-entity:uei:YLQMY5SGNE55"),),
     )
     with pytest.raises(ValueError, match="REF-030"):
         generator._refuse_registrant_population_release(by_record)
@@ -3565,9 +3551,7 @@ def test_registrant_population_releases_are_refused() -> None:
     institutional = SimpleNamespace(
         spec=SimpleNamespace(key="courtlistener-jurisdictions-2026-08-03"),
         scheme_iri="urn:ref:atlas-resource-scheme:courtlistener-jurisdictions",
-        resources=(
-            SimpleNamespace(iri="urn:ref:courtlistener:jurisdiction:scotus"),
-        ),
+        resources=(SimpleNamespace(iri="urn:ref:courtlistener:jurisdiction:scotus"),),
     )
     generator._refuse_registrant_population_release(institutional)
 
@@ -3603,10 +3587,7 @@ def test_document_population_releases_are_refused() -> None:
     for iri in (
         "https://www.cbo.gov/publication/62634",
         "urn:ref:govinfo-cfr-package:CFR-2023-title1-vol1",
-        (
-            "urn:ref:source-concept:v2:fcc-ecfs-proceedings:"
-            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-        ),
+        ("urn:ref:source-concept:v2:fcc-ecfs-proceedings:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
     ):
         by_record = SimpleNamespace(
             spec=SimpleNamespace(key="renamed-document-release"),
@@ -3621,9 +3602,7 @@ def test_document_population_releases_are_refused() -> None:
     witness = SimpleNamespace(
         spec=SimpleNamespace(key="gao-report-gao-26-108505"),
         scheme_iri="urn:ref:atlas-resource-scheme:gao-report-identifiers",
-        resources=(
-            SimpleNamespace(iri="https://www.gao.gov/products/gao-26-108505"),
-        ),
+        resources=(SimpleNamespace(iri="https://www.gao.gov/products/gao-26-108505"),),
     )
     with pytest.raises(ValueError, match="REF-031"):
         generator._refuse_document_population_release(witness)
@@ -3633,12 +3612,7 @@ def test_document_population_releases_are_refused() -> None:
     documented_fcc_roster = SimpleNamespace(
         spec=SimpleNamespace(key="fcc-published-bureau-roster"),
         scheme_iri="urn:ref:atlas-resource-scheme:fcc-ecfs-native-controls",
-        resources=(
-            SimpleNamespace(
-                iri="urn:ref:source-concept:v2:fcc-bureaus:"
-                "019fc911-9300-7a37-9efb-3f03b934f065"
-            ),
-        ),
+        resources=(SimpleNamespace(iri="urn:ref:source-concept:v2:fcc-bureaus:019fc911-9300-7a37-9efb-3f03b934f065"),),
     )
     generator._refuse_document_population_release(documented_fcc_roster)
 
@@ -3657,10 +3631,7 @@ def test_observed_inventory_releases_are_refused() -> None:
 
     for logical_path in (
         "output/registry-real-data-sources/regulatory-native-current/documents.parquet",
-        (
-            "research/evidence/regulatory-native-controls-2026-08-03/"
-            "source-native-control-capture.json"
-        ),
+        ("research/evidence/regulatory-native-controls-2026-08-03/source-native-control-capture.json"),
         "output/registry-real-data-sources/OPM-PLUM-all-data-20260804.csv",
         "output/registry-real-data-sources/fh-orgs-default-page.json",
         "output/registry-real-data-sources/ferc-accessibility-tips.html",
@@ -3669,10 +3640,7 @@ def test_observed_inventory_releases_are_refused() -> None:
         "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html",
         "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl",
         "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl",
-        (
-            "tests/fixtures/epa_enterprise_vocabulary/"
-            "epa-enterprise-vocabulary-tier-1005100-with-definitions.xml"
-        ),
+        ("tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100-with-definitions.xml"),
         "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html",
     ):
         by_substrate = SimpleNamespace(
@@ -3709,27 +3677,12 @@ def test_observed_inventory_releases_are_refused() -> None:
         "urn:ref:nrc-adams-control:apsResultFieldLabels:0f0f",
         "urn:ref:nrc-adams-identifier-shape:0f0f",
         "urn:ref:treasury-fast-book:fund-type:0f0f",
-        (
-            "urn:ref:source-concept:v2:federal-register-unresolved-agency-name:"
-            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-        ),
-        (
-            "urn:ref:source-concept:v2:ferc-accession-formats:"
-            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-        ),
+        ("urn:ref:source-concept:v2:federal-register-unresolved-agency-name:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
+        ("urn:ref:source-concept:v2:ferc-accession-formats:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
         "urn:ref:source-concept:v2:opm-plum:019fc911-9300-7449-8c7c-4a2e8c3eca11",
-        (
-            "urn:ref:source-concept:v2:regulations-gov-docket-agency-code:"
-            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-        ),
-        (
-            "urn:ref:source-concept:v2:regulations-gov-document-agency-code:"
-            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-        ),
-        (
-            "urn:ref:source-concept:v2:unified-agenda-agency-code:"
-            "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-        ),
+        ("urn:ref:source-concept:v2:regulations-gov-docket-agency-code:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
+        ("urn:ref:source-concept:v2:regulations-gov-document-agency-code:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
+        ("urn:ref:source-concept:v2:unified-agenda-agency-code:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
     ):
         by_record = SimpleNamespace(
             spec=SimpleNamespace(
@@ -3751,40 +3704,25 @@ def test_observed_inventory_releases_are_refused() -> None:
     for key, iri in (
         (
             "regulations-gov-docket-type",
-            (
-                "urn:ref:source-concept:v2:regulations-gov-docket-type:"
-                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-            ),
+            ("urn:ref:source-concept:v2:regulations-gov-docket-type:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
         ),
         (
             "regulations-gov-document-type",
-            (
-                "urn:ref:source-concept:v2:regulations-gov-document-type:"
-                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-            ),
+            ("urn:ref:source-concept:v2:regulations-gov-document-type:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
         ),
         (
             "unified-agenda-priority-category",
-            (
-                "urn:ref:source-concept:v2:unified-agenda-priority-category:"
-                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-            ),
+            ("urn:ref:source-concept:v2:unified-agenda-priority-category:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
         ),
         (
             "unified-agenda-rule-stage",
-            (
-                "urn:ref:source-concept:v2:unified-agenda-rule-stage:"
-                "019fc911-9300-7449-8c7c-4a2e8c3eca11"
-            ),
+            ("urn:ref:source-concept:v2:unified-agenda-rule-stage:019fc911-9300-7449-8c7c-4a2e8c3eca11"),
         ),
     ):
         documented = SimpleNamespace(
             spec=SimpleNamespace(
                 key=key,
-                logical_path=(
-                    "tests/fixtures/regulations_gov_codes/"
-                    "regulations-gov-openapi-v4-2026-08-03.yaml"
-                ),
+                logical_path=("tests/fixtures/regulations_gov_codes/regulations-gov-openapi-v4-2026-08-03.yaml"),
                 input_pins=(),
             ),
             scheme_iri="urn:ref:atlas-resource-scheme:regulations-gov-native-controls",
@@ -3828,30 +3766,48 @@ def test_observed_inventory_releases_are_refused() -> None:
         generator._refuse_observed_inventory_release(follow_up)
 
 
-def test_producer_emits_no_cross_ring_assertions() -> None:
-    """REF-032's tripwire: the Atlas currently emits zero ring crossings.
+def test_producer_pins_the_ref037_ecfr_cross_ring_carrier() -> None:
+    """The eCFR roster carries the live REF-037 crossing, with 446 rows."""
 
-    The Atlas 3.1 binding declares ``atlas:CrossRingRelationAssertion`` and
-    the producer still builds one from any release carrying a cross-ring
-    relation. After REF-032 no loaded release carries one: the single live
-    instance was a GAO report page pointing at a topic label observed on that
-    same page, which left with its topics. Declaring that emptiness here is
-    honest; letting a ring crossing appear unannounced is not.
-
-    If this fails, a release started emitting cross-ring relations. That is
-    good news if it is REF-032's named intended carrier -- a genuine
-    institutional-roster -> subject edge, once the Federal Hierarchy roster is
-    completed and an authority publishes subject assignments against it. Check
-    that the new edge crosses rings for a reason a consumer can join against,
-    then retire this tripwire in the decision record that introduces it.
-    """
-
-    carriers = {
-        release.spec.key: len(release.cross_ring_relations)
-        for release in generator.load_releases()
+    releases = generator.load_releases(
+        frozenset(
+            {
+                "ecfr-agencies-roster-2026-08-15",
+                "ecfr-cfr-titles",
+            }
+        )
+    )
+    carrier_relations = {
+        release.spec.key: release.cross_ring_relations
+        for release in releases
         if release.cross_ring_relations
     }
-    assert carriers == {}, (
-        "the Atlas emits cross-ring assertions again; see REF-032 and this "
-        f"test's docstring before pinning a new count: {carriers}"
+    assert {key: len(rows) for key, rows in carrier_relations.items()} == {"ecfr-agencies-roster-2026-08-15": 446}
+    relations = carrier_relations["ecfr-agencies-roster-2026-08-15"]
+    assert {row.predicate for row in relations} == {str(generator.ATLAS.referencesLegalIdentity)}
+    assert {(row.source_ring, row.target_ring) for row in relations} == {("entity", "legalIdentity")}
+
+
+def test_mapping_releases_are_never_partitioned() -> None:
+    """A mapping release packs whole, however many assertions it carries.
+
+    `packs/mappings/<key>.nq.zst` has no partition segment and the packer
+    refuses one, but the partitioner used to decide on resource_count alone.
+    The FAST-to-LCSH release crossed the large-release threshold and the build
+    failed 176 seconds in. Bucketing is a source-release device for large
+    member sets; a large mapping release is large in assertions, not members.
+    """
+
+    mapping_plan = generator.ReleasePackPlan(
+        key="fast-to-lcsh-mapping",
+        source_release_iri="urn:test:source-release",
+        atlas_release_iri="urn:test:atlas-release",
+        ring="subject",
+        resource_count=generator._PACK_LARGE_RELEASE_RESOURCE_THRESHOLD * 10,
+        kind="mapping",
     )
+    source_plan = dataclasses.replace(mapping_plan, kind="sourceRelease")
+    subject = URIRef("urn:test:subject")
+
+    assert generator._release_pack_partition(mapping_plan, subject) is None
+    assert generator._release_pack_partition(source_plan, subject) is not None

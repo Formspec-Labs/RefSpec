@@ -11,6 +11,7 @@ network connection.
 from __future__ import annotations
 
 import os
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 
@@ -142,6 +143,51 @@ def test_native_sources_rebuild_the_measured_current_topical_shape(
     assert native_snapshot.topical_event_count == 2_437
     assert native_snapshot.unique_changed_id_count == 2_056
     assert native_snapshot.latest_change_status_counts == {"c": 1_527, "d": 3, "n": 464, "x": 62}
+
+
+def test_native_snapshot_pins_current_lcsh_link_shape(
+    native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
+) -> None:
+    counts = Counter(
+        link.predicate_iri
+        for row in native_snapshot.rows
+        for link in row.lcsh_links
+    )
+
+    assert sum(bool(row.lcsh_links) for row in native_snapshot.rows) == 427_423
+    assert counts == {
+        fast.FAST_SCHEMA_SAME_AS: 252_535,
+        fast.FAST_SKOS_RELATED_MATCH: 349_932,
+    }
+
+
+def test_native_snapshot_preserves_publisher_lcsh_statements_without_promotion(
+    native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
+) -> None:
+    by_id = native_snapshot.by_numeric_id()
+    base_exact = by_id["435760"].lcsh_links[0]
+    changed_related = next(
+        link
+        for link in by_id["822259"].lcsh_links
+        if link.target_iri.endswith("sh85009971")
+    )
+
+    assert base_exact.predicate_iri == fast.FAST_SCHEMA_SAME_AS
+    assert base_exact.native_statement == (
+        "<http://id.worldcat.org/fast/435760> <http://schema.org/sameAs> "
+        "<http://id.loc.gov/authorities/subjects/sh2012001440> ."
+    )
+    assert base_exact.source_encoding == "ntriplesStatement"
+    assert base_exact.source_record_digest == fast.sha256_digest(
+        base_exact.native_statement.encode("utf-8")
+    )
+
+    assert "$wnnd" in changed_related.native_statement
+    assert changed_related.predicate_iri == fast.FAST_SKOS_RELATED_MATCH
+    assert changed_related.source_encoding == "marc21Record"
+    assert changed_related.source_record_digest == (
+        "sha256:3bcb5207d42e7bcbfaf9dd29827878f04b12f7dd51de520a4d9ed0f4cf232852"
+    )
 
 
 def test_native_snapshot_preserves_real_ids_labels_synonyms_and_hierarchy(

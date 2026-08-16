@@ -90,7 +90,8 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         "implementationModuleCount": 25,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
-        "participationCounts": {"bridge": 9, "core": 1, "specialist": 3},
+        # REF-035 through REF-037 add the mapping and acquisition bridges.
+        "participationCounts": {"bridge": 34, "core": 1, "specialist": 3},
         # REF-033: four entity-ring placements landed (the Federal Register
         # agencies roster, the FCC published bureaus/offices roster, the
         # complete Federal Hierarchy roster, and the EHRI AGENCY/SUBELEMENT
@@ -101,18 +102,20 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # three value-ring placements landed for the documented successors
         # (the GAO Form 41217 option lists and NRC's two published APS
         # documentation units).
+        # REF-035 adds one subject-ring and one value-ring mapping source.
+        # The Regulations.gov agency roster adds one entity-ring source.
         "semanticRingCounts": {
-            "entity": 15,
+            "entity": 17,
             "legalIdentity": 3,
-            "subject": 20,
-            "value": 44,
+            "subject": 45,
+            "value": 45,
         },
-        "rowCount": 82,
-        "sourceModuleCount": 53,
+        "rowCount": 110,
+        "sourceModuleCount": 60,
         "statusCounts": {
             "deferred": 2,
             "notApplicable": 44,
-            "planned": 26,
+            "planned": 54,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
             # the entity-registry object instead. REF-031: the three
@@ -134,7 +137,7 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
             "unassessed": 0,
         },
     }
-    assert len(atlas_index_rows(index, semantic_ring="subject")) == 20
+    assert len(atlas_index_rows(index, semantic_ring="subject")) == 45
 
 
 def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(
@@ -157,9 +160,7 @@ def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(
     reopened = pinned.verified_index()
     assert reopened["indexId"] == index["indexId"]
     assert reopened["indexDigest"] == index["indexDigest"]
-    assert tuple(row["rowId"] for row in reopened["rows"]) == tuple(
-        row["rowId"] for row in index["rows"]
-    )
+    assert tuple(row["rowId"] for row in reopened["rows"]) == tuple(row["rowId"] for row in index["rows"])
     assert pinned.pin() == {
         "role": "AtlasIndex",
         "id": index["indexId"],
@@ -178,9 +179,7 @@ def test_pinned_atlas_index_rejects_file_and_evidence_drift(
     path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
     pinned = PinnedAtlasIndex.open(
         path,
-        expected_file_digest=(
-            "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-        ),
+        expected_file_digest=("sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()),
         index_input=index_input,
         resource_catalog=catalog,
         repository_root=tmp_path,
@@ -496,9 +495,7 @@ def test_offline_tooling_stays_outside_the_pinned_index_closure() -> None:
     """
 
     index = json.loads(
-        (Path(__file__).resolve().parents[1] / "portfolio/atlas-index-v0.json").read_text(
-            encoding="utf-8"
-        )
+        (Path(__file__).resolve().parents[1] / "portfolio/atlas-index-v0.json").read_text(encoding="utf-8")
     )
 
     pinned: set[str] = set()
@@ -518,8 +515,6 @@ def test_offline_tooling_stays_outside_the_pinned_index_closure() -> None:
     assert pinned, "the atlas index pins no source paths; this guard would be vacuous"
 
     offline = sorted(
-        path
-        for path in pinned
-        if "qualification" in path or "benchmark" in path or "candidate_retrieval" in path
+        path for path in pinned if "qualification" in path or "benchmark" in path or "candidate_retrieval" in path
     )
     assert not offline, f"offline tooling entered the pinned index closure: {offline}"

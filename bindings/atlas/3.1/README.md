@@ -394,17 +394,17 @@ SKOS-XL labels are canonical. Every label:
 
 1. has an absolute IRI;
 2. is a `skosxl:Label` and no normalized resource class;
-3. has exactly one non-empty English `skosxl:literalForm`, represented as an
-   `rdf:langString` with the language tag `en`;
+3. has exactly one non-empty `skosxl:literalForm`, represented as an
+   `rdf:langString` with a lowercase BCP 47 language tag;
 4. identifies its exact Atlas release; and
 5. identifies the source record from which it was produced.
 
-Atlas carries English-language content; publisher content in other languages is
-deliberately not represented. The build selects the BCP 47 `en` language family,
-including tags such as `en-US` and `en-GB`, and normalizes selected language-tagged
-text to `en` on the wire. Producers MUST NOT emit untagged or non-English text
-literals. The original source may remain multilingual outside the distribution
-and may be referenced by its exact locator and digest.
+Atlas carries label content in the language families declared by the construction
+summary. Producers preserve a publisher's lowercase BCP 47 tag. When a publisher
+omits the tag, a producer may add one only through a deterministic, recorded rule
+whose source evidence remains in the native payload. Producers MUST NOT emit an
+untagged label or silently guess a language. Definitions and notes remain English
+`rdf:langString` values under `atlas:EnglishTextLiteralValueShape`.
 
 An Atlas resource MUST have at least one SKOS-XL label in any role. A source
 may publish an alternate-only term identity, so Atlas does not invent a
@@ -413,7 +413,7 @@ derived from literal text alone. Two publishers, two
 releases, or two records may use equal lexical forms without sharing a label
 identity. Preferred, alternate, and hidden roles are expressed only through
 `skosxl:prefLabel`, `skosxl:altLabel`, and `skosxl:hiddenLabel`. A resource has
-at most one preferred English label. Label roles are pairwise
+at most one preferred label per language. Label roles are pairwise
 disjoint both by label IRI and by the literal that the plain-SKOS projection
 would expose. A subject concept's `skos:inScheme` MUST equal its
 `atlas:inScheme`; a `conceptScheme` is also a `skos:ConceptScheme`.
@@ -755,7 +755,7 @@ default value is `two-index`; any other value fails closed.
 A trusted writer satisfies `shacl-data` by validating the normalized source and
 evidence-backed mapping rows and their joins and reconciling the fixed
 constructor counts with source accounting and exact pack receipts. The current
-constructor profile admits source resources, English labels, identifiers,
+constructor profile admits source resources, language-tagged labels, identifiers,
 native and cross-ring relations, source assignments, and separately pinned
 explicit mappings with one or more approved evidence bindings. Projections,
 derived relations, inferred mappings, and supersession remain absent.

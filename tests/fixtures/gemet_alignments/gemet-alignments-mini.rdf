@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+  xmlns:dcterms="http://purl.org/dc/terms/"
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xml:base="http://www.eionet.europa.eu/gemet/">
+  <skos:ConceptScheme rdf:about="gemetThesaurus">
+    <dcterms:licence rdf:resource="http://creativecommons.org/licenses/by/4.0/"/>
+  </skos:ConceptScheme>
+  <skos:Concept rdf:about="concept/100">
+    <skos:exactMatch rdf:resource="http://eurovoc.europa.eu/1"/>
+    <skos:closeMatch rdf:resource="http://data.uba.de/umt/_000001"/>
+    <skos:broadMatch rdf:resource="http://aims.fao.org/aos/agrovoc/c_1"/>
+    <skos:relatedMatch rdf:resource="http://dbpedia.org/resource/Air"/>
+    <skos:narrowMatch rdf:resource="http://rdfdata.eionet.europa.eu/eea-measures/1"/>
+  </skos:Concept>
+</rdf:RDF>

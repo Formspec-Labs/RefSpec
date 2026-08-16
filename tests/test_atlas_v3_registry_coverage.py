@@ -45,13 +45,13 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 82,
+        "atlasIndexRowCount": 110,
         "catalogOnlyDescriptorCount": 18,
-        "catalogResourceCount": 87,
+        "catalogResourceCount": 114,
         "implementationModuleCount": 25,
-        "indexedResourceCount": 69,
-        "indexedWithoutExactReleaseCount": 64,
-        "registryModuleCount": 78,
+        "indexedResourceCount": 96,
+        "indexedWithoutExactReleaseCount": 91,
+        "registryModuleCount": 85,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the
@@ -61,18 +61,20 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # subjectVocabulary 7 -> 6) and adds the GAO Form 41217 code list
         # (codeList 25 -> 26); three registry modules land with index rows
         # (75 -> 78, source modules 50 -> 53).
+        # REF-035 restores the mapping-reference count to 12 with the two
+        # independently checked mapping-only sources.
         "resourceKindCounts": {
-            "classification": 5,
+            "classification": 6,
             "codeList": 26,
             "historicalVocabulary": 1,
             "identifierAuthority": 20,
-            "mappingReference": 10,
+            "mappingReference": 36,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
             "structuralSchema": 10,
             "subjectVocabulary": 6,
         },
-        "sourceModuleCount": 53,
+        "sourceModuleCount": 60,
     }
     assert all(values == [] for values in generated["unsupported"].values())
 
@@ -175,9 +177,7 @@ def test_cross_ring_relation_policy_rejects_reversal_and_skos_predicates() -> No
         coverage.validate_profile_map(reversed_pair, catalog)
 
     skos_predicate = copy.deepcopy(profiles)
-    skos_predicate["crossRingRelationPolicies"][0]["predicates"] = [
-        coverage.SKOS_NAMESPACE + "related"
-    ]
+    skos_predicate["crossRingRelationPolicies"][0]["predicates"] = [coverage.SKOS_NAMESPACE + "related"]
     _resign(skos_predicate)
 
     with pytest.raises(coverage.RegistryCoverageError, match="only Atlas predicates"):
@@ -230,9 +230,7 @@ def test_relation_policy_predicate_lists_must_not_be_empty() -> None:
 def test_relation_policy_predicate_lists_must_be_unique_and_sorted() -> None:
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
-    predicates = changed["relationPolicies"][0]["assertionPredicates"][
-        "NativeRelationAssertion"
-    ]
+    predicates = changed["relationPolicies"][0]["assertionPredicates"]["NativeRelationAssertion"]
     predicates.append(predicates[0])
     predicates.sort()
     _resign(changed)
@@ -241,9 +239,7 @@ def test_relation_policy_predicate_lists_must_be_unique_and_sorted() -> None:
         coverage.validate_profile_map(changed, catalog)
 
     changed = copy.deepcopy(profiles)
-    changed["relationPolicies"][0]["assertionPredicates"][
-        "NativeRelationAssertion"
-    ].reverse()
+    changed["relationPolicies"][0]["assertionPredicates"]["NativeRelationAssertion"].reverse()
     _resign(changed)
 
     with pytest.raises(coverage.RegistryCoverageError, match="must be sorted"):
@@ -253,9 +249,7 @@ def test_relation_policy_predicate_lists_must_be_unique_and_sorted() -> None:
 def test_relation_policy_predicates_must_be_absolute_iris() -> None:
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
-    changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = [
-        "sameEntityAs"
-    ]
+    changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = ["sameEntityAs"]
     _resign(changed)
 
     with pytest.raises(coverage.RegistryCoverageError, match="must be an absolute IRI"):
@@ -265,9 +259,7 @@ def test_relation_policy_predicates_must_be_absolute_iris() -> None:
 def test_relation_policy_resource_class_must_match_its_ring() -> None:
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
-    changed["relationPolicies"][0]["resourceClass"] = (
-        coverage.ATLAS_NAMESPACE + "ValueResource"
-    )
+    changed["relationPolicies"][0]["resourceClass"] = coverage.ATLAS_NAMESPACE + "ValueResource"
     _resign(changed)
 
     with pytest.raises(coverage.RegistryCoverageError, match="for ring 'entity'"):
@@ -277,9 +269,7 @@ def test_relation_policy_resource_class_must_match_its_ring() -> None:
 def test_relation_policy_rejects_predicates_outside_the_allowed_namespaces() -> None:
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
-    changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = [
-        "https://example.org/sameEntityAs"
-    ]
+    changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = ["https://example.org/sameEntityAs"]
     _resign(changed)
 
     with pytest.raises(coverage.RegistryCoverageError, match="unsupported predicate"):
@@ -289,9 +279,7 @@ def test_relation_policy_rejects_predicates_outside_the_allowed_namespaces() -> 
 def test_relation_policy_allows_skos_predicates_only_in_the_subject_cell() -> None:
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
-    changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = [
-        coverage.SKOS_NAMESPACE + "exactMatch"
-    ]
+    changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = [coverage.SKOS_NAMESPACE + "exactMatch"]
     _resign(changed)
 
     with pytest.raises(coverage.RegistryCoverageError, match="unsupported predicate"):
@@ -302,9 +290,7 @@ def test_relation_policy_rejects_a_predicate_assigned_to_two_cells() -> None:
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     duplicate = changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"][0]
-    predicates = changed["relationPolicies"][0]["assertionPredicates"][
-        "NativeRelationAssertion"
-    ]
+    predicates = changed["relationPolicies"][0]["assertionPredicates"]["NativeRelationAssertion"]
     predicates.append(duplicate)
     predicates.sort()
     _resign(changed)

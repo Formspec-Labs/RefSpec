@@ -32,7 +32,94 @@ ADDITIONAL_URLS = {
     "opm_workforce_codes.py": ("https://data.opm.gov/data-standards/ehri-data-standards",),
 }
 
+def _acquisition_wave_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
+    """Describe the large publisher captures added by REF-037."""
+
+    from refspec.registry import eurovoc_alignment_portfolio as eurovoc
+    from refspec.registry import gemet_alignments as gemet
+    from refspec.registry import lc_external_links as lc
+    from refspec.registry import lcsh_mesh_mapping as mesh
+    from refspec.registry import oclc_fast_external_links as fast
+    from refspec.registry import umthes_content as umthes
+
+    source_root = "output/registry-real-data-sources"
+    rows: dict[str, tuple[dict[str, Any], ...]] = {
+        "lc_external_links.py": (
+            {
+                "name": "lcshExternalLinks20260815",
+                "localPath": f"{source_root}/{lc.LC_EXTERNAL_LINKS_FILENAME}",
+                "publisherUrl": lc.LC_EXTERNAL_LINKS_URL,
+                "sha256": lc.LC_EXTERNAL_LINKS_SHA256,
+                "byteLength": lc.LC_EXTERNAL_LINKS_BYTE_LENGTH,
+                "acquisition": "directPublisherDownload",
+                "provenance": "publisherDistribution",
+            },
+        ),
+        "oclc_fast_external_links.py": (
+            {
+                "name": "oclcFastTopicalExternalLinks20260727",
+                "localPath": f"{source_root}/{fast.FAST_EXTERNAL_LINKS_FILENAME}",
+                "publisherUrl": fast.FAST_EXTERNAL_LINKS_SOURCE_URL,
+                "sha256": fast.FAST_EXTERNAL_LINKS_SHA256,
+                "byteLength": fast.FAST_EXTERNAL_LINKS_BYTE_LENGTH,
+                "acquisition": "inheritedPinnedPublisherDownload",
+                "provenance": "publisherDistribution",
+            },
+        ),
+        "gemet_alignments.py": (
+            {
+                "name": "gemetAlignments423",
+                "localPath": f"{source_root}/{gemet.GEMET_ALIGNMENT_FILENAME}",
+                "publisherUrl": gemet.GEMET_ALIGNMENT_SOURCE_URL,
+                "sha256": gemet.GEMET_ALIGNMENT_SHA256,
+                "byteLength": gemet.GEMET_ALIGNMENT_BYTE_LENGTH,
+                "acquisition": "directPublisherDownload",
+                "provenance": "publisherDistribution",
+            },
+        ),
+        "lcsh_mesh_mapping.py": (
+            {
+                "name": "northwesternMeshLcshMARCXML20210325",
+                "localPath": f"{source_root}/{mesh.LCSH_MESH_MAPPING_FILENAME}",
+                "publisherUrl": mesh.LCSH_MESH_MAPPING_SOURCE_URL,
+                "sha256": mesh.LCSH_MESH_MAPPING_SHA256,
+                "byteLength": mesh.LCSH_MESH_MAPPING_BYTE_LENGTH,
+                "acquisition": "directPublisherDownload",
+                "provenance": "thirdPartyMappingDistribution",
+            },
+        ),
+        "umthes_content.py": (
+            {
+                "name": "umthesGemetEndpoints20260815",
+                "localPath": f"{source_root}/{umthes.UMTHES_CAPTURE_FILENAME}",
+                "publisherUrl": umthes.UMTHES_CAPTURE_SOURCE_ROOT,
+                "sha256": umthes.UMTHES_CAPTURE_SHA256,
+                "byteLength": umthes.UMTHES_CAPTURE_BYTE_LENGTH,
+                "acquisition": "deterministicPublisherResponseArchive",
+                "provenance": "publisherApiResponseCollection",
+            },
+        ),
+    }
+    rows["eurovoc_alignment_portfolio.py"] = tuple(
+        {
+            "name": (
+                f"eurovocAlignment{pin.key.title().replace('-', '')}"
+                f"{pin.version.replace('-', '')}"
+            ),
+            "localPath": f"{source_root}/{pin.filename}",
+            "publisherUrl": pin.source_url,
+            "sha256": pin.expected_sha256,
+            "byteLength": pin.expected_byte_length,
+            "acquisition": "directPublisherDownload",
+            "provenance": "publisherDistribution",
+        }
+        for pin in eurovoc.EUROVOC_ALIGNMENT_PINS
+    )
+    return rows
+
+
 TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
+    **_acquisition_wave_test_inputs(),
     "courtlistener_codes.py": (
         {
             "name": "courtlistenerJurisdictions",
@@ -848,6 +935,11 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "name": "gaoCraRetiredForm20260815",
             "constant": "GAO_CRA_RETIRED_FORM_2026_08_15",
             "localPath": "tests/fixtures/gao_cra_form_codes/gao-cra-blank-form-rev-11-17-23-2026-08-15.pdf",
+        },
+        {
+            "name": "gaoCraInstitutionalPriorityBridge20090420",
+            "constant": "GAO_CRA_INSTITUTIONAL_BRIDGE_2026_08_15",
+            "localPath": "tests/fixtures/gao_cra_form_codes/gao-09-205-2009-04-20-2026-08-15.pdf",
         },
     ),
     "gao_published_topics.py": (

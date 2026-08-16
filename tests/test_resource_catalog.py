@@ -122,10 +122,12 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
 
     # REF-034: the retired AGROVOC and NALT rows and the closed EPA row left
     # the inventory; the GAO Form 41217 submission-form row joined (89 -> 87).
+    # REF-035 through REF-037 add the mapping research and acquisition-wave
+    # sources without treating mapping-only rows as verified distributions.
     assert catalog["summary"] == {
         "evidenceOnlyCount": 7,
-        "inventoryOnlyCount": 77,
-        "resourceCount": 87,
+        "inventoryOnlyCount": 104,
+        "resourceCount": 114,
         "verifiedDistributionCount": 5,
         "verifiedResourceCount": 3,
     }

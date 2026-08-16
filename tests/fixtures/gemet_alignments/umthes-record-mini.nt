@@ -1,0 +1,8 @@
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#Concept> .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#inScheme> <https://sns.uba.de/umthes/scheme> .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#prefLabel> "Brücke"@de .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#prefLabel> "bridge"@en .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#altLabel> "Viadukt"@de .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#definition> "A structure that spans an obstacle."@en .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#broader> <https://sns.uba.de/umthes/_00029829> .
+<https://sns.uba.de/umthes/_00028759> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://www.eionet.europa.eu/gemet/concept/1001> .

@@ -44,6 +44,10 @@ FH_COMPLETE_PUBLISHER = "U.S. General Services Administration (SAM.gov Federal H
 FH_COMPLETE_DOC_URL = "https://open.gsa.gov/api/fh-public-api/"
 FH_COMPLETE_ORGS_URL = "https://api.sam.gov/prod/federalorganizations/v1/orgs"
 FH_COMPLETE_PAGE_LIMIT = 200
+FH_COMPLETE_LICENSE_RIGHTS_STATEMENT = "US federal public domain (17 USC 105) with no explicit CC license"
+FH_COMPLETE_SOURCE_VERSION_NOTE = (
+    "The publisher exposes this as a rolling, unversioned API; no versioned source URL is available."
+)
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _FH_ORG_ID = re.compile(r"^[1-9]\d{5,9}$")
@@ -473,10 +477,12 @@ def parse_complete_roster(
 
 __all__ = [
     "FH_COMPLETE_DOC_URL",
+    "FH_COMPLETE_LICENSE_RIGHTS_STATEMENT",
     "FH_COMPLETE_ORGS_URL",
     "FH_COMPLETE_PAGES_2026_08_15",
     "FH_COMPLETE_PAGE_LIMIT",
     "FH_COMPLETE_PUBLISHER",
+    "FH_COMPLETE_SOURCE_VERSION_NOTE",
     "FH_TOTAL_DEPT_WITNESS_2026_08_15",
     "FH_TOTAL_SUBTIER_WITNESS_2026_08_15",
     "FHCompleteOrgRecord",

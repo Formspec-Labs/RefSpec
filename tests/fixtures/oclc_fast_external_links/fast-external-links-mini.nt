@@ -1,0 +1,5 @@
+<http://id.worldcat.org/fast/1> <http://schema.org/sameAs> <http://id.loc.gov/authorities/subjects/sh00000001> .
+<http://id.worldcat.org/fast/2> <http://www.w3.org/2004/02/skos/core#relatedMatch> <https://www.wikidata.org/entity/Q2> .
+<http://id.worldcat.org/fast/3> <http://www.w3.org/2004/02/skos/core#relatedMatch> <http://id.loc.gov/authorities/subjects/sh00000003> .
+<http://id.worldcat.org/fast/4> <http://www.w3.org/2000/01/rdf-schema#seeAlso> "http://en.wikipedia.org/wiki/Four"^^<http://www.w3.org/2001/XMLSchema#anyURI> .
+<http://id.worldcat.org/fast/5> <http://www.w3.org/2002/07/owl#sameAs> <http://example.org/five> .

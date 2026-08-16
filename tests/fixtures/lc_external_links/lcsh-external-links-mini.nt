@@ -1,0 +1,8 @@
+<http://id.loc.gov/authorities/subjects/sh97007572> <http://www.loc.gov/mads/rdf/v1#hasCloseExternalAuthority> <http://data.bnf.fr/ark:/12148/cb124656189> .
+<http://id.loc.gov/authorities/subjects/sh85057237> <http://www.loc.gov/mads/rdf/v1#hasBroaderExternalAuthority> <http://id.worldcat.org/fast/947695> .
+<http://id.loc.gov/authorities/subjects/sh88022572> <http://www.loc.gov/mads/rdf/v1#hasExactExternalAuthority> <https://lod.nal.usda.gov/nalt/12200> .
+<http://id.loc.gov/authorities/subjects/sh85042962> <http://www.loc.gov/mads/rdf/v1#hasNarrowerExternalAuthority> <http://www.yso.fi/onto/yso/p17888> .
+<http://data.bnf.fr/ark:/12148/cb124656189> <http://www.loc.gov/mads/rdf/v1#authoritativeLabel> "Conditions \u00E9conomiques -- Rome -- 30 av. J.-C.-284" .
+<http://id.worldcat.org/fast/947695> <http://www.loc.gov/mads/rdf/v1#authoritativeLabel> "Greenhouse effect, Atmospheric--Research" .
+<https://lod.nal.usda.gov/nalt/12200> <http://www.loc.gov/mads/rdf/v1#authoritativeLabel> "Aristolochiaceae" .
+<http://www.yso.fi/onto/yso/p17888> <http://www.loc.gov/mads/rdf/v1#authoritativeLabel> "emali" .

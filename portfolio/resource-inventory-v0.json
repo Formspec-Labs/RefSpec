@@ -473,6 +473,16 @@
       "versionRepresentation": "Pin the 20240711-0 alignment and current EuroVoc 4.24 linkset metadata independently, including artifact digests, assertion counts, and the unspecified LCSH release."
     },
     {
+      "accessOrReproducibilityGap": "OCLC publishes FAST links into LCSH, but the current bounded Atlas release emits only links whose LCSH targets resolve in the pinned endpoint subset and whose relatedMatch assertions do not conflict with LC hierarchy claims under SKOS S27.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the OCLC FAST subject IRI, Library of Congress target IRI, and publisher predicate. Record schema:sameAs to skos:exactMatch as an explicit operator adoption; preserve admitted skos:relatedMatch predicates verbatim and record the frozen S27 refusal set.",
+      "officialLocator": "https://www.oclc.org/research/areas/data-science/fast/download.html",
+      "resourceId": "fast-lcsh-adopted-mapping",
+      "resourceKind": "mappingReference",
+      "title": "OCLC FAST-to-LCSH adopted mapping release",
+      "versionRepresentation": "Pin the FAST base and chronological change bytes as evidence inputs; record the LCSH endpoint selection and LC mapping release as dependencies; pin all source-record digests, the admitted predicate translation, the frozen S27 refusal-set digest, and emitted-versus-unemitted counts."
+    },
+    {
       "accessOrReproducibilityGap": "The data dictionary documents fields and legacy mappings but does not publish the enumerated values those fields may contain.",
       "distributionStatus": "available",
       "identifierRepresentation": "Preserve endpoint name, field name, SQL type, legacy Census field, source position, and observation time; do not infer code values from field labels.",
@@ -531,6 +541,16 @@
       "resourceKind": "codeList",
       "title": "GAO CRA submission form controls (GAO Form 41217)",
       "versionRepresentation": "Pin each form revision marker (Rev. 12/24; 11/17/23), exact PDF digest and byte length, capture time, and the reviewed option runs verbatim."
+    },
+    {
+      "accessOrReproducibilityGap": "GAO does not publish a machine crosswalk. The five admitted assertions depend on the pinned Unified Agenda XSD, both relevant GAO form revisions, and GAO-09-205's institutional definition of the CRA database priority taxonomy.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve both endpoint value IRIs and atlas:equivalentValue. Keep each publisher statement and the institutional bridge as a separate evidence record; do not infer the unmatched Unified Agenda Not Major value.",
+      "officialLocator": "https://www.gao.gov/products/gao-09-205",
+      "resourceId": "unified-agenda-gao-cra-priority-mapping",
+      "resourceKind": "mappingReference",
+      "title": "Unified Agenda-to-GAO CRA priority adopted mapping release",
+      "versionRepresentation": "Pin the Unified Agenda XSD, both GAO Form 41217 revisions, GAO-09-205, five adopted assertions with three evidence records each, and the explicit unmatched-candidate decision."
     },
     {
       "accessOrReproducibilityGap": "The registry packages a bounded source-evidence sample and does not yet publish a complete managed atlas frontier or demonstrate document-subject value.",
@@ -593,14 +613,14 @@
       "versionRepresentation": "Pin the exact page capture, observation time, artifact digest, complete scoped table counts, parser version, and declared absent-list gaps."
     },
     {
-      "accessOrReproducibilityGap": "Atlas captures the 1,966 authorities referenced by the EuroVoc alignment, not all LCSH. The publisher omits the alignment's LCSH release.",
+      "accessOrReproducibilityGap": "Atlas carries separate digest-pinned LCSH endpoint subsets for admitted mapping releases, not a general LCSH publication. A mapping source may omit the LCSH edition it used.",
       "distributionStatus": "available",
-      "identifierRepresentation": "Preserve every selected authority IRI and any published LCCN. Retain all referenced authority types; mint no identifier for the six records without LCCNs.",
+      "identifierRepresentation": "Preserve every selected authority IRI, published English label, and available LCCN. Keep each endpoint subset tied to the mapping artifact that selected it.",
       "officialLocator": "https://id.loc.gov/authorities/subjects.html",
       "resourceId": "lcsh-subjects",
       "resourceKind": "mappingReference",
-      "title": "Library of Congress Subject Headings alignment endpoints",
-      "versionRepresentation": "Pin the exact bulk bytes and capture date, alignment digest, selected IRI set, record digests, coverage counts, and parser version."
+      "title": "Library of Congress Subject Headings mapping endpoints",
+      "versionRepresentation": "Pin the exact LCSH bulk bytes and capture date, each selecting mapping artifact, selected IRI set, record digests, coverage counts, and parser version."
     },
     {
       "accessOrReproducibilityGap": "The API publishes no named code-list release; retrieval time and exact response digest are the revision evidence.",
@@ -871,6 +891,256 @@
       "resourceKind": "structuralSchema",
       "title": "Governmentwide Spending Data Model",
       "versionRepresentation": "Pin GSDM version 1.0.1, exact architecture-document digest, online data-dictionary capture or pin, selected element scope, and review revision."
+    },
+    {
+      "accessOrReproducibilityGap": "The rolling eCFR endpoint has no version identifier. The pinned roster records every agency-to-CFR reference but does not infer identity across federal organization rosters.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each eCFR agency slug, publisher names, nesting, and directed reference to a held CFR title. Keep chapter, subtitle, subchapter, and part qualifiers in the evidence payload.",
+      "officialLocator": "https://www.ecfr.gov/api/admin/v1/agencies.json",
+      "resourceId": "ecfr-agencies",
+      "resourceKind": "classification",
+      "title": "eCFR agency roster",
+      "versionRepresentation": "Pin retrieval time, exact response digest and byte length, all 316 agencies, 163 nesting relations, 487 source references, and 446 distinct agency-to-title assertions."
+    },
+    {
+      "accessOrReproducibilityGap": "The OCLC bulk file contains 935,540 admitted topical relations or mappings. Atlas emits only nine held-endpoint mapping claims absent from the current FAST release; a separate endpoint release carries 47,049 content-backed FAST-to-FAST rdfs:seeAlso relations as atlas:thesaurusRelated and omits Wikipedia and unlabeled targets without stubs.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the FAST and target IRIs and each publisher predicate. Reconcile against the current FAST release before emitting a delta claim.",
+      "officialLocator": "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
+      "resourceId": "fast-bulk-external-links-delta",
+      "resourceKind": "mappingReference",
+      "title": "OCLC FAST bulk external-links delta",
+      "versionRepresentation": "Pin the ODC-BY archive, date-only capture marker, member digest, complete predicate counts, overlap census, nine-assertion mapping delta, and exact see-also dispositions."
+    },
+    {
+      "accessOrReproducibilityGap": "The OCLC bulk file supplies content for 45,929 FAST endpoints selected by its internal rdfs:seeAlso links. This endpoint release owns the 11,587 exact IRIs that also occur in the LC capture because OCLC owns and best documents FAST. Atlas omits 31,932 links involving 668 endpoints with no publisher prefLabel and does not mint stubs.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each publisher FAST IRI and prefLabel, and preserve rdfs:seeAlso as atlas:thesaurusRelated only with the exact deterministic predicate translation in evidence.",
+      "officialLocator": "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
+      "resourceId": "fast-bulk-see-also-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "OCLC FAST bulk see-also endpoint subset",
+      "versionRepresentation": "Pin the ODC-BY archive, date-only capture marker, 45,929 contentful endpoints, 47,049 emitted relations, 668 missing endpoints, and every omitted-link disposition."
+    },
+    {
+      "accessOrReproducibilityGap": "The EuroVoc alignment page names no license for this mapping file. Atlas records Commission Decision 2011/833 as the general reuse basis and preserves the third-party-rights exclusion.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each publisher-authored EuroVoc IRI, GEMET IRI, and SKOS mapping predicate without inverse or closure.",
+      "officialLocator": "https://op.europa.eu/en/web/eu-vocabularies/alignments",
+      "resourceId": "eurovoc-gemet-alignment",
+      "resourceKind": "mappingReference",
+      "title": "Official EuroVoc-to-GEMET alignment",
+      "versionRepresentation": "Pin the versioned Cellar RDF bytes, source URL, digest, retrieval time, predicate mix, and 2,035 held-endpoint assertions."
+    },
+    {
+      "accessOrReproducibilityGap": "The EuroVoc alignment page names no license for this mapping file. The five targets use publisher HTTP IRIs that resolve to held HTTPS MeSH identifiers.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the publisher's EuroVoc subject, HTTP MeSH object, and SKOS predicate, and record the held HTTPS resolution without rewriting the source claim.",
+      "officialLocator": "https://op.europa.eu/en/web/eu-vocabularies/alignments",
+      "resourceId": "eurovoc-mesh-alignment",
+      "resourceKind": "mappingReference",
+      "title": "Official EuroVoc-to-MeSH alignment",
+      "versionRepresentation": "Pin the versioned Cellar RDF bytes, source URL, digest, retrieval time, endpoint-resolution rule, and five held-endpoint assertions."
+    },
+    {
+      "accessOrReproducibilityGap": "GEMET publishes 9,658 external mappings. Atlas emits 1,938 EuroVoc rows here; the separately recorded UMTHES release emits 3,470 more, while AGROVOC, DBpedia, and unavailable targets remain unasserted without stubs.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each GEMET subject IRI, target IRI, and publisher SKOS predicate. Emit only exact held endpoints; infer neither inverse nor closure.",
+      "officialLocator": "https://www.eionet.europa.eu/gemet/en-US/exports/rdf/4.2.3",
+      "resourceId": "gemet-alignments",
+      "resourceKind": "mappingReference",
+      "title": "GEMET 4.2.3 external alignments",
+      "versionRepresentation": "Pin the versioned CC BY 4.0 export, digest, byte length, complete target census, and 1,938 GEMET-to-EuroVoc assertions."
+    },
+    {
+      "accessOrReproducibilityGap": "Library of Congress publishes all 792,166 external endpoint labels without language tags. Atlas classifies them with fixed authority-language rules, records each rule in the native payload, emits content-backed endpoint subsets, and omits 600 assertions whose LCSH source record is absent.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each LCSH and external target IRI plus the MADS/RDF predicate. Record each MADS-to-SKOS translation as an explicit operator adoption.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lcsh-external-links-mapping",
+      "resourceKind": "mappingReference",
+      "title": "Library of Congress LCSH external links",
+      "versionRepresentation": "Pin the CC0 archive, digest, byte length, retrieval time, all 802,592 assertions, endpoint-language census, 792,134 classified target endpoints, and 801,992 emitted mappings."
+    },
+    {
+      "accessOrReproducibilityGap": "The third-party mapping owns neither endpoint and remains opt-in under REF-035 tier E3. The pinned archive has 13,329 records, not the publisher-declared 13,453. Its 12,844 active LCSH objects reuse 642 resources from the EuroVoc subset and 12,186 from the LC external-links subset, leaving 16 resources and two native relations in this endpoint release.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve MeSH and LCSH publisher identifiers. Translate only admitted MARC 750 corresponding-heading fields into the stated SKOS predicate, with no inverse or closure.",
+      "officialLocator": "https://prism.northwestern.edu/records/abga7-chg83",
+      "resourceId": "northwestern-mesh-lcsh-mapping",
+      "resourceKind": "mappingReference",
+      "title": "Northwestern Galter MeSH-to-LCSH mapping",
+      "versionRepresentation": "Pin the Creative Commons Public Domain Mark ZIP and MARCXML member, exact record and refusal counts, endpoint join, and 13,251 emitted E3 assertions."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete AGROVOC release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each AGROVOC IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-agrovoc-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published AGROVOC mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete BNCF thesaurus release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each BNCF IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-bncf-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published BNCF mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete BNE vocabulary release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each BNE IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-bne-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published BNE mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is the FAST endpoint residue absent from the current held FAST release, not another complete FAST publication. The release emits 96,944 resources after assigning 11,587 exact overlaps to OCLC's publisher-owned endpoint release. Library of Congress publishes the labels without language tags; the adapter records its deterministic English rule.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each FAST IRI and every Library of Congress authoritative label selected by an admitted external-link assertion; exclude endpoints already held in the current FAST release or owned by the OCLC endpoint release.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-fast-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published FAST mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive and FAST dependencies, endpoint IRIs, label statement digests, the 11,587-resource ownership exclusion, language rule, and 96,944-resource emitted count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete Getty AAT release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Getty AAT IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-getty-aat-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published Getty AAT mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete Getty ULAN release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Getty ULAN IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-getty-ulan-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published Getty ULAN mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete GND release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each GND IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-gnd-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published GND mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete Homosaurus release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Homosaurus IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-homosaurus-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published Homosaurus mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete NALT release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each NALT IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-nalt-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published NALT mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete NDL Names release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each NDL Name Authority IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-ndl-names-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published NDL Names mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete NDL Subject Headings release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each NDL Subject Heading IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-ndl-subjects-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published NDL Subject Headings mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete PeriodO release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each PeriodO LCSH-period IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-periodo-lcsh-periods-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published PeriodO mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete RAMEAU release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each RAMEAU IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-rameau-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published RAMEAU mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete Wikidata release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Wikidata IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-wikidata-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published Wikidata mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "This is a mapping-selected endpoint subset, not a complete YSO release. Library of Congress publishes the labels without language tags; the adapter records the fixed authority-language rule used for every label.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each YSO IRI and every Library of Congress authoritative label selected by an admitted external-link assertion.",
+      "officialLocator": "https://id.loc.gov/download/externallinks.nt.zip",
+      "resourceId": "lc-external-yso-endpoints",
+      "resourceKind": "mappingReference",
+      "title": "LC-published YSO mapping endpoints",
+      "versionRepresentation": "Pin the CC0 external-links archive, retrieval time, endpoint IRIs, label statement digests, deterministic language rule, and selected count."
+    },
+    {
+      "accessOrReproducibilityGap": "The deterministic capture includes the 3,365 UMTHES concepts selected by GEMET mappings, not the complete vocabulary; 13 publisher endpoints returned HTTP 404 and no stubs were emitted.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve current UMTHES IRIs, publisher German and English labels, statuses, and held-endpoint native relations; record the legacy-IRI namespace migration used by GEMET.",
+      "officialLocator": "https://sns.uba.de/umthes/",
+      "resourceId": "umthes",
+      "resourceKind": "mappingReference",
+      "title": "UMTHES endpoints selected by GEMET 4.2.3",
+      "versionRepresentation": "Pin the deterministic composite capture, per-response digests, retrieval time, CC BY-NC 4.0 statement, 3,365 records, 17,243 publisher labels, and 4,900 held-endpoint relations."
+    },
+    {
+      "accessOrReproducibilityGap": "Thirteen GEMET-selected UMTHES endpoints returned HTTP 404. Atlas emits no stub and no mapping for those targets.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each GEMET subject, legacy UMTHES object, and SKOS mapping predicate; record the deterministic legacy-to-current UMTHES IRI migration without changing the publisher claim.",
+      "officialLocator": "https://www.eionet.europa.eu/gemet/en-US/exports/rdf/4.2.3",
+      "resourceId": "gemet-umthes-alignments",
+      "resourceKind": "mappingReference",
+      "title": "GEMET 4.2.3 to UMTHES alignment",
+      "versionRepresentation": "Pin the CC BY 4.0 GEMET mapping export, deterministic UMTHES endpoint capture, CC BY-NC 4.0 statement, endpoint-resolution rule, 3,470 emitted assertions, and 13 unavailable targets."
     }
   ]
 }

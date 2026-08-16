@@ -25,6 +25,24 @@ sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import validate as atlas_validate
 
 
+def test_mapping_predicate_translation_table_admits_only_live_source_translations() -> None:
+    assert atlas_validate.ADMITTED_MAPPING_PREDICATE_TRANSLATIONS == {
+        ("http://schema.org/sameAs", str(SKOS.exactMatch)),
+        (
+            "http://www.loc.gov/mads/rdf/v1#hasBroaderExternalAuthority",
+            str(SKOS.broadMatch),
+        ),
+        (
+            "http://www.loc.gov/mads/rdf/v1#hasCloseExternalAuthority",
+            str(SKOS.closeMatch),
+        ),
+        ("https://www.loc.gov/marc/authority/ad750.html", str(SKOS.exactMatch)),
+        ("https://www.loc.gov/marc/authority/ad750.html", str(SKOS.broadMatch)),
+        ("https://www.loc.gov/marc/authority/ad750.html", str(SKOS.narrowMatch)),
+        ("https://www.loc.gov/marc/authority/ad750.html", str(SKOS.relatedMatch)),
+    }
+
+
 def _load_distribution(
     distribution: Path = VALID_DISTRIBUTION,
 ) -> tuple[Dataset, dict[str, Graph], dict[str, object]]:
@@ -80,10 +98,10 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 132,
-        "invalidCount": 119,
-        "registryDescriptorCount": 86,
-        "registryDescriptorQuadCount": 964,
+        "caseCount": 135,
+        "invalidCount": 121,
+        "registryDescriptorCount": 104,
+        "registryDescriptorQuadCount": 1225,
         "schemaCount": 10,
     }
 
@@ -96,10 +114,10 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 132,
-        "invalidCount": 119,
-        "registryDescriptorCount": 86,
-        "registryDescriptorQuadCount": 964,
+        "caseCount": 135,
+        "invalidCount": 121,
+        "registryDescriptorCount": 104,
+        "registryDescriptorQuadCount": 1225,
         "schemaCount": 10,
     }
 

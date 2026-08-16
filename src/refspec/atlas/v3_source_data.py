@@ -43,14 +43,11 @@ MAPPING_REVIEW_METHODS = frozenset(
         "twoMachineAdjudication",
     }
 )
-RELEASE_SCOPES = frozenset(
-    {"publisherRelease", "completeCapture", "captureSubset"}
-)
-RESOURCE_PROFILES = frozenset(
-    {"conceptScheme", "codeScheme", "identifierScheme", "structureScheme"}
-)
+RELEASE_SCOPES = frozenset({"publisherRelease", "completeCapture", "captureSubset"})
+RESOURCE_PROFILES = frozenset({"conceptScheme", "codeScheme", "identifierScheme", "structureScheme"})
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _ABSOLUTE_IRI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:\S+$")
+_LANGUAGE_TAG = re.compile(r"^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$")
 
 
 def _canonical_json_bytes(value: Any) -> bytes:
@@ -88,9 +85,7 @@ def _canonical_aware_datetime(value: object, *, field_name: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(parse_value)
     except ValueError as error:
-        raise ValueError(
-            f"{field_name} must be a canonical ISO 8601 date-time"
-        ) from error
+        raise ValueError(f"{field_name} must be a canonical ISO 8601 date-time") from error
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError(f"{field_name} must include an explicit timezone")
     canonical = parsed.isoformat()
@@ -142,7 +137,7 @@ class RegistryInputPin:
 
 @dataclass(frozen=True, slots=True)
 class RegistryLabel:
-    """One retained English SKOS-XL label with an explicit role."""
+    """One source-faithful SKOS-XL label with an explicit role and language."""
 
     value: str
     role: LabelRole
@@ -152,8 +147,8 @@ class RegistryLabel:
     def __post_init__(self) -> None:
         if self.role not in LABEL_ROLES:
             raise ValueError(f"unsupported registry label role: {self.role!r}")
-        if self.language != "en":
-            raise ValueError("Atlas registry labels must be normalized to English")
+        if _LANGUAGE_TAG.fullmatch(self.language) is None:
+            raise ValueError("Atlas registry label language must be a lowercase BCP 47 tag")
         if not self.value or self.value != self.value.strip():
             raise ValueError("Atlas registry labels must be non-empty trimmed text")
         if not self.source_path:
@@ -196,26 +191,21 @@ class RegistryResource:
         if not self.iri or ":" not in self.iri:
             raise ValueError("registry resource IRI must be absolute")
         if not self.labels:
-            raise ValueError(f"registry resource {self.iri} has no English label")
-        if sum(label.role == "preferred" for label in self.labels) > 1:
-            raise ValueError(
-                f"registry resource {self.iri} has more than one preferred label"
-            )
-        label_roles: dict[str, str] = {}
-        label_claims: set[tuple[str, str]] = set()
+            raise ValueError(f"registry resource {self.iri} has no label")
+        preferred_languages = [label.language for label in self.labels if label.role == "preferred"]
+        if len(preferred_languages) != len(set(preferred_languages)):
+            raise ValueError(f"registry resource {self.iri} has more than one preferred label in a language")
+        label_roles: dict[tuple[str, str], str] = {}
+        label_claims: set[tuple[str, str, str]] = set()
         for label in self.labels:
-            claim = (label.value, label.role)
+            claim = (label.value, label.language, label.role)
             if claim in label_claims:
-                raise ValueError(
-                    f"registry resource {self.iri} repeats label claim {claim!r}"
-                )
+                raise ValueError(f"registry resource {self.iri} repeats label claim {claim!r}")
             label_claims.add(claim)
-            previous_role = label_roles.setdefault(label.value, label.role)
+            value_key = (label.value, label.language)
+            previous_role = label_roles.setdefault(value_key, label.role)
             if previous_role != label.role:
-                raise ValueError(
-                    f"registry resource {self.iri} reuses label value "
-                    f"{label.value!r} across roles"
-                )
+                raise ValueError(f"registry resource {self.iri} reuses label value {label.value!r} across roles")
         if not self.source_locator or ":" not in self.source_locator:
             raise ValueError(f"registry resource {self.iri} has no absolute source locator")
         if not self.source_digest.startswith("sha256:"):
@@ -224,9 +214,7 @@ class RegistryResource:
         for identifier in self.identifiers:
             key = (identifier.scheme_iri, identifier.value)
             if key in identifier_keys:
-                raise ValueError(
-                    f"registry resource {self.iri} repeats identifier {key!r}"
-                )
+                raise ValueError(f"registry resource {self.iri} repeats identifier {key!r}")
             identifier_keys.add(key)
 
 
@@ -255,13 +243,9 @@ class RegistrySupplementalSourceRecord:
             ("source_locator", self.source_locator),
         ):
             if _ABSOLUTE_IRI.fullmatch(value) is None:
-                raise ValueError(
-                    f"supplemental source record {field_name} must be an absolute IRI"
-                )
+                raise ValueError(f"supplemental source record {field_name} must be an absolute IRI")
         if _SHA256.fullmatch(self.source_digest) is None:
-            raise ValueError(
-                "supplemental source record source_digest must be SHA-256"
-            )
+            raise ValueError("supplemental source record source_digest must be SHA-256")
         if not isinstance(self.native_payload, Mapping):
             raise TypeError("supplemental source record native_payload must be an object")
 
@@ -301,10 +285,7 @@ class RegistryMappingEvidence:
     attested_at: str
 
     def __post_init__(self) -> None:
-        if (
-            self.source_locator != self.source_locator.strip()
-            or _ABSOLUTE_IRI.fullmatch(self.source_locator) is None
-        ):
+        if self.source_locator != self.source_locator.strip() or _ABSOLUTE_IRI.fullmatch(self.source_locator) is None:
             raise ValueError("mapping evidence source locator must be an absolute IRI")
         if _SHA256.fullmatch(self.source_digest) is None:
             raise ValueError("mapping evidence source digest must be SHA-256")
@@ -312,13 +293,8 @@ class RegistryMappingEvidence:
             raise TypeError("mapping evidence native payload must be an object")
         _canonical_json_bytes(self.native_payload)
         if self.review_warrant not in MAPPING_REVIEW_METHODS:
-            raise ValueError(
-                f"unsupported mapping evidence review method: {self.review_warrant!r}"
-            )
-        if (
-            self.reviewer_iri != self.reviewer_iri.strip()
-            or _ABSOLUTE_IRI.fullmatch(self.reviewer_iri) is None
-        ):
+            raise ValueError(f"unsupported mapping evidence review method: {self.review_warrant!r}")
+        if self.reviewer_iri != self.reviewer_iri.strip() or _ABSOLUTE_IRI.fullmatch(self.reviewer_iri) is None:
             raise ValueError("mapping evidence reviewer must be an absolute IRI")
         _canonical_aware_datetime(
             self.attested_at,
@@ -337,6 +313,8 @@ class RegistryMapping:
     object_atlas_release_iri: str
     asserted_at: str
     evidence: Sequence[RegistryMappingEvidence]
+    effective_from: str | None = None
+    effective_through: str | None = None
 
     def __post_init__(self) -> None:
         for endpoint in (
@@ -358,6 +336,25 @@ class RegistryMapping:
             self.asserted_at,
             field_name="mapping asserted_at",
         )
+        if self.effective_from is None:
+            if self.effective_through is not None:
+                raise ValueError("mapping effective_through requires effective_from")
+        else:
+            try:
+                effective_from = date.fromisoformat(self.effective_from)
+            except (TypeError, ValueError) as error:
+                raise ValueError("mapping effective_from must be an ISO 8601 date") from error
+            if effective_from.isoformat() != self.effective_from:
+                raise ValueError("mapping effective_from must use canonical YYYY-MM-DD")
+            if self.effective_through is not None:
+                try:
+                    effective_through = date.fromisoformat(self.effective_through)
+                except (TypeError, ValueError) as error:
+                    raise ValueError("mapping effective_through must be an ISO 8601 date") from error
+                if effective_through.isoformat() != self.effective_through:
+                    raise ValueError("mapping effective_through must use canonical YYYY-MM-DD")
+                if effective_through < effective_from:
+                    raise ValueError("mapping effective_through precedes effective_from")
         if not self.evidence:
             raise ValueError("mapping claim must have at least one evidence decision")
         if any(not isinstance(item, RegistryMappingEvidence) for item in self.evidence):
@@ -390,14 +387,17 @@ class RegistryMapping:
             > asserted_at
             for item in self.evidence
         ):
-            raise ValueError(
-                "mapping claim was asserted before every approving decision"
-            )
+            raise ValueError("mapping claim was asserted before every approving decision")
 
 
 @dataclass(frozen=True, slots=True)
 class RegistryMappingRelease:
-    """An exact pinned collection whose members are evidence-backed mappings."""
+    """An exact pinned collection whose members are evidence-backed mappings.
+
+    ``inputs`` contains only artifacts that an assertion's evidence may name.
+    Source and target vocabulary dependencies are carried by each mapping's
+    exact Atlas release IRIs and become construction dependencies downstream.
+    """
 
     key: str
     resource_id: str
@@ -411,12 +411,11 @@ class RegistryMappingRelease:
     mappings: Sequence[RegistryMapping]
     editorial_policy: Mapping[str, Any]
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    source_release_input_roles: Sequence[str] = ()
 
     def __post_init__(self) -> None:
         if not self.resource_id or self.resource_id != self.resource_id.strip():
-            raise ValueError(
-                f"mapping release {self.key} has no canonical registry resource id"
-            )
+            raise ValueError(f"mapping release {self.key} has no canonical registry resource id")
         if self.ring not in SEMANTIC_RINGS:
             raise ValueError(f"unsupported mapping semantic ring: {self.ring!r}")
         if self.scope not in RELEASE_SCOPES:
@@ -427,43 +426,56 @@ class RegistryMappingRelease:
             self.source_release_iri != self.source_release_iri.strip()
             or _ABSOLUTE_IRI.fullmatch(self.source_release_iri) is None
         ):
-            raise ValueError(
-                f"mapping release {self.key} source release is not an absolute IRI"
-            )
+            raise ValueError(f"mapping release {self.key} source release is not an absolute IRI")
         if _SHA256.fullmatch(self.source_release_digest) is None:
-            raise ValueError(
-                f"mapping release {self.key} source release digest is not SHA-256"
+            raise ValueError(f"mapping release {self.key} source release digest is not SHA-256")
+        if self.source_release_input_roles:
+            roles = tuple(self.source_release_input_roles)
+            if len(roles) != len(set(roles)):
+                raise ValueError(f"mapping release {self.key} repeats a source release input role")
+            selected_inputs = tuple(item for item in self.inputs if item.role in set(roles))
+            if {item.role for item in selected_inputs} != set(roles):
+                raise ValueError(f"mapping release {self.key} source release input roles do not match its inputs")
+            expected_source_release_digest = canonical_digest(
+                [
+                    {
+                        "byteLength": item.byte_length,
+                        "role": item.role,
+                        "sha256": item.sha256,
+                        "sourceIri": item.source_iri,
+                    }
+                    for item in selected_inputs
+                ]
             )
-        if self.source_release_digest != self.inputs[0].sha256:
+        else:
+            expected_source_release_digest = self.inputs[0].sha256
+        if self.source_release_digest != expected_source_release_digest:
             raise ValueError(
-                f"mapping release {self.key} source release digest differs from "
-                "its primary mapping input"
+                f"mapping release {self.key} source release digest differs from its declared source release inputs"
             )
         if not self.mappings:
             raise ValueError(f"mapping release {self.key} has no mappings")
         if any(not isinstance(mapping, RegistryMapping) for mapping in self.mappings):
             raise TypeError(f"mapping release {self.key} contains a non-mapping row")
-        claims = [
-            (mapping.subject, mapping.predicate, mapping.object)
-            for mapping in self.mappings
-        ]
+        claims = [(mapping.subject, mapping.predicate, mapping.object) for mapping in self.mappings]
         if len(claims) != len(set(claims)):
             raise ValueError(f"mapping release {self.key} repeats a mapping claim")
+        dated_ring = self.ring in {"legalIdentity", "value"}
+        for mapping in self.mappings:
+            has_period = mapping.effective_from is not None
+            if dated_ring and not has_period:
+                raise ValueError(f"mapping release {self.key} {self.ring} mapping has no effective period")
+            if not dated_ring and has_period:
+                raise ValueError(f"mapping release {self.key} {self.ring} mapping must not carry an effective period")
         if not isinstance(self.editorial_policy, Mapping) or not self.editorial_policy:
-            raise ValueError(
-                f"mapping release {self.key} has no editorial policy payload"
-            )
+            raise ValueError(f"mapping release {self.key} has no editorial policy payload")
         _canonical_json_bytes(self.editorial_policy)
         try:
             parsed_issued = date.fromisoformat(self.issued)
         except (TypeError, ValueError) as error:
-            raise ValueError(
-                f"mapping release {self.key} issued must be an ISO 8601 date"
-            ) from error
+            raise ValueError(f"mapping release {self.key} issued must be an ISO 8601 date") from error
         if parsed_issued.isoformat() != self.issued:
-            raise ValueError(
-                f"mapping release {self.key} issued must use canonical YYYY-MM-DD"
-            )
+            raise ValueError(f"mapping release {self.key} issued must use canonical YYYY-MM-DD")
         issued_at = datetime(
             parsed_issued.year,
             parsed_issued.month,
@@ -478,9 +490,7 @@ class RegistryMappingRelease:
                 ).astimezone(UTC)
                 < issued_at
             ):
-                raise ValueError(
-                    f"mapping release {self.key} assertion predates its release"
-                )
+                raise ValueError(f"mapping release {self.key} assertion predates its release")
             if any(
                 _canonical_aware_datetime(
                     evidence.attested_at,
@@ -489,9 +499,7 @@ class RegistryMappingRelease:
                 < issued_at
                 for evidence in mapping.evidence
             ):
-                raise ValueError(
-                    f"mapping release {self.key} evidence decision predates its release"
-                )
+                raise ValueError(f"mapping release {self.key} evidence decision predates its release")
 
     def verify_inputs(self) -> None:
         for source in self.inputs:
@@ -543,19 +551,13 @@ class RegistryRelease:
             for record in self.supplemental_source_records
         ]
         if len(set(supplemental_keys)) != len(supplemental_keys):
-            raise ValueError(
-                f"registry release {self.key} repeats a supplemental source record"
-            )
+            raise ValueError(f"registry release {self.key} repeats a supplemental source record")
         try:
             parsed_issued = date.fromisoformat(self.issued)
         except (TypeError, ValueError) as error:
-            raise ValueError(
-                f"registry release {self.key} issued must be an ISO 8601 date"
-            ) from error
+            raise ValueError(f"registry release {self.key} issued must be an ISO 8601 date") from error
         if parsed_issued.isoformat() != self.issued:
-            raise ValueError(
-                f"registry release {self.key} issued must use canonical YYYY-MM-DD"
-            )
+            raise ValueError(f"registry release {self.key} issued must use canonical YYYY-MM-DD")
 
     def verify_inputs(self) -> None:
         for source in self.inputs:

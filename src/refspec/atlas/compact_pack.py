@@ -13,7 +13,6 @@ projection of one RDF carrier into flat fields, and that is still exactly what
 these are.  It no longer names a file format.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -42,14 +41,13 @@ _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 _ABSOLUTE_IRI_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:[^\s]+$")
+_LANGUAGE_TAG_RE = re.compile(r"^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$")
 
 
 _CANONICAL_DIGEST_FIELD = "canonicalPayloadDigest"
 
 
-_COMMON_RECORD_FIELDS = frozenset(
-    {"id", "contentDigest", _CANONICAL_DIGEST_FIELD}
-)
+_COMMON_RECORD_FIELDS = frozenset({"id", "contentDigest", _CANONICAL_DIGEST_FIELD})
 
 
 class CompactRecordRole(StrEnum):
@@ -189,15 +187,11 @@ class _RecordSchema:
 
 _RECORD_SCHEMAS = {
     CompactRecordRole.RESOURCE: _RecordSchema(
-        required=frozenset(
-            {"id", "release", "scheme", "semanticRing", "resourceProfile", "sourceRecord"}
-        ),
+        required=frozenset({"id", "release", "scheme", "semanticRing", "resourceProfile", "sourceRecord"}),
         optional=frozenset({"definition", "notes", "notations", "recordStatus"}),
     ),
     CompactRecordRole.LABEL: _RecordSchema(
-        required=frozenset(
-            {"id", "resource", "labelRole", "value", "language", "release", "sourceRecord"}
-        ),
+        required=frozenset({"id", "resource", "labelRole", "value", "language", "release", "sourceRecord"}),
         optional=frozenset(),
     ),
     CompactRecordRole.STATEMENT: _RecordSchema(
@@ -215,9 +209,7 @@ _RECORD_SCHEMAS = {
                 "assertionIdentityDigest",
             }
         ),
-        optional=frozenset(
-            {"semanticRing", "sourceRing", "targetRing", "supersedesAssertion"}
-        ),
+        optional=frozenset({"semanticRing", "sourceRing", "targetRing", "supersedesAssertion"}),
     ),
     CompactRecordRole.EVIDENCE_BINDING: _RecordSchema(
         required=frozenset(
@@ -239,9 +231,7 @@ _RECORD_SCHEMAS = {
         optional=frozenset({"basedOnAttestation"}),
     ),
     CompactRecordRole.SOURCE_RECORD: _RecordSchema(
-        required=frozenset(
-            {"id", "sourceRelease", "sourceDigest", "sourceLocator", "nativePayload"}
-        ),
+        required=frozenset({"id", "sourceRelease", "sourceDigest", "sourceLocator", "nativePayload"}),
         optional=frozenset({"representsResource"}),
     ),
     CompactRecordRole.RELEASE: _RecordSchema(
@@ -258,15 +248,11 @@ _RECORD_SCHEMAS = {
         ),
     ),
     CompactRecordRole.IDENTIFIER: _RecordSchema(
-        required=frozenset(
-            {"id", "identifierValue", "identifierScheme", "identifies", "sourceRecord"}
-        ),
+        required=frozenset({"id", "identifierValue", "identifierScheme", "identifies", "sourceRecord"}),
         optional=frozenset(),
     ),
     CompactRecordRole.LIFECYCLE_EVENT: _RecordSchema(
-        required=frozenset(
-            {"id", "appliesTo", "lifecycleEventKind", "effectiveDate", "sourceRecords"}
-        ),
+        required=frozenset({"id", "appliesTo", "lifecycleEventKind", "effectiveDate", "sourceRecords"}),
         optional=frozenset({"fromRelease", "toRelease"}),
     ),
 }
@@ -325,13 +311,9 @@ def normalize_compact_record(
     missing = sorted(schema.required - fields)
     unknown = sorted(fields - (schema.fields - {_CANONICAL_DIGEST_FIELD}))
     if missing:
-        raise CompactPackError(
-            f"{path}: {record_role.value} is missing fields: {', '.join(missing)}"
-        )
+        raise CompactPackError(f"{path}: {record_role.value} is missing fields: {', '.join(missing)}")
     if unknown:
-        raise CompactPackError(
-            f"{path}: {record_role.value} has unknown fields: {', '.join(unknown)}"
-        )
+        raise CompactPackError(f"{path}: {record_role.value} has unknown fields: {', '.join(unknown)}")
 
     _normalize_role_fields(record_role, value, path)
     if "contentDigest" in value:
@@ -353,9 +335,7 @@ def normalize_compact_record(
             f"{path}.{_CANONICAL_DIGEST_FIELD}",
         )
         if observed_digest != expected_digest:
-            raise CompactPackError(
-                f"{path}.{_CANONICAL_DIGEST_FIELD}: digest does not match the normalized record"
-            )
+            raise CompactPackError(f"{path}.{_CANONICAL_DIGEST_FIELD}: digest does not match the normalized record")
     value[_CANONICAL_DIGEST_FIELD] = expected_digest
     return value
 
@@ -440,8 +420,8 @@ def _normalize_role_fields(
                 )
     elif role == CompactRecordRole.LABEL:
         _closed_token(record["labelRole"], _LABEL_ROLES, f"{path}.labelRole")
-        if record["language"] != "en":
-            raise CompactPackError(f"{path}.language: Atlas labels must be English")
+        if _LANGUAGE_TAG_RE.fullmatch(record["language"]) is None:
+            raise CompactPackError(f"{path}.language: expected a lowercase BCP 47 language tag")
         if record["value"] != record["value"].strip():
             raise CompactPackError(f"{path}.value: expected trimmed text")
     elif role == CompactRecordRole.STATEMENT:
@@ -478,26 +458,20 @@ def _normalize_role_fields(
             f"{path}.sourceRecords",
         )
         if not record["sourceRecords"]:
-            raise CompactPackError(
-                f"{path}.sourceRecords: expected at least one source record"
-            )
+            raise CompactPackError(f"{path}.sourceRecords: expected at least one source record")
 
 
 def _normalize_statement_rings(record: dict[str, Any], path: str) -> None:
     if record["statementType"] == "CrossRingRelationAssertion":
         if "semanticRing" in record or not {"sourceRing", "targetRing"} <= record.keys():
-            raise CompactPackError(
-                f"{path}: cross-ring statements require sourceRing and targetRing only"
-            )
+            raise CompactPackError(f"{path}: cross-ring statements require sourceRing and targetRing only")
         _closed_token(record["sourceRing"], _SEMANTIC_RINGS, f"{path}.sourceRing")
         _closed_token(record["targetRing"], _SEMANTIC_RINGS, f"{path}.targetRing")
         if record["sourceRing"] == record["targetRing"]:
             raise CompactPackError(f"{path}: cross-ring statements require different rings")
         return
     if "semanticRing" not in record or {"sourceRing", "targetRing"} & record.keys():
-        raise CompactPackError(
-            f"{path}: same-ring statements require semanticRing only"
-        )
+        raise CompactPackError(f"{path}: same-ring statements require semanticRing only")
     _closed_token(record["semanticRing"], _SEMANTIC_RINGS, f"{path}.semanticRing")
 
 
@@ -513,9 +487,7 @@ def _normalize_release_fields(record: dict[str, Any], path: str) -> None:
         missing = sorted(source_fields - record.keys())
         forbidden = sorted(atlas_fields & record.keys())
         if missing or forbidden:
-            raise CompactPackError(
-                f"{path}: SourceRelease field mismatch; missing={missing}, forbidden={forbidden}"
-            )
+            raise CompactPackError(f"{path}: SourceRelease field mismatch; missing={missing}, forbidden={forbidden}")
         record["sourceDigest"] = _digest(
             record["sourceDigest"],
             f"{path}.sourceDigest",
@@ -528,9 +500,7 @@ def _normalize_release_fields(record: dict[str, Any], path: str) -> None:
     missing = sorted(atlas_fields - record.keys())
     forbidden = sorted(source_fields & record.keys())
     if missing or forbidden:
-        raise CompactPackError(
-            f"{path}: AtlasRelease field mismatch; missing={missing}, forbidden={forbidden}"
-        )
+        raise CompactPackError(f"{path}: AtlasRelease field mismatch; missing={missing}, forbidden={forbidden}")
     _closed_token(record["semanticRing"], _SEMANTIC_RINGS, f"{path}.semanticRing")
     _closed_token(
         record["resourceProfile"],
@@ -559,9 +529,7 @@ def _absolute_iri(value: Any, path: str) -> str:
 def _closed_token(value: Any, choices: frozenset[str], path: str) -> str:
     token = _nonempty_string(value, path)
     if token not in choices:
-        raise CompactPackError(
-            f"{path}: expected one of {', '.join(sorted(choices))}"
-        )
+        raise CompactPackError(f"{path}: expected one of {', '.join(sorted(choices))}")
     return token
 
 
@@ -573,10 +541,7 @@ def _sorted_unique_strings(
 ) -> list[str]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
         raise CompactPackError(f"{path}: expected an array")
-    strings = [
-        _nonempty_string(child, f"{path}[{index}]")
-        for index, child in enumerate(value)
-    ]
+    strings = [_nonempty_string(child, f"{path}[{index}]") for index, child in enumerate(value)]
     if len(set(strings)) != len(strings):
         raise CompactPackError(f"{path}: duplicate values are forbidden")
     ordered = sorted(strings)
@@ -587,10 +552,7 @@ def _sorted_unique_strings(
 
 def _sorted_unique_iris(value: Any, path: str) -> list[str]:
     strings = _sorted_unique_strings(value, path)
-    return [
-        _absolute_iri(item, f"{path}[{index}]")
-        for index, item in enumerate(strings)
-    ]
+    return [_absolute_iri(item, f"{path}[{index}]") for index, item in enumerate(strings)]
 
 
 def _copy_compact_record_mapping(value: Any, path: str) -> dict[str, Any]:
@@ -603,11 +565,7 @@ def _copy_compact_record_mapping(value: Any, path: str) -> dict[str, Any]:
         if not isinstance(key, str) or not key:
             raise CompactPackError(f"{path}: object keys must be non-empty strings")
         child_path = f"{path}.{key}"
-        copied[key] = (
-            _copy_native_json(child, child_path)
-            if key == "nativePayload"
-            else _copy_json(child, child_path)
-        )
+        copied[key] = _copy_native_json(child, child_path) if key == "nativePayload" else _copy_json(child, child_path)
     return copied
 
 
@@ -625,10 +583,7 @@ def _copy_native_json(value: Any, path: str) -> Any:
     if isinstance(value, str):
         return value
     if isinstance(value, list):
-        return [
-            _copy_native_json(child, f"{path}[{index}]")
-            for index, child in enumerate(value)
-        ]
+        return [_copy_native_json(child, f"{path}[{index}]") for index, child in enumerate(value)]
     if isinstance(value, Mapping):
         copied: dict[str, Any] = {}
         for key, child in value.items():

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection>
+  <record>
+    <controlfield tag="001">1</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000001</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Calcimycin</subfield><subfield code="0">(DLC)sh 85018645</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">2</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000002</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Broader heading</subfield><subfield code="4">BM</subfield><subfield code="0">sh 85000002</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">3</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000003</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Narrower heading</subfield><subfield code="i">Narrower mapping</subfield><subfield code="0">(DLC)sh85000003</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">4</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000004</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Related heading</subfield><subfield code="4">RM</subfield><subfield code="0">(DLC)sh 85000004</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">5</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000005</subfield></datafield>
+    <datafield tag="780" ind1=" " ind2="0"><subfield code="x">Subdivision</subfield></datafield>
+    <datafield tag="788" ind1=" " ind2="0"><subfield code="a">Search instruction</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="2"><subfield code="a">Non-LCSH heading</subfield><subfield code="0">(DLC)sh 85000005</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">6</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000006Q000001</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Compound MeSH subject</subfield><subfield code="0">(DLC)sh 85000006</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">7</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000007</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Local target</subfield><subfield code="0">(IEN)12345</subfield></datafield>
+  </record>
+  <record>
+    <controlfield tag="001">8</controlfield>
+    <datafield tag="035" ind1=" " ind2=" "><subfield code="a">(DNLM)D000008</subfield></datafield>
+    <datafield tag="750" ind1=" " ind2="0"><subfield code="a">Unknown relation</subfield><subfield code="4">XX</subfield><subfield code="0">(DLC)sh 85000008</subfield></datafield>
+  </record>
+</collection>

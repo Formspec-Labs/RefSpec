@@ -306,6 +306,23 @@ def test_receipt_collector_preserves_distinct_pinned_inputs() -> None:
     assert retained_digests == {"sha256:" + hashlib.sha256(payload).hexdigest() for payload in payloads}
 
 
+def test_receipt_collector_covers_an_ordinary_multi_file_portfolio() -> None:
+    receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
+    payloads = [f"publisher payload {index}".encode() for index in range(17)]
+
+    receipt_plugin._record(
+        "example",
+        "parse_portfolio",
+        (),
+        {"records": payloads},
+    )
+
+    execution = receipt_plugin._MODULES["example"]["executions"][0]
+    assert set(execution["sourceEvidence"]["digests"]) == {
+        "sha256:" + hashlib.sha256(payload).hexdigest() for payload in payloads
+    }
+
+
 def test_receipt_collector_prefers_publisher_location_for_the_same_pin() -> None:
     receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
     payload = b"same real publisher bytes"

@@ -240,8 +240,19 @@ class _FASTResourceSequence(Sequence[RegistryResource]):
             "heading": row.heading,
             "identityStatus": "publisherIdentifierVerified",
             "legacyFstId": row.legacy_fst_id,
+            "lcshLinks": [
+                {
+                    "nativeStatement": link.native_statement,
+                    "publisherPredicateIri": link.predicate_iri,
+                    "sourceEncoding": link.source_encoding,
+                    "sourceRecordDigest": link.source_record_digest,
+                    "targetIri": link.target_iri,
+                }
+                for link in row.lcsh_links
+            ],
             "numericId": row.numeric_id,
             "publisherIri": row.uri,
+            "sourceFilename": row.source_filename,
         }
         source_path = row.uri
         preferred_label = row.heading.strip()
@@ -337,6 +348,11 @@ def _fast_release_from_snapshot(
     inputs: Sequence[RegistryInputPin],
 ) -> RegistryRelease:
     relations = _FASTRelationSequence(snapshot.rows)
+    lcsh_link_counts = Counter(
+        link.predicate_iri
+        for row in snapshot.rows
+        for link in row.lcsh_links
+    )
     tombstone_status_counts = dict(sorted(Counter(item.status for item in snapshot.tombstones).items()))
     metadata = {
         "activeBroaderRelationCount": len(relations),
@@ -344,6 +360,8 @@ def _fast_release_from_snapshot(
         "currentActiveCount": len(snapshot.rows),
         "droppedInactiveBroaderTargetCount": relations.dropped_target_count,
         "facetMigrationCount": snapshot.facet_migration_count,
+        "lcshLinkCounts": dict(sorted(lcsh_link_counts.items())),
+        "recordsWithLcshLinks": sum(bool(row.lcsh_links) for row in snapshot.rows),
         "tombstoneCount": len(snapshot.tombstones),
         "tombstoneDigest": canonical_digest([asdict(item) for item in snapshot.tombstones]),
         "tombstoneReplacementCount": sum(len(item.replacement_ids) for item in snapshot.tombstones),
