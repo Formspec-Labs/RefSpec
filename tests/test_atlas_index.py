@@ -103,19 +103,20 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # (the GAO Form 41217 option lists and NRC's two published APS
         # documentation units).
         # REF-035 adds one subject-ring and one value-ring mapping source.
-        # The Regulations.gov agency roster adds one entity-ring source.
+        # The regulations.gov roster and its REF-038 identity mapping add two
+        # entity-ring sources.
         "semanticRingCounts": {
-            "entity": 17,
+            "entity": 18,
             "legalIdentity": 3,
             "subject": 45,
             "value": 45,
         },
-        "rowCount": 110,
+        "rowCount": 111,
         "sourceModuleCount": 60,
         "statusCounts": {
             "deferred": 2,
             "notApplicable": 44,
-            "planned": 54,
+            "planned": 55,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
             # the entity-registry object instead. REF-031: the three

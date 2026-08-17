@@ -43,6 +43,20 @@ def _contains_confidence_key(value: Any) -> bool:
     return False
 
 
+def _contains_none(value: Any) -> bool:
+    if isinstance(value, Mapping):
+        return any(
+            item is None or _contains_none(item)
+            for item in value.values()
+        )
+    if isinstance(value, Sequence) and not isinstance(
+        value,
+        (str, bytes, bytearray),
+    ):
+        return any(item is None or _contains_none(item) for item in value)
+    return False
+
+
 @pytest.fixture(scope="module")
 def releases() -> tuple[RegistryRelease, ...]:
     return census.load_five_agency_rosters(ROOT)
@@ -69,7 +83,6 @@ def test_identity_release_counts_and_closed_decision_vocabulary(
     assert mapping_release.metadata["abstentionCount"] == 10
     assert mapping_release.metadata["candidateDecisionCount"] == 331
     assert mapping_release.metadata["evidenceRecordCount"] == 642
-    assert mapping_release.metadata["inverseAssertionCount"] == 0
     assert mapping_release.metadata["subunitPredicateEmitted"] is False
     decisions = mapping_release.metadata["candidateDecisions"]
     assert len({row["sourceValue"] for row in decisions}) == 331
@@ -79,6 +92,7 @@ def test_identity_release_counts_and_closed_decision_vocabulary(
     assert {
         row["reason"] for row in decisions if row["decision"] == "abstained"
     } <= alignments.AGENCY_ABSTENTION_REASONS
+    assert not _contains_none(mapping_release.metadata)
 
 
 def test_every_assertion_is_one_way_same_entity_e4_human_review(
@@ -95,6 +109,10 @@ def test_every_assertion_is_one_way_same_entity_e4_human_review(
     )
     assert all(
         (object_iri, predicate, subject_iri) not in triples
+        for subject_iri, predicate, object_iri in triples
+    )
+    assert mapping_release.metadata["inverseAssertionCount"] == sum(
+        (object_iri, predicate, subject_iri) in triples
         for subject_iri, predicate, object_iri in triples
     )
     for mapping in mapping_release.mappings:
@@ -118,6 +136,33 @@ def test_every_assertion_is_one_way_same_entity_e4_human_review(
             assert payload["nameSimilarityUsed"] is False
 
 
+def test_endpoint_evidence_uses_the_exact_roster_input_subset(
+    mapping_release: RegistryMappingRelease,
+) -> None:
+    used_roles = {
+        pin.role
+        for pin in mapping_release.inputs
+        if any(
+            pin.sha256 == evidence.source_digest
+            and (
+                pin.source_iri == evidence.source_locator
+                or evidence.source_locator.startswith(pin.source_iri + "#")
+            )
+            for mapping in mapping_release.mappings
+            for evidence in mapping.evidence
+        )
+    }
+    assert used_roles == {
+        "agencyRoster01Input01",
+        "agencyRoster02Input01",
+        "agencyRoster02Input02",
+        "agencyRoster02Input04",
+        "agencyRoster02Input05",
+        "agencyRoster04Input01",
+        "agencyRoster05Input01",
+    }
+
+
 def test_entity_ring_admits_only_same_entity_as_for_mappings(
     mapping_release: RegistryMappingRelease,
 ) -> None:
@@ -127,10 +172,27 @@ def test_entity_ring_admits_only_same_entity_as_for_mappings(
         generator.ATLAS.sameEntityAs
     }
     graph = generator._expected_mapping_asserted_graph((mapping_release,))
-    assertions = set(graph.subjects(RDF.type, generator.ATLAS.MappingAssertion))
-    bindings = set(graph.subjects(RDF.type, generator.RKAF.EvidenceBinding))
-    assert len(assertions) == 321
-    assert len(bindings) == 642
+    try:
+        assertions = set(
+            graph.subjects(RDF.type, generator.ATLAS.MappingAssertion)
+        )
+        bindings = set(graph.subjects(RDF.type, generator.RKAF.EvidenceBinding))
+        emitted = {
+            (
+                str(graph.value(assertion, RDF.subject)),
+                str(graph.value(assertion, RDF.predicate)),
+                str(graph.value(assertion, RDF.object)),
+            )
+            for assertion in assertions
+        }
+        assert len(assertions) == 321
+        assert len(bindings) == 642
+        assert all(
+            (object_iri, predicate, subject_iri) not in emitted
+            for subject_iri, predicate, object_iri in emitted
+        )
+    finally:
+        graph.close()
 
 
 def test_release_passes_refusal_guards_and_identifier_tripwire(

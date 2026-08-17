@@ -103,6 +103,16 @@
       "versionRepresentation": "Pin API version, schema or OpenAPI artifact, capture time, and artifact digest."
     },
     {
+      "accessOrReproducibilityGap": "Regulations.gov publishes no cross-roster identity map. RefSpec therefore retains the owner-reviewed E4 decision, both pinned publisher records, and every abstention instead of presenting the claim as publisher-authored.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each one-way regulations.gov-to-held-roster atlas:sameEntityAs assertion, its two publisher records, review basis, reasoning, and the complete 331-value decision accounting. Emit no inverse, subunit relation, or scalar confidence.",
+      "officialLocator": "research/evidence/agency-identifier-census-2026-08-16/census.json",
+      "resourceId": "regulations-gov-agency-identity",
+      "resourceKind": "mappingReference",
+      "title": "Regulations.gov agency identity mapping release",
+      "versionRepresentation": "Pin the five agency rosters, owner adjudication artifact, 321 adopted assertions, 642 E4 evidence records, and ten explicit abstentions under REF-038."
+    },
+    {
       "accessOrReproducibilityGap": "The grammar is public, while complete issuance and lifecycle history requires source-specific captures.",
       "distributionStatus": "definitionOnly",
       "identifierRepresentation": "Regulation Identifier Number in its official printable form.",
@@ -903,7 +913,7 @@
       "versionRepresentation": "Pin retrieval time, exact response digest and byte length, all 316 agencies, 163 nesting relations, 487 source references, and 446 distinct agency-to-title assertions."
     },
     {
-      "accessOrReproducibilityGap": "The OCLC bulk file contains 935,540 admitted topical relations or mappings. Atlas emits only nine held-endpoint mapping claims absent from the current FAST release; a separate endpoint release carries 47,049 content-backed FAST-to-FAST rdfs:seeAlso relations as atlas:thesaurusRelated and omits Wikipedia and unlabeled targets without stubs.",
+      "accessOrReproducibilityGap": "The OCLC bulk file contains 935,540 admitted topical relations or mappings. Atlas emits only nine held-endpoint mapping claims absent from the current FAST release; a separate endpoint release retains 45,929 contentful FAST endpoints selected by 47,049 rdfs:seeAlso rows but emits no semantic relation for that navigational predicate.",
       "distributionStatus": "available",
       "identifierRepresentation": "Preserve the FAST and target IRIs and each publisher predicate. Reconcile against the current FAST release before emitting a delta claim.",
       "officialLocator": "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
@@ -915,12 +925,12 @@
     {
       "accessOrReproducibilityGap": "The OCLC bulk file supplies content for 45,929 FAST endpoints selected by its internal rdfs:seeAlso links. This endpoint release owns the 11,587 exact IRIs that also occur in the LC capture because OCLC owns and best documents FAST. Atlas omits 31,932 links involving 668 endpoints with no publisher prefLabel and does not mint stubs.",
       "distributionStatus": "available",
-      "identifierRepresentation": "Preserve each publisher FAST IRI and prefLabel, and preserve rdfs:seeAlso as atlas:thesaurusRelated only with the exact deterministic predicate translation in evidence.",
+      "identifierRepresentation": "Preserve each publisher FAST IRI and prefLabel. Count rdfs:seeAlso as source navigation without translating it to an Atlas semantic predicate.",
       "officialLocator": "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
       "resourceId": "fast-bulk-see-also-endpoints",
       "resourceKind": "mappingReference",
       "title": "OCLC FAST bulk see-also endpoint subset",
-      "versionRepresentation": "Pin the ODC-BY archive, date-only capture marker, 45,929 contentful endpoints, 47,049 emitted relations, 668 missing endpoints, and every omitted-link disposition."
+      "versionRepresentation": "Pin the ODC-BY archive, date-only capture marker, 45,929 contentful endpoints, 47,049 content-backed navigation rows, zero emitted semantic relations, 668 missing endpoints, and every omitted-link disposition."
     },
     {
       "accessOrReproducibilityGap": "The EuroVoc alignment page names no license for this mapping file. Atlas records Commission Decision 2011/833 as the general reuse basis and preserves the third-party-rights exclusion.",

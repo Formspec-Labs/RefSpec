@@ -11,6 +11,9 @@
         "derivedRelations": {
           "$ref": "common.schema.json#/$defs/nonnegativeInteger"
         },
+        "evidenceBindings": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
         "identifiers": {
           "$ref": "common.schema.json#/$defs/nonnegativeInteger"
         },
@@ -48,6 +51,7 @@
         "identifiers",
         "labels",
         "sourceRecords",
+        "evidenceBindings",
         "relationAssertions",
         "crossRingRelationAssertions",
         "mappingAssertions",

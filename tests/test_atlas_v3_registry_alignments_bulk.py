@@ -149,7 +149,9 @@ def test_fast_warrants_preserve_related_and_record_same_as_adoption(releases) ->
     }
 
 
-def test_fast_see_also_uses_the_binding_navigational_relation(see_also_endpoint) -> None:
+def test_fast_see_also_keeps_content_but_emits_no_unlicensed_semantic_relation(
+    see_also_endpoint,
+) -> None:
     assert len(see_also_endpoint.resources) == 45_929
     assert Counter(resource.status for resource in see_also_endpoint.resources) == {
         "deprecatedAlignmentEndpoint": 45_927,
@@ -157,30 +159,34 @@ def test_fast_see_also_uses_the_binding_navigational_relation(see_also_endpoint)
     }
     assert see_also_endpoint.metadata["missingEndpointCount"] == 668
     assert all(
-        resource.labels and resource.native_payload["publisherLanguageTag"] is None
+        resource.labels
+        and resource.native_payload["publisherLanguageTagPresent"] is False
+        and "publisherLanguageTag" not in resource.native_payload
+        and "publisherLanguageTag" not in resource.native_payload["label"]
         for resource in see_also_endpoint.resources
     )
-    assert len(see_also_endpoint.relations) == adapters.FAST_SEE_ALSO_EMITTED_ASSERTION_COUNT
-    assert {row.predicate for row in see_also_endpoint.relations} == {adapters.ATLAS_THESAURUS_RELATED}
+    assert len(see_also_endpoint.relations) == adapters.FAST_SEE_ALSO_EMITTED_ASSERTION_COUNT == 0
+    assert see_also_endpoint.metadata["assertionComposition"]["publisherSeeAlso"] == {
+        "contentBackedAssertionCount": 47_049,
+        "emittedAssertionCount": 0,
+        "predicateIri": fast.RDFS_SEE_ALSO,
+        "semanticDisposition": "counted source navigation; no Atlas 3.1 semantic predicate",
+    }
     assert see_also_endpoint.metadata["endpointAccounting"] == {
         "capturedFastSeeAlsoCount": 78_981,
         "capturedWikipediaSeeAlsoCount": 76_190,
+        "contentBackedFastSeeAlsoCount": 47_049,
         "contentfulCapturedEndpointCount": 45_929,
-        "emittedAssertionCount": 47_049,
+        "emittedAssertionCount": 0,
         "missingFastEndpointAssertionCount": 31_932,
         "missingFastEndpointCount": 668,
         "wikipediaAssertionDisposition": "omitted because no target publisher content is captured",
     }
-    for row in see_also_endpoint.relations:
-        assert row.source_payload["editorialTransformation"] == {
-            "adoptedBy": adapters.FAST_SEE_ALSO_ADOPTED_BY,
-            "fromPredicate": fast.RDFS_SEE_ALSO,
-            "reason": "publisher-see-also-navigation",
-            "rule": "preservePublisherSeeAlsoAsAtlasThesaurusRelated",
-            "toPredicate": adapters.ATLAS_THESAURUS_RELATED,
-        }
-        assert row.source_payload["publisherRelation"]["predicateIri"] == fast.RDFS_SEE_ALSO
-        assert row.source_payload["publisherRelation"]["nativeStatement"]
+    assert see_also_endpoint.metadata["skosS27ConflictList"] == {
+        "canonicalItemShape": {"leftIri": "IRI", "rightIri": "IRI"},
+        "count": 0,
+        "digest": adapters.FAST_SEE_ALSO_S27_CONFLICT_PAIR_DIGEST,
+    }
 
 
 def test_fast_release_records_the_rolling_source_pin_and_license(releases) -> None:
@@ -269,7 +275,10 @@ def test_eurovoc_releases_record_all_17_pins_counts_and_rights(releases) -> None
         assert metadata["thirdPartyRightsExclusion"] == (eurovoc.EUROVOC_ALIGNMENT_THIRD_PARTY_RIGHTS_EXCLUSION)
         assert metadata["portfolioAssertionCountExcludingLcsh"] == 22_710
         assert metadata["catalogueAssertionCountIncludingLcsh"] == 24_713
-        assert metadata["catalogueExactMatchPercent"] == 93.75
+        assert metadata["catalogueExactMatchRatio"] == {
+            "denominator": 10_000,
+            "numerator": 9_375,
+        }
         assert len(metadata["portfolioCapture"]) == 17
         assert sum(item["assertionCount"] for item in metadata["portfolioCapture"]) == 22_710
         assert sum(item["bothEndpointsHeldAssertionCount"] for item in metadata["portfolioCapture"]) == 2_040

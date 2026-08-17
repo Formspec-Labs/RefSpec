@@ -1,6 +1,6 @@
 {
-  "catalogDigest": "sha256:4b286517ee262409ab0640b80acb7cf1ce4bc843a30a56ccbce8da3515f9e28b",
-  "catalogId": "urn:ref:resource-catalog:4b286517ee262409ab0640b80acb7cf1ce4bc843a30a56ccbce8da3515f9e28b",
+  "catalogDigest": "sha256:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
+  "catalogId": "urn:ref:resource-catalog:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
   "recordedAt": "2026-08-06T18:42:39Z",
@@ -621,7 +621,7 @@
       "consumability": "inventoryOnly",
       "distributions": [],
       "evidence": [],
-      "gap": "The OCLC bulk file contains 935,540 admitted topical relations or mappings. Atlas emits only nine held-endpoint mapping claims absent from the current FAST release; a separate endpoint release carries 47,049 content-backed FAST-to-FAST rdfs:seeAlso relations as atlas:thesaurusRelated and omits Wikipedia and unlabeled targets without stubs.",
+      "gap": "The OCLC bulk file contains 935,540 admitted topical relations or mappings. Atlas emits only nine held-endpoint mapping claims absent from the current FAST release; a separate endpoint release retains 45,929 contentful FAST endpoints selected by 47,049 rdfs:seeAlso rows but emits no semantic relation for that navigational predicate.",
       "identifierRepresentation": "Preserve the FAST and target IRIs and each publisher predicate. Reconcile against the current FAST release before emitting a delta claim.",
       "officialLocator": "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
       "resourceId": "fast-bulk-external-links-delta",
@@ -635,13 +635,13 @@
       "distributions": [],
       "evidence": [],
       "gap": "The OCLC bulk file supplies content for 45,929 FAST endpoints selected by its internal rdfs:seeAlso links. This endpoint release owns the 11,587 exact IRIs that also occur in the LC capture because OCLC owns and best documents FAST. Atlas omits 31,932 links involving 668 endpoints with no publisher prefLabel and does not mint stubs.",
-      "identifierRepresentation": "Preserve each publisher FAST IRI and prefLabel, and preserve rdfs:seeAlso as atlas:thesaurusRelated only with the exact deterministic predicate translation in evidence.",
+      "identifierRepresentation": "Preserve each publisher FAST IRI and prefLabel. Count rdfs:seeAlso as source navigation without translating it to an Atlas semantic predicate.",
       "officialLocator": "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip",
       "resourceId": "fast-bulk-see-also-endpoints",
       "resourceKind": "mappingReference",
       "sourceAvailability": "available",
       "title": "OCLC FAST bulk see-also endpoint subset",
-      "versionRepresentation": "Pin the ODC-BY archive, date-only capture marker, 45,929 contentful endpoints, 47,049 emitted relations, 668 missing endpoints, and every omitted-link disposition."
+      "versionRepresentation": "Pin the ODC-BY archive, date-only capture marker, 45,929 contentful endpoints, 47,049 content-backed navigation rows, zero emitted semantic relations, 668 missing endpoints, and every omitted-link disposition."
     },
     {
       "consumability": "inventoryOnly",
@@ -1659,6 +1659,19 @@
       "consumability": "inventoryOnly",
       "distributions": [],
       "evidence": [],
+      "gap": "Regulations.gov publishes no cross-roster identity map. RefSpec therefore retains the owner-reviewed E4 decision, both pinned publisher records, and every abstention instead of presenting the claim as publisher-authored.",
+      "identifierRepresentation": "Preserve each one-way regulations.gov-to-held-roster atlas:sameEntityAs assertion, its two publisher records, review basis, reasoning, and the complete 331-value decision accounting. Emit no inverse, subunit relation, or scalar confidence.",
+      "officialLocator": "research/evidence/agency-identifier-census-2026-08-16/census.json",
+      "resourceId": "regulations-gov-agency-identity",
+      "resourceKind": "mappingReference",
+      "sourceAvailability": "available",
+      "title": "Regulations.gov agency identity mapping release",
+      "versionRepresentation": "Pin the five agency rosters, owner adjudication artifact, 321 adopted assertions, 642 E4 evidence records, and ten explicit abstentions under REF-038."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
       "gap": "The source schemas and live value sets must be captured together so unpublished values cannot enter silently.",
       "identifierRepresentation": "Preserve Regulations.gov docket, document, comment, attachment, agency, docket-ID, and Federal Register-number values.",
       "officialLocator": "https://open.gsa.gov/api/regulationsgov/",
@@ -1879,8 +1892,8 @@
   ],
   "summary": {
     "evidenceOnlyCount": 7,
-    "inventoryOnlyCount": 104,
-    "resourceCount": 114,
+    "inventoryOnlyCount": 105,
+    "resourceCount": 115,
     "verifiedDistributionCount": 5,
     "verifiedResourceCount": 3
   }

@@ -1,6 +1,6 @@
 {
   "classifications": {
-    "data-registry": 61,
+    "data-registry": 62,
     "registry-adapter": 5,
     "registry-infrastructure": 12,
     "registry-managed-release": 2,
@@ -9,15 +9,15 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1267,
-    "seconds": 253.666,
+    "passed": 1275,
+    "seconds": 253.953,
     "skipped": 2,
-    "testFiles": 81,
-    "tests": 1269
+    "testFiles": 82,
+    "tests": 1277
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
-    "moduleCount": 84,
+    "moduleCount": 85,
     "modules": [
       {
         "executions": [
@@ -12191,7 +12191,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-77ee-9b0f-eafdf29dd6fa",
+                "fetch_id": "019fb304-0930-7103-9df8-09fa803f431a",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -22203,19 +22203,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:de4e29d60d6102367d619abacdf4702cb406e25922cc2c95347c0ee31cb4a696"
+                  "sha256": "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:f8d6c92a3e075fbc5680a4480117be037ed84abad1d2b61ce0b835ecc446fde6"
+                  "sha256": "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:36fab14543a4945bf2a52d0296b6f2b68dfbe232bf5b5f3501e9daa5bce0d368"
+                  "sha256": "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:10a9087508a47e965a8d97cbe2c3dbd29991406d623d312f29df71eeb19c3aa8"
+                  "sha256": "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9"
                 }
               },
               "manifest": {
@@ -22226,7 +22226,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:09952b398df1e43078384f9ce0b167c0edf7dc6d572cfd9a5c99eb2644cbe593",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:29f0e8a11d95687c82b3f5ec22d1260da1fd4084625e1c47aca8204b458d2389",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -22282,7 +22282,7 @@
               "byteLengths": [
                 0,
                 566,
-                589,
+                595,
                 1080,
                 1315,
                 1504,
@@ -22293,20 +22293,20 @@
                 5213
               ],
               "digests": [
+                "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:10a9087508a47e965a8d97cbe2c3dbd29991406d623d312f29df71eeb19c3aa8",
-                "sha256:36fab14543a4945bf2a52d0296b6f2b68dfbe232bf5b5f3501e9daa5bce0d368",
+                "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3e1601a91812ba8afeca05dfbb3d72c2ec4f11ab32fd05b24ccb32216770a48f",
-                "sha256:790986c2188e50e76b50a8f96dd264cc7e11e396d5f7d69b73cb5a4eb62d9904",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:89c01b8e344d91df9b309967a4f8bacb9dad9cd794dd206830e2cb4f32469c67",
+                "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a1b2bc02c81cbff070fd3c811f2ae2c0820197cba14e63f7b7ee594deb0b52be",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:b71fe8e44695144085d1fa302c30f45ffd97f72c0237d5ad6bd315343f37a5b1",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:de4e29d60d6102367d619abacdf4702cb406e25922cc2c95347c0ee31cb4a696",
+                "sha256:d8243c3a70c504e22c19b4d8a613c90b8bf7a36f37a085cce84a9e2a6dc2cd43",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:f8d6c92a3e075fbc5680a4480117be037ed84abad1d2b61ce0b835ecc446fde6"
+                "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
               ],
               "paths": [],
               "urls": [
@@ -22330,7 +22330,7 @@
               "byteLengths": [
                 0,
                 566,
-                589,
+                595,
                 1080,
                 1315,
                 1504,
@@ -22341,20 +22341,20 @@
                 5213
               ],
               "digests": [
+                "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:10a9087508a47e965a8d97cbe2c3dbd29991406d623d312f29df71eeb19c3aa8",
-                "sha256:36fab14543a4945bf2a52d0296b6f2b68dfbe232bf5b5f3501e9daa5bce0d368",
+                "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3e1601a91812ba8afeca05dfbb3d72c2ec4f11ab32fd05b24ccb32216770a48f",
-                "sha256:790986c2188e50e76b50a8f96dd264cc7e11e396d5f7d69b73cb5a4eb62d9904",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:89c01b8e344d91df9b309967a4f8bacb9dad9cd794dd206830e2cb4f32469c67",
+                "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a1b2bc02c81cbff070fd3c811f2ae2c0820197cba14e63f7b7ee594deb0b52be",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:b71fe8e44695144085d1fa302c30f45ffd97f72c0237d5ad6bd315343f37a5b1",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:de4e29d60d6102367d619abacdf4702cb406e25922cc2c95347c0ee31cb4a696",
+                "sha256:d8243c3a70c504e22c19b4d8a613c90b8bf7a36f37a085cce84a9e2a6dc2cd43",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:f8d6c92a3e075fbc5680a4480117be037ed84abad1d2b61ce0b835ecc446fde6"
+                "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
               ],
               "paths": [],
               "urls": [
@@ -22374,7 +22374,7 @@
               "byteLengths": [
                 0,
                 566,
-                589,
+                595,
                 1080,
                 1315,
                 1504,
@@ -22385,20 +22385,20 @@
                 5213
               ],
               "digests": [
+                "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:10a9087508a47e965a8d97cbe2c3dbd29991406d623d312f29df71eeb19c3aa8",
-                "sha256:36fab14543a4945bf2a52d0296b6f2b68dfbe232bf5b5f3501e9daa5bce0d368",
+                "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3e1601a91812ba8afeca05dfbb3d72c2ec4f11ab32fd05b24ccb32216770a48f",
-                "sha256:790986c2188e50e76b50a8f96dd264cc7e11e396d5f7d69b73cb5a4eb62d9904",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:89c01b8e344d91df9b309967a4f8bacb9dad9cd794dd206830e2cb4f32469c67",
+                "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a1b2bc02c81cbff070fd3c811f2ae2c0820197cba14e63f7b7ee594deb0b52be",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:b71fe8e44695144085d1fa302c30f45ffd97f72c0237d5ad6bd315343f37a5b1",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:de4e29d60d6102367d619abacdf4702cb406e25922cc2c95347c0ee31cb4a696",
+                "sha256:d8243c3a70c504e22c19b4d8a613c90b8bf7a36f37a085cce84a9e2a6dc2cd43",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:f8d6c92a3e075fbc5680a4480117be037ed84abad1d2b61ce0b835ecc446fde6"
+                "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
               ],
               "paths": [],
               "urls": [
@@ -22419,9 +22419,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 799,
+              "archive_byte_length": 800,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547",
+              "archive_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22430,10 +22430,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 799,
+                "expected_byte_length": 800,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
-                "expected_sha256": "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547",
+                "expected_member_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+                "expected_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22447,7 +22447,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
+              "sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22494,8 +22494,8 @@
                 2908
               ],
               "digests": [
-                "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
-                "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547"
+                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+                "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092"
               ],
               "paths": [],
               "urls": [
@@ -22510,9 +22510,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 799,
+              "archive_byte_length": 800,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547",
+              "archive_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22530,10 +22530,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 799,
+                "expected_byte_length": 800,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
-                "expected_sha256": "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547",
+                "expected_member_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+                "expected_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22552,7 +22552,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
+              "sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22620,8 +22620,8 @@
                 2908
               ],
               "digests": [
-                "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
-                "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547",
+                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+                "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
                 "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
               ],
               "paths": [],
@@ -22753,7 +22753,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
+              "source_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -22943,8 +22943,8 @@
                 2908
               ],
               "digests": [
-                "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
-                "sha256:b337f9ec9c6cd0a6c735b65f030f8e5cb5fa5594815a9ace954c68bf28a58547"
+                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+                "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092"
               ],
               "paths": [],
               "urls": [
@@ -23494,7 +23494,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20",
+              "source_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -23684,7 +23684,7 @@
                 2908
               ],
               "digests": [
-                "sha256:77eaa6a71c39e3930b82d59f2351fb88d0f51f2338cd5171b0fd837208da5b20"
+                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928"
               ],
               "paths": [],
               "urls": [
@@ -36776,7 +36776,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7d3f-b012-9fd067ec0653",
+                "fetch_id": "019fb2e5-4e00-70df-a145-6a053ed5c854",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -40205,6 +40205,86 @@
               "acquisition_mode": "local",
               "byte_length": 11807,
               "cache_hit": false,
+              "compressed_byte_length": 2809,
+              "compressed_sha256": "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
+                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "expected_byte_length": 11807,
+                "expected_compressed_byte_length": 2809,
+                "expected_compressed_sha256": "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
+                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "filename": "gemet-mini.rdf",
+                "landing_page_url": "https://example.test/gemet-landing-page",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "publisher": "European Environment Agency / Eionet",
+                "source_url": "https://example.test/gemet-mini.rdf",
+                "version": "fixture"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_url": "https://example.test/gemet-mini.rdf"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "compressed_byte_length": "int",
+                "compressed_sha256": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_compressed_byte_length": "int",
+                    "expected_compressed_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "publisher": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                11807
+              ],
+              "digests": [
+                "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/gemet-landing-page",
+                "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gemet_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 11807,
+              "cache_hit": false,
               "compressed_byte_length": null,
               "compressed_sha256": null,
               "local_source_path": "<pathlib.PosixPath>",
@@ -40267,86 +40347,6 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/gemet-landing-page",
-                "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_gemet_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "byte_length": 11807,
-              "cache_hit": false,
-              "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:c6f7d1978f614c2de03d0a10fc08eb7da2357bcbc907addf147eb1123fd95dc1",
-              "local_source_path": "<pathlib.PosixPath>",
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
-                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 11807,
-                "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:c6f7d1978f614c2de03d0a10fc08eb7da2357bcbc907addf147eb1123fd95dc1",
-                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "filename": "gemet-mini.rdf",
-                "landing_page_url": "https://example.test/gemet-landing-page",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "publisher": "European Environment Agency / Eionet",
-                "source_url": "https://example.test/gemet-mini.rdf",
-                "version": "fixture"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-              "source_url": "https://example.test/gemet-mini.rdf"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "compressed_byte_length": "int",
-                "compressed_sha256": "str",
-                "local_source_path": "pathlib.PosixPath",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_compressed_byte_length": "int",
-                    "expected_compressed_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "publisher": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                11807
-              ],
-              "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:c6f7d1978f614c2de03d0a10fc08eb7da2357bcbc907addf147eb1123fd95dc1"
               ],
               "paths": [],
               "urls": [
@@ -40626,6 +40626,7 @@
                 11807
               ],
               "digests": [
+                "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
@@ -40989,8 +40990,7 @@
                 11807
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:c6f7d1978f614c2de03d0a10fc08eb7da2357bcbc907addf147eb1123fd95dc1"
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
               "urls": [
@@ -73417,7 +73417,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7964-8156-4007d219583d",
+              "fetch_id": "019fb2e5-4e00-79e8-956f-3d5b2525864d",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -73474,7 +73474,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-756f-8921-980772c91f18"
+              "registration_id": "019fb80b-aa00-7fa1-b976-1b29ef0aa5dd"
             },
             "shape": {
               "fields": {
@@ -104291,6 +104291,522 @@
         "executions": [
           {
             "counts": {},
+            "function": "RegulationsGovAgenciesRoster.by_id",
+            "sample": {
+              "ABMC": {
+                "agency_id": "ABMC",
+                "agency_type": "Federal",
+                "name": "American Battle Monuments Commission",
+                "parent": null,
+                "participate": false,
+                "partner": false,
+                "posting_guidelines": null,
+                "raw": {
+                  "attributes": "<builtins.dict>",
+                  "id": "ABMC",
+                  "links": "<builtins.dict>",
+                  "type": "agencies"
+                },
+                "self_link": "https://api.regulations.gov/v4/agencies/ABMC",
+                "source_ordinal": 0
+              },
+              "ACF": {
+                "agency_id": "ACF",
+                "agency_type": "Federal",
+                "name": "Administration of Children and Families ",
+                "parent": "HHS",
+                "participate": true,
+                "partner": false,
+                "posting_guidelines": null,
+                "raw": {
+                  "attributes": "<builtins.dict>",
+                  "id": "ACF",
+                  "links": "<builtins.dict>",
+                  "type": "agencies"
+                },
+                "self_link": "https://api.regulations.gov/v4/agencies/ACF",
+                "source_ordinal": 1
+              },
+              "ACFR": {
+                "agency_id": "ACFR",
+                "agency_type": "Federal",
+                "name": "Administrative Committee of the Federal Register",
+                "parent": "NARA",
+                "participate": false,
+                "partner": false,
+                "posting_guidelines": null,
+                "raw": {
+                  "attributes": "<builtins.dict>",
+                  "id": "ACFR",
+                  "links": "<builtins.dict>",
+                  "type": "agencies"
+                },
+                "self_link": "https://api.regulations.gov/v4/agencies/ACFR",
+                "source_ordinal": 2
+              },
+              "ACHP": {
+                "agency_id": "ACHP",
+                "agency_type": "Federal",
+                "name": "Advisory Council on Historic Preservation",
+                "parent": null,
+                "participate": false,
+                "partner": false,
+                "posting_guidelines": null,
+                "raw": {
+                  "attributes": "<builtins.dict>",
+                  "id": "ACHP",
+                  "links": "<builtins.dict>",
+                  "type": "agencies"
+                },
+                "self_link": "https://api.regulations.gov/v4/agencies/ACHP",
+                "source_ordinal": 3
+              },
+              "ACL": {
+                "agency_id": "ACL",
+                "agency_type": "Federal",
+                "name": "Administration for Community Living",
+                "parent": "HHS",
+                "participate": true,
+                "partner": false,
+                "posting_guidelines": null,
+                "raw": {
+                  "attributes": "<builtins.dict>",
+                  "id": "ACL",
+                  "links": "<builtins.dict>",
+                  "type": "agencies"
+                },
+                "self_link": "https://api.regulations.gov/v4/agencies/ACL",
+                "source_ordinal": 4
+              }
+            },
+            "shape": {
+              "count": 331,
+              "keys": [
+                "ABMC",
+                "ACF",
+                "ACFR",
+                "ACHP",
+                "ACL",
+                "ACUS",
+                "ADF",
+                "AFRH",
+                "AHRQ",
+                "AID",
+                "AMC",
+                "AMS",
+                "AOA",
+                "APHIS",
+                "APPAL",
+                "ARCTIC",
+                "ARCTICGAS",
+                "ARS",
+                "ARTS",
+                "ASC"
+              ],
+              "type": "mapping",
+              "valueShape": {
+                "fields": {
+                  "agency_id": "str",
+                  "agency_type": "str",
+                  "name": "str",
+                  "parent": "NoneType",
+                  "participate": "bool",
+                  "partner": "bool",
+                  "posting_guidelines": "NoneType",
+                  "raw": {
+                    "count": 4,
+                    "keys": [
+                      "attributes",
+                      "id",
+                      "links",
+                      "type"
+                    ],
+                    "type": "mapping",
+                    "valueShape": "str"
+                  },
+                  "self_link": "str",
+                  "source_ordinal": "int"
+                },
+                "type": "refspec.registry.regulations_gov_agencies.RegulationsGovAgencyRecord"
+              }
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                91408
+              ],
+              "digests": [
+                "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2"
+              ],
+              "paths": [],
+              "urls": [
+                "https://api.regulations.gov/v4/agencies/ABMC",
+                "https://api.regulations.gov/v4/agencies/ACF",
+                "https://api.regulations.gov/v4/agencies/ACFR",
+                "https://api.regulations.gov/v4/agencies/ACHP",
+                "https://api.regulations.gov/v4/agencies/ACL",
+                "https://api.regulations.gov/v4/agencies/ACUS",
+                "https://api.regulations.gov/v4/agencies/ADF",
+                "https://api.regulations.gov/v4/agencies/AFRH",
+                "https://api.regulations.gov/v4/agencies/AHRQ",
+                "https://api.regulations.gov/v4/agencies/AID",
+                "https://api.regulations.gov/v4/agencies/AMC",
+                "https://api.regulations.gov/v4/agencies/AMS",
+                "https://api.regulations.gov/v4/agencies/AOA",
+                "https://api.regulations.gov/v4/agencies/APHIS",
+                "https://api.regulations.gov/v4/agencies/APPAL",
+                "https://api.regulations.gov/v4/agencies/ARCTIC",
+                "https://api.regulations.gov/v4/agencies/ARCTICGAS",
+                "https://api.regulations.gov/v4/agencies/ARS",
+                "https://api.regulations.gov/v4/agencies/ARTS",
+                "https://api.regulations.gov/v4/agencies/ASC",
+                "https://api.regulations.gov/v4/agencies/ATBCB",
+                "https://api.regulations.gov/v4/agencies/ATF",
+                "https://api.regulations.gov/v4/agencies/ATR",
+                "https://api.regulations.gov/v4/agencies/ATSB",
+                "https://api.regulations.gov/v4/agencies/ATSDR",
+                "https://api.regulations.gov/v4/agencies/BBG",
+                "https://api.regulations.gov/v4/agencies/BGSEEF",
+                "https://api.regulations.gov/v4/agencies/BIA",
+                "https://api.regulations.gov/v4/agencies/BIS",
+                "https://api.regulations.gov/v4/agencies/BLM",
+                "https://api.regulations.gov/v4/agencies/BLS",
+                "https://api.regulations.gov/v4/agencies/BOEM",
+                "https://api.regulations.gov/v4/agencies/BOP",
+                "https://api.regulations.gov/v4/agencies/BOR",
+                "https://api.regulations.gov/v4/agencies/BPA",
+                "https://api.regulations.gov/v4/agencies/BPD",
+                "https://api.regulations.gov/v4/agencies/BSC",
+                "https://api.regulations.gov/v4/agencies/BSEE",
+                "https://api.regulations.gov/v4/agencies/CCC",
+                "https://api.regulations.gov/v4/agencies/CCJJDP",
+                "https://api.regulations.gov/v4/agencies/CDC",
+                "https://api.regulations.gov/v4/agencies/CDFI",
+                "https://api.regulations.gov/v4/agencies/CDFIF",
+                "https://api.regulations.gov/v4/agencies/CEQ",
+                "https://api.regulations.gov/v4/agencies/CFPB",
+                "https://api.regulations.gov/v4/agencies/CFTC",
+                "https://api.regulations.gov/v4/agencies/CIA",
+                "https://api.regulations.gov/v4/agencies/CIGIE",
+                "https://api.regulations.gov/v4/agencies/CISA",
+                "https://api.regulations.gov/v4/agencies/CITA",
+                "https://api.regulations.gov/v4/agencies/CMS",
+                "https://api.regulations.gov/v4/agencies/CNCS",
+                "https://api.regulations.gov/v4/agencies/COE",
+                "https://api.regulations.gov/v4/agencies/COFA",
+                "https://api.regulations.gov/v4/agencies/COLC",
+                "https://api.regulations.gov/v4/agencies/CORP",
+                "https://api.regulations.gov/v4/agencies/CPPBSD",
+                "https://api.regulations.gov/v4/agencies/CPSC",
+                "https://api.regulations.gov/v4/agencies/CRB",
+                "https://api.regulations.gov/v4/agencies/CRC",
+                "https://api.regulations.gov/v4/agencies/CROMFS",
+                "https://api.regulations.gov/v4/agencies/CSB",
+                "https://api.regulations.gov/v4/agencies/CSEO",
+                "https://api.regulations.gov/v4/agencies/CSOSA",
+                "https://api.regulations.gov/v4/agencies/CSREES",
+                "https://api.regulations.gov/v4/agencies/DARS",
+                "https://api.regulations.gov/v4/agencies/DBCRC",
+                "https://api.regulations.gov/v4/agencies/DC",
+                "https://api.regulations.gov/v4/agencies/DCAA",
+                "https://api.regulations.gov/v4/agencies/DEA",
+                "https://api.regulations.gov/v4/agencies/DEPO",
+                "https://api.regulations.gov/v4/agencies/DFC",
+                "https://api.regulations.gov/v4/agencies/DHS",
+                "https://api.regulations.gov/v4/agencies/DIA",
+                "https://api.regulations.gov/v4/agencies/DISA",
+                "https://api.regulations.gov/v4/agencies/DLA",
+                "https://api.regulations.gov/v4/agencies/DNFSB",
+                "https://api.regulations.gov/v4/agencies/DOC",
+                "https://api.regulations.gov/v4/agencies/DOD",
+                "https://api.regulations.gov/v4/agencies/DOE",
+                "https://api.regulations.gov/v4/agencies/DOI",
+                "https://api.regulations.gov/v4/agencies/DOJ",
+                "https://api.regulations.gov/v4/agencies/DOL",
+                "https://api.regulations.gov/v4/agencies/DOS",
+                "https://api.regulations.gov/v4/agencies/DOT",
+                "https://api.regulations.gov/v4/agencies/DRBC",
+                "https://api.regulations.gov/v4/agencies/EAB",
+                "https://api.regulations.gov/v4/agencies/EAC",
+                "https://api.regulations.gov/v4/agencies/EBSA",
+                "https://api.regulations.gov/v4/agencies/ECAB",
+                "https://api.regulations.gov/v4/agencies/ECSA",
+                "https://api.regulations.gov/v4/agencies/ED",
+                "https://api.regulations.gov/v4/agencies/EDA",
+                "https://api.regulations.gov/v4/agencies/EEOC",
+                "https://api.regulations.gov/v4/agencies/EERE",
+                "https://api.regulations.gov/v4/agencies/EIA",
+                "https://api.regulations.gov/v4/agencies/EIB",
+                "https://api.regulations.gov/v4/agencies/EOA",
+                "https://api.regulations.gov/v4/agencies/EOIR",
+                "https://api.regulations.gov/v4/agencies/EOP"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "records": 331,
+              "records.items": 331
+            },
+            "function": "parse_regulations_gov_agencies",
+            "sample": {
+              "distinct_parent_count": 17,
+              "parent_relation_count": 160,
+              "records": [
+                {
+                  "agency_id": "ABMC",
+                  "agency_type": "Federal",
+                  "name": "American Battle Monuments Commission",
+                  "parent": null,
+                  "participate": false,
+                  "partner": false,
+                  "posting_guidelines": null,
+                  "raw": "<builtins.dict>",
+                  "self_link": "https://api.regulations.gov/v4/agencies/ABMC",
+                  "source_ordinal": 0
+                },
+                {
+                  "agency_id": "ACF",
+                  "agency_type": "Federal",
+                  "name": "Administration of Children and Families ",
+                  "parent": "HHS",
+                  "participate": true,
+                  "partner": false,
+                  "posting_guidelines": null,
+                  "raw": "<builtins.dict>",
+                  "self_link": "https://api.regulations.gov/v4/agencies/ACF",
+                  "source_ordinal": 1
+                }
+              ],
+              "source_byte_length": 91408,
+              "source_sha256": "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2"
+            },
+            "shape": {
+              "fields": {
+                "distinct_parent_count": "int",
+                "parent_relation_count": "int",
+                "records": {
+                  "count": 331,
+                  "itemShape": {
+                    "fields": {
+                      "agency_id": "str",
+                      "agency_type": "str",
+                      "name": "str",
+                      "parent": "NoneType",
+                      "participate": "bool",
+                      "partner": "bool",
+                      "posting_guidelines": "NoneType",
+                      "raw": "builtins.dict",
+                      "self_link": "str",
+                      "source_ordinal": "int"
+                    },
+                    "type": "refspec.registry.regulations_gov_agencies.RegulationsGovAgencyRecord"
+                  },
+                  "type": "tuple"
+                },
+                "source_byte_length": "int",
+                "source_sha256": "str"
+              },
+              "type": "refspec.registry.regulations_gov_agencies.RegulationsGovAgenciesRoster"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                91408
+              ],
+              "digests": [
+                "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2"
+              ],
+              "paths": [],
+              "urls": [
+                "https://api.regulations.gov/v4/agencies/ABMC",
+                "https://api.regulations.gov/v4/agencies/ACF",
+                "https://api.regulations.gov/v4/agencies/ACFR",
+                "https://api.regulations.gov/v4/agencies/ACHP",
+                "https://api.regulations.gov/v4/agencies/ACL",
+                "https://api.regulations.gov/v4/agencies/ACUS",
+                "https://api.regulations.gov/v4/agencies/ADF",
+                "https://api.regulations.gov/v4/agencies/AFRH",
+                "https://api.regulations.gov/v4/agencies/AHRQ",
+                "https://api.regulations.gov/v4/agencies/AID",
+                "https://api.regulations.gov/v4/agencies/AMC",
+                "https://api.regulations.gov/v4/agencies/AMS",
+                "https://api.regulations.gov/v4/agencies/AOA",
+                "https://api.regulations.gov/v4/agencies/APHIS",
+                "https://api.regulations.gov/v4/agencies/APPAL",
+                "https://api.regulations.gov/v4/agencies/ARCTIC",
+                "https://api.regulations.gov/v4/agencies/ARCTICGAS",
+                "https://api.regulations.gov/v4/agencies/ARS",
+                "https://api.regulations.gov/v4/agencies/ARTS",
+                "https://api.regulations.gov/v4/agencies/ASC",
+                "https://api.regulations.gov/v4/agencies/ATBCB",
+                "https://api.regulations.gov/v4/agencies/ATF",
+                "https://api.regulations.gov/v4/agencies/ATR",
+                "https://api.regulations.gov/v4/agencies/ATSB",
+                "https://api.regulations.gov/v4/agencies/ATSDR",
+                "https://api.regulations.gov/v4/agencies/BBG",
+                "https://api.regulations.gov/v4/agencies/BGSEEF",
+                "https://api.regulations.gov/v4/agencies/BIA",
+                "https://api.regulations.gov/v4/agencies/BIS",
+                "https://api.regulations.gov/v4/agencies/BLM",
+                "https://api.regulations.gov/v4/agencies/BLS",
+                "https://api.regulations.gov/v4/agencies/BOEM",
+                "https://api.regulations.gov/v4/agencies/BOP",
+                "https://api.regulations.gov/v4/agencies/BOR",
+                "https://api.regulations.gov/v4/agencies/BPA",
+                "https://api.regulations.gov/v4/agencies/BPD",
+                "https://api.regulations.gov/v4/agencies/BSC",
+                "https://api.regulations.gov/v4/agencies/BSEE",
+                "https://api.regulations.gov/v4/agencies/CCC",
+                "https://api.regulations.gov/v4/agencies/CCJJDP",
+                "https://api.regulations.gov/v4/agencies/CDC",
+                "https://api.regulations.gov/v4/agencies/CDFI",
+                "https://api.regulations.gov/v4/agencies/CDFIF",
+                "https://api.regulations.gov/v4/agencies/CEQ",
+                "https://api.regulations.gov/v4/agencies/CFPB",
+                "https://api.regulations.gov/v4/agencies/CFTC",
+                "https://api.regulations.gov/v4/agencies/CIA",
+                "https://api.regulations.gov/v4/agencies/CIGIE",
+                "https://api.regulations.gov/v4/agencies/CISA",
+                "https://api.regulations.gov/v4/agencies/CITA",
+                "https://api.regulations.gov/v4/agencies/CMS",
+                "https://api.regulations.gov/v4/agencies/CNCS",
+                "https://api.regulations.gov/v4/agencies/COE",
+                "https://api.regulations.gov/v4/agencies/COFA",
+                "https://api.regulations.gov/v4/agencies/COLC",
+                "https://api.regulations.gov/v4/agencies/CORP",
+                "https://api.regulations.gov/v4/agencies/CPPBSD",
+                "https://api.regulations.gov/v4/agencies/CPSC",
+                "https://api.regulations.gov/v4/agencies/CRB",
+                "https://api.regulations.gov/v4/agencies/CRC",
+                "https://api.regulations.gov/v4/agencies/CROMFS",
+                "https://api.regulations.gov/v4/agencies/CSB",
+                "https://api.regulations.gov/v4/agencies/CSEO",
+                "https://api.regulations.gov/v4/agencies/CSOSA",
+                "https://api.regulations.gov/v4/agencies/CSREES",
+                "https://api.regulations.gov/v4/agencies/DARS",
+                "https://api.regulations.gov/v4/agencies/DBCRC",
+                "https://api.regulations.gov/v4/agencies/DC",
+                "https://api.regulations.gov/v4/agencies/DCAA",
+                "https://api.regulations.gov/v4/agencies/DEA",
+                "https://api.regulations.gov/v4/agencies/DEPO",
+                "https://api.regulations.gov/v4/agencies/DFC",
+                "https://api.regulations.gov/v4/agencies/DHS",
+                "https://api.regulations.gov/v4/agencies/DIA",
+                "https://api.regulations.gov/v4/agencies/DISA",
+                "https://api.regulations.gov/v4/agencies/DLA",
+                "https://api.regulations.gov/v4/agencies/DNFSB",
+                "https://api.regulations.gov/v4/agencies/DOC",
+                "https://api.regulations.gov/v4/agencies/DOD",
+                "https://api.regulations.gov/v4/agencies/DOE",
+                "https://api.regulations.gov/v4/agencies/DOI",
+                "https://api.regulations.gov/v4/agencies/DOJ",
+                "https://api.regulations.gov/v4/agencies/DOL",
+                "https://api.regulations.gov/v4/agencies/DOS",
+                "https://api.regulations.gov/v4/agencies/DOT",
+                "https://api.regulations.gov/v4/agencies/DRBC",
+                "https://api.regulations.gov/v4/agencies/EAB",
+                "https://api.regulations.gov/v4/agencies/EAC",
+                "https://api.regulations.gov/v4/agencies/EBSA",
+                "https://api.regulations.gov/v4/agencies/ECAB",
+                "https://api.regulations.gov/v4/agencies/ECSA",
+                "https://api.regulations.gov/v4/agencies/ED",
+                "https://api.regulations.gov/v4/agencies/EDA",
+                "https://api.regulations.gov/v4/agencies/EEOC",
+                "https://api.regulations.gov/v4/agencies/EERE",
+                "https://api.regulations.gov/v4/agencies/EIA",
+                "https://api.regulations.gov/v4/agencies/EIB",
+                "https://api.regulations.gov/v4/agencies/EOA",
+                "https://api.regulations.gov/v4/agencies/EOIR",
+                "https://api.regulations.gov/v4/agencies/EOP"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:1d5beb3d98b84428e79e85ffe4529adfe1a8b75aa30cbf25ee00023a08af0613",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                91392
+              ],
+              "digests": [
+                "sha256:1d5beb3d98b84428e79e85ffe4529adfe1a8b75aa30cbf25ee00023a08af0613"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:385dee5ed6ff0189b79802a1793489c51da13df03425697faf7955191cbb020a",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                91436
+              ],
+              "digests": [
+                "sha256:385dee5ed6ff0189b79802a1793489c51da13df03425697faf7955191cbb020a"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:79a2927524ac25625bfbf1da4c5319e921bab62df50143734ec39d58156593ff",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                91420
+              ],
+              "digests": [
+                "sha256:79a2927524ac25625bfbf1da4c5319e921bab62df50143734ec39d58156593ff"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:b1bcab333b016bbd3bfb38009992ba5477ca27e50e4ef0eb8f8e0e298966b6a7",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                90613
+              ],
+              "digests": [
+                "sha256:b1bcab333b016bbd3bfb38009992ba5477ca27e50e4ef0eb8f8e0e298966b6a7"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "verify_payload",
+            "sample": "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                91408
+              ],
+              "digests": [
+                "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          }
+        ],
+        "module": "regulations_gov_agencies.py"
+      },
+      {
+        "executions": [
+          {
+            "counts": {},
             "function": "ParsedRegulationsGovResource.by_code",
             "sample": {
               "Notice": {
@@ -107650,22 +108166,6 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:28d146fa6c5bdf4049669a628a67a7df693b954b8991924661cef0394ed0818f",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                364729
-              ],
-              "digests": [
-                "sha256:28d146fa6c5bdf4049669a628a67a7df693b954b8991924661cef0394ed0818f"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
             "sample": "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3",
             "shape": "str",
             "sourceEvidence": {
@@ -107706,6 +108206,22 @@
               ],
               "digests": [
                 "sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:bda02d66fd4fde25f1277b6b0212aec392dd65afdd690eac6ac7a178890ae568",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                364730
+              ],
+              "digests": [
+                "sha256:bda02d66fd4fde25f1277b6b0212aec392dd65afdd690eac6ac7a178890ae568"
               ],
               "paths": [],
               "urls": []
@@ -112109,7 +112625,7 @@
   },
   "format": "refspec-registry-audit-summary/v1",
   "fullSuiteExecution": null,
-  "moduleCount": 84,
+  "moduleCount": 85,
   "modules": [
     {
       "auditRole": "support",
@@ -114973,6 +115489,28 @@
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
+        "https://api.regulations.gov/v4/agencies"
+      ],
+      "module": "regulations_gov_agencies.py",
+      "sourceStatus": "publisherBytes",
+      "testInputs": [
+        {
+          "acquisition": "authenticatedPublisherApi",
+          "byteLength": 91408,
+          "localPath": "tests/fixtures/regulations_gov_agencies/regulations-gov-agencies-2026-08-16.json",
+          "name": "regulationsGovAgencies20260816",
+          "provenance": "publisherApiResponse",
+          "publisherUrl": "https://api.regulations.gov/v4/agencies",
+          "sha256": "sha256:28ab9f5422dd27fc7906ddc696e8e7811b11056822f370bcee7ea18a28418fa2"
+        }
+      ]
+    },
+    {
+      "auditRole": "dataReader",
+      "blockers": [],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [
         "https://open.gsa.gov/api/regulationsgov/",
         "https://open.gsa.gov/api/regulationsgov/v4/openapi.yaml"
       ],
@@ -115204,6 +115742,6 @@
   "sourceStatuses": {
     "blocked": 1,
     "notApplicable": 9,
-    "publisherBytes": 74
+    "publisherBytes": 75
   }
 }

@@ -8,6 +8,7 @@ import json
 import re
 import sys
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -60,6 +61,34 @@ def test_status_reporter_rate_limits_progress_and_keeps_phase_boundaries() -> No
     assert "progress=1/3" not in stream.getvalue()
     assert 'progress=2/3 current="release-two"' in lines[1]
     assert 'progress=3/3 current="release-three"' in lines[2]
+
+
+def test_status_reporter_records_portable_peak_rss_receipts() -> None:
+    ticks = iter((10.0, 11.0, 12.0))
+    reporter = generator._StatusReporter(
+        enabled=False,
+        clock=lambda: next(ticks),
+    )
+
+    reporter.phase("constructed")
+    profile = reporter.memory_profile()
+
+    assert profile["measurement"] == "getrusage-process-high-water-rss"
+    assert isinstance(profile["peakRssBytes"], int)
+    assert profile["peakRssBytes"] > 0
+    assert profile["phaseHighWaterMarks"] == [
+        {
+            "elapsedMilliseconds": 1000,
+            "phase": "constructed",
+            "processPeakRssBytes": profile["phaseHighWaterMarks"][0]["processPeakRssBytes"],
+        },
+        {
+            "elapsedMilliseconds": 2000,
+            "phase": "generation-report",
+            "processPeakRssBytes": profile["phaseHighWaterMarks"][1]["processPeakRssBytes"],
+        },
+    ]
+    generator.ATLAS_VALIDATE.canonical_json_bytes(profile)
 
 
 def _compiled_test_report(
@@ -1026,6 +1055,41 @@ def _compiled_mapping_case(
     return releases, mapping_release
 
 
+def _compiled_stream_prebuild(
+    releases: tuple[generator.LoadedRelease, ...],
+    mapping_releases: tuple[RegistryMappingRelease, ...],
+) -> generator.ProducerPrebuildValidation:
+    """Prepare the shared clean receipt used by streamed mutation probes."""
+
+    inventory = generator.verify_inputs(releases, mapping_releases)
+    compiled_rows = generator._validate_compiled_producer_rows(
+        releases,
+        mapping_releases,
+    )
+    construction_seeds = tuple(
+        dataclasses.replace(
+            seed,
+            adapter_recipe_inputs=_test_construction_seed().adapter_recipe_inputs,
+        )
+        for seed in generator._release_construction_seeds(
+            releases,
+            mapping_releases,
+        )
+    )
+    return generator.ProducerPrebuildValidation(
+        compiled_rows=compiled_rows,
+        construction_seeds=construction_seeds,
+        generation_report=generator._producer_generation_report(
+            releases,
+            mapping_releases,
+            input_inventory=inventory,
+            producer_validation=compiled_rows,
+        ),
+        input_inventory=inventory,
+        pack_plans=generator._release_pack_plans(releases, mapping_releases),
+    )
+
+
 def _mapping_policy_graph(resource_id: str) -> Graph:
     graph = generator._new_build_graph()
     source = generator._registry_source_descriptor_iri(resource_id)
@@ -1344,7 +1408,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 109
+    assert len(generator._validated_registry_index_rows(index, proof)) == 111
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(row for row in changed_index["rows"] if row["resourceId"] == "eurovoc-lcsh-alignment")
@@ -1525,6 +1589,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         assert report["counts"] == {
             "crossRingRelationAssertions": 0,
             "derivedRelations": 0,
+            "evidenceBindings": 3,
             "identifiers": 0,
             "labels": 2,
             "mappingAssertions": 1,
@@ -1633,6 +1698,672 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         graphs.release()
 
 
+def test_streamed_construction_matches_the_whole_graph_oracle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The release spool must preserve every sealed byte and compact row."""
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping_releases = (mapping_release,)
+    prebuild = _compiled_stream_prebuild(releases, mapping_releases)
+    compiled_rows = prebuild.compiled_rows
+    pack_plans = prebuild.pack_plans
+    construction_seeds = prebuild.construction_seeds
+
+    graphs = generator._build_graphs(
+        releases,
+        mapping_releases=mapping_releases,
+        include_projection=False,
+    )
+    try:
+        legacy_validation = generator._validate_compiled_producer_output(
+            releases,
+            graphs,
+            compiled_rows,
+            mapping_releases,
+        )
+        legacy_accounting = generator._plain(graphs.accounting)
+        legacy_root = tmp_path / "whole-graph"
+        legacy_result, legacy_manifest = generator._write_candidate_distribution(
+            legacy_root / "distribution",
+            graphs,
+            releases=pack_plans,
+            created_at=_TEST_CREATED_AT,
+            compiled_validation=legacy_validation,
+            construction_seeds=construction_seeds,
+            parquet_tables=legacy_root / "parquet-view",
+        )
+    finally:
+        graphs.release()
+
+    comparand_calls = {"idsByRole": 0, "reachability": 0}
+    original_ids_by_role = generator.ATLAS_VALIDATE._rdf_record_ids_by_role
+    original_reachability = generator.ATLAS_VALIDATE._check_explorer_reachability
+
+    def counted_ids_by_role(graph: Graph) -> dict[str, set[str]]:
+        comparand_calls["idsByRole"] += 1
+        return original_ids_by_role(graph)
+
+    def counted_reachability(
+        served: dict[str, list[str]],
+        asserted: dict[str, set[str]],
+    ) -> None:
+        comparand_calls["reachability"] += 1
+        original_reachability(served, asserted)
+
+    monkeypatch.setattr(
+        generator.ATLAS_VALIDATE,
+        "_rdf_record_ids_by_role",
+        counted_ids_by_role,
+    )
+    monkeypatch.setattr(
+        generator.ATLAS_VALIDATE,
+        "_check_explorer_reachability",
+        counted_reachability,
+    )
+    streamed = generator._stream_construct_graphs(
+        list(releases),
+        list(mapping_releases),
+        prebuild=prebuild,
+        spool_root=tmp_path / "stream-spool",
+    )
+    streamed_root = tmp_path / "streamed"
+    streamed_result, streamed_manifest = generator._write_streamed_candidate_distribution(
+        streamed_root / "distribution",
+        streamed,
+        pack_plans,
+        created_at=_TEST_CREATED_AT,
+        construction_seeds=construction_seeds,
+        parquet_tables=streamed_root / "parquet-view",
+    )
+
+    def files(root: Path) -> dict[str, bytes]:
+        return {
+            path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+
+    assert streamed.accounting == legacy_accounting
+    assert streamed.compiled_validation == legacy_validation
+    assert streamed_manifest == legacy_manifest
+    assert streamed_result == legacy_result
+    assert files(streamed_root) == files(legacy_root)
+    assert comparand_calls["idsByRole"] > 0
+    assert comparand_calls["reachability"] > 0
+
+    role = generator.CompactRecordRole.LABEL
+    table_path = streamed_root / "parquet-view" / generator.TABLE_DIRECTORY / generator.TABLE_NAMES[role]
+    table = pq.read_table(table_path)
+    rows = table.to_pylist()
+    rows[0]["id"] = "urn:ref:atlas-label:" + "9" * 64
+    table_path.unlink()
+    pq.write_table(
+        pa.Table.from_pylist(rows, schema=table.schema),
+        table_path,
+        compression="zstd",
+    )
+    with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as streamed_error:
+        streamed.spool.check_parquet(streamed_root / "parquet-view")
+    assert streamed_error.value.code == "construction.reachability"
+
+    legacy_table_path = legacy_root / "parquet-view" / generator.TABLE_DIRECTORY / generator.TABLE_NAMES[role]
+    table_path.replace(legacy_table_path)
+    legacy_graphs = generator._build_graphs(
+        releases,
+        mapping_releases=mapping_releases,
+        include_projection=False,
+    )
+    try:
+        with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as legacy_error:
+            generator._check_parquet_view_against_graph(
+                legacy_root / "parquet-view",
+                legacy_graphs.asserted,
+            )
+    finally:
+        legacy_graphs.release()
+    assert legacy_error.value.code == streamed_error.value.code
+
+
+def _probe_reachability_divergence(
+    _tmp_path: Path,
+    _monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A duplicate split across two streamed batches keeps the legacy code.
+
+    Both paths report the same detail while the duplicate remains within one
+    batch. Across the 2,000-row boundary, the legacy whole-set check still sees
+    a duplicate while the streamed check sees a served/asserted mismatch in the
+    second slice. That message difference is deliberate; the refusal code is
+    the stable verdict.
+    """
+
+    role = generator.CompactRecordRole.LABEL
+    batch_size = generator._STREAM_CONSTRUCTION_BATCH_SIZE
+    asserted = [f"urn:test:label:{index:04d}" for index in range(batch_size + 1)]
+
+    in_batch = list(asserted)
+    in_batch[batch_size - 1] = in_batch[batch_size - 2]
+    with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as legacy_in_batch:
+        generator.ATLAS_VALIDATE._check_explorer_reachability(
+            {role.value: in_batch},
+            {role.value: set(asserted)},
+        )
+    with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as streamed_in_batch:
+        generator._StreamingGraphSpool._check_reachability_batch(
+            role,
+            in_batch[:batch_size],
+            asserted[:batch_size],
+        )
+    assert streamed_in_batch.value.code == legacy_in_batch.value.code
+    assert streamed_in_batch.value.detail == legacy_in_batch.value.detail
+
+    boundary = [*asserted[:batch_size], asserted[batch_size - 1]]
+    with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as legacy_boundary:
+        generator.ATLAS_VALIDATE._check_explorer_reachability(
+            {role.value: boundary},
+            {role.value: set(asserted)},
+        )
+    generator._StreamingGraphSpool._check_reachability_batch(
+        role,
+        boundary[:batch_size],
+        asserted[:batch_size],
+    )
+    with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as streamed_boundary:
+        generator._StreamingGraphSpool._check_reachability_batch(
+            role,
+            boundary[batch_size:],
+            asserted[batch_size:],
+        )
+
+    assert streamed_boundary.value.code == legacy_boundary.value.code
+    assert streamed_boundary.value.code == "construction.reachability"
+    assert streamed_boundary.value.detail != legacy_boundary.value.detail
+    assert "repeats a record identity" in legacy_boundary.value.detail
+    assert "not the asserted" in streamed_boundary.value.detail
+
+
+def _probe_non_iri_subject(
+    tmp_path: Path,
+    _monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = generator._new_build_graph()
+    catalog = generator._new_build_graph()
+    try:
+        graph.add(
+            (
+                Literal("not-an-iri-subject"),
+                URIRef("urn:test:predicate"),
+                URIRef("urn:test:object"),
+            )
+        )
+        plan = _test_release_plan()
+        legacy_root = tmp_path / "legacy"
+        legacy_root.mkdir()
+        with pytest.raises(TypeError) as legacy_error:
+            generator._write_asserted_packs(legacy_root, graph, (plan,))
+
+        spool = generator._StreamingGraphSpool(
+            tmp_path / "streamed",
+            (plan,),
+            resource_owner_tokens={},
+            catalog=catalog,
+        )
+        with pytest.raises(TypeError) as streamed_error:
+            spool.append_graph(graph, plan)
+
+        assert str(streamed_error.value) == str(legacy_error.value)
+        assert str(streamed_error.value) == "Atlas asserted graph contains a non-IRI subject"
+    finally:
+        graph.close()
+        catalog.close()
+
+
+def test_streamed_statement_counter_matches_legacy_dual_type_semantics(
+    tmp_path: Path,
+) -> None:
+    assertion = URIRef("urn:test:dual-typed-assertion")
+    graph = generator._new_build_graph()
+    projection = generator._new_build_graph()
+    derived = generator._new_build_graph()
+    catalog = generator._new_build_graph()
+    try:
+        graph.add((assertion, RDF.type, generator.ATLAS.RelationAssertion))
+        graph.add((assertion, RDF.type, generator.ATLAS.MappingAssertion))
+        graph.add((assertion, RDF.type, generator.ATLAS.NativeRelationAssertion))
+        legacy = generator._counts(
+            generator.BuildGraphs(
+                asserted=graph,
+                projection=projection,
+                derived=derived,
+                accounting={},
+            )
+        )
+        plan = _test_release_plan()
+        spool = generator._StreamingGraphSpool(
+            tmp_path / "streamed",
+            (plan,),
+            resource_owner_tokens={},
+            catalog=catalog,
+        )
+        spool._increment_counts(
+            graph,
+            assertion,
+            generator.CompactRecordRole.STATEMENT,
+            plan.key,
+        )
+
+        for field in (
+            "mappingAssertions",
+            "nativeRelationAssertions",
+            "relationAssertions",
+        ):
+            assert spool.counts[field] == legacy[field]
+        assert spool.counts["relationAssertions"] == 2
+    finally:
+        graph.close()
+        projection.close()
+        derived.close()
+        catalog.close()
+
+
+def _probe_source_accounting(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reviewer's accepted-corruption probe is a permanent negative."""
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping_releases = (mapping_release,)
+    prebuild = _compiled_stream_prebuild(releases, mapping_releases)
+    nonexistent = "urn:ref:atlas-assertion:" + "0" * 64
+
+    graphs = generator._build_graphs(
+        releases,
+        mapping_releases=mapping_releases,
+        include_projection=False,
+    )
+    try:
+        mapping_row = next(
+            row
+            for row in graphs.accounting["inputs"]
+            if row["sourceRelease"] == mapping_release.source_release_iri
+        )
+        mapping_row["dispositions"][0]["atlasAssertions"] = [nonexistent]
+        graphs.accounting["distributionId"] = generator.distribution_identity(
+            graphs.accounting
+        )
+        with pytest.raises(ValueError) as legacy_error:
+            generator._validate_compiled_producer_output(
+                releases,
+                graphs,
+                prebuild.compiled_rows,
+                mapping_releases,
+            )
+    finally:
+        graphs.release()
+
+    original = generator._stream_mapping_release
+
+    def corrupt_mapping_accounting(*args, **kwargs):
+        row = original(*args, **kwargs)
+        row["dispositions"][0]["atlasAssertions"] = [nonexistent]
+        return row
+
+    monkeypatch.setattr(
+        generator,
+        "_stream_mapping_release",
+        corrupt_mapping_accounting,
+    )
+    with pytest.raises(ValueError) as streamed_error:
+        generator._stream_construct_graphs(
+            list(releases),
+            list(mapping_releases),
+            prebuild=prebuild,
+            spool_root=tmp_path / "stream-spool",
+        )
+
+    assert type(streamed_error.value) is type(legacy_error.value)
+    assert str(streamed_error.value) == str(legacy_error.value)
+    assert "represented mapping assertions differ" in str(streamed_error.value)
+
+
+def _probe_count_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping_releases = (mapping_release,)
+    prebuild = _compiled_stream_prebuild(releases, mapping_releases)
+    wrong_counts = dict(prebuild.compiled_rows.expected_counts)
+    wrong_counts["labels"] += 1
+    wrong_receipt = dataclasses.replace(
+        prebuild.compiled_rows,
+        expected_counts=wrong_counts,
+    )
+
+    graphs = generator._build_graphs(
+        releases,
+        mapping_releases=mapping_releases,
+        include_projection=False,
+    )
+    try:
+        with pytest.raises(ValueError) as legacy_error:
+            generator._validate_compiled_producer_output(
+                releases,
+                graphs,
+                wrong_receipt,
+                mapping_releases,
+            )
+    finally:
+        graphs.release()
+
+    with pytest.raises(ValueError) as streamed_error:
+        generator._stream_construct_graphs(
+            list(releases),
+            list(mapping_releases),
+            prebuild=dataclasses.replace(prebuild, compiled_rows=wrong_receipt),
+            spool_root=tmp_path / "stream-spool",
+        )
+    assert type(streamed_error.value) is type(legacy_error.value)
+    assert "constructor counts differ" in str(legacy_error.value)
+    assert "constructor counts differ" in str(streamed_error.value)
+
+
+def _probe_duplicate_claim(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    prebuild = _compiled_stream_prebuild(releases, (mapping_release,))
+    object.__setattr__(
+        mapping_release,
+        "mappings",
+        (*mapping_release.mappings, *mapping_release.mappings),
+    )
+
+    with pytest.raises(ValueError) as legacy_error:
+        generator._build_graphs(
+            releases,
+            mapping_releases=(mapping_release,),
+            include_projection=False,
+        )
+    with pytest.raises(ValueError) as streamed_error:
+        generator._stream_construct_graphs(
+            list(releases),
+            [mapping_release],
+            prebuild=prebuild,
+            spool_root=tmp_path / "stream-spool",
+        )
+
+    assert type(streamed_error.value) is type(legacy_error.value)
+    assert "evidence decisions collapse to one binding" in str(legacy_error.value)
+    assert "repeats a mapping claim" in str(streamed_error.value)
+
+
+def _probe_evidence_resolution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping_releases = (mapping_release,)
+    prebuild = _compiled_stream_prebuild(releases, mapping_releases)
+
+    graphs = generator._build_graphs(
+        releases,
+        mapping_releases=mapping_releases,
+        include_projection=False,
+    )
+    try:
+        assertion = next(
+            graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
+        )
+        binding = next(
+            graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion)
+        )
+        graphs.asserted.remove((binding, None, None))
+        with pytest.raises(ValueError) as legacy_error:
+            generator._validate_compiled_producer_output(
+                releases,
+                graphs,
+                prebuild.compiled_rows,
+                mapping_releases,
+            )
+    finally:
+        graphs.release()
+
+    original = generator._validate_streamed_evidence_batch
+    mutated = False
+
+    def remove_mapping_evidence(
+        graph: Graph,
+        current_mappings: tuple[RegistryMappingRelease, ...] = (),
+    ) -> None:
+        nonlocal mutated
+        if current_mappings and not mutated:
+            binding = next(graph.subjects(RDF.type, generator.RKAF.EvidenceBinding))
+            graph.remove((binding, None, None))
+            mutated = True
+        original(graph, current_mappings)
+
+    monkeypatch.setattr(
+        generator,
+        "_validate_streamed_evidence_batch",
+        remove_mapping_evidence,
+    )
+    with pytest.raises(ValueError) as streamed_error:
+        generator._stream_construct_graphs(
+            list(releases),
+            list(mapping_releases),
+            prebuild=prebuild,
+            spool_root=tmp_path / "stream-spool",
+        )
+
+    assert mutated is True
+    assert type(streamed_error.value) is type(legacy_error.value)
+    assert str(streamed_error.value) == str(legacy_error.value)
+    assert "mapping evidence identities differ" in str(streamed_error.value)
+
+
+def _probe_pack_partition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = dataclasses.replace(
+        _test_release_plan(),
+        atlas_release_iri=None,
+        kind="mapping",
+    )
+    graph = generator._new_build_graph()
+    catalog = generator._new_build_graph()
+    try:
+        generator._add_source_release(
+            graph,
+            identifier=plan.source_release_iri,
+            digest="sha256:" + "1" * 64,
+            issued="2026-08-06",
+            locator=URIRef("urn:test:source"),
+        )
+        monkeypatch.setattr(
+            generator,
+            "_release_pack_partition",
+            lambda release, subject: "0" if release.kind == "mapping" else None,
+        )
+
+        legacy_root = tmp_path / "legacy"
+        legacy_root.mkdir()
+        with pytest.raises(ValueError) as legacy_error:
+            generator._write_asserted_packs(legacy_root, graph, (plan,))
+
+        spool = generator._StreamingGraphSpool(
+            tmp_path / "streamed-spool",
+            (plan,),
+            resource_owner_tokens={},
+            catalog=catalog,
+        )
+        spool.append_graph(graph, plan)
+        streamed_root = tmp_path / "streamed"
+        streamed_root.mkdir()
+        with pytest.raises(ValueError) as streamed_error:
+            spool.materialize_packs(
+                streamed_root,
+                incremental=generator.ColdPackMaterialization(),
+            )
+
+        assert type(streamed_error.value) is type(legacy_error.value)
+        assert str(streamed_error.value) == str(legacy_error.value)
+        assert str(streamed_error.value) == "mapping packs do not support source partitions"
+    finally:
+        graph.close()
+        catalog.close()
+
+
+def _probe_refused_release_before_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = _compiled_source_release(tmp_path)
+    refused = dataclasses.replace(release, resources=())
+    with pytest.raises(ValueError) as legacy_error:
+        generator._validate_loaded_release(refused)
+
+    monkeypatch.setattr(
+        generator,
+        "load_releases",
+        lambda **kwargs: (refused,),
+    )
+    monkeypatch.setattr(
+        generator,
+        "load_mapping_releases",
+        lambda **kwargs: (),
+    )
+    write_calls = 0
+
+    def unexpected_write(*args, **kwargs):
+        nonlocal write_calls
+        write_calls += 1
+        raise AssertionError("refused release reached the streamed writer")
+
+    monkeypatch.setattr(
+        generator,
+        "_write_streamed_distribution",
+        unexpected_write,
+    )
+    output = tmp_path / "output" / "distribution"
+    with pytest.raises(ValueError) as streamed_error:
+        generator.build_distribution(output)
+
+    assert type(streamed_error.value) is type(legacy_error.value)
+    assert str(streamed_error.value) == str(legacy_error.value)
+    assert write_calls == 0
+    assert not output.exists()
+
+
+# AGENTS.md requires replacements to keep the former whole-graph behavior as a
+# test-only oracle. Each name is bound to the probe that executes both paths;
+# deleting a probe therefore removes a required inventory entry and fails the
+# guard below. A non-None reason records an intentional message-level mismatch.
+_STREAMED_WHOLE_GRAPH_REFUSAL_PROBES: dict[
+    str,
+    tuple[Callable[[Path, pytest.MonkeyPatch], None], str | None],
+] = {
+    "count-mismatch": (_probe_count_mismatch, None),
+    "duplicate-claim": (
+        _probe_duplicate_claim,
+        (
+            "same-verdict/different-message: the legacy constructor says "
+            "'evidence decisions collapse to one binding'; the streamed "
+            "constructor says 'repeats a mapping claim'"
+        ),
+    ),
+    "evidence-resolution": (_probe_evidence_resolution, None),
+    "non-iri-subject": (_probe_non_iri_subject, None),
+    "pack-partition": (_probe_pack_partition, None),
+    "reachability-divergence": (
+        _probe_reachability_divergence,
+        (
+            "same-verdict/different-message: a duplicate split across the 2,000-row "
+            "boundary appears as a batch-local served/asserted mismatch"
+        ),
+    ),
+    "refused-release-before-write": (_probe_refused_release_before_write, None),
+    "source-accounting": (_probe_source_accounting, None),
+}
+_STREAMED_WHOLE_GRAPH_DELIBERATE_DIVERGENCES = frozenset(
+    (name, reason)
+    for name, (_probe, reason) in _STREAMED_WHOLE_GRAPH_REFUSAL_PROBES.items()
+    if reason is not None
+)
+
+
+def test_streamed_whole_graph_refusal_battery_has_no_missing_probe() -> None:
+    assert set(_STREAMED_WHOLE_GRAPH_REFUSAL_PROBES) == {
+        "count-mismatch",
+        "duplicate-claim",
+        "evidence-resolution",
+        "non-iri-subject",
+        "pack-partition",
+        "reachability-divergence",
+        "refused-release-before-write",
+        "source-accounting",
+    }
+    assert _STREAMED_WHOLE_GRAPH_DELIBERATE_DIVERGENCES == frozenset(
+        {
+            (
+                "duplicate-claim",
+                (
+                    "same-verdict/different-message: the legacy constructor says "
+                    "'evidence decisions collapse to one binding'; the streamed "
+                    "constructor says 'repeats a mapping claim'"
+                ),
+            ),
+            (
+                "reachability-divergence",
+                (
+                    "same-verdict/different-message: a duplicate split across the 2,000-row "
+                    "boundary appears as a batch-local served/asserted mismatch"
+                ),
+            ),
+        }
+    )
+
+
+@pytest.mark.parametrize("probe_name", sorted(_STREAMED_WHOLE_GRAPH_REFUSAL_PROBES))
+def test_streamed_whole_graph_refusal_probe(
+    probe_name: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    probe, _reason = _STREAMED_WHOLE_GRAPH_REFUSAL_PROBES[probe_name]
+    probe(tmp_path, monkeypatch)
+
+
 def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1706,6 +2437,8 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
             generator.RKAF.textualEvidence,
             generator.RKAF.formalAdoptionEvent,
         }
+        assert producer_receipt.expected_counts["evidenceBindings"] == 4
+        assert producer_receipt.expected_construction_counts["evidenceBindings"] == 4
         assert producer_receipt.expected_counts["sourceRecords"] == 4
         report = generator._validate_compiled_producer_output(
             releases,
@@ -1713,6 +2446,7 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
             producer_receipt,
             (expanded_release,),
         )
+        assert report["counts"]["evidenceBindings"] == 4
         assert report["counts"]["sourceRecords"] == 4
         summary = generator._mapping_release_summary(expanded_release)
         assert summary["mappingCount"] == 1
@@ -1883,6 +2617,7 @@ def test_compiled_producer_validates_rows_and_constructor_output(
     assert report["counts"] == {
         "crossRingRelationAssertions": 0,
         "derivedRelations": 0,
+        "evidenceBindings": 3,
         "identifiers": 0,
         "labels": 2,
         "mappingAssertions": 0,
@@ -3130,6 +3865,60 @@ def test_generation_report_uses_a_location_independent_distribution_path(
     assert generator._generation_report_distribution_path(first) == "distribution"
     assert generator._generation_report_distribution_path(second) == "distribution"
     assert not Path(generator._generation_report_distribution_path(first)).is_absolute()
+
+
+def test_streamed_generation_report_records_memory_profile_shape(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The final report exposes the diagnostic RSS receipt in a stable shape."""
+
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    releases = (_compiled_source_release(tmp_path),)
+    prebuild = _compiled_stream_prebuild(releases, ())
+    streamed = generator._stream_construct_graphs(
+        list(releases),
+        [],
+        prebuild=prebuild,
+        spool_root=tmp_path / "stream-spool",
+    )
+    output = tmp_path / "built" / "distribution"
+    generator._write_streamed_distribution(
+        output,
+        streamed,
+        releases=prebuild.pack_plans,
+        construction_seeds=prebuild.construction_seeds,
+        generation_report=prebuild.generation_report,
+    )
+
+    report = json.loads((output.parent / "generation-report.json").read_bytes())
+    profile = report["memoryProfile"]
+    assert set(profile) == {
+        "measurement",
+        "peakRssBytes",
+        "phaseHighWaterMarks",
+    }
+    assert profile["measurement"] == "getrusage-process-high-water-rss"
+    assert isinstance(profile["peakRssBytes"], int)
+    assert profile["peakRssBytes"] > 0
+    assert profile["phaseHighWaterMarks"]
+    assert all(
+        set(sample)
+        == {
+            "elapsedMilliseconds",
+            "phase",
+            "processPeakRssBytes",
+        }
+        and isinstance(sample["elapsedMilliseconds"], int)
+        and isinstance(sample["phase"], str)
+        and isinstance(sample["processPeakRssBytes"], int)
+        for sample in profile["phaseHighWaterMarks"]
+    )
+    assert profile["phaseHighWaterMarks"][-1]["phase"] == "generation-report"
 
 
 def test_external_sort_bounds_open_files_across_multiple_merge_rounds(

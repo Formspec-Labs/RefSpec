@@ -98,7 +98,18 @@ def _seal_view(source: Path, output: Path, *, expected_manifest_digest: str) -> 
 
     staged = output.parent / f".{output.name}.staged-tables"
     _stage_tables(source, staged)
-    return seal_atlas_parquet_view(source, staged, output, expected_manifest_digest=expected_manifest_digest)
+    return seal_atlas_parquet_view(
+        source,
+        staged,
+        output,
+        expected_manifest_digest=expected_manifest_digest,
+        agency_projection={
+            "status": "notEmitted",
+            "missingReleaseKeys": [
+                "regulations-gov-agencies-roster-2026-08-16"
+            ],
+        },
+    )
 
 
 def _payload_digest(value: object) -> str:
@@ -484,7 +495,7 @@ def test_warrant_columns_carry_every_axis_and_the_optional_referent(
     assert row["evidence_role"] == "urn:test:role"
     assert row["evidentiary_function"] == "urn:test:function"
     assert row["based_on_attestation"] is None
-    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.0"
+    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.1"
 
 
 def test_logical_records_preserved_is_computed_from_the_record_contract() -> None:

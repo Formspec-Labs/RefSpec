@@ -309,17 +309,16 @@ closed record of which source releases and which source records the
 distribution represents, so two builds over the same sources derive one
 identity and two builds over different sources cannot share one.
 
-`_identified_source_accounting` (`:1010`) closes each ledger over its own
-identity, in `_build_graphs` and in the transient `_dirty_accounting_subset`.
-`_distribution_id` (`:1016`) recomputes the identity and refuses a ledger that
-does not carry its own content digest; the construction summary, the acceptance,
-the manifest and both generation reports read the identity through it, and
-`_validate_compiled_source_accounting` and
-`_validate_incremental_merged_accounting` compare against the recomputed value
-instead of a constant. `_try_exact_distribution_reuse` returns `None` for a
-prior distribution whose identifier is not its ledger's digest, so a
-distribution built before this change is incompatible and takes the cold path
-rather than having its fabricated identifier republished.
+`_identified_source_accounting` closes each ledger over its own identity. The
+legacy whole-graph oracle calls it in `_build_graphs`; the production streaming
+path calls it in `_stream_construct_graphs` after it sorts and totals the
+release-local accounting rows. `_distribution_id` recomputes the identity and
+refuses a ledger that does not carry its own content digest.
+`_validate_compiled_source_accounting` checks that identity and reconciles every
+source and mapping row with the loaded releases. The construction summary,
+acceptance, manifest, and generation report then read the checked identity
+through `_distribution_id`. Both writers perform cold materialization; no
+incremental merge or exact-distribution reuse path remains.
 
 The created-at is a fact of the sources. `_release_instant` (`:979`) turns one
 release's canonical `issued` date into the instant its assertions carry, so

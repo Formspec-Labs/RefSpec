@@ -318,7 +318,16 @@ def build_atlas_parquet_search_view(
         full_view,
         expected_manifest_digest=expected_manifest_digest,
     )
-    by_role = {CompactRecordRole(member["role"]): member for member in full_manifest["members"]}
+    # The full view also ships consumer projection tables (REF-038's agency
+    # projection). They are not search tables: the compact view carries the
+    # eight record roles only, so known projection roles are skipped by name
+    # while any genuinely unknown role still refuses.
+    known_non_compact_roles = {"agencyProjection", "agencyProjectionUnresolved"}
+    by_role = {
+        CompactRecordRole(member["role"]): member
+        for member in full_manifest["members"]
+        if member["role"] not in known_non_compact_roles
+    }
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:

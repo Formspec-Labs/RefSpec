@@ -42,7 +42,6 @@ from refspec.registry.eurovoc_alignment_portfolio import (
     EUROVOC_ALIGNMENT_LICENSE_STATEMENT,
     EUROVOC_ALIGNMENT_THIRD_PARTY_RIGHTS_EXCLUSION,
     EXPECTED_COMPLETE_CATALOGUE_ASSERTION_COUNT,
-    EXPECTED_COMPLETE_CATALOGUE_EXACT_PERCENT,
     EXPECTED_PORTFOLIO_ASSERTION_COUNT,
     EuroVocAlignmentCapture,
     EuroVocAlignmentPin,
@@ -71,14 +70,15 @@ FAST_BULK_EXPECTED_SELECTED_EXTERNAL_SUBJECT_STATEMENT_COUNT = 1_192
 FAST_BULK_EXPECTED_SELECTED_EXTERNAL_SUBJECT_UNIQUE_COUNT = 1_191
 FAST_SEE_ALSO_ENDPOINT_RELEASE_KEY = "fast-bulk-see-also-endpoints-2026-07-27"
 FAST_SEE_ALSO_ENDPOINT_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:fast-topical:bulk-see-also-endpoints:2026-07-27"
-FAST_SEE_ALSO_ADOPTED_BY = "urn:ref:actor:refspec"
 FAST_SEE_ALSO_INTERNAL_ASSERTION_COUNT = 78_981
 FAST_SEE_ALSO_WIKIPEDIA_ASSERTION_COUNT = 76_190
 FAST_SEE_ALSO_ENDPOINT_COUNT = 45_929
 FAST_SEE_ALSO_MISSING_ENDPOINT_COUNT = 668
-FAST_SEE_ALSO_EMITTED_ASSERTION_COUNT = 47_049
+FAST_SEE_ALSO_CONTENT_BACKED_ASSERTION_COUNT = 47_049
+FAST_SEE_ALSO_EMITTED_ASSERTION_COUNT = 0
 FAST_SEE_ALSO_MISSING_ENDPOINT_ASSERTION_COUNT = 31_932
-ATLAS_THESAURUS_RELATED = "https://refspec.org/ns/atlas/v3#thesaurusRelated"
+FAST_SEE_ALSO_S27_CONFLICT_PAIR_COUNT = 0
+FAST_SEE_ALSO_S27_CONFLICT_PAIR_DIGEST = "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
 
 FAST_BULK_DELTA_CLAIMS = frozenset(
     {
@@ -141,8 +141,9 @@ FAST_BULK_MAPPING_POLICY = MappingProxyType(
     {
         "admission": (
             "retain OCLC schema:sameAs only through the recorded exactMatch operator adoption; "
-            "retain skos:relatedMatch verbatim; the separate seeAlso endpoint release preserves topical "
-            "rdfs:seeAlso as atlas:thesaurusRelated; refuse owl:sameAs"
+            "retain skos:relatedMatch verbatim; the separate seeAlso endpoint release preserves endpoint "
+            "content but emits no rdfs:seeAlso relation because Atlas 3.1 has no matching semantic predicate; "
+            "refuse owl:sameAs"
         ),
         "direction": "one OCLC assertion in its published FAST-to-target direction; no inverse",
         "reconciliation": (
@@ -166,20 +167,16 @@ EUROVOC_PORTFOLIO_MAPPING_POLICY = MappingProxyType(
 FAST_SEE_ALSO_RELATION_POLICY = MappingProxyType(
     {
         "admission": (
-            "preserve publisher topical rdfs:seeAlso as atlas:thesaurusRelated only when both FAST endpoints "
-            "have publisher content in the pinned bulk file or current FAST release"
+            "retain publisher content for both FAST endpoints selected by topical rdfs:seeAlso; emit no "
+            "relation because rdfs:seeAlso is navigational and none of the held pairs has the hierarchy path "
+            "required for atlas:thesaurusRelated"
         ),
         "direction": "preserve OCLC's published direction; no inverse and no closure",
-        "predicateRepresentation": {
-            "adoptedBy": FAST_SEE_ALSO_ADOPTED_BY,
-            "fromPredicateIri": fast_bulk.RDFS_SEE_ALSO,
-            "toPredicateIri": ATLAS_THESAURUS_RELATED,
-        },
         "refusal": (
-            "owl:sameAs remains refused; Wikipedia anyURI targets and unlabeled FAST targets are counted "
-            "but omitted because the capture supplies no target resource content"
+            "all rdfs:seeAlso links remain counted source navigation; owl:sameAs remains refused; Wikipedia "
+            "anyURI targets and unlabeled FAST targets are counted but receive no target resource"
         ),
-        "version": "atlas-3-fast-bulk-see-also-navigation-v1",
+        "version": "atlas-3-fast-bulk-see-also-navigation-v2",
     }
 )
 
@@ -560,13 +557,12 @@ def _fast_bulk_see_also_assets(
                     "languageDeterminedBy": record.language_determined_by,
                     "lineNumber": record.label_line_number,
                     "nativeStatement": record.label_native_statement,
-                    "publisherLanguageTag": record.publisher_language_tag,
                     "publisherPredicateIri": str(SKOS.prefLabel),
                     "sourceRecordDigest": record.label_statement_digest,
                     "value": record.label,
                 },
                 "languageDeterminedBy": record.language_determined_by,
-                "publisherLanguageTag": record.publisher_language_tag,
+                "publisherLanguageTagPresent": False,
             },
             source_locator=(
                 f"{bulk_pin.source_iri}#{fast_bulk.FAST_EXTERNAL_LINKS_MEMBER}-line-{record.label_line_number}"
@@ -577,42 +573,15 @@ def _fast_bulk_see_also_assets(
         for record in endpoint_records.values()
     )
     held_iris = active_iris | frozenset(endpoint_records)
-    emitted_links = tuple(
+    content_backed_links = tuple(
         link for link in internal_links if link.subject_iri in held_iris and link.object_iri in held_iris
     )
-    if len(emitted_links) != FAST_SEE_ALSO_EMITTED_ASSERTION_COUNT:
-        raise ValueError("FAST seeAlso emitted assertion count drifted")
-    omitted_internal = len(internal_links) - len(emitted_links)
+    if len(content_backed_links) != FAST_SEE_ALSO_CONTENT_BACKED_ASSERTION_COUNT:
+        raise ValueError("FAST seeAlso content-backed assertion count drifted")
+    omitted_internal = len(internal_links) - len(content_backed_links)
     if omitted_internal != FAST_SEE_ALSO_MISSING_ENDPOINT_ASSERTION_COUNT:
         raise ValueError("FAST seeAlso missing-endpoint assertion count drifted")
-    relations = tuple(
-        RegistryRelation(
-            subject=link.subject_iri,
-            predicate=ATLAS_THESAURUS_RELATED,
-            object=link.object_iri,
-            source_payload={
-                "editorialTransformation": {
-                    "adoptedBy": FAST_SEE_ALSO_ADOPTED_BY,
-                    "fromPredicate": fast_bulk.RDFS_SEE_ALSO,
-                    "reason": "publisher-see-also-navigation",
-                    "rule": "preservePublisherSeeAlsoAsAtlasThesaurusRelated",
-                    "toPredicate": ATLAS_THESAURUS_RELATED,
-                },
-                "publisherRelation": {
-                    "nativeStatement": link.native_statement,
-                    "objectIri": link.object_iri,
-                    "predicateIri": link.predicate_iri,
-                    "sourceEncoding": "ntriples",
-                    "sourceLocator": (
-                        f"{bulk_pin.source_iri}#{fast_bulk.FAST_EXTERNAL_LINKS_MEMBER}-line-{link.line_number}"
-                    ),
-                    "sourceRecordDigest": link.source_record_digest,
-                    "subjectIri": link.subject_iri,
-                },
-            },
-        )
-        for link in emitted_links
-    )
+    relations: tuple[RegistryRelation, ...] = ()
     endpoint_inputs = (bulk_pin, *fast_release.inputs)
     return RegistryRelease(
         key=FAST_SEE_ALSO_ENDPOINT_RELEASE_KEY,
@@ -637,9 +606,10 @@ def _fast_bulk_see_also_assets(
         metadata={
             "assertionComposition": {
                 "publisherSeeAlso": {
-                    "assertionCount": len(relations),
-                    "fromPredicateIri": fast_bulk.RDFS_SEE_ALSO,
-                    "toPredicateIri": ATLAS_THESAURUS_RELATED,
+                    "contentBackedAssertionCount": len(content_backed_links),
+                    "emittedAssertionCount": len(relations),
+                    "predicateIri": fast_bulk.RDFS_SEE_ALSO,
+                    "semanticDisposition": "counted source navigation; no Atlas 3.1 semantic predicate",
                 }
             },
             "bulkCapture": {
@@ -653,6 +623,7 @@ def _fast_bulk_see_also_assets(
             "endpointAccounting": {
                 "capturedFastSeeAlsoCount": len(internal_links),
                 "capturedWikipediaSeeAlsoCount": len(wikipedia_links),
+                "contentBackedFastSeeAlsoCount": len(content_backed_links),
                 "contentfulCapturedEndpointCount": len(endpoint_records),
                 "emittedAssertionCount": len(relations),
                 "missingFastEndpointAssertionCount": omitted_internal,
@@ -670,16 +641,21 @@ def _fast_bulk_see_also_assets(
             "missingEndpointReason": "pinned OCLC bulk file supplies no prefLabel; no stub emitted",
             "nonTopicalSeeAlsoDisposition": "two license-document statements counted and not treated as FAST relations",
             "owlSameAsDisposition": "two assertions refused because owl:sameAs merges identity",
-            "publisherLanguageTag": None,
+            "publisherLanguageTagPresent": False,
             "resourceCount": len(endpoint_resources),
             "relationPolicy": dict(FAST_SEE_ALSO_RELATION_POLICY),
-            "representation": "atlas:thesaurusRelated from publisher rdfs:seeAlso",
+            "representation": "contentful FAST endpoints with rdfs:seeAlso counted as source navigation",
             "sourceCapture": _source_capture_payload(
                 bulk_pin,
                 retrieved_at=fast_bulk.FAST_EXTERNAL_LINKS_RETRIEVED_AT,
                 source_version_note="rolling URL pinned by exact digest and byte length",
             ),
             "sourceIdentifierCount": 0,
+            "skosS27ConflictList": {
+                "canonicalItemShape": {"leftIri": "IRI", "rightIri": "IRI"},
+                "count": FAST_SEE_ALSO_S27_CONFLICT_PAIR_COUNT,
+                "digest": FAST_SEE_ALSO_S27_CONFLICT_PAIR_DIGEST,
+            },
         },
     )
 
@@ -806,7 +782,7 @@ def _common_eurovoc_metadata(
 ) -> dict[str, object]:
     return {
         "catalogueAssertionCountIncludingLcsh": EXPECTED_COMPLETE_CATALOGUE_ASSERTION_COUNT,
-        "catalogueExactMatchPercent": EXPECTED_COMPLETE_CATALOGUE_EXACT_PERCENT,
+        "catalogueExactMatchRatio": {"denominator": 10_000, "numerator": 9_375},
         "catalogueUrl": EUROVOC_ALIGNMENT_CATALOGUE_URL,
         "generalReuseBasis": EUROVOC_ALIGNMENT_GENERAL_REUSE_BASIS_URL,
         "licenseOrRights": EUROVOC_ALIGNMENT_LICENSE_STATEMENT,
@@ -1124,7 +1100,6 @@ def load_all_registry_bulk_alignment_endpoint_releases(
 
 
 __all__ = [
-    "ATLAS_THESAURUS_RELATED",
     "BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS",
     "BULK_REGISTRY_MAPPING_RELEASE_KEYS",
     "DEFAULT_SOURCE_ROOT",
@@ -1139,11 +1114,13 @@ __all__ = [
     "FAST_BULK_EXPECTED_HELD_COUNT",
     "FAST_BULK_EXPECTED_OVERLAP_COUNT",
     "FAST_BULK_MAPPING_POLICY",
-    "FAST_SEE_ALSO_ADOPTED_BY",
+    "FAST_SEE_ALSO_CONTENT_BACKED_ASSERTION_COUNT",
     "FAST_SEE_ALSO_EMITTED_ASSERTION_COUNT",
     "FAST_SEE_ALSO_ENDPOINT_ATLAS_RELEASE_IRI",
     "FAST_SEE_ALSO_ENDPOINT_RELEASE_KEY",
     "FAST_SEE_ALSO_RELATION_POLICY",
+    "FAST_SEE_ALSO_S27_CONFLICT_PAIR_COUNT",
+    "FAST_SEE_ALSO_S27_CONFLICT_PAIR_DIGEST",
     "GEMET_ATLAS_RELEASE_IRI",
     "MESH_ATLAS_RELEASE_IRI",
     "load_all_registry_bulk_alignment_endpoint_releases",

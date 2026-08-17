@@ -5,10 +5,24 @@ from __future__ import annotations
 import dataclasses
 from pathlib import Path
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 
 from refspec.atlas import agency_projection
 from refspec.atlas import v3_registry_alignments_entity as entity_alignments
+from refspec.atlas.parquet_tables import (
+    AGENCY_PROJECTION_ROLE,
+    AGENCY_PROJECTION_TABLE_NAMES,
+    AGENCY_PROJECTION_TABLE_SCHEMAS,
+    AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    write_agency_projection_tables,
+)
+from refspec.atlas.parquet_view import (
+    AtlasParquetViewError,
+    _staged_table_members,
+    _verify_agency_projection_content,
+)
 from refspec.atlas.v3_source_data import RegistryMappingRelease, RegistryRelease
 from tools import analyze_agency_roster_identifiers as census
 
@@ -217,3 +231,116 @@ def test_projection_rejects_metadata_adoption_without_graph_assertion(
     )
     with pytest.raises(ValueError, match="without an assertion"):
         agency_projection.build_agency_projection(releases, changed)
+
+
+def _projection_manifest_metadata(
+    projection: agency_projection.AgencyProjection,
+) -> dict[str, object]:
+    return {
+        "status": "emitted",
+        "decision": "REF-038",
+        "digest": projection.digest,
+        "coverage": projection.coverage.to_dict(),
+    }
+
+
+def test_projection_parquet_schema_counts_and_bytes_are_deterministic(
+    tmp_path: Path,
+    projection: agency_projection.AgencyProjection,
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    first = tmp_path / "first"
+    write_agency_projection_tables(first, projection)
+
+    reordered = tuple(
+        dataclasses.replace(
+            release,
+            resources=tuple(reversed(release.resources)),
+            relations=tuple(reversed(release.relations)),
+        )
+        for release in reversed(releases)
+    )
+    mapping = entity_alignments.load_regulations_gov_agency_identity_mapping_release(
+        reordered
+    )
+    rebuilt = agency_projection.build_agency_projection(reordered, mapping)
+    second = tmp_path / "second"
+    write_agency_projection_tables(second, rebuilt)
+
+    expected_counts = {
+        AGENCY_PROJECTION_ROLE: 321,
+        AGENCY_PROJECTION_UNRESOLVED_ROLE: 10,
+    }
+    for role, expected_count in expected_counts.items():
+        name = AGENCY_PROJECTION_TABLE_NAMES[role]
+        first_path = first / "tables" / name
+        second_path = second / "tables" / name
+        parquet = pq.ParquetFile(first_path)
+        assert parquet.schema_arrow == AGENCY_PROJECTION_TABLE_SCHEMAS[role]
+        assert parquet.metadata.num_rows == expected_count
+        assert first_path.read_bytes() == second_path.read_bytes()
+    _verify_agency_projection_content(
+        first,
+        {"agencyProjection": _projection_manifest_metadata(projection)},
+    )
+
+
+def test_projection_parquet_refuses_partial_pair_and_mutated_evidence(
+    tmp_path: Path,
+    projection: agency_projection.AgencyProjection,
+) -> None:
+    staged = tmp_path / "staged"
+    write_agency_projection_tables(staged, projection)
+    unresolved = (
+        staged
+        / "tables"
+        / AGENCY_PROJECTION_TABLE_NAMES[AGENCY_PROJECTION_UNRESOLVED_ROLE]
+    )
+    unresolved.unlink()
+    with pytest.raises(AtlasParquetViewError, match="must be emitted together"):
+        _staged_table_members(staged)
+
+    mutated = tmp_path / "mutated"
+    write_agency_projection_tables(mutated, projection)
+    resolved_path = (
+        mutated
+        / "tables"
+        / AGENCY_PROJECTION_TABLE_NAMES[AGENCY_PROJECTION_ROLE]
+    )
+    rows = pq.read_table(resolved_path).to_pylist()
+    rows[0]["evidence_records"][0]["reasoning"] = ""
+    pq.write_table(
+        pa.Table.from_pylist(
+            rows,
+            schema=AGENCY_PROJECTION_TABLE_SCHEMAS[AGENCY_PROJECTION_ROLE],
+        ),
+        resolved_path,
+    )
+    with pytest.raises(AtlasParquetViewError, match="mapping evidence differs"):
+        _verify_agency_projection_content(
+            mutated,
+            {"agencyProjection": _projection_manifest_metadata(projection)},
+        )
+
+
+@pytest.mark.parametrize("field", ["coverage", "digest"])
+def test_projection_parquet_refuses_changed_manifest_metadata(
+    tmp_path: Path,
+    projection: agency_projection.AgencyProjection,
+    field: str,
+) -> None:
+    write_agency_projection_tables(tmp_path, projection)
+    metadata = _projection_manifest_metadata(projection)
+    if field == "coverage":
+        coverage = dict(projection.coverage.to_dict())
+        coverage["rows_with_parent_org"] += 1
+        metadata["coverage"] = coverage
+        match = "coverage differs"
+    else:
+        metadata["digest"] = "sha256:" + "0" * 64
+        match = "logical-content digest differs"
+    with pytest.raises(AtlasParquetViewError, match=match):
+        _verify_agency_projection_content(
+            tmp_path,
+            {"agencyProjection": metadata},
+        )

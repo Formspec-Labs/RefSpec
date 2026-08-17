@@ -121,6 +121,6 @@ The owner ruling adopts 42 obvious identities and abstains on 10 values for whic
 Each adoption records both publisher names, its closed-vocabulary basis, reviewer, decision time, and a specific reasoning sentence in `census.json` and the mapping release. Abstentions use `noCounterpartInHeldRosters` and record the closest rejected candidate when one exists.
 
 Identifier census digest: `sha256:98ee78e352f019a4b33090f0397fdf145c6876d7f6033508172db144912d9420`
-Adjudication digest: `sha256:96251493ee0d98d5f7b450148e6cb95ca94cd757d588a5bf99acc3b6c10ad128`
+Adjudication digest: `sha256:5730f79b86117f323efb8bc32317df6b1d8a09c16c8fdf56879179507ee00c55`
 
 Reproduce with `uv run python tools/analyze_agency_roster_identifiers.py --check`.

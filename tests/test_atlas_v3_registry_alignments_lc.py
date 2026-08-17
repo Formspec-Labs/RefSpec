@@ -194,14 +194,14 @@ def test_language_determined_external_endpoints_are_contentful(external_target_r
         for label in resource.labels
     ) == dict(alignments.LC_EXTERNAL_RECOVERED_LABEL_COUNTS_BY_LANGUAGE)
     for release in external_target_releases:
-        assert release.metadata["publisherLanguageTag"] is None
+        assert release.metadata["publisherLanguageTagPresent"] is False
         assert release.metadata["sourceIdentifierCount"] == 0
         for resource in release.resources:
             assert resource.labels
-            assert resource.native_payload["publisherLanguageTag"] is None
+            assert resource.native_payload["publisherLanguageTagPresent"] is False
             assert resource.native_payload["languageDeterminedBy"]
             assert all(
-                label["publisherLanguageTag"] is None
+                label["publisherLanguageTagPresent"] is False
                 and label["languageDeterminedBy"]
                 and label["nativeStatement"]
                 for label in resource.native_payload["publisherLabels"]

@@ -793,6 +793,19 @@ def _base_fixture() -> Fixture:
         ring=ATLAS.entity,
         resources=[("entity-agency", ATLAS.EntityResource, "Example Agency")],
     )
+    entity_b_release, entity_b_scheme, _entity_b_source_release, entity_b_rows = _add_release(
+        asserted,
+        name="entities-canonical",
+        profile=ATLAS.identifierScheme,
+        ring=ATLAS.entity,
+        resources=[
+            (
+                "entity-agency-canonical",
+                ATLAS.EntityResource,
+                "Example Agency canonical roster record",
+            )
+        ],
+    )
     legal_release, legal_scheme, legal_source_release, legal_rows = _add_release(
         asserted,
         name="legal-structure",
@@ -868,6 +881,7 @@ def _base_fixture() -> Fixture:
         subject_c_scheme,
         value_scheme,
         entity_scheme,
+        entity_b_scheme,
         legal_scheme,
         legal_b_scheme,
         mixed_code_scheme,
@@ -875,6 +889,7 @@ def _base_fixture() -> Fixture:
         asserted.add((collection_scheme, ATLAS.collectionMember, member_scheme))
 
     entity, _ = entity_rows[0]
+    entity_canonical, source_entity_canonical = entity_b_rows[0]
     identifier = URIRef("urn:ref:atlas-fixture:identifier:agency")
     asserted.add((identifier, RDF.type, ATLAS.Identifier))
     asserted.add((identifier, ATLAS.identifierValue, Literal("AGENCY-001")))
@@ -963,6 +978,19 @@ def _base_fixture() -> Fixture:
         evidence_name="exact-bc",
         review_warrant="operatorAdoption",
         adopted_evidence=exact_ab_evidence,
+    )
+    _add_assertion(
+        asserted,
+        assertion_type=ATLAS.MappingAssertion,
+        ring=ATLAS.entity,
+        subject=entity,
+        predicate=ATLAS.sameEntityAs,
+        obj=entity_canonical,
+        source_release=entity_release,
+        target_release=entity_b_release,
+        evidence_record=source_entity_canonical,
+        evidence_name="entity-identity",
+        review_warrant="humanReview",
     )
     _add_assertion(
         asserted,
@@ -1247,6 +1275,7 @@ def _counts(fixture: Fixture) -> dict[str, int]:
     return {
         "crossRingRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))),
         "derivedRelations": len(set(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))),
+        "evidenceBindings": len(set(asserted.subjects(RDF.type, RKAF.EvidenceBinding))),
         "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
         "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
@@ -1675,7 +1704,7 @@ def _compact_logical_rows(
         "Resource": len(set(fixture.asserted.subjects(RDF.type, ATLAS.AtlasResource))),
         "Label": len(set(fixture.asserted.subjects(RDF.type, SKOSXL.Label))),
         "Statement": _counts(fixture)["relationAssertions"],
-        "EvidenceBinding": _counts(fixture)["relationAssertions"],
+        "EvidenceBinding": _counts(fixture)["evidenceBindings"],
         "SourceRecord": _counts(fixture)["sourceRecords"],
         "Release": len(set(fixture.asserted.subjects(RDF.type, ATLAS.AtlasRelease)))
         + len(set(fixture.asserted.subjects(RDF.type, ATLAS.SourceRelease))),
@@ -3328,6 +3357,34 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             evidence_name="skos-reverse-conflict",
         )
 
+    def entity_mapping_inverse_assertion(fixture: Fixture) -> None:
+        assertion = next(
+            row
+            for row in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+            if fixture.asserted.value(row, ATLAS.semanticRing) == ATLAS.entity
+        )
+        _, (subject, _, obj) = atlas_validate._assertion_basis(
+            fixture.asserted,
+            assertion,
+        )
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.MappingAssertion,
+            ring=ATLAS.entity,
+            subject=obj,
+            predicate=ATLAS.sameEntityAs,
+            obj=subject,
+            source_release=next(fixture.asserted.objects(obj, ATLAS.inRelease)),
+            target_release=next(
+                fixture.asserted.objects(subject, ATLAS.inRelease)
+            ),
+            evidence_record=next(
+                fixture.asserted.objects(obj, ATLAS.sourceRecord)
+            ),
+            evidence_name="entity-identity-inverse",
+            review_warrant="humanReview",
+        )
+
     def skos_mapping_transitive_conflict(fixture: Fixture) -> None:
         subject = URIRef("urn:ref:atlas-fixture:resource:subject-a")
         obj = URIRef("urn:ref:atlas-fixture:resource:subject-c")
@@ -4095,6 +4152,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             cross_ring_disallowed_pair,
         ),
         ("wrong-ring-relation", ["dataset"], "dataset.relation", wrong_ring_relation),
+        (
+            "mapping-entity-inverse-assertion",
+            ["dataset"],
+            "dataset.mapping-direction",
+            entity_mapping_inverse_assertion,
+        ),
         ("naked-projected-mapping", ["dataset"], "dataset.projection", naked_projection),
         ("derived-is-authoritative", ["shacl", "reasoning"], "shacl.data", derived_authoritative),
         ("derived-extra-type", ["dataset", "reasoning"], "dataset.graph-placement", derived_extra_type),

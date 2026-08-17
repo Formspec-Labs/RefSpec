@@ -842,6 +842,23 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherDistribution",
         },
     ),
+    "regulations_gov_agencies.py": (
+        {
+            "name": "regulationsGovAgencies20260816",
+            "localPath": (
+                "tests/fixtures/regulations_gov_agencies/"
+                "regulations-gov-agencies-2026-08-16.json"
+            ),
+            "publisherUrl": "https://api.regulations.gov/v4/agencies",
+            "sha256": (
+                "sha256:28ab9f5422dd27fc7906ddc696e8e7811"
+                "b11056822f370bcee7ea18a28418fa2"
+            ),
+            "byteLength": 91_408,
+            "acquisition": "authenticatedPublisherApi",
+            "provenance": "publisherApiResponse",
+        },
+    ),
     "uei_cage_identifiers.py": (
         {
             "name": "samEntity3mPublic",

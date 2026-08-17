@@ -113,7 +113,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 # artifact under audit, every time.
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-VERIFIER_VERSION = "atlas-source-fidelity/13"
+VERIFIER_VERSION = "atlas-source-fidelity/15"
 ASSERTED_GRAPH = "urn:ref:atlas:graph:v3:asserted"
 CONSTRUCTION_SUMMARY = "atlas-construction-summary.json"
 LANGUAGE_SCOPE_EXCLUSIONS = REPOSITORY_ROOT / "language-scope-exclusions.json"
@@ -2323,6 +2323,12 @@ FR_AGENCIES_ROSTER_JSON_READER = "fr-agencies-roster-json-v1/1.0"
 FCC_BUREAUS_OFFICES_HTML_READER = "fcc-bureaus-offices-html-v1/1.0"
 FH_COMPLETE_ROSTER_JSON_READER = "fh-complete-roster-json-v1/1.0"
 ECFR_AGENCIES_JSON_READER = "ecfr-agencies-json-v1/1.0"
+REGULATIONS_GOV_AGENCIES_JSON_READER = (
+    "regulations-gov-agencies-json-v1/1.0"
+)
+REGULATIONS_GOV_AGENCY_IDENTITY_MAPPING_READER = (
+    "regulations-gov-agency-identity-mapping-json-v1/1.0"
+)
 GNIS_FILE_FORMAT_PDF_READER = "gnis-file-format-pdf-v1/1.0"
 GAO_PUBLISHED_TOPICS_HTML_READER = "gao-published-topics-html-v1/1.0"
 GAO_CRA_RULE_TYPES_PDF_READER = "gao-cra-rule-types-pdf-v1/1.0"
@@ -2334,6 +2340,8 @@ SPEC_SCOPED_RECORD_READERS = frozenset(
     {
         CSV_RECORD_SELECTOR_READER,
         ECFR_AGENCIES_JSON_READER,
+        REGULATIONS_GOV_AGENCIES_JSON_READER,
+        REGULATIONS_GOV_AGENCY_IDENTITY_MAPPING_READER,
         ECFR_TITLES_JSON_READER,
         FAST_BOOK_FUND_GROUPS_OOXML_READER,
         FCC_BUREAUS_OFFICES_HTML_READER,
@@ -4829,6 +4837,476 @@ def _read_ecfr_agencies_capture(
     if observed != expected:
         raise ValueError(f"{spec.name} census differs: expected {expected!r}, observed {observed!r}")
     return _api_capture_view(records, spec, payloads)
+
+
+_REGULATIONS_GOV_RECORD_FIELDS = frozenset(
+    {"id", "type", "attributes", "links"}
+)
+_REGULATIONS_GOV_ATTRIBUTE_FIELDS = frozenset(
+    {
+        "parent",
+        "participate",
+        "partner",
+        "postingGuidelines",
+        "name",
+        "agencyType",
+    }
+)
+_REGULATIONS_GOV_LINK_FIELDS = frozenset({"self"})
+_REGULATIONS_GOV_AGENCY_ID = re.compile(r"^[A-Z0-9-]+$")
+
+
+def _read_regulations_gov_agencies_capture(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Reconstruct the complete regulations.gov agency roster independently."""
+
+    pin, payload = _pin_with_role(
+        spec,
+        payloads,
+        "publisherAgencyRoster",
+    )
+    root = _json_without_duplicate_keys(payload, spec.name)
+    if not isinstance(root, Mapping) or set(root) != {"data"}:
+        raise ValueError(f"{spec.name} top-level fields drifted")
+    values = root["data"]
+    if not isinstance(values, list) or len(values) != 331:
+        raise ValueError(f"{spec.name} must contain exactly 331 records")
+
+    records: list[_ApiCaptureRecord] = []
+    ids: set[str] = set()
+    parents: set[str] = set()
+    parent_count = 0
+    for ordinal, value in enumerate(values):
+        label = f"{spec.name}.data[{ordinal}]"
+        if not isinstance(value, Mapping) or set(value) != (
+            _REGULATIONS_GOV_RECORD_FIELDS
+        ):
+            raise ValueError(f"{label} fields drifted")
+        agency_id = _required_text(value.get("id"), f"{label}.id")
+        if _REGULATIONS_GOV_AGENCY_ID.fullmatch(agency_id) is None:
+            raise ValueError(f"{label}.id has an unsupported shape")
+        if agency_id in ids:
+            raise ValueError(f"{spec.name} repeats agency id {agency_id!r}")
+        ids.add(agency_id)
+        if value.get("type") != "agencies":
+            raise ValueError(f"{label}.type must remain 'agencies'")
+
+        attributes = value.get("attributes")
+        if not isinstance(attributes, Mapping) or set(attributes) != (
+            _REGULATIONS_GOV_ATTRIBUTE_FIELDS
+        ):
+            raise ValueError(f"{label}.attributes fields drifted")
+        parent = attributes.get("parent")
+        if parent is not None and (
+            not isinstance(parent, str)
+            or _REGULATIONS_GOV_AGENCY_ID.fullmatch(parent) is None
+        ):
+            raise ValueError(f"{label}.attributes.parent is invalid")
+        for field_name in ("participate", "partner"):
+            if not isinstance(attributes.get(field_name), bool):
+                raise ValueError(
+                    f"{label}.attributes.{field_name} must be boolean"
+                )
+        guidelines = attributes.get("postingGuidelines")
+        if guidelines is not None and not isinstance(guidelines, str):
+            raise ValueError(
+                f"{label}.attributes.postingGuidelines must be text or null"
+            )
+        name = _required_text(attributes.get("name"), f"{label}.attributes.name")
+        if attributes.get("agencyType") != "Federal":
+            raise ValueError(
+                f"{label}.attributes.agencyType must remain 'Federal'"
+            )
+
+        links = value.get("links")
+        if not isinstance(links, Mapping) or set(links) != (
+            _REGULATIONS_GOV_LINK_FIELDS
+        ):
+            raise ValueError(f"{label}.links fields drifted")
+        self_link = _required_text(links.get("self"), f"{label}.links.self")
+        expected_link = (
+            "https://api.regulations.gov/v4/agencies/" + agency_id
+        )
+        if self_link != expected_link:
+            raise ValueError(f"{label}.links.self differs")
+
+        resource = (
+            "urn:ref:regulations-gov-agency:"
+            + urllib.parse.quote(agency_id, safe="")
+        )
+        relations: tuple[tuple[str, str], ...] = ()
+        if parent is not None:
+            parent_count += 1
+            parents.add(parent)
+            relations = (
+                (
+                    _ATLAS_PARENT_ENTITY,
+                    "urn:ref:regulations-gov-agency:"
+                    + urllib.parse.quote(parent, safe=""),
+                ),
+            )
+        records.append(
+            _ApiCaptureRecord(
+                resource=resource,
+                preferred_label=name,
+                notations=(agency_id,),
+                source_locator=self_link,
+                source_digest=pin.sha256,
+                native_payload={
+                    "id": agency_id,
+                    "type": "agencies",
+                    "parent": parent,
+                    "participate": attributes["participate"],
+                    "partner": attributes["partner"],
+                    "postingGuidelines": guidelines,
+                    "name": name,
+                    "agencyType": attributes["agencyType"],
+                    "links": dict(links),
+                },
+                is_skos_concept=False,
+                relations=relations,
+            )
+        )
+
+    if any(parent not in ids for parent in parents):
+        raise ValueError(f"{spec.name} names a parent outside the roster")
+    if parent_count != 160 or len(parents) != 17:
+        raise ValueError(
+            f"{spec.name} parent census differs: "
+            f"relations={parent_count}, distinct={len(parents)}"
+        )
+    return _api_capture_view(records, spec, payloads)
+
+
+_AGENCY_IDENTITY_ROSTER_DIGESTS = {
+    "federal-register-agencies-roster-2026-08-15": (
+        "sha256:0ab874f045462fa665b9a2ef48aa34f373570dc710bcc8fb1b63db0ad8c7b5e6"
+    ),
+    "federal-hierarchy-orgs-complete-2026-08-15": (
+        "sha256:d55eedf7a4e37107481e318af3d1fc97f929b0b1e348210942a77cf061e51579"
+    ),
+    "opm-ehri-agency-subelement-2026-08-04": (
+        "sha256:dadb1b6a23b99e459daab9a3d123dfb4a98940b91eaf041e793905bfaf3d5a00"
+    ),
+    "ecfr-agencies-roster-2026-08-15": (
+        "sha256:c7e3d18f2f61acdbcee1e3acdc45c3334146ffa26af8cb895600652026887709"
+    ),
+    "regulations-gov-agencies-roster-2026-08-16": (
+        "sha256:ee37934d80f947f7d2d30b3e5bcd50eed753d6ed9b6144e7c26f163d78ae5b83"
+    ),
+}
+_AGENCY_IDENTITY_PUBLISHERS = {
+    "federal-register-agencies-roster-2026-08-15": "Federal Register",
+    "federal-hierarchy-orgs-complete-2026-08-15": "Federal Hierarchy",
+    "ecfr-agencies-roster-2026-08-15": "eCFR",
+    "regulations-gov-agencies-roster-2026-08-16": "regulations.gov",
+}
+_AGENCY_IDENTITY_DECIDED_AT = "2026-08-16T00:00:00+00:00"
+_AGENCY_IDENTITY_REVIEWER = "urn:ref:reviewer:refspec-owner"
+_AGENCY_IDENTITY_DECISION_RECORD = "docs/decisions.md#ref-038"
+
+
+def _agency_roster_view(
+    release_key: str,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Re-use one independent roster parser without importing producer code."""
+
+    matches = [spec for spec in SOURCES if spec.release_keys == (release_key,)]
+    if len(matches) != 1:
+        raise ValueError(
+            f"agency identity fidelity expected one roster spec for {release_key!r}"
+        )
+    roster_spec = matches[0]
+    reader = _PUBLISHER_READERS.get(roster_spec.reader)
+    if reader is None:
+        raise ValueError(
+            f"agency identity fidelity lacks roster reader {roster_spec.reader!r}"
+        )
+    return reader(roster_spec, payloads)
+
+
+def _agency_identity_resource_digest(
+    view: PublisherView,
+    resource: str,
+) -> str:
+    digests = view.resource_input_digests.get(resource, frozenset())
+    if len(digests) != 1:
+        raise ValueError(
+            f"agency identity resource {resource!r} does not select one publisher input"
+        )
+    return next(iter(digests))
+
+
+def _read_regulations_gov_agency_identity_mapping(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Reconstruct REF-038 mappings from adjudication JSON and roster bytes."""
+
+    adjudication_pin, adjudication_payload = _pin_with_role(
+        spec,
+        payloads,
+        "ownerAdjudication",
+    )
+    census = _json_without_duplicate_keys(adjudication_payload, spec.name)
+    if not isinstance(census, Mapping):
+        raise ValueError(f"{spec.name} adjudication must be a JSON object")
+    adjudication = census.get("agencyIdentityAdjudication")
+    if not isinstance(adjudication, Mapping):
+        raise ValueError(f"{spec.name} lacks agencyIdentityAdjudication")
+    if (
+        adjudication.get("mappingReleaseKey")
+        != "regulations-gov-agency-identity-2026-08-16"
+        or adjudication.get("mappingPredicate") != f"{ATLAS}sameEntityAs"
+        or adjudication.get("reviewerIri") != _AGENCY_IDENTITY_REVIEWER
+        or adjudication.get("decidedAt") != _AGENCY_IDENTITY_DECIDED_AT
+        or adjudication.get("finalResolvedValueCount") != 321
+        or adjudication.get("finalAbstainedValueCount") != 10
+        or adjudication.get("mappingEvidenceRecordCount") != 642
+    ):
+        raise ValueError(f"{spec.name} adjudication header differs")
+    residue_decisions = adjudication.get("decisions")
+    if not isinstance(residue_decisions, list) or len(residue_decisions) != 52:
+        raise ValueError(f"{spec.name} must contain all 52 residue decisions")
+    residue_by_value: dict[str, Mapping[str, Any]] = {}
+    for ordinal, decision in enumerate(residue_decisions):
+        if not isinstance(decision, Mapping):
+            raise ValueError(f"{spec.name} residue decision {ordinal} is not an object")
+        source_value = _required_text(
+            decision.get("sourceValue"),
+            f"{spec.name}.decisions[{ordinal}].sourceValue",
+        )
+        if source_value in residue_by_value:
+            raise ValueError(f"{spec.name} repeats residue value {source_value!r}")
+        residue_by_value[source_value] = decision
+
+    release_keys = (
+        "federal-register-agencies-roster-2026-08-15",
+        "federal-hierarchy-orgs-complete-2026-08-15",
+        "ecfr-agencies-roster-2026-08-15",
+        "regulations-gov-agencies-roster-2026-08-16",
+    )
+    views = {key: _agency_roster_view(key, payloads) for key in release_keys}
+    fr_key, fh_key, ecfr_key, regs_key = release_keys
+    regs_view = views[regs_key]
+    regs_resources = {
+        str(native["id"]): resource
+        for resource, native in regs_view.expected_native_payloads.items()
+    }
+    if len(regs_resources) != 331:
+        raise ValueError(f"{spec.name} regulations.gov roster count differs")
+
+    def acronym_index(release_key: str) -> dict[str, list[str]]:
+        result: dict[str, list[str]] = defaultdict(list)
+        for resource, native in views[release_key].expected_native_payloads.items():
+            value = native.get("short_name")
+            if isinstance(value, str) and value:
+                result[value].append(resource)
+        return result
+
+    fr_acronyms = acronym_index(fr_key)
+    ecfr_acronyms = acronym_index(ecfr_key)
+    decisions: list[dict[str, Any]] = []
+    original_residue: set[str] = set()
+    for source_value, source_resource in sorted(regs_resources.items()):
+        source_native = regs_view.expected_native_payloads[source_resource]
+        source_name = _required_text(source_native.get("name"), source_resource)
+        fr_candidates = sorted(fr_acronyms.get(source_value, ()))
+        ecfr_candidates = sorted(ecfr_acronyms.get(source_value, ()))
+        if len(fr_candidates) == 1:
+            target_key = fr_key
+            target_resource = fr_candidates[0]
+            basis = "federalRegisterShortNameEqualsRegulationsGovAgencyId"
+        elif len(ecfr_candidates) == 1:
+            target_key = ecfr_key
+            target_resource = ecfr_candidates[0]
+            basis = "ecfrAgencyShortNameEqualsRegulationsGovAgencyId"
+        else:
+            original_residue.add(source_value)
+            residue = residue_by_value.get(source_value)
+            if residue is None:
+                raise ValueError(
+                    f"{spec.name} lacks a residue decision for {source_value!r}"
+                )
+            if residue.get("decision") == "abstained":
+                continue
+            if residue.get("decision") != "adopted":
+                raise ValueError(
+                    f"{spec.name} has unsupported decision for {source_value!r}"
+                )
+            target_key = _required_text(
+                residue.get("objectReleaseKey"),
+                f"{spec.name}.{source_value}.objectReleaseKey",
+            )
+            target_resource = _required_text(
+                residue.get("objectResource"),
+                f"{spec.name}.{source_value}.objectResource",
+            )
+            basis = _required_text(
+                residue.get("basis"),
+                f"{spec.name}.{source_value}.basis",
+            )
+        target_view = views.get(target_key)
+        if target_view is None or target_resource not in target_view.expected_native_payloads:
+            raise ValueError(
+                f"{spec.name} decision {source_value!r} names an unheld target"
+            )
+        target_native = target_view.expected_native_payloads[target_resource]
+        if basis == "federalRegisterShortNameEqualsRegulationsGovAgencyId":
+            target_field = "short_name"
+            target_value = source_value
+            target_name = _required_text(target_native.get("name"), target_resource)
+            reasoning = (
+                f"regulations.gov id {source_value} equals the publisher acronym "
+                f"on the Federal Register record; regulations.gov names "
+                f"{source_name!r} and the target publisher names {target_name!r}."
+            )
+        elif basis == "ecfrAgencyShortNameEqualsRegulationsGovAgencyId":
+            target_field = "short_name"
+            target_value = source_value
+            target_name = _required_text(target_native.get("name"), target_resource)
+            reasoning = (
+                f"regulations.gov id {source_value} equals the publisher acronym "
+                f"on the eCFR record; regulations.gov names {source_name!r} and "
+                f"the target publisher names {target_name!r}."
+            )
+        else:
+            residue = residue_by_value[source_value]
+            target_field = {
+                fr_key: "name",
+                fh_key: "fhorgname",
+                ecfr_key: "name",
+            }[target_key]
+            target_value = target_name = _required_text(
+                residue.get("objectPublisherName"),
+                f"{spec.name}.{source_value}.objectPublisherName",
+            )
+            if target_native.get(target_field) != target_name:
+                raise ValueError(
+                    f"{spec.name} target publisher name drifted for {source_value!r}"
+                )
+            if residue.get("sourcePublisherName") != source_name:
+                raise ValueError(
+                    f"{spec.name} source publisher name drifted for {source_value!r}"
+                )
+            reasoning = _required_text(
+                residue.get("reasoning"),
+                f"{spec.name}.{source_value}.reasoning",
+            )
+        decisions.append(
+            {
+                "basis": basis,
+                "reasoning": reasoning,
+                "source_name": source_name,
+                "source_resource": source_resource,
+                "source_value": source_value,
+                "target_field": target_field,
+                "target_key": target_key,
+                "target_name": target_name,
+                "target_resource": target_resource,
+                "target_value": target_value,
+            }
+        )
+    if original_residue != set(residue_by_value):
+        raise ValueError(f"{spec.name} 52-value residue differs from roster bytes")
+    if len(decisions) != 321:
+        raise ValueError(f"{spec.name} resolved decision count differs")
+
+    pins_by_digest = {pin.sha256: pin for pin in spec.inputs}
+    if len(pins_by_digest) != len(spec.inputs):
+        raise ValueError(f"{spec.name} input digests must remain unique")
+    predicate = f"{ATLAS}sameEntityAs"
+    evidence: dict[
+        tuple[str, str, str],
+        tuple[ExpectedMappingEvidence, ...],
+    ] = {}
+    for decision in decisions:
+        subject = decision["source_resource"]
+        obj = decision["target_resource"]
+        relation = (subject, predicate, obj)
+        if relation in evidence or (obj, predicate, subject) in evidence:
+            raise ValueError(f"{spec.name} repeats or reverses an identity assertion")
+        triple = {
+            "subjectIri": subject,
+            "predicateIri": predicate,
+            "objectIri": obj,
+        }
+        shared = {
+            **triple,
+            "decidedAt": _AGENCY_IDENTITY_DECIDED_AT,
+            "decision": "adopted",
+            "decisionBasis": decision["basis"],
+            "decisionRecord": _AGENCY_IDENTITY_DECISION_RECORD,
+            "evidenceTier": "E4",
+            "mappingTripleDigest": _canonical_json_digest(
+                {"object": obj, "predicate": predicate, "subject": subject}
+            ),
+            "nameSimilarityUsed": False,
+            "publisherNames": {
+                "object": decision["target_name"],
+                "subject": decision["source_name"],
+            },
+            "reasoning": decision["reasoning"],
+            "reviewerIri": _AGENCY_IDENTITY_REVIEWER,
+        }
+        endpoint_rows: list[ExpectedMappingEvidence] = []
+        for endpoint_role, release_key, resource, field_name, value, publisher_name in (
+            (
+                "subject",
+                regs_key,
+                subject,
+                "attributes.id",
+                decision["source_value"],
+                decision["source_name"],
+            ),
+            (
+                "object",
+                decision["target_key"],
+                obj,
+                decision["target_field"],
+                decision["target_value"],
+                decision["target_name"],
+            ),
+        ):
+            endpoint_view = views[release_key]
+            source_digest = _agency_identity_resource_digest(endpoint_view, resource)
+            pin = pins_by_digest.get(source_digest)
+            if pin is None:
+                raise ValueError(
+                    f"{spec.name} endpoint {resource!r} lacks a declared input"
+                )
+            endpoint_rows.append(
+                ExpectedMappingEvidence(
+                    source_locator=(
+                        pin.source_iri
+                        + "#agency-identity-resource="
+                        + urllib.parse.quote(resource, safe="")
+                    ),
+                    source_digest=source_digest,
+                    native_payload={
+                        **shared,
+                        "endpointRecord": {
+                            "field": field_name,
+                            "publisher": _AGENCY_IDENTITY_PUBLISHERS[release_key],
+                            "publisherName": publisher_name,
+                            "releaseDigest": _AGENCY_IDENTITY_ROSTER_DIGESTS[release_key],
+                            "releaseKey": release_key,
+                            "resourceIri": resource,
+                            "sourceDigest": source_digest,
+                            "sourceLocator": endpoint_view.resource_locators[resource],
+                            "value": value,
+                        },
+                        "endpointRole": endpoint_role,
+                    },
+                )
+            )
+        evidence[relation] = (endpoint_rows[0], endpoint_rows[1])
+    if adjudication_pin.sha256 not in pins_by_digest:
+        raise ValueError(f"{spec.name} owner adjudication is not a declared input")
+    return _mapping_view(evidence, spec.inputs, evidence)
 
 
 def _camel_identifier(
@@ -9949,14 +10427,14 @@ def _read_lc_external_target_endpoints(
                         "languageDeterminedBy": rule,
                         "lineNumber": line_number,
                         "nativeStatement": native_statement,
-                        "publisherLanguageTag": None,
+                        "publisherLanguageTagPresent": False,
                         "publisherPredicateIri": _LC_AUTHORITATIVE_LABEL,
                         "sourceRecordDigest": digest,
                         "value": value,
                     }
                     for line_number, value, language, rule, digest, native_statement in rows
                 ],
-                "publisherLanguageTag": None,
+                "publisherLanguageTagPresent": False,
                 "targetVocabulary": targets[resource],
             }
             digests = [row[4] for row in rows]
@@ -9981,14 +10459,6 @@ def _read_lc_external_target_endpoints(
 
 
 _FAST_SEE_ALSO = "http://www.w3.org/2000/01/rdf-schema#seeAlso"
-_ATLAS_THESAURUS_RELATED = f"{ATLAS}thesaurusRelated"
-_FAST_SEE_ALSO_TRANSFORMATION = {
-    "adoptedBy": "urn:ref:actor:refspec",
-    "fromPredicate": _FAST_SEE_ALSO,
-    "reason": "publisher-see-also-navigation",
-    "rule": "preservePublisherSeeAlsoAsAtlasThesaurusRelated",
-    "toPredicate": _ATLAS_THESAURUS_RELATED,
-}
 
 
 def _read_fast_bulk_see_also_endpoints(
@@ -10126,57 +10596,25 @@ def _read_fast_bulk_see_also_endpoints(
                         "languageDeterminedBy": rule,
                         "lineNumber": line_number,
                         "nativeStatement": statement,
-                        "publisherLanguageTag": publisher_language,
                         "publisherPredicateIri": _FAST_PREF_LABEL,
                         "sourceRecordDigest": digest,
                         "value": value,
                     },
                     "languageDeterminedBy": rule,
-                    "publisherLanguageTag": publisher_language,
+                    "publisherLanguageTagPresent": False,
                 },
             )
 
     held = active_fast | labels.keys()
-    relations: set[tuple[str, str, str]] = set()
-    expected_relation_payloads: dict[str, Mapping[str, Any]] = {}
-    for subject, obj, line_number, statement, digest in internal_links:
-        if subject not in held or obj not in held:
-            continue
-        relation = (subject, _ATLAS_THESAURUS_RELATED, obj)
-        relations.add(relation)
-        publisher_relation = {
-            "nativeStatement": statement,
-            "objectIri": obj,
-            "predicateIri": _FAST_SEE_ALSO,
-            "sourceEncoding": "ntriples",
-            "sourceLocator": (f"{source_pin.source_iri}#FASTTopical.nt-line-{line_number}"),
-            "sourceRecordDigest": digest,
-            "subjectIri": subject,
-        }
-        relation_digest = _canonical_json_digest(publisher_relation)
-        expected_relation_payloads[relation_digest] = {
-            "editorialTransformation": _FAST_SEE_ALSO_TRANSFORMATION,
-            "publisherRelation": publisher_relation,
-            "publisherRelationDigest": relation_digest,
-        }
-    if len(relations) != 47_049:
-        raise ValueError(f"{spec.name} emitted relation count differs: {len(relations)}")
-    base = _stock_vocabulary_view(
+    content_backed_link_count = sum(subject in held and obj in held for subject, obj, *_ in internal_links)
+    if content_backed_link_count != 47_049:
+        raise ValueError(f"{spec.name} content-backed seeAlso count differs: {content_backed_link_count}")
+    return _stock_vocabulary_view(
         records(),
         (),
         (),
         spec.inputs,
         source_digest_is_native_payload_digest=False,
-    )
-    predicate_counts = dict(base.resource_predicate_counts)
-    for subject, predicate, _ in relations:
-        predicate_counts[(subject, predicate)] = predicate_counts.get((subject, predicate), 0) + 1
-    return replace(
-        base,
-        iri_claims=base.iri_claims | frozenset(relations),
-        relations=frozenset(relations),
-        resource_predicate_counts=predicate_counts,
-        expected_relation_payloads=expected_relation_payloads,
     )
 
 
@@ -12875,6 +13313,12 @@ _PUBLISHER_READERS: Mapping[
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
     ECFR_AGENCIES_JSON_READER: _read_ecfr_agencies_capture,
+    REGULATIONS_GOV_AGENCIES_JSON_READER: (
+        _read_regulations_gov_agencies_capture
+    ),
+    REGULATIONS_GOV_AGENCY_IDENTITY_MAPPING_READER: (
+        _read_regulations_gov_agency_identity_mapping
+    ),
     ECFR_TITLES_JSON_READER: _read_ecfr_titles_capture,
     FAST_BOOK_FUND_GROUPS_OOXML_READER: _read_fast_book_fund_groups_capture,
     FCC_BUREAUS_OFFICES_HTML_READER: _read_fcc_bureaus_offices_capture,
@@ -17176,7 +17620,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 {
                     "languageDeterminedBy",
                     "publisherLabels",
-                    "publisherLanguageTag",
+                    "publisherLanguageTagPresent",
                     "targetVocabulary",
                 }
             ),
@@ -17214,7 +17658,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 {
                     "languageDeterminedBy",
                     "publisherLabels",
-                    "publisherLanguageTag",
+                    "publisherLanguageTagPresent",
                     "targetVocabulary",
                 }
             ),
@@ -17267,10 +17711,9 @@ SOURCES: tuple[SourceSpec, ...] = (
                     "deprecated",
                     "label",
                     "languageDeterminedBy",
-                    "publisherLanguageTag",
+                    "publisherLanguageTagPresent",
                 }
             ),
-            additional_relation_predicates=(_ATLAS_THESAURUS_RELATED,),
             relation_scope="all",
         ),
     ),
@@ -17883,6 +18326,46 @@ SOURCES: tuple[SourceSpec, ...] = (
                 f"{ATLAS}parentEntity",
                 f"{ATLAS}referencesLegalIdentity",
             ),
+        ),
+    ),
+    SourceSpec(
+        name="regulations-gov-agencies-roster-2026-08-16",
+        kind="vocabulary",
+        release_keys=("regulations-gov-agencies-roster-2026-08-16",),
+        inputs=(
+            SourcePin(
+                path=(
+                    "tests/fixtures/regulations_gov_agencies/"
+                    "regulations-gov-agencies-2026-08-16.json"
+                ),
+                sha256=(
+                    "sha256:28ab9f5422dd27fc7906ddc696e8e7811"
+                    "b11056822f370bcee7ea18a28418fa2"
+                ),
+                byte_length=91_408,
+                fmt="json",
+                role="publisherAgencyRoster",
+                source_iri="https://api.regulations.gov/v4/agencies",
+            ),
+        ),
+        reader=REGULATIONS_GOV_AGENCIES_JSON_READER,
+        identity_policy="publisher-key",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "id",
+                    "type",
+                    "parent",
+                    "participate",
+                    "partner",
+                    "postingGuidelines",
+                    "name",
+                    "agencyType",
+                    "links",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}parentEntity",),
         ),
     ),
     SourceSpec(
@@ -19045,6 +19528,63 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
     ),
 )
+
+
+def _regulations_gov_agency_identity_mapping_source() -> SourceSpec:
+    roster_keys = (
+        "federal-register-agencies-roster-2026-08-15",
+        "federal-hierarchy-orgs-complete-2026-08-15",
+        "opm-ehri-agency-subelement-2026-08-04",
+        "ecfr-agencies-roster-2026-08-15",
+        "regulations-gov-agencies-roster-2026-08-16",
+    )
+    inputs: list[SourcePin] = []
+    for release_index, release_key in enumerate(roster_keys, start=1):
+        matches = [spec for spec in SOURCES if spec.release_keys == (release_key,)]
+        if len(matches) != 1:
+            raise ValueError(
+                "agency identity fidelity expected one source spec for "
+                f"{release_key!r}"
+            )
+        for pin_index, pin in enumerate(matches[0].inputs, start=1):
+            inputs.append(
+                replace(
+                    pin,
+                    role=f"agencyRoster{release_index:02d}Input{pin_index:02d}",
+                )
+            )
+    inputs.append(
+        SourcePin(
+            path=(
+                "research/evidence/agency-identifier-census-2026-08-16/"
+                "census.json"
+            ),
+            sha256=(
+                "sha256:11c58cf263496e9c0a320ab4fb1985ff7e17214d6a43996b6722336164143339"
+            ),
+            byte_length=370_256,
+            fmt="json",
+            role="ownerAdjudication",
+            source_iri=(
+                "urn:ref:source-artifact:"
+                "11c58cf263496e9c0a320ab4fb1985ff7e17214d6a43996b6722336164143339"
+            ),
+        )
+    )
+    return SourceSpec(
+        name="regulations-gov-agency-identity-2026-08-16",
+        kind="mapping",
+        release_keys=("regulations-gov-agency-identity-2026-08-16",),
+        inputs=tuple(inputs),
+        reader=REGULATIONS_GOV_AGENCY_IDENTITY_MAPPING_READER,
+        rdf_source=RdfSourcePolicy(
+            evaluated_native_payload_fields=frozenset(),
+            relation_scope="all",
+        ),
+    )
+
+
+SOURCES = (*SOURCES, _regulations_gov_agency_identity_mapping_source())
 
 
 def build_context(

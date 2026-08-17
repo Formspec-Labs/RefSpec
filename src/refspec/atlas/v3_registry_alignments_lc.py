@@ -919,14 +919,14 @@ def _external_target_endpoint_releases(
                                 "languageDeterminedBy": label.language_determined_by,
                                 "lineNumber": label.line_number,
                                 "nativeStatement": label.native_statement,
-                                "publisherLanguageTag": label.language,
+                                "publisherLanguageTagPresent": False,
                                 "publisherPredicateIri": external.MADS_AUTHORITATIVE_LABEL,
                                 "sourceRecordDigest": label.statement_sha256,
                                 "value": label.value,
                             }
                             for label in ordered_labels
                         ],
-                        "publisherLanguageTag": None,
+                        "publisherLanguageTagPresent": False,
                         "targetVocabulary": vocabulary,
                     },
                     source_locator=(
@@ -972,7 +972,7 @@ def _external_target_endpoint_releases(
                         "additional publisher authoritativeLabel statements are retained as alternate labels"
                     ),
                     "publisherLabelCount": publisher_label_count,
-                    "publisherLanguageTag": None,
+                    "publisherLanguageTagPresent": False,
                     "resourceCount": len(resources),
                     "sourceArtifact": _source_artifact_metadata(),
                     "sourceIdentifierCount": 0,

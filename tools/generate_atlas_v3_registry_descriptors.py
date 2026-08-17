@@ -65,6 +65,7 @@ NON_MEMBER_DISPOSITIONS: Mapping[str, str] = {
     "lcsh-external-links-mapping": "mappingAssertionsOnly",
     "lda-native-controls": "childReleaseOnly",
     "northwestern-mesh-lcsh-mapping": "mappingAssertionsOnly",
+    "regulations-gov-agency-identity": "mappingAssertionsOnly",
     "rin-authority": "assignmentEvidenceOnly",
     "specialist-subject-modules": "resourceFamily",
     "uslm": "noPublisherRecord",

@@ -220,5 +220,5 @@ def test_checked_census_artifacts_are_reproducible() -> None:
         "sha256:98ee78e352f019a4b33090f0397fdf145c6876d7f6033508172db144912d9420"
     )
     assert report["agencyIdentityAdjudication"]["adjudicationDigest"] == (
-        "sha256:96251493ee0d98d5f7b450148e6cb95ca94cd757d588a5bf99acc3b6c10ad128"
+        "sha256:5730f79b86117f323efb8bc32317df6b1d8a09c16c8fdf56879179507ee00c55"
     )

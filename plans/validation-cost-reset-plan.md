@@ -1459,3 +1459,19 @@ documented APS properties and official accession structure, Treasury's real
 fund groups, and GAO's 30-topic published index — 98 releases, 581,120
 resources, 561,385 statements. The criterion as restated in REF-034:
 relevance and placement admit data; acquisition method never does.
+
+**ARTIFACT OF RECORD, SEALED: `output/atlas-3.1-full-2026-08-16` (2026-08-16).
+Supersedes 2026-08-15b. The mapping era.** distributionId
+`urn:ref:atlas:distribution:3.1-full-development:a7a124e8…b2cbca`, manifest
+`427e0c19…ad4ea`, acceptance `54e94ae1…7f85e`, parquet view manifest
+`df17e53e…02c5`, signer atlas-release@refspec. Seal verifies: 4 members, 191
+packs, 10 Parquet tables (agency projection + unresolved included),
+3,093,403,384 bytes. 130 atlas releases; 1,344,511 resources; 1,751,147
+statements (~890k publisher-authored cross-vocabulary mappings, 446
+cross-ring); 2,136,812 labels across seven language families; every
+statement evidence-bound. Carries REF-035 (mapping evidence doctrine),
+REF-036 (crosswalk survey), REF-037 (the acquisition wave), REF-038 (the
+agency projection: 321/331 regulations.gov values resolved, 10 defensible
+abstentions), and the streamed producer whose equivalence is proven by
+causal probes, an eight-class mutation battery against the retained legacy
+oracle, and a real-data double-build byte-equality gate.

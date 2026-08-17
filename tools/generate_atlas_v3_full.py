@@ -20,12 +20,16 @@ from __future__ import annotations
 
 import argparse
 import ast
+import base64
 import dataclasses
+import gc
 import hashlib
 import heapq
 import importlib.util
+import io
 import json
 import re
+import resource as process_resource
 import sys
 import tempfile
 import time
@@ -34,9 +38,10 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import date
+from itertools import islice
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, TextIO
+from typing import Any, TextIO, cast
 from typing import Literal as TypeLiteral
 from urllib.parse import quote, urlsplit, urlunsplit
 
@@ -49,8 +54,18 @@ import pyarrow.parquet as pq
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
 
+from refspec.atlas.agency_projection import (
+    AGENCY_ROSTER_RELEASE_KEYS,
+    AgencyProjection,
+    build_agency_projection,
+)
 from refspec.atlas.compact_pack import CompactRecordRole, normalize_compact_record
-from refspec.atlas.parquet_tables import TABLE_DIRECTORY, TABLE_NAMES, AtlasParquetTableWriter
+from refspec.atlas.parquet_tables import (
+    TABLE_DIRECTORY,
+    TABLE_NAMES,
+    AtlasParquetTableWriter,
+    write_agency_projection_tables,
+)
 from refspec.atlas.parquet_view import seal_atlas_parquet_view
 from refspec.atlas.registry_claim_input import (
     ATLAS_CLAIM_RECORD_TYPE,
@@ -70,7 +85,9 @@ from refspec.atlas.v3_source_data import (
     RegistryMapping,
     RegistryMappingEvidence,
     RegistryMappingRelease,
+    RegistryRelation,
     RegistryRelease,
+    RegistryResource,
     RegistrySupplementalSourceRecord,
     mapping_triple_digest,
 )
@@ -141,6 +158,7 @@ _PACK_PATH_UNSAFE = re.compile(r"[^a-z0-9]+")
 _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD = 50_000
 _PACK_LARGE_RELEASE_BUCKETS = 16
 _PACK_ZSTD_LEVEL = 1
+_STREAM_CONSTRUCTION_BATCH_SIZE = 2_000
 _COMPILED_PRODUCER_PROFILE = "atlas-3-source-and-evidence-backed-mapping-v1"
 _COMPILED_PRODUCER_MODE = "compiledSourceAndEvidenceBackedMappingProducerValidation"
 _CONSTRUCTION_SUMMARY_PROFILE = "atlas-3-release-local-construction-v1"
@@ -196,6 +214,16 @@ class _StatusReporter:
         self.clock = clock
         self.started_at = clock()
         self.last_emitted_at: float | None = None
+        self._phase_memory: list[dict[str, Any]] = []
+
+    @staticmethod
+    def _peak_rss_bytes() -> int:
+        """Return this process's portable high-water resident byte count."""
+
+        peak = process_resource.getrusage(process_resource.RUSAGE_SELF).ru_maxrss
+        # Darwin reports bytes; Linux and the other supported Unix runners
+        # report KiB. The value is diagnostic and never enters artifact IDs.
+        return peak if sys.platform == "darwin" else peak * 1024
 
     def _write(
         self,
@@ -204,10 +232,11 @@ class _StatusReporter:
         current: str | None = None,
         progress: tuple[int, int] | None = None,
         force: bool = False,
+        now: float | None = None,
     ) -> None:
         if not self.enabled:
             return
-        now = self.clock()
+        now = self.clock() if now is None else now
         if not force and self.last_emitted_at is not None and now - self.last_emitted_at < self.interval_seconds:
             return
         fields = [
@@ -223,7 +252,32 @@ class _StatusReporter:
         self.last_emitted_at = now
 
     def phase(self, phase: str, *, current: str | None = None) -> None:
-        self._write(phase, current=current, force=True)
+        now = self.clock()
+        self._phase_memory.append(
+            {
+                "elapsedMilliseconds": int(max(0.0, now - self.started_at) * 1000),
+                "phase": phase,
+                "processPeakRssBytes": self._peak_rss_bytes(),
+            }
+        )
+        self._write(phase, current=current, force=True, now=now)
+
+    def memory_profile(self) -> dict[str, Any]:
+        """Receipt cumulative process RSS at each completed phase boundary."""
+
+        samples = [*self._phase_memory]
+        samples.append(
+            {
+                "elapsedMilliseconds": int(max(0.0, self.clock() - self.started_at) * 1000),
+                "phase": "generation-report",
+                "processPeakRssBytes": self._peak_rss_bytes(),
+            }
+        )
+        return {
+            "measurement": "getrusage-process-high-water-rss",
+            "peakRssBytes": max((row["processPeakRssBytes"] for row in samples), default=0),
+            "phaseHighWaterMarks": samples,
+        }
 
     def progress(
         self,
@@ -392,6 +446,7 @@ class CompiledProducerValidationReceipt:
 
     binding_profile: Mapping[str, str]
     english_only_scan: Mapping[str, Any]
+    expected_construction_counts: Mapping[str, int]
     expected_counts: Mapping[str, int]
     source_release_count: int
 
@@ -616,10 +671,10 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:cc6c198d86ec38f15a8a98a792bd112a79287b3649548ebbf51a73ea66d3655e"
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:8d2d80654c0e2fafacbab6b3c9a938f2314c8094eaaef5cf28ca8c2f8e18b685"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:d626bd54ec57ed7d74721ef621fc9d9b2054bd81b7901e512c83493967d92966"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:bb9ac50bd051341d09248d971e98357037e71ab7a5092e3fd18c24ac0f812645"
 
 
 def _load_validator() -> Any:
@@ -942,6 +997,9 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         BULK_REGISTRY_MAPPING_RELEASE_KEYS,
     )
+    from refspec.atlas.v3_registry_alignments_entity import (
+        ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
     from refspec.atlas.v3_registry_alignments_lc import (
         LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         LC_REGISTRY_MAPPING_RELEASE_KEYS,
@@ -978,6 +1036,10 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
             REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
             "refspec.atlas.v3_registry_alignments_subject",
         ),
+        (
+            ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
+            "refspec.atlas.v3_registry_alignments_entity",
+        ),
     )
     matches = [module for keys, module in groups if key in keys]
     if len(matches) > 1:
@@ -987,6 +1049,7 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         "refspec.atlas.v3_registry_alignments_bulk",
         "refspec.atlas.v3_registry_alignments_lc",
         "refspec.atlas.v3_registry_alignments_subject",
+        "refspec.atlas.v3_registry_alignments_entity",
     }
     if kind == "mapping" and (len(matches) != 1 or matches[0] not in mapping_modules):
         raise ValueError(f"mapping construction unit has no alignment adapter: {key}")
@@ -1975,6 +2038,88 @@ def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
     )
 
 
+def _registry_release_for_agency_projection(
+    release: LoadedRelease,
+) -> RegistryRelease:
+    """Restore the normalized roster type consumed by the REF-038 modules."""
+
+    if release.spec.resource_id is None or release.spec.source_module is None:
+        raise ValueError(
+            f"agency projection release {release.spec.key} lacks registry metadata"
+        )
+    return RegistryRelease(
+        key=release.spec.key,
+        resource_id=release.spec.resource_id,
+        source_module=release.spec.source_module,
+        profile=release.spec.profile,
+        ring=release.spec.ring,
+        scope=release.spec.scope,  # type: ignore[arg-type]
+        issued=release.issued,
+        source_release_iri=release.source_release_iri,
+        source_release_digest=release.source_release_digest,
+        atlas_release_iri=release.atlas_release_iri,
+        scheme_iri=release.scheme_iri,
+        inputs=release.spec.input_pins,
+        resources=cast(Sequence[RegistryResource], release.resources),
+        relations=cast(Sequence[RegistryRelation], release.relations),
+        cross_ring_relations=release.cross_ring_relations,
+        supplemental_source_records=release.supplemental_source_records,
+        dropped_label_count=release.dropped_label_count,
+        metadata=release.metadata,
+    )
+
+
+def _agency_projection_from_loaded_releases(
+    releases: Sequence[LoadedRelease],
+    mapping_releases: Sequence[RegistryMappingRelease],
+) -> tuple[AgencyProjection | None, tuple[str, ...]]:
+    """Build the complete projection or name every missing required release."""
+
+    from refspec.atlas.v3_registry_alignments_entity import (
+        REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY,
+    )
+
+    source_by_key = {release.spec.key: release for release in releases}
+    mapping_by_key = {release.key: release for release in mapping_releases}
+    missing = tuple(
+        key
+        for key in (
+            *AGENCY_ROSTER_RELEASE_KEYS,
+            REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY,
+        )
+        if key not in source_by_key and key not in mapping_by_key
+    )
+    if missing:
+        return None, missing
+    rosters = tuple(
+        _registry_release_for_agency_projection(source_by_key[key])
+        for key in AGENCY_ROSTER_RELEASE_KEYS
+    )
+    return build_agency_projection(
+        rosters,
+        mapping_by_key[REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY],
+    ), ()
+
+
+def _agency_projection_manifest_metadata(
+    projection: AgencyProjection | None,
+    missing_release_keys: Sequence[str],
+) -> dict[str, Any]:
+    """Describe whether this build emitted the all-or-none REF-038 view."""
+
+    if projection is None:
+        return {
+            "status": "notEmitted",
+            "missingReleaseKeys": list(missing_release_keys),
+        }
+    return {
+        "status": "emitted",
+        "decision": "REF-038",
+        "digest": projection.digest,
+        "coverage": projection.coverage.to_dict(),
+    }
+
+
 def _declared_construction_unit_keys() -> frozenset[str]:
     """Return the code-declared release topology without opening source bytes."""
 
@@ -1985,6 +2130,9 @@ def _declared_construction_unit_keys() -> frozenset[str]:
     from refspec.atlas.v3_registry_alignments_bulk import (
         BULK_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         BULK_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
+    from refspec.atlas.v3_registry_alignments_entity import (
+        ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
     )
     from refspec.atlas.v3_registry_alignments_lc import (
         LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
@@ -2017,6 +2165,7 @@ def _declared_construction_unit_keys() -> frozenset[str]:
             *BULK_REGISTRY_MAPPING_RELEASE_KEYS,
             *REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
             *REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
+            *ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
         }
     )
 
@@ -2033,6 +2182,9 @@ def split_construction_unit_keys(
 
     from refspec.atlas.v3_registry_alignments import REGISTRY_MAPPING_RELEASE_KEYS
     from refspec.atlas.v3_registry_alignments_bulk import BULK_REGISTRY_MAPPING_RELEASE_KEYS
+    from refspec.atlas.v3_registry_alignments_entity import (
+        ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
+    )
     from refspec.atlas.v3_registry_alignments_lc import LC_REGISTRY_MAPPING_RELEASE_KEYS
     from refspec.atlas.v3_registry_alignments_subject import REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS
 
@@ -2046,6 +2198,7 @@ def split_construction_unit_keys(
         | LC_REGISTRY_MAPPING_RELEASE_KEYS
         | BULK_REGISTRY_MAPPING_RELEASE_KEYS
         | REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS
+        | ENTITY_REGISTRY_MAPPING_RELEASE_KEYS
     )
     return frozenset(include_keys - mapping_keys), frozenset(mapping_keys)
 
@@ -2599,6 +2752,10 @@ def load_mapping_releases(
         BULK_REGISTRY_MAPPING_RELEASE_KEYS,
         load_all_registry_bulk_mapping_releases,
     )
+    from refspec.atlas.v3_registry_alignments_entity import (
+        ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
+        load_regulations_gov_agency_identity_mapping_release,
+    )
     from refspec.atlas.v3_registry_alignments_lc import (
         LC_REGISTRY_MAPPING_RELEASE_KEYS,
         load_lc_registry_mapping_releases,
@@ -2611,6 +2768,24 @@ def load_mapping_releases(
     if include_keys is not None and not include_keys:
         return ()
     _STATUS.phase("load-mapping-releases")
+    entity_mapping_requested = (
+        include_keys is None
+        or bool(include_keys & ENTITY_REGISTRY_MAPPING_RELEASE_KEYS)
+    )
+    entity_mapping_releases: tuple[RegistryMappingRelease, ...] = ()
+    if entity_mapping_requested:
+        if source_releases is None:
+            raise ValueError(
+                "the regulations.gov agency identity mapping requires loaded agency rosters"
+            )
+        rosters = tuple(
+            _registry_release_for_agency_projection(release)
+            for release in source_releases
+            if release.spec.key in AGENCY_ROSTER_RELEASE_KEYS
+        )
+        entity_mapping_releases = (
+            load_regulations_gov_agency_identity_mapping_release(rosters),
+        )
     releases = (
         *load_all_registry_mapping_releases(
             only_keys=None if include_keys is None else include_keys & REGISTRY_MAPPING_RELEASE_KEYS
@@ -2624,6 +2799,7 @@ def load_mapping_releases(
         *load_subject_registry_mapping_releases(
             only_keys=(None if include_keys is None else include_keys & REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS)
         ),
+        *entity_mapping_releases,
     )
     releases = _reconcile_fast_lcsh_s27_mapping_conflicts(releases)
     if include_keys is not None and {release.key for release in releases} != set(include_keys):
@@ -2646,6 +2822,7 @@ def _reconcile_fast_lcsh_s27_mapping_conflicts(
     from refspec.atlas.v3_registry_alignments import (
         FAST_LCSH_S27_REFUSAL_COUNT,
         FAST_LCSH_S27_REFUSAL_DIGEST,
+        _mapping_source_input_digest,
     )
     from refspec.atlas.v3_registry_alignments_lc import (
         LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY,
@@ -2710,6 +2887,34 @@ def _reconcile_fast_lcsh_s27_mapping_conflicts(
     )
     admitted_related = tuple(mapping for mapping in admitted if mapping.predicate == str(SKOS.relatedMatch))
     admitted_exact = tuple(mapping for mapping in admitted if mapping.predicate == str(SKOS.exactMatch))
+    used_input_indexes: set[int] = set()
+    for mapping in admitted:
+        for evidence in mapping.evidence:
+            matches = [
+                index
+                for index, pin in enumerate(fast_release.inputs)
+                if pin.sha256 == evidence.source_digest
+                and (
+                    pin.source_iri == evidence.source_locator
+                    or evidence.source_locator.startswith(pin.source_iri + "#")
+                )
+            ]
+            if len(matches) != 1:
+                raise ValueError(
+                    f"{fast_release.key} retained mapping evidence must identify exactly one pinned input"
+                )
+            used_input_indexes.add(matches[0])
+    retained_inputs = tuple(
+        pin for index, pin in enumerate(fast_release.inputs) if index in used_input_indexes
+    )
+    removed_inputs = tuple(
+        pin for index, pin in enumerate(fast_release.inputs) if index not in used_input_indexes
+    )
+    mapping_source_digest = (
+        _mapping_source_input_digest(retained_inputs)
+        if fast_release.source_release_input_roles
+        else retained_inputs[0].sha256
+    )
 
     metadata = dict(fast_release.metadata)
     composition = dict(metadata["assertionComposition"])
@@ -2732,6 +2937,16 @@ def _reconcile_fast_lcsh_s27_mapping_conflicts(
             "sourceReleaseIri": lc_release.source_release_iri,
         }
     ]
+    metadata["reconciliationSourceDependencies"] = [
+        {
+            "byteLength": pin.byte_length,
+            "inputRole": pin.role,
+            "reason": "all claims from this OCLC input were refused by the frozen SKOS S27 reconciliation",
+            "sourceDigest": pin.sha256,
+            "sourceIri": pin.source_iri,
+        }
+        for pin in removed_inputs
+    ]
     metadata["skosS27Reconciliation"] = {
         "admissionRule": (
             "retain LC hierarchy claims and refuse OCLC relatedMatch claims for the same hierarchy-connected pair"
@@ -2741,7 +2956,10 @@ def _reconcile_fast_lcsh_s27_mapping_conflicts(
             "count": len(refused),
             "digest": observed_digest,
         },
-        "publisherClaimsRemainInPinnedEvidenceInputs": True,
+        "refusedPublisherClaimEvidenceDisposition": (
+            "source artifacts with no admitted assertions are declared as reconciliation dependencies, "
+            "not mapping evidence inputs"
+        ),
         "status": "passed",
     }
     s46_safety = dict(metadata["s46Safety"])
@@ -2749,6 +2967,12 @@ def _reconcile_fast_lcsh_s27_mapping_conflicts(
     metadata["s46Safety"] = s46_safety
     reconciled_fast = dataclasses.replace(
         fast_release,
+        source_release_iri=(
+            "urn:ref:registry-mapping-release:fast-lcsh-adopted:"
+            + mapping_source_digest.removeprefix("sha256:")
+        ),
+        source_release_digest=mapping_source_digest,
+        inputs=retained_inputs,
         mappings=admitted,
         metadata=metadata,
     )
@@ -3038,21 +3262,35 @@ def _source_record_constructor(
     return node, native_payload_bytes
 
 
+def _require_identifier_scheme(graph: Graph, scheme_iri: str) -> URIRef:
+    """Resolve one identifier authority under the producer's exact rule."""
+
+    scheme = URIRef(scheme_iri)
+    profiles = set(graph.objects(scheme, ATLAS.resourceProfile))
+    if (scheme, RDF.type, ATLAS.ResourceScheme) not in graph or profiles != {
+        ATLAS.identifierScheme
+    }:
+        raise ValueError(
+            "identifier scheme must be an atlas:ResourceScheme with the "
+            f"atlas:identifierScheme profile: {scheme}"
+        )
+    return scheme
+
+
 def _add_identifier(
     graph: Graph,
     *,
     identifier_row: RegistryIdentifier,
     resource: URIRef,
     source_record: URIRef,
+    scheme_graph: Graph | None = None,
 ) -> URIRef:
     """Add one source-backed identifier under an identifier-authority scheme."""
 
-    scheme = URIRef(identifier_row.scheme_iri)
-    profiles = set(graph.objects(scheme, ATLAS.resourceProfile))
-    if (scheme, RDF.type, ATLAS.ResourceScheme) not in graph or profiles != {ATLAS.identifierScheme}:
-        raise ValueError(
-            f"identifier scheme must be an atlas:ResourceScheme with the atlas:identifierScheme profile: {scheme}"
-        )
+    scheme = _require_identifier_scheme(
+        graph if scheme_graph is None else scheme_graph,
+        identifier_row.scheme_iri,
+    )
     identifier = _node_iri(
         "atlas-identifier",
         {
@@ -3165,14 +3403,6 @@ def _transformed_relation_evidence(
             "fromPredicate": str(SKOS.related),
             "reason": "SKOS-S27-hierarchy-path",
             "rule": "preserveAuthoredAssociationOutsideSkosProjection",
-            "toPredicate": str(ATLAS.thesaurusRelated),
-        }
-    elif from_predicate == "http://www.w3.org/2000/01/rdf-schema#seeAlso":
-        expected_transformation = {
-            "adoptedBy": "urn:ref:actor:refspec",
-            "fromPredicate": "http://www.w3.org/2000/01/rdf-schema#seeAlso",
-            "reason": "publisher-see-also-navigation",
-            "rule": "preservePublisherSeeAlsoAsAtlasThesaurusRelated",
             "toPredicate": str(ATLAS.thesaurusRelated),
         }
     else:
@@ -3351,15 +3581,20 @@ def _add_evidence_binding(
     reviewer: URIRef,
     review_warrant: str,
     decided_at: str,
+    evidence_source_digest: str | None = None,
 ) -> URIRef:
     """Attach one immutable approval to an existing assertion."""
 
-    evidence_source_digest = Literal(ATLAS_VALIDATE.rdf_node_digest(graph, evidence_record))
+    recorded_source_digest = Literal(
+        evidence_source_digest
+        if evidence_source_digest is not None
+        else ATLAS_VALIDATE.rdf_node_digest(graph, evidence_record)
+    )
     evidence_facts: list[tuple[URIRef, object]] = [
         (RDF.type, RKAF.EvidenceBinding),
         (RKAF.bindsAssertion, assertion),
         (ATLAS.evidenceSourceRecord, evidence_record),
-        (ATLAS.evidenceSourceDigest, evidence_source_digest),
+        (ATLAS.evidenceSourceDigest, recorded_source_digest),
         (RKAF.attestor, reviewer),
         (RKAF.decision, RKAF.approved),
         *ATLAS_VALIDATE.evidence_warrant_facts(review_warrant),
@@ -3399,6 +3634,7 @@ def _add_evidenced_assertion(
     reviewer: URIRef,
     review_warrant: str,
     decided_at: str,
+    evidence_source_digest: str | None = None,
     effective_period: tuple[str, str | None] | None = None,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
@@ -3427,6 +3663,7 @@ def _add_evidenced_assertion(
         reviewer=reviewer,
         review_warrant=review_warrant,
         decided_at=decided_at,
+        evidence_source_digest=evidence_source_digest,
     )
     return assertion
 
@@ -3749,6 +3986,42 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
     return value
 
 
+def _reconcile_prebuild_construction_counts(
+    aggregate_counts: Mapping[str, int],
+    *,
+    source_release_count: int,
+    declared_record_counts: Mapping[str, int],
+) -> dict[str, int]:
+    """Refuse semantic/logical count drift before constructing distribution RDF."""
+
+    if aggregate_counts["projectedRelations"] or aggregate_counts["derivedRelations"]:
+        raise ValueError(
+            "the source-and-mapping producer declares projection or derived records"
+        )
+    expected = ATLAS_VALIDATE.source_and_mapping_construction_record_counts(
+        aggregate_counts,
+        source_release_count=source_release_count,
+    )
+    actual = dict(declared_record_counts)
+    if set(actual) != {*expected, "lifecycleEvents"}:
+        raise ValueError(
+            "prebuild construction aggregate count fields differ: "
+            f"expected={sorted((*expected, 'lifecycleEvents'))}, declared={sorted(actual)}"
+        )
+    if actual["lifecycleEvents"]:
+        raise ValueError(
+            "prebuild construction aggregate counts differ: "
+            f"expected lifecycleEvents=0, declared={actual['lifecycleEvents']}"
+        )
+    comparable = {field: actual[field] for field in expected}
+    if comparable != expected:
+        raise ValueError(
+            "prebuild construction aggregate counts differ: "
+            f"expected={expected}, declared={comparable}"
+        )
+    return {**expected, "lifecycleEvents": 0}
+
+
 def _validate_compiled_producer_rows(
     releases: tuple[LoadedRelease, ...],
     mapping_releases: Sequence[RegistryMappingRelease] = (),
@@ -3784,15 +4057,6 @@ def _validate_compiled_producer_rows(
             for carrier_type in (ATLAS.RegistrySource, ATLAS.ResourceScheme)
             for subject in descriptor_graph.subjects(RDF.type, carrier_type)
         }
-        identifier_schemes = {
-            str(subject)
-            for subject in descriptor_graph.subjects(
-                ATLAS.resourceProfile,
-                ATLAS.identifierScheme,
-            )
-            if (subject, RDF.type, ATLAS.ResourceScheme) in descriptor_graph
-        }
-
         resource_source_release_iris = {release.source_release_iri for release in releases}
         mapping_source_release_iris = {release.source_release_iri for release in mapping_releases}
         if resource_source_release_iris & mapping_source_release_iris:
@@ -3814,6 +4078,7 @@ def _validate_compiled_producer_rows(
         label_count = 0
         identifier_count = 0
         source_assignment_count = 0
+        mapping_evidence_binding_count = 0
 
         for release in releases:
             _validate_loaded_release(release)
@@ -3937,10 +4202,12 @@ def _validate_compiled_producer_rows(
                         identifier.scheme_iri,
                         context=f"{resource_iri} identifier scheme",
                     )
-                    if scheme_iri not in identifier_schemes:
+                    try:
+                        _require_identifier_scheme(descriptor_graph, scheme_iri)
+                    except ValueError as error:
                         raise ValueError(
                             f"{resource_iri} identifier scheme is not an Atlas identifier authority: {scheme_iri}"
-                        )
+                        ) from error
                     if (
                         not isinstance(identifier.value, str)
                         or not identifier.value
@@ -4128,7 +4395,10 @@ def _validate_compiled_producer_rows(
                 if predicate not in allowed:
                     raise ValueError(f"mapping predicate is not allowed for {mapping_release.ring}: {predicate}")
                 _rdf_datetime(mapping.asserted_at)
+                if not mapping.evidence:
+                    raise ValueError(f"mapping has no evidence binding: {mapping}")
                 for evidence in mapping.evidence:
+                    mapping_evidence_binding_count += 1
                     _require_absolute_iri(
                         evidence.reviewer_iri,
                         context=f"{mapping_release.key} mapping evidence reviewer",
@@ -4168,9 +4438,16 @@ def _validate_compiled_producer_rows(
         mapping_count = len(mapping_claims)
         native_relation_count = sum(len(release.relations) for release in releases)
         cross_ring_count = len(cross_ring_claims)
+        evidence_binding_count = (
+            source_assignment_count
+            + native_relation_count
+            + cross_ring_count
+            + mapping_evidence_binding_count
+        )
         expected_counts = {
             "crossRingRelationAssertions": cross_ring_count,
             "derivedRelations": 0,
+            "evidenceBindings": evidence_binding_count,
             "identifiers": identifier_count,
             "labels": label_count,
             "mappingAssertions": mapping_count,
@@ -4187,14 +4464,30 @@ def _validate_compiled_producer_rows(
                 + sum(len(release.supplemental_source_records) for release in releases)
             ),
         }
+        source_release_count = len(releases) + len(mapping_releases)
+        expected_construction_counts = _reconcile_prebuild_construction_counts(
+            expected_counts,
+            source_release_count=source_release_count,
+            declared_record_counts={
+                "resources": resource_count,
+                "labels": label_count,
+                "statements": expected_counts["relationAssertions"],
+                "evidenceBindings": evidence_binding_count,
+                "sourceRecords": expected_counts["sourceRecords"],
+                "releases": (2 * len(releases) + len(mapping_releases)),
+                "identifiers": identifier_count,
+                "lifecycleEvents": 0,
+            },
+        )
     finally:
         descriptor_graph.close()
 
     return CompiledProducerValidationReceipt(
         binding_profile=binding_profile,
         english_only_scan=english_only_scan,
+        expected_construction_counts=expected_construction_counts,
         expected_counts=expected_counts,
-        source_release_count=len(releases) + len(mapping_releases),
+        source_release_count=source_release_count,
     )
 
 
@@ -4381,6 +4674,11 @@ def _validate_compiled_producer_output(
         raise ValueError("compiled producer requires empty projection and derived graphs")
     if any(graphs.asserted.triples((None, RKAF.supersedesAssertion, None))):
         raise ValueError("compiled producer does not support supersession")
+    _validate_compiled_evidence_output(
+        graphs.asserted,
+        producer_validation.expected_counts,
+        mapping_releases,
+    )
     observed_counts = _counts(graphs)
     if observed_counts != dict(producer_validation.expected_counts):
         raise ValueError(
@@ -4388,11 +4686,6 @@ def _validate_compiled_producer_output(
             f"expected={dict(producer_validation.expected_counts)}, "
             f"observed={observed_counts}"
         )
-    _validate_compiled_evidence_output(
-        graphs.asserted,
-        producer_validation.expected_counts,
-        mapping_releases,
-    )
     accounting_digest = _validate_compiled_source_accounting(
         releases,
         graphs.accounting,
@@ -4946,6 +5239,7 @@ def _counts(graphs: BuildGraphs) -> dict[str, int]:
                 )
             )
         ),
+        "evidenceBindings": len(set(asserted.subjects(RDF.type, RKAF.EvidenceBinding))),
         "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
         "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
@@ -5149,6 +5443,1263 @@ def _materialize_nquads_pack(
     if incremental is not None:
         incremental.rebuilt_paths.append(relative_path)
     return receipt
+
+
+PackSpoolKey = tuple[str | None, str | None]
+
+
+def _json_safe_binary(value: Any) -> Any:
+    """Encode bytes in an internal JSON spool without changing other values."""
+
+    if isinstance(value, bytes):
+        return {"$base64": base64.b64encode(value).decode("ascii")}
+    if isinstance(value, Mapping):
+        return {key: _json_safe_binary(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_binary(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe_binary(item) for item in value]
+    return value
+
+
+def _json_restore_binary(value: Any) -> Any:
+    """Reverse :func:`_json_safe_binary` for an internal JSON spool row."""
+
+    if isinstance(value, dict):
+        if set(value) == {"$base64"} and isinstance(value["$base64"], str):
+            return base64.b64decode(value["$base64"], validate=True)
+        return {key: _json_restore_binary(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_restore_binary(item) for item in value]
+    return value
+
+
+class _StreamingGraphSpool:
+    """Stage canonical release graphs and compact rows without retaining RDF.
+
+    Each appended graph is a bounded constructor batch. Subjects are routed to
+    the same release and partition packs as the whole-graph writer, while RDF
+    lines and compact rows remain on disk until their final external sorts.
+    """
+
+    def __init__(
+        self,
+        root: Path,
+        plans: Sequence[ReleasePackPlan],
+        *,
+        resource_owner_tokens: Mapping[str, str],
+        catalog: Graph,
+    ) -> None:
+        self.root = root
+        self.rdf_root = root / "rdf"
+        self.compact_root = root / "compact"
+        self.sorted_compact_root = root / "compact-sorted"
+        self.rdf_root.mkdir(parents=True)
+        self.compact_root.mkdir(parents=True)
+        self.sorted_compact_root.mkdir(parents=True)
+        self.plans_by_token = {_release_pack_token(plan): plan for plan in plans}
+        if len(self.plans_by_token) != len(plans):
+            raise ValueError("Atlas release keys collide after safe pack-path normalization")
+        self.token_by_key = {plan.key: _release_pack_token(plan) for plan in plans}
+        self.resource_owner_tokens = resource_owner_tokens
+        self.release_owner_tokens: dict[str, str] = {}
+        for token, plan in self.plans_by_token.items():
+            for node in (plan.source_release_iri, plan.atlas_release_iri):
+                if node is None:
+                    continue
+                previous = self.release_owner_tokens.setdefault(node, token)
+                if previous != token:
+                    raise ValueError(f"release node is emitted more than once: {node}")
+        self.catalog = catalog
+        self.catalog_subjects = {URIRef(subject) for subject in catalog.subjects()}
+        self.spool_paths: dict[PackSpoolKey, Path] = {}
+        self.sorted_rdf_paths: dict[PackSpoolKey, Path] = {}
+        self.line_counts: Counter[PackSpoolKey] = Counter()
+        self.dependencies: dict[PackSpoolKey, set[PackSpoolKey]] = defaultdict(set)
+        self.compact_paths = {
+            role: self.compact_root / f"{role.value}.jsonl" for role in CompactRecordRole
+        }
+        self.sorted_compact_paths: dict[CompactRecordRole, Path] = {}
+        self.role_counts: Counter[CompactRecordRole] = Counter()
+        self.record_counts: dict[str, dict[str, int]] = {
+            plan.key: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0) for plan in plans
+        }
+        self.counts: dict[str, int] = {
+            "crossRingRelationAssertions": 0,
+            "derivedRelations": 0,
+            "evidenceBindings": 0,
+            "identifiers": 0,
+            "labels": 0,
+            "mappingAssertions": 0,
+            "nativeRelationAssertions": 0,
+            "projectedRelations": 0,
+            "relationAssertions": 0,
+            "releases": 0,
+            "resources": 0,
+            "sourceAssignments": 0,
+            "sourceRecords": 0,
+        }
+
+    def add_catalog_subjects(self, graph: Graph, subjects: Iterable[URIRef]) -> None:
+        """Merge shared subjects into the one catalog graph, checking facts."""
+
+        for subject in subjects:
+            incoming = set(graph.predicate_objects(subject))
+            existing = set(self.catalog.predicate_objects(subject))
+            if existing and existing != incoming:
+                raise ValueError(f"catalog subject facts differ across construction batches: {subject}")
+            for predicate, obj in incoming:
+                self.catalog.add((subject, predicate, obj))
+            self.catalog_subjects.add(subject)
+
+    def _spool_path(self, key: PackSpoolKey) -> Path:
+        path = self.spool_paths.get(key)
+        if path is None:
+            path = self.rdf_root / (_pack_spool_name(*key) + ".unsorted.nq")
+            self.spool_paths[key] = path
+        return path
+
+    def _subject_key(self, plan: ReleasePackPlan, subject: URIRef) -> PackSpoolKey:
+        return self.token_by_key[plan.key], _release_pack_partition(plan, subject)
+
+    def _object_key(
+        self,
+        obj: URIRef,
+        *,
+        local: Mapping[URIRef, PackSpoolKey],
+        extra: Mapping[URIRef, PackSpoolKey],
+    ) -> PackSpoolKey | None:
+        key = local.get(obj)
+        if key is not None:
+            return key
+        key = extra.get(obj)
+        if key is not None:
+            return key
+        token = self.resource_owner_tokens.get(str(obj))
+        if token is not None:
+            return token, _release_pack_partition(self.plans_by_token[token], obj)
+        token = self.release_owner_tokens.get(str(obj))
+        if token is not None:
+            return token, _release_pack_partition(self.plans_by_token[token], obj)
+        return None
+
+    def _increment_counts(
+        self,
+        graph: Graph,
+        subject: URIRef,
+        role: CompactRecordRole,
+        owner_key: str,
+    ) -> None:
+        self.role_counts[role] += 1
+        self.record_counts[owner_key][_COMPACT_ROLE_COUNT_FIELDS[role.value]] += 1
+        if role is CompactRecordRole.RESOURCE:
+            self.counts["resources"] += 1
+        elif role is CompactRecordRole.LABEL:
+            self.counts["labels"] += 1
+        elif role is CompactRecordRole.SOURCE_RECORD:
+            self.counts["sourceRecords"] += 1
+        elif role is CompactRecordRole.IDENTIFIER:
+            self.counts["identifiers"] += 1
+        elif role is CompactRecordRole.EVIDENCE_BINDING:
+            self.counts["evidenceBindings"] += 1
+        elif role is CompactRecordRole.RELEASE:
+            if (subject, RDF.type, ATLAS.AtlasRelease) in graph:
+                self.counts["releases"] += 1
+        elif role is CompactRecordRole.STATEMENT:
+            assertion_type_count = 0
+            for assertion_type, field in (
+                (ATLAS.CrossRingRelationAssertion, "crossRingRelationAssertions"),
+                (ATLAS.MappingAssertion, "mappingAssertions"),
+                (ATLAS.NativeRelationAssertion, "nativeRelationAssertions"),
+                (ATLAS.SourceAssignment, "sourceAssignments"),
+            ):
+                if (subject, RDF.type, assertion_type) in graph:
+                    self.counts[field] += 1
+                    assertion_type_count += 1
+            if not assertion_type_count:
+                raise ValueError(f"statement {subject} has no concrete assertion type")
+            # Match ``_counts`` exactly: a malformed assertion carrying two
+            # concrete types contributes to both type sets and therefore twice
+            # to the aggregate relation-assertion count. The compiled count
+            # receipt then refuses it instead of letting the streamed tally
+            # hide the second type.
+            self.counts["relationAssertions"] += assertion_type_count
+
+    def append_graph(
+        self,
+        graph: Graph,
+        plan: ReleasePackPlan,
+        *,
+        extra_object_owners: Mapping[URIRef, PackSpoolKey] = MappingProxyType({}),
+        deduplicate: dict[URIRef, str] | None = None,
+        deduplicate_types: frozenset[URIRef] = frozenset(),
+    ) -> None:
+        """Append one validated constructor batch to its release spools."""
+
+        graph_subjects = set(graph.subjects())
+        if any(not isinstance(subject, URIRef) for subject in graph_subjects):
+            raise TypeError("Atlas asserted graph contains a non-IRI subject")
+        subjects = {subject for subject in graph_subjects if subject not in self.catalog_subjects}
+        local = {subject: self._subject_key(plan, subject) for subject in subjects}
+        graph_id = URIRef(_ROLE_GRAPH_IDS["asserted"])
+        compact_streams: dict[CompactRecordRole, TextIO] = {}
+        rdf_streams: dict[PackSpoolKey, TextIO] = {}
+        with ExitStack() as stack:
+            for subject in sorted(subjects):
+                types = set(graph.objects(subject, RDF.type))
+                subject_digest: str | None = None
+                skip = False
+                if deduplicate is not None and types & deduplicate_types:
+                    subject_digest = ATLAS_VALIDATE.rdf_node_digest(graph, subject)
+                    previous = deduplicate.get(subject)
+                    if previous is not None:
+                        if previous != subject_digest:
+                            raise ValueError(f"constructed subject facts differ across batches: {subject}")
+                        skip = True
+                    else:
+                        deduplicate[subject] = subject_digest
+                if skip:
+                    continue
+
+                key = local[subject]
+                rdf_stream = rdf_streams.get(key)
+                if rdf_stream is None:
+                    rdf_stream = stack.enter_context(
+                        self._spool_path(key).open("a", encoding="utf-8", newline="")
+                    )
+                    rdf_streams[key] = rdf_stream
+                for predicate, obj in graph.predicate_objects(subject):
+                    line = ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
+                    if len(line.encode("utf-8")) > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
+                        raise ValueError("canonical Atlas N-Quads line exceeds the binding limit")
+                    rdf_stream.write(line)
+                    self.line_counts[key] += 1
+                    if not isinstance(obj, URIRef):
+                        continue
+                    target = self._object_key(
+                        obj,
+                        local=local,
+                        extra=extra_object_owners,
+                    )
+                    if target is not None and target != key:
+                        self.dependencies[key].add(target)
+
+                role = _compact_record_role(graph, subject)
+                independent_role = ATLAS_VALIDATE._construction_record_role(graph, subject)
+                if independent_role != role.value:
+                    raise ValueError(
+                        f"producer and binding compact roles differ for {subject}: "
+                        f"{role.value}, {independent_role}"
+                    )
+                record = normalize_compact_record(
+                    role,
+                    _compact_record_from_graph(graph, subject, role),
+                )
+                try:
+                    independent = {
+                        "row": _json_safe_binary(
+                            ATLAS_VALIDATE.parquet_row_from_rdf(
+                                graph,
+                                subject,
+                                role.value,
+                            )
+                        )
+                    }
+                except ATLAS_VALIDATE.AtlasValidationError as error:
+                    independent = {
+                        "error": {
+                            "code": error.code,
+                            "detail": error.detail,
+                            "type": "AtlasValidationError",
+                        }
+                    }
+                except (TypeError, ValueError) as error:
+                    independent = {
+                        "error": {
+                            "detail": str(error),
+                            "type": type(error).__name__,
+                        }
+                    }
+                compact_stream = compact_streams.get(role)
+                if compact_stream is None:
+                    compact_stream = stack.enter_context(
+                        self.compact_paths[role].open("a", encoding="utf-8", newline="")
+                    )
+                    compact_streams[role] = compact_stream
+                payload = json.dumps(
+                    {"independent": independent, "record": record},
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+                compact_stream.write(f"{subject}\t{payload}\n")
+                self._increment_counts(graph, subject, role, plan.key)
+
+    def append_catalog(self) -> None:
+        """Write the final shared catalog after all effective periods arrive."""
+
+        key: PackSpoolKey = (None, None)
+        graph_id = URIRef(_ROLE_GRAPH_IDS["asserted"])
+        with self._spool_path(key).open("w", encoding="utf-8", newline="") as stream:
+            for subject, predicate, obj in self.catalog:
+                line = ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
+                if len(line.encode("utf-8")) > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
+                    raise ValueError("canonical Atlas N-Quads line exceeds the binding limit")
+                stream.write(line)
+                self.line_counts[key] += 1
+
+    def materialize_packs(
+        self,
+        output: Path,
+        *,
+        incremental: ColdPackMaterialization,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """External-sort every spool and create the unchanged pack inventory."""
+
+        staged: dict[PackSpoolKey, dict[str, Any]] = {}
+        for key, spool_path in sorted(
+            self.spool_paths.items(),
+            key=lambda row: _pack_spool_name(*row[0]),
+        ):
+            owner, partition = key
+            if owner is None:
+                relative = Path("packs") / "catalog.nq.zst"
+            elif self.plans_by_token[owner].kind == "mapping":
+                if partition is not None:
+                    raise ValueError("mapping packs do not support source partitions")
+                relative = Path("packs") / "mappings" / f"{owner}.nq.zst"
+            else:
+                filename = "all.nq.zst" if partition is None else f"{partition}.nq.zst"
+                relative = Path("packs") / "sources" / owner / filename
+            sorted_path = self.rdf_root / (_pack_spool_name(*key) + ".sorted.nq")
+            with spool_path.open("r", encoding="utf-8", newline="") as lines:
+                _write_sorted_lines(sorted_path, lines)
+            self.sorted_rdf_paths[key] = sorted_path
+            receipt = _materialize_nquads_pack(
+                sorted_path,
+                output / relative,
+                relative_path=relative.as_posix(),
+                incremental=incremental,
+            )
+            if receipt.content_quad_count != self.line_counts[key]:
+                raise ValueError(f"streamed pack line count differs for {relative}")
+            plan = None if owner is None else self.plans_by_token[owner]
+            pack: dict[str, Any] = {
+                "content": {
+                    "byteLength": receipt.content_byte_length,
+                    "digest": receipt.content_digest,
+                    "mediaType": "application/n-quads",
+                    "quadCount": receipt.content_quad_count,
+                },
+                "dependencies": [],
+                "graphCounts": {
+                    "asserted": self.line_counts[key],
+                    "derived": 0,
+                    "projection": 0,
+                },
+                "kind": "catalog" if plan is None else plan.kind,
+                "packId": "urn:ref:atlas:pack:" + receipt.content_digest.removeprefix("sha256:"),
+                "path": relative.as_posix(),
+                "rings": [] if plan is None else [plan.ring],
+                "sourceReleases": [] if plan is None else [plan.source_release_iri],
+                "transport": {
+                    "byteLength": receipt.transport_byte_length,
+                    "compression": "zstd",
+                    "digest": receipt.transport_digest,
+                    "mediaType": "application/zstd",
+                },
+            }
+            if partition is not None:
+                pack["partition"] = {
+                    "prefix": partition,
+                    "strategy": "sha256-subject-iri-prefix",
+                }
+            staged[key] = pack
+
+        if (None, None) not in staged:
+            raise ValueError("Atlas asserted graph produced no catalog pack")
+        catalog_id = staged[(None, None)]["packId"]
+        for key, pack in staged.items():
+            if key == (None, None):
+                continue
+            dependency_ids = {catalog_id}
+            for dependency in self.dependencies.get(key, set()):
+                try:
+                    dependency_ids.add(staged[dependency]["packId"])
+                except KeyError as error:
+                    raise ValueError(f"RDF pack dependency has no written pack: {dependency}") from error
+            pack["dependencies"] = sorted(dependency_ids)
+
+        packs = sorted(staged.values(), key=lambda pack: pack["packId"])
+        graph_descriptors = [
+            {
+                "id": _ROLE_GRAPH_IDS[role],
+                "inventoryDigest": _graph_inventory_digest(packs, role),
+                "packCount": sum(bool(pack["graphCounts"][role]) for pack in packs),
+                "quadCount": sum(pack["graphCounts"][role] for pack in packs),
+                "role": role,
+            }
+            for role in ("asserted", "projection", "derived")
+        ]
+        return packs, graph_descriptors
+
+    def write_parquet(self, output: Path) -> None:
+        """External-sort compact records and preserve the old Parquet order."""
+
+        writer = AtlasParquetTableWriter(output)
+        try:
+            for role in CompactRecordRole:
+                source = self.compact_paths[role]
+                source.touch(exist_ok=True)
+                sorted_path = self.sorted_compact_root / f"{role.value}.jsonl"
+                with source.open("r", encoding="utf-8", newline="") as lines:
+                    _write_sorted_lines(sorted_path, lines)
+                self.sorted_compact_paths[role] = sorted_path
+                previous: str | None = None
+                with sorted_path.open("r", encoding="utf-8", newline="") as rows:
+                    for line in rows:
+                        identity, payload = line.rstrip("\n").split("\t", 1)
+                        if identity == previous:
+                            raise ValueError(f"streamed compact record identity repeats: {identity}")
+                        previous = identity
+                        value = json.loads(payload)
+                        writer.add(role, value["record"])
+            writer.close()
+        except BaseException:
+            writer.__exit__()
+            raise
+
+    def _spooled_rdf_ids_by_role(self) -> dict[CompactRecordRole, Path]:
+        """Derive logical record ids from sorted RDF in bounded graph batches.
+
+        This deliberately calls the binding's ``_rdf_record_ids_by_role`` on
+        RDF parsed back from the materialized spools. The producer's compact
+        rows never stand on the expected side of the reachability comparison.
+        """
+
+        if set(self.sorted_rdf_paths) != set(self.spool_paths):
+            raise ValueError("streamed RDF packs must be materialized before Parquet parity")
+        identity_root = self.root / "rdf-record-ids"
+        identity_root.mkdir(exist_ok=True)
+        unsorted_paths = {
+            role: identity_root / f"{role.value}.unsorted.txt" for role in CompactRecordRole
+        }
+        with ExitStack() as stack:
+            streams = {
+                role: stack.enter_context(path.open("w", encoding="utf-8", newline=""))
+                for role, path in unsorted_paths.items()
+            }
+
+            def flush(lines: list[str]) -> None:
+                if not lines:
+                    return
+                dataset = Dataset(default_union=True)
+                try:
+                    ATLAS_VALIDATE._parse_nquads_preserving_lexical_forms(
+                        dataset,
+                        io.StringIO("".join(lines)),
+                    )
+                    asserted = dataset.graph(URIRef(_ROLE_GRAPH_IDS["asserted"]))
+                    ids_by_role = ATLAS_VALIDATE._rdf_record_ids_by_role(asserted)
+                    for role in CompactRecordRole:
+                        for identity in sorted(ids_by_role[role.value]):
+                            streams[role].write(identity + "\n")
+                finally:
+                    dataset.close()
+                lines.clear()
+
+            for path in self.sorted_rdf_paths.values():
+                lines: list[str] = []
+                current_subject: str | None = None
+                subject_count = 0
+                with path.open("r", encoding="utf-8", newline="") as rdf:
+                    for line in rdf:
+                        subject = line.partition(" ")[0]
+                        if subject != current_subject:
+                            if subject_count >= _STREAM_CONSTRUCTION_BATCH_SIZE:
+                                flush(lines)
+                                subject_count = 0
+                            current_subject = subject
+                            subject_count += 1
+                        lines.append(line)
+                flush(lines)
+
+        sorted_paths: dict[CompactRecordRole, Path] = {}
+        for role, source in unsorted_paths.items():
+            target = identity_root / f"{role.value}.sorted.txt"
+            with source.open("r", encoding="utf-8", newline="") as lines:
+                _write_sorted_lines(target, lines)
+            sorted_paths[role] = target
+        return sorted_paths
+
+    @staticmethod
+    def _check_reachability_batch(
+        role: CompactRecordRole,
+        served: list[str],
+        asserted: list[str],
+    ) -> None:
+        """Run the binding comparand over one sorted, bounded identity slice."""
+
+        ATLAS_VALIDATE._check_explorer_reachability(
+            {role.value: served},
+            {role.value: set(asserted)},
+        )
+
+    def check_parquet(self, view: Path) -> dict[str, Any]:
+        """Run independent reachability, payload, and stable-sample parity checks."""
+
+        payload_rows = 0
+        sampled_rows = 0
+        reachability_rows = 0
+        rdf_ids_by_role = self._spooled_rdf_ids_by_role()
+        # Run the binding-owned exhaustive identity comparison first. A table
+        # substitution must be reported as an RDF-to-served-view failure, not
+        # hidden by the producer spool's additional self-consistency check.
+        for role in CompactRecordRole:
+            parquet = pq.ParquetFile(view / TABLE_DIRECTORY / TABLE_NAMES[role])
+            with rdf_ids_by_role[role].open("r", encoding="utf-8", newline="") as rdf_ids:
+                served_batch: list[str] = []
+                asserted_batch: list[str] = []
+                for batch in parquet.iter_batches(columns=["id"]):
+                    for identity in batch.column("id").to_pylist():
+                        served_batch.append(identity)
+                        rdf_line = rdf_ids.readline()
+                        if rdf_line:
+                            asserted_batch.append(rdf_line.rstrip("\n"))
+                        if len(served_batch) >= _STREAM_CONSTRUCTION_BATCH_SIZE:
+                            self._check_reachability_batch(
+                                role,
+                                served_batch,
+                                asserted_batch,
+                            )
+                            reachability_rows += len(served_batch)
+                            served_batch.clear()
+                            asserted_batch.clear()
+                while rdf_line := rdf_ids.readline():
+                    asserted_batch.append(rdf_line.rstrip("\n"))
+                    if len(asserted_batch) >= _STREAM_CONSTRUCTION_BATCH_SIZE:
+                        self._check_reachability_batch(
+                            role,
+                            served_batch,
+                            asserted_batch,
+                        )
+                        served_batch.clear()
+                        asserted_batch.clear()
+                if served_batch or asserted_batch:
+                    self._check_reachability_batch(
+                        role,
+                        served_batch,
+                        asserted_batch,
+                    )
+                    reachability_rows += len(served_batch)
+
+        for role in CompactRecordRole:
+            expected_path = self.sorted_compact_paths[role]
+            parquet = pq.ParquetFile(view / TABLE_DIRECTORY / TABLE_NAMES[role])
+            wanted = ATLAS_VALIDATE._compact_sample_indices(self.role_counts[role])
+            with expected_path.open("r", encoding="utf-8", newline="") as rows:
+                position = 0
+                for batch in parquet.iter_batches():
+                    for observed in batch.to_pylist():
+                        expected_line = rows.readline()
+                        if not expected_line:
+                            raise ValueError(
+                                f"served {role.value} records are not the asserted "
+                                f"{role.value} records; extra={observed['id']}"
+                            )
+                        expected_id, payload = expected_line.rstrip("\n").split("\t", 1)
+                        if observed["id"] != expected_id:
+                            raise ValueError(
+                                f"served {role.value} records are not the asserted "
+                                f"{role.value} records at row {position}; "
+                                f"expected={expected_id}, observed={observed['id']}"
+                            )
+                        if role is CompactRecordRole.SOURCE_RECORD:
+                            if hashlib.sha256(observed["native_payload"]).digest() != observed["source_digest"]:
+                                raise ValueError(
+                                    "Parquet native_payload does not hash to source_digest: "
+                                    f"{observed['id']}"
+                                )
+                            payload_rows += 1
+                        if position in wanted:
+                            independent = json.loads(payload)["independent"]
+                            error = independent.get("error")
+                            if isinstance(error, Mapping):
+                                if error.get("type") == "AtlasValidationError":
+                                    raise ATLAS_VALIDATE.AtlasValidationError(
+                                        str(error["code"]),
+                                        str(error["detail"]),
+                                    )
+                                exception = (
+                                    TypeError
+                                    if error.get("type") == "TypeError"
+                                    else ValueError
+                                )
+                                raise exception(
+                                    str(
+                                        error.get(
+                                            "detail",
+                                            "independent Parquet comparison failed",
+                                        )
+                                    )
+                                )
+                            expected = _json_restore_binary(independent["row"])
+                            if observed != expected:
+                                differing = sorted(
+                                    column
+                                    for column in set(expected) | set(observed)
+                                    if expected.get(column) != observed.get(column)
+                                )
+                                ATLAS_VALIDATE._fail(
+                                    "construction.parquet",
+                                    f"{observed['id']} Parquet row differs from its RDF facts "
+                                    f"in {differing}",
+                                )
+                            sampled_rows += 1
+                        position += 1
+                remaining = rows.readline()
+                if remaining:
+                    missing_id = remaining.split("\t", 1)[0]
+                    raise ValueError(
+                        f"served {role.value} records are not the asserted "
+                        f"{role.value} records; missing={missing_id}"
+                    )
+                if position != self.role_counts[role]:
+                    raise ValueError(
+                        f"served {role.value} record count differs: "
+                        f"expected={self.role_counts[role]}, observed={position}"
+                    )
+        return {
+            "comparand": "bindings/atlas/3.1/tools/validate.py:parquet_row_from_rdf",
+            "reachabilityComparand": (
+                "bindings/atlas/3.1/tools/validate.py:_check_explorer_reachability"
+            ),
+            "reachabilityRows": reachability_rows,
+            "sampledRowsAgainstRdf": sampled_rows,
+            "sourceRecordPayloadRows": payload_rows,
+            "status": "passed",
+        }
+
+
+@dataclass(slots=True)
+class _StreamedConstruction:
+    """The compact receipts retained after all bounded RDF graphs are freed."""
+
+    accounting: dict[str, Any]
+    compiled_validation: dict[str, Any]
+    spool: _StreamingGraphSpool
+
+
+def _copy_subject_facts(source: Graph, target: Graph, subject: URIRef) -> None:
+    for predicate, obj in source.predicate_objects(subject):
+        target.add((subject, predicate, obj))
+
+
+def _stream_batches(values: Sequence[Any]) -> Iterable[Sequence[Any]]:
+    values_iterator = iter(values)
+    while batch := tuple(islice(values_iterator, _STREAM_CONSTRUCTION_BATCH_SIZE)):
+        yield batch
+
+
+def _validate_streamed_evidence_batch(
+    graph: Graph,
+    mapping_releases: Sequence[RegistryMappingRelease] = (),
+) -> None:
+    """Keep the whole-graph evidence oracle on one bounded constructor batch."""
+
+    if any(graph.triples((None, RKAF.supersedesAssertion, None))):
+        raise ValueError("compiled producer does not support supersession")
+    projection = _new_build_graph()
+    derived = _new_build_graph()
+    try:
+        expected_counts = _counts(
+            BuildGraphs(
+                asserted=graph,
+                projection=projection,
+                derived=derived,
+                accounting={},
+            )
+        )
+        _validate_compiled_evidence_output(
+            graph,
+            expected_counts,
+            mapping_releases,
+        )
+    finally:
+        projection.close()
+        derived.close()
+
+
+def _stream_source_release(
+    release: LoadedRelease,
+    *,
+    plan: ReleasePackPlan,
+    spool: _StreamingGraphSpool,
+    native_policy: URIRef,
+    facts_by_token: Mapping[str, tuple[URIRef, URIRef]],
+) -> dict[str, Any]:
+    """Construct, validate, and spool one source release in bounded batches."""
+
+    release_instant = _release_instant(release.issued)
+    source_locator = URIRef(
+        "urn:ref:source-artifact-set:" + release.source_release_digest.removeprefix("sha256:")
+    )
+    source_release = URIRef(release.source_release_iri)
+    atlas_release = URIRef(release.atlas_release_iri)
+    profile = ATLAS[release.spec.profile]
+    ring, resource_class, assignment_predicate = _ring_dispatch(release.spec.ring)
+    scheme = URIRef(release.scheme_iri)
+
+    header = _new_build_graph()
+    _add_source_release(
+        header,
+        identifier=release.source_release_iri,
+        digest=release.source_release_digest,
+        issued=release.issued,
+        locator=source_locator,
+    )
+    spool.append_graph(header, plan)
+    header.close()
+    membership_graph = _new_build_graph()
+    membership_graph.add((atlas_release, RDF.type, ATLAS.AtlasRelease))
+    membership_graph.add((atlas_release, ATLAS.resourceProfile, profile))
+    membership_graph.add((atlas_release, ATLAS.semanticRing, ring))
+    membership_graph.add((atlas_release, ATLAS.inScheme, scheme))
+    membership_graph.add((atlas_release, RKAF.membershipMode, RKAF.completeMembership))
+    membership_graph.add((atlas_release, DCTERMS.identifier, Literal(release.spec.key)))
+    membership_graph.add((atlas_release, DCTERMS.issued, Literal(release.issued, datatype=XSD.date)))
+
+    dispositions: list[dict[str, Any]] = []
+    evidence_subjects = {
+        relation.subject
+        for relation in release.relations
+        if relation.predicate != str(ATLAS.thesaurusRelated)
+    } | {relation.subject for relation in release.cross_ring_relations}
+    resource_evidence: dict[str, tuple[URIRef, str]] = {}
+    evidence_owners: dict[URIRef, PackSpoolKey] = {}
+    seen_source_records: set[URIRef] = set()
+    for batch_position, batch in enumerate(_stream_batches(release.resources), start=1):
+        graph = _new_build_graph()
+        _copy_subject_facts(spool.catalog, graph, native_policy)
+        for resource_row in batch:
+            resource = URIRef(resource_row.iri)
+            record = _add_source_record(
+                graph,
+                source_release=source_release,
+                source_locator=URIRef(resource_row.source_locator),
+                source_digest=resource_row.source_digest,
+                native_payload=resource_row.native_payload,
+                represents_resource=resource,
+                language_map_fields=(
+                    ELSST_LANGUAGE_MAP_FIELDS
+                    if release.spec.key == "elsst-r6"
+                    else frozenset()
+                ),
+            )
+            if record in seen_source_records:
+                raise ValueError(f"source record is repeated: {record}")
+            seen_source_records.add(record)
+            if resource_row.iri in evidence_subjects:
+                record_digest = ATLAS_VALIDATE.rdf_node_digest(graph, record)
+                resource_evidence[resource_row.iri] = (record, record_digest)
+                evidence_owners[record] = spool._subject_key(plan, record)
+            graph.add((resource, RDF.type, ATLAS.AtlasResource))
+            graph.add((resource, RDF.type, resource_class))
+            if ring == ATLAS.subject:
+                graph.add((resource, RDF.type, SKOS.Concept))
+                graph.add((resource, SKOS.inScheme, scheme))
+            graph.add((resource, ATLAS.inRelease, atlas_release))
+            graph.add((resource, ATLAS.inScheme, scheme))
+            graph.add((resource, ATLAS.semanticRing, ring))
+            graph.add((resource, ATLAS.resourceProfile, profile))
+            graph.add((resource, ATLAS.sourceRecord, record))
+            membership_graph.add((atlas_release, PROV.hadMember, resource))
+
+            for label_row in resource_row.labels:
+                label = _node_iri(
+                    "atlas-label",
+                    {
+                        "language": label_row.language,
+                        "resource": resource_row.iri,
+                        "role": label_row.role,
+                        "sourcePath": label_row.source_path,
+                        "value": label_row.value,
+                    },
+                )
+                graph.add((resource, _source_label_predicate(label_row.role), label))
+                graph.add((label, RDF.type, SKOSXL.Label))
+                graph.add((label, SKOSXL.literalForm, Literal(label_row.value, lang=label_row.language)))
+                graph.add((label, ATLAS.inRelease, atlas_release))
+                graph.add((label, ATLAS.sourceRecord, record))
+            for identifier_row in resource_row.identifiers:
+                _add_identifier(
+                    graph,
+                    identifier_row=identifier_row,
+                    resource=resource,
+                    source_record=record,
+                    scheme_graph=spool.catalog,
+                )
+            if resource_row.definition:
+                graph.add((resource, ATLAS.definition, Literal(resource_row.definition, lang="en")))
+            for note in resource_row.notes:
+                if note:
+                    graph.add((resource, ATLAS.note, Literal(note, lang="en")))
+            for notation in resource_row.notations:
+                graph.add((resource, ATLAS.notation, Literal(notation)))
+            if resource_row.status is not None:
+                graph.add((resource, ATLAS.recordStatus, Literal(resource_row.status)))
+            if release.spec.emit_source_assignments:
+                _add_evidenced_assertion(
+                    graph,
+                    assertion_type=ATLAS.SourceAssignment,
+                    ring=ring,
+                    subject=record,
+                    predicate=assignment_predicate,
+                    obj=resource,
+                    source_release=source_release,
+                    target_release=atlas_release,
+                    policy=native_policy,
+                    asserted_at=release_instant,
+                    evidence_record=record,
+                    reviewer=NATIVE_REVIEWER,
+                    review_warrant=_review_method_for_assertion(ATLAS.SourceAssignment),
+                    decided_at=release_instant,
+                )
+            dispositions.append(
+                {
+                    "atlasResources": [resource_row.iri],
+                    "sourceRecord": str(record),
+                    "status": "represented",
+                }
+            )
+        _validate_streamed_evidence_batch(graph)
+        spool.append_graph(graph, plan)
+        graph.close()
+        _STATUS.progress(
+            "construct-source-release",
+            min(batch_position * _STREAM_CONSTRUCTION_BATCH_SIZE, len(release.resources)),
+            len(release.resources),
+            current=release.spec.key,
+        )
+
+    spool.append_graph(membership_graph, plan)
+    membership_graph.close()
+
+    for batch in _stream_batches(release.supplemental_source_records):
+        graph = _new_build_graph()
+        for supplemental in batch:
+            expected_record, _ = _source_record_constructor(
+                source_release=source_release,
+                source_locator=URIRef(supplemental.source_locator),
+                source_digest=supplemental.source_digest,
+                native_payload=supplemental.native_payload,
+            )
+            if expected_record in seen_source_records:
+                raise ValueError(f"supplemental source record is repeated: {expected_record}")
+            record = _add_source_record(
+                graph,
+                source_release=source_release,
+                source_locator=URIRef(supplemental.source_locator),
+                source_digest=supplemental.source_digest,
+                native_payload=supplemental.native_payload,
+                represents_resource=None,
+            )
+            if record != expected_record:
+                raise ValueError(f"supplemental source record identity changed: {record}")
+            seen_source_records.add(record)
+            dispositions.append(
+                {
+                    "reason": _SOURCE_CLAIM_ACCOUNTING_REASON,
+                    "sourceRecord": str(record),
+                    "status": "excluded",
+                }
+            )
+        spool.append_graph(graph, plan)
+        graph.close()
+
+    for batch in _stream_batches(release.relations):
+        graph = _new_build_graph()
+        _copy_subject_facts(spool.catalog, graph, native_policy)
+        for relation in batch:
+            source_token = spool.resource_owner_tokens.get(relation.subject)
+            target_token = spool.resource_owner_tokens.get(relation.object)
+            if source_token is None or target_token is None:
+                raise ValueError(f"native relation endpoint is outside loaded releases: {relation}")
+            source_atlas_release, _ = facts_by_token[source_token]
+            target_atlas_release, _ = facts_by_token[target_token]
+            evidence_record, evidence_digest = resource_evidence[relation.subject]
+            review_warrant = _review_method_for_assertion(ATLAS.NativeRelationAssertion)
+            if relation.predicate == str(ATLAS.thesaurusRelated):
+                evidence_locator, publisher_digest, evidence_payload = _transformed_relation_evidence(relation)
+                evidence_record = _add_source_record(
+                    graph,
+                    source_release=source_release,
+                    source_locator=evidence_locator,
+                    source_digest=publisher_digest,
+                    native_payload=evidence_payload,
+                    represents_resource=None,
+                )
+                evidence_digest = ATLAS_VALIDATE.rdf_node_digest(graph, evidence_record)
+                dispositions.append(
+                    {
+                        "reason": _TRANSFORMED_RELATION_ACCOUNTING_REASON,
+                        "sourceRecord": str(evidence_record),
+                        "status": "excluded",
+                    }
+                )
+                review_warrant = _review_method_for_assertion(
+                    ATLAS.NativeRelationAssertion,
+                    deterministic_transformation=True,
+                )
+            _add_evidenced_assertion(
+                graph,
+                assertion_type=ATLAS.NativeRelationAssertion,
+                ring=ring,
+                subject=URIRef(relation.subject),
+                predicate=URIRef(relation.predicate),
+                obj=URIRef(relation.object),
+                source_release=source_atlas_release,
+                target_release=target_atlas_release,
+                policy=native_policy,
+                asserted_at=release_instant,
+                evidence_record=evidence_record,
+                reviewer=NATIVE_REVIEWER,
+                review_warrant=review_warrant,
+                decided_at=release_instant,
+                evidence_source_digest=evidence_digest,
+            )
+        _validate_streamed_evidence_batch(graph)
+        spool.append_graph(graph, plan, extra_object_owners=evidence_owners)
+        graph.close()
+
+    for batch in _stream_batches(release.cross_ring_relations):
+        graph = _new_build_graph()
+        _copy_subject_facts(spool.catalog, graph, native_policy)
+        for relation in batch:
+            source_token = spool.resource_owner_tokens.get(relation.subject)
+            target_token = spool.resource_owner_tokens.get(relation.object)
+            if source_token is None or target_token is None:
+                raise ValueError(f"cross-ring relation endpoint is outside loaded releases: {relation}")
+            source_atlas_release, observed_source_ring = facts_by_token[source_token]
+            target_atlas_release, observed_target_ring = facts_by_token[target_token]
+            source_ring = ATLAS[relation.source_ring]
+            target_ring = ATLAS[relation.target_ring]
+            if source_atlas_release != atlas_release:
+                raise ValueError(f"cross-ring relation must be owned by its subject release: {relation}")
+            if (observed_source_ring, observed_target_ring) != (source_ring, target_ring):
+                raise ValueError(f"cross-ring relation endpoint ring differs: {relation}")
+            evidence_record, evidence_digest = resource_evidence[relation.subject]
+            _add_evidenced_assertion(
+                graph,
+                assertion_type=ATLAS.CrossRingRelationAssertion,
+                ring=None,
+                subject=URIRef(relation.subject),
+                predicate=URIRef(relation.predicate),
+                obj=URIRef(relation.object),
+                source_release=source_atlas_release,
+                target_release=target_atlas_release,
+                policy=native_policy,
+                asserted_at=release_instant,
+                evidence_record=evidence_record,
+                reviewer=NATIVE_REVIEWER,
+                review_warrant=_review_method_for_assertion(ATLAS.CrossRingRelationAssertion),
+                decided_at=release_instant,
+                evidence_source_digest=evidence_digest,
+                source_ring=source_ring,
+                target_ring=target_ring,
+            )
+        _validate_streamed_evidence_batch(graph)
+        spool.append_graph(graph, plan, extra_object_owners=evidence_owners)
+        graph.close()
+
+    accounting_row = {
+        "dispositions": sorted(dispositions, key=lambda row: row["sourceRecord"]),
+        "membershipMode": _accounting_membership_mode(release.spec.scope),
+        "sourceRelease": str(source_release),
+    }
+    local_accounting = _identified_source_accounting(
+        {
+            "inputs": [accounting_row],
+            "totals": {
+                "excluded": sum(row["status"] == "excluded" for row in dispositions),
+                "represented": sum(row["status"] == "represented" for row in dispositions),
+                "sourceRecords": len(dispositions),
+                "sourceReleases": 1,
+                "unresolved": sum(row["status"] == "unresolved" for row in dispositions),
+            },
+            "type": "AtlasSourceAccounting",
+            "version": "3.1",
+        }
+    )
+    _validate_compiled_source_accounting((release,), local_accounting)
+    return accounting_row
+
+
+def _stream_mapping_release(
+    release: RegistryMappingRelease,
+    *,
+    plan: ReleasePackPlan,
+    spool: _StreamingGraphSpool,
+    mapping_policy: URIRef,
+    facts_by_token: Mapping[str, tuple[URIRef, URIRef]],
+) -> dict[str, Any]:
+    """Construct, oracle-check, spool, and free one mapping release."""
+
+    header = _new_build_graph()
+    source_release = _add_source_release(
+        header,
+        identifier=release.source_release_iri,
+        digest=release.source_release_digest,
+        issued=release.issued,
+        locator=URIRef(release.inputs[0].source_iri),
+    )
+    spool.append_graph(header, plan)
+    header.close()
+    mapping_dispositions: dict[str, set[str]] = defaultdict(set)
+    seen_records: dict[URIRef, str] = {}
+    for batch_position, batch in enumerate(_stream_batches(release.mappings), start=1):
+        graph = _new_build_graph()
+        _copy_subject_facts(spool.catalog, graph, mapping_policy)
+        batch_release = dataclasses.replace(release, mappings=tuple(batch))
+        for mapping in batch:
+            source_token = spool.resource_owner_tokens.get(mapping.subject)
+            target_token = spool.resource_owner_tokens.get(mapping.object)
+            if source_token is None or target_token is None:
+                raise ValueError(f"mapping endpoint is outside loaded releases: {mapping}")
+            source_atlas_release, observed_source_ring = facts_by_token[source_token]
+            target_atlas_release, observed_target_ring = facts_by_token[target_token]
+            mapping_ring = _mapping_release_ring(release.ring)
+            if source_atlas_release == target_atlas_release:
+                raise ValueError(f"mapping endpoints use one release: {mapping}")
+            if source_atlas_release != URIRef(mapping.subject_atlas_release_iri):
+                raise ValueError(f"mapping subject endpoint release differs from its exact pin: {mapping}")
+            if target_atlas_release != URIRef(mapping.object_atlas_release_iri):
+                raise ValueError(f"mapping object endpoint release differs from its exact pin: {mapping}")
+            if (observed_source_ring, observed_target_ring) != (mapping_ring, mapping_ring):
+                raise ValueError(f"mapping endpoint ring differs: {mapping}")
+            # Preserve the attested direction exactly. In particular, an
+            # entity ``sameEntityAs`` claim does not license the producer to
+            # mint its inverse; the binding's corpus-wide
+            # ``dataset.mapping-direction`` check refuses both directions.
+            assertion = _add_assertion(
+                graph,
+                assertion_type=ATLAS.MappingAssertion,
+                ring=mapping_ring,
+                subject=URIRef(mapping.subject),
+                predicate=URIRef(mapping.predicate),
+                obj=URIRef(mapping.object),
+                source_release=source_atlas_release,
+                target_release=target_atlas_release,
+                policy=mapping_policy,
+                asserted_at=mapping.asserted_at,
+                effective_period=_mapping_effective_period(mapping, ring=release.ring),
+            )
+            for evidence in mapping.evidence:
+                locator, digest, payload = _mapping_evidence(release, mapping, evidence)
+                evidence_record = _add_source_record(
+                    graph,
+                    source_release=source_release,
+                    source_locator=locator,
+                    source_digest=digest,
+                    native_payload=payload,
+                    represents_resource=None,
+                )
+                _add_evidence_binding(
+                    graph,
+                    assertion=assertion,
+                    evidence_record=evidence_record,
+                    reviewer=URIRef(evidence.reviewer_iri),
+                    review_warrant=_mapping_review_method(evidence.review_warrant),
+                    decided_at=evidence.attested_at,
+                )
+                mapping_dispositions[str(evidence_record)].add(str(assertion))
+        periods = {
+            URIRef(subject)
+            for subject in graph.subjects(RDF.type, RKAF.EffectivePeriod)
+            if isinstance(subject, URIRef)
+        }
+        spool.add_catalog_subjects(graph, periods)
+        _validate_streamed_evidence_batch(graph, (batch_release,))
+        spool.append_graph(
+            graph,
+            plan,
+            deduplicate=seen_records,
+            deduplicate_types=frozenset({ATLAS.SourceRecord}),
+        )
+        graph.close()
+        _STATUS.progress(
+            "construct-mapping-release",
+            min(batch_position * _STREAM_CONSTRUCTION_BATCH_SIZE, len(release.mappings)),
+            len(release.mappings),
+            current=release.key,
+        )
+    return {
+        "dispositions": [
+            {
+                "atlasAssertions": sorted(assertions),
+                "sourceRecord": source_record,
+                "status": "represented",
+            }
+            for source_record, assertions in sorted(mapping_dispositions.items())
+        ],
+        "membershipMode": _accounting_membership_mode(release.scope),
+        "sourceRelease": str(source_release),
+    }
+
+
+def _stream_construct_graphs(
+    releases: list[LoadedRelease],
+    mapping_releases: list[RegistryMappingRelease],
+    *,
+    prebuild: ProducerPrebuildValidation,
+    spool_root: Path,
+) -> _StreamedConstruction:
+    """Construct the full distribution through bounded graphs and disk spools."""
+
+    all_source_releases = tuple(releases)
+    all_mapping_releases = tuple(mapping_releases)
+    plans_by_key = {plan.key: plan for plan in prebuild.pack_plans}
+    catalog = _registry_asserted_graph()
+    _ensure_release_schemes(catalog, releases)
+    native_policy = _add_policy(catalog, SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD)
+    mapping_policies = {
+        release.key: _add_policy(catalog, release.editorial_policy)
+        for release in mapping_releases
+    }
+    token_by_key = {key: _release_pack_token(plan) for key, plan in plans_by_key.items()}
+    resource_owner_tokens: dict[str, str] = {}
+    facts_by_token: dict[str, tuple[URIRef, URIRef]] = {}
+    for release in releases:
+        token = token_by_key[release.spec.key]
+        facts_by_token[token] = (URIRef(release.atlas_release_iri), ATLAS[release.spec.ring])
+        for resource in release.resources:
+            previous = resource_owner_tokens.setdefault(resource.iri, token)
+            if previous != token:
+                raise ValueError(f"Atlas releases repeat resource IRI {resource.iri}")
+    spool = _StreamingGraphSpool(
+        spool_root,
+        prebuild.pack_plans,
+        resource_owner_tokens=resource_owner_tokens,
+        catalog=catalog,
+    )
+    accounting_rows: list[dict[str, Any]] = []
+    source_total = len(releases)
+    source_position = 0
+    while releases:
+        release = releases.pop(0)
+        source_position += 1
+        _STATUS.phase(
+            "construct-source-release",
+            current=f"{release.spec.key} ({source_position}/{source_total})",
+        )
+        accounting_rows.append(
+            _stream_source_release(
+                release,
+                plan=plans_by_key[release.spec.key],
+                spool=spool,
+                native_policy=native_policy,
+                facts_by_token=facts_by_token,
+            )
+        )
+        del release
+        gc.collect()
+
+    mapping_total = len(mapping_releases)
+    mapping_position = 0
+    while mapping_releases:
+        release = mapping_releases.pop(0)
+        mapping_position += 1
+        _STATUS.phase(
+            "construct-mapping-release",
+            current=f"{release.key} ({mapping_position}/{mapping_total})",
+        )
+        accounting_rows.append(
+            _stream_mapping_release(
+                release,
+                plan=plans_by_key[release.key],
+                spool=spool,
+                mapping_policy=mapping_policies[release.key],
+                facts_by_token=facts_by_token,
+            )
+        )
+        del release
+        gc.collect()
+
+    spool.append_catalog()
+    accounting_rows.sort(key=lambda row: row["sourceRelease"])
+    represented = sum(
+        disposition["status"] == "represented"
+        for row in accounting_rows
+        for disposition in row["dispositions"]
+    )
+    excluded = sum(
+        disposition["status"] == "excluded"
+        for row in accounting_rows
+        for disposition in row["dispositions"]
+    )
+    unresolved = sum(
+        disposition["status"] == "unresolved"
+        for row in accounting_rows
+        for disposition in row["dispositions"]
+    )
+    accounting = _identified_source_accounting(
+        {
+            "inputs": accounting_rows,
+            "totals": {
+                "excluded": excluded,
+                "represented": represented,
+                "sourceRecords": represented + excluded + unresolved,
+                "sourceReleases": len(accounting_rows),
+                "unresolved": unresolved,
+            },
+            "type": "AtlasSourceAccounting",
+            "version": "3.1",
+        }
+    )
+    accounting_digest = _validate_compiled_source_accounting(
+        all_source_releases,
+        accounting,
+        all_mapping_releases,
+    )
+    if spool.counts != dict(prebuild.compiled_rows.expected_counts):
+        raise ValueError(
+            "compiled producer constructor counts differ: "
+            f"expected={dict(prebuild.compiled_rows.expected_counts)}, observed={spool.counts}"
+        )
+    streamed_record_counts: Counter[str] = Counter()
+    for record_counts in spool.record_counts.values():
+        streamed_record_counts.update(record_counts)
+    observed_construction_counts = _reconcile_prebuild_construction_counts(
+        spool.counts,
+        source_release_count=prebuild.compiled_rows.source_release_count,
+        declared_record_counts=streamed_record_counts,
+    )
+    if observed_construction_counts != dict(
+        prebuild.compiled_rows.expected_construction_counts
+    ):
+        raise ValueError(
+            "streamed construction counts differ from the prebuild receipt: "
+            f"prebuild={dict(prebuild.compiled_rows.expected_construction_counts)}, "
+            f"streamed={observed_construction_counts}"
+        )
+    if accounting["totals"]["sourceRecords"] != spool.counts["sourceRecords"]:
+        raise ValueError("streamed source accounting and RDF source-record counts differ")
+    if dict(prebuild.compiled_rows.binding_profile) != ATLAS_VALIDATE._binding_digests():
+        raise ValueError("the binding changed on disk between row validation and output validation")
+    compiled_validation = {
+        "bindingProfile": dict(prebuild.compiled_rows.binding_profile),
+        "constructorProfile": _COMPILED_PRODUCER_PROFILE,
+        "counts": dict(spool.counts),
+        "mode": _COMPILED_PRODUCER_MODE,
+        "sourceAccountingDigest": accounting_digest,
+        "sourceReleaseCount": prebuild.compiled_rows.source_release_count,
+        "status": "passed",
+    }
+    return _StreamedConstruction(
+        accounting=accounting,
+        compiled_validation=compiled_validation,
+        spool=spool,
+    )
 
 
 def _release_pack_token(release: ReleasePackPlan) -> str:
@@ -6736,6 +8287,7 @@ def _write_candidate_distribution(
     compiled_validation: Mapping[str, Any] | None = None,
     construction_seeds: Sequence[ReleaseConstructionSeed] = (),
     parquet_tables: Path | None = None,
+    agency_projection: AgencyProjection | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Write and producer-validate a candidate that is not yet publishable.
 
@@ -6785,6 +8337,11 @@ def _write_candidate_distribution(
         )
         if parquet is not None:
             parquet.close()
+            if agency_projection is not None:
+                write_agency_projection_tables(
+                    parquet_tables,
+                    agency_projection,
+                )
     except BaseException:
         if parquet is not None:
             parquet.__exit__()
@@ -6968,6 +8525,197 @@ def _write_candidate_distribution(
     return result, manifest
 
 
+def _write_streamed_candidate_distribution(
+    output: Path,
+    streamed: _StreamedConstruction,
+    releases: Sequence[ReleasePackPlan],
+    *,
+    created_at: str,
+    construction_seeds: Sequence[ReleaseConstructionSeed],
+    parquet_tables: Path | None = None,
+    agency_projection: AgencyProjection | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Write one candidate from release spools instead of a resident graph."""
+
+    if not releases or not construction_seeds:
+        raise ValueError("candidate writing requires release-local construction inputs")
+    compiled_counts = streamed.compiled_validation.get("counts")
+    if not isinstance(compiled_counts, Mapping):
+        raise TypeError("compiled producer validation has no count receipt")
+    incremental = ColdPackMaterialization()
+    output.mkdir(parents=True, exist_ok=True)
+    extras = sorted(path.name for path in output.iterdir())
+    if extras:
+        raise FileExistsError(f"distribution contains unexpected existing files: {extras}")
+
+    accounting_path = output / "atlas-source-accounting.json"
+    acceptance_path = output / "atlas-acceptance.json"
+    construction_summary_path = output / "atlas-construction-summary.json"
+    manifest_path = output / "atlas-manifest.json"
+    producer_validation_path = output / "atlas-producer-validation.json"
+    _STATUS.phase("write-rdf-packs-and-parquet-tables")
+    packs, graph_descriptors = streamed.spool.materialize_packs(
+        output,
+        incremental=incremental,
+    )
+    parquet_parity: dict[str, Any] | None = None
+    if parquet_tables is not None:
+        streamed.spool.write_parquet(parquet_tables)
+        if agency_projection is not None:
+            write_agency_projection_tables(parquet_tables, agency_projection)
+        _STATUS.phase("check-parquet-view-against-rdf")
+        parquet_parity = streamed.spool.check_parquet(parquet_tables)
+
+    _STATUS.phase("write-receipts-and-manifest")
+    accounting_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(streamed.accounting))
+    binding_digests = ATLAS_VALIDATE._binding_digests()
+    binding = {
+        "validatorVersion": "3.1",
+        "version": "3.1",
+        **binding_digests,
+    }
+    construction_summary = _construction_summary(
+        accounting=streamed.accounting,
+        binding=binding,
+        graph_descriptors=graph_descriptors,
+        packs=packs,
+        plans=releases,
+        record_counts=streamed.spool.record_counts,
+        seeds=construction_seeds,
+        source_accounting_digest=_sha256_file(accounting_path),
+    )
+    construction_summary_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(construction_summary))
+    producer_validation = _producer_validation_receipt(
+        streamed.compiled_validation,
+        binding=binding,
+        asserted_inventory_digest=graph_descriptors[0]["inventoryDigest"],
+        construction_summary_receipt=_construction_summary_receipt(
+            construction_summary_path,
+            construction_summary,
+        ),
+    )
+    producer_validation_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(producer_validation))
+    acceptance_inputs = {
+        "atlasDigest": graph_descriptors[0]["inventoryDigest"],
+        **binding_digests,
+        "producerValidationDigest": _sha256_file(producer_validation_path),
+        "sourceAccountingDigest": _sha256_file(accounting_path),
+    }
+    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
+    distribution_id = _distribution_id(streamed.accounting)
+    acceptance = {
+        "corpusDigest": ATLAS_VALIDATE.corpus_digest(),
+        "distributionId": distribution_id,
+        "evaluatedAt": created_at,
+        "gates": [
+            {
+                "evidenceDigest": ATLAS_VALIDATE.acceptance_gate_evidence_digest(
+                    gate,
+                    inputs=acceptance_inputs,
+                    validator=validator_identity,
+                ),
+                "name": gate,
+                "status": "passed",
+            }
+            for gate in sorted(ATLAS_VALIDATE.REQUIRED_GATES)
+        ],
+        "inputs": acceptance_inputs,
+        "type": "AtlasAcceptance",
+        "validator": validator_identity,
+        "verdict": "passed",
+        "version": "3.1",
+    }
+    acceptance_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(acceptance))
+    manifest = {
+        "binding": binding,
+        "counts": dict(compiled_counts),
+        "createdAt": created_at,
+        "distributionId": distribution_id,
+        "format": "refspec-atlas-packed-nquads-3.1",
+        "graphs": graph_descriptors,
+        "members": [
+            _file_member(accounting_path, role="sourceAccounting", media_type="application/json"),
+            _file_member(acceptance_path, role="acceptance", media_type="application/json"),
+            _file_member(
+                producer_validation_path,
+                role="producerValidation",
+                media_type="application/json",
+            ),
+            _file_member(
+                construction_summary_path,
+                role="constructionSummary",
+                media_type="application/json",
+            ),
+        ],
+        "packs": packs,
+        "schemaVersion": "3.1",
+        "type": "AtlasManifest",
+    }
+    manifest["canonicalPayloadDigest"] = ATLAS_VALIDATE.canonical_sha256(
+        manifest,
+        terminal_lf=False,
+    )
+    manifest_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(manifest))
+
+    _STATUS.phase("validate-candidate-metadata")
+    schemas, registry = ATLAS_VALIDATE._schema_registry()
+    for value, schema_name, label in (
+        (manifest, "manifest", "manifest"),
+        (streamed.accounting, "sourceAccounting", "source accounting"),
+        (acceptance, "acceptance", "acceptance"),
+        (producer_validation, "producerValidation", "producer validation"),
+        (construction_summary, "constructionSummary", "construction summary"),
+    ):
+        ATLAS_VALIDATE._validate_json_schema(
+            value,
+            schema_name,
+            schemas=schemas,
+            registry=registry,
+            label=label,
+        )
+    ATLAS_VALIDATE._check_manifest_digest(manifest)
+    ATLAS_VALIDATE._check_pack_manifest(manifest)
+    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance)
+    member_digests = {member["path"]: member["digest"] for member in manifest["members"]}
+    ATLAS_VALIDATE._check_construction_summary_identity(
+        manifest,
+        producer_validation,
+        construction_summary,
+        member_digests,
+    )
+    ATLAS_VALIDATE._check_construction_accounting(construction_summary, streamed.accounting)
+    ATLAS_VALIDATE._check_producer_validation(
+        manifest,
+        acceptance,
+        producer_validation,
+        construction_summary,
+        member_digests,
+        streamed.accounting,
+    )
+    ATLAS_VALIDATE._check_acceptance_metadata(manifest, acceptance, member_digests)
+    writer_receipts = _trusted_writer_receipt_checks(output, manifest=manifest)
+    _check_producer_validation_receipt(
+        producer_validation,
+        manifest=manifest,
+        accounting_path=accounting_path,
+        construction_summary_path=construction_summary_path,
+    )
+    result: dict[str, Any] = {
+        "independentFileConsumerValidation": {
+            "performedByGenerator": False,
+            "requiredForIndependentConsumers": True,
+            "validator": "bindings/atlas/3.1/tools/validate.py:validate_distribution",
+        },
+        "compiledProducerValidation": producer_validation,
+        "packMaterialization": incremental.report(),
+        "status": "passed",
+        "trustedWriterReceiptChecks": writer_receipts,
+    }
+    if parquet_parity is not None:
+        result["parquetViewParity"] = parquet_parity
+    return result, manifest
+
+
 def _generation_report_path(output: Path) -> Path:
     return output.parent / "generation-report.json"
 
@@ -7012,6 +8760,8 @@ def _write_distribution(
     generation_report: Mapping[str, Any],
     compiled_validation: Mapping[str, Any],
     parquet_view: Path | None = None,
+    agency_projection: AgencyProjection | None = None,
+    agency_projection_missing_keys: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Validate in a sibling temporary directory, then promote the result."""
 
@@ -7040,6 +8790,7 @@ def _write_distribution(
             compiled_validation=compiled_validation,
             construction_seeds=construction_seeds,
             parquet_tables=staged_tables,
+            agency_projection=agency_projection,
         )
         if staged_tables is not None:
             # The tables were streamed out of the graph while the packs were
@@ -7052,6 +8803,10 @@ def _write_distribution(
                 staged_tables,
                 sealed_view,
                 expected_manifest_digest=_sha256_file(candidate / "atlas-manifest.json"),
+                agency_projection=_agency_projection_manifest_metadata(
+                    agency_projection,
+                    agency_projection_missing_keys,
+                ),
             )
         report = {
             **_plain(generation_report),
@@ -7060,6 +8815,7 @@ def _write_distribution(
                 "manifestDigest": _sha256_file(candidate / "atlas-manifest.json"),
                 "path": report_distribution_path,
             },
+            "memoryProfile": _STATUS.memory_profile(),
             "productionRelationScope": relation_scope,
             "validation": result,
         }
@@ -7076,6 +8832,98 @@ def _write_distribution(
             output,
             temporary_root=temporary_root,
         )
+        if parquet_view is not None:
+            previous_view_root = temporary_root / "previous-parquet-view"
+            previous_view_root.mkdir()
+            _promote_validated_distribution(
+                sealed_view,
+                parquet_view,
+                temporary_root=previous_view_root,
+            )
+        try:
+            candidate_report.replace(report_path)
+        except BaseException:
+            failed_candidate = temporary_root / "validated-distribution"
+            output.rename(failed_candidate)
+            previous = temporary_root / "previous-distribution"
+            if previous.exists():
+                previous.rename(output)
+            raise
+    return result
+
+
+def _write_streamed_distribution(
+    output: Path,
+    streamed: _StreamedConstruction,
+    *,
+    releases: Sequence[ReleasePackPlan],
+    construction_seeds: Sequence[ReleaseConstructionSeed],
+    generation_report: Mapping[str, Any],
+    parquet_view: Path | None = None,
+    agency_projection: AgencyProjection | None = None,
+    agency_projection_missing_keys: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Validate and promote one distribution assembled from disk spools."""
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    counts = streamed.compiled_validation.get("counts")
+    if not isinstance(counts, Mapping):
+        raise TypeError("compiled producer validation has no count receipt")
+    created_at = generation_report.get("createdAt")
+    if not isinstance(created_at, str) or not created_at:
+        raise TypeError("generation report has no recorded instant")
+    distribution_id = _distribution_id(streamed.accounting)
+    relation_scope = _production_relation_scope_from_counts(counts)
+    report_distribution_path = _generation_report_distribution_path(output)
+    with tempfile.TemporaryDirectory(
+        prefix=f".{output.name}.candidate-",
+        dir=output.parent,
+    ) as raw_temporary_root:
+        temporary_root = Path(raw_temporary_root)
+        candidate = temporary_root / "distribution"
+        staged_tables = None if parquet_view is None else temporary_root / "parquet-view"
+        result, manifest = _write_streamed_candidate_distribution(
+            candidate,
+            streamed,
+            releases,
+            created_at=created_at,
+            construction_seeds=construction_seeds,
+            parquet_tables=staged_tables,
+            agency_projection=agency_projection,
+        )
+        if staged_tables is not None:
+            _STATUS.phase("seal-parquet-view")
+            sealed_view = temporary_root / "sealed-parquet-view"
+            seal_atlas_parquet_view(
+                candidate,
+                staged_tables,
+                sealed_view,
+                expected_manifest_digest=_sha256_file(candidate / "atlas-manifest.json"),
+                agency_projection=_agency_projection_manifest_metadata(
+                    agency_projection,
+                    agency_projection_missing_keys,
+                ),
+            )
+        report = {
+            **_plain(generation_report),
+            "distribution": {
+                "id": distribution_id,
+                "manifestDigest": _sha256_file(candidate / "atlas-manifest.json"),
+                "path": report_distribution_path,
+            },
+            "memoryProfile": _STATUS.memory_profile(),
+            "productionRelationScope": relation_scope,
+            "validation": result,
+        }
+        candidate_report = temporary_root / "generation-report.json"
+        candidate_report.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
+        if manifest["distributionId"] != distribution_id:
+            raise ValueError("candidate manifest distribution identity differs")
+        report_path = _generation_report_path(output)
+        if report_path.exists() and not (report_path.is_file() or report_path.is_symlink()):
+            raise FileExistsError(f"generation report path is not replaceable: {report_path}")
+        _STATUS.phase("promote-validated-distribution")
+        _promote_validated_distribution(candidate, output, temporary_root=temporary_root)
         if parquet_view is not None:
             previous_view_root = temporary_root / "previous-parquet-view"
             previous_view_root.mkdir()
@@ -7636,9 +9484,9 @@ def validate_prebuild_loaded_releases(
 ) -> ProducerPrebuildValidation:
     """Run the producer's pre-write checks over already loaded releases.
 
-    The default path stops before the expensive RDF construction. ``deep``
-    additionally constructs the graph and runs the producer's compiled-output
-    validation, but still writes no distribution bytes.
+    The default path stops before RDF construction. ``deep`` additionally
+    constructs, validates, spools, and frees the release-scoped RDF batches,
+    but still writes no distribution bytes.
     """
 
     loaded_releases = tuple(releases)
@@ -7674,21 +9522,20 @@ def validate_prebuild_loaded_releases(
 
     deep_compiled_output: Mapping[str, Any] | None = None
     if deep:
-        graphs = _build_graphs(
-            loaded_releases,
-            mapping_releases=loaded_mappings,
-            include_projection=False,
-            all_plans=pack_plans,
-        )
-        try:
-            deep_compiled_output = _validate_compiled_producer_output(
-                loaded_releases,
-                graphs,
-                compiled_rows,
-                loaded_mappings,
+        with tempfile.TemporaryDirectory(prefix="atlas3-deep-prebuild-") as raw_spool:
+            streamed = _stream_construct_graphs(
+                list(loaded_releases),
+                list(loaded_mappings),
+                prebuild=ProducerPrebuildValidation(
+                    compiled_rows=compiled_rows,
+                    construction_seeds=construction_seeds,
+                    generation_report=generation_report,
+                    input_inventory=input_inventory,
+                    pack_plans=pack_plans,
+                ),
+                spool_root=Path(raw_spool),
             )
-        finally:
-            graphs.release()
+            deep_compiled_output = streamed.compiled_validation
 
     return ProducerPrebuildValidation(
         compiled_rows=compiled_rows,
@@ -7741,10 +9588,8 @@ def build_distribution(
     bounding the load bounds the distribution, including the scope segment its
     identity carries.
 
-    ``parquet_view`` emits the typed Parquet view beside the distribution,
-    straight from the in-memory graph, during the single walk that already
-    writes the RDF and compact packs. Re-deriving it afterwards would mean
-    re-reading everything that walk just wrote.
+    ``parquet_view`` emits the typed Parquet view beside the distribution from
+    the same bounded release graphs that feed the canonical RDF spools.
     """
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -7766,32 +9611,41 @@ def build_distribution(
         releases,
         mapping_releases,
     )
-    _STATUS.phase("construct-graphs")
-    graphs = _build_graphs(
-        releases,
-        mapping_releases=mapping_releases,
-        include_projection=False,
-        all_plans=prebuild.pack_plans,
-    )
-    _STATUS.phase("validate-constructed-graphs")
-    compiled_validation = _validate_compiled_producer_output(
-        releases,
-        graphs,
-        prebuild.compiled_rows,
-        mapping_releases,
-    )
-    del releases
-    del mapping_releases
-    _STATUS.phase("write-distribution")
-    result = _write_distribution(
-        output,
-        graphs,
-        releases=prebuild.pack_plans,
-        construction_seeds=prebuild.construction_seeds,
-        generation_report=prebuild.generation_report,
-        compiled_validation=compiled_validation,
-        parquet_view=_parquet_view_path(output) if parquet_view else None,
-    )
+    agency_projection: AgencyProjection | None = None
+    agency_projection_missing_keys: tuple[str, ...] = ()
+    if parquet_view:
+        (
+            agency_projection,
+            agency_projection_missing_keys,
+        ) = _agency_projection_from_loaded_releases(
+            releases,
+            mapping_releases,
+        )
+    source_queue = list(releases)
+    mapping_queue = list(mapping_releases)
+    del releases, mapping_releases
+    with tempfile.TemporaryDirectory(
+        prefix="atlas3-construction-spool-",
+        dir=output.parent,
+    ) as raw_spool:
+        _STATUS.phase("construct-validate-and-spool-releases")
+        streamed = _stream_construct_graphs(
+            source_queue,
+            mapping_queue,
+            prebuild=prebuild,
+            spool_root=Path(raw_spool),
+        )
+        _STATUS.phase("write-distribution")
+        result = _write_streamed_distribution(
+            output,
+            streamed,
+            releases=prebuild.pack_plans,
+            construction_seeds=prebuild.construction_seeds,
+            generation_report=prebuild.generation_report,
+            parquet_view=_parquet_view_path(output) if parquet_view else None,
+            agency_projection=agency_projection,
+            agency_projection_missing_keys=agency_projection_missing_keys,
+        )
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

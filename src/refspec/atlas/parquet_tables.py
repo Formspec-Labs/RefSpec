@@ -31,6 +31,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from refspec.atlas.agency_projection import AgencyProjection
 from refspec.atlas.compact_pack import CompactRecordRole, compact_record_fields
 from refspec.atlas.parquet_artifact import arrow_schema_sha256, file_sha256
 from refspec.release_model import canonical_native_json_bytes
@@ -191,6 +192,148 @@ TABLE_NAMES: Mapping[CompactRecordRole, str] = {
     CompactRecordRole.IDENTIFIER: "identifiers.parquet",
     CompactRecordRole.LIFECYCLE_EVENT: "lifecycle-events.parquet",
 }
+
+AGENCY_PROJECTION_ROLE = "agencyProjection"
+AGENCY_PROJECTION_UNRESOLVED_ROLE = "agencyProjectionUnresolved"
+
+_AGENCY_PROJECTION_SOURCE_RECORD = pa.struct(
+    [
+        pa.field("release_key", pa.string(), nullable=False),
+        pa.field("release_digest", pa.string(), nullable=False),
+        pa.field("resource", pa.string(), nullable=False),
+        pa.field("source_locator", pa.string(), nullable=False),
+        pa.field("source_digest", pa.string(), nullable=False),
+        pa.field("field", pa.string(), nullable=False),
+        pa.field("value", pa.string(), nullable=False),
+        pa.field("publisher_name", pa.string(), nullable=False),
+    ]
+)
+_AGENCY_PROJECTION_EVIDENCE = pa.struct(
+    [
+        pa.field("record_id", pa.string(), nullable=False),
+        pa.field("evidence_tier", pa.string(), nullable=False),
+        pa.field("warrant", pa.string(), nullable=False),
+        pa.field("reviewer", pa.string(), nullable=False),
+        pa.field("adjudicated_on", pa.string(), nullable=False),
+        pa.field("decision_record", pa.string(), nullable=False),
+        pa.field("decision", pa.string(), nullable=False),
+        pa.field("decision_basis", pa.string(), nullable=False),
+        pa.field("relation", pa.string(), nullable=False),
+        pa.field("name_similarity_used", pa.bool_(), nullable=False),
+        pa.field("reasoning", pa.string(), nullable=False),
+        pa.field(
+            "source_record",
+            _AGENCY_PROJECTION_SOURCE_RECORD,
+            nullable=False,
+        ),
+        pa.field(
+            "target_record",
+            _AGENCY_PROJECTION_SOURCE_RECORD,
+            nullable=False,
+        ),
+    ]
+)
+_AGENCY_PROJECTION_CLOSEST_CANDIDATE = pa.struct(
+    [
+        pa.field("resource", pa.string(), nullable=False),
+        pa.field("publisherName", pa.string(), nullable=False),
+        pa.field("reason", pa.string(), nullable=False),
+    ]
+)
+AGENCY_PROJECTION_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+    AGENCY_PROJECTION_ROLE: pa.schema(
+        [
+            pa.field("source_value_kind", pa.string(), nullable=False),
+            pa.field("source_value", pa.string(), nullable=False),
+            pa.field("org", pa.string(), nullable=False),
+            pa.field("pref_label", pa.string(), nullable=False),
+            pa.field("abbreviations", pa.list_(pa.string()), nullable=False),
+            pa.field("aliases", pa.list_(pa.string()), nullable=False),
+            pa.field("parent_org", pa.string()),
+            pa.field("relation", pa.string(), nullable=False),
+            pa.field("evidence_tier", pa.string(), nullable=False),
+            pa.field("warrant", pa.string(), nullable=False),
+            pa.field("basis", pa.string(), nullable=False),
+            pa.field(
+                "evidence_records",
+                pa.list_(_AGENCY_PROJECTION_EVIDENCE),
+                nullable=False,
+            ),
+        ]
+    ),
+    AGENCY_PROJECTION_UNRESOLVED_ROLE: pa.schema(
+        [
+            pa.field("source_value_kind", pa.string(), nullable=False),
+            pa.field("source_value", pa.string(), nullable=False),
+            pa.field("source_org", pa.string(), nullable=False),
+            pa.field("pref_label", pa.string(), nullable=False),
+            pa.field("source_parent_org", pa.string()),
+            pa.field("reason", pa.string(), nullable=False),
+            pa.field("reasoning", pa.string(), nullable=False),
+            pa.field(
+                "candidate_resources",
+                pa.list_(pa.string()),
+                nullable=False,
+            ),
+            pa.field(
+                "closest_non_adopted_candidate",
+                _AGENCY_PROJECTION_CLOSEST_CANDIDATE,
+            ),
+        ]
+    ),
+}
+AGENCY_PROJECTION_TABLE_NAMES: Mapping[str, str] = {
+    AGENCY_PROJECTION_ROLE: "agency-projection.parquet",
+    AGENCY_PROJECTION_UNRESOLVED_ROLE: (
+        "agency-projection-unresolved.parquet"
+    ),
+}
+
+
+def agency_projection_table_relative_path(role: str) -> str:
+    """Return one REF-038 table's view-relative path."""
+
+    return f"{TABLE_DIRECTORY}/{AGENCY_PROJECTION_TABLE_NAMES[role]}"
+
+
+def write_agency_projection_tables(
+    output: Path,
+    projection: AgencyProjection,
+) -> None:
+    """Write and round-trip-check the two all-or-none REF-038 view tables."""
+
+    rows_by_role = {
+        AGENCY_PROJECTION_ROLE: [row.to_dict() for row in projection.rows],
+        AGENCY_PROJECTION_UNRESOLVED_ROLE: [
+            row.to_dict() for row in projection.unresolved
+        ],
+    }
+    directory = output / TABLE_DIRECTORY
+    directory.mkdir(parents=True, exist_ok=True)
+    for role, rows in rows_by_role.items():
+        target = directory / AGENCY_PROJECTION_TABLE_NAMES[role]
+        if target.exists():
+            raise FileExistsError(
+                f"agency projection table already exists: {target}"
+            )
+        pq.write_table(
+            pa.Table.from_pylist(
+                rows,
+                schema=AGENCY_PROJECTION_TABLE_SCHEMAS[role],
+            ),
+            target,
+            compression=COMPRESSION,
+            compression_level=COMPRESSION_LEVEL,
+            use_dictionary=True,
+            write_statistics=True,
+            version=PARQUET_VERSION,
+            data_page_version=DATA_PAGE_VERSION,
+            row_group_size=ROW_GROUP_SIZE,
+        )
+        if pq.read_table(target).to_pylist() != rows:
+            raise AtlasParquetTableError(
+                f"agency projection Parquet round trip differs: {role}"
+            )
 
 
 def table_relative_path(role: CompactRecordRole) -> str:
@@ -462,6 +605,10 @@ def write_parquet_tables(
 
 
 __all__ = [
+    "AGENCY_PROJECTION_ROLE",
+    "AGENCY_PROJECTION_TABLE_NAMES",
+    "AGENCY_PROJECTION_TABLE_SCHEMAS",
+    "AGENCY_PROJECTION_UNRESOLVED_ROLE",
     "COMPRESSION",
     "COMPRESSION_LEVEL",
     "DATA_PAGE_VERSION",
@@ -472,10 +619,12 @@ __all__ = [
     "TABLE_SCHEMAS",
     "AtlasParquetTableError",
     "AtlasParquetTableWriter",
+    "agency_projection_table_relative_path",
     "column_name",
     "logical_records_preserved",
     "parquet_row",
     "table_relative_path",
     "unpreserved_record_fields",
+    "write_agency_projection_tables",
     "write_parquet_tables",
 ]

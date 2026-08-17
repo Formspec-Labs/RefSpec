@@ -34,6 +34,7 @@ def _counts() -> dict[str, int]:
     return {
         "crossRingRelationAssertions": 0,
         "derivedRelations": 0,
+        "evidenceBindings": 0,
         "identifiers": 0,
         "labels": 0,
         "mappingAssertions": 0,

@@ -2336,16 +2336,25 @@ both would violate SKOS S27. The canonical refused-pair list has the frozen
 digest
 `sha256:fc9afdc9c1da43839d133ff0efe409dd0c6c0624152bacdfb65e9bd9320653bd`;
 a changed count or pair fails producer loading. The LC mapping release remains
-the declared reconciliation dependency, not an OCLC evidence input.
+the declared reconciliation dependency, not an OCLC evidence input. S27
+filtering leaves one OCLC change archive with no admitted assertion. That
+archive is also a declared reconciliation dependency rather than a mapping
+evidence input; the mapping release digest covers only the four OCLC artifacts
+that prove retained assertions.
 
-The native endpoint release preserves 47,049 content-backed
-FAST-to-FAST `rdfs:seeAlso` rows as `atlas:thesaurusRelated`, with the exact
-predicate translation in evidence. It omits 31,932 rows whose 668 FAST targets
-lack publisher content, 76,190 Wikipedia targets for which the file supplies
-links but no target records, two non-topical `rdfs:seeAlso` rows, and two
-`owl:sameAs` rows. Its 45,929-resource endpoint release owns the 11,587 exact
-FAST IRIs that also occur in LC's endpoint-label capture because OCLC owns and
-best documents FAST. No omitted target becomes a stub.
+The native endpoint release retains publisher content for both endpoints of
+47,049 FAST-to-FAST `rdfs:seeAlso` rows. It emits none of those rows as semantic
+relations: `rdfs:seeAlso` is navigational, Atlas 3.1 has no matching semantic
+predicate, and the binding permits `atlas:thesaurusRelated` only when the pair
+also has a hierarchy path. The producer's real hierarchy check finds zero such
+pairs; the empty frozen list has digest
+`sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570`.
+The release also counts 31,932 rows whose 668 FAST targets lack publisher
+content, 76,190 Wikipedia targets for which the file supplies links but no
+target records, two non-topical `rdfs:seeAlso` rows, and two `owl:sameAs` rows.
+Its 45,929-resource endpoint release owns the 11,587 exact FAST IRIs that also
+occur in LC's endpoint-label capture because OCLC owns and best documents FAST.
+No omitted target becomes a stub.
 
 The remaining seventeen EuroVoc alignment files contain 22,710 assertions.
 The alignment pages state no license for those files; the record therefore says
@@ -2444,10 +2453,10 @@ then verifies that every unchanged mapping names the selected endpoint release.
 ### REF-038: The regulations.gov agency roster lands, and reviewed identity claims govern the agency projection
 
 - **Date:** 2026-08-16
-- **Status:** Accepted. The pinned reader, entity roster, identifier census,
-  321-assertion entity mapping release, and pure projection builder execute in
-  source and tests. Producer, portfolio, binding, and Parquet integration remain
-  an explicit handoff because those files were under concurrent ownership.
+- **Status:** Accepted and executed. The pinned reader, entity roster,
+  identifier census, 321-assertion entity mapping release, pure projection
+  builder, producer, portfolio chain, Atlas binding, and Parquet view are
+  registered and checked together.
 
 **The roster closes REF-034's credential barrier.** The owner supplied a
 `REGULATIONS_GOV_API_KEY`, and the publisher returned 331 records from
@@ -2565,3 +2574,104 @@ violation, forbidden identifier emission, inverse minting, input reordering,
 publisher-name drift, or any assertion/metadata/projection parity loss. Producer
 and Parquet integration must preserve these assertions, rows, evidence records,
 coverage counts, and digests exactly.
+
+**Completion note, 2026-08-16.** The producer now loads the regulations.gov
+roster through the entity-roster group and loads
+`regulations-gov-agency-identity-2026-08-16` through the mapping-release path.
+The mapping release pins the five roster input sets and the owner-adjudication
+artifact. Independent fidelity readers reparse both the 331-resource roster and
+the 321 asserted mappings with their 642 E4 evidence records. The portfolio
+catalog has 115 resources and the planning index has 111 rows; the added
+`regulations-gov-agency-identity` source is `mappingAssertionsOnly`. The binding
+serializes entity-ring `atlas:sameEntityAs`, rejects a separately asserted
+inverse, and the sealed Parquet view covers both projection tables in its
+manifest digest. A complete load projects 321 resolved rows, ten unresolved
+rows, 159 target-parent rows, and 321 projection evidence records.
+
+This integration also strengthened the Atlas 3.1 binding. The new corpus-wide
+`dataset.mapping-direction` check refuses a distribution that asserts both
+directions of one entity `atlas:sameEntityAs` identity. The producer follows
+the direction-of-attestation rule: it emits each mapping exactly as reviewed
+and never invents an inverse. The valid producer test and the inverse negative
+fixture check both sides of that invariant. Adding the required corpus case
+moved `fixtures-receipt.json`'s `fixturesDigest` from
+`sha256:6ffa6fc58ba290961b55bcf0428e46482c63ac41d7029f0d011063bcad05a95c`
+to `sha256:6043d5867474942264cc235cde63ec30e43572cb38ecbc565c969909e7ab0938`.
+
+### REF-039: Two retained validation structures remain acceptable only at the measured corpus scale
+
+- **Date:** 2026-08-16
+- **Status:** Accepted as a measured current-scale limit. The runtime changes
+  below are deferred until either trigger fires; the tests and evidence record
+  land now.
+
+The streamed constructor bounds each RDF construction graph, but two validation
+structures still grow with the complete corpus. First,
+`_stream_construct_graphs` copies the source and mapping queues into
+`all_source_releases` and `all_mapping_releases`. Those tuples retain every
+release object while the queue's `pop`, `del`, and `gc.collect()` calls run, so
+the apparent drain frees none of the normalized release data before final
+source-accounting validation. Second, `_mapping_accounting_expectations` calls
+`_expected_mapping_asserted_graph`, which rebuilds one resident graph over all
+mapping assertions, evidence bindings, evidence source records, and policies.
+Release data and expected-mapping validation therefore both remain bounded by
+corpus size rather than by the construction batch size.
+
+This is an accepted mitigation at the present scale, not a proof of constant
+memory. The 2026-08-16 full-build attempt carried 1,344,511 resources and
+865,264 mapping assertions. Its measured peak remained below 6 GiB RSS; live
+sampling during this review observed 5,773,616 KiB, about 5.51 GiB. Either
+more than 5,000,000 mapping assertions or a full-build peak above 24 GiB makes
+both follow-ups mandatory before the next production build:
+
+1. Fold each release's source-accounting expectations into a compact
+   accumulator while the queue drains. Validate the final ledger against that
+   accumulator and remove the two corpus-wide release tuples, so releasing one
+   queue item also releases its normalized data.
+2. Stream the expected mapping graph by release and construction batch. Spool
+   and compare exact assertion, evidence-binding, source-record, and policy
+   identities without retaining one graph for all mappings. Keep the copied
+   whole-graph implementation as the test-only oracle, and require verdict
+   agreement over real data plus the mutation battery before removing the
+   production path it replaces.
+
+**Real-data replacement evidence, 2026-08-16.** The env-gated
+`test_bounded_real_releases_match_streamed_and_legacy_bytes` ran the same
+closed subset through the legacy and streamed paths. The subset includes the
+large `fast-topical-current` release, the evidence-backed Unified Agenda/GAO
+value mapping, all five agency rosters, and the regulations.gov entity-identity
+mapping. The paths produced byte-identical source accounting, compiled
+validation, 33 distribution files including all receipts, and ten Parquet
+files.
+
+That run also exposed a separate frozen binding limit. The selected mappings
+legitimately carry more than one E4 evidence binding per assertion: the entity
+mapping has 642 bindings for 321 assertions, and the value mapping has 15 for
+five. The construction summary therefore totals 277,511 evidence bindings for
+277,180 relation assertions. The binding's
+`_check_construction_summary_identity` still equates those counts, so both
+unmodified writers produce the same bytes and then refuse with
+`construction.counts: construction aggregate evidenceBindings count differs`.
+This is verdict agreement over real data, but it is not yet a positive
+real-data acceptance seal.
+
+The binding-runtime follow-up is mandatory before claiming that seal. Add an
+independent `evidenceBindings` count to the manifest and producer-validation
+receipts and their schemas, compute it from the asserted RDF, and compare the
+construction-summary aggregate with that count instead of
+`relationAssertions`. Add multiple-evidence positive and count-mutation
+negative fixtures. Then change the env-gated oracle to require both writers to
+return `status: passed` while retaining the exact distribution, receipt, and
+Parquet byte comparisons. The current review records the test and blocker but
+does not edit the frozen binding runtime.
+
+The conformance-fixture runtime also has an environment drift that this review
+does not resolve by rewriting evidence. `fixtures-receipt.json` records
+`rdflib` 7.6.0, and `bindings/atlas/3.1/requirements.txt` requires exactly
+7.6.0; the workspace `uv.lock` and `.venv` currently provide 7.5.0. Running
+`build_fixtures.py --check` directly in that workspace environment would
+rewrite the receipt's runtime row, so this review did not run it. Resolve the
+drift by upgrading the workspace lock and environment to 7.6.0, or by using the
+Makefile's isolated binding-requirements environment. Then run the fixture
+check under 7.6.0 and review the receipt and fixture digest before accepting any
+regeneration.

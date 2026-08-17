@@ -985,6 +985,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "manifest-count-mismatch",
         "manifest-unknown-field",
         "mapping-missing-evidence",
+        "mapping-entity-inverse-assertion",
         "mapping-period-end-before-start",
         "mapping-period-end-not-utc-day-end",
         "mapping-period-start-not-datetime",
@@ -4886,6 +4887,21 @@ def _validate_assertions(
             predecessor=predecessor,
         )
 
+    entity_identity_directions = {
+        (state.triple[0], state.triple[2]): assertion
+        for assertion, state in states.items()
+        if state.assertion_type == ATLAS.MappingAssertion
+        and state.ring_context == ATLAS.entity
+        and state.triple[1] == ATLAS.sameEntityAs
+    }
+    for (subject, obj), assertion in sorted(entity_identity_directions.items()):
+        inverse = entity_identity_directions.get((obj, subject))
+        if inverse is not None:
+            _fail(
+                "dataset.mapping-direction",
+                f"{assertion} and {inverse} assert both directions of one entity identity",
+            )
+
     successors: dict[URIRef, set[URIRef]] = defaultdict(set)
     for assertion, state in states.items():
         predecessor = state.predecessor
@@ -6806,6 +6822,7 @@ def _check_counts(
     inventory = inventory or _semantic_inventory_from_graphs(graphs)
     expected = {
         "crossRingRelationAssertions": len(inventory.nodes(ATLAS.CrossRingRelationAssertion)),
+        "evidenceBindings": len(inventory.nodes(RKAF.EvidenceBinding)),
         "releases": len(inventory.nodes(ATLAS.AtlasRelease)),
         "resources": inventory.resource_count,
         "identifiers": len(inventory.nodes(ATLAS.Identifier)),
@@ -6820,6 +6837,48 @@ def _check_counts(
     }
     if manifest["counts"] != expected:
         _fail("dataset.counts", f"manifest counts differ; expected={expected}, actual={manifest['counts']}")
+
+
+def source_and_mapping_construction_record_counts(
+    aggregate_counts: Mapping[str, int],
+    *,
+    source_release_count: int,
+) -> dict[str, int]:
+    """Map semantic carrier totals to this producer profile's logical roles.
+
+    The manifest counts RDF carrier classes.  A construction summary counts
+    the eight logical record roles used by release ownership.  Most roles map
+    one-for-one, while ``Release`` includes both Atlas and source releases and
+    ``Statement`` includes every concrete relation-assertion type.  Evidence
+    bindings are independent carriers: the binding requires at least one per
+    assertion and deliberately permits more than one.
+    """
+
+    relation_parts = sum(
+        aggregate_counts[field]
+        for field in (
+            "crossRingRelationAssertions",
+            "mappingAssertions",
+            "nativeRelationAssertions",
+            "sourceAssignments",
+        )
+    )
+    if aggregate_counts["relationAssertions"] != relation_parts:
+        raise ValueError(
+            "relationAssertions does not equal the concrete assertion counts; "
+            f"relationAssertions={aggregate_counts['relationAssertions']}, concrete={relation_parts}"
+        )
+    if source_release_count < 0:
+        raise ValueError("source release count is negative")
+    return {
+        "resources": aggregate_counts["resources"],
+        "labels": aggregate_counts["labels"],
+        "statements": aggregate_counts["relationAssertions"],
+        "evidenceBindings": aggregate_counts["evidenceBindings"],
+        "sourceRecords": aggregate_counts["sourceRecords"],
+        "releases": aggregate_counts["releases"] + source_release_count,
+        "identifiers": aggregate_counts["identifiers"],
+    }
 
 
 def derived_input_digest(
@@ -7333,22 +7392,20 @@ def _check_construction_summary_identity(
     if catalog["buildKey"] != expected_catalog_key:
         _fail("construction.release", "catalog build key differs")
 
-    expected_counts = {
-        "resources": manifest["counts"]["resources"],
-        "labels": manifest["counts"]["labels"],
-        "statements": manifest["counts"]["relationAssertions"],
-        "sourceRecords": manifest["counts"]["sourceRecords"],
-        # The compact Release role is intentionally generic: it carries both
-        # AtlasRelease and SourceRelease records.  The manifest counts only
-        # AtlasRelease instances, while the producer proof independently
-        # receipts the source-release cardinality.
-        "releases": (manifest["counts"]["releases"] + producer_validation["sourceReleaseCount"]),
-        "identifiers": manifest["counts"]["identifiers"],
-        "evidenceBindings": manifest["counts"]["relationAssertions"],
-    }
+    try:
+        expected_counts = source_and_mapping_construction_record_counts(
+            manifest["counts"],
+            source_release_count=producer_validation["sourceReleaseCount"],
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        _fail("construction.counts", f"construction aggregate count relationships differ: {error}")
     for field, expected in expected_counts.items():
-        if aggregate_record_counts[field] != expected:
-            _fail("construction.counts", f"construction aggregate {field} count differs")
+        observed = aggregate_record_counts[field]
+        if observed != expected:
+            _fail(
+                "construction.counts",
+                f"construction aggregate {field} count differs; expected={expected}, observed={observed}",
+            )
 
     expected_producer_receipt = {
         "digest": member_digests[CONSTRUCTION_SUMMARY_FILE],

@@ -45,12 +45,12 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 110,
+        "atlasIndexRowCount": 111,
         "catalogOnlyDescriptorCount": 18,
-        "catalogResourceCount": 114,
+        "catalogResourceCount": 115,
         "implementationModuleCount": 25,
-        "indexedResourceCount": 96,
-        "indexedWithoutExactReleaseCount": 91,
+        "indexedResourceCount": 97,
+        "indexedWithoutExactReleaseCount": 92,
         "registryModuleCount": 85,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
@@ -63,12 +63,13 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # (75 -> 78, source modules 50 -> 53).
         # REF-035 restores the mapping-reference count to 12 with the two
         # independently checked mapping-only sources.
+        # REF-038 adds the regulations.gov entity-identity mapping release.
         "resourceKindCounts": {
             "classification": 6,
             "codeList": 26,
             "historicalVocabulary": 1,
             "identifierAuthority": 20,
-            "mappingReference": 36,
+            "mappingReference": 37,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
             "structuralSchema": 10,

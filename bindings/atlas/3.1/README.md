@@ -128,6 +128,11 @@ that role. An empty role hashes the empty list. The asserted graph's inventory
 digest is the distribution-wide asserted-data pin. `atlas-acceptance.json`
 records that value as `inputs.atlasDigest`.
 
+The manifest's aggregate counts treat `EvidenceBinding` as an independent RDF
+carrier. Its count is the number of distinct binding records, not the number of
+relation assertions or source records. One assertion may have more than one
+approved binding, and one source record may support more than one assertion.
+
 Production distributions SHOULD use one or more `sourceRelease` packs per exact
 source release. A large release MAY use stable subject buckets: hash the UTF-8
 subject IRI with SHA-256 and select the declared lowercase hexadecimal prefix.

@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any, Literal, cast
 from urllib.parse import quote
 
@@ -35,6 +36,9 @@ REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY = (
 REGULATIONS_GOV_AGENCY_IDENTITY_RESOURCE_ID = (
     "regulations-gov-agency-identity"
 )
+ENTITY_REGISTRY_MAPPING_RELEASE_KEYS = frozenset(
+    {REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY}
+)
 REGULATIONS_GOV_AGENCY_IDENTITY_ASSERTED_AT = "2026-08-16T00:00:00+00:00"
 REGULATIONS_GOV_AGENCY_IDENTITY_REVIEWER_IRI = (
     "urn:ref:reviewer:refspec-owner"
@@ -45,6 +49,18 @@ REGULATIONS_GOV_AGENCY_IDENTITY_DECISION_RECORD = (
 EXPECTED_IDENTITY_MAPPING_COUNT = 321
 EXPECTED_IDENTITY_ABSTENTION_COUNT = 10
 EXPECTED_IDENTITY_CANDIDATE_COUNT = 331
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+_ADJUDICATION_LOGICAL_PATH = (
+    "research/evidence/agency-identifier-census-2026-08-16/census.json"
+)
+_ADJUDICATION_SHA256 = (
+    "sha256:11c58cf263496e9c0a320ab4fb1985ff7e17214d6a43996b6722336164143339"
+)
+_ADJUDICATION_BYTE_LENGTH = 370_256
+_ADJUDICATION_SOURCE_IRI = (
+    "urn:ref:source-artifact:11c58cf263496e9c0a320ab4fb1985ff7e17214d6a43996b6722336164143339"
+)
 
 ATLAS_SAME_ENTITY_AS = agency_projection.ATLAS_SAME_ENTITY_AS
 
@@ -888,13 +904,15 @@ def _mapping_and_decision(
         "predicateIri": ATLAS_SAME_ENTITY_AS,
         "reasoning": reasoning,
         "reviewerIri": REGULATIONS_GOV_AGENCY_IDENTITY_REVIEWER_IRI,
-        "sourceParentResource": _parent_by_subject(source_release).get(
-            source_resource.iri
-        ),
         "sourcePublisherName": source_name,
         "sourceResource": source_resource.iri,
         "sourceValue": source_value,
     }
+    source_parent_resource = _parent_by_subject(source_release).get(
+        source_resource.iri
+    )
+    if source_parent_resource is not None:
+        decision["sourceParentResource"] = source_parent_resource
     if non_emitted_candidates:
         decision["nonEmittedCandidates"] = [dict(row) for row in non_emitted_candidates]
     return mapping, _frozen_mapping(decision)
@@ -915,6 +933,16 @@ def _mapping_inputs(
                     role=f"agencyRoster{release_index:02d}Input{pin_index:02d}",
                 )
             )
+    inputs.append(
+        RegistryInputPin(
+            path=_REPOSITORY_ROOT / _ADJUDICATION_LOGICAL_PATH,
+            logical_path=_ADJUDICATION_LOGICAL_PATH,
+            sha256=_ADJUDICATION_SHA256,
+            byte_length=_ADJUDICATION_BYTE_LENGTH,
+            source_iri=_ADJUDICATION_SOURCE_IRI,
+            role="ownerAdjudication",
+        )
+    )
     return tuple(inputs)
 
 
@@ -1070,13 +1098,15 @@ def load_regulations_gov_agency_identity_mapping_release(
             "reason": abstention.reason,
             "reasoning": abstention.reasoning,
             "reviewerIri": REGULATIONS_GOV_AGENCY_IDENTITY_REVIEWER_IRI,
-            "sourceParentResource": _parent_by_subject(regs_release).get(
-                source_resource.iri
-            ),
             "sourcePublisherName": source_name,
             "sourceResource": source_resource.iri,
             "sourceValue": source_value,
         }
+        source_parent_resource = _parent_by_subject(regs_release).get(
+            source_resource.iri
+        )
+        if source_parent_resource is not None:
+            decision["sourceParentResource"] = source_parent_resource
         if abstention.closest_candidate is not None:
             decision["closestNonAdoptedCandidate"] = dict(
                 abstention.closest_candidate
@@ -1119,10 +1149,18 @@ def load_regulations_gov_agency_identity_mapping_release(
     for decision in candidate_decisions:
         if decision["decision"] == "adopted":
             basis_counts[str(decision["basis"])] += 1
+    mapping_triples = {
+        (mapping.subject, mapping.predicate, mapping.object)
+        for mapping in mappings
+    }
+    inverse_assertion_count = sum(
+        (object_iri, predicate, subject_iri) in mapping_triples
+        for subject_iri, predicate, object_iri in mapping_triples
+    )
     return RegistryMappingRelease(
         key=REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY,
         resource_id=REGULATIONS_GOV_AGENCY_IDENTITY_RESOURCE_ID,
-        source_module="refspec.atlas.v3_registry_alignments_entity",
+        source_module="refspec.registry.regulations_gov_agencies",
         ring="entity",
         scope="captureSubset",
         issued="2026-08-16",
@@ -1158,7 +1196,7 @@ def load_regulations_gov_agency_identity_mapping_release(
             "candidateDecisionCount": len(candidate_decisions),
             "decisionRecord": REGULATIONS_GOV_AGENCY_IDENTITY_DECISION_RECORD,
             "evidenceRecordCount": sum(len(mapping.evidence) for mapping in mappings),
-            "inverseAssertionCount": 0,
+            "inverseAssertionCount": inverse_assertion_count,
             "reviewedRosterReleaseKeys": list(
                 agency_projection.AGENCY_ROSTER_RELEASE_KEYS
             ),
@@ -1171,6 +1209,7 @@ __all__ = [
     "AGENCY_ABSTENTION_REASONS",
     "AGENCY_DECISION_BASES",
     "ATLAS_SAME_ENTITY_AS",
+    "ENTITY_REGISTRY_MAPPING_RELEASE_KEYS",
     "EXPECTED_IDENTITY_ABSTENTION_COUNT",
     "EXPECTED_IDENTITY_CANDIDATE_COUNT",
     "EXPECTED_IDENTITY_MAPPING_COUNT",

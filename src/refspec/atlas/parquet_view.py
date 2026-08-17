@@ -24,11 +24,13 @@ import importlib.metadata
 import json
 import os
 import re
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
@@ -41,12 +43,16 @@ from refspec.atlas.parquet_artifact import (
     normalize_sha256_prefix,
 )
 from refspec.atlas.parquet_tables import (
+    AGENCY_PROJECTION_ROLE,
+    AGENCY_PROJECTION_TABLE_SCHEMAS,
+    AGENCY_PROJECTION_UNRESOLVED_ROLE,
     COMPRESSION,
     COMPRESSION_LEVEL,
     PARQUET_VERSION,
     ROW_GROUP_SIZE,
     TABLE_MEDIA_TYPE,
     TABLE_SCHEMAS,
+    agency_projection_table_relative_path,
     logical_records_preserved,
     table_relative_path,
     unpreserved_record_fields,
@@ -61,10 +67,11 @@ from refspec.registry.infrastructure.artifact_serialization import (
 # served projection. 2.0 added the five warrant columns (four rkaf axes plus
 # the optional basedOnAttestation referent), which is what makes
 # `logicalRecordsPreserved` computed rather than declared.
-VIEW_SCHEMA_VERSION = "3.0"
+VIEW_SCHEMA_VERSION = "3.1"
+LEGACY_VIEW_SCHEMA_VERSION = "3.0"
 VIEW_RECORD_TYPE = "AtlasParquetViewManifest"
 VIEW_IMPLEMENTATION = "refspec.atlas.parquet_view"
-VIEW_IMPLEMENTATION_VERSION = "3.0"
+VIEW_IMPLEMENTATION_VERSION = "3.1"
 VIEW_ID_PREFIX = "urn:ref:atlas-parquet-view:"
 MANIFEST_FILE = "view-manifest.json"
 
@@ -84,8 +91,21 @@ _ROOT_MANIFEST_FIELDS = frozenset(
         "type",
     }
 )
+_AGENCY_PROJECTION_COVERAGE_FIELDS = frozenset(
+    {
+        "source_value_kind",
+        "source_value_count",
+        "resolved_value_count",
+        "unresolved_value_count",
+        "basis_counts",
+        "unresolved_reason_counts",
+        "rows_with_parent_org",
+        "evidence_record_count",
+    }
+)
 _VIEW_MANIFEST_FIELDS = frozenset(
     {
+        "agencyProjection",
         "canonicalPayloadDigest",
         "construction",
         "counts",
@@ -97,6 +117,7 @@ _VIEW_MANIFEST_FIELDS = frozenset(
         "viewId",
     }
 )
+_LEGACY_VIEW_MANIFEST_FIELDS = _VIEW_MANIFEST_FIELDS - {"agencyProjection"}
 
 
 class AtlasParquetViewError(ValueError):
@@ -298,12 +319,249 @@ def verify_atlas_parquet_source_metadata(
 BUILDER_SOURCE_REPRESENTATION = "atlasBuilderAssertedGraph"
 
 
+def _validated_agency_projection_metadata(
+    agency_projection: Mapping[str, Any],
+    counts: Mapping[str, int],
+) -> dict[str, Any]:
+    """Validate and detach the REF-038 view metadata from its caller."""
+
+    if not isinstance(agency_projection, Mapping):
+        raise AtlasParquetViewError(
+            "agency projection metadata must be an object"
+        )
+    metadata = dict(agency_projection)
+    if metadata.get("status") == "emitted":
+        if set(metadata) != {
+            "status",
+            "decision",
+            "digest",
+            "coverage",
+        }:
+            raise AtlasParquetViewError(
+                "agency projection metadata fields differ"
+            )
+        coverage = metadata["coverage"]
+        if not isinstance(coverage, Mapping):
+            raise AtlasParquetViewError(
+                "agency projection coverage must be an object"
+            )
+        coverage = dict(coverage)
+        if set(coverage) != _AGENCY_PROJECTION_COVERAGE_FIELDS:
+            raise AtlasParquetViewError(
+                "agency projection coverage fields differ"
+            )
+        integer_fields = (
+            "source_value_count",
+            "resolved_value_count",
+            "unresolved_value_count",
+            "rows_with_parent_org",
+            "evidence_record_count",
+        )
+        if any(
+            not isinstance(coverage[field], int)
+            or isinstance(coverage[field], bool)
+            or coverage[field] < 0
+            for field in integer_fields
+        ):
+            raise AtlasParquetViewError(
+                "agency projection coverage counts must be non-negative integers"
+            )
+        basis_counts = coverage["basis_counts"]
+        reason_counts = coverage["unresolved_reason_counts"]
+        if not isinstance(basis_counts, Mapping) or not isinstance(
+            reason_counts,
+            Mapping,
+        ):
+            raise AtlasParquetViewError(
+                "agency projection coverage breakdowns must be objects"
+            )
+        if any(
+            not isinstance(key, str)
+            or not key
+            or not isinstance(value, int)
+            or isinstance(value, bool)
+            or value < 1
+            for breakdown in (basis_counts, reason_counts)
+            for key, value in breakdown.items()
+        ):
+            raise AtlasParquetViewError(
+                "agency projection coverage breakdowns are invalid"
+            )
+        if (
+            metadata.get("decision") != "REF-038"
+            or _DIGEST.fullmatch(str(metadata.get("digest"))) is None
+            or coverage.get("source_value_kind")
+            != "regulationsGovAgencyId"
+            or counts.get(AGENCY_PROJECTION_ROLE)
+            != coverage.get("resolved_value_count")
+            or counts.get(AGENCY_PROJECTION_UNRESOLVED_ROLE)
+            != coverage.get("unresolved_value_count")
+            or coverage.get("source_value_count")
+            != coverage.get("resolved_value_count")
+            + coverage.get("unresolved_value_count")
+            or sum(basis_counts.values())
+            != coverage.get("resolved_value_count")
+            or sum(reason_counts.values())
+            != coverage.get("unresolved_value_count")
+        ):
+            raise AtlasParquetViewError(
+                "agency projection coverage differs from table rows"
+            )
+        metadata["coverage"] = coverage
+    elif metadata.get("status") == "notEmitted":
+        if set(metadata) != {"status", "missingReleaseKeys"}:
+            raise AtlasParquetViewError(
+                "absent agency projection metadata fields differ"
+            )
+        missing = metadata["missingReleaseKeys"]
+        if (
+            not isinstance(missing, list)
+            or not missing
+            or any(not isinstance(key, str) or not key for key in missing)
+            or len(missing) != len(set(missing))
+        ):
+            raise AtlasParquetViewError(
+                "absent agency projection names no valid missing release set"
+            )
+        if any(role in counts for role in AGENCY_PROJECTION_TABLE_SCHEMAS):
+            raise AtlasParquetViewError(
+                "absent agency projection metadata accompanies emitted tables"
+            )
+    else:
+        raise AtlasParquetViewError(
+            "agency projection metadata has an unsupported status"
+        )
+    return metadata
+
+
+def _verify_agency_projection_content(
+    directory: Path,
+    manifest: Mapping[str, Any],
+) -> None:
+    """Recompute REF-038 coverage and its logical-content digest from rows."""
+
+    metadata = manifest["agencyProjection"]
+    if metadata["status"] != "emitted":
+        return
+    resolved = pq.read_table(
+        _safe_path(
+            directory,
+            agency_projection_table_relative_path(AGENCY_PROJECTION_ROLE),
+        )
+    ).to_pylist()
+    unresolved = pq.read_table(
+        _safe_path(
+            directory,
+            agency_projection_table_relative_path(
+                AGENCY_PROJECTION_UNRESOLVED_ROLE
+            ),
+        )
+    ).to_pylist()
+
+    resolved_values: set[str] = set()
+    basis_counts: Counter[str] = Counter()
+    parent_count = 0
+    evidence_count = 0
+    for row in resolved:
+        source_value = row["source_value"]
+        if not source_value or source_value in resolved_values:
+            raise AtlasParquetViewError(
+                "agency projection repeats or empties a resolved source value"
+            )
+        resolved_values.add(source_value)
+        if (
+            row["source_value_kind"] != "regulationsGovAgencyId"
+            or not row["org"]
+            or not row["basis"]
+            or not row["evidence_records"]
+        ):
+            raise AtlasParquetViewError(
+                "agency projection resolved row is incomplete"
+            )
+        basis_counts[row["basis"]] += 1
+        parent_count += row["parent_org"] is not None
+        for evidence in row["evidence_records"]:
+            evidence_count += 1
+            source_record = evidence["source_record"]
+            target_record = evidence["target_record"]
+            if (
+                evidence["evidence_tier"] != row["evidence_tier"]
+                or evidence["evidence_tier"] != "E4"
+                or evidence["warrant"] != row["warrant"]
+                or evidence["warrant"] != "humanReview"
+                or evidence["decision"] != "approved"
+                or evidence["decision_basis"] != row["basis"]
+                or evidence["relation"] != row["relation"]
+                or evidence["name_similarity_used"] is not False
+                or not evidence["reasoning"]
+                or source_record["value"] != source_value
+                or not source_record["publisher_name"]
+                or target_record["resource"] != row["org"]
+                or not target_record["publisher_name"]
+            ):
+                raise AtlasParquetViewError(
+                    "agency projection mapping evidence differs from its row"
+                )
+
+    unresolved_values: set[str] = set()
+    reason_counts: Counter[str] = Counter()
+    for row in unresolved:
+        source_value = row["source_value"]
+        if not source_value or source_value in unresolved_values:
+            raise AtlasParquetViewError(
+                "agency projection repeats or empties an unresolved source value"
+            )
+        unresolved_values.add(source_value)
+        if (
+            row["source_value_kind"] != "regulationsGovAgencyId"
+            or not row["source_org"]
+            or not row["reason"]
+            or not row["reasoning"]
+        ):
+            raise AtlasParquetViewError(
+                "agency projection unresolved row is incomplete"
+            )
+        reason_counts[row["reason"]] += 1
+    if resolved_values & unresolved_values:
+        raise AtlasParquetViewError(
+            "agency projection resolves and abstains on one source value"
+        )
+
+    coverage = metadata["coverage"]
+    observed_coverage = {
+        "source_value_kind": "regulationsGovAgencyId",
+        "source_value_count": len(resolved_values | unresolved_values),
+        "resolved_value_count": len(resolved),
+        "unresolved_value_count": len(unresolved),
+        "basis_counts": dict(sorted(basis_counts.items())),
+        "unresolved_reason_counts": dict(sorted(reason_counts.items())),
+        "rows_with_parent_org": parent_count,
+        "evidence_record_count": evidence_count,
+    }
+    if observed_coverage != coverage:
+        raise AtlasParquetViewError(
+            "agency projection coverage differs from logical rows"
+        )
+    projection_digest = canonical_payload_sha256(
+        {
+            "rows": resolved,
+            "unresolved": unresolved,
+            "coverage": coverage,
+        }
+    )
+    if projection_digest != metadata["digest"]:
+        raise AtlasParquetViewError(
+            "agency projection logical-content digest differs"
+        )
+
+
 def atlas_parquet_view_manifest(
     input_: VerifiedAtlasParquetSourceMetadata,
     members: Sequence[Mapping[str, Any]],
     counts: Mapping[str, int],
     *,
     source_representation: str,
+    agency_projection: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Assemble the view manifest for tables that are already written.
 
@@ -325,7 +583,12 @@ def atlas_parquet_view_manifest(
     }
     input_pin = input_.view_input_pin
     identity = canonical_payload_sha256({"construction": construction, "input": input_pin})
+    projection_metadata = _validated_agency_projection_metadata(
+        agency_projection,
+        counts,
+    )
     manifest: dict[str, Any] = {
+        "agencyProjection": projection_metadata,
         "construction": construction,
         "counts": dict(counts),
         "input": input_pin,
@@ -355,6 +618,7 @@ def seal_atlas_parquet_view(
     output: Path,
     *,
     expected_manifest_digest: str,
+    agency_projection: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Close a view over tables the Atlas builder already wrote.
 
@@ -377,6 +641,7 @@ def seal_atlas_parquet_view(
         members,
         counts,
         source_representation=BUILDER_SOURCE_REPRESENTATION,
+        agency_projection=agency_projection,
     )
     (staged_tables / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
     verify_atlas_parquet_view(staged_tables, expected_manifest_digest=file_sha256(staged_tables / MANIFEST_FILE))
@@ -389,22 +654,50 @@ def _staged_table_members(staged: Path) -> tuple[list[dict[str, Any]], dict[str,
 
     members: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
-    for role in CompactRecordRole:
-        relative = table_relative_path(role)
+    contracts: list[tuple[str, str, pa.Schema]] = [
+        (
+            role.value,
+            table_relative_path(role),
+            TABLE_SCHEMAS[role],
+        )
+        for role in CompactRecordRole
+    ]
+    derived_present = {
+        role: _safe_path(
+            staged,
+            agency_projection_table_relative_path(role),
+        ).is_file()
+        for role in AGENCY_PROJECTION_TABLE_SCHEMAS
+    }
+    if len(set(derived_present.values())) != 1:
+        raise AtlasParquetViewError(
+            "agency projection tables must be emitted together"
+        )
+    if all(derived_present.values()):
+        contracts.extend(
+            (
+                role,
+                agency_projection_table_relative_path(role),
+                schema,
+            )
+            for role, schema in AGENCY_PROJECTION_TABLE_SCHEMAS.items()
+        )
+
+    for role, relative, schema in contracts:
         target = _safe_path(staged, relative)
         if target.is_symlink() or not target.is_file():
             raise AtlasParquetViewError(f"staged Parquet table is missing or unsafe: {relative}")
         parquet = pq.ParquetFile(target)
-        if parquet.schema_arrow != TABLE_SCHEMAS[role]:
+        if parquet.schema_arrow != schema:
             raise AtlasParquetViewError(f"staged Parquet schema differs: {relative}")
-        counts[role.value] = parquet.metadata.num_rows
+        counts[role] = parquet.metadata.num_rows
         members.append(
             {
                 "byteLength": target.stat().st_size,
                 "mediaType": TABLE_MEDIA_TYPE,
                 "path": relative,
-                "role": role.value,
-                "rowCount": counts[role.value],
+                "role": role,
+                "rowCount": counts[role],
                 "schemaDigest": arrow_schema_sha256(parquet.schema_arrow),
                 "sha256": file_sha256(target),
             }
@@ -426,9 +719,16 @@ def verify_atlas_parquet_view(
     expected_manifest_digest = normalize_sha256_prefix(expected_manifest_digest)
     _digest_text(expected_manifest_digest, "expected view manifest digest")
     manifest = _strict_json(directory / MANIFEST_FILE, expected_digest=expected_manifest_digest)
-    if set(manifest) != _VIEW_MANIFEST_FIELDS:
+    schema_version = manifest.get("schemaVersion")
+    if schema_version == VIEW_SCHEMA_VERSION:
+        expected_manifest_fields = _VIEW_MANIFEST_FIELDS
+    elif schema_version == LEGACY_VIEW_SCHEMA_VERSION:
+        expected_manifest_fields = _LEGACY_VIEW_MANIFEST_FIELDS
+    else:
+        raise AtlasParquetViewError("Atlas Parquet view type or version is unsupported")
+    if set(manifest) != expected_manifest_fields:
         raise AtlasParquetViewError("Atlas Parquet view manifest fields are unsupported")
-    if manifest["recordType"] != VIEW_RECORD_TYPE or manifest["schemaVersion"] != VIEW_SCHEMA_VERSION:
+    if manifest["recordType"] != VIEW_RECORD_TYPE:
         raise AtlasParquetViewError("Atlas Parquet view type or version is unsupported")
     payload = dict(manifest)
     actual_payload_digest = _digest_text(payload.pop("canonicalPayloadDigest"), "view payload digest")
@@ -448,15 +748,28 @@ def verify_atlas_parquet_view(
         raise AtlasParquetViewError("Atlas Parquet view status is unsupported")
     expected_files = {MANIFEST_FILE}
     counts: dict[str, int] = {}
-    expected_roles = {role.value for role in CompactRecordRole}
+    schema_by_role = {
+        role.value: TABLE_SCHEMAS[role] for role in CompactRecordRole
+    }
+    if (
+        schema_version == VIEW_SCHEMA_VERSION
+        and manifest["agencyProjection"]["status"] == "emitted"
+    ):
+        schema_by_role.update(AGENCY_PROJECTION_TABLE_SCHEMAS)
+    expected_roles = set(schema_by_role)
     observed_roles: set[str] = set()
     for member in manifest["members"]:
         if set(member) != PARQUET_MEMBER_FIELDS:
             raise AtlasParquetViewError("Atlas Parquet member fields are unsupported")
-        role = CompactRecordRole(member["role"])
-        if role.value in observed_roles:
+        role = member["role"]
+        schema = schema_by_role.get(role)
+        if schema is None:
+            raise AtlasParquetViewError(
+                f"Atlas Parquet view has an unsupported table role: {role!r}"
+            )
+        if role in observed_roles:
             raise AtlasParquetViewError("Atlas Parquet view repeats a table role")
-        observed_roles.add(role.value)
+        observed_roles.add(role)
         path = _safe_path(directory, member["path"])
         expected_files.add(path.relative_to(directory).as_posix())
         if path.is_symlink() or not path.is_file():
@@ -464,16 +777,22 @@ def verify_atlas_parquet_view(
         if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetViewError(f"Parquet member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
-        if parquet.schema_arrow != TABLE_SCHEMAS[role]:
+        if parquet.schema_arrow != schema:
             raise AtlasParquetViewError(f"Parquet schema differs: {member['path']}")
         if arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]:
             raise AtlasParquetViewError(f"Parquet schema digest differs: {member['path']}")
         row_count = parquet.metadata.num_rows
         if row_count != member["rowCount"]:
             raise AtlasParquetViewError(f"Parquet row count differs: {member['path']}")
-        counts[role.value] = row_count
+        counts[role] = row_count
     if observed_roles != expected_roles or counts != manifest["counts"]:
         raise AtlasParquetViewError("Atlas Parquet roles or aggregate counts differ")
+    if schema_version == VIEW_SCHEMA_VERSION:
+        _validated_agency_projection_metadata(
+            manifest["agencyProjection"],
+            counts,
+        )
+        _verify_agency_projection_content(directory, manifest)
     if artifact_file_paths(directory) != expected_files:
         raise AtlasParquetViewError("Atlas Parquet view file membership is not closed")
     return manifest
