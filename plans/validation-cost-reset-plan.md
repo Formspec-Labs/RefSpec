@@ -1475,3 +1475,23 @@ agency projection: 321/331 regulations.gov values resolved, 10 defensible
 abstentions), and the streamed producer whose equivalence is proven by
 causal probes, an eight-class mutation battery against the retained legacy
 oracle, and a real-data double-build byte-equality gate.
+
+**ARTIFACT OF RECORD, SEALED: `output/atlas-3.1-full-2026-08-17` (2026-08-18).
+Supersedes 2026-08-16. LCSH consolidated.** distributionId
+`urn:ref:atlas:distribution:3.1-full-development:9382eda3…c58e27e0`,
+manifest `5f72134e…4d0552`, acceptance `52465ba9…29364f`, parquet view
+manifest `6eea4b1e…70da50`, signer atlas-release@refspec. 128 releases;
+1,497,638 resources; 2,203,714 statements; 2,298,435 labels. Carries
+REF-040: LCSH held four times over as narrow endpoint subsets is now one
+release of 514,837 resources (513,210 current authorities + 1,627
+deprecated headings that held mappings reference; 6,218 unreferenced
+deprecated headings never emitted), with 301,442 native `skos:broader`
+statements the corpus previously lacked. Three endpoint releases retired
+into it with byte-identical IRIs -- zero dangling across all 361,710
+retired-release IRIs, verified against the prior sealed artifact.
+FAST--LCSH mappings widen from 64,464 to 427,693 emitted (252,527
+`exactMatch` + 175,166 `relatedMatch`) after 174,766 SKOS S27 refusals
+computed at corpus scope: consolidation brought LCSH's own hierarchy into
+the corpus, and the reconciliation now mirrors the binding's
+`_check_skos_integrity` exactly rather than reading one mapping release's
+claims.

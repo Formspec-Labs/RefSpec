@@ -235,9 +235,18 @@ determinism-atlas-federal-register-thesaurus:
 # bounded to it exercises neither cross-release ownership nor the unit-key /
 # pack-token distinction -- `eurovoc-4.24` owns `packs/sources/eurovoc-4-24/`,
 # and conflating the two survived a green FR staging artifact and failed the
-# ~25-minute full build. These four units cost about a minute and cover what
+# ~25-minute full build. These units cost about a minute and cover what
 # the single-unit artifact cannot: two dotted keys, one path-safe key, one
-# mapping units and every endpoint dependency they declare.
+# mapping unit and every endpoint dependency it declares -- REF-040's
+# `lcsh-subjects-consolidated-2026-08-06` replaces the retired
+# `lcsh-eurovoc-alignment-endpoints-2026-08-06` as the endpoint
+# `eurovoc-lcsh-alignment-20240711` depends on. `fast-lcsh-adopted-2026-08-15`
+# is deliberately absent: it only loads paired with
+# `lcsh-external-links-mappings-2026-08-15` (SKOS S27 reconciliation refuses
+# one without the other), which in turn needs every `lc-external-target-
+# endpoints-*` release its ~792K external-authority targets resolve against --
+# a full-corpus dependency this ~1-minute gate cannot afford. That pairing is
+# exercised by the full build instead.
 ATLAS_MAPPING_STAGE_ROOT ?= output/atlas-3.1-mapping-topology-staging
 
 stage-atlas-mapping-topology:
@@ -245,10 +254,9 @@ stage-atlas-mapping-topology:
 	uv run python tools/generate_atlas_v3_full.py \
 		--only-release eurovoc-4.24 \
 		--only-release eurovoc-domains-4.24 \
-		--only-release lcsh-eurovoc-alignment-endpoints-2026-08-06 \
+		--only-release lcsh-subjects-consolidated-2026-08-06 \
 		--only-release eurovoc-lcsh-alignment-20240711 \
 		--only-release fast-topical-current \
-		--only-release fast-lcsh-adopted-2026-08-15 \
 		--only-release unified-agenda-priority-category \
 		--only-release gao-cra-priority-of-regulation \
 		--only-release unified-agenda-gao-cra-priority-2026-08-15 \

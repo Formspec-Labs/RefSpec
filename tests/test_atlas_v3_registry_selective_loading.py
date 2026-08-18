@@ -199,7 +199,7 @@ def test_mapping_and_alignment_loaders_skip_empty_selections(
     )
     monkeypatch.setattr(
         alignments,
-        "load_lcsh_alignment_endpoint_release",
+        "load_lcsh_consolidated_release",
         lambda _root: pytest.fail("empty endpoint selection parsed a source"),
     )
 

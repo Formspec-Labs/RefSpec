@@ -21,7 +21,6 @@ governed scheme identities are deliberately outside this verifier.
 
 from __future__ import annotations
 
-import gzip
 import hashlib
 import io
 import json
@@ -6251,75 +6250,6 @@ def test_source_extract_fails_closed_on_an_atlas_concept_the_extract_lacks(
 
     assert not check.passed
     assert any("which the checked source extract does not contain" in failure for failure in check.failures)
-
-
-def test_lcsh_jsonld_reader_accepts_a_faithful_pair_and_rejects_context_fault() -> None:
-    import tools.verify_atlas_source_fidelity as verifier
-
-    endpoint = "http://id.loc.gov/authorities/subjects/sh1"
-    alignment = f"""<?xml version="1.0"?>
-<rdf:RDF xmlns:rdf="{RDF}" xmlns:align="http://knowledgeweb.semanticweb.org/heterogeneity/alignment#" xmlns:skos="{SKOS}">
-  <align:Alignment rdf:about="urn:test:alignment">
-    <align:onto1 rdf:resource="http://eurovoc.europa.eu"/>
-    <align:onto2 rdf:resource="http://id.loc.gov/authorities/subjects"/>
-  </align:Alignment>
-  <rdf:Description rdf:about="http://eurovoc.europa.eu/1">
-    <skos:exactMatch rdf:resource="{endpoint}"/>
-  </rdf:Description>
-</rdf:RDF>""".encode()
-    document = {
-        "@context": "http://id.loc.gov/authorities/subjects/context.json",
-        "@graph": [
-            {
-                "@id": endpoint,
-                "@type": ["madsrdf:Authority", "madsrdf:Topic"],
-                "identifiers:lccn": "sh1",
-                "madsrdf:authoritativeLabel": {"@value": "Faithful", "@language": "en"},
-            }
-        ],
-        "@id": "/authorities/subjects/sh1",
-    }
-    line = json.dumps(document, separators=(",", ":")).encode()
-    bulk = gzip.compress(line + b"\n")
-    alignment_pin = SourcePin(
-        "alignment.rdf",
-        "sha256:" + hashlib.sha256(alignment).hexdigest(),
-        len(alignment),
-        fmt="xml",
-        role="publisherAlignment",
-        source_iri="https://example.org/alignment.rdf",
-    )
-    bulk_pin = SourcePin(
-        "lcsh.jsonld.gz",
-        "sha256:" + hashlib.sha256(bulk).hexdigest(),
-        len(bulk),
-        fmt="jsonld.gz",
-        role="publisherBulkSource",
-        source_iri="https://example.org/lcsh.jsonld.gz",
-    )
-    spec = SourceSpec(
-        "lcsh-reader-test",
-        "vocabulary",
-        ("lcsh-reader-test",),
-        (alignment_pin, bulk_pin),
-        reader=verifier.LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER,
-    )
-
-    view = verifier._read_lcsh_alignment_endpoint_jsonld(
-        spec,
-        {alignment_pin: alignment, bulk_pin: bulk},
-    )
-
-    assert view.concepts == frozenset({endpoint})
-    assert view.notations[endpoint] == frozenset({verifier._literal_value("sh1", None, None)})
-    broken_document = dict(document)
-    broken_document["@context"] = "https://example.org/wrong-context"
-    broken_bulk = gzip.compress(json.dumps(broken_document, separators=(",", ":")).encode() + b"\n")
-    with pytest.raises(ValueError, match="unexpected @context"):
-        verifier._read_lcsh_alignment_endpoint_jsonld(
-            spec,
-            {alignment_pin: alignment, bulk_pin: broken_bulk},
-        )
 
 
 def test_fast_native_reader_accepts_a_faithful_pair_and_rejects_marc_identity_fault() -> None:

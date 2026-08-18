@@ -18,8 +18,15 @@ from refspec.atlas.explorer import (
     render_atlas_release_map,
 )
 from refspec.atlas.explorer_data import AtlasExplorerData
+from refspec.atlas.explorer_frontend import render_atlas_agency_projection_frontend
 from refspec.atlas.parquet_search_view import MANIFEST_FILE
 from refspec.registry.infrastructure.artifact_serialization import sha256_digest
+
+_DEFAULT_STATUS_FILTER = "active"
+
+
+def _status_filter(query: dict[str, list[str]]) -> str:
+    return query.get("status", [_DEFAULT_STATUS_FILTER])[0]
 
 
 def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
@@ -57,22 +64,41 @@ def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
                         "text/html; charset=utf-8",
                         render_atlas_release_map().encode(),
                     )
+                elif parsed.path == "/agencies":
+                    self._send(
+                        200,
+                        "text/html; charset=utf-8",
+                        render_atlas_agency_projection_frontend().encode(),
+                    )
                 elif parsed.path == "/api/overview":
-                    self._json(view.overview())
+                    self._json(view.overview(status=_status_filter(query)))
                 elif parsed.path == "/api/release-graph":
-                    self._json(view.release_graph(query.get("id", [""])[0]))
+                    self._json(
+                        view.release_graph(
+                            query.get("id", [""])[0],
+                            status=_status_filter(query),
+                        )
+                    )
                 elif parsed.path == "/api/search":
                     self._json(
                         view.search(
                             query.get("q", [""])[0],
                             release=query.get("release", [""])[0],
                             ring=query.get("ring", [""])[0],
+                            status=_status_filter(query),
                             limit=int(query.get("limit", ["100"])[0]),
                             offset=int(query.get("offset", ["0"])[0]),
                         )
                     )
                 elif parsed.path == "/api/resource":
-                    self._json(view.resource(query.get("id", [""])[0]))
+                    self._json(
+                        view.resource(
+                            query.get("id", [""])[0],
+                            status=_status_filter(query),
+                        )
+                    )
+                elif parsed.path == "/api/agency-projection":
+                    self._json(view.agency_projection(query.get("q", [""])[0]))
                 else:
                     self._json({"error": "not found"}, 404)
             except (AtlasParquetExplorerError, ValueError) as error:

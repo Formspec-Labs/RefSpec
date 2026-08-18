@@ -14,6 +14,8 @@ from rdflib.namespace import RDF, SKOS
 
 from refspec.atlas import v3_registry_alignments as base_alignments
 from refspec.atlas import v3_registry_alignments_bulk as bulk_alignments
+from refspec.atlas import v3_registry_alignments_lc as lc_alignments
+from refspec.atlas import v3_registry_alignments_lcsh as lcsh_alignments
 from refspec.atlas import v3_registry_alignments_subject as subject_alignments
 from refspec.atlas.v3_registry_vocabularies import load_gemet_release
 from refspec.atlas.v3_source_data import (
@@ -24,7 +26,9 @@ from refspec.atlas.v3_source_data import (
     RegistryMappingRelease,
     mapping_triple_digest,
 )
+from refspec.registry import fast_topical as fast_topical_registry
 from refspec.registry import gemet_alignments as gemet
+from refspec.registry import lc_external_links as lc_external_links_registry
 from refspec.registry.eurovoc_alignment_portfolio import (
     load_eurovoc_alignment_portfolio,
 )
@@ -70,6 +74,26 @@ REAL_STREAMING_EQUIVALENCE_KEYS = frozenset(
     }
 )
 
+# Every pinned source `_reconcile_fast_lcsh_s27_mapping_conflicts` needs on
+# both sides of the reconciliation: the FAST-LCSH candidate release (which
+# itself depends on the consolidated LCSH release's full referenced-IRI
+# union) and LC's external-links mapping release.
+FAST_LCSH_S27_REQUIRED_FILES = (
+    base_alignments.DEFAULT_SOURCE_ROOT / base_alignments.LCSH_BULK_FILENAME,
+    base_alignments.DEFAULT_SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711.rdf",
+    base_alignments.DEFAULT_SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711-metadata.rdf",
+    base_alignments.DEFAULT_SOURCE_ROOT / "eurovoc-4.20-20240711-metadata.rdf",
+    base_alignments.DEFAULT_SOURCE_ROOT / "eurovoc-4.24-metadata.ttl",
+    base_alignments.DEFAULT_SOURCE_ROOT / lc_external_links_registry.LC_EXTERNAL_LINKS_FILENAME,
+    base_alignments.DEFAULT_SOURCE_ROOT / "mesh-lcsh-mapping-20210325.zip",
+    base_alignments.DEFAULT_SOURCE_ROOT / fast_topical_registry.FAST_TOPICAL_NATIVE_BASE_PIN.filename,
+    *(
+        base_alignments.DEFAULT_SOURCE_ROOT / pin.filename
+        for pin in fast_topical_registry.FAST_TOPICAL_CHANGE_PINS
+    ),
+)
+HAS_FAST_LCSH_S27_SOURCES = all(path.is_file() for path in FAST_LCSH_S27_REQUIRED_FILES)
+
 
 @pytest.fixture(scope="module")
 def complete_prebuild():
@@ -97,9 +121,13 @@ def test_complete_producer_prebuild_validation_runs_before_distribution_writes(
 
     assert len(mapping_releases) == 11
     assert sum(len(release.resources) for release in releases) == 1_344_511
-    assert sum(len(release.mappings) for release in mapping_releases) == 865_264
+    # fast-lcsh-adopted-2026-08-15's emitted total moved from 427,704 to
+    # 427,693 (865,264 - 11) when the SKOS S27 reconciliation widened its
+    # hierarchy scope to include the consolidated LCSH release's native
+    # skos:broader statements (see FAST_LCSH_S27_REFUSAL_COUNT).
+    assert sum(len(release.mappings) for release in mapping_releases) == 865_253
     assert validation.compiled_rows.expected_counts["resources"] == 1_344_511
-    assert validation.compiled_rows.expected_counts["mappingAssertions"] == 865_264
+    assert validation.compiled_rows.expected_counts["mappingAssertions"] == 865_253
     assert (
         validation.compiled_rows.expected_counts["evidenceBindings"]
         - validation.compiled_rows.expected_counts["relationAssertions"]
@@ -533,6 +561,18 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Prove the reconciliation catches a conflict reachable only through a
+    source release's native skos:broader relation, not just through the LC
+    mapping release's own broadMatch/narrowMatch claims.
+
+    This is the synthetic analogue of the real REF-040 build failure:
+    ``fast_iri``/``chained_lcsh_iri`` conflict only via a two-hop path (a
+    ``skos:broader`` edge the consolidated LCSH source release would carry,
+    chained into LC's own ``broadMatch`` from ``lcsh_iri`` to ``fast_iri``)
+    -- a shape the pre-fix reconciliation, which read only
+    ``lc_release.mappings``, could not see.
+    """
+
     releases = _synthetic_releases(tmp_path)
     template_release = _synthetic_mapping_release(tmp_path, releases)
     template = template_release.mappings[0]
@@ -556,6 +596,13 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
         predicate=str(SKOS.exactMatch),
         object="urn:test:lcsh:3",
     )
+    chained_lcsh_iri = "urn:test:lcsh:4"
+    chained_conflict = dataclasses.replace(
+        template,
+        subject=fast_iri,
+        predicate=str(SKOS.relatedMatch),
+        object=chained_lcsh_iri,
+    )
     hierarchy = dataclasses.replace(
         template,
         subject=lcsh_iri,
@@ -565,7 +612,7 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
     fast_release = dataclasses.replace(
         template_release,
         key="fast-lcsh-adopted-2026-08-15",
-        mappings=(conflict, admitted_related, admitted_exact),
+        mappings=(conflict, admitted_related, admitted_exact, chained_conflict),
         metadata={
             "assertionComposition": {
                 "publisherVerbatimRelatedMatch": {"assertionCount": 2},
@@ -579,8 +626,28 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
         mappings=(hierarchy,),
         metadata={},
     )
-    frozen_list = [{"fastIri": fast_iri, "lcshIri": lcsh_iri}]
-    monkeypatch.setattr(base_alignments, "FAST_LCSH_S27_REFUSAL_COUNT", 1)
+    # A source release carrying the intra-LCSH skos:broader edge that only
+    # the consolidated LCSH release contributes in production: chained_lcsh
+    # is broader than lcsh:1, which LC's own broadMatch already connects to
+    # fast:1 -- so chained_fast/chained_lcsh is hierarchy-connected only
+    # through this two-hop path.
+    lcsh_consolidated_source = dataclasses.replace(
+        releases[0],
+        spec=dataclasses.replace(releases[0].spec, key=lcsh_alignments.LCSH_CONSOLIDATED_RELEASE_KEY),
+        relations=(
+            generator.SourceRelation(
+                subject=chained_lcsh_iri,
+                predicate=str(SKOS.broader),
+                object=lcsh_iri,
+                source_payload={"lineNumber": 1},
+            ),
+        ),
+    )
+    frozen_list = [
+        {"fastIri": fast_iri, "lcshIri": lcsh_iri},
+        {"fastIri": fast_iri, "lcshIri": chained_lcsh_iri},
+    ]
+    monkeypatch.setattr(base_alignments, "FAST_LCSH_S27_REFUSAL_COUNT", 2)
     monkeypatch.setattr(
         base_alignments,
         "FAST_LCSH_S27_REFUSAL_DIGEST",
@@ -588,14 +655,27 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
     )
     raw_relations = {
         (URIRef(row.subject), URIRef(row.predicate), URIRef(row.object)): ()
-        for row in (*fast_release.mappings, *lc_release.mappings)
+        for row in (*fast_release.mappings, *lc_release.mappings, *lcsh_consolidated_source.relations)
     }
     with pytest.raises(generator.ATLAS_VALIDATE.AtlasValidationError) as error:
         generator.ATLAS_VALIDATE._check_skos_integrity(raw_relations)
     assert error.value.code == "dataset.skos-integrity"
     assert "SKOS S27 transitive hierarchy conflict" in error.value.detail
 
-    reconciled = generator._reconcile_fast_lcsh_s27_mapping_conflicts((fast_release, lc_release))
+    # Without the consolidated-LCSH-shaped source release, the reconciliation
+    # must refuse rather than silently reconcile against a narrower hierarchy.
+    with pytest.raises(ValueError, match="requires the consolidated LCSH"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts((fast_release, lc_release))
+    with pytest.raises(ValueError, match="requires the consolidated LCSH"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts(
+            (fast_release, lc_release),
+            (),
+        )
+
+    reconciled = generator._reconcile_fast_lcsh_s27_mapping_conflicts(
+        (fast_release, lc_release),
+        (lcsh_consolidated_source,),
+    )
     reconciled_fast = next(release for release in reconciled if release.key == "fast-lcsh-adopted-2026-08-15")
     assert {(row.subject, row.predicate, row.object) for row in reconciled_fast.mappings} == {
         (admitted_related.subject, admitted_related.predicate, admitted_related.object),
@@ -603,7 +683,7 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
     }
     assert reconciled_fast.metadata["skosS27Reconciliation"]["frozenConflictList"] == {
         "canonicalItemShape": {"fastIri": "IRI", "lcshIri": "IRI"},
-        "count": 1,
+        "count": 2,
         "digest": generator._canonical_digest(frozen_list),
     }
     admitted_relations = {
@@ -611,7 +691,202 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
         for release in reconciled
         for row in release.mappings
     }
+    admitted_relations.update(
+        {
+            (URIRef(relation.subject), URIRef(relation.predicate), URIRef(relation.object)): ()
+            for relation in lcsh_consolidated_source.relations
+        }
+    )
     generator.ATLAS_VALIDATE._check_skos_integrity(admitted_relations)
+
+
+@pytest.fixture(scope="module")
+def real_fast_lcsh_s27_inputs() -> tuple[
+    RegistryMappingRelease,
+    RegistryMappingRelease,
+    generator.LoadedRelease,
+]:
+    if not HAS_FAST_LCSH_S27_SOURCES:
+        pytest.skip("official FAST, LCSH, and LC external-links sources are not cached")
+    fast_release = base_alignments.load_fast_lcsh_mapping_release(base_alignments.DEFAULT_SOURCE_ROOT)
+    lc_release = lc_alignments.load_lc_external_links_mapping_release(lc_alignments.DEFAULT_SOURCE_ROOT)
+    lcsh_release = lcsh_alignments.load_lcsh_consolidated_release(lcsh_alignments.DEFAULT_SOURCE_ROOT)
+    lcsh_source_release = generator._adapt_registry_release(lcsh_release)
+    return fast_release, lc_release, lcsh_source_release
+
+
+def test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set(
+    real_fast_lcsh_s27_inputs: tuple[
+        RegistryMappingRelease,
+        RegistryMappingRelease,
+        generator.LoadedRelease,
+    ],
+) -> None:
+    """Reproduce the S27 reconciliation over real pinned data outside a full
+    build.
+
+    REF-040 widened the FAST-LCSH target scope from a 1,966-concept subset to
+    every held LCSH concept, which reopens many more OCLC relatedMatch pairs
+    against LC's independent hierarchy claims -- and, separately, against the
+    consolidated LCSH release's own 301,442 native skos:broader statements,
+    which is the hierarchy source that actually caused the REF-040 build
+    failure (see
+    `test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope`).
+    This is the fast, ungated check that must fail the moment the frozen
+    conflict pin drifts from that widened reality, instead of only surfacing
+    hours into a full distribution build.
+    """
+
+    fast_release, lc_release, lcsh_source_release = real_fast_lcsh_s27_inputs
+    reconciled = generator._reconcile_fast_lcsh_s27_mapping_conflicts(
+        (fast_release, lc_release),
+        (lcsh_source_release,),
+    )
+    reconciled_fast = next(release for release in reconciled if release.key == fast_release.key)
+    frozen = reconciled_fast.metadata["skosS27Reconciliation"]["frozenConflictList"]
+    assert frozen["count"] == base_alignments.FAST_LCSH_S27_REFUSAL_COUNT == 174_766
+    assert frozen["digest"] == base_alignments.FAST_LCSH_S27_REFUSAL_DIGEST
+    admitted_related = sum(
+        1 for row in reconciled_fast.mappings if row.predicate == str(SKOS.relatedMatch)
+    )
+    admitted_exact = sum(1 for row in reconciled_fast.mappings if row.predicate == str(SKOS.exactMatch))
+    assert admitted_exact == 252_527
+    assert admitted_related == 175_166
+    assert len(reconciled_fast.mappings) == 427_693
+
+
+def test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope(
+    real_fast_lcsh_s27_inputs: tuple[
+        RegistryMappingRelease,
+        RegistryMappingRelease,
+        generator.LoadedRelease,
+    ],
+) -> None:
+    """Prove the corpus-scope fix actually bites: the pre-fix hierarchy scope
+    (LC's own broadMatch/narrowMatch claims alone) computes a different,
+    wrong refusal count against the same real pinned data.
+
+    This is what actually shipped the REF-040 build failure: a full build
+    reached SKOS S27 at elapsed=776s and failed on
+    (sh2008003833, fast/1910413) -- a pair hierarchy-connected only through
+    a chain of intra-LCSH skos:broader edges the consolidated LCSH release
+    contributes, which `_reconcile_fast_lcsh_s27_mapping_conflicts` never
+    consulted before this fix. Reproducing the *old* narrower computation
+    directly (not just calling the fixed function) proves this test would
+    have caught the gap without ever running a build.
+    """
+
+    fast_release, lc_release, _lcsh_source_release = real_fast_lcsh_s27_inputs
+    ATLAS_VALIDATE = generator.ATLAS_VALIDATE
+
+    # The pre-fix hierarchy: only lc_release's own broadMatch/narrowMatch
+    # claims, exactly what `_reconcile_fast_lcsh_s27_mapping_conflicts` read
+    # before this fix.
+    old_hierarchy: dict = {}
+    for mapping in lc_release.mappings:
+        subject = URIRef(mapping.subject)
+        predicate = URIRef(mapping.predicate)
+        obj = URIRef(mapping.object)
+        if predicate == SKOS.broadMatch:
+            ATLAS_VALIDATE._add_compact_target(old_hierarchy, subject, obj)
+        elif predicate == SKOS.narrowMatch:
+            ATLAS_VALIDATE._add_compact_target(old_hierarchy, obj, subject)
+
+    related_pairs = {
+        ATLAS_VALIDATE._canonical_pair(URIRef(mapping.subject), URIRef(mapping.object))
+        for mapping in fast_release.mappings
+        if mapping.predicate == str(SKOS.relatedMatch)
+    }
+    old_scope_refused_count = len(
+        ATLAS_VALIDATE._hierarchy_connected_pairs(old_hierarchy, iter(related_pairs))
+    )
+
+    # This is the exact stale value the frozen pin carried before this fix --
+    # correct for the old, too-narrow hierarchy scope, wrong for what the
+    # binding's corpus-wide SKOS S27 check actually evaluates.
+    assert old_scope_refused_count == 174_755
+    assert old_scope_refused_count != base_alignments.FAST_LCSH_S27_REFUSAL_COUNT
+    assert base_alignments.FAST_LCSH_S27_REFUSAL_COUNT == 174_766
+
+
+def test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build(
+    real_fast_lcsh_s27_inputs: tuple[
+        RegistryMappingRelease,
+        RegistryMappingRelease,
+        generator.LoadedRelease,
+    ],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proven-biting negative: a stale pin must be refused against the real,
+    widened data, not just against a hand-built synthetic fixture.
+
+    The pin below is the exact pre-REF-040 value -- correct for the retired
+    narrow EuroVoc-alignment target scope, wrong for the widened one this
+    release now uses. Reproducing this failure used to require a full,
+    multi-hour distribution build; this test reproduces it in the time it
+    takes to load three pinned releases.
+    """
+
+    fast_release, lc_release, lcsh_source_release = real_fast_lcsh_s27_inputs
+    monkeypatch.setattr(base_alignments, "FAST_LCSH_S27_REFUSAL_COUNT", 24_190)
+    monkeypatch.setattr(
+        base_alignments,
+        "FAST_LCSH_S27_REFUSAL_DIGEST",
+        "sha256:fc9afdc9c1da43839d133ff0efe409dd0c6c0624152bacdfb65e9bd9320653bd",
+    )
+    with pytest.raises(ValueError, match="FAST--LCSH SKOS S27 refusal list drifted"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts(
+            (fast_release, lc_release),
+            (lcsh_source_release,),
+        )
+
+
+def test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other(
+    tmp_path: Path,
+) -> None:
+    """Loading exactly one of the reconciliation's two mapping releases, or
+    omitting the consolidated LCSH source release, must refuse -- not
+    silently ship 'fast-lcsh-adopted-2026-08-15' unreconciled or reconciled
+    against a hierarchy narrower than what the corpus will carry.
+
+    Before this fix, `_reconcile_fast_lcsh_s27_mapping_conflicts` returned its
+    input unchanged whenever either mapping release was missing -- including
+    when only one was missing. Any bounded/scoped build (`--only-release
+    fast-lcsh-adopted-2026-08-15` without its LC hierarchy dependency) never
+    exercised the S27 check at all, which is why the stale pin only ever
+    surfaced in the unbounded full build. A second, separate gap let both
+    mapping releases load without the consolidated LCSH source release
+    (`lcsh-subjects-consolidated-2026-08-06`) present -- the actual gap that
+    shipped the REF-040 build failure.
+    """
+
+    releases = _synthetic_releases(tmp_path)
+    template = _synthetic_mapping_release(tmp_path, releases)
+    fast_only = dataclasses.replace(template, key="fast-lcsh-adopted-2026-08-15")
+    lc_only = dataclasses.replace(template, key="lcsh-external-links-mappings-2026-08-15")
+
+    with pytest.raises(ValueError, match="requires both"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts((fast_only,))
+    with pytest.raises(ValueError, match="requires both"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts((lc_only,))
+
+    # Both mapping releases present, but the consolidated LCSH source release
+    # is not -- must refuse, not reconcile against a narrower hierarchy.
+    with pytest.raises(ValueError, match="requires the consolidated LCSH"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts((fast_only, lc_only))
+    with pytest.raises(ValueError, match="requires the consolidated LCSH"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts((fast_only, lc_only), ())
+    other_source = dataclasses.replace(
+        releases[0],
+        spec=dataclasses.replace(releases[0].spec, key="synthetic-unrelated-source"),
+    )
+    with pytest.raises(ValueError, match="requires the consolidated LCSH"):
+        generator._reconcile_fast_lcsh_s27_mapping_conflicts((fast_only, lc_only), (other_source,))
+
+    # Neither key in scope is still a legitimate no-op: a construction unit
+    # that never touches FAST-LCSH mapping has nothing to reconcile.
+    unrelated = dataclasses.replace(template, key="eurovoc-lcsh-alignment-20240711")
+    assert generator._reconcile_fast_lcsh_s27_mapping_conflicts((unrelated,)) == (unrelated,)
 
 
 def test_fast_see_also_has_no_thesaurus_related_eligible_pairs() -> None:

@@ -48,12 +48,15 @@ LCSH_EXPECTED_CONTEXT_URL = "http://id.loc.gov/authorities/subjects/context.json
 # JSON-LD expander: a differently bound context would be refused, not
 # silently reinterpreted.
 _AUTHORITY_TYPE_TERM = "madsrdf:Authority"
+_DEPRECATED_AUTHORITY_TYPE_TERM = "madsrdf:DeprecatedAuthority"
 _TOPIC_TYPE_TERM = "madsrdf:Topic"
 _LCCN_FIELD = "identifiers:lccn"
 _AUTHORITATIVE_LABEL_FIELD = "madsrdf:authoritativeLabel"
 _BROADER_FIELD = "madsrdf:hasBroaderAuthority"
 _VARIANT_FIELD = "madsrdf:hasVariant"
 _VARIANT_LABEL_FIELD = "madsrdf:variantLabel"
+_USE_INSTEAD_FIELD = "madsrdf:useInstead"
+_DELETION_NOTE_FIELD = "madsrdf:deletionNote"
 
 LCSH_LCCN_IDENTIFIER_KIND = "publisherLccn"
 LCSH_CONCEPT_URI_IDENTIFIER_KIND = "publisherConceptUri"
@@ -138,7 +141,13 @@ def _require_label(value: object, *, label: str) -> LcshTopicalLabel:
 
 @dataclass(frozen=True, slots=True)
 class LcshTopicalRecord:
-    """One retained LCSH authority, with its exact source line."""
+    """One retained LCSH authority, with its exact source line.
+
+    ``use_instead_iris`` and ``deletion_note`` are only ever non-empty for a
+    deprecated authority (``madsrdf:DeprecatedAuthority`` in
+    ``authority_types``): LC's own successor pointer and removal rationale,
+    preserved verbatim rather than resolved or dropped.
+    """
 
     concept_iri: str
     lccn: str | None
@@ -149,6 +158,8 @@ class LcshTopicalRecord:
     source_url: str
     line_number: int
     raw_line: bytes
+    use_instead_iris: tuple[str, ...] = ()
+    deletion_note: LcshTopicalLabel | None = None
 
     @property
     def source_sha256(self) -> str:
@@ -160,6 +171,12 @@ class LcshTopicalRecord:
     def source_byte_length(self) -> int:
         return len(self.raw_line)
 
+    @property
+    def is_deprecated(self) -> bool:
+        """True for a record LC itself marks ``madsrdf:DeprecatedAuthority``."""
+
+        return _DEPRECATED_AUTHORITY_TYPE_TERM in self.authority_types
+
 
 def _parse_lcsh_authority_ndjson_line(
     line: bytes,
@@ -168,12 +185,31 @@ def _parse_lcsh_authority_ndjson_line(
     line_number: int,
     require_topic: bool,
     require_lccn: bool,
+    admit_deprecated: bool = False,
+    permit_blank_broader: bool = False,
+    tolerate_repeated_variant_labels: bool = False,
 ) -> LcshTopicalRecord | None:
     """Parse one authority line, optionally retaining only topical headings.
 
     Only the exact input bytes are retained as source evidence: a trailing
     newline (the ndjson line separator, not JSON-LD content) is stripped
     before pinning, everything else is kept byte-for-byte.
+
+    ``admit_deprecated`` widens the top-level authority match from
+    ``madsrdf:Authority`` alone to also accept a ``madsrdf:DeprecatedAuthority``
+    node. LC gives a deprecated authority no ``madsrdf:authoritativeLabel``;
+    it carries only ``madsrdf:variantLabel`` (the record is itself typed
+    ``madsrdf:Variant``), so that becomes this record's ``preferred_label``.
+    Callers that never pass ``admit_deprecated=True`` see no behavior change.
+
+    ``permit_blank_broader`` silently excludes a ``madsrdf:hasBroaderAuthority``
+    target that names an unaddressable blank node instead of failing the
+    whole record; callers that never pass it see no behavior change.
+
+    ``tolerate_repeated_variant_labels`` silently deduplicates two
+    ``madsrdf:hasVariant`` references that resolve to the identical value and
+    language, instead of failing the whole record; callers that never pass it
+    see no behavior change.
     """
 
     if not isinstance(line, bytes):
@@ -208,9 +244,13 @@ def _parse_lcsh_authority_ndjson_line(
             raise LcshTopicalError(f"line {line_number} repeats @graph node @id {node_id!r}")
         by_id[node_id] = node
 
-    authorities = [
-        node for node in graph if _AUTHORITY_TYPE_TERM in _term_set(node.get("@type"), label=f"line {line_number} node")
-    ]
+    def _is_authority_node(node: Mapping[str, Any]) -> bool:
+        node_types = _term_set(node.get("@type"), label=f"line {line_number} node")
+        if _AUTHORITY_TYPE_TERM in node_types:
+            return True
+        return admit_deprecated and _DEPRECATED_AUTHORITY_TYPE_TERM in node_types
+
+    authorities = [node for node in graph if _is_authority_node(node)]
     document_id = document.get("@id")
     expected_prefix = "/authorities/subjects/"
     if not isinstance(document_id, str) or not document_id.startswith(expected_prefix):
@@ -230,6 +270,9 @@ def _parse_lcsh_authority_ndjson_line(
         )
     authority = authorities[0]
     types = _term_set(authority.get("@type"), label=f"line {line_number} authority")
+    is_deprecated = _DEPRECATED_AUTHORITY_TYPE_TERM in types
+    if is_deprecated and _AUTHORITY_TYPE_TERM in types:
+        raise LcshTopicalError(f"line {line_number} authority is both active and deprecated")
     if require_topic and _TOPIC_TYPE_TERM not in types:
         return None
 
@@ -240,19 +283,32 @@ def _parse_lcsh_authority_ndjson_line(
     if require_lccn and lccn is None:
         raise LcshTopicalError(f"{concept_iri} lacks a non-empty {_LCCN_FIELD}")
 
-    preferred_label = _require_label(
-        authority.get(_AUTHORITATIVE_LABEL_FIELD),
-        label=f"{concept_iri} {_AUTHORITATIVE_LABEL_FIELD}",
-    )
-
-    broader_iris = tuple(
-        sorted(
-            {
-                _require_absolute_iri(ref.get("@id"), f"{concept_iri} {_BROADER_FIELD} target")
-                for ref in _as_ref_list(authority.get(_BROADER_FIELD), label=f"{concept_iri} {_BROADER_FIELD}")
-            }
+    if is_deprecated:
+        preferred_label = _require_label(
+            authority.get(_VARIANT_LABEL_FIELD),
+            label=f"{concept_iri} {_VARIANT_LABEL_FIELD}",
         )
-    )
+    else:
+        preferred_label = _require_label(
+            authority.get(_AUTHORITATIVE_LABEL_FIELD),
+            label=f"{concept_iri} {_AUTHORITATIVE_LABEL_FIELD}",
+        )
+
+    broader_refs = _as_ref_list(authority.get(_BROADER_FIELD), label=f"{concept_iri} {_BROADER_FIELD}")
+    if permit_blank_broader:
+        # LC occasionally supplies no absolute IRI for a broader authority,
+        # only an unaddressable blank node. That target is unusable as an
+        # Atlas relation object, so it is silently excluded here rather than
+        # failing the whole record; nothing downstream asserts a blank node.
+        broader_iris = tuple(
+            sorted({str(ref["@id"]) for ref in broader_refs if isinstance(ref.get("@id"), str) and ref["@id"].startswith(("http://", "https://"))})
+        )
+    else:
+        broader_iris = tuple(
+            sorted(
+                {_require_absolute_iri(ref.get("@id"), f"{concept_iri} {_BROADER_FIELD} target") for ref in broader_refs}
+            )
+        )
 
     variant_labels: list[LcshTopicalLabel] = []
     for ref in _as_ref_list(authority.get(_VARIANT_FIELD), label=f"{concept_iri} {_VARIANT_FIELD}"):
@@ -267,8 +323,20 @@ def _parse_lcsh_authority_ndjson_line(
             )
         )
     deduplicated_variants = tuple(sorted(set(variant_labels), key=lambda item: (item.language, item.value)))
-    if len(deduplicated_variants) != len(variant_labels):
+    if len(deduplicated_variants) != len(variant_labels) and not tolerate_repeated_variant_labels:
         raise LcshTopicalError(f"{concept_iri} repeats an identical variant label")
+
+    use_instead_iris: tuple[str, ...] = ()
+    deletion_note: LcshTopicalLabel | None = None
+    if is_deprecated:
+        use_instead_refs = _as_ref_list(authority.get(_USE_INSTEAD_FIELD), label=f"{concept_iri} {_USE_INSTEAD_FIELD}")
+        use_instead_iris = tuple(
+            _require_absolute_iri(ref.get("@id"), f"{concept_iri} {_USE_INSTEAD_FIELD} target")
+            for ref in use_instead_refs
+        )
+        note_value = authority.get(_DELETION_NOTE_FIELD)
+        if note_value is not None:
+            deletion_note = _require_label(note_value, label=f"{concept_iri} {_DELETION_NOTE_FIELD}")
 
     return LcshTopicalRecord(
         concept_iri=concept_iri,
@@ -280,6 +348,8 @@ def _parse_lcsh_authority_ndjson_line(
         source_url=source_url,
         line_number=line_number,
         raw_line=raw,
+        use_instead_iris=use_instead_iris,
+        deletion_note=deletion_note,
     )
 
 
@@ -314,6 +384,32 @@ def parse_lcsh_authority_ndjson_line(
         line_number=line_number,
         require_topic=False,
         require_lccn=False,
+    )
+
+
+def parse_lcsh_authority_or_deprecated_ndjson_line(
+    line: bytes,
+    *,
+    source_url: str,
+    line_number: int,
+) -> LcshTopicalRecord | None:
+    """Parse any LCSH authority class, admitting a deprecated authority too.
+
+    A deprecated authority is returned with ``is_deprecated`` true, its
+    ``preferred_label`` set from LC's ``madsrdf:variantLabel`` (deprecated
+    records carry no ``madsrdf:authoritativeLabel``), and ``use_instead_iris``
+    / ``deletion_note`` populated from LC's own fields when present.
+    """
+
+    return _parse_lcsh_authority_ndjson_line(
+        line,
+        source_url=source_url,
+        line_number=line_number,
+        require_topic=False,
+        require_lccn=False,
+        admit_deprecated=True,
+        permit_blank_broader=True,
+        tolerate_repeated_variant_labels=True,
     )
 
 
@@ -435,6 +531,100 @@ def capture_lcsh_authorities_by_iri_from_gzip_path(
             handle,
             source_url=source_url,
             concept_iris=concept_iris,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class LcshConsolidatedCapture:
+    """One complete bounded-memory scan of the whole LCSH bulk file.
+
+    Retains every current (non-deprecated) authority of every authority
+    class, plus only the deprecated authorities named in ``referenced_iris``.
+    A deprecated heading nothing in that set names is read, counted toward
+    ``total_deprecated_seen``, and discarded: this reader never assembles
+    the complete deprecated roster.
+    """
+
+    source_url: str
+    lines_scanned: int
+    current_records: tuple[LcshTopicalRecord, ...]
+    deprecated_records: tuple[LcshTopicalRecord, ...]
+    referenced_iris: frozenset[str]
+    total_deprecated_seen: int
+
+    @property
+    def retained_iris(self) -> frozenset[str]:
+        """Every concept IRI this capture actually retained a record for."""
+
+        return frozenset(record.concept_iri for record in self.current_records) | frozenset(
+            record.concept_iri for record in self.deprecated_records
+        )
+
+    @property
+    def missing_referenced_iris(self) -> frozenset[str]:
+        """Referenced IRIs absent from the bulk file entirely (not deprecated: absent)."""
+
+        return self.referenced_iris - self.retained_iris
+
+
+def capture_lcsh_current_and_referenced_deprecated(
+    lines: Iterable[bytes],
+    *,
+    source_url: str,
+    referenced_iris: Iterable[str],
+) -> LcshConsolidatedCapture:
+    """Stream the complete LCSH bulk file once, retaining the consolidated set.
+
+    ``referenced_iris`` is the union of every LCSH-side IRI a held mapping
+    candidate names; most of it names current headings that this reader
+    already retains unconditionally. It only changes behavior for a
+    deprecated authority: retained only when it is in that set.
+    """
+
+    referenced = frozenset(referenced_iris)
+    current: list[LcshTopicalRecord] = []
+    deprecated: list[LcshTopicalRecord] = []
+    total_deprecated_seen = 0
+    lines_scanned = 0
+    seen: set[str] = set()
+    for line_number, line in enumerate(lines, start=1):
+        lines_scanned = line_number
+        record = parse_lcsh_authority_or_deprecated_ndjson_line(line, source_url=source_url, line_number=line_number)
+        if record is None:
+            continue
+        if record.concept_iri in seen:
+            raise LcshTopicalError(f"line {line_number} repeats concept {record.concept_iri!r} already seen")
+        seen.add(record.concept_iri)
+        if record.is_deprecated:
+            total_deprecated_seen += 1
+            if record.concept_iri in referenced:
+                deprecated.append(record)
+        else:
+            current.append(record)
+    return LcshConsolidatedCapture(
+        source_url=source_url,
+        lines_scanned=lines_scanned,
+        current_records=tuple(current),
+        deprecated_records=tuple(deprecated),
+        referenced_iris=referenced,
+        total_deprecated_seen=total_deprecated_seen,
+    )
+
+
+def capture_lcsh_current_and_referenced_deprecated_from_gzip_path(
+    path: Path,
+    *,
+    source_url: str,
+    referenced_iris: Iterable[str],
+) -> LcshConsolidatedCapture:
+    """Stream a local gzip NDJSON source into the consolidated capture."""
+
+    source_path = Path(path)
+    if source_path.is_symlink() or not source_path.is_file():
+        raise LcshTopicalError(f"LCSH ndjson source is not a regular file: {source_path}")
+    with gzip.open(source_path, "rb") as handle:
+        return capture_lcsh_current_and_referenced_deprecated(
+            handle, source_url=source_url, referenced_iris=referenced_iris
         )
 
 
@@ -626,6 +816,7 @@ __all__ = [
     "LCSH_TOPICAL_MINI_FIXTURE_SHA256",
     "MAX_TOPICAL_SUBSET_RECORDS",
     "LcshAuthoritySelectionCapture",
+    "LcshConsolidatedCapture",
     "LcshTopicalError",
     "LcshTopicalLabel",
     "LcshTopicalRecord",
@@ -633,9 +824,12 @@ __all__ = [
     "build_lcsh_topical_snapshot",
     "capture_lcsh_authorities_by_iri",
     "capture_lcsh_authorities_by_iri_from_gzip_path",
+    "capture_lcsh_current_and_referenced_deprecated",
+    "capture_lcsh_current_and_referenced_deprecated_from_gzip_path",
     "capture_lcsh_topical_subset",
     "capture_lcsh_topical_subset_from_gzip_path",
     "open_pinned_lcsh_topical_mini_fixture",
     "parse_lcsh_authority_ndjson_line",
+    "parse_lcsh_authority_or_deprecated_ndjson_line",
     "parse_lcsh_topical_ndjson_line",
 ]

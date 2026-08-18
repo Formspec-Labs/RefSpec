@@ -7,8 +7,10 @@ and builds a local full-text index only when text search is first requested.
 
 from __future__ import annotations
 
+import re
 import tempfile
 import threading
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from types import MappingProxyType
@@ -40,6 +42,23 @@ ATLAS_SEARCH_DOCUMENTS_TABLE = "atlas_search_documents"
 
 _SEARCH_INDEX_SCHEMA = "fts_main_atlas_search_documents"
 _SEARCH_LIMIT_MAXIMUM = 500
+
+_STATUS_FILTERS = frozenset({"active", "all"})
+_ENDPOINT_RELEASE_PATTERN = re.compile(r"endpoint", re.IGNORECASE)
+
+_AGENCY_PROJECTION_TABLE_FILE = "agency-projection.parquet"
+_AGENCY_PROJECTION_UNRESOLVED_TABLE_FILE = "agency-projection-unresolved.parquet"
+_AGENCY_PROJECTION_VIEW = "atlas_agency_projection"
+_AGENCY_PROJECTION_UNRESOLVED_VIEW = "atlas_agency_projection_unresolved"
+
+#: The compact search view may carry REF-038's agency-projection tables as
+#: manifest members alongside the eight closed compact record roles (see
+#: refspec.atlas.parquet_search_view.PROJECTION_MEMBER_ROLES). They are not
+#: one of ``CompactRecordRole`` and are never looked up through ``self.tables``
+#: -- ``_agency_projection_paths`` finds them directly by their fixed
+#: on-disk path -- so member construction below skips them rather than
+#: failing to parse them as a compact record role.
+_COMPACT_RECORD_ROLE_VALUES = frozenset(role.value for role in CompactRecordRole)
 
 
 class AtlasDuckDBViewError(ValueError):
@@ -74,6 +93,7 @@ class AtlasDuckDBView:
         self._connection = connection
         self._lock = threading.RLock()
         self._search_ready = False
+        self._agency_projection_ready = False
         self._closed = False
 
     @classmethod
@@ -98,6 +118,7 @@ class AtlasDuckDBView:
             {
                 CompactRecordRole(member["role"]): resolved / member["path"]
                 for member in manifest["members"]
+                if member["role"] in _COMPACT_RECORD_ROLE_VALUES
             }
         )
         temporary_directory = tempfile.TemporaryDirectory(prefix="refspec-atlas-duckdb-")
@@ -248,34 +269,68 @@ class AtlasDuckDBView:
             "start": start_rows[0]["id"] if start_rows else "",
         }
 
-    def overview(self) -> dict[str, Any]:
-        """Return the whole-atlas map: every vocabulary and the relation volume between them."""
+    def overview(self, *, status: str = "active") -> dict[str, Any]:
+        """Return the whole-atlas map: every vocabulary and the relation volume between them.
 
+        Deprecated-status resources (any ``record_status`` containing
+        "deprecated", case-insensitively) are excluded by default; pass
+        ``status="all"`` to include them. Releases whose members are
+        predominantly alignment-endpoint-status, or whose identifier names
+        them as an endpoint release, come back with ``satellite: true`` and a
+        ``partner`` release id -- the release they share the most
+        ``MappingAssertion`` volume with -- so the frontend can draw them as
+        small satellites near that partner instead of as full peers.
+        """
+
+        _validate_status(status)
         nodes = self.query_rows(
-            """
+            f"""
+            WITH classification AS (
+                SELECT
+                    release,
+                    count(*) AS total_members,
+                    sum(
+                        CASE WHEN lower(record_status) LIKE '%alignmentendpoint%' THEN 1 ELSE 0 END
+                    ) AS endpoint_members
+                FROM atlas_resources
+                GROUP BY release
+            )
             SELECT
                 release.id,
                 release.identifier,
                 release.semantic_ring AS ring,
-                count(resource.id) AS resources
+                count(resource.id) AS resources,
+                coalesce(classification.total_members, 0) AS total_members,
+                coalesce(classification.endpoint_members, 0) AS endpoint_members
             FROM atlas_releases AS release
-            LEFT JOIN atlas_resources AS resource ON resource.release = release.id
+            LEFT JOIN atlas_resources AS resource
+                ON resource.release = release.id
+               AND {_status_predicate("resource.record_status")}
+            LEFT JOIN classification ON classification.release = release.id
             WHERE release.release_type = 'AtlasRelease'
-            GROUP BY release.id, release.identifier, release.semantic_ring
+            GROUP BY
+                release.id, release.identifier, release.semantic_ring,
+                classification.total_members, classification.endpoint_members
             ORDER BY lower(release.identifier), release.id
-            """
+            """,
+            (status,),
         )
         pairs = self.query_rows(
-            """
+            f"""
             SELECT
-                least(source_release, target_release) AS source,
-                greatest(source_release, target_release) AS target,
-                statement_type,
+                least(statement.source_release, statement.target_release) AS source,
+                greatest(statement.source_release, statement.target_release) AS target,
+                statement.statement_type,
                 count(*) AS count
-            FROM atlas_statements
-            GROUP BY 1, 2, statement_type
-            ORDER BY 1, 2, statement_type
-            """
+            FROM atlas_statements AS statement
+            JOIN atlas_resources AS subject_resource ON subject_resource.id = statement.subject
+            JOIN atlas_resources AS object_resource ON object_resource.id = statement.object
+            WHERE {_status_predicate("subject_resource.record_status")}
+              AND {_status_predicate("object_resource.record_status")}
+            GROUP BY 1, 2, statement.statement_type
+            ORDER BY 1, 2, statement.statement_type
+            """,
+            (status, status),
         )
         internal: dict[str, int] = {}
         edges: list[dict[str, Any]] = []
@@ -286,16 +341,20 @@ class AtlasDuckDBView:
                 edges.append(row)
         for node in nodes:
             node["internalRelations"] = internal.get(node["id"], 0)
+        _mark_satellites(nodes, edges)
         return {"edges": edges, "nodes": nodes}
 
-    def release_graph(self, release_id: str) -> dict[str, Any]:
+    def release_graph(self, release_id: str, *, status: str = "active") -> dict[str, Any]:
         """Return one vocabulary's full graph: every resource and internal relation.
 
         Nodes are ``[id, label]`` pairs; edges are ``[subject, object, predicate,
         statementType]`` index tuples into ``nodes``, ``predicates``, and
         ``types``, so the payload stays compact for six-figure vocabularies.
+        Deprecated-status resources are excluded by default; pass
+        ``status="all"`` to include them.
         """
 
+        _validate_status(status)
         release_rows = self.query_rows(
             """
             SELECT id, identifier, semantic_ring AS ring
@@ -307,7 +366,7 @@ class AtlasDuckDBView:
         if len(release_rows) != 1:
             raise AtlasDuckDBViewError("release is not present in the Parquet view")
         node_rows = self.query_rows(
-            """
+            f"""
             WITH ranked AS (
                 SELECT
                     resource,
@@ -337,9 +396,10 @@ class AtlasDuckDBView:
             FROM atlas_resources AS resource
             LEFT JOIN ranked ON ranked.resource = resource.id AND ranked.label_rank = 1
             WHERE resource.release = ?
+              AND {_status_predicate("resource.record_status")}
             ORDER BY lower(label), label, resource.id
             """,
-            (release_id,),
+            (release_id, status),
         )
         edge_rows = self.query_rows(
             """
@@ -390,18 +450,24 @@ class AtlasDuckDBView:
         release: str = "",
         releases: Sequence[str] = (),
         ring: str = "",
+        status: str = "active",
         limit: int = 100,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
-        """Search labels, aliases, notations, identifiers, definitions, and IRIs."""
+        """Search labels, aliases, notations, identifiers, definitions, and IRIs.
+
+        Deprecated-status resources are excluded by default; pass
+        ``status="all"`` to include them.
+        """
 
         _validate_page(limit=limit, offset=offset)
+        _validate_status(status)
         normalized = query.strip()
         release_filter = sorted({value for value in (*releases, release) if value})
         if not normalized:
             self._prepare_search_documents(full_text=False)
             return self.query_rows(
-                """
+                f"""
                 SELECT
                     resource.definition,
                     document.id,
@@ -414,10 +480,11 @@ class AtlasDuckDBView:
                 JOIN atlas_resources AS resource ON resource.id = document.id
                 WHERE (? OR resource.release = ANY(?))
                   AND (? = '' OR resource.semantic_ring = ?)
+                  AND {_status_predicate("resource.record_status")}
                 ORDER BY lower(document.label), document.label, document.id
                 LIMIT ? OFFSET ?
                 """,
-                (not release_filter, release_filter, ring, ring, limit, offset),
+                (not release_filter, release_filter, ring, ring, status, limit, offset),
             )
 
         self._prepare_search_documents(full_text=True)
@@ -444,15 +511,23 @@ class AtlasDuckDBView:
             WHERE ranked.score IS NOT NULL
               AND (? OR resource.release = ANY(?))
               AND (? = '' OR resource.semantic_ring = ?)
+              AND {_status_predicate("resource.record_status")}
             ORDER BY ranked.score DESC, lower(ranked.label), ranked.label, ranked.id
             LIMIT ? OFFSET ?
             """,
-            (normalized, not release_filter, release_filter, ring, ring, limit, offset),
+            (normalized, not release_filter, release_filter, ring, ring, status, limit, offset),
         )
 
-    def resource(self, resource_id: str) -> dict[str, Any]:
-        """Return one resource, its immediate relations, and their evidence."""
+    def resource(self, resource_id: str, *, status: str = "active") -> dict[str, Any]:
+        """Return one resource, its immediate relations, and their evidence.
 
+        The requested resource is always returned, even if it is itself
+        deprecated -- it was asked for by id. Its relations to *other*
+        deprecated-status resources are excluded by default; pass
+        ``status="all"`` to include them.
+        """
+
+        _validate_status(status)
         resource_rows = self.query_rows(
             "SELECT * FROM atlas_resources WHERE id = ?",
             (resource_id,),
@@ -487,14 +562,21 @@ class AtlasDuckDBView:
             (resource_id,),
         )
         relations = self.query_rows(
-            """
-            SELECT *
-            FROM atlas_statements
-            WHERE subject = ? OR object = ?
-            ORDER BY id
+            f"""
+            SELECT statement.*
+            FROM atlas_statements AS statement
+            LEFT JOIN atlas_resources AS subject_resource
+                ON subject_resource.id = statement.subject
+            LEFT JOIN atlas_resources AS object_resource
+                ON object_resource.id = statement.object
+            WHERE (statement.subject = ? OR statement.object = ?)
+              AND (statement.subject = ? OR {_status_predicate("subject_resource.record_status")})
+              AND (statement.object = ? OR {_status_predicate("object_resource.record_status")})
+            ORDER BY statement.id
             """,
-            (resource_id, resource_id),
+            (resource_id, resource_id, resource_id, status, resource_id, status),
         )
+        relation_ids = [relation["id"] for relation in relations]
         evidence_rows = self.query_rows(
             """
             SELECT
@@ -503,14 +585,10 @@ class AtlasDuckDBView:
                 source.source_locator
             FROM atlas_evidence_bindings AS evidence
             LEFT JOIN atlas_source_records AS source ON source.id = evidence.source_record
-            WHERE evidence.statement IN (
-                SELECT id
-                FROM atlas_statements
-                WHERE subject = ? OR object = ?
-            )
+            WHERE evidence.statement = ANY(?)
             ORDER BY evidence.statement, evidence.evidence_id
             """,
-            (resource_id, resource_id),
+            (relation_ids,),
         )
         evidence_by_statement: dict[str, list[dict[str, Any]]] = {}
         for row in evidence_rows:
@@ -594,6 +672,83 @@ class AtlasDuckDBView:
             "sourceRecord": resource["source_record"],
             "status": resource["record_status"],
         }
+
+    def agency_projection_available(self) -> bool:
+        """Report whether this view ships the REF-038 agency-projection tables.
+
+        Older views built before REF-038, or before the source rosters the
+        projection is built from existed, do not carry them; callers should
+        degrade gracefully rather than error.
+        """
+
+        with self._lock:
+            self._require_open()
+            return self._agency_projection_paths() is not None
+
+    def agency_projection(self, query: str = "") -> dict[str, Any]:
+        """Return the REF-038 agency-projection lookup table for the explorer.
+
+        ``resolved`` rows come from ``agency-projection.parquet``: one row per
+        source value with its resolved org, mapping basis, evidence tier and
+        warrant, parent org, and aliases. ``unresolved`` rows come from
+        ``agency-projection-unresolved.parquet``: source values REF-038
+        abstained on, with their abstention reason. Both are filtered by a
+        case-insensitive substring match against the source value, resolved
+        label, aliases, and abbreviations when ``query`` is non-empty.
+
+        Returns ``{"available": False, ...}`` without error when this view
+        does not carry the projection tables at all.
+        """
+
+        if not self._prepare_agency_projection():
+            return {"available": False, "resolved": [], "unresolved": []}
+        normalized = query.strip().lower()
+        pattern = f"%{normalized}%"
+        resolved = self.query_rows(
+            f"""
+            SELECT
+                projection.source_value_kind,
+                projection.source_value,
+                projection.org,
+                projection.pref_label,
+                projection.abbreviations,
+                projection.aliases,
+                projection.parent_org,
+                projection.basis,
+                projection.evidence_tier,
+                projection.warrant,
+                len(projection.evidence_records) AS evidence_count,
+                resource.id IS NOT NULL AS org_known
+            FROM {_AGENCY_PROJECTION_VIEW} AS projection
+            LEFT JOIN atlas_resources AS resource ON resource.id = projection.org
+            WHERE ? = ''
+               OR lower(projection.source_value) LIKE ?
+               OR lower(projection.pref_label) LIKE ?
+               OR lower(array_to_string(projection.aliases, ' ')) LIKE ?
+               OR lower(array_to_string(projection.abbreviations, ' ')) LIKE ?
+            ORDER BY lower(projection.source_value), projection.source_value
+            """,
+            (normalized, pattern, pattern, pattern, pattern),
+        )
+        unresolved = self.query_rows(
+            f"""
+            SELECT
+                source_value_kind,
+                source_value,
+                source_org,
+                pref_label,
+                source_parent_org,
+                reason,
+                reasoning
+            FROM {_AGENCY_PROJECTION_UNRESOLVED_VIEW}
+            WHERE ? = ''
+               OR lower(source_value) LIKE ?
+               OR lower(pref_label) LIKE ?
+            ORDER BY lower(source_value), source_value
+            """,
+            (normalized, pattern, pattern),
+        )
+        return {"available": True, "resolved": resolved, "unresolved": unresolved}
 
     def close(self) -> None:
         """Close the query session and remove its disposable database."""
@@ -701,6 +856,33 @@ class AtlasDuckDBView:
                 ) from error
             self._search_ready = True
 
+    def _agency_projection_paths(self) -> tuple[Path, Path] | None:
+        resolved = self.root / "tables" / _AGENCY_PROJECTION_TABLE_FILE
+        unresolved = self.root / "tables" / _AGENCY_PROJECTION_UNRESOLVED_TABLE_FILE
+        if resolved.is_file() and unresolved.is_file():
+            return resolved, unresolved
+        return None
+
+    def _prepare_agency_projection(self) -> bool:
+        with self._lock:
+            self._require_open()
+            if self._agency_projection_ready:
+                return True
+            paths = self._agency_projection_paths()
+            if paths is None:
+                return False
+            resolved_path, unresolved_path = paths
+            if not self._table_exists(_AGENCY_PROJECTION_VIEW):
+                self._connection.read_parquet(str(resolved_path)).create_view(
+                    _AGENCY_PROJECTION_VIEW
+                )
+            if not self._table_exists(_AGENCY_PROJECTION_UNRESOLVED_VIEW):
+                self._connection.read_parquet(str(unresolved_path)).create_view(
+                    _AGENCY_PROJECTION_UNRESOLVED_VIEW
+                )
+            self._agency_projection_ready = True
+            return True
+
     def _table_exists(self, table: str) -> bool:
         return bool(
             self._connection.execute(
@@ -729,6 +911,66 @@ def _validate_page(*, limit: int, offset: int) -> None:
         raise AtlasDuckDBViewError(f"search limit must be between 1 and {_SEARCH_LIMIT_MAXIMUM}")
     if not isinstance(offset, int) or isinstance(offset, bool) or offset < 0:
         raise AtlasDuckDBViewError("search offset must be zero or greater")
+
+
+def _validate_status(status: str) -> None:
+    if status not in _STATUS_FILTERS:
+        raise AtlasDuckDBViewError(
+            f"status filter must be one of {sorted(_STATUS_FILTERS)}, got {status!r}"
+        )
+
+
+def _status_predicate(column: str) -> str:
+    """Return a parameterized SQL predicate hiding deprecated-status rows.
+
+    A ``record_status`` is deprecated when it contains "deprecated" anywhere,
+    case-insensitively -- not a fixed enum of today's known status strings --
+    so a newly introduced ``*deprecated*`` status is hidden automatically.
+    The caller supplies the ``status`` value ("active" or "all") as the one
+    query parameter this fragment consumes, in the position where it appears.
+    """
+
+    return f"(? = 'all' OR {column} IS NULL OR lower({column}) NOT LIKE '%deprecated%')"
+
+
+def _mark_satellites(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> None:
+    """Flag satellite (alignment-endpoint) releases and their strongest partner.
+
+    A release is a satellite when at least half its members carry an
+    alignment-endpoint-flavoured status (matched the same permissive way as
+    deprecation: substring, case-insensitive, so new endpoint-status variants
+    are covered automatically), or its identifier names it as an endpoint
+    release. Its partner is the other release it shares the most
+    ``MappingAssertion`` volume with; releases with no mapping relations of
+    their own fall back to their strongest relation of any type.
+
+    Mutates ``nodes`` in place: drops the classification-only fields and adds
+    ``satellite`` and ``partner``.
+    """
+
+    mapping_neighbors: dict[str, dict[str, int]] = defaultdict(dict)
+    any_neighbors: dict[str, dict[str, int]] = defaultdict(dict)
+    for edge in edges:
+        source, target, count = edge["source"], edge["target"], edge["count"]
+        any_neighbors[source][target] = any_neighbors[source].get(target, 0) + count
+        any_neighbors[target][source] = any_neighbors[target].get(source, 0) + count
+        if edge["statement_type"] == "MappingAssertion":
+            mapping_neighbors[source][target] = mapping_neighbors[source].get(target, 0) + count
+            mapping_neighbors[target][source] = mapping_neighbors[target].get(source, 0) + count
+
+    def best_partner(node_id: str) -> str | None:
+        for neighbors in (mapping_neighbors.get(node_id), any_neighbors.get(node_id)):
+            if neighbors:
+                return max(neighbors.items(), key=lambda item: (item[1], item[0]))[0]
+        return None
+
+    for node in nodes:
+        total = node.pop("total_members")
+        endpoint = node.pop("endpoint_members")
+        is_endpoint_named = bool(_ENDPOINT_RELEASE_PATTERN.search(node["identifier"] or ""))
+        is_endpoint_majority = bool(total) and endpoint / total >= 0.5
+        node["satellite"] = is_endpoint_majority or is_endpoint_named
+        node["partner"] = best_partner(node["id"]) if node["satellite"] else None
 
 
 def _short(value: str | None) -> str:

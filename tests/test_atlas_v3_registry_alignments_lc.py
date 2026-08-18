@@ -13,14 +13,16 @@ import pytest
 from rdflib import RDF, Dataset, Namespace, URIRef
 
 from refspec.atlas import v3_registry_alignments_lc as alignments
+from refspec.atlas import v3_registry_alignments_lcsh as lcsh_release
 from refspec.registry import lc_external_links as external
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = alignments.DEFAULT_SOURCE_ROOT
 REQUIRED_FILES = (
     SOURCE_ROOT / external.LC_EXTERNAL_LINKS_FILENAME,
-    SOURCE_ROOT / alignments.LCSH_BULK_FILENAME,
+    SOURCE_ROOT / lcsh_release.LCSH_BULK_FILENAME,
     SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711.rdf",
+    SOURCE_ROOT / "mesh-lcsh-mapping-20210325.zip",
 )
 HAS_OFFICIAL_SOURCES = all(path.is_file() for path in REQUIRED_FILES)
 
@@ -37,7 +39,7 @@ def _generator_module():
 def endpoint_release():
     if not HAS_OFFICIAL_SOURCES:
         pytest.skip("official LC, LCSH, and FAST sources are not cached")
-    return alignments.load_lcsh_external_links_endpoint_release(SOURCE_ROOT)
+    return lcsh_release.load_lcsh_consolidated_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
@@ -161,21 +163,20 @@ def test_endpoint_release_is_complete_for_every_emitted_lc_subject(
     endpoint_release,
     mapping_release,
 ) -> None:
-    assert endpoint_release.key == alignments.LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY
-    assert len(endpoint_release.resources) == 359_728
-    assert Counter(resource.status for resource in endpoint_release.resources) == {
-        "alignmentEndpoint": 358_103,
-        "deprecatedAlignmentEndpoint": 1_625,
-    }
-    assert endpoint_release.metadata["existingEndpointOverlapCount"] == 1_951
-    assert endpoint_release.metadata["missingLcshSubjectCount"] == 469
+    # REF-040 retired this module's own bespoke LCSH endpoint capture: every
+    # LC subject now resolves against the consolidated LCSH release.
+    assert endpoint_release.key == lcsh_release.LCSH_CONSOLIDATED_RELEASE_KEY
+    assert len(endpoint_release.resources) == 514_837
+    assert endpoint_release.metadata["deprecatedHeadingsRetainedCount"] == 1_627
 
-    new_endpoint_iris = {resource.iri for resource in endpoint_release.resources}
-    assert {
+    held_iris = {resource.iri for resource in endpoint_release.resources}
+    mapping_subjects = {
         row.subject
         for row in mapping_release.mappings
-        if row.subject_atlas_release_iri == alignments.LCSH_EXTERNAL_LINKS_ENDPOINT_ATLAS_RELEASE_IRI
-    } == new_endpoint_iris
+        if row.subject_atlas_release_iri == lcsh_release.LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI
+    }
+    assert mapping_subjects <= held_iris
+    assert mapping_release.metadata["lcshEndpointAbsentCount"] == alignments.LC_ALL_MISSING_LCSH_SUBJECT_COUNT == 469
 
 
 def test_language_determined_external_endpoints_are_contentful(external_target_releases) -> None:
@@ -294,10 +295,10 @@ def test_identifier_authority_tripwire_is_nonvacuous(
 
 
 def test_adapter_declares_all_lc_construction_units() -> None:
-    assert alignments.LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY in (
-        alignments.LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS
-    )
-    assert set(alignments.LC_EXTERNAL_TARGET_ENDPOINT_RELEASE_KEYS.values()) < set(
+    # REF-040 retired this module's own LCSH endpoint release key: only the
+    # non-LCSH target endpoint releases remain here, and the LCSH endpoint
+    # itself now belongs to the consolidated release module.
+    assert set(alignments.LC_EXTERNAL_TARGET_ENDPOINT_RELEASE_KEYS.values()) == set(
         alignments.LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS
     )
     assert alignments.LC_REGISTRY_MAPPING_RELEASE_KEYS == {

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import itertools
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,7 @@ import pytest
 from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 from refspec.registry.lcsh_topical import (
     LCSH_CONCEPT_URI_IDENTIFIER_KIND,
+    LCSH_EXPECTED_CONTEXT_URL,
     LCSH_LCCN_IDENTIFIER_KIND,
     LCSH_SUBJECTS_SCHEME_IRI,
     LCSH_TOPICAL_MADS_NDJSON_URL,
@@ -27,10 +29,12 @@ from refspec.registry.lcsh_topical import (
     LcshTopicalLabel,
     build_lcsh_topical_snapshot,
     capture_lcsh_authorities_by_iri,
+    capture_lcsh_current_and_referenced_deprecated,
     capture_lcsh_topical_subset,
     capture_lcsh_topical_subset_from_gzip_path,
     open_pinned_lcsh_topical_mini_fixture,
     parse_lcsh_authority_ndjson_line,
+    parse_lcsh_authority_or_deprecated_ndjson_line,
     parse_lcsh_topical_ndjson_line,
 )
 
@@ -331,6 +335,210 @@ def test_uri_selection_fails_closed_when_a_requested_authority_is_absent() -> No
                 "http://id.loc.gov/authorities/subjects/sh99999999",
             ),
         )
+
+
+# REF-040: a byte-faithful synthetic deprecated authority, matching the real
+# shape LC publishes (captured 2026-08-17 from a byte-range read of the
+# pinned bulk file: http://id.loc.gov/authorities/subjects/sh00000273,
+# "Child concentration camp inmates"). madsrdf:DeprecatedAuthority records
+# carry no madsrdf:authoritativeLabel; their only label is
+# madsrdf:variantLabel, because the record is itself typed madsrdf:Variant.
+DEPRECATED_IRI = "http://id.loc.gov/authorities/subjects/sh00000273"
+USE_INSTEAD_IRI_1 = "http://id.loc.gov/authorities/subjects/sh2021004026"
+USE_INSTEAD_IRI_2 = "http://id.loc.gov/authorities/subjects/sh2021004027"
+
+
+def _deprecated_document(
+    *,
+    use_instead: bool = True,
+    deletion_note: bool = True,
+) -> dict:
+    authority: dict = {
+        "@id": DEPRECATED_IRI,
+        "@type": ["madsrdf:DeprecatedAuthority", "madsrdf:Topic", "madsrdf:Variant"],
+        "madsrdf:variantLabel": {"@language": "en", "@value": "Child concentration camp inmates"},
+    }
+    if use_instead:
+        authority["madsrdf:useInstead"] = [{"@id": USE_INSTEAD_IRI_1}, {"@id": USE_INSTEAD_IRI_2}]
+    if deletion_note:
+        authority["madsrdf:deletionNote"] = {
+            "@language": "en",
+            "@value": "This authority record has been deleted because the heading is covered by other headings",
+        }
+    return {
+        "@context": LCSH_EXPECTED_CONTEXT_URL,
+        "@graph": [authority],
+        "@id": "/authorities/subjects/sh00000273",
+    }
+
+
+def _deprecated_line(**kwargs) -> bytes:
+    return json.dumps(_deprecated_document(**kwargs)).encode("utf-8")
+
+
+def test_deprecated_authority_parses_with_variant_label_as_preferred_and_use_instead() -> None:
+    record = parse_lcsh_authority_or_deprecated_ndjson_line(_deprecated_line(), source_url=SOURCE_URL, line_number=1)
+
+    assert record is not None
+    assert record.is_deprecated
+    assert record.concept_iri == DEPRECATED_IRI
+    assert record.preferred_label == LcshTopicalLabel(value="Child concentration camp inmates", language="en")
+    assert record.variant_labels == ()
+    assert record.use_instead_iris == (USE_INSTEAD_IRI_1, USE_INSTEAD_IRI_2)
+    assert record.deletion_note is not None
+    assert record.deletion_note.language == "en"
+    assert "deleted" in record.deletion_note.value
+
+
+def test_deprecated_authority_without_use_instead_or_deletion_note_still_parses() -> None:
+    record = parse_lcsh_authority_or_deprecated_ndjson_line(
+        _deprecated_line(use_instead=False, deletion_note=False),
+        source_url=SOURCE_URL,
+        line_number=1,
+    )
+
+    assert record is not None
+    assert record.is_deprecated
+    assert record.use_instead_iris == ()
+    assert record.deletion_note is None
+
+
+def test_active_record_parsed_by_the_deprecated_admitting_parser_carries_no_deprecation_fields() -> None:
+    record = parse_lcsh_authority_or_deprecated_ndjson_line(_line(0), source_url=SOURCE_URL, line_number=1)
+
+    assert record is not None
+    assert not record.is_deprecated
+    assert record.use_instead_iris == ()
+    assert record.deletion_note is None
+    assert record.concept_iri == ACTIONSCRIPT
+
+
+def test_parsers_that_never_admit_deprecated_still_reject_a_deprecated_line() -> None:
+    # Callers that do not opt in see no behavior change: both existing
+    # public parse functions still fail closed on a deprecated authority.
+    with pytest.raises(LcshTopicalError, match="exactly one"):
+        parse_lcsh_topical_ndjson_line(_deprecated_line(), source_url=SOURCE_URL, line_number=1)
+    with pytest.raises(LcshTopicalError, match="exactly one"):
+        parse_lcsh_authority_ndjson_line(_deprecated_line(), source_url=SOURCE_URL, line_number=1)
+
+
+def test_authority_typed_both_active_and_deprecated_is_rejected() -> None:
+    document = _deprecated_document()
+    document["@graph"][0]["@type"].append("madsrdf:Authority")
+
+    with pytest.raises(LcshTopicalError, match="both active and deprecated"):
+        parse_lcsh_authority_or_deprecated_ndjson_line(
+            json.dumps(document).encode("utf-8"),
+            source_url=SOURCE_URL,
+            line_number=1,
+        )
+
+
+def test_blank_node_broader_target_is_excluded_only_when_admitting_deprecated() -> None:
+    document = json.loads(_line(0))
+    document["@graph"][0]["madsrdf:hasBroaderAuthority"] = {"@id": "_:nblank1"}
+    line = json.dumps(document).encode("utf-8")
+
+    record = parse_lcsh_authority_or_deprecated_ndjson_line(line, source_url=SOURCE_URL, line_number=1)
+    assert record is not None
+    assert record.broader_iris == ()
+
+    with pytest.raises(LcshTopicalError, match="absolute"):
+        parse_lcsh_topical_ndjson_line(line, source_url=SOURCE_URL, line_number=1)
+
+
+def test_repeated_variant_label_tolerated_only_when_admitting_deprecated() -> None:
+    # Line 2 (SAKI) has two madsrdf:hasVariant references, "Pale-headed saki"
+    # and "Pithecia pithecia". Add a third reference to a new blank node
+    # carrying an identical (value, language) pair to the first.
+    document = json.loads(_line(2))
+    graph = document["@graph"]
+    authority = next(node for node in graph if node.get("@id") == SAKI)
+    duplicate_element = {
+        "@id": "_:duplicateVariantElement",
+        "@type": "madsrdf:TopicElement",
+        "madsrdf:elementValue": {"@language": "en", "@value": "Pale-headed saki"},
+    }
+    duplicate_variant = {
+        "@id": "_:duplicateVariant",
+        "@type": ["madsrdf:Topic", "madsrdf:Variant"],
+        "madsrdf:elementList": {"@list": [{"@id": "_:duplicateVariantElement"}]},
+        "madsrdf:variantLabel": {"@language": "en", "@value": "Pale-headed saki"},
+    }
+    graph.extend([duplicate_element, duplicate_variant])
+    authority["madsrdf:hasVariant"] = [*authority["madsrdf:hasVariant"], {"@id": "_:duplicateVariant"}]
+    line = json.dumps(document).encode("utf-8")
+
+    record = parse_lcsh_authority_or_deprecated_ndjson_line(line, source_url=SOURCE_URL, line_number=3)
+    assert record is not None
+    assert record.variant_labels == (
+        LcshTopicalLabel(value="Pale-headed saki", language="en"),
+        LcshTopicalLabel(value="Pithecia pithecia", language="en"),
+    )
+
+    with pytest.raises(LcshTopicalError, match="repeats an identical variant label"):
+        parse_lcsh_topical_ndjson_line(line, source_url=SOURCE_URL, line_number=3)
+
+
+def test_capture_current_and_referenced_deprecated_retains_only_referenced_deprecated() -> None:
+    # All six fixture lines are current authorities of some class (three
+    # topical, three not); this reader admits every authority class, not
+    # only topical headings, matching REF-040's "every authority class" scope.
+    lines = [*_fixture_lines(), _deprecated_line()]
+
+    unreferenced = capture_lcsh_current_and_referenced_deprecated(lines, source_url=SOURCE_URL, referenced_iris=())
+    assert len(unreferenced.current_records) == 6
+    assert unreferenced.deprecated_records == ()
+    assert unreferenced.total_deprecated_seen == 1
+    assert unreferenced.missing_referenced_iris == frozenset()
+
+    referenced = capture_lcsh_current_and_referenced_deprecated(
+        lines,
+        source_url=SOURCE_URL,
+        referenced_iris=(DEPRECATED_IRI, "http://id.loc.gov/authorities/subjects/sh99999999"),
+    )
+    assert len(referenced.current_records) == 6
+    assert [record.concept_iri for record in referenced.deprecated_records] == [DEPRECATED_IRI]
+    assert referenced.total_deprecated_seen == 1
+    assert referenced.missing_referenced_iris == frozenset(
+        {"http://id.loc.gov/authorities/subjects/sh99999999"}
+    )
+
+
+def test_capture_current_and_referenced_deprecated_rejects_a_repeated_concept() -> None:
+    lines = [_line(0), _line(0)]
+    with pytest.raises(LcshTopicalError, match="repeats concept"):
+        capture_lcsh_current_and_referenced_deprecated(lines, source_url=SOURCE_URL, referenced_iris=())
+
+
+PINNED_LCSH_BULK_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "output"
+    / "registry-real-data-sources"
+    / "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz"
+)
+
+
+@pytest.mark.skipif(not PINNED_LCSH_BULK_PATH.is_file(), reason="pinned LCSH bulk file is not cached")
+def test_real_pinned_bulk_prefix_carries_a_real_deprecated_authority() -> None:
+    # A bounded 200-line prefix of the real pinned file, not the full
+    # 521,055-line / ~15s scan: line 188 is the real sh00000273 deprecated
+    # record this module's fixtures are modeled on.
+    with gzip.open(PINNED_LCSH_BULK_PATH, "rb") as handle:
+        prefix = list(itertools.islice(handle, 200))
+    assert len(prefix) == 200
+
+    capture = capture_lcsh_current_and_referenced_deprecated(
+        prefix, source_url=LCSH_TOPICAL_MADS_NDJSON_URL, referenced_iris=(DEPRECATED_IRI,)
+    )
+
+    assert capture.total_deprecated_seen >= 1
+    retained = {record.concept_iri: record for record in capture.deprecated_records}
+    assert DEPRECATED_IRI in retained
+    real_record = retained[DEPRECATED_IRI]
+    assert real_record.preferred_label.value == "Child concentration camp inmates"
+    assert set(real_record.use_instead_iris) == {USE_INSTEAD_IRI_1, USE_INSTEAD_IRI_2}
+    assert real_record.deletion_note is not None
 
 
 def test_capture_from_gzip_path_streams_a_bounded_prefix(tmp_path: Path) -> None:

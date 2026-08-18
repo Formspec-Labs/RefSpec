@@ -2675,3 +2675,391 @@ drift by upgrading the workspace lock and environment to 7.6.0, or by using the
 Makefile's isolated binding-requirements environment. Then run the fixture
 check under 7.6.0 and review the receipt and fixture digest before accepting any
 regeneration.
+
+### REF-040: One consolidated LCSH release replaces three; the held-to-held mappings connect at full scope
+
+- **Date:** 2026-08-17
+- **Status:** Accepted and executed. Numbered REF-040, not REF-039: that
+  number was already taken by the unrelated validation-scale entry above,
+  landed on this branch before this work started.
+
+**The decision.** RefSpec held LCSH four times over: three separate,
+bespoke endpoint captures (`lcsh-eurovoc-alignment-endpoints-2026-08-06`,
+`lcsh-external-links-endpoints-2026-08-15`, and
+`lcsh-mesh-mapping-endpoints-2026-08-15`), each scanning the same pinned
+140,187,915-byte bulk file with its own narrower selection rule, plus the
+shared `refspec.registry.lcsh_topical` reader that could not parse a
+deprecated authority at all. One release now replaces the three:
+`lcsh-subjects-consolidated-2026-08-06`
+(`src/refspec/atlas/v3_registry_alignments_lcsh.py`). It mints every current
+LCSH heading of every authority class the bulk file carries — Topic,
+Geographic, ComplexSubject, CorporateName, and the rest, not only topical
+headings — plus only the deprecated headings a held FAST, LC external-links,
+MeSH-LCSH, or EuroVoc-LCSH mapping candidate actually names as an LCSH-side
+IRI. A deprecated heading nothing points at is never emitted. Every retained
+deprecated member keeps LC's own `madsrdf:DeprecatedAuthority` status,
+`madsrdf:useInstead` successor IRIs, and `madsrdf:deletionNote` verbatim in
+its native payload; RefSpec infers no successor and hides nothing at the
+corpus layer. The minted `id.loc.gov` IRIs are byte-identical to what the
+three retired releases emitted, so every existing mapping assertion that
+named one still resolves — only the owning release changed.
+
+`refspec.registry.lcsh_topical` gained the capability the consolidated
+release needed rather than a parallel reader: `admit_deprecated`,
+`permit_blank_broader`, and `tolerate_repeated_variant_labels` widen the
+existing MADS/SKOS parser (each defaults to today's strict behavior, so
+every prior caller is unchanged), and a new
+`capture_lcsh_current_and_referenced_deprecated` streams the whole file
+once. The full scan — 521,055 lines, 513,210 current authorities, 7,845
+deprecated — completes in about 15 seconds; it is not the mapping-only
+1,000-record ceiling this module has always enforced for the unrelated
+search-expansion snapshot path, which is untouched. The consolidated
+release retains 1,627 of those 7,845 deprecated headings (6,218 excluded as
+unreferenced) for 514,837 total resources and 301,442 `skos:broader`
+relations.
+
+**What connected.** Three held-to-held mappings depended on LCSH endpoint
+subsets narrower than what RefSpec actually held. All three now resolve
+against the consolidated release; predicate policy is unchanged in every
+case.
+
+1. **FAST-to-LCSH** (`fast-lcsh-adopted-2026-08-15`,
+   `v3_registry_alignments.py`). The target filter widens from the
+   1,966-concept EuroVoc-alignment subset to every held LCSH concept. The
+   release's own candidate count moves from 64,464 (1,683 `skos:exactMatch` +
+   62,781 `skos:relatedMatch`) to 602,459 (252,527 exact + 349,932 related)
+   — schema:sameAs still adopts to exactMatch under `operatorAdoption`, and
+   relatedMatch is still carried verbatim under `publisherAssertion`, never
+   promoted. Only 8 of 252,535 candidate exact links and 0 of 349,932
+   candidate related links stay unemitted, both because the named LCSH
+   subject is absent from the pinned bulk file entirely — not deprecated,
+   not held under any status. REF-035 predicted the next failure mode
+   exactly: widening reopened subject overlap between the exact and related
+   FAST subject sets (12 subjects now carry both, where the narrow filter
+   had zero). `_fast_lcsh_s46_conflicts` unions this release's own
+   exactMatch edges and tests every relatedMatch pair for same-component
+   membership; the measured conflict count is zero, over the full 349,932
+   candidate related pairs. That is a release-scoped self-check, not a
+   replacement for the corpus-wide SKOS S46 preflight, which still runs at
+   build time over every release's exactMatch edges together.
+
+   602,459 is this loader's own candidate count, not what ships. Widening the
+   target scope also widens what the separate, cross-release SKOS S27
+   reconciliation (`_reconcile_fast_lcsh_s27_mapping_conflicts`,
+   `tools/generate_atlas_v3_full.py`) has to refuse: every OCLC
+   `skos:relatedMatch` pair whose subject and object LC's independent
+   hierarchy claims also connect. Under the narrow filter that reconciliation
+   refused 24,190 of the 62,781 candidate related claims; every newly
+   reachable LCSH target reopens the check against LC's hierarchy, and at the
+   widened scope it refuses 174,766 of 349,932 — roughly seven times as many,
+   because most of the newly admitted FAST-LCSH pairs land inside an LC
+   `broadMatch`/`narrowMatch` path. The frozen pin
+   (`FAST_LCSH_S27_REFUSAL_COUNT`, `FAST_LCSH_S27_REFUSAL_DIGEST` in
+   `v3_registry_alignments.py`) moves from
+   `(24_190, sha256:fc9afdc9c1da43839d133ff0efe409dd0c6c0624152bacdfb65e9bd9320653bd)`
+   to
+   `(174_766, sha256:2113d4079b4677c0fea40c8c11583f265b5f3cd95d2988bcb941ab5c8897c6ce)`;
+   a mismatched count or digest still fails producer loading. The release's
+   true emitted total after S27 reconciliation is **427,693 mappings: 252,527
+   exact and 175,166 related** — not the 602,459 candidate figure above.
+
+   **This pin moved twice.** A first measurement (174,755; digest
+   `...ce7782`) reconciled `skos:relatedMatch` pairs only against
+   `lcsh-external-links-mappings-2026-08-15`'s own `broadMatch`/`narrowMatch`
+   hierarchy claims. That is narrower than what the binding's corpus-wide
+   SKOS S27 check (`refspec_atlas_v3_validate._check_skos_integrity`) actually
+   evaluates: the check runs over every hierarchy statement the whole
+   distribution carries, including the 301,442 native `skos:broader`
+   statements the consolidated LCSH release contributes. A full build reached
+   that check 13 minutes in and failed on
+   `(sh2008003833, fast/1910413)` — a pair hierarchy-connected only through a
+   five-hop chain of intra-LCSH `skos:broader` edges (`sh2008003833` →
+   `sh85109172` → `sh85017454` → `sh85112599` → `sh85026423`) that only then
+   reaches LC's own external-links `broadMatch` from `sh85026423` to
+   `fast/1910413` — a path the narrower reconciliation never saw because
+   every one of those `skos:broader` edges lives in the consolidated LCSH
+   release, not in `lcsh-external-links-mappings-2026-08-15`.
+   `_reconcile_fast_lcsh_s27_mapping_conflicts` now takes the
+   loaded source releases as a required argument and builds its hierarchy the
+   same way `_check_skos_integrity` does: every `skos:broader`/`skos:narrower`
+   relation from every loaded source release, plus every loaded mapping
+   release's `broadMatch`/`narrowMatch` — not just the LC release's. It
+   refuses to run unless the consolidated LCSH release
+   (`lcsh-subjects-consolidated-2026-08-06`) is among those source releases,
+   for the same reason it already refused to run with only one of
+   `fast-lcsh-adopted-2026-08-15`/`lcsh-external-links-mappings-2026-08-15`
+   loaded: reconciling against a hierarchy narrower than the one that will
+   ship is worse than refusing outright. Widened to corpus scope, 11 more
+   `relatedMatch` pairs move from admitted to refused (174,755 → 174,766);
+   FAST's own internal `skos:broader`/`skos:narrower` hierarchy
+   (`fast-topical-current`) and the MeSH-LCSH mapping's `broadMatch`/
+   `narrowMatch` edges were checked directly against the real pinned data and
+   contribute zero additional refusals beyond the consolidated release's
+   hierarchy, so they do not change this count, but the reconciliation still
+   consults them because a future corpus change could make them matter and
+   the binding's own check would not distinguish that source from any other.
+
+   `tests/test_producer_prebuild_validation.py`
+   (`test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set`) reproduces
+   this derivation against the real pinned sources on every run that has them
+   cached, so a drifted pin fails in the time it takes to load three releases,
+   not two and a half hours into a full distribution build
+   (`test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build` proves the
+   check actually bites a stale pin, and
+   `test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope`
+   proves the pre-widening hierarchy scope computes a different, wrong count
+   against the same real data — the check that would have caught this
+   failure without a build). The reconciliation itself now refuses
+   to run with only one of its two required mapping releases in scope
+   (`test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other`)
+   rather than silently no-opping, which is how the earlier drift went
+   undetected: every bounded/scoped build that loaded one of the pair without
+   the other skipped the check entirely.
+2. **LCSH-to-FAST-and-others** (`lcsh-external-links-mappings-2026-08-15`,
+   `v3_registry_alignments_lc.py`). This release already bootstrapped its
+   own candidate-driven LCSH endpoint capture, and that capture already
+   parsed deprecated authorities correctly — REF-037 already landed the
+   near-full 801,992-of-802,592-assertion emission. Consolidation is a pure
+   rewire here: the module's ~330-line duplicate LCSH scanner is deleted,
+   the mapping loader depends on the shared consolidated release instead,
+   and the emitted count does not move (801,992 mappings; 600 unemitted for
+   469 LCSH subjects absent from the bulk file). LC's four MADS
+   external-authority predicates still translate to
+   `skos:{exact,close,broad,narrow}Match` under `operatorAdoption`, verbatim
+   direction, no inverse.
+3. **MeSH-to-LCSH** (`mesh-lcsh-mapping-2021-03-31`,
+   `v3_registry_alignments_subject.py`). The target check widens from an
+   active-only endpoint capture to consolidated-release membership. Emitted
+   mappings move from 13,251 to 13,260 (exactMatch 13,053 to 13,062; broad,
+   narrow, and related unchanged); the combined non-admission count (mixing
+   "MeSH subject not current" and "LCSH target unavailable," as this
+   release has always counted it) drops from 19 to 10. These rows remain
+   E3 `operatorAdoption`, opt-in under REF-035: Northwestern owns neither
+   endpoint.
+
+**What was deliberately not done.** No new source is downloaded and no
+external vocabulary gains admission. This is a connection pass over
+publisher bytes RefSpec already holds, not an acquisition. Every REF-036
+rejection stands unrevisited. `owl:sameAs` is still refused as an Atlas
+mapping substitute; MARC `$w nnd` still cannot be promoted past
+`relatedMatch`. The frozen S46 refusal list from REF-037
+(`GEMET_EUROVOC_S46_REFUSALS`) is untouched, and this claim is no longer
+just narrative: the widened corpus-scope exactMatch component index — GEMET's
+and EuroVoc's own candidate claims plus every other mapping release's
+`exactMatch` edges that touch either vocabulary (`fast-lcsh-adopted-2026-08-15`'s
+252,527, `mesh-lcsh-mapping-2021-03-31`'s 13,062, `eurovoc-lcsh-alignment-20240711`'s
+1,904, `gemet-umthes-alignments-4.2.3`'s 3,470) — was computed directly
+against the real pinned sources and produces exactly the same 39-claim
+conflict set the frozen pin already carries, neither more nor fewer. GEMET
+and EuroVoc simply never gained a same-component bridge into the vastly
+widened FAST-LCSH or MeSH-LCSH exactMatch edges. The S27
+refusal pin (`FAST_LCSH_S27_REFUSAL_DIGEST`) is **not** untouched: widening
+the FAST-LCSH target scope reopens the S27 check against far more LC
+hierarchy claims, and that pin moves as described above (24,190 to 174,766).
+The MeSH-LCSH mapping release's own 29 `relatedMatch` claims were checked the
+same way against the corpus-scope S27 hierarchy (LC's `broadMatch`/`narrowMatch`,
+the consolidated LCSH release's `skos:broader`, and MeSH-LCSH's own
+`broadMatch`/`narrowMatch`) and produce zero conflicts; that release has no
+S27 reconciliation step of its own because it has never needed one, not
+because it was overlooked.
+An earlier draft of this entry claimed both frozen lists were untouched;
+that was wrong for S27 and is corrected here, not carried forward. The
+`fast-lcsh-adopted-2026-08-15` inferred-pair
+metadata (`FAST_LCSH_INFERRED_MAPPING_COUNT`) is recomputed the same way it
+was originally measured — the Atlas 3.1 exact-match component index over
+`eurovoc-lcsh-alignment-20240711`'s and this release's own exactMatch edges,
+not a full-corpus rebuild — moving from 13,001 to 765,537 against an
+unchanged 5,939 baseline;
+`test_fast_inferred_mapping_delta_is_computed_before_build` proves the
+figure directly rather than trusting a hand-computed constant.
+
+**The referenced-IRI union is deliberately the wider, simpler one.**
+`gather_referenced_lcsh_iris` takes every LCSH-side IRI any of the four held
+source captures names — the EuroVoc-LCSH alignment's objects, every
+candidate subject in LC's external-links archive, every LCSH target of an
+active FAST record's link, and every object in the Northwestern MeSH-LCSH
+mapping — not only the rows that survive their own *other*-endpoint
+availability check. A deprecated heading that only such a row names costs
+nothing to admit and keeps the selection auditable as one union over four
+pinned artifacts; whether a given row is ultimately emitted remains each
+mapping loader's own decision, unaffected by this union's slight breadth.
+
+**The explorer's default hiding of deprecated members is a display choice,
+not a corpus fact.** The consolidated release carries every deprecated
+member's status, useInstead, and deletion note exactly as LC states them;
+nothing at the registry or Atlas layer suppresses or resolves them. Any
+default-collapsed presentation belongs to `explorer_frontend.py` and the
+explorer CLI, owned separately from this change.
+
+**The running proof.** `tests/test_lcsh_topical.py` carries mutation-battery
+coverage for the three new parser flags (deprecated admission, blank-node
+broader tolerance, repeated-variant tolerance) against both a synthetic
+fixture and pinned real bytes. `tests/test_atlas_v3_registry_alignments*.py`
+prove the consolidated release's resource, relation, and label counts and
+the three mapping releases' widened counts against the live pinned sources.
+`tools/verify_atlas_source_fidelity.py` carries an independent re-parse of
+the consolidated release (`_read_lcsh_consolidated`,
+`_lcsh_referenced_iris_independent`) that never imports
+`refspec.registry.lcsh_topical` or
+`refspec.atlas.v3_registry_alignments_lcsh`, plus updated independent
+re-parses for the FAST-to-LCSH and MeSH-to-LCSH mapping specs; the
+LCSH-to-FAST mapping spec needed no change; both readers agree with the
+production loaders over the exact pinned bytes. The source-link manifest is
+unchanged: this decision pins no new source file.
+
+**The S27 reconciliation's scope gaps were build-time-only; all three are now
+suite-time checks.** Three separate gaps let a stale or too-narrow refusal
+list ship undetected, and each is now refused loudly instead of silently
+mis-reconciling:
+
+1. Neither of `fast-lcsh-adopted-2026-08-15` and
+   `lcsh-external-links-mappings-2026-08-15` loaded without the other — a
+   bounded/scoped build that loaded one without the other used to skip the
+   reconciliation entirely rather than refuse.
+   `test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other`
+   proves this refusal with a cheap synthetic fixture.
+2. The consolidated LCSH source release (`lcsh-subjects-consolidated-2026-08-06`)
+   not loaded alongside those two mapping releases — this is the gap that
+   actually shipped the build failure described above, since only the
+   unbounded full build ever happened to load the hierarchy-relevant source
+   releases at all, and the reconciliation never asked for them.
+3. The frozen pin itself drifting from what a fresh derivation computes —
+   `_reconcile_fast_lcsh_s27_mapping_conflicts` derives the refused-pair list
+   fresh from the loaded releases every time, so a stale pin fails loudly the
+   moment both gaps above are closed.
+
+`tests/test_producer_prebuild_validation.py` proves all three without a full
+build: `test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set`
+reproduces the corpus-scope derivation over the real pinned sources
+(`fast-lcsh-adopted-2026-08-15`, `lcsh-external-links-mappings-2026-08-15`,
+and the consolidated LCSH release) and checks it against the live pin;
+`test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build` proves the
+exact pre-REF-040 pin is refused against that same real data (the
+proven-biting negative for gap 3);
+`test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope`
+proves the pre-widening *hierarchy scope* — the LC release's
+`broadMatch`/`narrowMatch` alone, without the consolidated release's
+`skos:broader` — computes a different, wrong count (174,755, not 174,766)
+against that same real data (the proven-biting negative for gap 2, and the
+check that would have caught the actual build failure without a build); and
+`test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other` proves
+the gap-1 and gap-2 refusals with a cheap synthetic fixture.
+
+### REF-041: GCMD column nesting is publisher hierarchy, but it can only ever be a derived edge; the 3.1 derived graph admits no second rule yet
+
+- **Date:** 2026-08-18
+- **Status:** Accepted. The judgment, the derivation, and its frozen pins
+  land; nothing enters the asserted graph, and nothing enters the shipped
+  derived graph — the binding changes that would require are recorded here,
+  not made.
+
+**The question.** `gcmd-science-keywords-24-4` holds 3,774 keywords with
+zero broader/narrower. The prior author's reader
+(`refspec.registry.gcmd_science_keywords`) states the CSV export "carries
+no SKOS broader/narrower" and deliberately does not assert them, packaging
+the hierarchy columns as descriptive context only. The question put to this
+entry: does the CSV's column position constitute a publisher assertion of
+hierarchy, or is turning it into SKOS relations an inference?
+
+**The evidence, from the pinned 24.4 bytes**
+(`sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2`,
+504,190 bytes):
+
+1. Every row is a path (Category > Topic > Term > Variable_Level_1..3 >
+   Detailed_Variable), and every strict prefix of every row exists as its
+   own row carrying its own publisher UUID — zero missing ancestors across
+   all 3,774 rows. Parent concepts are first-class keyword records in the
+   export, not repeated cell values.
+2. The columns form a strict forest: two roots, one parent per node by
+   construction (the depth-1 prefix), prefix-contiguous throughout (the
+   reader refuses a populated level after a blank ancestor), no repeated
+   full path, no UUID collision, and no two siblings under one parent share
+   a label. Nesting implies exactly 3,772 immediate-parent edges.
+3. Keyword identity is path-scoped, not label-scoped: 512 (level, label)
+   pairs appear under more than one parent (e.g. the Topic PRECIPITATION
+   under more than one Term). Any label-keyed derivation would silently
+   merge distinct publisher concepts; only the UUID-per-path structure is
+   sound.
+4. NASA's own machine serialization agrees. The live KMS RDF export of the
+   same scheme (keywordVersion 24.5, observed 2026-08-18, **not pinned** —
+   the pinned artifact is the 24.4 CSV) asserts `skos:broader` between
+   exactly the UUID pairs the column nesting implies: all 3,772 edges whose
+   endpoints exist in 24.4 agree with the nesting, zero mismatch, with two
+   UUIDs new in 24.5 and absent from 24.4.
+
+**The judgment.** Column position is the publisher's hierarchy — the prior
+author's abstention is overruled on the facts. But it is overruled only
+down to the derived-graph line, not past it: the pinned CSV carries no
+relation field, the relation assertions live in the separate RDF export
+RefSpec does not hold, and choosing `skos:broader` as the predicate for a
+positional fact is RefSpec's act, not NASA's. Under REF-035 this is tier
+E5: an inferred edge is never an assertion, belongs only in the derived
+graph, and stays opt-in. The prior author's refusal stands in full for the
+asserted graph; `hierarchyIsDescriptiveNotInferred` in the asserted
+native payload is unchanged and remains true.
+
+**What landed.** `refspec.registry.gcmd_science_keywords_hierarchy`
+derives the edge set from the pinned parse with fail-closed premises:
+
+- one `skos:broader` edge per row of depth ≥ 2, parent = the row keyed by
+  the depth-1 prefix; rule IRI
+  `urn:ref:rule:gcmd-science-keywords-csv-column-nesting`;
+- every edge cites the exact CSV rows it came from (child and parent
+  `csv:row[n]` source paths plus UUIDs) and carries a content-derived
+  edge IRI over that citation and the source digest;
+- reproducible: re-derivation over the same pinned bytes yields the
+  identical edge list and set digest, and the real-data test regenerates
+  the frozen pins — roots 2, edges 3,772, homonym labels 512, edge-set
+  digest `sha256:9685d20fd9e10d2e12d916b4e5f543ae17b332b6d13a3a311e14db9f79fcc964`;
+- refuses, never silently drops: a missing ancestor-prefix row, a repeated
+  path (even with a fresh UUID), a self-edge, or a derived edge that
+  duplicates an asserted relation — including its `skos:narrower`
+  inverse — raises rather than emits.
+
+`tests/test_gcmd_science_keywords_hierarchy.py` proves the happy path over
+a byte-faithful complete-branch excerpt (126 rows, 125 edges,
+`gcmd-science-keywords-24.4-agriculture-branch.csv`), the proven-biting
+negatives (the existing mini excerpt is not prefix-closed and is refused;
+a deleted parent row is refused; a duplicated path is refused; asserted
+collisions in both directions are refused while an unrelated asserted
+relation is not), regeneration equality, and the frozen real-data pins.
+It also asserts the rule IRI differs from the shipped binding's single
+allowlisted rule, so an accidental early wiring fails a test, not a build.
+
+**Why nothing ships in the derived graph.** Adding a second derivation
+rule is a binding revision, not a producer toggle. The 3.1 machinery is
+strict on purpose, and a GCMD-shaped derived row fails it five ways:
+
+1. `dataset.derived-rule` (validate.py `_check_derived`) allowlists
+   exactly one (rule, engine, engineVersion) tuple —
+   `urn:ref:rule:skos-exact-match-closure-path` under owlrl 7.1.4 — and
+   then requires the subject ring, `skos:exactMatch`, ≥2 inputs, one
+   simple path between endpoints, and canonical IRI order. A column-nesting
+   row fails the allowlist outright and the shape after it.
+2. The evidence model: `atlas:derivedFromAssertion` must cite active
+   asserted *assertion* nodes, digested by `derived_input_digest`. GCMD's
+   asserted graph carries 3,774 resources and zero assertions; the
+   evidence for a nesting edge is two pinned CSV rows. The binding needs a
+   derived-from-source-row (or source-payload) citation path before this
+   rule can express its warrant.
+3. The engine: the replay under `_check_reasoning_isolation` is OWL-RL
+   closure over the cited inputs. A structural projection from CSV
+   columns needs its own declared engine identity and its own replay
+   semantics — regeneration from the pinned source digest, which this
+   module already provides.
+4. Direction: `skos:broader` is asymmetric, so the exactMatch canonical
+   IRI-order convention does not transfer; an asymmetric derived predicate
+   needs an explicit direction rule (child → parent, never the inverse).
+5. The producer refuses nonzero derived relations
+   (`generate_atlas_v3_full.py`), and per REF-035 every new rule lands with
+   a rejecting conformance case: the fixtures corpus, manifest pins, and
+   acceptance records must be reissued by the orchestrator's chain.
+
+**Deliberately not done.** The reader is untouched — its gap text
+("this module does not fetch or model them") remains true of the reader,
+and the asserted release still emits zero relations. No binding file, no
+producer path, and no fixtures were modified for this entry; the MeSH
+tree-number work owns the produce-side plumbing this would eventually
+consume. When the binding gains its second rule, the frozen pins above
+are the acceptance bar: the shipped edge set must regenerate them exactly
+or the rule is not the rule recorded here.

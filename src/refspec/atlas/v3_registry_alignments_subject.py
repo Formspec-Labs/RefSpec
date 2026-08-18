@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import gzip
-import json
-import urllib.parse
 from collections import Counter
-from collections.abc import Collection, Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Collection, Sequence
 from pathlib import Path
 from types import MappingProxyType
 
 from rdflib.namespace import SKOS
 
 from refspec.atlas.v3_registry_alignments import GEMET_EUROVOC_S46_REFUSALS
+from refspec.atlas.v3_registry_alignments_lcsh import (
+    LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
+    load_lcsh_consolidated_release,
+)
 from refspec.atlas.v3_registry_selection import normalize_only_keys, select_declared_group, wants_group
 from refspec.atlas.v3_registry_vocabularies import load_mesh_2026_release
 from refspec.atlas.v3_source_data import (
@@ -30,9 +30,7 @@ from refspec.atlas.v3_source_data import (
 )
 from refspec.registry import gemet_alignments as gemet
 from refspec.registry import lcsh_mesh_mapping as mesh_lcsh
-from refspec.registry import lcsh_topical as lcsh
 from refspec.registry import umthes_content as umthes
-from refspec.vocabulary import is_english_language_tag
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
@@ -40,7 +38,6 @@ DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 GEMET_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:gemet:4.2.3"
 EUROVOC_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:eurovoc:4.24"
 MESH_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:mesh-descriptors:2026"
-LCSH_MESH_ENDPOINT_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:lcsh-subjects:mesh-mapping-endpoints:2026-08-15"
 UMTHES_ENDPOINT_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:umthes:gemet-endpoints:2026-08-15"
 UMTHES_ENDPOINT_RELEASE_KEY = "umthes-gemet-endpoints-2026-08-15"
 GEMET_UMTHES_MAPPING_RELEASE_KEY = "gemet-umthes-alignments-4.2.3"
@@ -71,30 +68,23 @@ EXPECTED_UMTHES_ENDPOINT_COUNT = 3_365
 EXPECTED_UMTHES_LABEL_COUNTS_BY_LANGUAGE = MappingProxyType({"de": 11_127, "en": 6_116})
 EXPECTED_UMTHES_RELATION_COUNT = 4_900
 EXPECTED_UMTHES_DEPRECATED_ENDPOINT_COUNT = 974
-EXPECTED_LCSH_MESH_ENDPOINT_COUNT = 12_844
-EXPECTED_LCSH_MESH_MAPPING_COUNT = 13_251
-EXPECTED_LCSH_MESH_SUBJECT_COUNT = 12_694
+# REF-040 widened the LCSH (object) side from a bespoke active-only endpoint
+# capture to the consolidated LCSH release: nine candidates whose LCSH
+# target was a deprecated-but-referenced heading now resolve. The remaining
+# ten stay unavailable for the same two reasons as before -- MeSH subject
+# outside the 2026 release, or LCSH target absent from the bulk file
+# entirely -- neither of which this release's widening touches.
+EXPECTED_LCSH_MESH_MAPPING_COUNT = 13_260
+EXPECTED_LCSH_MESH_SUBJECT_COUNT = 12_702
 EXPECTED_LCSH_MESH_PREDICATE_COUNTS = MappingProxyType(
     {
-        str(SKOS.exactMatch): 13_053,
+        str(SKOS.exactMatch): 13_062,
         str(SKOS.broadMatch): 134,
         str(SKOS.narrowMatch): 35,
         str(SKOS.relatedMatch): 29,
     }
 )
-EXPECTED_LCSH_MESH_UNAVAILABLE_MAPPING_COUNT = 19
-
-# The existing LCSH parser remains the oracle.  These are the only two exact
-# records for which this larger endpoint set deliberately accepts a weaker
-# normalization: one duplicate identical variant is collapsed, and one blank
-# node broader target is retained only in native payload because Atlas relation
-# endpoints must be IRIs.  Any third divergence fails the load.
-LCSH_ENDPOINT_ORACLE_DIVERGENCES = MappingProxyType(
-    {
-        "http://id.loc.gov/authorities/subjects/sh2017000370": "duplicate-identical-variant-label",
-        "http://id.loc.gov/authorities/subjects/sh85122121": "blank-node-broader-target",
-    }
-)
+EXPECTED_LCSH_MESH_UNAVAILABLE_MAPPING_COUNT = 10
 
 # UMTHES publishes these 25 associative pairs in both directions while its
 # held endpoint subset also connects each pair through skos:broader/narrower.
@@ -182,9 +172,7 @@ GEMET_UMTHES_MAPPING_POLICY = MappingProxyType(
     }
 )
 
-REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset(
-    {"lcsh-mesh-mapping-endpoints-2026-08-15", UMTHES_ENDPOINT_RELEASE_KEY}
-)
+REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset({UMTHES_ENDPOINT_RELEASE_KEY})
 REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS = frozenset(
     {
         "gemet-eurovoc-alignments-4.2.3",
@@ -254,17 +242,6 @@ def _mesh_pin(source_root: Path) -> RegistryInputPin:
         byte_length=MESH_2026_BYTE_LENGTH,
         source_iri=MESH_2026_SOURCE_URL,
         role="subjectEndpointSource",
-    )
-
-
-def _lcsh_pin(source_root: Path) -> RegistryInputPin:
-    return _pin(
-        source_root,
-        filename=LCSH_BULK_FILENAME,
-        sha256=LCSH_BULK_SHA256,
-        byte_length=LCSH_BULK_BYTE_LENGTH,
-        source_iri=lcsh.LCSH_TOPICAL_MADS_NDJSON_URL,
-        role="objectEndpointSource",
     )
 
 
@@ -713,317 +690,22 @@ def load_gemet_umthes_mapping_release(
     return mapping
 
 
-@dataclass(frozen=True, slots=True)
-class _EndpointSelection:
-    release: RegistryRelease
-    active_iris: frozenset[str]
-    unavailable_iris: frozenset[str]
-
-
-def _plain_reference_list(value: object, *, label: str) -> tuple[Mapping[str, object], ...]:
-    if value is None:
-        return ()
-    if isinstance(value, Mapping):
-        return (value,)
-    if isinstance(value, list) and all(isinstance(item, Mapping) for item in value):
-        return tuple(value)
-    raise ValueError(f"{label} must be a JSON-LD reference or list of references")
-
-
-def _plain_language_label(value: object, *, label: str) -> lcsh.LcshTopicalLabel:
-    if not isinstance(value, Mapping):
-        raise ValueError(f"{label} must be a language-tagged JSON-LD literal")
-    text = value.get("@value")
-    language = value.get("@language")
-    if not isinstance(text, str) or not text or not isinstance(language, str) or not language:
-        raise ValueError(f"{label} must have a non-empty value and language")
-    return lcsh.LcshTopicalLabel(value=text, language=language)
-
-
-def _fallback_lcsh_record(
-    raw_line: bytes,
-    *,
-    concept_iri: str,
-    source_url: str,
-    line_number: int,
-) -> lcsh.LcshTopicalRecord:
-    """Normalize one frozen oracle divergence without broadening the parser."""
-
-    document = json.loads(raw_line)
-    if document.get("@context") != lcsh.LCSH_EXPECTED_CONTEXT_URL:
-        raise ValueError(f"fallback LCSH record {concept_iri} changed context")
-    graph = document.get("@graph")
-    if not isinstance(graph, list):
-        raise ValueError(f"fallback LCSH record {concept_iri} has no graph")
-    by_id = {node.get("@id"): node for node in graph if isinstance(node, Mapping) and isinstance(node.get("@id"), str)}
-    authority = by_id.get(concept_iri)
-    if not isinstance(authority, Mapping):
-        raise ValueError(f"fallback LCSH record {concept_iri} has no authority node")
-    types_value = authority.get("@type")
-    types = {types_value} if isinstance(types_value, str) else set(types_value or [])
-    if "madsrdf:Authority" not in types:
-        raise ValueError(f"fallback LCSH record {concept_iri} is not active")
-    preferred = _plain_language_label(
-        authority.get("madsrdf:authoritativeLabel"),
-        label=f"{concept_iri} authoritative label",
-    )
-    variants = []
-    for reference in _plain_reference_list(
-        authority.get("madsrdf:hasVariant"),
-        label=f"{concept_iri} variants",
-    ):
-        variant = by_id.get(reference.get("@id"))
-        if not isinstance(variant, Mapping):
-            raise ValueError(f"fallback LCSH record {concept_iri} has a dangling variant")
-        variants.append(
-            _plain_language_label(
-                variant.get("madsrdf:variantLabel"),
-                label=f"{concept_iri} variant label",
-            )
-        )
-    broader_iris = tuple(
-        sorted(
-            {
-                target
-                for reference in _plain_reference_list(
-                    authority.get("madsrdf:hasBroaderAuthority"),
-                    label=f"{concept_iri} broader targets",
-                )
-                if isinstance((target := reference.get("@id")), str) and urllib.parse.urlsplit(target).scheme
-            }
-        )
-    )
-    lccn = authority.get("identifiers:lccn")
-    if lccn is not None and not isinstance(lccn, str):
-        raise ValueError(f"fallback LCSH record {concept_iri} has a malformed LCCN")
-    return lcsh.LcshTopicalRecord(
-        concept_iri=concept_iri,
-        lccn=lccn,
-        preferred_label=preferred,
-        variant_labels=tuple(sorted(set(variants), key=lambda item: (item.language, item.value))),
-        broader_iris=broader_iris,
-        authority_types=tuple(sorted(types)),
-        source_url=source_url,
-        line_number=line_number,
-        raw_line=raw_line.rstrip(b"\r\n"),
-    )
-
-
-def _english_labels(record: lcsh.LcshTopicalRecord) -> tuple[RegistryLabel, ...]:
-    if not is_english_language_tag(record.preferred_label.language):
-        raise ValueError(f"LCSH endpoint has no English preferred label: {record.concept_iri}")
-    labels = [
-        RegistryLabel(
-            value=record.preferred_label.value.strip(),
-            role="preferred",
-            source_path=f"line-{record.line_number}:madsrdf:authoritativeLabel",
-        )
-    ]
-    seen = {labels[0].value}
-    for index, label in enumerate(record.variant_labels):
-        if not is_english_language_tag(label.language):
-            continue
-        value = label.value.strip()
-        if not value or value in seen:
-            continue
-        seen.add(value)
-        labels.append(
-            RegistryLabel(
-                value=value,
-                role="alternate",
-                source_path=f"line-{record.line_number}:madsrdf:hasVariant[{index}]",
-            )
-        )
-    return tuple(labels)
-
-
-def _document_iri(document: Mapping[str, object]) -> str | None:
-    value = document.get("@id")
-    prefix = "/authorities/subjects/"
-    if not isinstance(value, str) or not value.startswith(prefix):
-        return None
-    return lcsh.LCSH_SUBJECTS_SCHEME_IRI + "/" + value.removeprefix(prefix)
-
-
-def _active_authority(document: Mapping[str, object], concept_iri: str) -> bool:
-    graph = document.get("@graph")
-    if not isinstance(graph, list):
-        return False
-    for node in graph:
-        if not isinstance(node, Mapping) or node.get("@id") != concept_iri:
-            continue
-        value = node.get("@type")
-        types = {value} if isinstance(value, str) else set(value or [])
-        return "madsrdf:Authority" in types
-    return False
-
-
-def _load_lcsh_endpoint_selection(
+def _lcsh_mesh_mapping_release(
     source_root: Path,
-    *,
-    requested_iris: Collection[str],
-    inputs: tuple[RegistryInputPin, RegistryInputPin, RegistryInputPin],
-) -> _EndpointSelection:
-    lcsh_pin, mapping_pin, mesh_pin = inputs
-    for source in inputs:
-        source.verify()
-    requested = frozenset(requested_iris)
-    selected: dict[str, lcsh.LcshTopicalRecord] = {}
-    unavailable: set[str] = set()
-    oracle_divergences: dict[str, str] = {}
-    lines_scanned = 0
-    with gzip.open(lcsh_pin.path, "rb") as source:
-        for line_number, line in enumerate(source, start=1):
-            lines_scanned = line_number
-            try:
-                document = json.loads(line)
-            except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                raise ValueError(f"LCSH bulk line {line_number} is not valid UTF-8 JSON: {error}") from error
-            if not isinstance(document, Mapping):
-                raise ValueError(f"LCSH bulk line {line_number} is not an object")
-            concept_iri = _document_iri(document)
-            if concept_iri not in requested:
-                continue
-            if concept_iri in selected or concept_iri in unavailable:
-                raise ValueError(f"LCSH bulk repeats selected endpoint {concept_iri}")
-            if not _active_authority(document, concept_iri):
-                unavailable.add(concept_iri)
-                continue
-            try:
-                record = lcsh.parse_lcsh_authority_ndjson_line(
-                    line,
-                    source_url=lcsh_pin.source_iri,
-                    line_number=line_number,
-                )
-            except lcsh.LcshTopicalError:
-                expected_divergence = LCSH_ENDPOINT_ORACLE_DIVERGENCES.get(concept_iri)
-                if expected_divergence is None:
-                    raise
-                oracle_divergences[concept_iri] = expected_divergence
-                record = _fallback_lcsh_record(
-                    line,
-                    concept_iri=concept_iri,
-                    source_url=lcsh_pin.source_iri,
-                    line_number=line_number,
-                )
-            if record is None or record.concept_iri != concept_iri:
-                raise ValueError(f"LCSH endpoint parser did not return {concept_iri}")
-            selected[concept_iri] = record
-    absent = requested - selected.keys() - unavailable
-    unavailable.update(absent)
-    if oracle_divergences != dict(LCSH_ENDPOINT_ORACLE_DIVERGENCES):
-        raise ValueError(
-            "LCSH endpoint oracle divergence set drifted: "
-            f"expected={dict(LCSH_ENDPOINT_ORACLE_DIVERGENCES)!r}, observed={oracle_divergences!r}"
-        )
+) -> RegistryMappingRelease:
+    """Load the Northwestern/Galter MeSH-to-LCSH mapping.
 
-    record_iris = frozenset(selected)
-    resources = tuple(
-        RegistryResource(
-            iri=record.concept_iri,
-            labels=_english_labels(record),
-            native_payload={
-                "authorityTypes": list(record.authority_types),
-                "broaderIris": list(record.broader_iris),
-                "captureSelection": {
-                    "mappingDigest": mapping_pin.sha256,
-                    "meshEndpointDigest": mesh_pin.sha256,
-                },
-                "lccn": record.lccn,
-                "lineNumber": record.line_number,
-                "oracleDivergence": oracle_divergences.get(record.concept_iri),
-                "recordByteLength": record.source_byte_length,
-                "recordDigest": record.source_sha256,
-            },
-            source_locator=f"{record.source_url}#line-{record.line_number}",
-            source_digest=record.source_sha256,
-            notations=(() if record.lccn is None else (record.lccn,)),
-            status="alignmentEndpoint",
-        )
-        for record in (selected[iri] for iri in sorted(selected))
-    )
-    relations = tuple(
-        RegistryRelation(
-            subject=record.concept_iri,
-            predicate=str(SKOS.broader),
-            object=broader,
-            source_payload={
-                "lineNumber": record.line_number,
-                "objectIri": broader,
-                "predicateIri": str(SKOS.broader),
-                "subjectIri": record.concept_iri,
-            },
-        )
-        for record in (selected[iri] for iri in sorted(selected))
-        for broader in record.broader_iris
-        if broader in record_iris
-    )
-    release = RegistryRelease(
-        key="lcsh-mesh-mapping-endpoints-2026-08-15",
-        resource_id="lcsh-subjects",
-        source_module="refspec.registry.lcsh_topical",
-        profile="conceptScheme",
-        ring="subject",
-        scope="captureSubset",
-        issued="2026-08-15",
-        source_release_iri=("urn:ref:source-release:lcsh-subjects:mesh-mapping-endpoints:2026-08-15"),
-        source_release_digest=_input_set_digest(inputs),
-        atlas_release_iri=LCSH_MESH_ENDPOINT_ATLAS_RELEASE_IRI,
-        scheme_iri="urn:ref:atlas-resource-scheme:lcsh-subjects",
-        inputs=inputs,
-        resources=resources,
-        relations=relations,
-        dropped_label_count=sum(
-            not is_english_language_tag(label.language)
-            for record in selected.values()
-            for label in record.variant_labels
-        ),
-        metadata={
-            "activeEndpointCount": len(resources),
-            "completePublisherRelease": False,
-            "endpointOwnershipPreference": "publisherVocabularyViaThirdPartySelection",
-            "licenseStatement": LCSH_LICENSE_STATEMENT,
-            "mappingSelectionByteLength": mapping_pin.byte_length,
-            "mappingSelectionDigest": mapping_pin.sha256,
-            "mappingSelectionLicenseStatement": mesh_lcsh.LCSH_MESH_LICENSE_STATEMENT,
-            "mappingSelectionLicenseUrl": mesh_lcsh.LCSH_MESH_LICENSE_URL,
-            "mappingSelectionRetrievedAt": mesh_lcsh.LCSH_MESH_MAPPING_RETRIEVED_AT,
-            "mappingSelectionSourceUrl": mapping_pin.source_iri,
-            "meshSelectionByteLength": mesh_pin.byte_length,
-            "meshSelectionDigest": mesh_pin.sha256,
-            "meshSelectionRetrievedAt": MESH_2026_RETRIEVED_AT,
-            "meshSelectionSourceUrl": mesh_pin.source_iri,
-            "oracleDivergences": dict(sorted(oracle_divergences.items())),
-            "publisherBulkByteLength": lcsh_pin.byte_length,
-            "publisherBulkDigest": lcsh_pin.sha256,
-            "publisherBulkRetrievedAt": LCSH_BULK_RETRIEVED_AT,
-            "publisherBulkSourceUrl": lcsh_pin.source_iri,
-            "publisherBulkVersionedSourceUrl": False,
-            "publisherBulkVersionNote": (
-                "publisher provides no versioned URL; the rolling download is pinned by digest and byte length"
-            ),
-            "requestedEndpointCount": len(requested),
-            "selectionRule": "active LCSH targets of admitted mappings whose MeSH subject remains in 2026",
-            "sourceIdentifierCount": 0,
-            "unavailableEndpointCount": len(unavailable),
-            "unavailableEndpointIris": sorted(unavailable),
-            "linesScanned": lines_scanned,
-        },
-    )
-    return _EndpointSelection(
-        release=release,
-        active_iris=record_iris,
-        unavailable_iris=frozenset(unavailable),
-    )
+    The LCSH (object) side resolves against the consolidated LCSH release
+    (``v3_registry_alignments_lcsh.load_lcsh_consolidated_release``), not a
+    bespoke active-only LCSH endpoint capture: a target that is a deprecated
+    heading this mapping references is now admitted (with LC's own status
+    carried in the consolidated release's payload) rather than counted
+    unavailable.
+    """
 
-
-def _lcsh_mesh_assets(
-    source_root: Path,
-) -> tuple[RegistryRelease, RegistryMappingRelease]:
     mapping_pin = _mapping_pin(source_root)
     mesh_pin = _mesh_pin(source_root)
-    lcsh_pin = _lcsh_pin(source_root)
-    for source in (mapping_pin, mesh_pin, lcsh_pin):
+    for source in (mapping_pin, mesh_pin):
         source.verify()
     capture = mesh_lcsh.load_lcsh_mesh_mapping(mapping_pin.path)
     mesh_release = load_mesh_2026_release(source_root)
@@ -1031,18 +713,12 @@ def _lcsh_mesh_assets(
         raise ValueError("MeSH endpoint release identity drifted")
     mesh_iris = frozenset(resource.iri for resource in mesh_release.resources)
     current_mesh_rows = tuple(row for row in capture.mappings if row.subject_iri in mesh_iris)
-    requested_lcsh_iris = {row.object_iri for row in current_mesh_rows}
-    endpoint_inputs = (lcsh_pin, mapping_pin, mesh_pin)
-    selection = _load_lcsh_endpoint_selection(
-        source_root,
-        requested_iris=requested_lcsh_iris,
-        inputs=endpoint_inputs,
-    )
-    admitted_rows = tuple(row for row in current_mesh_rows if row.object_iri in selection.active_iris)
+    consolidated_release = load_lcsh_consolidated_release(source_root)
+    held_lcsh_iris = frozenset(resource.iri for resource in consolidated_release.resources)
+    admitted_rows = tuple(row for row in current_mesh_rows if row.object_iri in held_lcsh_iris)
     unavailable_rows = len(capture.mappings) - len(admitted_rows)
     if (
-        len(selection.release.resources) != EXPECTED_LCSH_MESH_ENDPOINT_COUNT
-        or len(admitted_rows) != EXPECTED_LCSH_MESH_MAPPING_COUNT
+        len(admitted_rows) != EXPECTED_LCSH_MESH_MAPPING_COUNT
         or len({row.subject_iri for row in admitted_rows}) != EXPECTED_LCSH_MESH_SUBJECT_COUNT
         or Counter(row.predicate_iri for row in admitted_rows) != EXPECTED_LCSH_MESH_PREDICATE_COUNTS
         or unavailable_rows != EXPECTED_LCSH_MESH_UNAVAILABLE_MAPPING_COUNT
@@ -1055,7 +731,7 @@ def _lcsh_mesh_assets(
             predicate=row.predicate_iri,
             object=row.object_iri,
             subject_atlas_release_iri=MESH_ATLAS_RELEASE_IRI,
-            object_atlas_release_iri=LCSH_MESH_ENDPOINT_ATLAS_RELEASE_IRI,
+            object_atlas_release_iri=LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
             asserted_at=LCSH_MESH_ADOPTED_AT,
             evidence=tuple(
                 RegistryMappingEvidence(
@@ -1096,7 +772,7 @@ def _lcsh_mesh_assets(
         )
         for row in admitted_rows
     )
-    mapping_release = RegistryMappingRelease(
+    return RegistryMappingRelease(
         key="mesh-lcsh-mapping-2021-03-31",
         resource_id="northwestern-mesh-lcsh-mapping",
         source_module="refspec.registry.lcsh_mesh_mapping",
@@ -1137,16 +813,6 @@ def _lcsh_mesh_assets(
             "workingFileRightsNote": mesh_lcsh.LCSH_MESH_WORKING_FILE_RIGHTS_NOTE,
         },
     )
-    return selection.release, mapping_release
-
-
-def load_lcsh_mesh_endpoint_release(
-    source_root: Path = DEFAULT_SOURCE_ROOT,
-) -> RegistryRelease:
-    """Load current active LCSH endpoints required by the Northwestern mapping."""
-
-    endpoint, _mapping = _lcsh_mesh_assets(Path(source_root))
-    return endpoint
 
 
 def load_lcsh_mesh_mapping_release(
@@ -1154,8 +820,7 @@ def load_lcsh_mesh_mapping_release(
 ) -> RegistryMappingRelease:
     """Load the current-endpoint E3 subset of the Northwestern mapping."""
 
-    _endpoint, mapping = _lcsh_mesh_assets(Path(source_root))
-    return mapping
+    return _lcsh_mesh_mapping_release(Path(source_root))
 
 
 def load_subject_registry_alignment_endpoint_releases(
@@ -1163,7 +828,12 @@ def load_subject_registry_alignment_endpoint_releases(
     *,
     only_keys: Collection[str] | None = None,
 ) -> tuple[RegistryRelease, ...]:
-    """Load selected subject mapping endpoint subsets."""
+    """Load selected subject mapping endpoint subsets.
+
+    REF-040 retired the bespoke ``lcsh-mesh-mapping-endpoints-2026-08-15``
+    release this module used to mint: its LCSH targets moved into the
+    consolidated LCSH release, so only UMTHES remains here.
+    """
 
     requested = normalize_only_keys(
         only_keys,
@@ -1173,8 +843,6 @@ def load_subject_registry_alignment_endpoint_releases(
     if not wants_group(requested, REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS):
         return ()
     loaded: list[RegistryRelease] = []
-    if requested is None or "lcsh-mesh-mapping-endpoints-2026-08-15" in requested:
-        loaded.append(load_lcsh_mesh_endpoint_release(source_root))
     if requested is None or UMTHES_ENDPOINT_RELEASE_KEY in requested:
         loaded.append(load_umthes_endpoint_release(source_root))
     return select_declared_group(
@@ -1220,7 +888,6 @@ __all__ = [
     "EUROVOC_ATLAS_RELEASE_IRI",
     "EXPECTED_GEMET_EUROVOC_MAPPING_COUNT",
     "EXPECTED_GEMET_UMTHES_MAPPING_COUNT",
-    "EXPECTED_LCSH_MESH_ENDPOINT_COUNT",
     "EXPECTED_LCSH_MESH_MAPPING_COUNT",
     "EXPECTED_LCSH_MESH_PREDICATE_COUNTS",
     "EXPECTED_LCSH_MESH_SUBJECT_COUNT",
@@ -1230,10 +897,8 @@ __all__ = [
     "GEMET_PUBLISHER_ATTESTOR_IRI",
     "GEMET_UMTHES_MAPPING_POLICY",
     "GEMET_UMTHES_MAPPING_RELEASE_KEY",
-    "LCSH_ENDPOINT_ORACLE_DIVERGENCES",
     "LCSH_MESH_ADOPTED_AT",
     "LCSH_MESH_ADOPTED_BY",
-    "LCSH_MESH_ENDPOINT_ATLAS_RELEASE_IRI",
     "LCSH_MESH_MAPPING_POLICY",
     "MESH_ATLAS_RELEASE_IRI",
     "REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS",
@@ -1242,7 +907,6 @@ __all__ = [
     "UMTHES_ENDPOINT_RELEASE_KEY",
     "load_gemet_eurovoc_mapping_release",
     "load_gemet_umthes_mapping_release",
-    "load_lcsh_mesh_endpoint_release",
     "load_lcsh_mesh_mapping_release",
     "load_subject_registry_alignment_endpoint_releases",
     "load_subject_registry_mapping_releases",

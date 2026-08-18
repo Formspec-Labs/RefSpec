@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
 from urllib.parse import quote
 
+from refspec.atlas.v3_registry_alignments_lcsh import (
+    LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
+    LCSH_CONSOLIDATED_RELEASE_KEY,
+    load_lcsh_consolidated_release,
+)
 from refspec.atlas.v3_registry_codes import load_registry_code_releases
 from refspec.atlas.v3_registry_large import load_fast_topical_release
 from refspec.atlas.v3_registry_selection import (
@@ -18,11 +23,9 @@ from refspec.atlas.v3_registry_selection import (
 )
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
-    RegistryLabel,
     RegistryMapping,
     RegistryMappingEvidence,
     RegistryMappingRelease,
-    RegistryRelation,
     RegistryRelease,
     RegistryResource,
     canonical_digest,
@@ -30,7 +33,6 @@ from refspec.atlas.v3_source_data import (
 )
 from refspec.registry import fast_topical as fast
 from refspec.registry import gao_cra_form_codes as gao_cra
-from refspec.registry import lcsh_topical as lcsh
 from refspec.registry.eurovoc_lcsh_alignment import (
     EUROVOC_4_20_METADATA_BYTE_LENGTH,
     EUROVOC_4_20_METADATA_FILENAME,
@@ -56,7 +58,6 @@ from refspec.registry.eurovoc_lcsh_alignment import (
     verify_eurovoc_4_24_metadata,
     verify_eurovoc_lcsh_release_metadata,
 )
-from refspec.vocabulary import is_english_language_tag
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
@@ -65,7 +66,6 @@ LCSH_BULK_FILENAME = "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz"
 LCSH_BULK_SHA256 = "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856"
 LCSH_BULK_BYTE_LENGTH = 140_187_915
 LCSH_BULK_CAPTURED_AT = "2026-08-06"
-LCSH_ALIGNMENT_ENDPOINT_COUNT = 1_966
 EUROVOC_LCSH_MAPPING_COUNT = sum(EXPECTED_PREDICATE_COUNTS.values())
 ATLAS_MAPPING_ADOPTION_REVIEWER_IRI = "urn:ref:actor:atlas-3-eurovoc-lcsh-operator-adoption"
 ATLAS_MAPPING_ADOPTION_DECIDED_AT = "2026-08-06T00:00:00+00:00"
@@ -79,9 +79,6 @@ EUROVOC_DOMAINS_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:eurovoc-domains:4.2
 # digest-pinned, so this set is fixed; test_eurovoc_lcsh_alignment verifies it
 # against the source and fails if the publisher ever aligns another domain.
 EUROVOC_DOMAIN_SUBJECT_IRIS = frozenset({"http://eurovoc.europa.eu/100162"})
-LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI = (
-    "urn:ref:atlas-release:3:lcsh-subjects:eurovoc-alignment-endpoints:2026-08-06"
-)
 EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD = MappingProxyType(
     {
         "admission": (
@@ -95,7 +92,7 @@ EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD = MappingProxyType(
         "version": "atlas-3.0-eurovoc-lcsh-operator-adoption-v1",
     }
 )
-REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset({"lcsh-eurovoc-alignment-endpoints-2026-08-06"})
+REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset({LCSH_CONSOLIDATED_RELEASE_KEY})
 REGISTRY_MAPPING_RELEASE_KEYS = frozenset(
     {
         "eurovoc-lcsh-alignment-20240711",
@@ -156,9 +153,10 @@ FAST_LCSH_MAPPING_POLICY_PAYLOAD = MappingProxyType(
     {
         "admission": (
             "emit only current OCLC FAST LCSH links whose target belongs to "
-            "the pinned lcsh-eurovoc-alignment-endpoints-2026-08-06 release"
+            "the consolidated LCSH release (every current LCSH heading plus "
+            "the deprecated headings held mappings reference)"
         ),
-        "adoption": ("RefSpec adopts OCLC schema:sameAs as skos:exactMatch for the pinned endpoint subset"),
+        "adoption": ("RefSpec adopts OCLC schema:sameAs as skos:exactMatch for every held LCSH target"),
         "evidence": (
             "one exact OCLC N-Triples statement or MARC authority record field "
             "per assertion, pinned to its source artifact"
@@ -179,17 +177,62 @@ FAST_LCSH_MAPPING_POLICY_PAYLOAD = MappingProxyType(
 FAST_LCSH_VERIFIED_RECORD_COUNT = 427_423
 FAST_LCSH_EXACT_LINK_COUNT = 252_535
 FAST_LCSH_RELATED_LINK_COUNT = 349_932
-FAST_LCSH_EXACT_EMITTED_COUNT = 1_683
-FAST_LCSH_RELATED_EMITTED_COUNT = 62_781
-FAST_LCSH_EXACT_UNEMITTED_COUNT = 250_852
-FAST_LCSH_RELATED_UNEMITTED_COUNT = 287_151
-FAST_LCSH_REACHED_ENDPOINT_COUNT = 1_817
-FAST_LCSH_EXACT_SUBJECT_COUNT = 1_683
-FAST_LCSH_RELATED_SUBJECT_COUNT = 57_013
+# REF-040 widened the target endpoint from the retired 1,966-concept
+# EuroVoc-alignment subset to every held LCSH concept (the consolidated
+# release). These nine counts are measured against that widened target set;
+# the prior narrow-scope values are design lineage, not current behavior.
+FAST_LCSH_EXACT_EMITTED_COUNT = 252_527
+FAST_LCSH_RELATED_EMITTED_COUNT = 349_932
+FAST_LCSH_EXACT_UNEMITTED_COUNT = 8
+FAST_LCSH_RELATED_UNEMITTED_COUNT = 0
+FAST_LCSH_REACHED_ENDPOINT_COUNT = 254_453
+FAST_LCSH_EXACT_SUBJECT_COUNT = 252_527
+FAST_LCSH_RELATED_SUBJECT_COUNT = 174_900
+# A FAST subject can now carry both an exactMatch and a relatedMatch into
+# LCSH (REF-035 foresaw this: "an artifact of the filter, not a property of
+# FAST"). Twelve do. None of the twelve is an actual SKOS S46 conflict: see
+# `_fast_lcsh_s46_conflicts`, whose measured conflict count over this
+# release's own emitted pairs is zero.
+FAST_LCSH_SUBJECT_PREDICATE_OVERLAP_COUNT = 12
+# Measured with the Atlas 3.1 exact-match component index over the same two
+# releases test_fast_inferred_mapping_delta_is_computed_before_build proves
+# this against: eurovoc-lcsh-alignment-20240711's exactMatch edges alone
+# (baseline), then joined with this release's now-widened exactMatch edges.
+# This is not the full-corpus figure (other mapping releases' exactMatch
+# edges are not included); it is the same two-release measurement this
+# constant has always recorded.
 FAST_LCSH_BASELINE_INFERRED_MAPPING_COUNT = 5_939
-FAST_LCSH_INFERRED_MAPPING_COUNT = 13_001
-FAST_LCSH_S27_REFUSAL_COUNT = 24_190
-FAST_LCSH_S27_REFUSAL_DIGEST = "sha256:fc9afdc9c1da43839d133ff0efe409dd0c6c0624152bacdfb65e9bd9320653bd"
+FAST_LCSH_INFERRED_MAPPING_COUNT = 765_537
+# REF-037 measured this pin (24,190; digest ...653bd) against the retired
+# 1,966-concept EuroVoc-alignment target subset. REF-040 widened the target
+# to every held LCSH concept, which reopens far more relatedMatch pairs
+# against LC's hierarchy claims: the pin below is measured fresh against that
+# widened scope by loading both `fast-lcsh-adopted-2026-08-15` and
+# `lcsh-external-links-mappings-2026-08-15` and reproducing
+# `_reconcile_fast_lcsh_s27_mapping_conflicts`'s own derivation
+# (tools/generate_atlas_v3_full.py). It is not hand-computed: the frozen
+# count and digest here are read back from that derivation over the real
+# pinned sources, and `tests/test_producer_prebuild_validation.py`
+# (`test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set`) re-derives
+# and compares them on every run that has the pinned sources cached, so drift
+# fails in seconds instead of at hour two of a full build.
+#
+# A first version of this pin (174,755; digest ...ce7782) was measured
+# against only `lcsh-external-links-mappings-2026-08-15`'s own
+# broadMatch/narrowMatch hierarchy -- narrower than what the binding's
+# corpus-wide SKOS S27 check actually evaluates once the distribution also
+# carries the consolidated LCSH release's 301,442 native `skos:broader`
+# statements. That gap let a real conflict reach the validator 13 minutes
+# into a full build (sh2008003833 / fast/1910413). The pin below is
+# reconciled against the corpus-scope hierarchy instead: every native
+# skos:broader/skos:narrower relation across the loaded source releases
+# (which must include `lcsh-subjects-consolidated-2026-08-06`) plus every
+# loaded mapping release's broadMatch/narrowMatch -- the same statements
+# `refspec_atlas_v3_validate._check_skos_integrity` sees. Widening the
+# hierarchy scope this way moves 11 more relatedMatch pairs from admitted to
+# refused (174,755 -> 174,766).
+FAST_LCSH_S27_REFUSAL_COUNT = 174_766
+FAST_LCSH_S27_REFUSAL_DIGEST = "sha256:2113d4079b4677c0fea40c8c11583f265b5f3cd95d2988bcb941ab5c8897c6ce"
 
 # The two publishers disagree about these 39 relations.  Each non-exact claim
 # falls inside an exactMatch component assembled from their combined releases,
@@ -680,19 +723,63 @@ def _verify_ua_gao_institutional_bridge(pin: RegistryInputPin) -> None:
     gao_cra.parse_gao_cra_institutional_bridge(pin.path.read_bytes(), pin=expected)
 
 
+def _fast_lcsh_s46_conflicts(
+    exact_pairs: Sequence[tuple[str, str]],
+    related_pairs: Sequence[tuple[str, str]],
+) -> tuple[tuple[str, str], ...]:
+    """Find any relatedMatch pair whose two nodes share an exactMatch component.
+
+    Mirrors the corpus-wide SKOS S46 check
+    (``bindings/atlas/3.1/tools/validate.py:_build_exact_match_index_from_triples``)
+    at release scope: union-find over this release's own exactMatch edges,
+    then test every relatedMatch pair for same-component membership. This is
+    a self-check on this release's own emitted pairs, not a substitute for
+    the corpus-wide preflight, which also sees other releases' exactMatch
+    edges.
+    """
+
+    parent: dict[str, str] = {}
+
+    def find(node: str) -> str:
+        root = node
+        while parent.get(root, root) != root:
+            root = parent[root]
+        while parent.get(node, node) != root:
+            parent[node], node = root, parent.get(node, node)
+        return root
+
+    def union(a: str, b: str) -> None:
+        root_a, root_b = find(a), find(b)
+        if root_a != root_b:
+            parent[root_a] = root_b
+
+    for subject, obj in exact_pairs:
+        parent.setdefault(subject, subject)
+        parent.setdefault(obj, obj)
+        union(subject, obj)
+    return tuple(
+        pair
+        for pair in related_pairs
+        if pair[0] in parent and pair[1] in parent and find(pair[0]) == find(pair[1])
+    )
+
+
 def load_fast_lcsh_mapping_release(
     source_root: Path = DEFAULT_SOURCE_ROOT,
 ) -> RegistryMappingRelease:
-    """Load the joinable FAST-to-LCSH slice without strengthening OCLC links."""
+    """Load the FAST-to-LCSH mapping against every held LCSH concept.
+
+    The target endpoint is the consolidated LCSH release
+    (``v3_registry_alignments_lcsh.load_lcsh_consolidated_release``), not the
+    former 1,966-concept EuroVoc-alignment endpoint subset: every current
+    LCSH heading FAST names now resolves, and REF-035's predicate policies
+    (schema:sameAs -> exactMatch under operatorAdoption; skos:relatedMatch
+    stays publisherAssertion verbatim, never promoted) apply unchanged.
+    """
 
     fast_release = load_fast_topical_release(source_root)
-    alignment_pin = replace(
-        _alignment_pins(source_root)[0],
-        role="publisherEndpointSelection",
-    )
-    alignment_pin.verify()
-    alignment = parse_eurovoc_lcsh_alignment_file(alignment_pin.path)
-    target_iris = alignment.lcsh_concept_iris
+    consolidated_release = load_lcsh_consolidated_release(source_root)
+    target_iris = frozenset(resource.iri for resource in consolidated_release.resources)
     source_pins = {pin.path.name: pin for pin in fast_release.inputs}
     mappings: list[RegistryMapping] = []
     emitted_counts: Counter[str] = Counter()
@@ -701,6 +788,8 @@ def load_fast_lcsh_mapping_release(
     exact_target_iris: set[str] = set()
     related_subject_iris: set[str] = set()
     related_target_iris: set[str] = set()
+    exact_pairs: list[tuple[str, str]] = []
+    related_pairs: list[tuple[str, str]] = []
     source_identifier_count = 0
 
     for resource in fast_release.resources:
@@ -728,10 +817,12 @@ def load_fast_lcsh_mapping_release(
                 mapping_predicate = "http://www.w3.org/2004/02/skos/core#exactMatch"
                 exact_subject_iris.add(resource.iri)
                 exact_target_iris.add(target_iri)
+                exact_pairs.append((resource.iri, target_iri))
             elif publisher_predicate == fast.FAST_SKOS_RELATED_MATCH:
                 mapping_predicate = fast.FAST_SKOS_RELATED_MATCH
                 related_subject_iris.add(resource.iri)
                 related_target_iris.add(target_iri)
+                related_pairs.append((resource.iri, target_iri))
             else:  # pragma: no cover - reader admits only the two predicates
                 raise ValueError(f"FAST resource {resource.iri} has unsupported LCSH predicate {publisher_predicate}")
             emitted_counts[publisher_predicate] += 1
@@ -741,7 +832,7 @@ def load_fast_lcsh_mapping_release(
                     predicate=mapping_predicate,
                     object=target_iri,
                     subject_atlas_release_iri=fast_release.atlas_release_iri,
-                    object_atlas_release_iri=LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI,
+                    object_atlas_release_iri=LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
                     asserted_at=FAST_LCSH_MAPPING_DECIDED_AT,
                     evidence=(
                         _fast_lcsh_mapping_evidence(
@@ -757,6 +848,7 @@ def load_fast_lcsh_mapping_release(
                 )
             )
 
+    s46_conflicts = _fast_lcsh_s46_conflicts(exact_pairs, related_pairs)
     observed = {
         "recordsWithLcshLinks": fast_release.metadata["recordsWithLcshLinks"],
         "schemaSameAsLinks": all_link_counts[fast.FAST_SCHEMA_SAME_AS],
@@ -767,6 +859,7 @@ def load_fast_lcsh_mapping_release(
         "relatedMatchSubjectCount": len(related_subject_iris),
         "subjectPredicateOverlapCount": len(exact_subject_iris & related_subject_iris),
         "reachedEndpointCount": len(exact_target_iris | related_target_iris),
+        "s46ConflictCount": len(s46_conflicts),
         "sourceIdentifierCount": source_identifier_count,
     }
     expected = {
@@ -777,8 +870,9 @@ def load_fast_lcsh_mapping_release(
         "emittedRelatedMatches": FAST_LCSH_RELATED_EMITTED_COUNT,
         "exactMatchSubjectCount": FAST_LCSH_EXACT_SUBJECT_COUNT,
         "relatedMatchSubjectCount": FAST_LCSH_RELATED_SUBJECT_COUNT,
-        "subjectPredicateOverlapCount": 0,
+        "subjectPredicateOverlapCount": FAST_LCSH_SUBJECT_PREDICATE_OVERLAP_COUNT,
         "reachedEndpointCount": FAST_LCSH_REACHED_ENDPOINT_COUNT,
+        "s46ConflictCount": 0,
         "sourceIdentifierCount": 0,
     }
     if observed != expected:
@@ -812,7 +906,7 @@ def load_fast_lcsh_mapping_release(
             "assertionComposition": {
                 "adoptedExactMatch": {
                     "assertionCount": FAST_LCSH_EXACT_EMITTED_COUNT,
-                    "endpointSelection": ("target is a member of the pinned LCSH alignment-endpoint release"),
+                    "endpointSelection": ("target is a member of the consolidated LCSH release"),
                     "evidenceWarrant": "operatorAdoption",
                     "predicateIri": ("http://www.w3.org/2004/02/skos/core#exactMatch"),
                     "publisherStatement": ("OCLC schema:sameAs carried verbatim in each evidence record"),
@@ -831,14 +925,20 @@ def load_fast_lcsh_mapping_release(
             },
             "emittedExactMatchCount": FAST_LCSH_EXACT_EMITTED_COUNT,
             "emittedRelatedMatchCount": FAST_LCSH_RELATED_EMITTED_COUNT,
-            "endpointReleaseCount": LCSH_ALIGNMENT_ENDPOINT_COUNT,
-            "endpointSelectionDigest": alignment_pin.sha256,
+            "endpointReleaseResourceCount": len(target_iris),
+            "endpointSelectionDigest": consolidated_release.source_release_digest,
             "exactMatchTargetCount": len(exact_target_iris),
             "inferenceImpact": {
                 "baselineInferredMappingCount": (FAST_LCSH_BASELINE_INFERRED_MAPPING_COUNT),
                 "inferredMappingCount": FAST_LCSH_INFERRED_MAPPING_COUNT,
                 "inferredMappingDelta": (FAST_LCSH_INFERRED_MAPPING_COUNT - FAST_LCSH_BASELINE_INFERRED_MAPPING_COUNT),
-                "measurement": ("computed before distribution build with the Atlas 3.1 exact match component index"),
+                "measurement": (
+                    "computed before distribution build with the Atlas 3.1 exact match "
+                    "component index over eurovoc-lcsh-alignment-20240711 and this "
+                    "release's exactMatch edges; REF-040 widened this release's target "
+                    "endpoint from the retired 1,966-concept EuroVoc-alignment subset "
+                    "to every held LCSH concept, which is why the current figure moved"
+                ),
             },
             "publisherSchemaSameAsCount": FAST_LCSH_EXACT_LINK_COUNT,
             "publisherSkosRelatedMatchCount": FAST_LCSH_RELATED_LINK_COUNT,
@@ -846,14 +946,20 @@ def load_fast_lcsh_mapping_release(
             "recordsWithLcshLinks": FAST_LCSH_VERIFIED_RECORD_COUNT,
             "relatedMatchTargetCount": len(related_target_iris),
             "s46Safety": {
+                "conflictCount": len(s46_conflicts),
                 "exactMatchSubjectCount": FAST_LCSH_EXACT_SUBJECT_COUNT,
                 "relatedMatchSubjectCount": FAST_LCSH_RELATED_SUBJECT_COUNT,
-                "subjectPredicateOverlapCount": 0,
-                "status": "safeForCurrentPinnedEndpointFilter",
+                "status": "measuredZeroConflictsOverThisReleasesOwnExactMatchComponents",
+                "subjectPredicateOverlapCount": FAST_LCSH_SUBJECT_PREDICATE_OVERLAP_COUNT,
                 "scopeDependency": (
-                    "The exactMatch and relatedMatch FAST subject sets are "
-                    "disjoint today because of the pinned endpoint filter, not "
-                    "by design; widening the endpoint set reopens the S46 check."
+                    "REF-035's warning was correct: widening the endpoint set to every "
+                    "held LCSH concept reopened subject overlap between the exactMatch "
+                    "and relatedMatch FAST subject sets (now "
+                    f"{FAST_LCSH_SUBJECT_PREDICATE_OVERLAP_COUNT}, was 0 under the narrow "
+                    "filter). This release's own exactMatch-component union-find over "
+                    "its emitted pairs finds zero relatedMatch pairs sharing a component "
+                    "with an exactMatch pair; the corpus-wide S46 preflight remains the "
+                    "authority once other releases' exactMatch edges are in the graph."
                 ),
             },
             "sourceFastAtlasReleaseIri": fast_release.atlas_release_iri,
@@ -862,8 +968,8 @@ def load_fast_lcsh_mapping_release(
             "unemittedSchemaSameAsCount": FAST_LCSH_EXACT_UNEMITTED_COUNT,
             "unemittedSkosRelatedMatchCount": FAST_LCSH_RELATED_UNEMITTED_COUNT,
             "unemittedReason": (
-                "the LCSH targets are not members of the pinned Atlas endpoint "
-                "release; a fuller LCSH release is required"
+                "the LCSH target is absent from the pinned bulk file entirely -- "
+                "neither current nor a referenced deprecated heading"
             ),
         },
     )
@@ -1044,7 +1150,7 @@ def load_eurovoc_lcsh_mapping_release(
                 if row.subject_iri in EUROVOC_DOMAIN_SUBJECT_IRIS
                 else EUROVOC_ATLAS_RELEASE_IRI
             ),
-            object_atlas_release_iri=LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI,
+            object_atlas_release_iri=LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
             asserted_at=ATLAS_MAPPING_ADOPTION_DECIDED_AT,
             evidence=(
                 RegistryMappingEvidence(
@@ -1114,140 +1220,6 @@ def load_eurovoc_lcsh_mapping_release(
     )
 
 
-def _english_labels(record: lcsh.LcshTopicalRecord) -> tuple[RegistryLabel, ...]:
-    if not is_english_language_tag(record.preferred_label.language):
-        raise ValueError(f"aligned LCSH authority lacks an English preferred label: {record.concept_iri}")
-    labels = [
-        RegistryLabel(
-            value=record.preferred_label.value.strip(),
-            role="preferred",
-            source_path=f"line-{record.line_number}:madsrdf:authoritativeLabel",
-        )
-    ]
-    seen = {labels[0].value}
-    for index, label in enumerate(record.variant_labels):
-        if not is_english_language_tag(label.language):
-            continue
-        value = label.value.strip()
-        if not value or value in seen:
-            continue
-        seen.add(value)
-        labels.append(
-            RegistryLabel(
-                value=value,
-                role="alternate",
-                source_path=(f"line-{record.line_number}:madsrdf:hasVariant[{index}]"),
-            )
-        )
-    return tuple(labels)
-
-
-def load_lcsh_alignment_endpoint_release(
-    source_root: Path = DEFAULT_SOURCE_ROOT,
-) -> RegistryRelease:
-    """Load exactly every LCSH authority referenced by the official alignment."""
-
-    alignment_pin = _alignment_pins(source_root)[0]
-    bulk_pin = _pin(
-        source_root,
-        filename=LCSH_BULK_FILENAME,
-        sha256=LCSH_BULK_SHA256,
-        byte_length=LCSH_BULK_BYTE_LENGTH,
-        source_iri=lcsh.LCSH_TOPICAL_MADS_NDJSON_URL,
-        role="publisherBulkSource",
-    )
-    alignment_pin.verify()
-    bulk_pin.verify()
-    alignment = parse_eurovoc_lcsh_alignment_file(alignment_pin.path)
-    capture = lcsh.capture_lcsh_authorities_by_iri_from_gzip_path(
-        bulk_pin.path,
-        source_url=bulk_pin.source_iri,
-        concept_iris=alignment.lcsh_concept_iris,
-    )
-    if len(capture.records) != LCSH_ALIGNMENT_ENDPOINT_COUNT:
-        raise ValueError(
-            f"aligned LCSH endpoint count differs: expected "
-            f"{LCSH_ALIGNMENT_ENDPOINT_COUNT}, observed {len(capture.records)}"
-        )
-
-    record_iris = {record.concept_iri for record in capture.records}
-    resources = tuple(
-        RegistryResource(
-            iri=record.concept_iri,
-            labels=_english_labels(record),
-            native_payload={
-                "authorityTypes": list(record.authority_types),
-                "broaderIris": list(record.broader_iris),
-                "captureSelection": {
-                    "alignmentDigest": alignment_pin.sha256,
-                    "alignmentRelease": EUROVOC_LCSH_ALIGNMENT_RELEASE_IRI,
-                },
-                "lccn": record.lccn,
-                "lineNumber": record.line_number,
-                "recordByteLength": record.source_byte_length,
-                "recordDigest": record.source_sha256,
-            },
-            source_locator=f"{record.source_url}#line-{record.line_number}",
-            source_digest=record.source_sha256,
-            notations=(() if record.lccn is None else (record.lccn,)),
-            status="alignmentEndpoint",
-        )
-        for record in capture.records
-    )
-    relations = tuple(
-        RegistryRelation(
-            subject=record.concept_iri,
-            predicate="http://www.w3.org/2004/02/skos/core#broader",
-            object=broader,
-            source_payload={
-                "lineNumber": record.line_number,
-                "objectIri": broader,
-                "predicateIri": "http://www.w3.org/2004/02/skos/core#broader",
-                "subjectIri": record.concept_iri,
-            },
-        )
-        for record in capture.records
-        for broader in record.broader_iris
-        if broader in record_iris
-    )
-    type_counts = Counter(
-        authority_type
-        for record in capture.records
-        for authority_type in record.authority_types
-        if authority_type != "madsrdf:Authority"
-    )
-    inputs = (bulk_pin, alignment_pin)
-    return RegistryRelease(
-        key="lcsh-eurovoc-alignment-endpoints-2026-08-06",
-        resource_id="lcsh-subjects",
-        source_module="refspec.registry.lcsh_topical",
-        profile="conceptScheme",
-        ring="subject",
-        scope="captureSubset",
-        issued=LCSH_BULK_CAPTURED_AT,
-        source_release_iri=("urn:ref:source-release:lcsh-subjects:eurovoc-alignment-endpoints:2026-08-06"),
-        source_release_digest=_input_set_digest(inputs),
-        atlas_release_iri=("urn:ref:atlas-release:3:lcsh-subjects:eurovoc-alignment-endpoints:2026-08-06"),
-        scheme_iri="urn:ref:atlas-resource-scheme:lcsh-subjects",
-        inputs=inputs,
-        resources=resources,
-        relations=relations,
-        dropped_label_count=sum(
-            not is_english_language_tag(label.language) for record in capture.records for label in record.variant_labels
-        ),
-        metadata={
-            "authorityTypeCounts": dict(sorted(type_counts.items())),
-            "completePublisherRelease": False,
-            "linesScanned": capture.lines_scanned,
-            "mappingEndpointSubset": True,
-            "publisherBulkDigest": bulk_pin.sha256,
-            "publisherReleaseUnspecified": True,
-            "selectionAlignmentDigest": alignment_pin.sha256,
-            "selectionRule": "all-object-iris-in-official-eurovoc-lcsh-alignment",
-        },
-    )
-
-
 def load_all_registry_alignment_endpoint_releases(
     source_root: Path = DEFAULT_SOURCE_ROOT,
     *,
@@ -1263,10 +1235,10 @@ def load_all_registry_alignment_endpoint_releases(
     if not wants_group(requested, REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS):
         return ()
     return select_declared_group(
-        (load_lcsh_alignment_endpoint_release(source_root),),
+        (load_lcsh_consolidated_release(source_root),),
         declared_keys=REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         requested_keys=requested,
-        loader_name="load_lcsh_alignment_endpoint_release",
+        loader_name="load_lcsh_consolidated_release",
     )
 
 
@@ -1336,10 +1308,9 @@ __all__ = [
     "FAST_LCSH_RELATED_UNEMITTED_COUNT",
     "FAST_LCSH_S27_REFUSAL_COUNT",
     "FAST_LCSH_S27_REFUSAL_DIGEST",
+    "FAST_LCSH_SUBJECT_PREDICATE_OVERLAP_COUNT",
     "FAST_LCSH_VERIFIED_RECORD_COUNT",
     "GEMET_EUROVOC_S46_REFUSALS",
-    "LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI",
-    "LCSH_ALIGNMENT_ENDPOINT_COUNT",
     "LCSH_BULK_BYTE_LENGTH",
     "LCSH_BULK_CAPTURED_AT",
     "LCSH_BULK_FILENAME",
@@ -1358,6 +1329,5 @@ __all__ = [
     "load_all_registry_mapping_releases",
     "load_eurovoc_lcsh_mapping_release",
     "load_fast_lcsh_mapping_release",
-    "load_lcsh_alignment_endpoint_release",
     "load_unified_agenda_gao_cra_priority_mapping_release",
 ]

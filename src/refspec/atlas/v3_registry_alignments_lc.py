@@ -9,54 +9,33 @@ predicate, and adopting actor.  No inverse or transitive assertion is added.
 
 from __future__ import annotations
 
-import gzip
-import hashlib
-import json
 from collections import Counter
-from collections.abc import Collection, Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Collection, Sequence
 from pathlib import Path
 from types import MappingProxyType
 
+from refspec.atlas.v3_registry_alignments_lcsh import (
+    LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
+    load_lcsh_consolidated_release,
+)
 from refspec.atlas.v3_registry_large import load_fast_topical_release
 from refspec.atlas.v3_registry_selection import normalize_only_keys, select_declared_group, wants_group
 from refspec.atlas.v3_source_data import (
-    LabelRole,
     RegistryInputPin,
     RegistryLabel,
     RegistryMapping,
     RegistryMappingEvidence,
     RegistryMappingRelease,
-    RegistryRelation,
     RegistryRelease,
     RegistryResource,
     canonical_digest,
     mapping_triple_digest,
 )
 from refspec.registry import lc_external_links as external
-from refspec.registry import lcsh_topical as lcsh
-from refspec.registry.eurovoc_lcsh_alignment import (
-    EUROVOC_LCSH_ALIGNMENT_BYTE_LENGTH,
-    EUROVOC_LCSH_ALIGNMENT_FILENAME,
-    EUROVOC_LCSH_ALIGNMENT_SHA256,
-    EUROVOC_LCSH_ALIGNMENT_URL,
-    parse_eurovoc_lcsh_alignment_file,
-)
-from refspec.vocabulary import is_english_language_tag
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_ROOT = REPOSITORY_ROOT / "output" / "registry-real-data-sources"
 
-LCSH_BULK_FILENAME = "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz"
-LCSH_BULK_SHA256 = "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856"
-LCSH_BULK_BYTE_LENGTH = 140_187_915
-LCSH_BULK_CAPTURED_AT = "2026-08-06"
-
-LCSH_EUROVOC_ENDPOINT_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:lcsh-subjects:eurovoc-alignment-endpoints:2026-08-06"
-LCSH_EXTERNAL_LINKS_ENDPOINT_ATLAS_RELEASE_IRI = (
-    "urn:ref:atlas-release:3:lcsh-subjects:external-links-endpoints:2026-08-15"
-)
-LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY = "lcsh-external-links-endpoints-2026-08-15"
 LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY = "lcsh-external-links-mappings-2026-08-15"
 
 LC_EXTERNAL_TARGET_VOCABULARIES = frozenset(external.TARGET_VOCABULARY_PREFIXES)
@@ -72,9 +51,11 @@ LC_EXTERNAL_TARGET_ATLAS_RELEASE_IRIS = MappingProxyType(
         for vocabulary in sorted(LC_EXTERNAL_TARGET_VOCABULARIES)
     }
 )
-LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset(
-    {LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY, *LC_EXTERNAL_TARGET_ENDPOINT_RELEASE_KEYS.values()}
-)
+# REF-040 retired the LCSH endpoint release this module used to mint
+# (``lcsh-external-links-endpoints-2026-08-15``): its resources moved into
+# the consolidated LCSH release, so this key set now only names the
+# non-LCSH target endpoint releases (FAST residue, AGROVOC, BNCF, ...).
+LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset(LC_EXTERNAL_TARGET_ENDPOINT_RELEASE_KEYS.values())
 LC_REGISTRY_MAPPING_RELEASE_KEYS = frozenset({LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY})
 
 LC_MAPPING_ADOPTION_REVIEWER_IRI = "urn:ref:actor:atlas-3-lc-mads-external-predicate-adoption"
@@ -143,10 +124,11 @@ LC_FAST_MISSING_LCSH_SUBJECT_IRIS = frozenset(
         "http://id.loc.gov/authorities/subjects/sh99003885",
     }
 )
-LC_ALL_CANDIDATE_LCSH_SUBJECT_COUNT = 362_148
-LC_ALL_EXISTING_LCSH_ENDPOINT_SUBJECT_COUNT = 1_951
-LC_ALL_CANDIDATE_NEW_LCSH_ENDPOINT_SUBJECT_COUNT = 360_197
-LC_ALL_NEW_LCSH_ENDPOINT_SUBJECT_COUNT = 359_728
+# REF-040: the consolidated LCSH release holds every current heading, so
+# only this count (LCSH subjects absent from the pinned bulk file entirely)
+# still bounds what this release can emit; the former candidate/existing/new
+# endpoint-partition counts described the retired bespoke capture and are
+# gone with it.
 LC_ALL_MISSING_LCSH_SUBJECT_COUNT = 469
 LC_EXTERNAL_TARGET_ASSERTION_COUNT = 267_220
 LC_EXTERNAL_EMITTED_ASSERTION_COUNT = 267_024
@@ -243,28 +225,6 @@ def _external_pin(source_root: Path, *, role: str) -> RegistryInputPin:
     )
 
 
-def _lcsh_bulk_pin(source_root: Path) -> RegistryInputPin:
-    return RegistryInputPin(
-        path=Path(source_root) / LCSH_BULK_FILENAME,
-        logical_path=f"refspec/output/registry-real-data-sources/{LCSH_BULK_FILENAME}",
-        sha256=LCSH_BULK_SHA256,
-        byte_length=LCSH_BULK_BYTE_LENGTH,
-        source_iri=lcsh.LCSH_TOPICAL_MADS_NDJSON_URL,
-        role="publisherSubjectEndpointSource",
-    )
-
-
-def _existing_endpoint_selection_pin(source_root: Path) -> RegistryInputPin:
-    return RegistryInputPin(
-        path=Path(source_root) / EUROVOC_LCSH_ALIGNMENT_FILENAME,
-        logical_path=("refspec/output/registry-real-data-sources/" + EUROVOC_LCSH_ALIGNMENT_FILENAME),
-        sha256=EUROVOC_LCSH_ALIGNMENT_SHA256,
-        byte_length=EUROVOC_LCSH_ALIGNMENT_BYTE_LENGTH,
-        source_iri=EUROVOC_LCSH_ALIGNMENT_URL,
-        role="existingEndpointExclusion",
-    )
-
-
 def _input_set_digest(inputs: Sequence[RegistryInputPin]) -> str:
     return canonical_digest(
         [
@@ -349,486 +309,6 @@ def _load_capture_and_fast(
             f"LC external-links FAST endpoint selection drifted: expected={expected!r}, observed={observed!r}"
         )
     return capture, fast_release, emitted, absent, missing_lcsh_subject
-
-
-@dataclass(frozen=True, slots=True)
-class _LcshEndpointRecord:
-    concept_iri: str
-    labels: tuple[RegistryLabel, ...]
-    lccn: str | None
-    broader_iris: tuple[str, ...]
-    authority_types: tuple[str, ...]
-    notes: tuple[str, ...]
-    use_instead_iris: tuple[str, ...]
-    status: str
-    dropped_label_count: int
-    source_url: str
-    line_number: int
-    raw_line: bytes
-
-    @property
-    def source_sha256(self) -> str:
-        return "sha256:" + hashlib.sha256(self.raw_line).hexdigest()
-
-    @property
-    def source_byte_length(self) -> int:
-        return len(self.raw_line)
-
-
-@dataclass(frozen=True, slots=True)
-class _LcshEndpointCapture:
-    source_url: str
-    lines_scanned: int
-    requested_iris: tuple[str, ...]
-    records: tuple[_LcshEndpointRecord, ...]
-    missing_iris: tuple[str, ...]
-
-
-def _term_set(value: object, *, context: str) -> tuple[str, ...]:
-    if isinstance(value, str):
-        return (value,)
-    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-        return tuple(sorted(set(value)))
-    raise ValueError(f"{context} @type must be text or an array of text")
-
-
-def _label_value(
-    value: object,
-    *,
-    context: str,
-) -> tuple[str, str]:
-    if not isinstance(value, dict):
-        raise ValueError(f"{context} must be a JSON-LD value object")
-    text = value.get("@value")
-    language = value.get("@language")
-    if not isinstance(text, str) or not text.strip():
-        raise ValueError(f"{context} has no non-empty @value")
-    if not isinstance(language, str) or not language:
-        raise ValueError(f"{context} has no language tag")
-    return text.strip(), language
-
-
-def _reference_list(value: object, *, context: str) -> tuple[dict[str, object], ...]:
-    if value is None:
-        return ()
-    if isinstance(value, dict):
-        return (value,)
-    if isinstance(value, list) and all(isinstance(item, dict) for item in value):
-        return tuple(value)
-    raise ValueError(f"{context} must be a reference or array of references")
-
-
-def _endpoint_record(
-    document: dict[str, object],
-    *,
-    authority: dict[str, object],
-    concept_iri: str,
-    source_url: str,
-    line_number: int,
-    raw_line: bytes,
-) -> _LcshEndpointRecord:
-    types = _term_set(authority.get("@type"), context=concept_iri)
-    active = "madsrdf:Authority" in types
-    deprecated = "madsrdf:DeprecatedAuthority" in types
-    if active == deprecated:
-        raise ValueError(f"{concept_iri} line {line_number} must be active or deprecated, not both")
-    graph = document.get("@graph")
-    if not isinstance(graph, list):
-        raise ValueError(f"{concept_iri} line {line_number} has no @graph")
-    by_id: dict[str, dict[str, object]] = {}
-    for node in graph:
-        if not isinstance(node, dict):
-            raise ValueError(f"{concept_iri} line {line_number} has a non-object graph node")
-        node_id = node.get("@id")
-        if not isinstance(node_id, str) or not node_id:
-            raise ValueError(f"{concept_iri} line {line_number} has a graph node without @id")
-        if node_id in by_id:
-            raise ValueError(f"{concept_iri} line {line_number} repeats graph node {node_id}")
-        by_id[node_id] = node
-
-    labels: list[RegistryLabel] = []
-    seen_values: set[str] = set()
-    dropped_label_count = 0
-
-    def add_label(value: object, *, role: LabelRole, source_path: str) -> None:
-        nonlocal dropped_label_count
-        text, language = _label_value(value, context=f"{concept_iri} {source_path}")
-        if not is_english_language_tag(language):
-            dropped_label_count += 1
-            return
-        if text in seen_values:
-            return
-        seen_values.add(text)
-        labels.append(
-            RegistryLabel(
-                value=text,
-                role=role,
-                source_path=f"line-{line_number}:{source_path}",
-            )
-        )
-
-    authoritative = authority.get("madsrdf:authoritativeLabel")
-    if authoritative is not None:
-        add_label(
-            authoritative,
-            role="preferred",
-            source_path="madsrdf:authoritativeLabel",
-        )
-    direct_variant = authority.get("madsrdf:variantLabel")
-    if direct_variant is not None:
-        add_label(
-            direct_variant,
-            role="alternate",
-            source_path="madsrdf:variantLabel",
-        )
-    for index, reference in enumerate(
-        _reference_list(
-            authority.get("madsrdf:hasVariant"),
-            context=f"{concept_iri} madsrdf:hasVariant",
-        )
-    ):
-        variant_id = reference.get("@id")
-        if not isinstance(variant_id, str) or variant_id not in by_id:
-            raise ValueError(f"{concept_iri} line {line_number} references an absent variant")
-        add_label(
-            by_id[variant_id].get("madsrdf:variantLabel"),
-            role="alternate",
-            source_path=f"madsrdf:hasVariant[{index}]",
-        )
-    if not labels:
-        raise ValueError(f"{concept_iri} line {line_number} has no retained English label")
-    if active and sum(label.role == "preferred" for label in labels) != 1:
-        raise ValueError(f"{concept_iri} line {line_number} has no preferred label")
-
-    broader_iris = tuple(
-        sorted(
-            {
-                str(reference["@id"])
-                for reference in _reference_list(
-                    authority.get("madsrdf:hasBroaderAuthority"),
-                    context=f"{concept_iri} madsrdf:hasBroaderAuthority",
-                )
-            }
-        )
-    )
-    lccn = authority.get("identifiers:lccn")
-    if lccn is not None and (not isinstance(lccn, str) or not lccn.strip()):
-        raise ValueError(f"{concept_iri} line {line_number} has an invalid LCCN")
-    deletion_note = authority.get("madsrdf:deletionNote")
-    notes: tuple[str, ...] = ()
-    if deletion_note is not None:
-        note, language = _label_value(
-            deletion_note,
-            context=f"{concept_iri} madsrdf:deletionNote",
-        )
-        if is_english_language_tag(language):
-            notes = (note,)
-        else:
-            dropped_label_count += 1
-    use_instead = authority.get("madsrdf:useInstead")
-    use_instead_iris: tuple[str, ...] = ()
-    if use_instead is not None:
-        references = _reference_list(
-            use_instead,
-            context=f"{concept_iri} madsrdf:useInstead",
-        )
-        targets = tuple(reference.get("@id") for reference in references)
-        if any(not isinstance(target, str) or not target.startswith(("http://", "https://")) for target in targets):
-            raise ValueError(f"{concept_iri} line {line_number} has invalid useInstead")
-        use_instead_iris = tuple(str(target) for target in targets)
-    return _LcshEndpointRecord(
-        concept_iri=concept_iri,
-        labels=tuple(labels),
-        lccn=lccn,
-        broader_iris=broader_iris,
-        authority_types=types,
-        notes=notes,
-        use_instead_iris=use_instead_iris,
-        status="deprecatedAlignmentEndpoint" if deprecated else "alignmentEndpoint",
-        dropped_label_count=dropped_label_count,
-        source_url=source_url,
-        line_number=line_number,
-        raw_line=raw_line,
-    )
-
-
-def _blank_broader_evidence(
-    document: dict[str, object],
-    *,
-    authority: dict[str, object],
-    concept_iri: str,
-    line_number: int,
-) -> tuple[dict[str, object], ...]:
-    """Remove only unaddressable broader blank nodes and retain their evidence."""
-
-    broader_field = "madsrdf:hasBroaderAuthority"
-    raw_broader = authority.get(broader_field)
-    if raw_broader is None:
-        return ()
-    if isinstance(raw_broader, dict):
-        references = [raw_broader]
-    elif isinstance(raw_broader, list) and all(isinstance(item, dict) for item in raw_broader):
-        references = raw_broader
-    else:
-        raise ValueError(f"{concept_iri} line {line_number} has malformed {broader_field}")
-    absolute_references: list[dict[str, object]] = []
-    blank_ids: list[str] = []
-    for reference in references:
-        target = reference.get("@id")
-        if not isinstance(target, str) or not target:
-            raise ValueError(f"{concept_iri} line {line_number} has a broader reference without @id")
-        if target.startswith(("http://", "https://")):
-            absolute_references.append(reference)
-        elif target.startswith("_:"):
-            blank_ids.append(target)
-        else:
-            raise ValueError(f"{concept_iri} line {line_number} has unsupported broader target {target!r}")
-    if absolute_references:
-        authority[broader_field] = absolute_references[0] if len(absolute_references) == 1 else absolute_references
-    else:
-        authority.pop(broader_field, None)
-
-    graph = document.get("@graph")
-    if not isinstance(graph, list):
-        raise ValueError(f"{concept_iri} line {line_number} has no @graph")
-    by_id = {node.get("@id"): node for node in graph if isinstance(node, dict) and isinstance(node.get("@id"), str)}
-    evidence: list[dict[str, object]] = []
-    for blank_id in blank_ids:
-        node = by_id.get(blank_id)
-        if not isinstance(node, dict):
-            raise ValueError(f"{concept_iri} line {line_number} lacks broader blank node {blank_id}")
-        label = node.get("madsrdf:authoritativeLabel")
-        if not isinstance(label, dict):
-            raise ValueError(f"{concept_iri} line {line_number} broader blank node lacks a label")
-        value = label.get("@value")
-        language = label.get("@language")
-        if not isinstance(value, str) or not value:
-            raise ValueError(f"{concept_iri} line {line_number} broader blank node has no label value")
-        if language is not None and not isinstance(language, str):
-            raise ValueError(f"{concept_iri} line {line_number} broader blank node has invalid language")
-        evidence.append(
-            {
-                "authoritativeLabel": value,
-                "blankNodeId": blank_id,
-                "language": language,
-                "reason": "publisher supplied no absolute IRI for the broader authority",
-            }
-        )
-    return tuple(evidence)
-
-
-def _capture_lcsh_endpoint_records(
-    path: Path,
-    *,
-    source_url: str,
-    concept_iris: Collection[str],
-) -> tuple[
-    _LcshEndpointCapture,
-    Mapping[str, tuple[dict[str, object], ...]],
-]:
-    """Select LCSH records while retaining unaddressable broader blank nodes."""
-
-    requested = frozenset(concept_iris)
-    prefix = lcsh.LCSH_SUBJECTS_SCHEME_IRI + "/"
-    if not requested or any(not iri.startswith(prefix) for iri in requested):
-        raise ValueError("LC external-links endpoint selection contains a non-LCSH IRI")
-    path_to_iri = {"/authorities/subjects/" + iri.removeprefix(prefix): iri for iri in requested}
-    selected: dict[str, _LcshEndpointRecord] = {}
-    blank_broader: dict[str, tuple[dict[str, object], ...]] = {}
-    lines_scanned = 0
-    with gzip.open(path, "rb") as lines:
-        for line_number, line in enumerate(lines, start=1):
-            lines_scanned = line_number
-            raw = line.rstrip(b"\r\n")
-            if not raw.strip():
-                continue
-            try:
-                document = json.loads(raw)
-            except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                raise ValueError(f"LCSH bulk line {line_number} is not valid UTF-8 JSON: {error}") from error
-            if not isinstance(document, dict):
-                raise ValueError(f"LCSH bulk line {line_number} is not a JSON object")
-            concept_iri = path_to_iri.get(document.get("@id"))
-            if concept_iri is None:
-                continue
-            if concept_iri in selected:
-                raise ValueError(f"LCSH bulk repeats selected authority {concept_iri}")
-            graph = document.get("@graph")
-            if not isinstance(graph, list):
-                raise ValueError(f"{concept_iri} line {line_number} has no @graph")
-            authority_nodes = [node for node in graph if isinstance(node, dict) and node.get("@id") == concept_iri]
-            if len(authority_nodes) != 1:
-                raise ValueError(f"{concept_iri} line {line_number} has no unique authority node")
-            authority = authority_nodes[0]
-            blank_broader[concept_iri] = _blank_broader_evidence(
-                document,
-                authority=authority,
-                concept_iri=concept_iri,
-                line_number=line_number,
-            )
-            selected[concept_iri] = _endpoint_record(
-                document,
-                authority=authority,
-                concept_iri=concept_iri,
-                source_url=source_url,
-                line_number=line_number,
-                raw_line=raw,
-            )
-    missing = tuple(sorted(requested - selected.keys()))
-    capture = _LcshEndpointCapture(
-        source_url=source_url,
-        lines_scanned=lines_scanned,
-        requested_iris=tuple(sorted(requested)),
-        records=tuple(selected[iri] for iri in sorted(selected)),
-        missing_iris=missing,
-    )
-    return capture, MappingProxyType(blank_broader)
-
-
-def load_lcsh_external_links_endpoint_release(
-    source_root: Path = DEFAULT_SOURCE_ROOT,
-) -> RegistryRelease:
-    """Load the new LCSH subjects required by the emitted LC-to-FAST rows."""
-
-    capture, fast_release, _active_fast_emitted, _, _missing_active_fast_subject = _load_capture_and_fast(source_root)
-    selection_pin = _existing_endpoint_selection_pin(source_root)
-    selection_pin.verify()
-    existing_alignment = parse_eurovoc_lcsh_alignment_file(selection_pin.path)
-    existing_endpoint_iris = existing_alignment.lcsh_concept_iris
-    candidate_subject_iris = set(capture.lcsh_subject_iris)
-    overlap = candidate_subject_iris & existing_endpoint_iris
-    candidate_new_subject_iris = candidate_subject_iris - existing_endpoint_iris
-    observed_selection = {
-        "candidateNewEndpointCount": len(candidate_new_subject_iris),
-        "candidateSubjectCount": len(candidate_subject_iris),
-        "existingEndpointOverlapCount": len(overlap),
-    }
-    expected_selection = {
-        "candidateNewEndpointCount": LC_ALL_CANDIDATE_NEW_LCSH_ENDPOINT_SUBJECT_COUNT,
-        "candidateSubjectCount": LC_ALL_CANDIDATE_LCSH_SUBJECT_COUNT,
-        "existingEndpointOverlapCount": LC_ALL_EXISTING_LCSH_ENDPOINT_SUBJECT_COUNT,
-    }
-    if observed_selection != expected_selection:
-        raise ValueError(
-            "LC external-links LCSH endpoint partition drifted: "
-            f"expected={expected_selection!r}, observed={observed_selection!r}"
-        )
-
-    bulk_pin = _lcsh_bulk_pin(source_root)
-    bulk_pin.verify()
-    selected, blank_broader = _capture_lcsh_endpoint_records(
-        bulk_pin.path,
-        source_url=bulk_pin.source_iri,
-        concept_iris=candidate_new_subject_iris,
-    )
-    if len(selected.missing_iris) != LC_ALL_MISSING_LCSH_SUBJECT_COUNT:
-        raise ValueError(
-            "LCSH bulk missing-subject count differs: "
-            f"expected={LC_ALL_MISSING_LCSH_SUBJECT_COUNT}, "
-            f"observed={len(selected.missing_iris)}"
-        )
-    if len(selected.records) != LC_ALL_NEW_LCSH_ENDPOINT_SUBJECT_COUNT:
-        raise ValueError(
-            "LC external-links LCSH endpoint record count differs: "
-            f"expected {LC_ALL_NEW_LCSH_ENDPOINT_SUBJECT_COUNT}, "
-            f"observed {len(selected.records)}"
-        )
-
-    resources = tuple(
-        RegistryResource(
-            iri=record.concept_iri,
-            labels=record.labels,
-            native_payload={
-                "authorityTypes": list(record.authority_types),
-                "broaderIris": list(record.broader_iris),
-                "captureSelection": {
-                    "externalLinksDigest": capture.source_sha256,
-                    "externalLinksSource": capture.source_url,
-                    "fastAtlasReleaseIri": fast_release.atlas_release_iri,
-                    "reason": "subject of an LC external-authority assertion with a contentful target",
-                },
-                "lccn": record.lccn,
-                "lineNumber": record.line_number,
-                "recordByteLength": record.source_byte_length,
-                "recordDigest": record.source_sha256,
-                "unrepresentedBroaderAuthorities": list(blank_broader[record.concept_iri]),
-                "useInsteadIris": list(record.use_instead_iris),
-            },
-            source_locator=f"{record.source_url}#line-{record.line_number}",
-            source_digest=record.source_sha256,
-            notes=record.notes,
-            notations=(() if record.lccn is None else (record.lccn,)),
-            status=record.status,
-        )
-        for record in selected.records
-    )
-    loaded_new_subject_iris = {record.concept_iri for record in selected.records}
-    if loaded_new_subject_iris != candidate_new_subject_iris - set(selected.missing_iris):
-        raise ValueError("loaded LC external-links LCSH endpoint set differs")
-    all_loaded_lcsh_iris = loaded_new_subject_iris | existing_endpoint_iris
-    relations = tuple(
-        RegistryRelation(
-            subject=record.concept_iri,
-            predicate="http://www.w3.org/2004/02/skos/core#broader",
-            object=broader_iri,
-            source_payload={
-                "lineNumber": record.line_number,
-                "objectIri": broader_iri,
-                "predicateIri": "http://www.w3.org/2004/02/skos/core#broader",
-                "subjectIri": record.concept_iri,
-            },
-        )
-        for record in selected.records
-        for broader_iri in record.broader_iris
-        if broader_iri in all_loaded_lcsh_iris
-    )
-    inputs = (
-        bulk_pin,
-        _external_pin(source_root, role="publisherEndpointSelection"),
-        selection_pin,
-        *fast_release.inputs,
-    )
-    return RegistryRelease(
-        key=LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY,
-        resource_id="lcsh-subjects",
-        source_module="refspec.registry.lcsh_topical",
-        profile="conceptScheme",
-        ring="subject",
-        scope="captureSubset",
-        issued="2026-08-15",
-        source_release_iri=("urn:ref:source-release:lcsh-subjects:external-links-endpoints:2026-08-15"),
-        source_release_digest=_input_set_digest(inputs),
-        atlas_release_iri=LCSH_EXTERNAL_LINKS_ENDPOINT_ATLAS_RELEASE_IRI,
-        scheme_iri="urn:ref:atlas-resource-scheme:lcsh-subjects",
-        inputs=inputs,
-        resources=resources,
-        relations=relations,
-        dropped_label_count=sum(record.dropped_label_count for record in selected.records),
-        metadata={
-            "completePublisherRelease": False,
-            "existingEndpointOverlapCount": len(overlap),
-            "externalLinksSourceArtifact": _source_artifact_metadata(),
-            "endpointOwnershipPreference": "publisherOwnedVocabulary",
-            "fastAtlasReleaseIri": fast_release.atlas_release_iri,
-            "linesScanned": selected.lines_scanned,
-            "mappingEndpointSubset": True,
-            "missingLcshSubjectCount": len(selected.missing_iris),
-            "missingLcshSubjectIris": list(selected.missing_iris),
-            "missingLcshSubjectReason": (
-                "LC external-links subjects absent from the separately pinned current "
-                "LCSH topical bulk file; no endpoint resource can be verified"
-            ),
-            "newEndpointCount": len(resources),
-            "unrepresentedBroaderBlankNodeCount": sum(len(values) for values in blank_broader.values()),
-            "publisherReleaseUnspecified": True,
-            "selectionRule": (
-                "LCSH subjects of LC external-authority assertions whose target has a captured "
-                "publisher label; current FAST targets reuse the pinned FAST release and other "
-                "targets use the contentful LC endpoint captures; existing LCSH endpoints are reused"
-            ),
-            "sourceIdentifierCount": 0,
-        },
-    )
 
 
 def _external_target_endpoint_releases(
@@ -1061,23 +541,30 @@ def _unemitted_counts(
 def load_lc_external_links_mapping_release(
     source_root: Path = DEFAULT_SOURCE_ROOT,
 ) -> RegistryMappingRelease:
-    """Load every exact LC assertion whose two endpoints carry real content."""
+    """Load every exact LC assertion whose two endpoints carry real content.
+
+    The LCSH (subject) side resolves against the consolidated LCSH release
+    (``v3_registry_alignments_lcsh.load_lcsh_consolidated_release``): every
+    current LCSH heading, plus the deprecated headings this and the other
+    held mappings reference. This release previously bootstrapped its own
+    LCSH endpoint capture (the retired ``lcsh-external-links-endpoints``
+    release); the consolidated release already holds every one of its
+    candidate subjects that the bulk file contains at all, so the emitted
+    count is unchanged -- only the LCSH endpoint's owning release changes.
+    """
 
     capture, fast_release, _active_fast_emitted, outside_current_fast, _missing_active_fast_subject = (
         _load_capture_and_fast(source_root)
     )
-    selection_pin = _existing_endpoint_selection_pin(source_root)
-    selection_pin.verify()
-    existing_endpoint_iris = parse_eurovoc_lcsh_alignment_file(selection_pin.path).lcsh_concept_iris
+    consolidated_release = load_lcsh_consolidated_release(source_root)
+    held_lcsh_subjects = frozenset(resource.iri for resource in consolidated_release.resources)
     candidate_subject_iris = set(capture.lcsh_subject_iris)
-    lcsh_pin = _lcsh_bulk_pin(source_root)
-    lcsh_pin.verify()
-    selected, _blank_broader = _capture_lcsh_endpoint_records(
-        lcsh_pin.path,
-        source_url=lcsh_pin.source_iri,
-        concept_iris=candidate_subject_iris - existing_endpoint_iris,
-    )
-    held_lcsh_subjects = existing_endpoint_iris | {record.concept_iri for record in selected.records}
+    missing_lcsh_subject_iris = tuple(sorted(candidate_subject_iris - held_lcsh_subjects))
+    if len(missing_lcsh_subject_iris) != LC_ALL_MISSING_LCSH_SUBJECT_COUNT:
+        raise ValueError(
+            "LCSH bulk missing-subject count differs: "
+            f"expected={LC_ALL_MISSING_LCSH_SUBJECT_COUNT}, observed={len(missing_lcsh_subject_iris)}"
+        )
     emitted = tuple(row for row in capture.assertions if row.subject_iri in held_lcsh_subjects)
     fast_emitted = tuple(row for row in emitted if row.target_vocabulary == "fast")
     external_emitted = tuple(row for row in emitted if row.target_vocabulary != "fast")
@@ -1096,11 +583,7 @@ def load_lc_external_links_mapping_release(
             subject=row.subject_iri,
             predicate=MADS_TO_SKOS_PREDICATE[row.predicate_iri],
             object=row.object_iri,
-            subject_atlas_release_iri=(
-                LCSH_EUROVOC_ENDPOINT_ATLAS_RELEASE_IRI
-                if row.subject_iri in existing_endpoint_iris
-                else LCSH_EXTERNAL_LINKS_ENDPOINT_ATLAS_RELEASE_IRI
-            ),
+            subject_atlas_release_iri=LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
             object_atlas_release_iri=(
                 fast_release.atlas_release_iri
                 if row.target_vocabulary == "fast" and row.object_iri in active_fast_iris
@@ -1191,8 +674,8 @@ def load_lc_external_links_mapping_release(
                 "emitted from captured LC labels in the lc-external-fast endpoint release"
             ),
             "fastEndpointOutsideCurrentReleasePredicateCounts": dict(LC_FAST_ABSENT_ENDPOINT_PREDICATE_COUNTS),
-            "lcshEndpointAbsentCount": len(selected.missing_iris),
-            "lcshEndpointAbsentIris": list(selected.missing_iris),
+            "lcshEndpointAbsentCount": len(missing_lcsh_subject_iris),
+            "lcshEndpointAbsentIris": list(missing_lcsh_subject_iris),
             "lcshEndpointAbsentReason": (
                 "subject absent from the separately pinned current LCSH topical "
                 "bulk file; no mapping endpoint resource can be verified"
@@ -1202,10 +685,10 @@ def load_lc_external_links_mapping_release(
                 "fromTo": dict(MADS_TO_SKOS_PREDICATE),
             },
             "otherPublisherDirection": {
-                "adoptedExactMatchCount": 1_683,
+                "adoptedExactMatchCount": 252_527,
                 "direction": "FAST-to-LCSH",
                 "publisher": "OCLC",
-                "publisherVerbatimRelatedMatchCount": 62_781,
+                "publisherVerbatimRelatedMatchCount": 349_932,
                 "relationship": (
                     "independent assertions from a different publisher with different "
                     "predicates; the producer retains LC hierarchy and refuses the "
@@ -1236,8 +719,6 @@ def load_lc_registry_alignment_endpoint_releases(
     if not wants_group(requested, LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS):
         return ()
     loaded: list[RegistryRelease] = []
-    if requested is None or LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY in requested:
-        loaded.append(load_lcsh_external_links_endpoint_release(source_root))
     target_keys = frozenset(LC_EXTERNAL_TARGET_ENDPOINT_RELEASE_KEYS.values())
     if requested is None or requested & target_keys:
         loaded.extend(load_lc_external_target_endpoint_releases(source_root))
@@ -1273,10 +754,8 @@ def load_lc_registry_mapping_releases(
 
 __all__ = [
     "DEFAULT_SOURCE_ROOT",
-    "LCSH_EXTERNAL_LINKS_ENDPOINT_ATLAS_RELEASE_IRI",
-    "LCSH_EXTERNAL_LINKS_ENDPOINT_RELEASE_KEY",
     "LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY",
-    "LC_ALL_NEW_LCSH_ENDPOINT_SUBJECT_COUNT",
+    "LC_ALL_MISSING_LCSH_SUBJECT_COUNT",
     "LC_EXTERNAL_EMITTED_ASSERTION_COUNT",
     "LC_EXTERNAL_EXPLICIT_ENGLISH_LABEL_COUNT",
     "LC_EXTERNAL_LINKS_MAPPING_POLICY",
@@ -1306,5 +785,4 @@ __all__ = [
     "load_lc_external_target_endpoint_releases",
     "load_lc_registry_alignment_endpoint_releases",
     "load_lc_registry_mapping_releases",
-    "load_lcsh_external_links_endpoint_release",
 ]

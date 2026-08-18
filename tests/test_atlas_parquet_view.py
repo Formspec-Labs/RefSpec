@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import subprocess
+import threading
 from collections.abc import Mapping
+from http.server import ThreadingHTTPServer
 from pathlib import Path
+from urllib.request import urlopen
 
 import pyarrow.parquet as pq
 import pytest
 from rdflib import Namespace
 
+from refspec.atlas import agency_projection, explorer_cli
 from refspec.atlas.compact_pack import (
     CompactRecordRole,
     compact_record_fields,
@@ -43,11 +48,14 @@ from refspec.atlas.parquet_search_view import (
     verify_atlas_parquet_search_view,
 )
 from refspec.atlas.parquet_tables import (
+    AGENCY_PROJECTION_ROLE,
+    AGENCY_PROJECTION_UNRESOLVED_ROLE,
     TABLE_SCHEMAS,
     AtlasParquetTableWriter,
     column_name,
     logical_records_preserved,
     unpreserved_record_fields,
+    write_agency_projection_tables,
 )
 from refspec.atlas.parquet_view import (
     VIEW_SCHEMA_VERSION,
@@ -108,6 +116,145 @@ def _seal_view(source: Path, output: Path, *, expected_manifest_digest: str) -> 
             "missingReleaseKeys": [
                 "regulations-gov-agencies-roster-2026-08-16"
             ],
+        },
+    )
+
+
+def _agency_projection_fixture() -> agency_projection.AgencyProjection:
+    """A small, real REF-038-shaped projection: one resolved value, one abstention.
+
+    Hand-built rather than derived from the real regulations.gov/Federal
+    Register rosters -- tests/test_agency_projection.py already proves parity
+    against those with the full 321/10-row projection -- so this stays a
+    fast, self-contained fixture. Every field still goes through the same
+    dataclass validation and content-derived digests
+    (`agency_projection._digest`) the real projection does, and its resolved
+    org points at ``_fixture_distribution``'s one resource so the projection
+    lookup's cross-reference to a known Atlas resource is real too.
+    """
+
+    source_record = agency_projection.AgencyProjectionSourceRecord(
+        release_key="test-regulations-gov-roster",
+        release_digest=_D1,
+        resource="urn:test:regulations-gov:EPA",
+        source_locator="https://example.test/regulations-gov",
+        source_digest=_D2,
+        field="agencyId",
+        value="EPA",
+        publisher_name="Environmental Protection Agency",
+    )
+    target_record = agency_projection.AgencyProjectionSourceRecord(
+        release_key="test-federal-register-roster",
+        release_digest=_D3,
+        resource="urn:test:resource",
+        source_locator="https://example.test/federal-register",
+        source_digest=_D4,
+        field="name",
+        value="Environmental Protection Agency",
+        publisher_name="Environmental Protection Agency",
+    )
+    evidence_content = {
+        "evidence_tier": "E4",
+        "warrant": "humanReview",
+        "reviewer": "urn:test:reviewer",
+        "adjudicated_on": "2026-08-16",
+        "decision_record": "docs/decisions.md#ref-038",
+        "decision": "approved",
+        "decision_basis": "exactPublisherNameEquality",
+        "relation": agency_projection.ATLAS_SAME_ENTITY_AS,
+        "name_similarity_used": False,
+        "reasoning": "Exact publisher name equality between the two rosters.",
+        "source_record": source_record.to_dict(),
+        "target_record": target_record.to_dict(),
+    }
+    evidence_id = "urn:ref:agency-projection-evidence:" + agency_projection._digest(
+        evidence_content
+    ).removeprefix("sha256:")
+    evidence = agency_projection.AgencyProjectionEvidenceRecord(
+        record_id=evidence_id,
+        evidence_tier="E4",
+        warrant="humanReview",
+        reviewer="urn:test:reviewer",
+        adjudicated_on="2026-08-16",
+        decision_record="docs/decisions.md#ref-038",
+        decision="approved",
+        decision_basis="exactPublisherNameEquality",
+        relation=agency_projection.ATLAS_SAME_ENTITY_AS,
+        name_similarity_used=False,
+        reasoning="Exact publisher name equality between the two rosters.",
+        source_record=source_record,
+        target_record=target_record,
+    )
+    row = agency_projection.AgencyProjectionRow(
+        source_value_kind="regulationsGovAgencyId",
+        source_value="EPA",
+        org="urn:test:resource",
+        pref_label="Environmental Protection Agency",
+        abbreviations=("EPA",),
+        aliases=(),
+        parent_org=None,
+        relation=agency_projection.ATLAS_SAME_ENTITY_AS,
+        evidence_tier="E4",
+        warrant="humanReview",
+        basis="exactPublisherNameEquality",
+        evidence_records=(evidence,),
+    )
+    unresolved_row = agency_projection.AgencyProjectionUnresolvedRow(
+        source_value_kind="regulationsGovAgencyId",
+        source_value="ARCTICGAS",
+        source_org="Arctic Gas Task Force",
+        pref_label="Arctic Gas Task Force",
+        source_parent_org=None,
+        reason="noCounterpartInHeldRosters",
+        reasoning="No held roster carries a counterpart entity for this docket prefix.",
+        candidate_resources=(),
+        closest_non_adopted_candidate=None,
+    )
+    coverage = agency_projection.AgencyProjectionCoverage(
+        source_value_kind="regulationsGovAgencyId",
+        source_value_count=2,
+        resolved_value_count=1,
+        unresolved_value_count=1,
+        basis_counts={"exactPublisherNameEquality": 1},
+        unresolved_reason_counts={"noCounterpartInHeldRosters": 1},
+        rows_with_parent_org=0,
+        evidence_record_count=1,
+    )
+    projection_content = {
+        "rows": [row.to_dict()],
+        "unresolved": [unresolved_row.to_dict()],
+        "coverage": coverage.to_dict(),
+    }
+    return agency_projection.AgencyProjection(
+        rows=(row,),
+        unresolved=(unresolved_row,),
+        coverage=coverage,
+        digest=agency_projection._digest(projection_content),
+    )
+
+
+def _seal_view_with_agency_projection(
+    source: Path,
+    output: Path,
+    *,
+    expected_manifest_digest: str,
+    projection: agency_projection.AgencyProjection,
+) -> dict[str, object]:
+    """Like ``_seal_view``, but also stages and declares REF-038's projection tables."""
+
+    staged = output.parent / f".{output.name}.staged-tables"
+    _stage_tables(source, staged)
+    write_agency_projection_tables(staged, projection)
+    return seal_atlas_parquet_view(
+        source,
+        staged,
+        output,
+        expected_manifest_digest=expected_manifest_digest,
+        agency_projection={
+            "status": "emitted",
+            "decision": "REF-038",
+            "digest": projection.digest,
+            "coverage": projection.coverage.to_dict(),
         },
     )
 
@@ -666,6 +813,195 @@ def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
         verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
 
 
+def test_compact_search_view_carries_agency_projection_tables_through(tmp_path: Path) -> None:
+    """The reviewer's finding, closed: REF-038's tables reach the served view.
+
+    Full chain: a full view WITH agency-projection tables compacts into a
+    compact search view that carries them as first-class, closure-checked
+    members whose bytes and digests are copied verbatim -- never recomputed
+    -- from the verified full view. Then the real digest-verified
+    ``AtlasDuckDBView.open()`` path opens it, and the real explorer_cli HTTP
+    handler serves ``/agencies`` and ``/api/agency-projection`` with
+    populated results.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    projection = _agency_projection_fixture()
+    full = tmp_path / "full"
+    _seal_view_with_agency_projection(
+        source, full, expected_manifest_digest=source_pin, projection=projection
+    )
+    full_manifest = json.loads((full / "view-manifest.json").read_text())
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    assert full_manifest["agencyProjection"]["status"] == "emitted"
+
+    compact = tmp_path / "compact"
+    manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+
+    projection_roles = {AGENCY_PROJECTION_ROLE, AGENCY_PROJECTION_UNRESOLVED_ROLE}
+    compact_members_by_role = {member["role"]: member for member in manifest["members"]}
+    full_members_by_role = {member["role"]: member for member in full_manifest["members"]}
+    assert projection_roles <= set(compact_members_by_role)
+    for role in projection_roles:
+        compact_member = compact_members_by_role[role]
+        full_member = full_members_by_role[role]
+        # Carried through, not recomputed: identical digests, size, and bytes.
+        assert compact_member["sha256"] == full_member["sha256"]
+        assert compact_member["byteLength"] == full_member["byteLength"]
+        assert compact_member["schemaDigest"] == full_member["schemaDigest"]
+        assert compact_member["rowCount"] == full_member["rowCount"]
+        assert (compact / compact_member["path"]).read_bytes() == (full / full_member["path"]).read_bytes()
+    assert manifest["counts"][AGENCY_PROJECTION_ROLE] == 1
+    assert manifest["counts"][AGENCY_PROJECTION_UNRESOLVED_ROLE] == 1
+
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+    # Byte-for-byte deterministic: verifying re-derives exactly what was built.
+    assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == manifest
+
+    view = AtlasDuckDBView.open(compact, trusted_manifest_digest=compact_pin)
+    try:
+        assert view.agency_projection_available() is True
+        resolved_result = view.agency_projection("EPA")
+        assert resolved_result["available"] is True
+        assert [row["source_value"] for row in resolved_result["resolved"]] == ["EPA"]
+        assert resolved_result["resolved"][0]["basis"] == "exactPublisherNameEquality"
+        assert resolved_result["resolved"][0]["org_known"] is True
+        unresolved_result = view.agency_projection("ARCTICGAS")
+        assert [row["source_value"] for row in unresolved_result["unresolved"]] == ["ARCTICGAS"]
+        assert unresolved_result["resolved"] == []
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
+        thread = threading.Thread(target=server.serve_forever)
+        thread.start()
+        try:
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            with urlopen(f"{base_url}/agencies", timeout=5) as response:
+                assert response.status == 200
+                assert response.headers["Content-Type"].startswith("text/html")
+                assert "<html" in response.read().decode()
+            with urlopen(f"{base_url}/api/agency-projection?q=EPA", timeout=5) as response:
+                assert response.status == 200
+                payload = json.loads(response.read())
+            assert payload["available"] is True
+            assert [row["source_value"] for row in payload["resolved"]] == ["EPA"]
+            assert payload["unresolved"] == []
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+    finally:
+        view.close()
+
+
+def test_compact_search_view_without_agency_projection_degrades_gracefully(tmp_path: Path) -> None:
+    """Older/projection-less full views still compact cleanly: no projection
+    members, and the served view's agency-projection path degrades rather
+    than erroring -- through the same real ``.open()`` and HTTP-handler path
+    the populated case above uses.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    _seal_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+
+    compact = tmp_path / "compact"
+    manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    assert {AGENCY_PROJECTION_ROLE, AGENCY_PROJECTION_UNRESOLVED_ROLE}.isdisjoint(
+        member["role"] for member in manifest["members"]
+    )
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+    assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == manifest
+
+    view = AtlasDuckDBView.open(compact, trusted_manifest_digest=compact_pin)
+    try:
+        assert view.agency_projection_available() is False
+        assert view.agency_projection("EPA") == {"available": False, "resolved": [], "unresolved": []}
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
+        thread = threading.Thread(target=server.serve_forever)
+        thread.start()
+        try:
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            with urlopen(f"{base_url}/api/agency-projection", timeout=5) as response:
+                assert response.status == 200
+                assert json.loads(response.read()) == {
+                    "available": False,
+                    "resolved": [],
+                    "unresolved": [],
+                }
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+    finally:
+        view.close()
+
+
+def test_verify_refuses_a_partial_agency_projection_member_pair(tmp_path: Path) -> None:
+    """The two projection tables are all-or-none, same as REF-038 requires
+    for the full view -- verified again independently on the compact side.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    projection = _agency_projection_fixture()
+    full = tmp_path / "full"
+    _seal_view_with_agency_projection(
+        source, full, expected_manifest_digest=source_pin, projection=projection
+    )
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+
+    unresolved_member = next(
+        member for member in manifest["members"] if member["role"] == AGENCY_PROJECTION_UNRESOLVED_ROLE
+    )
+    (compact / unresolved_member["path"]).unlink()
+    tampered = dict(manifest)
+    tampered["members"] = [
+        member for member in manifest["members"] if member["role"] != AGENCY_PROJECTION_UNRESOLVED_ROLE
+    ]
+    tampered["counts"] = {
+        key: value for key, value in manifest["counts"].items() if key != AGENCY_PROJECTION_UNRESOLVED_ROLE
+    }
+    resealed = {key: value for key, value in tampered.items() if key != "canonicalPayloadDigest"}
+    resealed["canonicalPayloadDigest"] = canonical_payload_sha256(resealed)
+    manifest_path = compact / "search-view-manifest.json"
+    manifest_path.write_bytes(canonical_json_bytes(resealed))
+    compact_pin = sha256_digest(manifest_path.read_bytes())
+
+    with pytest.raises(AtlasParquetSearchViewError, match="carried through together"):
+        verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
+
+
+def test_verify_still_refuses_an_undeclared_agency_projection_file(tmp_path: Path) -> None:
+    """The original defect, guarded against regressing: a projection table
+    present on disk but not declared in the manifest must still be refused --
+    only carried-through, closure-checked members are ever admitted.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    _seal_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+
+    write_agency_projection_tables(compact, _agency_projection_fixture())
+
+    with pytest.raises(AtlasParquetSearchViewError, match="membership is not closed"):
+        verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
+
+
 def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None:
     source = tmp_path / "atlas"
     source.mkdir()
@@ -757,6 +1093,8 @@ def test_overview_maps_release_pairs_and_internal_relations(tmp_path: Path) -> N
             "ring": "subject",
             "resources": 2,
             "internalRelations": 1,
+            "satellite": False,
+            "partner": None,
         },
         {
             "id": "urn:test:atlas-release-b",
@@ -764,6 +1102,8 @@ def test_overview_maps_release_pairs_and_internal_relations(tmp_path: Path) -> N
             "ring": "subject",
             "resources": 0,
             "internalRelations": 0,
+            "satellite": False,
+            "partner": None,
         },
     ]
     # The two opposite-direction mappings collapse onto one undirected pair.
@@ -865,15 +1205,23 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     assert 'id="more-results"' not in rendered
     # The Atlas overview map opens first and stays open beside neighborhoods.
     assert "class OverviewView" in rendered
-    assert 'overview=new OverviewView(await get("/api/overview"))' in rendered
+    assert 'async function loadOverview(){const data=await get(`/api/overview?status=${statusParam()}`)' in rendered
     assert "workspace.prepend(this.element)" in rendered
+    # Deprecated-status resources hide by default across search, graphs, and
+    # the overview; one toggle flips all three to include them.
+    assert 'id="show-deprecated"' in rendered
+    assert 'function statusParam(){return showDeprecated.checked?"all":"active"}' in rendered
+    assert "status:statusParam()" in rendered
+    assert "reopenGraphsWithCurrentStatus" in rendered
     assert "const count=graphs.size+(overview?1:0)" in rendered
     assert "overview?.refresh(fit)" in rendered
     # A selected vocabulary links to its full map, and the map links back into
     # a neighborhood through the ?open= deep link.
     assert 'href="/release?id=${encodeURIComponent(node.id)}" target="_blank"' in rendered
-    assert 'new URLSearchParams(location.search).get("open")' in rendered
+    assert "const params=new URLSearchParams(location.search)" in rendered
     assert "if(openTarget)await addGraph(openTarget)" in rendered
+    # A ?q= deep link (e.g. from the agency-projection page) prefills search.
+    assert "qTarget=params.get(\"q\")" in rendered
     # The explorer accepts concepts broadcast from vocabulary-map tabs by
     # adding a pane, and selecting an overview vocabulary must not re-filter
     # the neighborhoods that are already open.
@@ -924,6 +1272,35 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     assert "compact Parquet" not in rendered
     assert ">NativeRelationAssertion<" not in rendered
     assert "<table" not in rendered
+
+
+def test_agency_projection_page_looks_up_resolved_and_unresolved_source_values() -> None:
+    from refspec.atlas.explorer_frontend import render_atlas_agency_projection_frontend
+
+    rendered = render_atlas_agency_projection_frontend()
+
+    assert "RefSpec Atlas agency projection" in rendered
+    assert 'href="/"' in rendered
+    assert 'placeholder="Docket prefix or agency name, e.g. EPA"' in rendered
+    assert "/api/agency-projection?q=" in rendered
+    # Graceful degradation: an older view without the tables never errors.
+    assert "This view has no agency projection." in rendered
+    assert "data.available" in rendered
+    # Row click opens the resolved org through the same cross-tab inspector
+    # channel the release map already uses, falling back to a search link.
+    assert 'new BroadcastChannel("refspec-atlas-open")' in rendered
+    assert 'channel.postMessage({type:"open",id})' in rendered
+    assert 'row.dataset.orgKnown==="1"?openResource(row.dataset.org):openSearch(row.dataset.prefLabel)' in rendered
+    assert "window.open(`/?q=${encodeURIComponent(term)}`" in rendered
+    script = re.search(r"<script>\n(.*?)</script>", rendered, re.DOTALL)
+    assert script is not None
+    subprocess.run(
+        ["node", "--check", "-"],
+        input=script.group(1),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_release_map_page_draws_every_concept_and_links_back() -> None:

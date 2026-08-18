@@ -28,6 +28,12 @@ from refspec.atlas.parquet_artifact import (
     file_sha256,
     normalize_sha256_prefix,
 )
+from refspec.atlas.parquet_tables import (
+    AGENCY_PROJECTION_ROLE,
+    AGENCY_PROJECTION_TABLE_SCHEMAS,
+    AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    agency_projection_table_relative_path,
+)
 from refspec.atlas.parquet_view import verify_atlas_parquet_view
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
 
@@ -35,10 +41,20 @@ SEARCH_VIEW_RECORD_TYPE = "AtlasParquetSearchViewManifest"
 SEARCH_VIEW_SCHEMA_VERSION = "1.1"
 SEARCH_VIEW_ID_PREFIX = "urn:ref:atlas-parquet-search-view:"
 SEARCH_VIEW_IMPLEMENTATION = "refspec.atlas.parquet_search_view"
-SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.1"
+SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.2"
 MANIFEST_FILE = "search-view-manifest.json"
 ROW_GROUP_SIZE = 50_000
 COMPRESSION_LEVEL = 19
+
+#: REF-038's agency-projection tables are consumer-projection members, not
+#: one of the eight closed logical-record roles `CompactRecordRole` names --
+#: that enum is the closed compact-record contract and stays that way. They
+#: are modeled as a separate, optional member category: zero or both may
+#: appear (the full view already enforces "emitted together"), each carried
+#: through compaction by verbatim byte copy -- their digests come from the
+#: verified full view, never recomputed -- rather than by the per-role
+#: `_write_role` transform every compact record role goes through.
+PROJECTION_MEMBER_ROLES = frozenset({AGENCY_PROJECTION_ROLE, AGENCY_PROJECTION_UNRESOLVED_ROLE})
 
 _PREFIXES = {
     "assertion": "urn:ref:atlas-assertion:",
@@ -318,16 +334,19 @@ def build_atlas_parquet_search_view(
         full_view,
         expected_manifest_digest=expected_manifest_digest,
     )
-    # The full view also ships consumer projection tables (REF-038's agency
-    # projection). They are not search tables: the compact view carries the
-    # eight record roles only, so known projection roles are skipped by name
-    # while any genuinely unknown role still refuses.
-    known_non_compact_roles = {"agencyProjection", "agencyProjectionUnresolved"}
-    by_role = {
-        CompactRecordRole(member["role"]): member
-        for member in full_manifest["members"]
-        if member["role"] not in known_non_compact_roles
-    }
+    # The full view may also ship REF-038's agency-projection tables, carried
+    # here as a separate optional member category (see PROJECTION_MEMBER_ROLES).
+    by_role: dict[CompactRecordRole, dict[str, Any]] = {}
+    projection_members: dict[str, dict[str, Any]] = {}
+    for member in full_manifest["members"]:
+        if member["role"] in PROJECTION_MEMBER_ROLES:
+            projection_members[member["role"]] = member
+        else:
+            by_role[CompactRecordRole(member["role"])] = member
+    if projection_members and set(projection_members) != PROJECTION_MEMBER_ROLES:
+        raise AtlasParquetSearchViewError(
+            "agency projection tables must be carried through together"
+        )
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
@@ -353,6 +372,34 @@ def build_atlas_parquet_search_view(
                     "rowCount": row_count,
                     "schemaDigest": arrow_schema_sha256(stored_schema),
                     "sha256": file_sha256(target),
+                }
+            )
+        for role in (AGENCY_PROJECTION_ROLE, AGENCY_PROJECTION_UNRESOLVED_ROLE):
+            source_member = projection_members.get(role)
+            if source_member is None:
+                continue
+            source = full_view / source_member["path"]
+            relative = agency_projection_table_relative_path(role)
+            target = temporary / relative
+            shutil.copyfile(source, target)
+            if target.stat().st_size != source_member["byteLength"] or file_sha256(target) != source_member["sha256"]:
+                raise AtlasParquetSearchViewError(f"agency projection table copy differs from the full view: {role}")
+            copied_schema = pq.ParquetFile(target).schema_arrow
+            if (
+                copied_schema != AGENCY_PROJECTION_TABLE_SCHEMAS[role]
+                or arrow_schema_sha256(copied_schema) != source_member["schemaDigest"]
+            ):
+                raise AtlasParquetSearchViewError(f"agency projection table schema differs from the full view: {role}")
+            counts[role] = source_member["rowCount"]
+            members.append(
+                {
+                    "byteLength": source_member["byteLength"],
+                    "mediaType": source_member["mediaType"],
+                    "path": relative,
+                    "role": role,
+                    "rowCount": source_member["rowCount"],
+                    "schemaDigest": source_member["schemaDigest"],
+                    "sha256": source_member["sha256"],
                 }
             )
         construction = {
@@ -447,14 +494,24 @@ def verify_atlas_parquet_search_view(
         raise AtlasParquetSearchViewError("compact view status is unsupported")
     expected_files = {MANIFEST_FILE}
     counts = {}
-    seen = set()
+    seen: set[CompactRecordRole] = set()
+    seen_projection_roles: set[str] = set()
     for member in manifest["members"]:
         if set(member) != PARQUET_MEMBER_FIELDS:
             raise AtlasParquetSearchViewError("compact view member fields are unsupported")
-        role = CompactRecordRole(member["role"])
-        if role in seen:
-            raise AtlasParquetSearchViewError("compact view repeats a table role")
-        seen.add(role)
+        member_role = member["role"]
+        is_projection = member_role in PROJECTION_MEMBER_ROLES
+        if is_projection:
+            if member_role in seen_projection_roles:
+                raise AtlasParquetSearchViewError("compact view repeats a table role")
+            seen_projection_roles.add(member_role)
+            schema = AGENCY_PROJECTION_TABLE_SCHEMAS[member_role]
+        else:
+            role = CompactRecordRole(member_role)
+            if role in seen:
+                raise AtlasParquetSearchViewError("compact view repeats a table role")
+            seen.add(role)
+            schema = _SCHEMAS[role]
         path = _safe_member_path(directory, member["path"])
         expected_files.add(member["path"])
         if path.is_symlink() or not path.is_file():
@@ -462,24 +519,26 @@ def verify_atlas_parquet_search_view(
         if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetSearchViewError(f"compact view member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
-        if role is CompactRecordRole.LABEL and "id" not in parquet.schema_arrow.names:
+        if not is_projection and role is CompactRecordRole.LABEL and "id" not in parquet.schema_arrow.names:
             raise AtlasParquetSearchViewError(f"{_MISSING_LABEL_ID}: {member['path']}")
-        if (
-            parquet.schema_arrow != _SCHEMAS[role]
-            or arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]
-        ):
+        if parquet.schema_arrow != schema or arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]:
             raise AtlasParquetSearchViewError(f"compact view schema differs: {member['path']}")
         if parquet.metadata.num_rows != member["rowCount"]:
             raise AtlasParquetSearchViewError(f"compact view row count differs: {member['path']}")
-        counts[role.value] = parquet.metadata.num_rows
+        counts[member_role if is_projection else role.value] = parquet.metadata.num_rows
     if seen != set(CompactRecordRole) or counts != manifest["counts"]:
         raise AtlasParquetSearchViewError("compact view roles or aggregate counts differ")
+    if seen_projection_roles and seen_projection_roles != PROJECTION_MEMBER_ROLES:
+        raise AtlasParquetSearchViewError(
+            "compact view agency projection tables must be carried through together"
+        )
     if artifact_file_paths(directory) != expected_files:
         raise AtlasParquetSearchViewError("compact view file membership is not closed")
     return manifest
 
 
 __all__ = [
+    "PROJECTION_MEMBER_ROLES",
     "AtlasParquetSearchViewError",
     "build_atlas_parquet_search_view",
     "verify_atlas_parquet_search_view",

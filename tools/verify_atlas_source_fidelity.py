@@ -9014,11 +9014,8 @@ def _read_gcmd_science_keywords_csv(
     )
 
 
-LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER = "lcsh-alignment-endpoint-jsonld-v1"
 _LCSH_SCHEME = "http://id.loc.gov/authorities/subjects"
 _LCSH_CONTEXT = "http://id.loc.gov/authorities/subjects/context.json"
-_LCSH_ALIGNMENT_RELEASE = "http://publications.europa.eu/resource/dataset/eurovoc_alignment_lcsh/20240711-0"
-_LCSH_ALIGNMENT_PREDICATES = frozenset({f"{SKOS}exactMatch", f"{SKOS}closeMatch"})
 
 
 def _jsonld_term_set(value: object, label: str) -> frozenset[str]:
@@ -9051,235 +9048,6 @@ def _jsonld_label(value: object, label: str) -> LiteralValue:
     if not isinstance(language, str) or not language:
         raise ValueError(f"{label} has no @language")
     return _literal_value(text, language, None)
-
-
-def _read_lcsh_alignment_endpoint_jsonld(
-    spec: SourceSpec,
-    authenticated_payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    """Select official alignment objects, then stream their LOC JSON-LD records."""
-    import rdflib
-
-    alignment_pin = next(
-        (pin for pin in spec.inputs if pin.role == "publisherAlignment"),
-        None,
-    )
-    bulk_pin = next(
-        (pin for pin in spec.inputs if pin.role == "publisherBulkSource"),
-        None,
-    )
-    if alignment_pin is None or bulk_pin is None or len(spec.inputs) != 2:
-        raise ValueError("LCSH alignment endpoint reader requires one alignment and one bulk input")
-    alignment = rdflib.Graph()
-    try:
-        alignment.parse(
-            data=authenticated_payloads[alignment_pin],
-            format="xml",
-            publicID=alignment_pin.source_iri,
-        )
-    except Exception as error:
-        raise ValueError(f"LCSH selection alignment is malformed: {error}") from error
-    align_type = rdflib.URIRef("http://knowledgeweb.semanticweb.org/heterogeneity/alignment#Alignment")
-    onto1 = rdflib.URIRef("http://knowledgeweb.semanticweb.org/heterogeneity/alignment#onto1")
-    onto2 = rdflib.URIRef("http://knowledgeweb.semanticweb.org/heterogeneity/alignment#onto2")
-    headers = set(alignment.subjects(rdflib.RDF.type, align_type))
-    if len(headers) != 1:
-        raise ValueError(f"LCSH selection alignment must have one header, observed {len(headers)}")
-    header = next(iter(headers))
-    if set(map(str, alignment.objects(header, onto1))) != {"http://eurovoc.europa.eu"}:
-        raise ValueError("LCSH selection alignment onto1 is not EuroVoc")
-    if set(map(str, alignment.objects(header, onto2))) != {_LCSH_SCHEME}:
-        raise ValueError("LCSH selection alignment onto2 is not LCSH")
-    selected_iris: set[str] = set()
-    mapping_counts: Counter[str] = Counter()
-    for predicate in _LCSH_ALIGNMENT_PREDICATES:
-        for subject, obj in alignment.subject_objects(rdflib.URIRef(predicate)):
-            if not isinstance(subject, rdflib.URIRef) or not str(subject).startswith("http://eurovoc.europa.eu/"):
-                raise ValueError(f"LCSH selection has non-EuroVoc subject {subject!r}")
-            if not isinstance(obj, rdflib.URIRef) or not str(obj).startswith(_LCSH_SCHEME + "/"):
-                raise ValueError(f"LCSH selection has non-LCSH object {obj!r}")
-            selected_iris.add(str(obj))
-            mapping_counts[predicate] += 1
-    production_alignment = alignment_pin.sha256 == (
-        "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853"
-    )
-    expected_counts = {f"{SKOS}closeMatch": 99, f"{SKOS}exactMatch": 1_904}
-    if production_alignment and dict(mapping_counts) != expected_counts:
-        raise ValueError(
-            f"LCSH selection mapping counts differ: expected={expected_counts}, observed={dict(mapping_counts)}"
-        )
-    if production_alignment and len(selected_iris) != 1_966:
-        raise ValueError(f"LCSH selection must name 1,966 distinct endpoints, observed {len(selected_iris)}")
-    if not selected_iris:
-        raise ValueError("LCSH selection alignment names no endpoints")
-    path_to_iri = {"/authorities/subjects/" + iri.removeprefix(_LCSH_SCHEME + "/"): iri for iri in selected_iris}
-
-    records: list[_StockVocabularyRecord] = []
-    broader_by_resource: dict[str, tuple[str, ...]] = {}
-    selected: set[str] = set()
-    ignored_fields: Counter[str] = Counter()
-    try:
-        stream = gzip.GzipFile(
-            fileobj=io.BytesIO(authenticated_payloads[bulk_pin]),
-            mode="rb",
-        )
-        for line_number, line in enumerate(stream, start=1):
-            raw = line.rstrip(b"\r\n")
-            if not raw.strip():
-                continue
-            try:
-                document = json.loads(raw)
-            except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                raise ValueError(f"LCSH bulk line {line_number} is not UTF-8 JSON: {error}") from error
-            if not isinstance(document, Mapping):
-                raise ValueError(f"LCSH bulk line {line_number} is not an object")
-            resource = path_to_iri.get(document.get("@id"))
-            if resource is None:
-                continue
-            if resource in selected:
-                raise ValueError(f"LCSH bulk repeats selected authority {resource}")
-            if document.get("@context") != _LCSH_CONTEXT:
-                raise ValueError(f"LCSH {resource} uses an unexpected @context")
-            graph = document.get("@graph")
-            if not isinstance(graph, list) or not graph:
-                raise ValueError(f"LCSH {resource} has no non-empty @graph")
-            by_id: dict[str, Mapping[str, Any]] = {}
-            for node in graph:
-                if not isinstance(node, Mapping) or not isinstance(node.get("@id"), str):
-                    raise ValueError(f"LCSH {resource} has an invalid @graph node")
-                node_id = node["@id"]
-                if node_id in by_id:
-                    raise ValueError(f"LCSH {resource} repeats node {node_id!r}")
-                by_id[node_id] = node
-            authorities = [
-                node
-                for node in graph
-                if node.get("@id") == resource
-                and "madsrdf:Authority" in _jsonld_term_set(node.get("@type"), f"LCSH {resource}")
-            ]
-            if len(authorities) != 1:
-                raise ValueError(f"LCSH {resource} must have one matching Authority node")
-            authority = authorities[0]
-            authority_types = tuple(sorted(_jsonld_term_set(authority.get("@type"), f"LCSH {resource}")))
-            preferred = _jsonld_label(
-                authority.get("madsrdf:authoritativeLabel"),
-                f"LCSH {resource} authoritativeLabel",
-            )
-            if preferred.language is None or preferred.language.casefold() != "en":
-                raise ValueError(f"LCSH {resource} has no English preferred label")
-            broader = tuple(
-                sorted(
-                    {
-                        str(reference.get("@id"))
-                        for reference in _jsonld_references(
-                            authority.get("madsrdf:hasBroaderAuthority"),
-                            f"LCSH {resource} broader",
-                        )
-                        if isinstance(reference.get("@id"), str)
-                        and str(reference["@id"]).startswith(_LCSH_SCHEME + "/")
-                    }
-                )
-            )
-            variants: list[LiteralValue] = []
-            for reference in _jsonld_references(
-                authority.get("madsrdf:hasVariant"),
-                f"LCSH {resource} variants",
-            ):
-                variant_id = reference.get("@id")
-                if not isinstance(variant_id, str) or variant_id not in by_id:
-                    raise ValueError(f"LCSH {resource} variant reference is absent from @graph")
-                label = _jsonld_label(
-                    by_id[variant_id].get("madsrdf:variantLabel"),
-                    f"LCSH {resource} variant {variant_id}",
-                )
-                if label.language is not None and label.language.casefold() == "en":
-                    variants.append(_literal_value(label.value.strip(), "en", None))
-                else:
-                    ignored_fields["non-English variant label"] += 1
-            alternate = tuple(
-                sorted(
-                    {label for label in variants if label.value and label.value != preferred.value.strip()},
-                    key=lambda value: (value.language or "", value.value),
-                )
-            )
-            lccn = authority.get("identifiers:lccn")
-            if lccn is not None and (not isinstance(lccn, str) or not lccn.strip()):
-                raise ValueError(f"LCSH {resource} has an invalid LCCN")
-            record_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
-            native_payload = {
-                "authorityTypes": list(authority_types),
-                "broaderIris": list(broader),
-                "captureSelection": {
-                    "alignmentDigest": alignment_pin.sha256,
-                    "alignmentRelease": _LCSH_ALIGNMENT_RELEASE,
-                },
-                "lccn": lccn,
-                "lineNumber": line_number,
-                "recordByteLength": len(raw),
-                "recordDigest": record_digest,
-            }
-            records.append(
-                _StockVocabularyRecord(
-                    resource=resource,
-                    preferred_labels=(_literal_value(preferred.value.strip(), "en", None),),
-                    alternate_labels=alternate,
-                    notations=(() if lccn is None else (_literal_value(lccn, None, None),)),
-                    annotations=(),
-                    source_locator=f"{bulk_pin.source_iri}#line-{line_number}",
-                    source_digest=_canonical_json_digest(native_payload),
-                    native_payload=native_payload,
-                )
-            )
-            selected.add(resource)
-            broader_by_resource[resource] = broader
-            used_authority_fields = {
-                "@id",
-                "@type",
-                "identifiers:lccn",
-                "madsrdf:authoritativeLabel",
-                "madsrdf:hasBroaderAuthority",
-                "madsrdf:hasVariant",
-            }
-            for field_name in set(authority) - used_authority_fields:
-                ignored_fields[f"authority field {field_name}"] += 1
-            used_node_ids = {
-                reference.get("@id")
-                for reference in _jsonld_references(
-                    authority.get("madsrdf:hasVariant"),
-                    f"LCSH {resource} variants",
-                )
-            }
-            for node_id, node in by_id.items():
-                if node_id == resource:
-                    continue
-                if node_id not in used_node_ids:
-                    ignored_fields["unrepresented JSON-LD graph node"] += len(node)
-                else:
-                    for field_name in set(node) - {"@id", "@type", "madsrdf:variantLabel"}:
-                        ignored_fields[f"variant field {field_name}"] += 1
-    except (OSError, EOFError) as error:
-        raise ValueError(f"LCSH bulk gzip is malformed: {error}") from error
-    missing = sorted(selected_iris - selected)
-    if missing:
-        raise ValueError(f"LCSH bulk lacks {len(missing)} aligned authorities: {missing[:5]}")
-    relations = {
-        (resource, f"{SKOS}broader", broader)
-        for resource, broader_iris in broader_by_resource.items()
-        for broader in broader_iris
-        if broader in selected
-    }
-    unevaluated = tuple(
-        f"LCSH selected records contain {count} authenticated but unrepresented {field} claims"
-        for field, count in sorted(ignored_fields.items())
-        if count
-    )
-    return _stock_vocabulary_view(
-        records,
-        relations,
-        (),
-        spec.inputs,
-        unevaluated_claims=unevaluated,
-    )
 
 
 FAST_TOPICAL_NATIVE_READER = "fast-topical-ntriples-marc-v1"
@@ -9579,15 +9347,14 @@ def _read_fast_topical_native(
 FAST_LCSH_MAPPING_READER = "fast-lcsh-mapping-ntriples-marc-v1"
 UA_GAO_PRIORITY_MAPPING_READER = "ua-gao-priority-mapping-xsd-pdf-v1"
 LC_EXTERNAL_LINKS_MAPPING_READER = "lc-external-links-mapping-v1/1.0"
-LC_EXTERNAL_LINKS_ENDPOINT_READER = "lc-external-links-endpoint-jsonld-v1/1.0"
 LC_EXTERNAL_TARGET_ENDPOINT_READER = "lc-external-target-endpoint-ntriples-v1/1.0"
 FAST_BULK_DELTA_MAPPING_READER = "fast-bulk-delta-mapping-v1/1.0"
 FAST_BULK_SEE_ALSO_ENDPOINT_READER = "fast-bulk-see-also-endpoint-v1/1.0"
 EUROVOC_PORTFOLIO_MAPPING_READER = "eurovoc-portfolio-mapping-v1/1.0"
 GEMET_MAPPING_READER = "gemet-mapping-rdfxml-gzip-v1/1.0"
 UMTHES_ENDPOINT_READER = "umthes-endpoint-ntriples-archive-v1/1.0"
-LCSH_MESH_ENDPOINT_READER = "lcsh-mesh-endpoint-jsonld-v1/1.0"
 LCSH_MESH_MAPPING_READER = "lcsh-mesh-mapping-marcxml-v1/1.0"
+LCSH_CONSOLIDATED_READER = "lcsh-consolidated-jsonld-v1/1.0"
 _FAST_SCHEMA_SAME_AS = "http://schema.org/sameAs"
 _FAST_RELATED_MATCH = f"{SKOS}relatedMatch"
 _LCSH_SUBJECT_BASE = "http://id.loc.gov/authorities/subjects/"
@@ -9823,26 +9590,26 @@ def _read_fast_lcsh_mapping(
     spec: SourceSpec,
     authenticated_payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    """Re-derive the admitted FAST links and their exact OCLC evidence."""
+    """Re-derive the admitted FAST links and their exact OCLC evidence.
 
-    import rdflib
+    REF-040 widened the LCSH target endpoint from the former 1,966-concept
+    EuroVoc-alignment subset to every LCSH IRI the pinned bulk file carries
+    (current or deprecated): a FAST target that is deprecated is, by
+    construction, one of the candidates the consolidated release's own
+    referenced-IRI union admits, so bulk-file presence alone is the correct
+    membership test here.
+    """
+
     from pymarc import MARCReader
 
     base_pin, base_payload = _pin_with_role(spec, authenticated_payloads, "publisherBase")
-    _alignment_pin, alignment_payload = _pin_with_role(spec, authenticated_payloads, "publisherEndpointSelection")
+    lcsh_pin, lcsh_payload = _pin_with_role(spec, authenticated_payloads, "publisherSubjectEndpointSource")
     change_pins = [pin for pin in spec.inputs if pin.role == "publisherChange"]
     if len(change_pins) != 4:
         raise ValueError("FAST mapping reader requires four chronological changes")
 
-    alignment = rdflib.Graph()
-    alignment.parse(data=alignment_payload, format="xml")
-    selected_targets = {
-        str(obj)
-        for predicate in (rdflib.SKOS.exactMatch, rdflib.SKOS.closeMatch)
-        for obj in alignment.objects(None, predicate)
-        if isinstance(obj, rdflib.URIRef) and str(obj).startswith(_LCSH_SUBJECT_BASE)
-    }
-    if len(selected_targets) != 1_966:
+    selected_targets = _lcsh_bulk_held_iris(lcsh_pin, lcsh_payload)
+    if len(selected_targets) != 521_055:
         raise ValueError(f"FAST mapping endpoint selection differs: observed {len(selected_targets)}")
 
     active_ids: set[str] = set()
@@ -9987,9 +9754,9 @@ def _read_fast_lcsh_mapping(
         "recordsWithLcshLinks": 427_423,
         "schemaSameAsLinks": 252_535,
         "relatedMatchLinks": 349_932,
-        "emittedExactMatches": 1_683,
-        "emittedRelatedMatches": 62_781,
-        "subjectPredicateOverlapCount": 0,
+        "emittedExactMatches": 252_527,
+        "emittedRelatedMatches": 349_932,
+        "subjectPredicateOverlapCount": 12,
     }
     if observed != expected:
         raise ValueError(f"FAST mapping source reconstruction differs: {observed!r}")
@@ -11267,191 +11034,60 @@ def _mesh_descriptor_iris(payload: bytes, *, label: str) -> frozenset[str]:
     return frozenset(identifiers)
 
 
-def _mesh_lcsh_active_endpoint_view(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-    *,
-    rows: Sequence[_MeshLcshMappingRow],
-) -> tuple[PublisherView, frozenset[str]]:
-    lcsh_pin, lcsh_payload = _pin_with_role(spec, payloads, "objectEndpointSource")
-    mapping_pin, _ = _pin_with_role(spec, payloads, "thirdPartyMappingSource")
-    mesh_pin, mesh_payload = _pin_with_role(spec, payloads, "subjectEndpointSource")
-    mesh_iris = _mesh_descriptor_iris(mesh_payload, label=spec.name)
-    requested = {row.obj for row in rows if row.subject in mesh_iris}
-    selected: dict[str, _StockVocabularyRecord] = {}
-    broader_by_resource: dict[str, tuple[str, ...]] = {}
-    oracle_divergences = {
-        "http://id.loc.gov/authorities/subjects/sh2017000370": ("duplicate-identical-variant-label"),
-        "http://id.loc.gov/authorities/subjects/sh85122121": ("blank-node-broader-target"),
-    }
+def _lcsh_bulk_held_iris(lcsh_pin: SourcePin, lcsh_payload: bytes) -> frozenset[str]:
+    """Every LCSH IRI the pinned bulk file carries, current or deprecated.
+
+    A mapping's own LCSH-side candidate is, by construction, part of REF-040's
+    referenced-IRI union (the mapping itself is one of the four held sources
+    that union is built from), so whether it survives into the consolidated
+    release turns only on whether the bulk file has a record for it at all --
+    not on cross-checking the full four-source union again here.
+    """
+
+    held: set[str] = set()
     try:
         stream = gzip.GzipFile(fileobj=io.BytesIO(lcsh_payload), mode="rb")
-        for line_number, line in enumerate(stream, start=1):
-            raw = line.rstrip(b"\r\n")
-            if not raw:
-                continue
+        for raw in stream:
             try:
                 document = json.loads(raw)
             except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                raise ValueError(f"{spec.name} LCSH line {line_number} is not UTF-8 JSON") from error
-            if not isinstance(document, Mapping):
-                raise ValueError(f"{spec.name} LCSH line {line_number} is not an object")
-            document_id = document.get("@id")
-            if not isinstance(document_id, str) or not document_id.startswith("/authorities/subjects/"):
-                continue
-            resource = _LCSH_SUBJECT_BASE + document_id.removeprefix("/authorities/subjects/")
-            if resource not in requested:
-                continue
-            if resource in selected:
-                raise ValueError(f"{spec.name} LCSH bulk repeats {resource}")
-            if document.get("@context") != _LCSH_CONTEXT:
-                raise ValueError(f"{spec.name} LCSH {resource} context differs")
-            graph = document.get("@graph")
-            if not isinstance(graph, list):
-                raise ValueError(f"{spec.name} LCSH {resource} has no graph")
-            by_id = {
-                node.get("@id"): node
-                for node in graph
-                if isinstance(node, Mapping) and isinstance(node.get("@id"), str)
-            }
-            authorities = [
-                node
-                for node in graph
-                if isinstance(node, Mapping)
-                and node.get("@id") == resource
-                and "madsrdf:Authority" in _jsonld_term_set(node.get("@type"), f"LCSH {resource}")
-            ]
-            if not authorities:
-                continue
-            if len(authorities) != 1:
-                raise ValueError(f"{spec.name} LCSH {resource} authority count differs")
-            authority = authorities[0]
-            preferred = _jsonld_label(
-                authority.get("madsrdf:authoritativeLabel"),
-                f"LCSH {resource} preferred label",
-            )
-            if preferred.language is None or preferred.language.casefold() != "en":
-                raise ValueError(f"{spec.name} LCSH {resource} has no English label")
-            variants: set[LiteralValue] = set()
-            for reference in _jsonld_references(
-                authority.get("madsrdf:hasVariant"),
-                f"LCSH {resource} variants",
-            ):
-                variant = by_id.get(reference.get("@id"))
-                if not isinstance(variant, Mapping):
-                    raise ValueError(f"{spec.name} LCSH {resource} has dangling variant")
-                label_value = _jsonld_label(
-                    variant.get("madsrdf:variantLabel"),
-                    f"LCSH {resource} variant",
-                )
-                if (
-                    label_value.language is not None
-                    and label_value.language.casefold() == "en"
-                    and label_value.value.strip() != preferred.value.strip()
-                ):
-                    variants.add(_literal_value(label_value.value.strip(), "en", None))
-            broader = tuple(
-                sorted(
-                    {
-                        target
-                        for reference in _jsonld_references(
-                            authority.get("madsrdf:hasBroaderAuthority"),
-                            f"LCSH {resource} broader",
-                        )
-                        if isinstance((target := reference.get("@id")), str)
-                        and urllib.parse.urlsplit(target).scheme in {"http", "https"}
-                    }
-                )
-            )
-            lccn = authority.get("identifiers:lccn")
-            if lccn is not None and not isinstance(lccn, str):
-                raise ValueError(f"{spec.name} LCSH {resource} LCCN differs")
-            record_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
-            native = {
-                "authorityTypes": sorted(_jsonld_term_set(authority.get("@type"), f"LCSH {resource}")),
-                "broaderIris": list(broader),
-                "captureSelection": {
-                    "mappingDigest": mapping_pin.sha256,
-                    "meshEndpointDigest": mesh_pin.sha256,
-                },
-                "lccn": lccn,
-                "lineNumber": line_number,
-                "oracleDivergence": oracle_divergences.get(resource),
-                "recordByteLength": len(raw),
-                "recordDigest": record_digest,
-            }
-            selected[resource] = _StockVocabularyRecord(
-                resource=resource,
-                preferred_labels=(_literal_value(preferred.value.strip(), "en", None),),
-                alternate_labels=tuple(sorted(variants, key=lambda item: (item.language or "", item.value))),
-                notations=(() if lccn is None else (_literal_value(lccn, None, None),)),
-                annotations=(),
-                source_locator=f"{lcsh_pin.source_iri}#line-{line_number}",
-                source_digest=record_digest,
-                native_payload=native,
-            )
-            broader_by_resource[resource] = broader
+                raise ValueError(f"{lcsh_pin.path} contains malformed JSONL") from error
+            document_id = document.get("@id") if isinstance(document, Mapping) else None
+            if isinstance(document_id, str) and document_id.startswith("/authorities/subjects/"):
+                held.add(_LCSH_SUBJECT_BASE + document_id.removeprefix("/authorities/subjects/"))
     except (OSError, EOFError) as error:
-        raise ValueError(f"{spec.name} LCSH gzip is malformed") from error
-    if len(selected) != 12_844 or len(requested - selected.keys()) != 13:
-        raise ValueError(
-            f"{spec.name} LCSH endpoint census differs: selected={len(selected)}, "
-            f"unavailable={len(requested - selected.keys())}"
-        )
-    relations = {
-        (resource, f"{SKOS}broader", broader)
-        for resource, broader_iris in broader_by_resource.items()
-        for broader in broader_iris
-        if broader in selected
-    }
-    view = _stock_vocabulary_view(
-        (selected[iri] for iri in sorted(selected)),
-        relations,
-        (),
-        spec.inputs,
-        source_digest_is_native_payload_digest=False,
-    )
-    return view, frozenset(selected)
-
-
-def _read_lcsh_mesh_endpoint(
-    spec: SourceSpec,
-    payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    mapping_pin, mapping_payload = _pin_with_role(spec, payloads, "thirdPartyMappingSource")
-    rows = _mesh_lcsh_source_rows(mapping_payload, label=mapping_pin.path)
-    view, _ = _mesh_lcsh_active_endpoint_view(
-        spec,
-        payloads,
-        rows=rows,
-    )
-    return view
+        raise ValueError(f"{lcsh_pin.path} is not a valid gzip") from error
+    return frozenset(held)
 
 
 def _read_lcsh_mesh_mapping(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
+    """Re-derive the Northwestern MeSH-to-LCSH mapping against every held LCSH IRI.
+
+    REF-040 widened the LCSH (object) side from an active-only endpoint
+    capture to the consolidated LCSH release: a candidate whose LCSH target
+    is a deprecated-but-referenced heading is now admitted.
+    """
+
     mapping_pin, mapping_payload = _pin_with_role(spec, payloads, "thirdPartyMappingSource")
     rows = _mesh_lcsh_source_rows(mapping_payload, label=mapping_pin.path)
-    _, active_lcsh = _mesh_lcsh_active_endpoint_view(
-        spec,
-        payloads,
-        rows=rows,
-    )
+    lcsh_pin, lcsh_payload = _pin_with_role(spec, payloads, "objectEndpointSource")
+    held_lcsh = _lcsh_bulk_held_iris(lcsh_pin, lcsh_payload)
     mesh_pin, mesh_payload = _pin_with_role(spec, payloads, "subjectEndpointSource")
     mesh_iris = _mesh_descriptor_iris(mesh_payload, label=mesh_pin.path)
-    admitted = [row for row in rows if row.subject in mesh_iris and row.obj in active_lcsh]
+    admitted = [row for row in rows if row.subject in mesh_iris and row.obj in held_lcsh]
     counts = Counter(row.predicate for row in admitted)
     expected_counts = Counter(
         {
-            f"{SKOS}exactMatch": 13_053,
+            f"{SKOS}exactMatch": 13_062,
             f"{SKOS}broadMatch": 134,
             f"{SKOS}narrowMatch": 35,
             f"{SKOS}relatedMatch": 29,
         }
     )
-    if len(admitted) != 13_251 or counts != expected_counts:
+    if len(admitted) != 13_260 or counts != expected_counts:
         raise ValueError(f"{spec.name} admitted mapping census differs: {len(admitted)}, {dict(counts)!r}")
     evidence: dict[tuple[str, str, str], tuple[ExpectedMappingEvidence, ...]] = {}
     for row in admitted:
@@ -11488,73 +11124,162 @@ def _read_lcsh_mesh_mapping(
     return _mapping_view(evidence, spec.inputs, evidence)
 
 
-def _read_lc_external_links_endpoint(
+def _lcsh_referenced_iris_independent(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
-) -> PublisherView:
-    """Reconstruct the new LCSH endpoint subset selected by admitted LC links."""
+) -> frozenset[str]:
+    """Reparse the union of every LCSH-side IRI a held mapping candidate names.
+
+    Independent of ``refspec.atlas.v3_registry_alignments_lcsh``: this reads
+    the same four pinned artifacts (EuroVoc-LCSH alignment, LC external
+    links, FAST, and the Northwestern MeSH-LCSH mapping) with its own
+    parsing, matching the REF-040 production rule that a deprecated LCSH
+    heading is admitted only when one of these held candidates names it.
+    """
 
     import rdflib
+    from pymarc import MARCReader
 
-    external_pin, external_payload = _pin_with_role(spec, payloads, "publisherEndpointSelection")
-    lcsh_pin, lcsh_payload = _pin_with_role(spec, payloads, "publisherSubjectEndpointSource")
-    exclusion_pin, exclusion_payload = _pin_with_role(spec, payloads, "existingEndpointExclusion")
-    selected_subjects: set[str] = set()
-    try:
-        with zipfile.ZipFile(io.BytesIO(external_payload)) as archive:
-            members = [name for name in archive.namelist() if name == "external_links.nt"]
-            if members != ["external_links.nt"]:
-                raise ValueError(f"{external_pin.path} external_links.nt member differs")
-            with archive.open(members[0]) as source:
-                for raw in source:
-                    try:
-                        line = raw.rstrip(b"\r\n").decode("ascii")
-                    except UnicodeDecodeError as error:
-                        raise ValueError(f"{external_pin.path} is not ASCII") from error
-                    if not line.startswith(f"<{_LCSH_SUBJECT_BASE}"):
-                        continue
-                    match = _FAST_SUBJECT_PREDICATE.fullmatch(line)
-                    if match is None:
-                        continue
-                    subject, publisher_predicate, obj_raw = match.groups()
-                    if publisher_predicate not in _LC_MADS_TO_SKOS:
-                        continue
-                    object_match = _FAST_IRI_OBJECT.fullmatch(obj_raw)
-                    if object_match is not None:
-                        selected_subjects.add(subject)
-    except (OSError, zipfile.BadZipFile) as error:
-        raise ValueError(f"{external_pin.path} is not a valid LC ZIP") from error
-    if len(selected_subjects) != 362_148:
-        raise ValueError(f"{spec.name} admitted LCSH subject count differs: {len(selected_subjects)}")
+    referenced: set[str] = set()
 
+    eurovoc_pin, eurovoc_payload = _pin_with_role(spec, payloads, "eurovocAlignmentSelection")
     alignment = rdflib.Graph()
     try:
-        alignment.parse(
-            data=exclusion_payload,
-            format="xml",
-            publicID=exclusion_pin.source_iri,
-        )
+        alignment.parse(data=eurovoc_payload, format="xml", publicID=eurovoc_pin.source_iri)
     except Exception as error:
-        raise ValueError(f"{spec.name} existing endpoint alignment is malformed") from error
-    existing = {
+        raise ValueError(f"{spec.name} EuroVoc-LCSH alignment is malformed") from error
+    referenced.update(
         str(obj)
         for predicate in (rdflib.SKOS.exactMatch, rdflib.SKOS.closeMatch)
         for obj in alignment.objects(None, predicate)
         if isinstance(obj, rdflib.URIRef) and str(obj).startswith(_LCSH_SUBJECT_BASE)
-    }
-    new_subjects = selected_subjects - existing
-    if len(selected_subjects & existing) != 1_951 or len(new_subjects) != 360_197:
-        raise ValueError(f"{spec.name} existing/new endpoint partition differs")
+    )
+
+    lc_pin, lc_payload = _pin_with_role(spec, payloads, "lcExternalLinksSelection")
+    try:
+        with zipfile.ZipFile(io.BytesIO(lc_payload)) as archive:
+            members = [name for name in archive.namelist() if name == "external_links.nt"]
+            if members != ["external_links.nt"]:
+                raise ValueError(f"{lc_pin.path} external_links.nt member differs")
+            with archive.open(members[0]) as source:
+                for raw in source:
+                    line = raw.rstrip(b"\r\n").decode("ascii")
+                    if not line.startswith(f"<{_LCSH_SUBJECT_BASE}"):
+                        continue
+                    match = _FAST_SUBJECT_PREDICATE.fullmatch(line)
+                    if match is None or match.group(2) not in _LC_MADS_TO_SKOS:
+                        continue
+                    referenced.add(match.group(1))
+    except (OSError, zipfile.BadZipFile) as error:
+        raise ValueError(f"{lc_pin.path} is not a valid LC ZIP") from error
+
+    _base_pin, base_payload = _pin_with_role(spec, payloads, "fastBase")
+    active_ids: set[str] = set()
+    deprecated_ids: set[str] = set()
+    all_links: dict[str, list[dict[str, str]]] = defaultdict(list)
+    try:
+        with zipfile.ZipFile(io.BytesIO(base_payload)) as archive:
+            members = [name for name in archive.namelist() if name.lower().endswith(".nt")]
+            if members != ["FASTTopical.nt"]:
+                raise ValueError(f"FAST base ZIP members differ: {members!r}")
+            with archive.open(members[0]) as source:
+                for raw in source:
+                    stripped = raw.decode("utf-8").strip()
+                    if not stripped.startswith(f"<{_FAST_IRI_BASE}"):
+                        continue
+                    match = _FAST_SUBJECT_PREDICATE.fullmatch(stripped)
+                    if match is None:
+                        continue
+                    subject, predicate, raw_object = match.groups()
+                    numeric_id = subject.removeprefix(_FAST_IRI_BASE)
+                    if not numeric_id.isdigit():
+                        continue
+                    if predicate == _FAST_PREF_LABEL:
+                        active_ids.add(numeric_id)
+                    elif predicate == _FAST_DEPRECATED:
+                        deprecated_ids.add(numeric_id)
+                    elif predicate in {_FAST_SCHEMA_SAME_AS, _FAST_RELATED_MATCH}:
+                        object_match = _FAST_IRI_OBJECT.fullmatch(raw_object)
+                        if object_match is None:
+                            raise ValueError("FAST base has a non-IRI mapping object")
+                        obj = object_match.group(1)
+                        if obj.startswith(_LCSH_SUBJECT_BASE):
+                            all_links[numeric_id].append({"targetIri": obj})
+    except (OSError, UnicodeDecodeError, zipfile.BadZipFile) as error:
+        raise ValueError(f"FAST base ZIP is malformed: {error}") from error
+    active_ids -= deprecated_ids
+    for numeric_id in list(all_links):
+        if numeric_id not in active_ids:
+            del all_links[numeric_id]
+    change_pins = [pin for pin in spec.inputs if pin.role == "fastChange"]
+    if len(change_pins) != 4:
+        raise ValueError("LCSH consolidated reader requires four FAST change pins")
+    for pin in change_pins:
+        reader = MARCReader(
+            io.BytesIO(payloads[pin]),
+            to_unicode=True,
+            force_utf8=False,
+            utf8_handling="strict",
+            permissive=False,
+        )
+        for record in reader:
+            if record is None:
+                raise ValueError(f"{pin.path} contains an unreadable MARC record")
+            numeric_id = _fast_marc_numeric_id(record)
+            _fast_validate_marc_identity(record, numeric_id)
+            status = record.leader[5]
+            if status not in {"c", "n", "x", "d"}:
+                raise ValueError(f"FAST MARC {numeric_id} has unsupported status {status!r}")
+            topical = bool(record.get_fields("150"))
+            if status in {"x", "d"} or not topical:
+                active_ids.discard(numeric_id)
+                all_links.pop(numeric_id, None)
+                continue
+            active_ids.add(numeric_id)
+            links = _fast_mapping_marc_links(record)
+            if links:
+                all_links[numeric_id] = links
+            else:
+                all_links.pop(numeric_id, None)
+    for numeric_id, links in all_links.items():
+        if numeric_id not in active_ids:
+            continue
+        for link in links:
+            referenced.add(link["targetIri"])
+
+    mapping_pin, mapping_payload = _pin_with_role(spec, payloads, "meshLcshMappingSelection")
+    rows = _mesh_lcsh_source_rows(mapping_payload, label=mapping_pin.path)
+    referenced.update(row.obj for row in rows if row.obj.startswith(_LCSH_SUBJECT_BASE))
+
+    return frozenset(referenced)
+
+
+def _read_lcsh_consolidated(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Reconstruct the consolidated LCSH release from the pinned bulk file.
+
+    Every current authority is retained unconditionally; a deprecated
+    authority is retained only when
+    ``_lcsh_referenced_iris_independent`` names it. This reader never
+    imports ``refspec.registry.lcsh_topical`` or
+    ``refspec.atlas.v3_registry_alignments_lcsh``.
+    """
+
+    referenced = _lcsh_referenced_iris_independent(spec, payloads)
+    bulk_pin, bulk_payload = _pin_with_role(spec, payloads, "publisherBulkSource")
 
     records: dict[str, _StockVocabularyRecord] = {}
     broader_by_resource: dict[str, tuple[str, ...]] = {}
-    blank_broader_count = 0
-    deprecated_count = 0
+    current_count = 0
+    deprecated_retained_count = 0
+    deprecated_seen_count = 0
     try:
-        stream = gzip.GzipFile(fileobj=io.BytesIO(lcsh_payload), mode="rb")
+        stream = gzip.GzipFile(fileobj=io.BytesIO(bulk_payload), mode="rb")
         for line_number, line in enumerate(stream, start=1):
             raw = line.rstrip(b"\r\n")
-            if not raw:
+            if not raw.strip():
                 continue
             try:
                 document = json.loads(raw)
@@ -11566,10 +11291,6 @@ def _read_lc_external_links_endpoint(
             if not isinstance(document_id, str) or not document_id.startswith("/authorities/subjects/"):
                 continue
             resource = _LCSH_SUBJECT_BASE + document_id.removeprefix("/authorities/subjects/")
-            if resource not in new_subjects:
-                continue
-            if resource in records:
-                raise ValueError(f"{spec.name} LCSH bulk repeats {resource}")
             if document.get("@context") != _LCSH_CONTEXT:
                 raise ValueError(f"{spec.name} LCSH {resource} context differs")
             graph = document.get("@graph")
@@ -11589,7 +11310,13 @@ def _read_lc_external_links_endpoint(
             deprecated = "madsrdf:DeprecatedAuthority" in authority_types
             if active == deprecated:
                 raise ValueError(f"{spec.name} LCSH {resource} status differs")
-            deprecated_count += deprecated
+            if deprecated:
+                deprecated_seen_count += 1
+                if resource not in referenced:
+                    continue
+                deprecated_retained_count += 1
+            else:
+                current_count += 1
 
             labels: list[tuple[str, str]] = []
             authoritative = authority.get("madsrdf:authoritativeLabel")
@@ -11601,18 +11328,12 @@ def _read_lc_external_links_endpoint(
             if direct_variant is not None:
                 value = _jsonld_label(direct_variant, f"LCSH {resource} variant")
                 if value.language is not None and value.language.casefold() == "en":
-                    labels.append(("alternate", value.value.strip()))
-            for reference in _jsonld_references(
-                authority.get("madsrdf:hasVariant"),
-                f"LCSH {resource} variants",
-            ):
+                    labels.append(("preferred" if deprecated else "alternate", value.value.strip()))
+            for reference in _jsonld_references(authority.get("madsrdf:hasVariant"), f"LCSH {resource} variants"):
                 variant = by_id.get(reference.get("@id"))
                 if not isinstance(variant, Mapping):
                     raise ValueError(f"{spec.name} LCSH {resource} has dangling variant")
-                value = _jsonld_label(
-                    variant.get("madsrdf:variantLabel"),
-                    f"LCSH {resource} variant",
-                )
+                value = _jsonld_label(variant.get("madsrdf:variantLabel"), f"LCSH {resource} variant")
                 if value.language is not None and value.language.casefold() == "en":
                     labels.append(("alternate", value.value.strip()))
             retained: list[tuple[str, str]] = []
@@ -11621,42 +11342,17 @@ def _read_lc_external_links_endpoint(
                 if value and value not in seen_values:
                     seen_values.add(value)
                     retained.append((role, value))
-            if not retained or (active and sum(role == "preferred" for role, _ in retained) != 1):
+            if not retained or sum(role == "preferred" for role, _ in retained) != 1:
                 raise ValueError(f"{spec.name} LCSH {resource} labels differ")
 
             broader: list[str] = []
-            blank_evidence: list[Mapping[str, Any]] = []
             for reference in _jsonld_references(
                 authority.get("madsrdf:hasBroaderAuthority"),
                 f"LCSH {resource} broader",
             ):
                 target = reference.get("@id")
-                if not isinstance(target, str):
-                    raise ValueError(f"{spec.name} LCSH {resource} broader target differs")
-                if target.startswith(("http://", "https://")):
+                if isinstance(target, str) and target.startswith(("http://", "https://")):
                     broader.append(target)
-                elif target.startswith("_:"):
-                    blank_node = by_id.get(target)
-                    if not isinstance(blank_node, Mapping):
-                        raise ValueError(f"{spec.name} LCSH {resource} blank broader is absent")
-                    raw_label = blank_node.get("madsrdf:authoritativeLabel")
-                    if not isinstance(raw_label, Mapping):
-                        raise ValueError(f"{spec.name} LCSH {resource} blank broader has no label")
-                    value = raw_label.get("@value")
-                    language = raw_label.get("@language")
-                    if not isinstance(value, str) or (language is not None and not isinstance(language, str)):
-                        raise ValueError(f"{spec.name} LCSH {resource} blank broader label differs")
-                    blank_evidence.append(
-                        {
-                            "authoritativeLabel": value,
-                            "blankNodeId": target,
-                            "language": language,
-                            "reason": ("publisher supplied no absolute IRI for the broader authority"),
-                        }
-                    )
-                else:
-                    raise ValueError(f"{spec.name} LCSH {resource} broader IRI differs")
-            blank_broader_count += len(blank_evidence)
             lccn = authority.get("identifiers:lccn")
             if lccn is not None and not isinstance(lccn, str):
                 raise ValueError(f"{spec.name} LCSH {resource} LCCN differs")
@@ -11668,31 +11364,25 @@ def _read_lc_external_links_endpoint(
                 )
                 if isinstance(reference.get("@id"), str)
             )
+            deletion_note_value = None
             deletion_note = authority.get("madsrdf:deletionNote")
-            annotations: tuple[tuple[str, LiteralValue], ...] = ()
             if deletion_note is not None:
                 note = _jsonld_label(deletion_note, f"LCSH {resource} deletion note")
                 if note.language is not None and note.language.casefold() == "en":
-                    annotations = ((SKOS_CHANGE_NOTE, _literal_value(note.value, "en", None)),)
+                    deletion_note_value = note.value.strip()
             record_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
             native = {
                 "authorityTypes": list(authority_types),
                 "broaderIris": sorted(set(broader)),
-                "captureSelection": {
-                    "externalLinksDigest": external_pin.sha256,
-                    "externalLinksSource": external_pin.source_iri,
-                    "fastAtlasReleaseIri": (
-                        "urn:ref:atlas-release:fast-topical-current:"
-                        "9c9be6b83fe2364c089effc1c5ef452deca5b2f62fc2082b094860657684387d"
-                    ),
-                    "reason": ("subject of an LC external-authority assertion with a contentful target"),
+                "deprecation": {
+                    "deletionNote": deletion_note_value,
+                    "deprecated": deprecated,
+                    "useInsteadIris": list(use_instead),
                 },
                 "lccn": lccn,
                 "lineNumber": line_number,
                 "recordByteLength": len(raw),
                 "recordDigest": record_digest,
-                "unrepresentedBroaderAuthorities": blank_evidence,
-                "useInsteadIris": list(use_instead),
             }
             records[resource] = _StockVocabularyRecord(
                 resource=resource,
@@ -11703,27 +11393,28 @@ def _read_lc_external_links_endpoint(
                     _literal_value(value, "en", None) for role, value in retained if role == "alternate"
                 ),
                 notations=(() if lccn is None else (_literal_value(lccn, None, None),)),
-                annotations=annotations,
-                source_locator=f"{lcsh_pin.source_iri}#line-{line_number}",
+                annotations=(),
+                source_locator=f"{bulk_pin.source_iri}#line-{line_number}",
                 source_digest=record_digest,
                 native_payload=native,
             )
             broader_by_resource[resource] = tuple(sorted(set(broader)))
     except (OSError, EOFError) as error:
         raise ValueError(f"{spec.name} LCSH gzip is malformed") from error
-    if len(records) != 359_728 or deprecated_count != 1_625:
+
+    if current_count != 513_210 or deprecated_seen_count != 7_845 or deprecated_retained_count != 1_627:
         raise ValueError(
-            f"{spec.name} endpoint census differs: resources={len(records)}, "
-            f"deprecated={deprecated_count}, blankBroader={blank_broader_count}"
+            f"{spec.name} census differs: current={current_count}, "
+            f"deprecatedSeen={deprecated_seen_count}, deprecatedRetained={deprecated_retained_count}"
         )
-    all_loaded = set(records) | existing
+    all_loaded = set(records)
     relations = {
         (resource, f"{SKOS}broader", broader)
         for resource, broader_iris in broader_by_resource.items()
         for broader in broader_iris
         if broader in all_loaded
     }
-    if len(relations) != 235_368:
+    if len(relations) != 301_442:
         raise ValueError(f"{spec.name} broader relation count differs: {len(relations)}")
     return _stock_vocabulary_view(
         (records[iri] for iri in sorted(records)),
@@ -13346,12 +13037,11 @@ _PUBLISHER_READERS: Mapping[
     FAST_BULK_DELTA_MAPPING_READER: _read_fast_bulk_delta_mapping,
     EUROVOC_PORTFOLIO_MAPPING_READER: _read_eurovoc_portfolio_mapping,
     GEMET_MAPPING_READER: _read_gemet_mapping,
-    LC_EXTERNAL_LINKS_ENDPOINT_READER: _read_lc_external_links_endpoint,
+    LCSH_CONSOLIDATED_READER: _read_lcsh_consolidated,
     LC_EXTERNAL_TARGET_ENDPOINT_READER: _read_lc_external_target_endpoints,
     LC_EXTERNAL_LINKS_MAPPING_READER: _read_lc_external_links_mapping,
     FAST_BULK_SEE_ALSO_ENDPOINT_READER: _read_fast_bulk_see_also_endpoints,
     UMTHES_ENDPOINT_READER: _read_umthes_endpoints,
-    LCSH_MESH_ENDPOINT_READER: _read_lcsh_mesh_endpoint,
     LCSH_MESH_MAPPING_READER: _read_lcsh_mesh_mapping,
     UA_GAO_PRIORITY_MAPPING_READER: _read_ua_gao_priority_mapping,
     FEDERAL_REGISTER_TOPICS_JSON_READER: _read_federal_register_topics_json,
@@ -13361,7 +13051,6 @@ _PUBLISHER_READERS: Mapping[
     PATTERN_ROW_READER: _read_pattern_rows,
     XML_RECORD_SELECTOR_READER: _read_xml_record_selector,
     ICPSR_MANAGED_RELEASE_READER: _read_icpsr_managed_release,
-    LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER: _read_lcsh_alignment_endpoint_jsonld,
     MESH_DESCRIPTOR_XML_READER: _read_mesh_descriptor_xml,
 }
 
@@ -17505,9 +17194,9 @@ def _acquisition_umthes_pin(*, role: str) -> SourcePin:
 
 SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
-        name="lcsh-external-links-endpoints-2026-08-15",
+        name="lcsh-subjects-consolidated-2026-08-06",
         kind="vocabulary",
-        release_keys=("lcsh-external-links-endpoints-2026-08-15",),
+        release_keys=("lcsh-subjects-consolidated-2026-08-06",),
         inputs=(
             _registry_source_pin(
                 "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz",
@@ -17515,28 +17204,39 @@ SOURCES: tuple[SourceSpec, ...] = (
                 140_187_915,
                 "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
                 fmt="jsonld.gz",
-                role="publisherSubjectEndpointSource",
+                role="publisherBulkSource",
             ),
+            _acquisition_lcsh_alignment_pin(role="eurovocAlignmentSelection"),
             _registry_source_pin(
                 "lcsh-externallinks-2026-08-15.nt.zip",
                 "sha256:7d279d69c6920b41a579634a84a1b31ff73af764345fe51df3f7c480efeba9d1",
                 239_565_667,
                 "https://id.loc.gov/download/externallinks.nt.zip",
                 fmt="zip-ntriples",
-                role="publisherEndpointSelection",
+                role="lcExternalLinksSelection",
             ),
-            _acquisition_lcsh_alignment_pin(role="existingEndpointExclusion"),
             *_acquisition_fast_pins(
-                base_role="publisherBase",
+                base_role="fastBase",
                 change_roles=(
-                    "publisherChange",
-                    "publisherChange",
-                    "publisherChange",
-                    "publisherChange",
+                    "fastChange",
+                    "fastChange",
+                    "fastChange",
+                    "fastChange",
                 ),
             ),
+            _registry_source_pin(
+                "mesh-lcsh-mapping-20210325.zip",
+                "sha256:0dac4ce471e196c2bf5b86d93e760192a8969ce5f69ce2fe5e55a7d7bfed9f03",
+                3_851_889,
+                (
+                    "https://prism.northwestern.edu/records/abga7-chg83/files/"
+                    "MeSH-LCSH%20mapping%2820210325xmlzip%29.zip?download=1"
+                ),
+                fmt="marcxml.zip",
+                role="meshLcshMappingSelection",
+            ),
         ),
-        reader=LC_EXTERNAL_LINKS_ENDPOINT_READER,
+        reader=LCSH_CONSOLIDATED_READER,
         identity_policy="publisher-iri",
         policies=DIRECT_SKOS_POLICIES,
         rdf_source=_rdf_source_policy(
@@ -17544,13 +17244,11 @@ SOURCES: tuple[SourceSpec, ...] = (
                 {
                     "authorityTypes",
                     "broaderIris",
-                    "captureSelection",
+                    "deprecation",
                     "lccn",
                     "lineNumber",
                     "recordByteLength",
                     "recordDigest",
-                    "unrepresentedBroaderAuthorities",
-                    "useInsteadIris",
                 }
             ),
             relation_scope="member-subject",
@@ -17842,58 +17540,6 @@ SOURCES: tuple[SourceSpec, ...] = (
         rdf_source=RdfSourcePolicy(
             evaluated_native_payload_fields=frozenset(),
             relation_scope="all",
-        ),
-    ),
-    SourceSpec(
-        name="lcsh-mesh-mapping-endpoints-2026-08-15",
-        kind="vocabulary",
-        release_keys=("lcsh-mesh-mapping-endpoints-2026-08-15",),
-        inputs=(
-            _registry_source_pin(
-                "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz",
-                "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856",
-                140_187_915,
-                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
-                fmt="jsonld.gz",
-                role="objectEndpointSource",
-            ),
-            _registry_source_pin(
-                "mesh-lcsh-mapping-20210325.zip",
-                "sha256:0dac4ce471e196c2bf5b86d93e760192a8969ce5f69ce2fe5e55a7d7bfed9f03",
-                3_851_889,
-                (
-                    "https://prism.northwestern.edu/records/abga7-chg83/files/"
-                    "MeSH-LCSH%20mapping%2820210325xmlzip%29.zip?download=1"
-                ),
-                fmt="marcxml.zip",
-                role="thirdPartyMappingSource",
-            ),
-            _registry_source_pin(
-                "desc2026.xml",
-                "sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba",
-                312_952_703,
-                "https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2026.xml",
-                fmt="xml",
-                role="subjectEndpointSource",
-            ),
-        ),
-        reader=LCSH_MESH_ENDPOINT_READER,
-        identity_policy="publisher-iri",
-        policies=DIRECT_SKOS_POLICIES,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "authorityTypes",
-                    "broaderIris",
-                    "captureSelection",
-                    "lccn",
-                    "lineNumber",
-                    "oracleDivergence",
-                    "recordByteLength",
-                    "recordDigest",
-                }
-            ),
-            relation_scope="member-endpoints",
         ),
     ),
     SourceSpec(
@@ -19030,18 +18676,12 @@ SOURCES: tuple[SourceSpec, ...] = (
                 role="publisherChange",
             ),
             _registry_source_pin(
-                "eurovoc-lcsh-alignment-20240711.rdf",
-                "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853",
-                332_124,
-                (
-                    "https://op.europa.eu/o/opportal-service/euvoc-download-handler?"
-                    "cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2F"
-                    "distribution%2Feurovoc_alignment_lcsh%2F20240711-0%2Frdf%2F"
-                    "skos_core_alignment%2Falign_EuroVoc_LCSH.rdf&"
-                    "fileName=align_EuroVoc_LCSH.rdf"
-                ),
-                fmt="xml",
-                role="publisherEndpointSelection",
+                "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz",
+                "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856",
+                140_187_915,
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                fmt="jsonld.gz",
+                role="publisherSubjectEndpointSource",
             ),
         ),
         reader=FAST_LCSH_MAPPING_READER,
@@ -19103,51 +18743,6 @@ SOURCES: tuple[SourceSpec, ...] = (
             note_predicate_inverse=SKOS_SCOPE_NOTE,
             relation_predicate_inverse=((f"{ATLAS}thesaurusRelated", f"{SKOS}related"),),
             relation_scope="member-subject",
-        ),
-    ),
-    SourceSpec(
-        name="lcsh-eurovoc-alignment-endpoints-2026-08-06",
-        kind="vocabulary",
-        release_keys=("lcsh-eurovoc-alignment-endpoints-2026-08-06",),
-        inputs=(
-            _registry_source_pin(
-                "eurovoc-lcsh-alignment-20240711.rdf",
-                "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853",
-                332_124,
-                (
-                    "https://op.europa.eu/o/opportal-service/euvoc-download-handler?"
-                    "cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2F"
-                    "distribution%2Feurovoc_alignment_lcsh%2F20240711-0%2Frdf%2F"
-                    "skos_core_alignment%2Falign_EuroVoc_LCSH.rdf&"
-                    "fileName=align_EuroVoc_LCSH.rdf"
-                ),
-                fmt="xml",
-                role="publisherAlignment",
-            ),
-            _registry_source_pin(
-                "lcsh-subjects-madsrdf-2026-08-06.jsonld.gz",
-                "sha256:b33adc284bfb98e39c1331927e9ffee3d73dd0b1b83342906b6ea52c408a5856",
-                140_187_915,
-                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
-                fmt="jsonld.gz",
-                role="publisherBulkSource",
-            ),
-        ),
-        policies=DIRECT_SKOS_POLICIES,
-        reader=LCSH_ALIGNMENT_ENDPOINT_JSONLD_READER,
-        rdf_source=_rdf_source_policy(
-            frozenset(
-                {
-                    "authorityTypes",
-                    "broaderIris",
-                    "captureSelection",
-                    "lccn",
-                    "lineNumber",
-                    "recordByteLength",
-                    "recordDigest",
-                }
-            ),
-            relation_scope="member-endpoints",
         ),
     ),
     SourceSpec(

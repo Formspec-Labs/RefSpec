@@ -1,0 +1,16 @@
+{
+  "name": "refspec-atlas-cloudflare-explorer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cloudflare Worker + R2 deployment of the RefSpec Atlas explorer (DuckDB-Wasm frontend over a verified compact Parquet search view).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@duckdb/duckdb-wasm": "1.32.0",
+    "esbuild": "^0.28.2",
+    "wrangler": "4.123.0"
+  }
+}

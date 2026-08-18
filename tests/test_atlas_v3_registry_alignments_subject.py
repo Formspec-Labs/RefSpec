@@ -13,8 +13,10 @@ import pytest
 from rdflib import RDF, Dataset, Namespace, URIRef
 from rdflib.namespace import SKOS
 
+from refspec.atlas import v3_registry_alignments_lcsh as lcsh_release
 from refspec.atlas import v3_registry_alignments_subject as adapters
 from refspec.registry import gemet_alignments as gemet
+from refspec.registry import lc_external_links as external
 from refspec.registry import lcsh_mesh_mapping as mesh_lcsh
 from refspec.registry import umthes_content as umthes
 
@@ -26,6 +28,11 @@ REQUIRED_SOURCES = (
     SOURCE_ROOT / adapters.MESH_2026_FILENAME,
     SOURCE_ROOT / adapters.LCSH_BULK_FILENAME,
     SOURCE_ROOT / umthes.UMTHES_CAPTURE_FILENAME,
+    # The consolidated LCSH release's referenced-deprecated selection also
+    # depends on the LC external-links archive and the EuroVoc-LCSH
+    # alignment (see v3_registry_alignments_lcsh.gather_referenced_lcsh_iris).
+    SOURCE_ROOT / external.LC_EXTERNAL_LINKS_FILENAME,
+    SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711.rdf",
 )
 HAS_REAL_SOURCES = all(path.is_file() for path in REQUIRED_SOURCES)
 
@@ -46,10 +53,17 @@ def gemet_release():
 
 
 @pytest.fixture(scope="module")
-def lcsh_mesh_assets():
+def mesh_mapping_release():
     if not HAS_REAL_SOURCES:
         pytest.skip("pinned subject-mapping sources are not cached")
-    return adapters._lcsh_mesh_assets(SOURCE_ROOT)
+    return adapters._lcsh_mesh_mapping_release(SOURCE_ROOT)
+
+
+@pytest.fixture(scope="module")
+def consolidated_lcsh_release():
+    if not HAS_REAL_SOURCES:
+        pytest.skip("pinned subject-mapping sources are not cached")
+    return lcsh_release.load_lcsh_consolidated_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
@@ -173,23 +187,29 @@ def test_gemet_umthes_mappings_resolve_the_publisher_namespace(umthes_assets) ->
         }
 
 
-def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(lcsh_mesh_assets) -> None:
-    endpoint, release = lcsh_mesh_assets
+def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(
+    mesh_mapping_release,
+    consolidated_lcsh_release,
+) -> None:
+    # REF-040 retired this module's own bespoke active-only LCSH endpoint
+    # capture: the LCSH (object) side now resolves against the consolidated
+    # LCSH release, which also admits a deprecated-but-referenced target.
+    release = mesh_mapping_release
 
-    assert endpoint.key == "lcsh-mesh-mapping-endpoints-2026-08-15"
-    assert len(endpoint.resources) == 12_844
-    assert len(release.mappings) == 13_251
-    assert len({row.subject for row in release.mappings}) == 12_694
+    assert len(release.mappings) == 13_260
+    assert len({row.subject for row in release.mappings}) == 12_702
     assert Counter(row.predicate for row in release.mappings) == {
         str(SKOS.broadMatch): 134,
-        str(SKOS.exactMatch): 13_053,
+        str(SKOS.exactMatch): 13_062,
         str(SKOS.narrowMatch): 35,
         str(SKOS.relatedMatch): 29,
     }
     assert {(row.subject_atlas_release_iri, row.object_atlas_release_iri) for row in release.mappings} == {
-        (adapters.MESH_ATLAS_RELEASE_IRI, adapters.LCSH_MESH_ENDPOINT_ATLAS_RELEASE_IRI)
+        (adapters.MESH_ATLAS_RELEASE_IRI, lcsh_release.LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI)
     }
-    assert {row.object for row in release.mappings} <= {resource.iri for resource in endpoint.resources}
+    assert {row.object for row in release.mappings} <= {
+        resource.iri for resource in consolidated_lcsh_release.resources
+    }
     assert all(row.subject.startswith(mesh_lcsh.MESH_DESCRIPTOR_PREFIX) for row in release.mappings)
     assert all(row.object.startswith(mesh_lcsh.LCSH_SUBJECT_PREFIX) for row in release.mappings)
     assert "opt-in" in release.editorial_policy["serving"]
@@ -197,8 +217,8 @@ def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(lcsh_mesh_assets) -> None:
     assert "defaultServed" not in release.metadata
 
 
-def test_lcsh_mesh_evidence_records_each_marc_translation(lcsh_mesh_assets) -> None:
-    _endpoint, release = lcsh_mesh_assets
+def test_lcsh_mesh_evidence_records_each_marc_translation(mesh_mapping_release) -> None:
+    release = mesh_mapping_release
 
     for row in release.mappings:
         for evidence in row.evidence:
@@ -222,35 +242,24 @@ def test_lcsh_mesh_evidence_records_each_marc_translation(lcsh_mesh_assets) -> N
     assert release.metadata["sourceDigest"] == mesh_lcsh.LCSH_MESH_MAPPING_SHA256
     assert release.metadata["sourceByteLength"] == mesh_lcsh.LCSH_MESH_MAPPING_BYTE_LENGTH
     assert release.metadata["versionedSourceUrl"] is True
-    assert release.metadata["unavailableCurrentEndpointMappingCount"] == 19
+    assert release.metadata["unavailableCurrentEndpointMappingCount"] == 10
     assert release.metadata["refusalCounts"] == dict(mesh_lcsh.EXPECTED_REFUSAL_COUNTS)
-
-
-def test_lcsh_endpoint_keeps_the_old_parser_as_a_frozen_oracle(lcsh_mesh_assets) -> None:
-    endpoint, _release = lcsh_mesh_assets
-
-    assert endpoint.metadata["oracleDivergences"] == dict(adapters.LCSH_ENDPOINT_ORACLE_DIVERGENCES)
-    assert endpoint.metadata["licenseStatement"] == "publisher states no license"
-    assert endpoint.metadata["publisherBulkRetrievedAt"] == adapters.LCSH_BULK_RETRIEVED_AT
-    assert endpoint.metadata["publisherBulkSourceUrl"] == endpoint.inputs[0].source_iri
-    assert endpoint.metadata["publisherBulkDigest"] == endpoint.inputs[0].sha256
-    assert endpoint.metadata["publisherBulkByteLength"] == endpoint.inputs[0].byte_length
-    assert endpoint.metadata["publisherBulkVersionedSourceUrl"] is False
-    assert "rolling download is pinned" in endpoint.metadata["publisherBulkVersionNote"]
-    assert endpoint.metadata["mappingSelectionLicenseStatement"] == (mesh_lcsh.LCSH_MESH_LICENSE_STATEMENT)
-    assert all(not resource.identifiers for resource in endpoint.resources)
 
 
 def test_new_releases_pass_all_three_population_refusal_guards(
     gemet_release,
-    lcsh_mesh_assets,
+    mesh_mapping_release,
     umthes_assets,
 ) -> None:
+    # The consolidated LCSH release these mappings' targets resolve against
+    # is exercised by its own refusal-guard checks in
+    # test_atlas_v3_registry_alignments.py and
+    # test_atlas_v3_registry_alignments_lc.py; this test covers only the
+    # releases this module itself mints.
     generator = _generator_module()
-    endpoint, mesh_mapping = lcsh_mesh_assets
     umthes_endpoint, umthes_mapping = umthes_assets
-    shaped_releases = [endpoint, umthes_endpoint]
-    for release in (gemet_release, umthes_mapping, mesh_mapping):
+    shaped_releases = [umthes_endpoint]
+    for release in (gemet_release, umthes_mapping, mesh_mapping_release):
         endpoint_iris = {endpoint_iri for row in release.mappings for endpoint_iri in (row.subject, row.object)}
         shaped_releases.append(
             SimpleNamespace(
@@ -275,7 +284,7 @@ def test_new_releases_pass_all_three_population_refusal_guards(
                 scheme_iri=release.scheme_iri,
                 resources=release.resources,
             )
-            if release is endpoint or release is umthes_endpoint
+            if release is umthes_endpoint
             else release
         )
         generator._refuse_registrant_population_release(loaded)
@@ -283,8 +292,7 @@ def test_new_releases_pass_all_three_population_refusal_guards(
         generator._refuse_observed_inventory_release(loaded)
 
 
-def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(lcsh_mesh_assets, umthes_assets) -> None:
-    endpoint, _release = lcsh_mesh_assets
+def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(mesh_mapping_release, umthes_assets) -> None:
     atlas = Namespace("https://refspec.org/ns/atlas/v3#")
     dataset = Dataset()
     dataset.parse(
@@ -299,9 +307,7 @@ def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(lcsh_mesh_assets, umthe
     }
 
     assert "urn:ref:atlas-resource-scheme:treasury-account-symbol-structure" in authorities
-    identifier_rows = [identifier for resource in endpoint.resources for identifier in resource.identifiers]
-    assert identifier_rows == []
-    assert endpoint.metadata["sourceIdentifierCount"] == 0
+    assert mesh_mapping_release.metadata["sourceIdentifierCount"] == 0
     umthes_endpoint, umthes_mapping = umthes_assets
     assert umthes_endpoint.metadata["sourceIdentifierCount"] == 0
     assert umthes_mapping.metadata["sourceIdentifierCount"] == 0
@@ -310,12 +316,11 @@ def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(lcsh_mesh_assets, umthe
 
 def test_new_mapping_releases_never_mint_an_inverse_or_closure(
     gemet_release,
-    lcsh_mesh_assets,
+    mesh_mapping_release,
     umthes_assets,
 ) -> None:
-    _endpoint, mesh_mapping = lcsh_mesh_assets
     _umthes_endpoint, umthes_mapping = umthes_assets
-    for release in (gemet_release, umthes_mapping, mesh_mapping):
+    for release in (gemet_release, umthes_mapping, mesh_mapping_release):
         triples = {(row.subject, row.predicate, row.object) for row in release.mappings}
         assert len(triples) == len(release.mappings)
         assert all((obj, predicate, subject) not in triples for subject, predicate, obj in triples)

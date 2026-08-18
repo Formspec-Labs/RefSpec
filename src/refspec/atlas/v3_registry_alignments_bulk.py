@@ -14,8 +14,8 @@ from refspec.atlas.v3_registry_alignments import (
     FAST_LCSH_ADOPTION_REVIEWER_IRI,
     FAST_LCSH_PUBLISHER_ASSERTION_REVIEWER_IRI,
     GEMET_EUROVOC_S46_REFUSALS,
-    LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI,
 )
+from refspec.atlas.v3_registry_alignments_lcsh import LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI
 from refspec.atlas.v3_registry_large import load_fast_topical_release
 from refspec.atlas.v3_registry_selection import normalize_only_keys, wants_group
 from refspec.atlas.v3_registry_vocabularies import (
@@ -410,7 +410,7 @@ def load_fast_bulk_external_links_delta_release(
             predicate=predicate_iri,
             object=object_iri,
             subject_atlas_release_iri=fast_release.atlas_release_iri,
-            object_atlas_release_iri=LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI,
+            object_atlas_release_iri=LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI,
             asserted_at=FAST_BULK_MAPPING_DECIDED_AT,
             evidence=(
                 _fast_bulk_evidence(

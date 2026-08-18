@@ -21,3 +21,4 @@ bindings/atlas/3.1/.atlas-3.1-fixtures.tmp/
 test-results/
 .env
 .claude/worktrees/
+.wrangler/

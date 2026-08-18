@@ -674,7 +674,7 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:8d2d80654c0e2fafacbab6b3c9a938f2314c8094eaaef5cf28ca8c2f8e18b685"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:bb9ac50bd051341d09248d971e98357037e71ab7a5092e3fd18c24ac0f812645"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:36653a9342efe63a25860132937896d738409ff07cca787a980f3c7176e34ba8"
 
 
 def _load_validator() -> Any:
@@ -1004,6 +1004,9 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         LC_REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         LC_REGISTRY_MAPPING_RELEASE_KEYS,
     )
+    from refspec.atlas.v3_registry_alignments_lcsh import (
+        LCSH_CONSOLIDATED_RELEASE_KEYS,
+    )
     from refspec.atlas.v3_registry_alignments_subject import (
         REGISTRY_SUBJECT_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         REGISTRY_SUBJECT_MAPPING_RELEASE_KEYS,
@@ -1020,8 +1023,17 @@ def _adapter_group_module(key: str, *, kind: str) -> str | None:
         (REGISTRY_CODE_RELEASE_KEYS, "refspec.atlas.v3_registry_codes"),
         (REGISTRY_NONEMITTER_RELEASE_KEYS, "refspec.atlas.v3_registry_nonemitters"),
         (REGISTRY_ROSTER_RELEASE_KEYS, "refspec.atlas.v3_registry_rosters"),
+        # REF-040 moved the consolidated LCSH release's minting code into its
+        # own module. The recipe pins the group module's bytes directly, so the
+        # consolidated key routes to the module that actually defines it -- a
+        # release whose recipe omits its own implementation is unprovenanced.
         (
-            REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_MAPPING_RELEASE_KEYS,
+            LCSH_CONSOLIDATED_RELEASE_KEYS,
+            "refspec.atlas.v3_registry_alignments_lcsh",
+        ),
+        (
+            (REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS | REGISTRY_MAPPING_RELEASE_KEYS)
+            - LCSH_CONSOLIDATED_RELEASE_KEYS,
             "refspec.atlas.v3_registry_alignments",
         ),
         (
@@ -2801,7 +2813,7 @@ def load_mapping_releases(
         ),
         *entity_mapping_releases,
     )
-    releases = _reconcile_fast_lcsh_s27_mapping_conflicts(releases)
+    releases = _reconcile_fast_lcsh_s27_mapping_conflicts(releases, source_releases)
     if include_keys is not None and {release.key for release in releases} != set(include_keys):
         raise ValueError("selective Atlas mapping loaders do not know every dirty key")
     if source_releases is not None:
@@ -2816,8 +2828,18 @@ def load_mapping_releases(
 
 def _reconcile_fast_lcsh_s27_mapping_conflicts(
     releases: Sequence[RegistryMappingRelease],
+    source_releases: Sequence[LoadedRelease] | None = None,
 ) -> tuple[RegistryMappingRelease, ...]:
-    """Refuse OCLC relatedMatch claims that conflict with LC hierarchy claims."""
+    """Refuse OCLC relatedMatch claims that conflict with LC hierarchy claims.
+
+    S27 is a corpus-wide condition: the binding evaluates it over every
+    hierarchy statement the distribution carries, so this reconciliation has
+    to see the same hierarchy or it refuses too little. REF-040 proved that
+    the hard way -- consolidating LCSH brought 301,442 native ``skos:broader``
+    statements into the corpus, and a reconciliation reading only the LC
+    mapping release's ``broadMatch``/``narrowMatch`` claims let conflicts
+    through to fail the build 13 minutes in.
+    """
 
     from refspec.atlas.v3_registry_alignments import (
         FAST_LCSH_S27_REFUSAL_COUNT,
@@ -2827,23 +2849,81 @@ def _reconcile_fast_lcsh_s27_mapping_conflicts(
     from refspec.atlas.v3_registry_alignments_lc import (
         LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY,
     )
+    from refspec.atlas.v3_registry_alignments_lcsh import (
+        LCSH_CONSOLIDATED_RELEASE_KEY,
+    )
 
     loaded = tuple(releases)
     by_key = {release.key: release for release in loaded}
     fast_release = by_key.get("fast-lcsh-adopted-2026-08-15")
     lc_release = by_key.get(LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY)
-    if fast_release is None or lc_release is None:
+    if fast_release is None and lc_release is None:
+        # Neither side of this reconciliation is in scope -- a construction
+        # unit that never touches FAST-LCSH mapping has nothing to reconcile.
         return loaded
+    if fast_release is None or lc_release is None:
+        # Exactly one side is in scope. Silently returning here would ship
+        # 'fast-lcsh-adopted-2026-08-15' with its raw, unreconciled OCLC
+        # relatedMatch claims -- including every pair that conflicts with an
+        # LC hierarchy claim under SKOS S27 -- because its one required
+        # reconciliation dependency never loaded. That is precisely the
+        # blindness that let the frozen conflict pin drift silently across
+        # REF-040's widened scope: every bounded/scoped build that loaded one
+        # key without the other skipped this check entirely, and only the
+        # unbounded full build ever exercised it. Refuse instead of guessing.
+        present = "fast-lcsh-adopted-2026-08-15" if fast_release is not None else LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY
+        missing = LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY if fast_release is not None else "fast-lcsh-adopted-2026-08-15"
+        raise ValueError(
+            "FAST--LCSH SKOS S27 reconciliation requires both "
+            "'fast-lcsh-adopted-2026-08-15' and "
+            f"{LCSH_EXTERNAL_LINKS_MAPPING_RELEASE_KEY!r} in the same construction "
+            f"unit; {present!r} loaded without {missing!r} would ship "
+            "unreconciled OCLC relatedMatch claims that SKOS S27 requires refused"
+        )
 
+    if source_releases is None or LCSH_CONSOLIDATED_RELEASE_KEY not in {
+        release.spec.key for release in source_releases
+    }:
+        # The corpus-wide S27 check the binding runs sees every native
+        # skos:broader statement in the distribution, including the
+        # consolidated LCSH release's 301,442. A reconciliation that cannot
+        # see that release's relations would refuse too little and let a
+        # conflict reach the validator -- exactly how this pin drifted:
+        # widening LCSH consolidation added hierarchy edges this
+        # reconciliation never consulted. Refuse instead of silently
+        # reconciling against a narrower hierarchy than the one that will
+        # ship.
+        raise ValueError(
+            "FAST--LCSH SKOS S27 reconciliation requires the consolidated LCSH "
+            f"source release ({LCSH_CONSOLIDATED_RELEASE_KEY!r}) among its loaded "
+            "source releases: the binding evaluates S27 over every "
+            "skos:broader/skos:narrower statement in the corpus, and "
+            "reconciling without the consolidated release's hierarchy would "
+            "admit relatedMatch claims the corpus-wide check refuses"
+        )
+
+    # Mirror ATLAS_VALIDATE._check_skos_integrity's hierarchy exactly: native
+    # skos:broader/skos:narrower from every source release, plus every mapping
+    # release's broadMatch/narrowMatch -- not just this one pair's.
     hierarchy: dict[URIRef, URIRef | set[URIRef]] = {}
-    for mapping in lc_release.mappings:
-        subject = URIRef(mapping.subject)
-        predicate = URIRef(mapping.predicate)
-        obj = URIRef(mapping.object)
-        if predicate == SKOS.broadMatch:
-            ATLAS_VALIDATE._add_compact_target(hierarchy, subject, obj)
-        elif predicate == SKOS.narrowMatch:
-            ATLAS_VALIDATE._add_compact_target(hierarchy, obj, subject)
+    for loaded_source in source_releases:
+        for relation in loaded_source.relations:
+            predicate = URIRef(relation.predicate)
+            subject = URIRef(relation.subject)
+            obj = URIRef(relation.object)
+            if predicate == SKOS.broader:
+                ATLAS_VALIDATE._add_compact_target(hierarchy, subject, obj)
+            elif predicate == SKOS.narrower:
+                ATLAS_VALIDATE._add_compact_target(hierarchy, obj, subject)
+    for mapping_release in loaded:
+        for mapping in mapping_release.mappings:
+            subject = URIRef(mapping.subject)
+            predicate = URIRef(mapping.predicate)
+            obj = URIRef(mapping.object)
+            if predicate == SKOS.broadMatch:
+                ATLAS_VALIDATE._add_compact_target(hierarchy, subject, obj)
+            elif predicate == SKOS.narrowMatch:
+                ATLAS_VALIDATE._add_compact_target(hierarchy, obj, subject)
 
     related_rows = tuple(mapping for mapping in fast_release.mappings if mapping.predicate == str(SKOS.relatedMatch))
     related_pairs = {

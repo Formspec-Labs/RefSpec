@@ -9,11 +9,11 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1275,
-    "seconds": 253.953,
+    "passed": 1285,
+    "seconds": 255.258,
     "skipped": 2,
     "testFiles": 82,
-    "tests": 1277
+    "tests": 1287
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
@@ -12191,7 +12191,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-7103-9df8-09fa803f431a",
+                "fetch_id": "019fb304-0930-70b6-9c45-b355f2a19f92",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -22203,19 +22203,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3"
+                  "sha256": "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
+                  "sha256": "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd"
+                  "sha256": "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9"
+                  "sha256": "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590"
                 }
               },
               "manifest": {
@@ -22226,7 +22226,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:29f0e8a11d95687c82b3f5ec22d1260da1fd4084625e1c47aca8204b458d2389",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:241fb57cc814a9d18cc8ef8e5dc226ecb8c0e767eae60d747a9d70949e56644a",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -22282,7 +22282,7 @@
               "byteLengths": [
                 0,
                 566,
-                595,
+                593,
                 1080,
                 1315,
                 1504,
@@ -22293,20 +22293,20 @@
                 5213
               ],
               "digests": [
-                "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9",
+                "sha256:23cf32d9422547a09f54a400e1ff886b5d286580304af406f355180c79d2eae5",
+                "sha256:2b1749f9e364bd8136f0d50c2db534e0261a5025a16b2241c05fc162857dd92c",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:89c01b8e344d91df9b309967a4f8bacb9dad9cd794dd206830e2cb4f32469c67",
-                "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd",
+                "sha256:86b0b374f96be78886e3b7ede93ce668302c3f6ac3ccaa5389290d4d10f3f5c1",
+                "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:b71fe8e44695144085d1fa302c30f45ffd97f72c0237d5ad6bd315343f37a5b1",
+                "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:d8243c3a70c504e22c19b4d8a613c90b8bf7a36f37a085cce84a9e2a6dc2cd43",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -22330,7 +22330,7 @@
               "byteLengths": [
                 0,
                 566,
-                595,
+                593,
                 1080,
                 1315,
                 1504,
@@ -22341,20 +22341,20 @@
                 5213
               ],
               "digests": [
-                "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9",
+                "sha256:23cf32d9422547a09f54a400e1ff886b5d286580304af406f355180c79d2eae5",
+                "sha256:2b1749f9e364bd8136f0d50c2db534e0261a5025a16b2241c05fc162857dd92c",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:89c01b8e344d91df9b309967a4f8bacb9dad9cd794dd206830e2cb4f32469c67",
-                "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd",
+                "sha256:86b0b374f96be78886e3b7ede93ce668302c3f6ac3ccaa5389290d4d10f3f5c1",
+                "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:b71fe8e44695144085d1fa302c30f45ffd97f72c0237d5ad6bd315343f37a5b1",
+                "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:d8243c3a70c504e22c19b4d8a613c90b8bf7a36f37a085cce84a9e2a6dc2cd43",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -22374,7 +22374,7 @@
               "byteLengths": [
                 0,
                 566,
-                595,
+                593,
                 1080,
                 1315,
                 1504,
@@ -22385,20 +22385,20 @@
                 5213
               ],
               "digests": [
-                "sha256:0abde9775384b6b3b5dca724466766d66fc6da3ccc23e3b9d3b9217aa8babde3",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:13d48b900abe93e7b2827e83a16eadb47eda1cf0436ef5c54115800034d0afc9",
+                "sha256:23cf32d9422547a09f54a400e1ff886b5d286580304af406f355180c79d2eae5",
+                "sha256:2b1749f9e364bd8136f0d50c2db534e0261a5025a16b2241c05fc162857dd92c",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:89c01b8e344d91df9b309967a4f8bacb9dad9cd794dd206830e2cb4f32469c67",
-                "sha256:9eb11cadfd58afc7a7e4628e57a1bfe4f0284e6a390086ecae4a3ad312d560fd",
+                "sha256:86b0b374f96be78886e3b7ede93ce668302c3f6ac3ccaa5389290d4d10f3f5c1",
+                "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:b71fe8e44695144085d1fa302c30f45ffd97f72c0237d5ad6bd315343f37a5b1",
+                "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:d8243c3a70c504e22c19b4d8a613c90b8bf7a36f37a085cce84a9e2a6dc2cd43",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:f4993d6710e6327cc34bf9372a085a6f70ea42e6cb18da85252d4e5436f57540"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -22419,9 +22419,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 800,
+              "archive_byte_length": 793,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
+              "archive_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22430,10 +22430,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 800,
+                "expected_byte_length": 793,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
-                "expected_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
+                "expected_member_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
+                "expected_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22447,7 +22447,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+              "sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22494,8 +22494,8 @@
                 2908
               ],
               "digests": [
-                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
-                "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092"
+                "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
+                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5"
               ],
               "paths": [],
               "urls": [
@@ -22510,9 +22510,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 800,
+              "archive_byte_length": 793,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
+              "archive_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22530,10 +22530,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 800,
+                "expected_byte_length": 793,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
-                "expected_sha256": "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
+                "expected_member_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
+                "expected_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22552,7 +22552,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+              "sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22620,8 +22620,8 @@
                 2908
               ],
               "digests": [
-                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
-                "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092",
+                "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
+                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
                 "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
               ],
               "paths": [],
@@ -22753,7 +22753,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+              "source_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -22943,8 +22943,8 @@
                 2908
               ],
               "digests": [
-                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
-                "sha256:c66b5fed1f3093745ed764aa7ccb578f26860b0a6aa48d48b2d3d3d1428c8092"
+                "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
+                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5"
               ],
               "paths": [],
               "urls": [
@@ -23494,7 +23494,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928",
+              "source_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -23684,7 +23684,7 @@
                 2908
               ],
               "digests": [
-                "sha256:86937c443b0e3495ffae7195e57eaa905972a8ee4216d1779368094a644ec928"
+                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5"
               ],
               "paths": [],
               "urls": [
@@ -36776,7 +36776,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-70df-a145-6a053ed5c854",
+                "fetch_id": "019fb2e5-4e00-7530-a72c-45d89aa5f404",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -40205,86 +40205,6 @@
               "acquisition_mode": "local",
               "byte_length": 11807,
               "cache_hit": false,
-              "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
-              "local_source_path": "<pathlib.PosixPath>",
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
-                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 11807,
-                "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
-                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "filename": "gemet-mini.rdf",
-                "landing_page_url": "https://example.test/gemet-landing-page",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "publisher": "European Environment Agency / Eionet",
-                "source_url": "https://example.test/gemet-mini.rdf",
-                "version": "fixture"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-              "source_url": "https://example.test/gemet-mini.rdf"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "compressed_byte_length": "int",
-                "compressed_sha256": "str",
-                "local_source_path": "pathlib.PosixPath",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_compressed_byte_length": "int",
-                    "expected_compressed_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "publisher": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                11807
-              ],
-              "digests": [
-                "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/gemet-landing-page",
-                "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_gemet_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "byte_length": 11807,
-              "cache_hit": false,
               "compressed_byte_length": null,
               "compressed_sha256": null,
               "local_source_path": "<pathlib.PosixPath>",
@@ -40347,6 +40267,86 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/gemet-landing-page",
+                "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gemet_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 11807,
+              "cache_hit": false,
+              "compressed_byte_length": 2809,
+              "compressed_sha256": "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
+                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "expected_byte_length": 11807,
+                "expected_compressed_byte_length": 2809,
+                "expected_compressed_sha256": "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0",
+                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "filename": "gemet-mini.rdf",
+                "landing_page_url": "https://example.test/gemet-landing-page",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "publisher": "European Environment Agency / Eionet",
+                "source_url": "https://example.test/gemet-mini.rdf",
+                "version": "fixture"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_url": "https://example.test/gemet-mini.rdf"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "compressed_byte_length": "int",
+                "compressed_sha256": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_compressed_byte_length": "int",
+                    "expected_compressed_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "publisher": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                11807
+              ],
+              "digests": [
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0"
               ],
               "paths": [],
               "urls": [
@@ -40626,7 +40626,6 @@
                 11807
               ],
               "digests": [
-                "sha256:1121340e6ef1f98c36437eb3b4878b2aabd21bc5cca72bdd48c14cd65d7db9a1",
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
@@ -40990,7 +40989,8 @@
                 11807
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0"
               ],
               "paths": [],
               "urls": [
@@ -73417,7 +73417,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-79e8-956f-3d5b2525864d",
+              "fetch_id": "019fb2e5-4e00-7b73-b6aa-03e5daf17da8",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -73474,7 +73474,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7fa1-b976-1b29ef0aa5dd"
+              "registration_id": "019fb80b-aa00-7b17-ab91-a4a46670b727"
             },
             "shape": {
               "fields": {
@@ -75483,22 +75483,26 @@
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+                  "deletion_note": null,
                   "lccn": "sh 00000011",
                   "line_number": 1,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 },
                 {
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000023",
+                  "deletion_note": null,
                   "lccn": "sh 00000023",
                   "line_number": 4,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 }
               ],
@@ -75518,11 +75522,13 @@
                       "authority_types": "builtins.tuple",
                       "broader_iris": "builtins.tuple",
                       "concept_iri": "str",
+                      "deletion_note": "NoneType",
                       "lccn": "str",
                       "line_number": "int",
                       "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
                       "raw_line": "builtins.bytes",
                       "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
                       "variant_labels": "builtins.tuple"
                     },
                     "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
@@ -75569,6 +75575,850 @@
           },
           {
             "counts": {
+              "current_records.items": 199,
+              "deprecated_records.items": 1
+            },
+            "function": "capture_lcsh_current_and_referenced_deprecated",
+            "sample": {
+              "current_records": [
+                {
+                  "authority_types": "<builtins.tuple>",
+                  "broader_iris": "<builtins.tuple>",
+                  "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+                  "deletion_note": null,
+                  "lccn": "sh 00000011",
+                  "line_number": 1,
+                  "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "raw_line": "<builtins.bytes>",
+                  "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
+                  "variant_labels": "<builtins.tuple>"
+                },
+                {
+                  "authority_types": "<builtins.tuple>",
+                  "broader_iris": "<builtins.tuple>",
+                  "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000014",
+                  "deletion_note": null,
+                  "lccn": "sh 00000014",
+                  "line_number": 2,
+                  "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "raw_line": "<builtins.bytes>",
+                  "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
+                  "variant_labels": "<builtins.tuple>"
+                }
+              ],
+              "deprecated_records": [
+                {
+                  "authority_types": "<builtins.tuple>",
+                  "broader_iris": "<builtins.tuple>",
+                  "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000273",
+                  "deletion_note": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "lccn": null,
+                  "line_number": 188,
+                  "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "raw_line": "<builtins.bytes>",
+                  "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
+                  "variant_labels": "<builtins.tuple>"
+                }
+              ],
+              "lines_scanned": 200,
+              "referenced_iris": "<builtins.frozenset>",
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "total_deprecated_seen": 1
+            },
+            "shape": {
+              "fields": {
+                "current_records": {
+                  "count": 199,
+                  "itemShape": {
+                    "fields": {
+                      "authority_types": "builtins.tuple",
+                      "broader_iris": "builtins.tuple",
+                      "concept_iri": "str",
+                      "deletion_note": "NoneType",
+                      "lccn": "str",
+                      "line_number": "int",
+                      "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
+                      "raw_line": "builtins.bytes",
+                      "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
+                      "variant_labels": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+                  },
+                  "type": "tuple"
+                },
+                "deprecated_records": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "authority_types": "builtins.tuple",
+                      "broader_iris": "builtins.tuple",
+                      "concept_iri": "str",
+                      "deletion_note": "refspec.registry.lcsh_topical.LcshTopicalLabel",
+                      "lccn": "NoneType",
+                      "line_number": "int",
+                      "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
+                      "raw_line": "builtins.bytes",
+                      "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
+                      "variant_labels": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+                  },
+                  "type": "tuple"
+                },
+                "lines_scanned": "int",
+                "referenced_iris": "builtins.frozenset",
+                "source_url": "str",
+                "total_deprecated_seen": "int"
+              },
+              "type": "refspec.registry.lcsh_topical.LcshConsolidatedCapture"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                1986,
+                2121,
+                2122,
+                2154,
+                2155,
+                2157,
+                2158,
+                2176,
+                2177,
+                2190,
+                2191,
+                2341,
+                2342,
+                2366,
+                2367,
+                2383,
+                2384,
+                2396,
+                2397,
+                2423,
+                2424,
+                2455,
+                2456,
+                2503,
+                2504,
+                2558,
+                2559,
+                2614,
+                2615,
+                2653,
+                2654,
+                2686,
+                2687,
+                2707,
+                2708,
+                2713,
+                2714,
+                2717,
+                2718,
+                2721,
+                2722,
+                2723,
+                2724,
+                2729,
+                2730,
+                2735,
+                2736,
+                2737,
+                2738,
+                2749,
+                2750,
+                2756,
+                2757,
+                2758,
+                2787,
+                2788,
+                2793,
+                2794,
+                2795,
+                2796,
+                2797,
+                2808,
+                2809,
+                2827,
+                2828,
+                2833,
+                2834,
+                2835,
+                2836,
+                2837,
+                2855,
+                2856,
+                2871,
+                2872,
+                2879,
+                2880,
+                2898,
+                2899,
+                2919,
+                2920,
+                2945,
+                2946,
+                2959,
+                2960,
+                2961,
+                2962,
+                2964,
+                2965,
+                2984,
+                2985,
+                2998,
+                2999,
+                3036,
+                3037,
+                3041,
+                3042,
+                3046,
+                3047,
+                3064,
+                3065,
+                3109,
+                3110,
+                3116,
+                3117,
+                3168,
+                3169,
+                3195,
+                3196,
+                3197,
+                3199,
+                3200,
+                3207,
+                3208,
+                3210,
+                3211,
+                3237,
+                3238,
+                3405,
+                3406,
+                3412,
+                3413,
+                3436,
+                3437,
+                3468,
+                3469,
+                3472,
+                3473,
+                3479,
+                3480,
+                3484,
+                3485,
+                3487,
+                3488,
+                3543,
+                3544,
+                3591,
+                3592,
+                3691,
+                3692,
+                3733,
+                3734,
+                3820,
+                3821,
+                3848,
+                3849,
+                3895,
+                3896,
+                3932,
+                3933,
+                3973,
+                3974,
+                3986,
+                3987,
+                4000,
+                4001,
+                4234,
+                4235,
+                4302,
+                4303,
+                4356,
+                4357,
+                4439,
+                4440,
+                4526,
+                4527,
+                4645,
+                4646,
+                4699,
+                4700,
+                4765,
+                4766,
+                4840,
+                4841,
+                4933,
+                4934,
+                5027,
+                5028,
+                5048,
+                5049,
+                5093,
+                5094,
+                5237,
+                5238,
+                5330,
+                5331,
+                5332,
+                5333,
+                5660,
+                5661,
+                5868,
+                5869,
+                6327,
+                6328
+              ],
+              "digests": [
+                "sha256:00bdee9afc5a5940ada6dae81665aed1d9356b40d5b51be114f74e1e9937212b",
+                "sha256:014b56b5d93371915dbc362df4ffb536a32bf89f63f9056448d0e6991c69eb20",
+                "sha256:0173f849aee6ec8b9c8cfe009f2021e296b193e523d6b8fc4376fa4b53300b5b",
+                "sha256:0174bd5587d53755c5b9908e447e313ff5b1f99efdcbc9a7478527ab30508884",
+                "sha256:02e274167e675d3aaf2fc8c364f4ffc8fdbddbf3e74c66aba62c3706d0fcf9f3",
+                "sha256:035f43cc3dbb39e2e4a5e522c8baac8d06bb9494d077c4b11247a3a7c3568401",
+                "sha256:038c6d018b83b399c15f3471a5ed01e97b522ba23fe803a3aa79e040c3bc092f",
+                "sha256:0432803b81bae75b9d1f0cbb32a6f50893f5bc7ddc13b983f8bdbdbe8b76c12f",
+                "sha256:05f11c1bd9fb1ead6a42fab84068c062b27230123481344efc3425f6ec542cad",
+                "sha256:07590f29a28055867508eba4084d1681318d26d2cea5265db02646fd95cad2f4",
+                "sha256:07673f31c069869ced3fec05eff70cd2a4b2a4520323a98a2d4ab348a63b0509",
+                "sha256:087233121e481cefda28acad1091fb2753df3964811ca9559587432ddf06d3a1",
+                "sha256:092d72ef5546788016e09746974c0eeef136e3b036a45e5fa9700a454bbe86aa",
+                "sha256:093b020da3323d1bcb093c9c915ba1ceb31782ceea9c72c508fcd37516880e5b",
+                "sha256:09a35b737c4559e5e5853d34b271088672692c53df5961b287cd2925b6b5e12a",
+                "sha256:09b9bdc72370ae72d08e093870cc0429328a210ee66e4ac75ae77dfd3d2866a1",
+                "sha256:0b1aa7ff5dfe2c61fdb8ca35a2bfd98db1fc416b0aea83e535e7ca320a3d3bf5",
+                "sha256:0b45fd27c672cc098f0ac81682ce5e77a70bf86dfb3ac0eef378cffb5a6d014d",
+                "sha256:0ba6a5442c00094500534ce7bebfbecf26af72ed13f9f7992e0a3bc4797a05af",
+                "sha256:0c49177607eabc36838f9cac4d133ed36436d4ecc70d8cd49d415d6e43dde4c3",
+                "sha256:0e4717d1d964febc4ec1318b6e8c23cc7e1851520256e4c0ef1cd33e7b0c9bd5",
+                "sha256:0ed43a335ec2b0e8d9f5dd4d8d88150860a7dfdafd17bde4c0fee8f1ffaff463",
+                "sha256:0f910ff5c8346c7700b2cf41ba8da5093a22ed367315dc8b936c387ee51de3e9",
+                "sha256:112b65ed344eae216f5bad1c5271f3734df11c5b6f744680d199fa67cfcb134c",
+                "sha256:119f43b460995d00b8b21709ae56f274e88e66a2521bef172b9dbf2677309ae9",
+                "sha256:12c7fa50a6d6ce8fa62afad162d910c58cb1104fb157c9067e5c007f05142d3c",
+                "sha256:142fba4270fe4a3e16943a9affce655c8301f1436548978c642788a56dd0fa54",
+                "sha256:14b8a558df5f312e8b4e5a1740919e833ce93ee5adcf4a2006bec42ef170f958",
+                "sha256:153e7cd767aa12e100c30e8a4e0b4d008a4b6bfee5a955eaf4a3fd1dc308395d",
+                "sha256:166932ab1892a8c242e726f01a86b2eab3456bef81dcc3e6c6c1ae8b11ced9a6",
+                "sha256:18252c7fcda8e79c94e2fda816a6e1cbbde1f8c555dfcae2fff1de8eace17a52",
+                "sha256:199e7b5ee03c245d5874c7b376c3c317ac6a281f4d27296b6b5c550cd4813909",
+                "sha256:19fcfe9dff2b82a6e544751c21f3e464add8ba0096aff09cae2ad20c420fb270",
+                "sha256:1a09faa9e947da0112f7f203cd488da32c04d8d4c47803c5fafe6a68df45cb97",
+                "sha256:1ae1f591f0cac937b9203c9585c3c67c6a5bb8afb3782903ed0d71e7452cbe04",
+                "sha256:1c9361ac9eed7e655c7711e75291e1d99681b4431fe8c956fc9c95a5ba9396d1",
+                "sha256:1d0cfbce09bda49ed8101586ad1eb41e9e6416da7c757af57b7132996f91fc1a",
+                "sha256:236bdd78cc560d51f8dd2a2a3b57f8f7ecc85cc14ada2aa6fbfcc4639f44b5d8",
+                "sha256:26fc2e72d9aa039364c93d2231ae6db2321eff9e325253d3726339d167040a03",
+                "sha256:27aa5ee2918528fab1997658f5fe6b466982c63a97030d76fd25518b99874a63",
+                "sha256:281d3e69efa458600d10a14cd9c4386c0f333bbd22be50859c12cc8ec56192f5",
+                "sha256:28257695c7d3577f781a524c6699bbb262cca3d05191f0e54176e488bf7d0d1f",
+                "sha256:28c259add6d69f4312fbc7c0326f23615ade3fc4b5617e5e1076c0e9bca3d648",
+                "sha256:298679111066de32108526d73b5711ae84cc37b49b5b77486a5431e44177b261",
+                "sha256:2ba1feb87199220050211df390e221e81abf6c510561bd8cc1ee954114258793",
+                "sha256:2cdbc4a45fa3d71fafab3e815b0b73fabe5abfe9fd461cf1e84fa80fe6bc139d",
+                "sha256:2d58d96024f69d3cdf4d6f4e12ab20c4b5c833d4c89ec9d7f929c5ed29c7b835",
+                "sha256:2eba79876c20d9fe18421b5fbd3e110413caa4673360bfe01cfd0ce902f7e8b8",
+                "sha256:319376e65512bd3b217eec04bcf9c46d3db22179d30d4082dfab007c99e31b9a",
+                "sha256:32c2d40c8f325da59137d6b2a40408ecb7bf1155666808a276c0b27ab44458a0",
+                "sha256:358f58cc83d31d14903ead5b7a3a09ba9692a62fa2d9d2ffb3987024b5f6a7ee",
+                "sha256:35a93671a2fb68b88fbe4a28cf5da04f32de7fb33dfe12ee8cf05dd5163a78da",
+                "sha256:3810527b613bf10fa63628563472038e01f0d21177650e9f1231a1016c707c6a",
+                "sha256:38c1c3e53b4a96e9b0b9c811e8482ac7c4bb0ef657600ef8854e19c842264056",
+                "sha256:3a16c5e0cac9634aba76e75e0381ac03d602b53dc46a1ee6260a766ca7872772",
+                "sha256:3b12acd71447ad1c0936b8fd04b9d4b7bea64fef85cd6f960b507a0a38b2a649",
+                "sha256:3d9c235225c9b053a8ea5b34e1125504f2ff62af037163bb01b63fd96525a4f8",
+                "sha256:3e87a625d85989465f0d68dceacf95bbc4120d5d1d6557a686636646d1457b5b",
+                "sha256:3f0d116fb9720ac3e924305a83e1f81e234b1a042b47418f0f2fc6f7d7446786",
+                "sha256:3fcfc58a64ba7f5e2e9be9686d14a19acb6ff3c807e9b2df700dd900a9149bf9",
+                "sha256:408177a2e60d72112f1d39d6650864a7a5fd379d5d95f3cb690d477940591864",
+                "sha256:40f7e1a29e454834d77e94c858f81468c7ce8a0169ac9087dcb099869c5c6c0a",
+                "sha256:4192cd41d24c0f037bc11552d0ea6673fda4cfbd803624761dd121828afe6ae2",
+                "sha256:4219936e3371050fe2930f103b33e847b8985dbc5d3ba384e9dca7c14e6d3ee4",
+                "sha256:453af2c321ac45913c6283257bc5e492ff3fe65ea8567f5bbd1be4b120d83480",
+                "sha256:456008130b066cd4f8221017159c0b682c7663a24b2820ab4af72fb69754a9c8",
+                "sha256:461bc3bae3e0c9562b4dfbc5dc3900ab2b4f0bd65525dce9947885e99c7e17c9",
+                "sha256:4655a933078baf2071e112e3fac96c6cc9c0a3c9e69365cbc1f76acba24f1125",
+                "sha256:4714e977b89d79d10e7cdd2458088fb4fb76eb554f3ba2adce9695d1dd1d95bc",
+                "sha256:4758fadc245ddee764391f43f82def240c73db776b03f164c5e0f3d3da7e9247",
+                "sha256:4890c54dea63eef96ed65b5c188dbb58560d0ec46437c6becee28e5cd1b0e773",
+                "sha256:48c5735c058a71435929c7f84a84de2b6520c8b87d60037dda64d6f9aa673d4d",
+                "sha256:48f8077c342e33afd61d2650bb687121ce7dcdfac03c55151bd76dc9c7b9f0c7",
+                "sha256:4c94eb798389b40e6cfd113299860154f87f0d58810462b61a74687b3593eac7",
+                "sha256:4d8f2403c0bcf5d54b09da9b78e3562128d8446d8572c6415ae116994a9ffb8e",
+                "sha256:4dab01dade7998fb15b8374e0d7aa8dd8382fd07f9ed74e53b90998d02a59bfd",
+                "sha256:4ea5f70051057c66d6678a14612b72041d3d634cf4618ffad5556816275941ac",
+                "sha256:4f59d18f1a0c97d2ddf8143dd93a35d2382955d855f17f3ada57b3061ee1ae8e",
+                "sha256:50fea89744aa16f5976aa8111140fb07febd0aa9f46fe4ffa63f7b14dcf4e448",
+                "sha256:51f04912fb2057accbc7a6f82d972a795988c034c95a885ba8980224fe3595bf",
+                "sha256:54d7e64cbf02926c5bba0b5dfbde9587abb4ec7dc561ff8cc25c692728e22aed",
+                "sha256:54d906e76b8b5b6bcc6998d6fd0874e4fc49389912c75ac6239c690f6bd0ac6e",
+                "sha256:5679616757f61d02d02bd7fbaa54712091103f9d809341f15b5e15a858c73d39",
+                "sha256:57c24a12cc9994b0ccbbcf7d66c00021ba212f018560061aa8d83f5cc0178373",
+                "sha256:59d9b5d613855a9f76aa25710cc2682e0a1b49f1e17eee479e95b56923c6f759",
+                "sha256:5a20d204b3c52df89d9edd3a56b8f9d442e987ddf32587a85f67006135a257fd",
+                "sha256:5a5f482b1ecfc0a420e56d2e984090a0d79797e4a801ff8f19593b3013dde573",
+                "sha256:5f4101ce2c71f074b08bc8e568550096291afd9345107d45f91423e361bf1432",
+                "sha256:60494158f4ccbe11bd184a7430b5a179fcb21ed9859267c3bc0085d687724274",
+                "sha256:6114624682a01e54ac35092a1f85200a6cb05b75b3ed98742f5634c2ee1da645",
+                "sha256:62c714a0793986b39a8b40fb463ae59bfe086421bdf0442fe45654b7f341f32e",
+                "sha256:64f5304db1237fd018f3f94f8e32dca3fc09a2c4ee6dc16a425cb0c3a5a70d32",
+                "sha256:658435f9d82160743fd490d514684227f4d038b0d6804a99a31ba905b32ed083",
+                "sha256:662a9bc8829d2cfed9373fd6a3b5439b62141b1eb3912fb6323dc731db9c87ab",
+                "sha256:676aca37b4705e60c8162c35a7b1d107eb1e5dc2ef23f962ba1920251d9a33f8",
+                "sha256:685f9b8d0756a77c336a08e8e35239dcb5a1f531c92820aa6f22cbbc9c07d629",
+                "sha256:6ca3bd65ac08a0c3bbb78e1671c781b5701937ecb0fe549defa52287ea7cbb51",
+                "sha256:6d713facdcab8fe5333672535ff9378e38f21a009b6e305938899751fe1ad060",
+                "sha256:6e04392e4863aa77379fd34eff18ea4612ac786dcfff0f20e26d496b317d4595",
+                "sha256:6e8bbd8bd0028292b667a27b01c1c03d74c79b1d66260a9f831a636e7b12b1b1",
+                "sha256:6f3151029d514c3a0c5fc93dfba89b350c5a052c1b7d3de1dd71a911ee730e0b",
+                "sha256:71c14a9c700f1b892ba78cb37103d1f2d29d7d5518096cf1e48c1030194ab26f",
+                "sha256:71e625b04619199d878a3b32e9213e0aa4158e87a867913cda6db65df884e52a",
+                "sha256:72b03df3f9b2a3d285da93039b335b12d4f9c3e83d29b30b3c61fbbe1f862ba4",
+                "sha256:73fdb1bc51ffec4df51e23d0521983d699a71bd89785c1f0aa274644956ff551",
+                "sha256:75a5fd05f90e43cef723de53d4470dccd5f5e91d5fe6e65b6c727a841d1cba76",
+                "sha256:768a4434c3404f97312ba47987bf87a60c9306d35948b7fb55b6958c4c39469f",
+                "sha256:7807381567c9144e48828d1c0b34180af29cbaa3a52782af773528768cbe94b5",
+                "sha256:79690373064bcd9b3c6d9e5d2dd62d6cdf795a9354083c7221fc72df3b7e1812",
+                "sha256:7d54495e6222a1c9d53fabf7c03d84bcd7293465aa60afd264d05df3c354adef",
+                "sha256:7df75026e6e8c118fd05bedd342576025ec2deace69753a6d3342f03c49ac6b3",
+                "sha256:7f3690f94f5f00427804d2a367d86d3f37dda93456c087ecca6f496725c540b5",
+                "sha256:813e19bb0d9f084f74171e77d3776a9be575f1a08321fce8af7a4b0b8479be41",
+                "sha256:81437907b90dfe84db96a55756bc0df1f8f81f2e32bb3cf6da720f37f7a3c5b3",
+                "sha256:8779f8a35689ff311f87b7df142bf80d0609f8bfb9b6b93899607f8158194a03",
+                "sha256:8a5cdda745a9dcb65e2dfad3ced218c394b14a1afc858446ab38c07a0e9a497b",
+                "sha256:8ad240ec2f1c3e0a67b28faeb9c217daa82086da9b7d615201586ddb77c97c9b",
+                "sha256:8b4be8994e9f10b2aa2539334fadb4f3bcda48ed194fdc1d586c68c87ee1a08a",
+                "sha256:8c01d4ed39fd574cd802368043c24b9108b09a0f4c96f92ffd787d97886c6711",
+                "sha256:8e1c223be2e09a6ed1d4171825686eed6e8f972161cd2a9b1c4aeb8f5fd9a351",
+                "sha256:8e4b4ba9129fd8e4505ab1a1b38e4869e2bc4398960d55312dde04aa292bbbdc",
+                "sha256:8e6facfbddc1f9b87a38cb2bc55c229df65ab17110b383d1af2920401a3bd952",
+                "sha256:8f2b182ebcb094bad6218dfa778a85b994157d7c62cb85638017b574f3264fa5",
+                "sha256:8f8e1b6a83784717692b337c7bc94eca81d8de22ab6b48d736c118b21b448231",
+                "sha256:92ad0c71c09a9c58234af26a41825e681e1cc304d7cffd69a0a5d36a9420eeca",
+                "sha256:93163910d6327e16b3200e8505b62fd83024f5b54e9762ee85fe9ce1ea58cb66",
+                "sha256:931f39adad511344270f2eb6006f78df8a6e9760ca54a5fa7dd79470505932cc",
+                "sha256:953a012f4d61d8590e15e5616fd41cbc3d845d8b3882eed78ddd5685ef2d9ed2",
+                "sha256:956506e8567c60e9a4f9f325b434a7b16a07400100056b7e16bc5a92c16f81c6",
+                "sha256:9769f0e6351fa111c0da86481c397d2eed58796efa6bab486676877c8a49a804",
+                "sha256:9a9ffd11a49fe0ea47d9cd1eae3e3268b7db903f12ab2a52b80311575ef6d8d4",
+                "sha256:9c7acf96a8cba2225b2f53902e6b2c835377d5b81166ab9640fab6d0e0dbac06",
+                "sha256:9d7012ec130fad588337c8ed713718303ad4cfe1172defce9dd2c085faafaa13",
+                "sha256:9e974e99d9d57ddc18556b82a7c5285b511631abb089b25d28f586a809f701eb",
+                "sha256:9ed00c5400fc7a74b1953dd39f1614acc1db32b851dd9457684ed8e5d25882b7",
+                "sha256:9ee4d39d810d69bf2a6274416ed762afa5b54dd521daa8df8726dabbfaf48d46",
+                "sha256:a12eb4af56eee02cf8a19e14f65844bfc0dfdc56ce06095a326adb81493f7a58",
+                "sha256:a26c68ce79a4fdf71858bf0d8bdcd5081435955329ae1d90da0c95fcde915873",
+                "sha256:a294a490759bcbfb80a440b751aa3819aa98c0fa06c77afc234b42d977b81916",
+                "sha256:a36f0397d8897b2c16646f651aab8769d59eaa0adb18ccb574aff1a3aa0e3526",
+                "sha256:a40904c7c20960da850c975f349388c5e3b9abe2814d261fb3f9c807e86115a7",
+                "sha256:a431534c5af0c13ec16bfa990b6207e4c59fc1899b2c069c38be2412f59a863b",
+                "sha256:a4b204f891594a2e372ff6ea448c62b6886de10319d2e40c308f30c819bb9f8a",
+                "sha256:a57be1c0c5c2e8577d6e0d48fe753c8232c8f89164248cfd1a7a19fad61ae29a",
+                "sha256:a738545204fd0d268b3bc449d531708a7ab39426f39df9657103ae431c329808",
+                "sha256:ad8b4da0ac1c17fe47c6ceca9f0099a84fb3d987900ff00c2ab934fdffc7ec2f",
+                "sha256:aeddca71a40dc903f90b81d7ad939721cffcd854ac064f55a3a98ed27b15b5a0",
+                "sha256:afa50dd0e8978a42b2416e84b314b3cceeeb7452235aeeaeae99955735c6572b",
+                "sha256:b102b832e51bd1fa84e03d6ddc65f8a1406b4b4baa7fff5ea9718a284848f214",
+                "sha256:b2502fef1f741fdb8a97289dd571b3f58fb7a5791e6504b853adc11960190634",
+                "sha256:b2a98c0425fdc445dc1f556525405f4b0ec8191f99cbd7dc8a7c456daa8d12c8",
+                "sha256:b2da2ec3153582a82b7ddadcaa1a8a29671e570e7b84b484db87b3974e83cdd0",
+                "sha256:b2fd448a607d400f2d8124db97eef2909056a828a2a0c24ff39484ad48dabc88",
+                "sha256:b5b002e4dc98e51c62abeb4954051ef5a19c0c89cae7d9cbf471ff05b8ef873f",
+                "sha256:b796b37bf101433228e8f371719714eb15b3bf583cba7f04f55540f1c5a4ecdf",
+                "sha256:b7d4672dbee9136c5fc0b109902430f53ca9236f2b553e4dbb57ee129a60c04e",
+                "sha256:b88979818c3515db9d2e73b187b59c075014fb0f592a54368773239e65fea3ec",
+                "sha256:b88c3b3515fe74a7985f98d6c9e0ca3d9fb9f74c46adb3acfa6623cb195605a2",
+                "sha256:b9c76befe472ee608124b32543b06240f2811c42621dcb1d220eea2266d0d2d9",
+                "sha256:ba17ee80b5692a82a28f51f6ef1df71bc8a47cacab3f512f1e916bd8fedd9eb4",
+                "sha256:bcdd968693cc5481a257893a90a70c8275427a2909a8c90936afb1f4d565ded4",
+                "sha256:be3eca6c699ddcfdf1e73b049b818267a4577dca0217ebad60590f891884b973",
+                "sha256:bf9e6e7219655da299b4a25a22069f1850e3dd43f7dc319f4ac6ef8262319bb6",
+                "sha256:c1b89ed742d2f7797a1b527a56128162a533e53ce129e6543d8dcfe84b2e5b65",
+                "sha256:c1e362d45f69a1ac3a6eefa27736bede7f582b86629dc236e199279029053702",
+                "sha256:c22f77de1e88cf2f33fb7bd68b8984f68aec361dfbf9765d0be8bc584b1cf756",
+                "sha256:c37a0bcfa6cf6b594ec85f1f63f4eacfb6f91d62f6e1c1fc0d21b01c199f6216",
+                "sha256:c5e41fb80c6d04a33d4854a7428deba83eb0ac17931349ba2c23869a3e5bb5db",
+                "sha256:c9e401499908592f53549684c2088fd72ab9984739fabb09b12370a3e9014bd8",
+                "sha256:ca4f6de6b085d333dcba301b99c9904469218959a4a4e7d3bc91c95018549b4d",
+                "sha256:ca6536b4b707b4e1965491a3682e132938d7ec64583d5cb548ef2b548510430a",
+                "sha256:cfb8945ef0421bd3190ad65a7ce4a011e4ca959ad31ae33f587c600a8efa7289",
+                "sha256:d9059f283f55279f5134b8cfcb3ccabfa8140a8443fbea63ad9ddfafe8d51e59",
+                "sha256:d961732c25ee3a635d21f706b90049ed46efad96854fe34308fe747e758b649b",
+                "sha256:daa6ff4c86ae68412c93060b7804c90aa45ecd110f1f50d76ff74c8f47d86f09",
+                "sha256:dbf57830fc46a57d2fe30094f83615f010ab2ed2f9b603f277e3fad04e15a8dd",
+                "sha256:dc6cd2a627b9fd3307ad339d304cf3e0e161a456d1bf82e5d4385defa2788ae6",
+                "sha256:ddc9513c26135b2ebf05eeff9a4310e8841ff8bace445dfd73bc545f39d4c9f0",
+                "sha256:de20c6a133c563fb277d23f172a1bc7593b83269950e6923df6ab1c771ef50d3",
+                "sha256:e11de91b98fc7acf0170470bd237acd89e1bbf98399f082c4c7ba3fad34712d2",
+                "sha256:e24430ef12ca330b8919d9919ea9f8ee27c96affe39bd86632edcadb35f3887b",
+                "sha256:e3003ffea115cdc9b3417f55af1e52c3b334d8c65f932e58f9a0805c95acdde9",
+                "sha256:e3c2e20c05038edbd120b38d1e62b26ad93f13a4aa42227c540a67b0618c72b2",
+                "sha256:e48a4f2dd9ccbf577eb7ad4966f6c25b123d6451540a5f29a6bec6d2502edd40",
+                "sha256:e88f55583d96c3b7f802f6e4456fd12b65360a2f865e4e2ba7503b8aedce30ac",
+                "sha256:ea7df3f2fb891362efe830d241d04e25d91441252d367012ae0ad7782576674e",
+                "sha256:ed895216a3c9b0f479c1c4ac2436a645d26d9bf2d0fa9be1662ec8d12bdb6b3c",
+                "sha256:f21349d1d7aede2213937faa347187bd45792ac8b948011676f5a6a81afb19a6",
+                "sha256:f28104a6791ab5acc60fde5309529e863f7809a580363de2e79c1c0feb7fc772",
+                "sha256:f318091a595cfe59aa541fd4caadf78be94864498092b9d77fc3b36b32aaa1c0",
+                "sha256:f46fddba8ce5969a6037018822fc2a265ad88377d2db0d6db9af824b7da7fdf5",
+                "sha256:f5b172b0dc86c60753ad97cd98c54ca78d1646288cc4ba5eff610d919b61b536",
+                "sha256:f5e61c4329e4c6eb8056aa0c274d158f280af71b65f70249f38eb542343690f8",
+                "sha256:f71612c6f45121ae97019272f63a6ac40f286b333e4cc89a994858dcfca2a07a",
+                "sha256:f7880c2a0b4984db8833869f333741e39a22f1774977ea3008a5101e28367b77",
+                "sha256:f79cee51a001d16e70eebf4d3a8e4ab94d32b71f01c9a691bae8bfa7b0e6081c",
+                "sha256:f7b1debef33bc1400b41340ad3ed7405825e66e2cfe606d44b5a56ff78da07aa",
+                "sha256:f98dff38b40bf210b643974f6360bb24a0f69b62e9fce9bd9a029008b5bafb69",
+                "sha256:fbfc48bb0d1f0af26abec00b380b78bdc86623913346ec1a9c213f678302caf0",
+                "sha256:fcd3d2bbc6c17e4d12564e229d8fada501a1e29df0324ba3ed0f5d0b4210b7e2",
+                "sha256:fd2c70933baa3985e5359bf315602612004438311908d2e351c4e5e8a85fb3a4"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000011",
+                "http://id.loc.gov/authorities/subjects/sh00000014",
+                "http://id.loc.gov/authorities/subjects/sh00000015",
+                "http://id.loc.gov/authorities/subjects/sh00000015-781",
+                "http://id.loc.gov/authorities/subjects/sh00000016",
+                "http://id.loc.gov/authorities/subjects/sh00000016-781",
+                "http://id.loc.gov/authorities/subjects/sh00000019",
+                "http://id.loc.gov/authorities/subjects/sh00000019-781",
+                "http://id.loc.gov/authorities/subjects/sh00000021",
+                "http://id.loc.gov/authorities/subjects/sh00000021-781",
+                "http://id.loc.gov/authorities/subjects/sh00000023",
+                "http://id.loc.gov/authorities/subjects/sh00000023-781",
+                "http://id.loc.gov/authorities/subjects/sh00000024",
+                "http://id.loc.gov/authorities/subjects/sh00000024-781",
+                "http://id.loc.gov/authorities/subjects/sh00000025",
+                "http://id.loc.gov/authorities/subjects/sh00000026",
+                "http://id.loc.gov/authorities/subjects/sh00000026-781",
+                "http://id.loc.gov/authorities/subjects/sh00000027",
+                "http://id.loc.gov/authorities/subjects/sh00000027-781",
+                "http://id.loc.gov/authorities/subjects/sh00000028",
+                "http://id.loc.gov/authorities/subjects/sh00000028-781",
+                "http://id.loc.gov/authorities/subjects/sh00000029",
+                "http://id.loc.gov/authorities/subjects/sh00000030",
+                "http://id.loc.gov/authorities/subjects/sh00000030-781",
+                "http://id.loc.gov/authorities/subjects/sh00000031",
+                "http://id.loc.gov/authorities/subjects/sh00000032",
+                "http://id.loc.gov/authorities/subjects/sh00000034",
+                "http://id.loc.gov/authorities/subjects/sh00000057",
+                "http://id.loc.gov/authorities/subjects/sh00000059",
+                "http://id.loc.gov/authorities/subjects/sh00000060",
+                "http://id.loc.gov/authorities/subjects/sh00000061",
+                "http://id.loc.gov/authorities/subjects/sh00000062",
+                "http://id.loc.gov/authorities/subjects/sh00000063",
+                "http://id.loc.gov/authorities/subjects/sh00000064",
+                "http://id.loc.gov/authorities/subjects/sh00000065",
+                "http://id.loc.gov/authorities/subjects/sh00000066",
+                "http://id.loc.gov/authorities/subjects/sh00000067",
+                "http://id.loc.gov/authorities/subjects/sh00000068",
+                "http://id.loc.gov/authorities/subjects/sh00000069",
+                "http://id.loc.gov/authorities/subjects/sh00000070",
+                "http://id.loc.gov/authorities/subjects/sh00000071",
+                "http://id.loc.gov/authorities/subjects/sh00000072",
+                "http://id.loc.gov/authorities/subjects/sh00000073",
+                "http://id.loc.gov/authorities/subjects/sh00000074",
+                "http://id.loc.gov/authorities/subjects/sh00000075",
+                "http://id.loc.gov/authorities/subjects/sh00000076",
+                "http://id.loc.gov/authorities/subjects/sh00000119",
+                "http://id.loc.gov/authorities/subjects/sh00000121",
+                "http://id.loc.gov/authorities/subjects/sh00000122",
+                "http://id.loc.gov/authorities/subjects/sh00000124",
+                "http://id.loc.gov/authorities/subjects/sh00000125",
+                "http://id.loc.gov/authorities/subjects/sh00000126",
+                "http://id.loc.gov/authorities/subjects/sh00000127",
+                "http://id.loc.gov/authorities/subjects/sh00000128",
+                "http://id.loc.gov/authorities/subjects/sh00000129",
+                "http://id.loc.gov/authorities/subjects/sh00000131",
+                "http://id.loc.gov/authorities/subjects/sh00000132",
+                "http://id.loc.gov/authorities/subjects/sh00000133",
+                "http://id.loc.gov/authorities/subjects/sh00000134",
+                "http://id.loc.gov/authorities/subjects/sh00000135",
+                "http://id.loc.gov/authorities/subjects/sh00000136",
+                "http://id.loc.gov/authorities/subjects/sh00000138",
+                "http://id.loc.gov/authorities/subjects/sh00000140",
+                "http://id.loc.gov/authorities/subjects/sh00000142",
+                "http://id.loc.gov/authorities/subjects/sh00000143",
+                "http://id.loc.gov/authorities/subjects/sh00000144",
+                "http://id.loc.gov/authorities/subjects/sh00000145",
+                "http://id.loc.gov/authorities/subjects/sh00000147",
+                "http://id.loc.gov/authorities/subjects/sh00000148",
+                "http://id.loc.gov/authorities/subjects/sh00000149",
+                "http://id.loc.gov/authorities/subjects/sh00000150",
+                "http://id.loc.gov/authorities/subjects/sh00000151",
+                "http://id.loc.gov/authorities/subjects/sh00000152",
+                "http://id.loc.gov/authorities/subjects/sh00000153",
+                "http://id.loc.gov/authorities/subjects/sh00000154",
+                "http://id.loc.gov/authorities/subjects/sh00000155",
+                "http://id.loc.gov/authorities/subjects/sh00000156",
+                "http://id.loc.gov/authorities/subjects/sh00000157",
+                "http://id.loc.gov/authorities/subjects/sh00000158",
+                "http://id.loc.gov/authorities/subjects/sh00000159",
+                "http://id.loc.gov/authorities/subjects/sh00000161",
+                "http://id.loc.gov/authorities/subjects/sh00000162",
+                "http://id.loc.gov/authorities/subjects/sh00000164",
+                "http://id.loc.gov/authorities/subjects/sh00000165",
+                "http://id.loc.gov/authorities/subjects/sh00000166",
+                "http://id.loc.gov/authorities/subjects/sh00000167",
+                "http://id.loc.gov/authorities/subjects/sh00000169",
+                "http://id.loc.gov/authorities/subjects/sh00000170",
+                "http://id.loc.gov/authorities/subjects/sh00000171",
+                "http://id.loc.gov/authorities/subjects/sh00000172",
+                "http://id.loc.gov/authorities/subjects/sh00000174",
+                "http://id.loc.gov/authorities/subjects/sh00000175",
+                "http://id.loc.gov/authorities/subjects/sh00000189",
+                "http://id.loc.gov/authorities/subjects/sh00000190",
+                "http://id.loc.gov/authorities/subjects/sh00000192",
+                "http://id.loc.gov/authorities/subjects/sh00000194",
+                "http://id.loc.gov/authorities/subjects/sh00000195",
+                "http://id.loc.gov/authorities/subjects/sh00000196",
+                "http://id.loc.gov/authorities/subjects/sh00000197",
+                "http://id.loc.gov/authorities/subjects/sh00000198",
+                "http://id.loc.gov/authorities/subjects/sh00000273",
+                "http://id.loc.gov/authorities/subjects/sh00003146",
+                "http://id.loc.gov/authorities/subjects/sh00005744",
+                "http://id.loc.gov/authorities/subjects/sh00005777",
+                "http://id.loc.gov/authorities/subjects/sh00008503",
+                "http://id.loc.gov/authorities/subjects/sh00009202",
+                "http://id.loc.gov/authorities/subjects/sh2002004367",
+                "http://id.loc.gov/authorities/subjects/sh2006001563",
+                "http://id.loc.gov/authorities/subjects/sh2006006405",
+                "http://id.loc.gov/authorities/subjects/sh2006007256",
+                "http://id.loc.gov/authorities/subjects/sh2007002895",
+                "http://id.loc.gov/authorities/subjects/sh2007005223",
+                "http://id.loc.gov/authorities/subjects/sh2021004026",
+                "http://id.loc.gov/authorities/subjects/sh2021004027",
+                "http://id.loc.gov/authorities/subjects/sh85000457",
+                "http://id.loc.gov/authorities/subjects/sh85005038",
+                "http://id.loc.gov/authorities/subjects/sh85006608",
+                "http://id.loc.gov/authorities/subjects/sh85006618",
+                "http://id.loc.gov/authorities/subjects/sh85007461",
+                "http://id.loc.gov/authorities/subjects/sh85007805",
+                "http://id.loc.gov/authorities/subjects/sh85008276",
+                "http://id.loc.gov/authorities/subjects/sh85008324",
+                "http://id.loc.gov/authorities/subjects/sh85008419",
+                "http://id.loc.gov/authorities/subjects/sh85009135",
+                "http://id.loc.gov/authorities/subjects/sh85009364",
+                "http://id.loc.gov/authorities/subjects/sh85025611",
+                "http://id.loc.gov/authorities/subjects/sh85026494",
+                "http://id.loc.gov/authorities/subjects/sh85029479",
+                "http://id.loc.gov/authorities/subjects/sh85036229",
+                "http://id.loc.gov/authorities/subjects/sh85037473",
+                "http://id.loc.gov/authorities/subjects/sh85040235",
+                "http://id.loc.gov/authorities/subjects/sh85043272",
+                "http://id.loc.gov/authorities/subjects/sh85044464",
+                "http://id.loc.gov/authorities/subjects/sh85045075",
+                "http://id.loc.gov/authorities/subjects/sh85048176",
+                "http://id.loc.gov/authorities/subjects/sh85054913",
+                "http://id.loc.gov/authorities/subjects/sh85055188",
+                "http://id.loc.gov/authorities/subjects/sh85055403",
+                "http://id.loc.gov/authorities/subjects/sh85058490",
+                "http://id.loc.gov/authorities/subjects/sh85058856",
+                "http://id.loc.gov/authorities/subjects/sh85060586",
+                "http://id.loc.gov/authorities/subjects/sh85063946",
+                "http://id.loc.gov/authorities/subjects/sh85066494",
+                "http://id.loc.gov/authorities/subjects/sh85068646",
+                "http://id.loc.gov/authorities/subjects/sh85068876",
+                "http://id.loc.gov/authorities/subjects/sh85074044",
+                "http://id.loc.gov/authorities/subjects/sh85075089",
+                "http://id.loc.gov/authorities/subjects/sh85077309",
+                "http://id.loc.gov/authorities/subjects/sh85082782",
+                "http://id.loc.gov/authorities/subjects/sh85083104",
+                "http://id.loc.gov/authorities/subjects/sh85087097",
+                "http://id.loc.gov/authorities/subjects/sh85090896",
+                "http://id.loc.gov/authorities/subjects/sh85091153",
+                "http://id.loc.gov/authorities/subjects/sh85092054",
+                "http://id.loc.gov/authorities/subjects/sh85097419",
+                "http://id.loc.gov/authorities/subjects/sh85107310",
+                "http://id.loc.gov/authorities/subjects/sh85114268",
+                "http://id.loc.gov/authorities/subjects/sh85114360",
+                "http://id.loc.gov/authorities/subjects/sh85114375",
+                "http://id.loc.gov/authorities/subjects/sh85114637",
+                "http://id.loc.gov/authorities/subjects/sh85120302",
+                "http://id.loc.gov/authorities/subjects/sh85123168",
+                "http://id.loc.gov/authorities/subjects/sh85126028",
+                "http://id.loc.gov/authorities/subjects/sh85129334",
+                "http://id.loc.gov/authorities/subjects/sh85131408",
+                "http://id.loc.gov/authorities/subjects/sh85131629",
+                "http://id.loc.gov/authorities/subjects/sh85136180",
+                "http://id.loc.gov/authorities/subjects/sh85136372",
+                "http://id.loc.gov/authorities/subjects/sh85136913",
+                "http://id.loc.gov/authorities/subjects/sh85138304",
+                "http://id.loc.gov/authorities/subjects/sh86007767",
+                "http://id.loc.gov/authorities/subjects/sh87007398",
+                "http://id.loc.gov/authorities/subjects/sh88004890",
+                "http://id.loc.gov/authorities/subjects/sh88007957",
+                "http://id.loc.gov/authorities/subjects/sh89004771",
+                "http://id.loc.gov/authorities/subjects/sh90002033",
+                "http://id.loc.gov/authorities/subjects/sh91002382",
+                "http://id.loc.gov/authorities/subjects/sh91002677",
+                "http://id.loc.gov/authorities/subjects/sh93001126",
+                "http://id.loc.gov/authorities/subjects/sh93001765",
+                "http://id.loc.gov/authorities/subjects/sh94005134",
+                "http://id.loc.gov/authorities/subjects/sh94006933",
+                "http://id.loc.gov/authorities/subjects/sh95008147",
+                "http://id.loc.gov/authorities/subjects/sh95008394",
+                "http://id.loc.gov/authorities/subjects/sh96004255",
+                "http://id.loc.gov/authorities/subjects/sh96008414",
+                "http://id.loc.gov/authorities/subjects/sh96010269",
+                "http://id.loc.gov/authorities/subjects/sh98000807",
+                "http://id.loc.gov/authorities/subjects/sh99000029",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "current_records.items": 6,
+              "deprecated_records.items": 1
+            },
+            "function": "capture_lcsh_current_and_referenced_deprecated",
+            "sample": {
+              "current_records": [
+                {
+                  "authority_types": "<builtins.tuple>",
+                  "broader_iris": "<builtins.tuple>",
+                  "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+                  "deletion_note": null,
+                  "lccn": "sh 00000011",
+                  "line_number": 1,
+                  "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "raw_line": "<builtins.bytes>",
+                  "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
+                  "variant_labels": "<builtins.tuple>"
+                },
+                {
+                  "authority_types": "<builtins.tuple>",
+                  "broader_iris": "<builtins.tuple>",
+                  "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000014",
+                  "deletion_note": null,
+                  "lccn": "sh 00000014",
+                  "line_number": 2,
+                  "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "raw_line": "<builtins.bytes>",
+                  "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
+                  "variant_labels": "<builtins.tuple>"
+                }
+              ],
+              "deprecated_records": [
+                {
+                  "authority_types": "<builtins.tuple>",
+                  "broader_iris": "<builtins.tuple>",
+                  "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000273",
+                  "deletion_note": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "lccn": null,
+                  "line_number": 7,
+                  "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
+                  "raw_line": "<builtins.bytes>",
+                  "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
+                  "variant_labels": "<builtins.tuple>"
+                }
+              ],
+              "lines_scanned": 7,
+              "referenced_iris": "<builtins.frozenset>",
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "total_deprecated_seen": 1
+            },
+            "shape": {
+              "fields": {
+                "current_records": {
+                  "count": 6,
+                  "itemShape": {
+                    "fields": {
+                      "authority_types": "builtins.tuple",
+                      "broader_iris": "builtins.tuple",
+                      "concept_iri": "str",
+                      "deletion_note": "NoneType",
+                      "lccn": "str",
+                      "line_number": "int",
+                      "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
+                      "raw_line": "builtins.bytes",
+                      "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
+                      "variant_labels": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+                  },
+                  "type": "tuple"
+                },
+                "deprecated_records": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "authority_types": "builtins.tuple",
+                      "broader_iris": "builtins.tuple",
+                      "concept_iri": "str",
+                      "deletion_note": "refspec.registry.lcsh_topical.LcshTopicalLabel",
+                      "lccn": "NoneType",
+                      "line_number": "int",
+                      "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
+                      "raw_line": "builtins.bytes",
+                      "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
+                      "variant_labels": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+                  },
+                  "type": "tuple"
+                },
+                "lines_scanned": "int",
+                "referenced_iris": "builtins.frozenset",
+                "source_url": "str",
+                "total_deprecated_seen": "int"
+              },
+              "type": "refspec.registry.lcsh_topical.LcshConsolidatedCapture"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                651,
+                2341,
+                2366,
+                2961,
+                3412,
+                4645,
+                5868
+              ],
+              "digests": [
+                "sha256:22c17d9a46005b427f0277d4b0455a1fb829b4608ef3fb7c57b5d17cf5fc3775",
+                "sha256:25516d036bc2246bbce01fa00a83f4d01754d72ac640d806078af7743e9dc7a3",
+                "sha256:41a19280d3849ee734e93715d60dde797db875423aa3df7e555e24787905e53e",
+                "sha256:6853154a6f87db477f0b4b2e248e093812e021c9b14c352f3bfca7854d82e26b",
+                "sha256:942b062ee8c036fc735b598a0f64160fd0bb9d6ff2a393eae9dd74d7b48316c0",
+                "sha256:a56c65a2a238e70e60b8a277672cdad60ffe360fbc1d47dd8cbf4ec976756cc8",
+                "sha256:a62900c4ec4ab79fa63ab2a892c392b9acb92861df8101368ee5f3049a500378"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000011",
+                "http://id.loc.gov/authorities/subjects/sh00000014",
+                "http://id.loc.gov/authorities/subjects/sh00000023",
+                "http://id.loc.gov/authorities/subjects/sh00000029",
+                "http://id.loc.gov/authorities/subjects/sh00000032",
+                "http://id.loc.gov/authorities/subjects/sh00000071",
+                "http://id.loc.gov/authorities/subjects/sh00000145",
+                "http://id.loc.gov/authorities/subjects/sh00000273",
+                "http://id.loc.gov/authorities/subjects/sh00005744",
+                "http://id.loc.gov/authorities/subjects/sh2006006405",
+                "http://id.loc.gov/authorities/subjects/sh2006007256",
+                "http://id.loc.gov/authorities/subjects/sh2007005223",
+                "http://id.loc.gov/authorities/subjects/sh2021004026",
+                "http://id.loc.gov/authorities/subjects/sh2021004027",
+                "http://id.loc.gov/authorities/subjects/sh85074044",
+                "http://id.loc.gov/authorities/subjects/sh85129334",
+                "http://id.loc.gov/authorities/subjects/sh99999999",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
               "records": 3,
               "records.items": 3
             },
@@ -75580,22 +76430,26 @@
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+                  "deletion_note": null,
                   "lccn": "sh 00000011",
                   "line_number": 1,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 },
                 {
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000014",
+                  "deletion_note": null,
                   "lccn": "sh 00000014",
                   "line_number": 2,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 }
               ],
@@ -75611,11 +76465,13 @@
                       "authority_types": "builtins.tuple",
                       "broader_iris": "builtins.tuple",
                       "concept_iri": "str",
+                      "deletion_note": "NoneType",
                       "lccn": "str",
                       "line_number": "int",
                       "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
                       "raw_line": "builtins.bytes",
                       "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
                       "variant_labels": "builtins.tuple"
                     },
                     "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
@@ -75670,22 +76526,26 @@
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+                  "deletion_note": null,
                   "lccn": "sh 00000011",
                   "line_number": 1,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 },
                 {
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000014",
+                  "deletion_note": null,
                   "lccn": "sh 00000014",
                   "line_number": 2,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 }
               ],
@@ -75701,11 +76561,13 @@
                       "authority_types": "builtins.tuple",
                       "broader_iris": "builtins.tuple",
                       "concept_iri": "str",
+                      "deletion_note": "NoneType",
                       "lccn": "str",
                       "line_number": "int",
                       "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
                       "raw_line": "builtins.bytes",
                       "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
                       "variant_labels": "builtins.tuple"
                     },
                     "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
@@ -75756,22 +76618,26 @@
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+                  "deletion_note": null,
                   "lccn": "sh 00000011",
                   "line_number": 1,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 },
                 {
                   "authority_types": "<builtins.tuple>",
                   "broader_iris": "<builtins.tuple>",
                   "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000014",
+                  "deletion_note": null,
                   "lccn": "sh 00000014",
                   "line_number": 2,
                   "preferred_label": "<refspec.registry.lcsh_topical.LcshTopicalLabel>",
                   "raw_line": "<builtins.bytes>",
                   "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+                  "use_instead_iris": "<builtins.tuple>",
                   "variant_labels": "<builtins.tuple>"
                 }
               ],
@@ -75787,11 +76653,13 @@
                       "authority_types": "builtins.tuple",
                       "broader_iris": "builtins.tuple",
                       "concept_iri": "str",
+                      "deletion_note": "NoneType",
                       "lccn": "str",
                       "line_number": "int",
                       "preferred_label": "refspec.registry.lcsh_topical.LcshTopicalLabel",
                       "raw_line": "builtins.bytes",
                       "source_url": "str",
+                      "use_instead_iris": "builtins.tuple",
                       "variant_labels": "builtins.tuple"
                     },
                     "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
@@ -75851,6 +76719,7 @@
             "counts": {
               "authority_types.items": 2,
               "broader_iris.items": 1,
+              "use_instead_iris.items": 0,
               "variant_labels.items": 2
             },
             "function": "parse_lcsh_authority_ndjson_line",
@@ -75863,6 +76732,7 @@
                 "http://id.loc.gov/authorities/subjects/sh85074044"
               ],
               "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000023",
+              "deletion_note": null,
               "lccn": null,
               "line_number": 4,
               "preferred_label": {
@@ -75874,6 +76744,7 @@
                 "sha256": "sha256:4b2d2b4afce390dbc1591aa376b25d8cc05b754802eb4de2ff3f3f210757adaa"
               },
               "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
               "variant_labels": [
                 {
                   "language": "en",
@@ -75898,6 +76769,7 @@
                   "type": "tuple"
                 },
                 "concept_iri": "str",
+                "deletion_note": "NoneType",
                 "lccn": "NoneType",
                 "line_number": "int",
                 "preferred_label": {
@@ -75912,6 +76784,11 @@
                   "type": "bytes"
                 },
                 "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
                 "variant_labels": {
                   "count": 2,
                   "itemShape": {
@@ -75937,6 +76814,469 @@
               "urls": [
                 "http://id.loc.gov/authorities/subjects/sh00000023",
                 "http://id.loc.gov/authorities/subjects/sh85074044",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "authority_types.items": 2,
+              "broader_iris.items": 1,
+              "use_instead_iris.items": 0,
+              "variant_labels.items": 2
+            },
+            "function": "parse_lcsh_authority_or_deprecated_ndjson_line",
+            "sample": {
+              "authority_types": [
+                "madsrdf:Authority",
+                "madsrdf:Topic"
+              ],
+              "broader_iris": [
+                "http://id.loc.gov/authorities/subjects/sh00000032"
+              ],
+              "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000029",
+              "deletion_note": null,
+              "lccn": "sh 00000029",
+              "line_number": 3,
+              "preferred_label": {
+                "language": "en",
+                "value": "White-faced saki"
+              },
+              "raw_line": {
+                "byteLength": 6272,
+                "sha256": "sha256:08791d674e94ddc8fc6bf0ddd7f5dfe51520d36bcdbc6eded233e624cfa21c5f"
+              },
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
+              "variant_labels": [
+                {
+                  "language": "en",
+                  "value": "Pale-headed saki"
+                },
+                {
+                  "language": "en",
+                  "value": "Pithecia pithecia"
+                }
+              ]
+            },
+            "shape": {
+              "fields": {
+                "authority_types": {
+                  "count": 2,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "broader_iris": {
+                  "count": 1,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "concept_iri": "str",
+                "deletion_note": "NoneType",
+                "lccn": "str",
+                "line_number": "int",
+                "preferred_label": {
+                  "fields": {
+                    "language": "str",
+                    "value": "str"
+                  },
+                  "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                },
+                "raw_line": {
+                  "byteLength": 6272,
+                  "type": "bytes"
+                },
+                "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "variant_labels": {
+                  "count": 2,
+                  "itemShape": {
+                    "fields": {
+                      "language": "str",
+                      "value": "str"
+                    },
+                    "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                  },
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                6272
+              ],
+              "digests": [
+                "sha256:08791d674e94ddc8fc6bf0ddd7f5dfe51520d36bcdbc6eded233e624cfa21c5f"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000029",
+                "http://id.loc.gov/authorities/subjects/sh00000032",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "authority_types.items": 2,
+              "broader_iris.items": 0,
+              "use_instead_iris.items": 0,
+              "variant_labels.items": 0
+            },
+            "function": "parse_lcsh_authority_or_deprecated_ndjson_line",
+            "sample": {
+              "authority_types": [
+                "madsrdf:Authority",
+                "madsrdf:Topic"
+              ],
+              "broader_iris": [],
+              "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+              "deletion_note": null,
+              "lccn": "sh 00000011",
+              "line_number": 1,
+              "preferred_label": {
+                "language": "en",
+                "value": "ActionScript (Computer program language)"
+              },
+              "raw_line": {
+                "byteLength": 3240,
+                "sha256": "sha256:0acd79998af98fdf7dadf9e8812dc19036f36cc5d5c3ad97aaffb65b90396c8e"
+              },
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
+              "variant_labels": []
+            },
+            "shape": {
+              "fields": {
+                "authority_types": {
+                  "count": 2,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "broader_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "concept_iri": "str",
+                "deletion_note": "NoneType",
+                "lccn": "str",
+                "line_number": "int",
+                "preferred_label": {
+                  "fields": {
+                    "language": "str",
+                    "value": "str"
+                  },
+                  "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                },
+                "raw_line": {
+                  "byteLength": 3240,
+                  "type": "bytes"
+                },
+                "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "variant_labels": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                3240
+              ],
+              "digests": [
+                "sha256:0acd79998af98fdf7dadf9e8812dc19036f36cc5d5c3ad97aaffb65b90396c8e"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000011",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "authority_types.items": 3,
+              "broader_iris.items": 0,
+              "use_instead_iris.items": 0,
+              "variant_labels.items": 0
+            },
+            "function": "parse_lcsh_authority_or_deprecated_ndjson_line",
+            "sample": {
+              "authority_types": [
+                "madsrdf:DeprecatedAuthority",
+                "madsrdf:Topic"
+              ],
+              "broader_iris": [],
+              "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000273",
+              "deletion_note": null,
+              "lccn": null,
+              "line_number": 1,
+              "preferred_label": {
+                "language": "en",
+                "value": "Child concentration camp inmates"
+              },
+              "raw_line": {
+                "byteLength": 353,
+                "sha256": "sha256:4c8b54e310e3c04ee01bbbf3818f8c4ccf9b5b235eeb019424c669dc561cb6a8"
+              },
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
+              "variant_labels": []
+            },
+            "shape": {
+              "fields": {
+                "authority_types": {
+                  "count": 3,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "broader_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "concept_iri": "str",
+                "deletion_note": "NoneType",
+                "lccn": "NoneType",
+                "line_number": "int",
+                "preferred_label": {
+                  "fields": {
+                    "language": "str",
+                    "value": "str"
+                  },
+                  "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                },
+                "raw_line": {
+                  "byteLength": 353,
+                  "type": "bytes"
+                },
+                "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "variant_labels": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                353
+              ],
+              "digests": [
+                "sha256:4c8b54e310e3c04ee01bbbf3818f8c4ccf9b5b235eeb019424c669dc561cb6a8"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000273",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "authority_types.items": 3,
+              "broader_iris.items": 0,
+              "use_instead_iris.items": 2,
+              "variant_labels.items": 0
+            },
+            "function": "parse_lcsh_authority_or_deprecated_ndjson_line",
+            "sample": {
+              "authority_types": [
+                "madsrdf:DeprecatedAuthority",
+                "madsrdf:Topic"
+              ],
+              "broader_iris": [],
+              "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000273",
+              "deletion_note": {
+                "language": "en",
+                "value": "This authority record has been deleted because the heading is covered by other headings"
+              },
+              "lccn": null,
+              "line_number": 1,
+              "preferred_label": {
+                "language": "en",
+                "value": "Child concentration camp inmates"
+              },
+              "raw_line": {
+                "byteLength": 651,
+                "sha256": "sha256:6853154a6f87db477f0b4b2e248e093812e021c9b14c352f3bfca7854d82e26b"
+              },
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [
+                "http://id.loc.gov/authorities/subjects/sh2021004026",
+                "http://id.loc.gov/authorities/subjects/sh2021004027"
+              ],
+              "variant_labels": []
+            },
+            "shape": {
+              "fields": {
+                "authority_types": {
+                  "count": 3,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "broader_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "concept_iri": "str",
+                "deletion_note": {
+                  "fields": {
+                    "language": "str",
+                    "value": "str"
+                  },
+                  "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                },
+                "lccn": "NoneType",
+                "line_number": "int",
+                "preferred_label": {
+                  "fields": {
+                    "language": "str",
+                    "value": "str"
+                  },
+                  "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                },
+                "raw_line": {
+                  "byteLength": 651,
+                  "type": "bytes"
+                },
+                "source_url": "str",
+                "use_instead_iris": {
+                  "count": 2,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "variant_labels": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                651
+              ],
+              "digests": [
+                "sha256:6853154a6f87db477f0b4b2e248e093812e021c9b14c352f3bfca7854d82e26b"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000273",
+                "http://id.loc.gov/authorities/subjects/sh2021004026",
+                "http://id.loc.gov/authorities/subjects/sh2021004027",
+                "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "authority_types.items": 2,
+              "broader_iris.items": 3,
+              "use_instead_iris.items": 0,
+              "variant_labels.items": 0
+            },
+            "function": "parse_lcsh_authority_or_deprecated_ndjson_line",
+            "sample": {
+              "authority_types": [
+                "madsrdf:Authority",
+                "madsrdf:Topic"
+              ],
+              "broader_iris": [
+                "http://id.loc.gov/authorities/subjects/sh2006006405",
+                "http://id.loc.gov/authorities/subjects/sh2006007256"
+              ],
+              "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+              "deletion_note": null,
+              "lccn": "sh 00000011",
+              "line_number": 1,
+              "preferred_label": {
+                "language": "en",
+                "value": "ActionScript (Computer program language)"
+              },
+              "raw_line": {
+                "byteLength": 3412,
+                "sha256": "sha256:a56c65a2a238e70e60b8a277672cdad60ffe360fbc1d47dd8cbf4ec976756cc8"
+              },
+              "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
+              "variant_labels": []
+            },
+            "shape": {
+              "fields": {
+                "authority_types": {
+                  "count": 2,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "broader_iris": {
+                  "count": 3,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "concept_iri": "str",
+                "deletion_note": "NoneType",
+                "lccn": "str",
+                "line_number": "int",
+                "preferred_label": {
+                  "fields": {
+                    "language": "str",
+                    "value": "str"
+                  },
+                  "type": "refspec.registry.lcsh_topical.LcshTopicalLabel"
+                },
+                "raw_line": {
+                  "byteLength": 3412,
+                  "type": "bytes"
+                },
+                "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "variant_labels": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.lcsh_topical.LcshTopicalRecord"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                3412
+              ],
+              "digests": [
+                "sha256:a56c65a2a238e70e60b8a277672cdad60ffe360fbc1d47dd8cbf4ec976756cc8"
+              ],
+              "paths": [],
+              "urls": [
+                "http://id.loc.gov/authorities/subjects/sh00000011",
+                "http://id.loc.gov/authorities/subjects/sh2006006405",
+                "http://id.loc.gov/authorities/subjects/sh2006007256",
+                "http://id.loc.gov/authorities/subjects/sh2007005223",
                 "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz"
               ]
             }
@@ -76017,6 +77357,7 @@
             "counts": {
               "authority_types.items": 2,
               "broader_iris.items": 3,
+              "use_instead_iris.items": 0,
               "variant_labels.items": 0
             },
             "function": "parse_lcsh_topical_ndjson_line",
@@ -76030,6 +77371,7 @@
                 "http://id.loc.gov/authorities/subjects/sh2006007256"
               ],
               "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+              "deletion_note": null,
               "lccn": "sh 00000011",
               "line_number": 1,
               "preferred_label": {
@@ -76041,6 +77383,7 @@
                 "sha256": "sha256:5647faf354a1631c2825c977faaef135791bbe97433e72875400f598ab772477"
               },
               "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
               "variant_labels": []
             },
             "shape": {
@@ -76056,6 +77399,7 @@
                   "type": "tuple"
                 },
                 "concept_iri": "str",
+                "deletion_note": "NoneType",
                 "lccn": "str",
                 "line_number": "int",
                 "preferred_label": {
@@ -76070,6 +77414,11 @@
                   "type": "bytes"
                 },
                 "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
                 "variant_labels": {
                   "count": 0,
                   "itemShape": null,
@@ -76099,6 +77448,7 @@
             "counts": {
               "authority_types.items": 2,
               "broader_iris.items": 1,
+              "use_instead_iris.items": 0,
               "variant_labels.items": 0
             },
             "function": "parse_lcsh_topical_ndjson_line",
@@ -76111,6 +77461,7 @@
                 "http://id.loc.gov/authorities/subjects/sh85129334"
               ],
               "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000014",
+              "deletion_note": null,
               "lccn": "sh 00000014",
               "line_number": 2,
               "preferred_label": {
@@ -76122,6 +77473,7 @@
                 "sha256": "sha256:942b062ee8c036fc735b598a0f64160fd0bb9d6ff2a393eae9dd74d7b48316c0"
               },
               "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
               "variant_labels": []
             },
             "shape": {
@@ -76137,6 +77489,7 @@
                   "type": "tuple"
                 },
                 "concept_iri": "str",
+                "deletion_note": "NoneType",
                 "lccn": "str",
                 "line_number": "int",
                 "preferred_label": {
@@ -76151,6 +77504,11 @@
                   "type": "bytes"
                 },
                 "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
                 "variant_labels": {
                   "count": 0,
                   "itemShape": null,
@@ -76178,6 +77536,7 @@
             "counts": {
               "authority_types.items": 2,
               "broader_iris.items": 3,
+              "use_instead_iris.items": 0,
               "variant_labels.items": 0
             },
             "function": "parse_lcsh_topical_ndjson_line",
@@ -76191,6 +77550,7 @@
                 "http://id.loc.gov/authorities/subjects/sh2006007256"
               ],
               "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000011",
+              "deletion_note": null,
               "lccn": "sh 00000011",
               "line_number": 1,
               "preferred_label": {
@@ -76202,6 +77562,7 @@
                 "sha256": "sha256:a56c65a2a238e70e60b8a277672cdad60ffe360fbc1d47dd8cbf4ec976756cc8"
               },
               "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
               "variant_labels": []
             },
             "shape": {
@@ -76217,6 +77578,7 @@
                   "type": "tuple"
                 },
                 "concept_iri": "str",
+                "deletion_note": "NoneType",
                 "lccn": "str",
                 "line_number": "int",
                 "preferred_label": {
@@ -76231,6 +77593,11 @@
                   "type": "bytes"
                 },
                 "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
                 "variant_labels": {
                   "count": 0,
                   "itemShape": null,
@@ -76260,6 +77627,7 @@
             "counts": {
               "authority_types.items": 2,
               "broader_iris.items": 1,
+              "use_instead_iris.items": 0,
               "variant_labels.items": 2
             },
             "function": "parse_lcsh_topical_ndjson_line",
@@ -76272,6 +77640,7 @@
                 "http://id.loc.gov/authorities/subjects/sh00000032"
               ],
               "concept_iri": "http://id.loc.gov/authorities/subjects/sh00000029",
+              "deletion_note": null,
               "lccn": "sh 00000029",
               "line_number": 3,
               "preferred_label": {
@@ -76283,6 +77652,7 @@
                 "sha256": "sha256:a62900c4ec4ab79fa63ab2a892c392b9acb92861df8101368ee5f3049a500378"
               },
               "source_url": "https://id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz",
+              "use_instead_iris": [],
               "variant_labels": [
                 {
                   "language": "en",
@@ -76307,6 +77677,7 @@
                   "type": "tuple"
                 },
                 "concept_iri": "str",
+                "deletion_note": "NoneType",
                 "lccn": "str",
                 "line_number": "int",
                 "preferred_label": {
@@ -76321,6 +77692,11 @@
                   "type": "bytes"
                 },
                 "source_url": "str",
+                "use_instead_iris": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
                 "variant_labels": {
                   "count": 2,
                   "itemShape": {
@@ -108182,6 +109558,22 @@
           {
             "counts": {},
             "function": "sha256_digest",
+            "sample": "sha256:59531dc7fc2fc5ec977cff7fc6df07fc7b02881c5640ae1c130730bb56935864",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                364730
+              ],
+              "digests": [
+                "sha256:59531dc7fc2fc5ec977cff7fc6df07fc7b02881c5640ae1c130730bb56935864"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
             "sample": "sha256:7a43d33c291a9ab233ed76237dec3cbfb28ebd10169183328077227f6c0cf2ea",
             "shape": "str",
             "sourceEvidence": {
@@ -108206,22 +109598,6 @@
               ],
               "digests": [
                 "sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
-            "sample": "sha256:bda02d66fd4fde25f1277b6b0212aec392dd65afdd690eac6ac7a178890ae568",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                364730
-              ],
-              "digests": [
-                "sha256:bda02d66fd4fde25f1277b6b0212aec392dd65afdd690eac6ac7a178890ae568"
               ],
               "paths": [],
               "urls": []

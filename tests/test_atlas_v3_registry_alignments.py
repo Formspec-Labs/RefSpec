@@ -23,7 +23,6 @@ from refspec.registry.eurovoc_lcsh_alignment import (
     EUROVOC_LCSH_ALIGNMENT_SHA256,
     EXPECTED_PREDICATE_COUNTS,
 )
-from refspec.registry.lcsh_topical import LcshTopicalLabel, LcshTopicalRecord
 
 SOURCE_ROOT = alignments.DEFAULT_SOURCE_ROOT
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +32,11 @@ REQUIRED_FILES = (
     SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711-metadata.rdf",
     SOURCE_ROOT / "eurovoc-4.20-20240711-metadata.rdf",
     SOURCE_ROOT / "eurovoc-4.24-metadata.ttl",
+    # The consolidated LCSH release's referenced-deprecated selection also
+    # depends on the LC external-links archive and the Northwestern
+    # MeSH-LCSH mapping (see v3_registry_alignments_lcsh.gather_referenced_lcsh_iris).
+    SOURCE_ROOT / "lcsh-externallinks-2026-08-15.nt.zip",
+    SOURCE_ROOT / "mesh-lcsh-mapping-20210325.zip",
 )
 HAS_OFFICIAL_SOURCES = all(path.is_file() for path in REQUIRED_FILES)
 HAS_COMPLETE_EUROVOC = (SOURCE_ROOT / "eurovoc-4.24-skos-core.zip").is_file()
@@ -57,7 +61,7 @@ def mapping_release():
 def endpoint_release():
     if not HAS_OFFICIAL_SOURCES:
         pytest.skip("official LCSH bulk and EuroVoc alignment sources are not cached")
-    return alignments.load_lcsh_alignment_endpoint_release(Path(SOURCE_ROOT))
+    return alignments.load_lcsh_consolidated_release(Path(SOURCE_ROOT))
 
 
 @pytest.fixture(scope="module")
@@ -150,10 +154,10 @@ def test_fast_default_served_set_is_computed_from_shipped_evidence(
         )
     }
 
-    assert len(default_served) == 64_464
+    assert len(default_served) == 602_459
     assert Counter(predicate for _, predicate, _ in default_served) == {
-        str(SKOS.exactMatch): 1_683,
-        str(SKOS.relatedMatch): 62_781,
+        str(SKOS.exactMatch): 252_527,
+        str(SKOS.relatedMatch): 349_932,
     }
     assert default_served == {(row.subject, row.predicate, row.object) for row in fast_mapping_release.mappings}
 
@@ -179,11 +183,11 @@ def test_fast_inferred_mapping_delta_is_computed_before_build(
     impact = fast_mapping_release.metadata["inferenceImpact"]
 
     assert baseline.inferred_count == 5_939
-    assert with_fast.inferred_count == 13_001
-    assert with_fast.inferred_count - baseline.inferred_count == 7_062
+    assert with_fast.inferred_count == 765_537
+    assert with_fast.inferred_count - baseline.inferred_count == 759_598
     assert impact["baselineInferredMappingCount"] == baseline.inferred_count
     assert impact["inferredMappingCount"] == with_fast.inferred_count
-    assert impact["inferredMappingDelta"] == 7_062
+    assert impact["inferredMappingDelta"] == 759_598
 
 
 def test_fast_lcsh_exact_sample_carries_the_full_adoption_chain(
@@ -215,12 +219,15 @@ def test_fast_lcsh_mapping_refuses_endpoint_selection_drift(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # The target endpoint is now the consolidated LCSH release, so this drift
+    # check tampers with its own pinned bulk file -- verified before it ever
+    # reaches the four referenced-IRI sources.
     monkeypatch.setattr(
         alignments,
         "load_fast_topical_release",
         lambda _root: SimpleNamespace(),
     )
-    (tmp_path / "eurovoc-lcsh-alignment-20240711.rdf").write_bytes(b"not the pinned endpoint-selection artifact")
+    (tmp_path / alignments.LCSH_BULK_FILENAME).write_bytes(b"not the pinned LCSH bulk artifact")
 
     with pytest.raises(ValueError, match="input pin differs"):
         alignments.load_fast_lcsh_mapping_release(tmp_path)
@@ -247,64 +254,64 @@ def test_fast_lcsh_release_pins_joinable_and_unemitted_counts(
         "publisherBase",
         "publisherChange",
     }
-    assert len(release.mappings) == 64_464
+    assert len(release.mappings) == 602_459
     assert Counter(row.predicate for row in release.mappings) == {
-        str(SKOS.exactMatch): 1_683,
-        str(SKOS.relatedMatch): 62_781,
+        str(SKOS.exactMatch): 252_527,
+        str(SKOS.relatedMatch): 349_932,
     }
     endpoint_iris = {resource.iri for resource in endpoint_release.resources}
     mapping_targets = {row.object for row in release.mappings}
     assert mapping_targets <= endpoint_iris
-    assert len(mapping_targets) == 1_817
-    assert release.metadata["unemittedSchemaSameAsCount"] == 250_852
-    assert release.metadata["unemittedSkosRelatedMatchCount"] == 287_151
+    assert len(mapping_targets) == 254_453
+    assert release.metadata["unemittedSchemaSameAsCount"] == 8
+    assert release.metadata["unemittedSkosRelatedMatchCount"] == 0
     assert release.metadata["recordsWithLcshLinks"] == 427_423
     assert release.metadata["sourceIdentifierCount"] == 0
     assert all(not resource.identifiers for resource in endpoint_release.resources)
     assert release.metadata["assertionComposition"] == {
         "adoptedExactMatch": {
-            "assertionCount": 1_683,
-            "endpointSelection": ("target is a member of the pinned LCSH alignment-endpoint release"),
+            "assertionCount": 252_527,
+            "endpointSelection": "target is a member of the consolidated LCSH release",
             "evidenceWarrant": "operatorAdoption",
             "predicateIri": str(SKOS.exactMatch),
             "publisherStatement": ("OCLC schema:sameAs carried verbatim in each evidence record"),
         },
         "publisherVerbatimRelatedMatch": {
-            "assertionCount": 62_781,
+            "assertionCount": 349_932,
             "evidenceWarrant": "publisherAssertion",
             "marcQualifier": "$w nnd",
             "predicateIri": str(SKOS.relatedMatch),
             "promotion": "none",
         },
         "unemittedPublisherLinks": {
-            "schemaSameAsCount": 250_852,
-            "skosRelatedMatchCount": 287_151,
+            "schemaSameAsCount": 8,
+            "skosRelatedMatchCount": 0,
         },
     }
     assert "defaultServedPredicateIri" not in release.metadata
     assert "publisherRelatedMatchIsDefault" not in release.metadata
 
 
-def test_fast_lcsh_s46_subject_sets_are_disjoint_only_at_current_scope(
+def test_fast_lcsh_s46_widened_scope_has_overlap_but_zero_component_conflicts(
     fast_mapping_release,
 ) -> None:
+    """REF-040's own prediction (REF-035) came true: widening the endpoint
+    reopened subject overlap between exactMatch and relatedMatch. The release
+    still proves zero SKOS S46 exact-match-component conflicts over its own
+    emitted pairs."""
+
     exact_subjects = {row.subject for row in fast_mapping_release.mappings if row.predicate == str(SKOS.exactMatch)}
     related_subjects = {row.subject for row in fast_mapping_release.mappings if row.predicate == str(SKOS.relatedMatch)}
 
-    assert len(exact_subjects) == alignments.FAST_LCSH_EXACT_SUBJECT_COUNT == 1_683
-    assert len(related_subjects) == (alignments.FAST_LCSH_RELATED_SUBJECT_COUNT) == 57_013
-    assert exact_subjects.isdisjoint(related_subjects)
-    assert fast_mapping_release.metadata["s46Safety"] == {
-        "exactMatchSubjectCount": 1_683,
-        "relatedMatchSubjectCount": 57_013,
-        "subjectPredicateOverlapCount": 0,
-        "status": "safeForCurrentPinnedEndpointFilter",
-        "scopeDependency": (
-            "The exactMatch and relatedMatch FAST subject sets are disjoint "
-            "today because of the pinned endpoint filter, not by design; "
-            "widening the endpoint set reopens the S46 check."
-        ),
-    }
+    assert len(exact_subjects) == alignments.FAST_LCSH_EXACT_SUBJECT_COUNT == 252_527
+    assert len(related_subjects) == (alignments.FAST_LCSH_RELATED_SUBJECT_COUNT) == 174_900
+    assert len(exact_subjects & related_subjects) == alignments.FAST_LCSH_SUBJECT_PREDICATE_OVERLAP_COUNT == 12
+    s46 = fast_mapping_release.metadata["s46Safety"]
+    assert s46["conflictCount"] == 0
+    assert s46["exactMatchSubjectCount"] == 252_527
+    assert s46["relatedMatchSubjectCount"] == 174_900
+    assert s46["subjectPredicateOverlapCount"] == 12
+    assert s46["status"] == "measuredZeroConflictsOverThisReleasesOwnExactMatchComponents"
 
 
 def test_fast_nnd_links_never_become_exact_matches(fast_mapping_release) -> None:
@@ -614,72 +621,63 @@ def test_mapping_claims_pin_both_exact_atlas_endpoint_releases(mapping_release) 
     }
     assert domain_rows == set(alignments.EUROVOC_DOMAIN_SUBJECT_IRIS)
     assert {row.object_atlas_release_iri for row in mapping_release.mappings} == {
-        alignments.LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI
+        alignments.LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI
     }
 
 
 def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -> None:
-    assert endpoint_release.key == "lcsh-eurovoc-alignment-endpoints-2026-08-06"
+    # REF-040 consolidated the three per-consumer LCSH endpoint releases
+    # (this one among them) into one release: every current LCSH heading
+    # plus only the deprecated headings a held mapping candidate references.
+    assert endpoint_release.key == "lcsh-subjects-consolidated-2026-08-06"
     assert endpoint_release.scope == "captureSubset"
     assert endpoint_release.source_release_digest == (
-        "sha256:8a6278bb451422874dbecae55f509d6f3f050fd63997c91679e9a53cee1afe93"
+        "sha256:572fe30b22ee032849e3bf608f8232bde845774309a48a9804b4ba71ff900159"
     )
-    assert len(endpoint_release.resources) == alignments.LCSH_ALIGNMENT_ENDPOINT_COUNT
-    assert len({resource.iri for resource in endpoint_release.resources}) == 1_966
-    assert len(endpoint_release.relations) == 933
+    assert len(endpoint_release.resources) == 514_837
+    assert len({resource.iri for resource in endpoint_release.resources}) == 514_837
+    assert len(endpoint_release.relations) == 301_442
     assert endpoint_release.metadata["linesScanned"] == 521_055
     assert endpoint_release.metadata["completePublisherRelease"] is False
-    assert endpoint_release.metadata["publisherReleaseUnspecified"] is True
+    assert endpoint_release.metadata["currentHeadingCount"] == 513_210
+    assert endpoint_release.metadata["deprecatedHeadingsRetainedCount"] == 1_627
+    assert endpoint_release.metadata["deprecatedTotalInPublisherFile"] == 7_845
+    # The alignment's 1,966 endpoints are a subset of the consolidated release.
+    alignment_iris = alignments.parse_eurovoc_lcsh_alignment_file(
+        SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711.rdf"
+    ).lcsh_concept_iris
+    assert alignment_iris <= {resource.iri for resource in endpoint_release.resources}
 
 
 def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_lccn(
     endpoint_release,
 ) -> None:
-    assert sum(len(resource.labels) for resource in endpoint_release.resources) == 7_608
+    assert sum(len(resource.labels) for resource in endpoint_release.resources) == 910_544
     assert endpoint_release.dropped_label_count == 0
     assert all(label.language == "en" for resource in endpoint_release.resources for label in resource.labels)
     assert all(
         sum(label.role == "preferred" for label in resource.labels) == 1 for resource in endpoint_release.resources
     )
     without_lccn = [resource for resource in endpoint_release.resources if not resource.notations]
-    assert len(without_lccn) == 6
+    assert len(without_lccn) == 46_831
     assert all(resource.native_payload["lccn"] is None for resource in without_lccn)
     assert all(resource.iri.startswith("http://id.loc.gov/authorities/subjects/") for resource in without_lccn)
 
 
-def test_lcsh_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
-    record = LcshTopicalRecord(
-        concept_iri="https://example.test/lcsh/one",
-        lccn=None,
-        preferred_label=LcshTopicalLabel(value="Main heading", language="en"),
-        variant_labels=(
-            LcshTopicalLabel(value="Main heading", language="en-Latn"),
-            LcshTopicalLabel(value="Search synonym", language="en-Latn"),
-            LcshTopicalLabel(value="Terme francais", language="fr"),
-        ),
-        broader_iris=(),
-        authority_types=("madsrdf:Authority",),
-        source_url="https://example.test/lcsh.ndjson",
-        line_number=1,
-        raw_line=b"{}",
-    )
-
-    labels = alignments._english_labels(record)
-
-    assert [(label.value, label.role, label.language) for label in labels] == [
-        ("Main heading", "preferred", "en"),
-        ("Search synonym", "alternate", "en"),
-    ]
-
-
 def test_lcsh_endpoint_release_preserves_all_authority_classes(endpoint_release) -> None:
     assert endpoint_release.metadata["authorityTypeCounts"] == {
-        "madsrdf:ComplexSubject": 70,
-        "madsrdf:CorporateName": 3,
-        "madsrdf:FamilyName": 2,
-        "madsrdf:GenreForm": 13,
-        "madsrdf:Geographic": 90,
-        "madsrdf:Topic": 1_788,
+        "madsrdf:ComplexSubject": 197_347,
+        "madsrdf:ConferenceName": 1,
+        "madsrdf:CorporateName": 9_873,
+        "madsrdf:FamilyName": 24_381,
+        "madsrdf:GenreForm": 426,
+        "madsrdf:Geographic": 55_620,
+        "madsrdf:HierarchicalGeographic": 41_223,
+        "madsrdf:NameTitle": 22,
+        "madsrdf:PersonalName": 1,
+        "madsrdf:Temporal": 34,
+        "madsrdf:Title": 87,
+        "madsrdf:Topic": 185_822,
     }
     resource_iris = {resource.iri for resource in endpoint_release.resources}
     assert all(
@@ -694,7 +692,9 @@ def test_mapping_targets_match_the_exact_lcsh_endpoint_release(
     mapping_release,
     endpoint_release,
 ) -> None:
-    assert {row.object for row in mapping_release.mappings} == {resource.iri for resource in endpoint_release.resources}
+    # The consolidated release now backs every held LCSH mapping, not only
+    # this one, so its targets are a subset rather than an exact match.
+    assert {row.object for row in mapping_release.mappings} <= {resource.iri for resource in endpoint_release.resources}
 
 
 def test_mapping_subjects_match_the_complete_eurovoc_release_partitions(
