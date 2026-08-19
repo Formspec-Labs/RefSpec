@@ -21,6 +21,11 @@ This package is the producer-side half of that machinery:
   ``_derive_registered_relations``) and admitted by the binding
   (``bindings/atlas/3.1/tools/validate.py``,
   ``_DERIVED_RULE_ADMISSIONS``) as of REF-042 (``docs/decisions.md``).
+* the GCMD Science Keywords column-nesting hierarchy
+  (:mod:`refspec.atlas.derived_graph.gcmd_column_nesting`), which derives
+  ``skos:broader`` edges from the CSV path columns each keyword's
+  ``SourceRecord`` native payload carries verbatim (REF-041's judgment,
+  registered as the third rule by REF-043).
 
 **Extension point for additional rules.** A new rule is one module in
 this package that builds a :class:`DerivationRule`, plus two deliberate
@@ -54,6 +59,7 @@ ATLAS_NOTATION_TERM = "<https://refspec.org/ns/atlas/v3#notation>"
 ATLAS_IN_SCHEME_TERM = "<https://refspec.org/ns/atlas/v3#inScheme>"
 ATLAS_REPRESENTS_RESOURCE_TERM = "<https://refspec.org/ns/atlas/v3#representsResource>"
 ATLAS_SEMANTIC_RING_TERM = "<https://refspec.org/ns/atlas/v3#semanticRing>"
+ATLAS_NATIVE_PAYLOAD_TERM = "<https://refspec.org/ns/atlas/v3#nativePayload>"
 
 # The DerivedRelation record shape itself -- every predicate a derived row
 # carries, in the same terms `rdf_node_digest` would render them in if the
@@ -141,15 +147,18 @@ class AssertedFactView:
     Only the predicates some registered rule watches are collected, and
     only in the shapes the collector understands: notations per
     resource, the one scheme each resource sits in, the source record
-    each resource is represented by, and the one semantic ring each
-    resource declares. Anything a future rule needs becomes a new field
-    here, fed by a new watched predicate, so collection stays one pass.
+    each resource is represented by, the one semantic ring each
+    resource declares, and the canonical native-payload JSON text each
+    source record carries. Anything a future rule needs becomes a new
+    field here, fed by a new watched predicate, so collection stays one
+    pass.
     """
 
     notations: dict[str, set[str]] = field(default_factory=dict)
     schemes: dict[str, str] = field(default_factory=dict)
     records: dict[str, str] = field(default_factory=dict)
     rings: dict[str, str] = field(default_factory=dict)
+    payloads: dict[str, str] = field(default_factory=dict)
     scheme_conflicts: tuple[str, ...] = ()
 
 
@@ -487,6 +496,10 @@ def collect_asserted_fact_view(lines: Iterable[str]) -> AssertedFactView:
                 ring_conflicts.add(resource)
             else:
                 view.rings[resource] = ring
+        elif predicate == ATLAS_NATIVE_PAYLOAD_TERM and obj.startswith('"'):
+            # Keyed by the node carrying the payload -- a SourceRecord, not
+            # the resource it represents (`records` maps that other way).
+            view.payloads[resource] = literal_value(obj)
     if scheme_conflicts:
         raise ValueError(f"asserted graph gives one resource two schemes: {min(scheme_conflicts)}")
     if ring_conflicts:
@@ -537,12 +550,16 @@ def collect_node_digests(lines: Iterable[str], wanted: frozenset[str]) -> dict[s
     return digests
 
 
+from refspec.atlas.derived_graph.gcmd_column_nesting import (
+    GCMD_COLUMN_NESTING_DERIVATION_RULE,
+)
 from refspec.atlas.derived_graph.mesh_tree_numbers import (
     MESH_TREE_NUMBER_BROADER_RULE,
 )
 
 register_derivation_rule(MESH_TREE_NUMBER_BROADER_RULE)
-_BUILTIN_RULES = (MESH_TREE_NUMBER_BROADER_RULE,)
+register_derivation_rule(GCMD_COLUMN_NESTING_DERIVATION_RULE)
+_BUILTIN_RULES = (MESH_TREE_NUMBER_BROADER_RULE, GCMD_COLUMN_NESTING_DERIVATION_RULE)
 
 __all__ = [
     "ATLAS_DERIVATION_RULE_TERM",
@@ -552,6 +569,7 @@ __all__ = [
     "ATLAS_ENGINE_VERSION_TERM",
     "ATLAS_GENERATED_AT_TERM",
     "ATLAS_IN_SCHEME_TERM",
+    "ATLAS_NATIVE_PAYLOAD_TERM",
     "ATLAS_NOTATION_TERM",
     "ATLAS_RELATION_OBJECT_TERM",
     "ATLAS_RELATION_PREDICATE_TERM",

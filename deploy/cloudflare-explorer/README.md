@@ -257,6 +257,48 @@ app itself doesn't pin or verify a manifest digest -- it trusts whatever
 is at those R2 keys, the same way the Worker trusts whatever
 `wrangler deploy` last pushed.
 
+## Follow-up: derived relations (REF-042) are not ported here yet
+
+The local explorer (`duckdb_view.py`/`explorer_cli.py`/`explorer_frontend.py`)
+now surfaces REF-042's non-authoritative derived-relation graph (e.g. MeSH's
+skos:broader hierarchy) behind a hidden-by-default `?relations=all` opt-in --
+see `AtlasDuckDBView.derived_relations_available()`,
+`resource(..., relations=)`, `release_graph(..., relations=)`, and
+`overview(..., relations=)`. This Cloudflare port does **not** carry that
+opt-in yet, for one concrete reason: as of this writing no sealed compact
+search view actually ships a `tables/derived-relations.parquet` file to
+precompute from (`derived-relations.parquet` is a REF-042 producer output;
+the newest search view here, `atlas-3.1-parquet-search-view-2026-08-17`, was
+sealed before it existed). There is nothing to precompute or verify against
+yet, so nothing was ported speculatively. When a search view carrying that
+table exists, porting it is:
+
+1. **`build/precompute.py`**: call `view.derived_relations_available()` and
+   fold the result into `facets.json` (`duckdb_view.py`'s `facets()` already
+   returns a `derivedRelations: {available, count}` key verbatim -- no new
+   query needed there). For `overview-{active,all}.json`, also compute the
+   `relations="all"` variant the same way `status` already gets both
+   variants precomputed. For `resource()`'s precomputed detail payload,
+   follow the exact pattern this file already uses for `status` (see "The
+   resource detail inspector does not use DuckDB-Wasm at all" above): call
+   `resource(id, relations="all")` -- the unfiltered superset, once -- so
+   each relation already carries `statement_type: "DerivedRelation"`,
+   `derivation_rule`, and `derived_from_assertions` when present, and let the
+   browser filter derived rows in/out client-side exactly the way it already
+   filters deprecated-endpoint rows in/out by status. `release-graph/*.json`
+   needs both a `relations="asserted"` and a `relations="all"` variant per
+   release (four files per release instead of two), same capping rules.
+2. **`public/assets/data-layer.js`**: read the new `derivedRelations` facet,
+   and apply the client-side relation filter described above.
+3. **`public/index.html` / `public/release.html`**: port the "Show derived
+   relations" toggle (hidden unless `facets.derivedRelations.available`),
+   the violet `DerivedRelation` edge color/dash, and the "Derivation rule"
+   inspector fact -- these three are plain copy from
+   `src/refspec/atlas/explorer_frontend.py`'s `_ATLAS_EXPLORER_FRONTEND`/
+   `_ATLAS_RELEASE_FRONTEND` templates, which already carry them.
+
+Then redeploy following "Redeploying a new search view" above.
+
 ## What was ported vs. cut
 
 Ported: search (BM25-ranked, same formula, same fields), the resource
@@ -276,6 +318,8 @@ Cut / degraded, with reasons:
   original Python `explorer_cli.py`/`duckdb_view.py` already ignore it --
   nothing was removed, this is describing existing dead-parameter
   behavior this port preserves.
+- **REF-042's derived-relation opt-in is not ported** -- see "Follow-up:
+  derived relations (REF-042) are not ported here yet" above.
 
 ## Search index
 

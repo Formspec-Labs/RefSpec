@@ -48,11 +48,19 @@ from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
     COMPRESSION,
     COMPRESSION_LEVEL,
+    DERIVED_RELATION_DECISION,
+    DERIVED_RELATION_ID_PREFIX,
+    DERIVED_RELATION_ROLE,
+    DERIVED_RELATION_TABLE_SCHEMA,
     PARQUET_VERSION,
     ROW_GROUP_SIZE,
     TABLE_MEDIA_TYPE,
     TABLE_SCHEMAS,
     agency_projection_table_relative_path,
+    derived_relation_content_digest,
+    derived_relation_coverage,
+    derived_relation_logical_row,
+    derived_relation_table_relative_path,
     logical_records_preserved,
     table_relative_path,
     unpreserved_record_fields,
@@ -61,17 +69,22 @@ from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
 )
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 
-# 3.0: the compact JSONL wire is gone, so the input pin loses
-# `compactPackInventoryDigest` and the tables are the distribution's only
-# served projection. 2.0 added the five warrant columns (four rkaf axes plus
-# the optional basedOnAttestation referent), which is what makes
-# `logicalRecordsPreserved` computed rather than declared.
-VIEW_SCHEMA_VERSION = "3.1"
-LEGACY_VIEW_SCHEMA_VERSION = "3.0"
+# 3.0: the compact JSONL wire is gone. 2.0 added the five warrant columns.
+# 3.1 added the optional REF-038 agency-projection tables and their manifest
+# block. 3.2 adds the optional derived-relations table (REF-042's derived
+# graph carried into the served view) and its manifest block; a 3.2 view of
+# a distribution that declares derived content MUST carry the table, which
+# is what closes the gap the first content-bearing derived graph shipped
+# with -- 42,519 derived relations sealed in the packs, zero reachable from
+# the view.
+VIEW_SCHEMA_VERSION = "3.2"
+LEGACY_VIEW_SCHEMA_VERSION = "3.1"
+LEGACY_VIEW_SCHEMA_VERSION_3_0 = "3.0"
 VIEW_RECORD_TYPE = "AtlasParquetViewManifest"
 VIEW_IMPLEMENTATION = "refspec.atlas.parquet_view"
-VIEW_IMPLEMENTATION_VERSION = "3.1"
+VIEW_IMPLEMENTATION_VERSION = "3.2"
 VIEW_ID_PREFIX = "urn:ref:atlas-parquet-view:"
 MANIFEST_FILE = "view-manifest.json"
 
@@ -103,12 +116,21 @@ _AGENCY_PROJECTION_COVERAGE_FIELDS = frozenset(
         "evidence_record_count",
     }
 )
+_DERIVED_RELATION_COVERAGE_FIELDS = frozenset(
+    {
+        "rowCount",
+        "ruleCounts",
+        "predicateCounts",
+        "generatedAt",
+    }
+)
 _VIEW_MANIFEST_FIELDS = frozenset(
     {
         "agencyProjection",
         "canonicalPayloadDigest",
         "construction",
         "counts",
+        "derivedRelations",
         "input",
         "members",
         "recordType",
@@ -117,7 +139,10 @@ _VIEW_MANIFEST_FIELDS = frozenset(
         "viewId",
     }
 )
-_LEGACY_VIEW_MANIFEST_FIELDS = _VIEW_MANIFEST_FIELDS - {"agencyProjection"}
+#: 3.1 carried the agency-projection block; 3.0 carried neither optional
+#: table category. Both stay verifiable so already-sealed views do not.
+_LEGACY_3_1_VIEW_MANIFEST_FIELDS = _VIEW_MANIFEST_FIELDS - {"derivedRelations"}
+_LEGACY_3_0_VIEW_MANIFEST_FIELDS = _LEGACY_3_1_VIEW_MANIFEST_FIELDS - {"agencyProjection"}
 
 
 class AtlasParquetViewError(ValueError):
@@ -555,6 +580,168 @@ def _verify_agency_projection_content(
         )
 
 
+def _validated_derived_relation_metadata(
+    derived_relations: object,
+    counts: Mapping[str, int],
+    distribution_counts: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Validate the derived-relations block against the tables it describes.
+
+    ``counts`` are the view's table row counts by role. When
+    ``distribution_counts`` is given (seal time, from the verified Atlas
+    manifest) the block is additionally tied to the distribution's own
+    declared ``derivedRelations`` count: a view of a distribution that
+    declares derived content must carry it, and a view of a distribution
+    with none must not invent it. At verify time no distribution is at
+    hand; the tie was checked when the manifest was sealed and survives the
+    manifest's payload digest.
+    """
+
+    if not isinstance(derived_relations, Mapping):
+        raise AtlasParquetViewError(
+            "derived relations metadata must be an object"
+        )
+    metadata = dict(derived_relations)
+    if metadata.get("status") == "emitted":
+        if set(metadata) != {
+            "status",
+            "decision",
+            "digest",
+            "coverage",
+        }:
+            raise AtlasParquetViewError(
+                "derived relations metadata fields differ"
+            )
+        coverage = metadata["coverage"]
+        if not isinstance(coverage, Mapping):
+            raise AtlasParquetViewError(
+                "derived relations coverage must be an object"
+            )
+        coverage = dict(coverage)
+        if set(coverage) != _DERIVED_RELATION_COVERAGE_FIELDS:
+            raise AtlasParquetViewError(
+                "derived relations coverage fields differ"
+            )
+        row_count = coverage["rowCount"]
+        if (
+            not isinstance(row_count, int)
+            or isinstance(row_count, bool)
+            or row_count < 1
+            or not isinstance(coverage["generatedAt"], str)
+            or not coverage["generatedAt"]
+        ):
+            raise AtlasParquetViewError(
+                "derived relations coverage rowCount or generatedAt is invalid"
+            )
+        for field in ("ruleCounts", "predicateCounts"):
+            breakdown = coverage[field]
+            if not isinstance(breakdown, Mapping) or any(
+                not isinstance(key, str)
+                or not key
+                or not isinstance(value, int)
+                or isinstance(value, bool)
+                or value < 1
+                for key, value in breakdown.items()
+            ):
+                raise AtlasParquetViewError(
+                    "derived relations coverage breakdowns are invalid"
+                )
+            if sum(breakdown.values()) != row_count:
+                raise AtlasParquetViewError(
+                    "derived relations coverage breakdown does not sum to its rows"
+                )
+        if (
+            metadata.get("decision") != DERIVED_RELATION_DECISION
+            or _DIGEST.fullmatch(str(metadata.get("digest"))) is None
+            or counts.get(DERIVED_RELATION_ROLE) != row_count
+        ):
+            raise AtlasParquetViewError(
+                "derived relations coverage differs from table rows"
+            )
+        if distribution_counts is not None and distribution_counts.get(
+            "derivedRelations"
+        ) != row_count:
+            raise AtlasParquetViewError(
+                "derived relations differ from the distribution's declared count"
+            )
+        metadata["coverage"] = coverage
+    elif metadata.get("status") == "notEmitted":
+        if set(metadata) != {"status"}:
+            raise AtlasParquetViewError(
+                "absent derived relations metadata fields differ"
+            )
+        if DERIVED_RELATION_ROLE in counts:
+            raise AtlasParquetViewError(
+                "absent derived relations metadata accompanies an emitted table"
+            )
+        if distribution_counts is not None and distribution_counts.get(
+            "derivedRelations",
+            0,
+        ) != 0:
+            raise AtlasParquetViewError(
+                "distribution declares derived relations the view does not carry"
+            )
+    else:
+        raise AtlasParquetViewError(
+            "derived relations metadata has an unsupported status"
+        )
+    return metadata
+
+
+def _verify_derived_relation_content(
+    directory: Path,
+    manifest: Mapping[str, Any],
+) -> None:
+    """Recompute derived-relation coverage and content digest from rows."""
+
+    metadata = manifest["derivedRelations"]
+    if metadata["status"] != "emitted":
+        return
+    rows = pq.read_table(
+        _safe_path(directory, derived_relation_table_relative_path())
+    ).to_pylist()
+    identifiers: set[str] = set()
+    for row in rows:
+        row_id = row["id"]
+        if not row_id or row_id in identifiers:
+            raise AtlasParquetViewError(
+                "derived relation repeats or empties an identifier"
+            )
+        identifiers.add(row_id)
+        if row_id != DERIVED_RELATION_ID_PREFIX + bytes(row["content_digest"]).hex():
+            raise AtlasParquetViewError(
+                "derived relation identifier differs from its contentDigest"
+            )
+        evidence = row["derived_from_assertions"]
+        if not evidence or evidence != sorted(set(evidence)):
+            raise AtlasParquetViewError(
+                "derived relation evidence rows are empty, repeated, or unsorted"
+            )
+        if (
+            row["semantic_ring"] not in SEMANTIC_RINGS
+            or not row["subject"]
+            or not row["predicate"]
+            or not row["object"]
+            or not row["derivation_rule"]
+            or not row["engine"]
+            or not row["engine_version"]
+            or not row["generated_at"]
+        ):
+            raise AtlasParquetViewError(
+                "derived relation row is incomplete"
+            )
+    logical = [derived_relation_logical_row(row) for row in rows]
+    coverage = derived_relation_coverage(logical)
+    if coverage != metadata["coverage"]:
+        raise AtlasParquetViewError(
+            "derived relations coverage differs from table rows"
+        )
+    if derived_relation_content_digest(logical, coverage) != metadata["digest"]:
+        raise AtlasParquetViewError(
+            "derived relations logical-content digest differs"
+        )
+
+
 def atlas_parquet_view_manifest(
     input_: VerifiedAtlasParquetSourceMetadata,
     members: Sequence[Mapping[str, Any]],
@@ -562,6 +749,7 @@ def atlas_parquet_view_manifest(
     *,
     source_representation: str,
     agency_projection: Mapping[str, Any],
+    derived_relations: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Assemble the view manifest for tables that are already written.
 
@@ -587,10 +775,16 @@ def atlas_parquet_view_manifest(
         agency_projection,
         counts,
     )
+    derived_metadata = _validated_derived_relation_metadata(
+        derived_relations,
+        counts,
+        input_.manifest["counts"],
+    )
     manifest: dict[str, Any] = {
         "agencyProjection": projection_metadata,
         "construction": construction,
         "counts": dict(counts),
+        "derivedRelations": derived_metadata,
         "input": input_pin,
         "members": [dict(member) for member in members],
         "recordType": VIEW_RECORD_TYPE,
@@ -619,6 +813,7 @@ def seal_atlas_parquet_view(
     *,
     expected_manifest_digest: str,
     agency_projection: Mapping[str, Any],
+    derived_relations: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Close a view over tables the Atlas builder already wrote.
 
@@ -642,6 +837,7 @@ def seal_atlas_parquet_view(
         counts,
         source_representation=BUILDER_SOURCE_REPRESENTATION,
         agency_projection=agency_projection,
+        derived_relations=derived_relations,
     )
     (staged_tables / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
     verify_atlas_parquet_view(staged_tables, expected_manifest_digest=file_sha256(staged_tables / MANIFEST_FILE))
@@ -662,18 +858,18 @@ def _staged_table_members(staged: Path) -> tuple[list[dict[str, Any]], dict[str,
         )
         for role in CompactRecordRole
     ]
-    derived_present = {
+    projection_present = {
         role: _safe_path(
             staged,
             agency_projection_table_relative_path(role),
         ).is_file()
         for role in AGENCY_PROJECTION_TABLE_SCHEMAS
     }
-    if len(set(derived_present.values())) != 1:
+    if len(set(projection_present.values())) != 1:
         raise AtlasParquetViewError(
             "agency projection tables must be emitted together"
         )
-    if all(derived_present.values()):
+    if all(projection_present.values()):
         contracts.extend(
             (
                 role,
@@ -681,6 +877,14 @@ def _staged_table_members(staged: Path) -> tuple[list[dict[str, Any]], dict[str,
                 schema,
             )
             for role, schema in AGENCY_PROJECTION_TABLE_SCHEMAS.items()
+        )
+    if _safe_path(staged, derived_relation_table_relative_path()).is_file():
+        contracts.append(
+            (
+                DERIVED_RELATION_ROLE,
+                derived_relation_table_relative_path(),
+                DERIVED_RELATION_TABLE_SCHEMA,
+            )
         )
 
     for role, relative, schema in contracts:
@@ -723,7 +927,9 @@ def verify_atlas_parquet_view(
     if schema_version == VIEW_SCHEMA_VERSION:
         expected_manifest_fields = _VIEW_MANIFEST_FIELDS
     elif schema_version == LEGACY_VIEW_SCHEMA_VERSION:
-        expected_manifest_fields = _LEGACY_VIEW_MANIFEST_FIELDS
+        expected_manifest_fields = _LEGACY_3_1_VIEW_MANIFEST_FIELDS
+    elif schema_version == LEGACY_VIEW_SCHEMA_VERSION_3_0:
+        expected_manifest_fields = _LEGACY_3_0_VIEW_MANIFEST_FIELDS
     else:
         raise AtlasParquetViewError("Atlas Parquet view type or version is unsupported")
     if set(manifest) != expected_manifest_fields:
@@ -752,10 +958,15 @@ def verify_atlas_parquet_view(
         role.value: TABLE_SCHEMAS[role] for role in CompactRecordRole
     }
     if (
-        schema_version == VIEW_SCHEMA_VERSION
+        schema_version in (VIEW_SCHEMA_VERSION, LEGACY_VIEW_SCHEMA_VERSION)
         and manifest["agencyProjection"]["status"] == "emitted"
     ):
         schema_by_role.update(AGENCY_PROJECTION_TABLE_SCHEMAS)
+    if (
+        schema_version == VIEW_SCHEMA_VERSION
+        and manifest["derivedRelations"]["status"] == "emitted"
+    ):
+        schema_by_role[DERIVED_RELATION_ROLE] = DERIVED_RELATION_TABLE_SCHEMA
     expected_roles = set(schema_by_role)
     observed_roles: set[str] = set()
     for member in manifest["members"]:
@@ -787,12 +998,19 @@ def verify_atlas_parquet_view(
         counts[role] = row_count
     if observed_roles != expected_roles or counts != manifest["counts"]:
         raise AtlasParquetViewError("Atlas Parquet roles or aggregate counts differ")
-    if schema_version == VIEW_SCHEMA_VERSION:
+    if schema_version in (VIEW_SCHEMA_VERSION, LEGACY_VIEW_SCHEMA_VERSION):
         _validated_agency_projection_metadata(
             manifest["agencyProjection"],
             counts,
         )
         _verify_agency_projection_content(directory, manifest)
+    if schema_version == VIEW_SCHEMA_VERSION:
+        _validated_derived_relation_metadata(
+            manifest["derivedRelations"],
+            counts,
+            None,
+        )
+        _verify_derived_relation_content(directory, manifest)
     if artifact_file_paths(directory) != expected_files:
         raise AtlasParquetViewError("Atlas Parquet view file membership is not closed")
     return manifest

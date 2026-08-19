@@ -12,6 +12,7 @@ import tempfile
 import threading
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Self, cast
@@ -50,6 +51,64 @@ _AGENCY_PROJECTION_TABLE_FILE = "agency-projection.parquet"
 _AGENCY_PROJECTION_UNRESOLVED_TABLE_FILE = "agency-projection-unresolved.parquet"
 _AGENCY_PROJECTION_VIEW = "atlas_agency_projection"
 _AGENCY_PROJECTION_UNRESOLVED_VIEW = "atlas_agency_projection_unresolved"
+
+#: The derived graph (REF-042) may ship a separate, optional
+#: ``derived-relations.parquet`` table alongside the eight closed compact
+#: record roles -- one row per ``atlas:DerivedRelation`` a registered rule
+#: produced (see ``refspec.atlas.derived_graph``). It is non-authoritative by
+#: contract, so the explorer surfaces it only opt-in (``relations="all"``)
+#: and never as if a publisher asserted it. Its column names were not yet
+#: settled when this reader was written, so every column beyond the load-
+#: bearing subject/predicate/object triple is discovered at query-open time
+#: from the Parquet file's own schema (``_discover_derived_relations_columns``)
+#: rather than hardcoded.
+_DERIVED_RELATIONS_TABLE_FILE = "derived-relations.parquet"
+_DERIVED_RELATIONS_VIEW = "atlas_derived_relations"
+_DERIVED_RELATION_STATEMENT_TYPE = "DerivedRelation"
+_RELATIONS_FILTERS = frozenset({"asserted", "all"})
+
+# Candidate column names checked, in order, against derived-relations.parquet's
+# actual schema. The subject/predicate/object triple is load-bearing (a
+# missing match there is a real defect, not a graceful-degrade case); the
+# rest are cosmetic and simply omitted from the response when no candidate
+# matches.
+_DERIVED_ID_COLUMNS = ("id", "node_iri", "nodeIri")
+_DERIVED_SUBJECT_COLUMNS = ("subject", "relation_subject", "relationSubject")
+_DERIVED_PREDICATE_COLUMNS = ("predicate", "relation_predicate", "relationPredicate")
+_DERIVED_OBJECT_COLUMNS = ("object", "relation_object", "relationObject")
+_DERIVED_RING_COLUMNS = ("semantic_ring", "semanticRing", "ring")
+_DERIVED_CONTENT_DIGEST_COLUMNS = ("content_digest", "contentDigest")
+_DERIVED_RULE_COLUMNS = ("derivation_rule", "rule_iri", "rule", "derivationRule", "ruleIri")
+_DERIVED_FROM_ASSERTIONS_COLUMNS = (
+    "derived_from_assertions",
+    "derivedFromAssertions",
+    "derived_from",
+    "derivedFrom",
+    "asserted_from",
+    "evidence",
+    "source_assertions",
+    "sourceAssertions",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _DerivedRelationsColumns:
+    """The real column names this view found in ``derived-relations.parquet``.
+
+    ``subject``/``predicate``/``object`` are always present (query-open
+    fails loudly otherwise); every other field is the matched column name
+    or ``None`` when no candidate name was present in that file's schema.
+    """
+
+    subject: str
+    predicate: str
+    object: str
+    id: str | None
+    ring: str | None
+    content_digest: str | None
+    rule: str | None
+    derived_from: str | None
+
 
 #: The compact search view may carry REF-038's agency-projection tables as
 #: manifest members alongside the eight closed compact record roles (see
@@ -94,6 +153,8 @@ class AtlasDuckDBView:
         self._lock = threading.RLock()
         self._search_ready = False
         self._agency_projection_ready = False
+        self._derived_relations_ready = False
+        self._derived_relations_columns: _DerivedRelationsColumns | None = None
         self._closed = False
 
     @classmethod
@@ -251,11 +312,14 @@ class AtlasDuckDBView:
             """
         )
         statement_count = self.counts[CompactRecordRole.STATEMENT.value]
+        derived_available = self.derived_relations_available()
+        derived_count = self._derived_relations_count() if derived_available else 0
         return {
             "counts": {
                 "resources": self.counts[CompactRecordRole.RESOURCE.value],
                 "statements": statement_count,
             },
+            "derivedRelations": {"available": derived_available, "count": derived_count},
             "graphs": [
                 {
                     "authority": "Verified Atlas relation records",
@@ -269,7 +333,7 @@ class AtlasDuckDBView:
             "start": start_rows[0]["id"] if start_rows else "",
         }
 
-    def overview(self, *, status: str = "active") -> dict[str, Any]:
+    def overview(self, *, status: str = "active", relations: str = "asserted") -> dict[str, Any]:
         """Return the whole-atlas map: every vocabulary and the relation volume between them.
 
         Deprecated-status resources (any ``record_status`` containing
@@ -280,9 +344,18 @@ class AtlasDuckDBView:
         ``partner`` release id -- the release they share the most
         ``MappingAssertion`` volume with -- so the frontend can draw them as
         small satellites near that partner instead of as full peers.
+
+        Non-authoritative derived relations (REF-042) are excluded from
+        ``internalRelations`` by default, the same opt-in-hidden posture as
+        ``resource()``/``release_graph()``; pass ``relations="all"`` to fold
+        them in. Every derivation rule shipped today only relates resources
+        within one release, so this only ever changes a node's own
+        ``internalRelations`` count -- cross-release derived edges, if a
+        future rule ever produced one, would not appear in ``edges`` here.
         """
 
         _validate_status(status)
+        _validate_relations(relations)
         nodes = self.query_rows(
             f"""
             WITH classification AS (
@@ -339,12 +412,17 @@ class AtlasDuckDBView:
                 internal[row["source"]] = internal.get(row["source"], 0) + row["count"]
             else:
                 edges.append(row)
+        if relations == "all":
+            for release_id, count in self._derived_relations_internal_counts(status=status).items():
+                internal[release_id] = internal.get(release_id, 0) + count
         for node in nodes:
             node["internalRelations"] = internal.get(node["id"], 0)
         _mark_satellites(nodes, edges)
         return {"edges": edges, "nodes": nodes}
 
-    def release_graph(self, release_id: str, *, status: str = "active") -> dict[str, Any]:
+    def release_graph(
+        self, release_id: str, *, status: str = "active", relations: str = "asserted"
+    ) -> dict[str, Any]:
         """Return one vocabulary's full graph: every resource and internal relation.
 
         Nodes are ``[id, label]`` pairs; edges are ``[subject, object, predicate,
@@ -352,9 +430,20 @@ class AtlasDuckDBView:
         ``types``, so the payload stays compact for six-figure vocabularies.
         Deprecated-status resources are excluded by default; pass
         ``status="all"`` to include them.
+
+        Non-authoritative derived relations (REF-042) are excluded by
+        default, the same opt-in-hidden posture as ``resource()``; pass
+        ``relations="all"`` to include them, tagged ``statementType`` ==
+        ``"DerivedRelation"`` in the returned ``types`` table so the caller
+        can render them distinctly. Only derived edges whose subject AND
+        object are both members of this release are included -- the
+        derived-relations table is not known to carry its own
+        source/target-release columns, so membership is decided the same
+        way node membership already is, from this release's own resources.
         """
 
         _validate_status(status)
+        _validate_relations(relations)
         release_rows = self.query_rows(
             """
             SELECT id, identifier, semantic_ring AS ring
@@ -410,6 +499,11 @@ class AtlasDuckDBView:
             """,
             (release_id, release_id),
         )
+        if relations == "all":
+            edge_rows = [
+                *edge_rows,
+                *self._derived_relations_within([row["id"] for row in node_rows]),
+            ]
         positions = {row["id"]: position for position, row in enumerate(node_rows)}
         predicates: list[str] = []
         predicate_positions: dict[str, int] = {}
@@ -518,16 +612,29 @@ class AtlasDuckDBView:
             (normalized, not release_filter, release_filter, ring, ring, status, limit, offset),
         )
 
-    def resource(self, resource_id: str, *, status: str = "active") -> dict[str, Any]:
+    def resource(
+        self, resource_id: str, *, status: str = "active", relations: str = "asserted"
+    ) -> dict[str, Any]:
         """Return one resource, its immediate relations, and their evidence.
 
         The requested resource is always returned, even if it is itself
         deprecated -- it was asked for by id. Its relations to *other*
         deprecated-status resources are excluded by default; pass
         ``status="all"`` to include them.
+
+        Non-authoritative derived relations (REF-042) touching this resource
+        are excluded by default -- they are opt-in by contract, never shown
+        as if a publisher asserted them; pass ``relations="all"`` to include
+        them. Each carries ``statement_type == "DerivedRelation"``, an empty
+        evidence list (derived rows are not entries in
+        ``atlas_evidence_bindings``), and, when this view's
+        ``derived-relations.parquet`` carries them, ``derivation_rule`` and
+        ``derived_from_assertions`` fields naming the rule that produced the
+        edge and the asserted assertions it was produced from.
         """
 
         _validate_status(status)
+        _validate_relations(relations)
         resource_rows = self.query_rows(
             "SELECT * FROM atlas_resources WHERE id = ?",
             (resource_id,),
@@ -561,7 +668,7 @@ class AtlasDuckDBView:
             """,
             (resource_id,),
         )
-        relations = self.query_rows(
+        asserted_relations = self.query_rows(
             f"""
             SELECT statement.*
             FROM atlas_statements AS statement
@@ -576,7 +683,7 @@ class AtlasDuckDBView:
             """,
             (resource_id, resource_id, resource_id, status, resource_id, status),
         )
-        relation_ids = [relation["id"] for relation in relations]
+        relation_ids = [relation["id"] for relation in asserted_relations]
         evidence_rows = self.query_rows(
             """
             SELECT
@@ -604,19 +711,22 @@ class AtlasDuckDBView:
                     "sourceRelease": row["source_release"],
                 }
             )
+        for relation in asserted_relations:
+            evidence = evidence_by_statement.get(relation["id"], [])
+            relation["evidence"] = evidence
+            relation["evidence_count"] = len(evidence)
+
+        derived_relations = self._derived_relations_touching(resource_id) if relations == "all" else []
+        for relation in derived_relations:
+            relation["evidence"] = []
+            relation["evidence_count"] = 0
+        all_relations = [*asserted_relations, *derived_relations]
+
+        endpoint_ids = sorted({row[field] for row in all_relations for field in ("subject", "object")})
         endpoint_rows = self.query_rows(
             """
-            WITH endpoints AS (
-                SELECT subject AS id
-                FROM atlas_statements
-                WHERE subject = ? OR object = ?
-                UNION
-                SELECT object AS id
-                FROM atlas_statements
-                WHERE subject = ? OR object = ?
-            )
             SELECT
-                endpoint.id,
+                resource.id,
                 resource.release,
                 resource.semantic_ring,
                 resource.resource_profile,
@@ -624,7 +734,7 @@ class AtlasDuckDBView:
                     (
                         SELECT value
                         FROM atlas_labels
-                        WHERE resource = endpoint.id AND lower(language) = 'en'
+                        WHERE resource = resource.id AND lower(language) = 'en'
                         ORDER BY
                             CASE label_role
                                 WHEN 'preferred' THEN 0
@@ -636,19 +746,16 @@ class AtlasDuckDBView:
                             value
                         LIMIT 1
                     ),
-                    regexp_extract(endpoint.id, '([^#/:]+)[/#:]?$', 1),
-                    endpoint.id
+                    regexp_extract(resource.id, '([^#/:]+)[/#:]?$', 1),
+                    resource.id
                 ) AS label
-            FROM endpoints AS endpoint
-            LEFT JOIN atlas_resources AS resource ON resource.id = endpoint.id
+            FROM atlas_resources AS resource
+            WHERE resource.id = ANY(?)
             """,
-            (resource_id, resource_id, resource_id, resource_id),
+            (endpoint_ids,),
         )
         endpoints = {row["id"]: row for row in endpoint_rows}
-        for relation in relations:
-            evidence = evidence_by_statement.get(relation["id"], [])
-            relation["evidence"] = evidence
-            relation["evidence_count"] = len(evidence)
+        for relation in all_relations:
             for endpoint in ("subject", "object"):
                 endpoint_row = endpoints.get(relation[endpoint], {})
                 relation[f"{endpoint}_label"] = endpoint_row.get("label") or _short(
@@ -657,6 +764,12 @@ class AtlasDuckDBView:
                 relation[f"{endpoint}_release"] = endpoint_row.get("release")
                 relation[f"{endpoint}_ring"] = endpoint_row.get("semantic_ring")
                 relation[f"{endpoint}_profile"] = endpoint_row.get("resource_profile")
+        for relation in derived_relations:
+            # The derived-relations table is not known to carry its own
+            # source/target-release columns (see _DerivedRelationsColumns);
+            # reuse what the endpoint lookup above already resolved.
+            relation["source_release"] = relation["subject_release"]
+            relation["target_release"] = relation["object_release"]
         return {
             "definition": resource["definition"],
             "id": resource_id,
@@ -665,7 +778,7 @@ class AtlasDuckDBView:
             "notations": resource["notations"] or [],
             "notes": resource["notes"] or [],
             "profile": resource["resource_profile"],
-            "relations": relations,
+            "relations": all_relations,
             "release": resource["release"],
             "ring": resource["semantic_ring"],
             "scheme": resource["scheme"],
@@ -684,6 +797,19 @@ class AtlasDuckDBView:
         with self._lock:
             self._require_open()
             return self._agency_projection_paths() is not None
+
+    def derived_relations_available(self) -> bool:
+        """Report whether this view ships REF-042's ``derived-relations.parquet``.
+
+        Every view sealed before the derived graph existed -- and every view
+        the derivation rules a build ran with left with nothing to emit --
+        has no such table; callers should degrade gracefully (hide the
+        opt-in toggle entirely) rather than error.
+        """
+
+        with self._lock:
+            self._require_open()
+            return self._derived_relations_path() is not None
 
     def agency_projection(self, query: str = "") -> dict[str, Any]:
         """Return the REF-038 agency-projection lookup table for the explorer.
@@ -883,6 +1009,149 @@ class AtlasDuckDBView:
             self._agency_projection_ready = True
             return True
 
+    def _derived_relations_path(self) -> Path | None:
+        path = self.root / "tables" / _DERIVED_RELATIONS_TABLE_FILE
+        return path if path.is_file() else None
+
+    def _prepare_derived_relations(self) -> bool:
+        with self._lock:
+            self._require_open()
+            if self._derived_relations_ready:
+                return True
+            path = self._derived_relations_path()
+            if path is None:
+                return False
+            if not self._table_exists(_DERIVED_RELATIONS_VIEW):
+                self._connection.read_parquet(str(path)).create_view(_DERIVED_RELATIONS_VIEW)
+            self._derived_relations_columns = self._discover_derived_relations_columns()
+            self._derived_relations_ready = True
+            return True
+
+    def _discover_derived_relations_columns(self) -> _DerivedRelationsColumns:
+        """Match ``derived-relations.parquet``'s real columns against candidates.
+
+        The sibling table's exact column names were not settled at the time
+        this reader was written, so every name is discovered from the
+        Parquet file's own schema (via ``DESCRIBE``) rather than hardcoded.
+        subject/predicate/object are load-bearing: without them a derived
+        row cannot become a graph edge at all, so a schema missing all
+        candidates for one of them is a real defect, surfaced loudly rather
+        than silently dropped.
+        """
+
+        described = self._connection.execute(f"DESCRIBE {_DERIVED_RELATIONS_VIEW}").fetchall()
+        available = {row[0] for row in described}
+        subject = _pick_column(available, _DERIVED_SUBJECT_COLUMNS)
+        predicate = _pick_column(available, _DERIVED_PREDICATE_COLUMNS)
+        obj = _pick_column(available, _DERIVED_OBJECT_COLUMNS)
+        if subject is None or predicate is None or obj is None:
+            raise AtlasDuckDBViewError(
+                "derived-relations.parquet has no recognizable subject/predicate/object "
+                f"column; found columns: {sorted(available)}"
+            )
+        return _DerivedRelationsColumns(
+            subject=subject,
+            predicate=predicate,
+            object=obj,
+            id=_pick_column(available, _DERIVED_ID_COLUMNS),
+            ring=_pick_column(available, _DERIVED_RING_COLUMNS),
+            content_digest=_pick_column(available, _DERIVED_CONTENT_DIGEST_COLUMNS),
+            rule=_pick_column(available, _DERIVED_RULE_COLUMNS),
+            derived_from=_pick_column(available, _DERIVED_FROM_ASSERTIONS_COLUMNS),
+        )
+
+    def _derived_relations_select_sql(self) -> str:
+        columns = self._derived_relations_columns
+        assert columns is not None  # only set by _prepare_derived_relations(), called just above
+        parts = [
+            f"{columns.subject} AS subject",
+            f"{columns.predicate} AS predicate",
+            f"{columns.object} AS object",
+        ]
+        parts.append(f"{columns.id} AS id" if columns.id else "NULL AS id")
+        parts.append(f"{columns.ring} AS semantic_ring" if columns.ring else "NULL AS semantic_ring")
+        parts.append(
+            f"{columns.content_digest} AS content_digest"
+            if columns.content_digest
+            else "NULL AS content_digest"
+        )
+        parts.append(f"{columns.rule} AS derivation_rule" if columns.rule else "NULL AS derivation_rule")
+        parts.append(
+            f"{columns.derived_from} AS derived_from_assertions"
+            if columns.derived_from
+            else "NULL AS derived_from_assertions"
+        )
+        return ", ".join(parts)
+
+    def _derived_relations_touching(self, resource_id: str) -> list[dict[str, Any]]:
+        """Derived relations where this resource is the subject or the object."""
+
+        if not self._prepare_derived_relations():
+            return []
+        columns = self._derived_relations_columns
+        assert columns is not None  # only set by _prepare_derived_relations(), called just above
+        rows = self.query_rows(
+            f"""
+            SELECT {self._derived_relations_select_sql()}
+            FROM {_DERIVED_RELATIONS_VIEW}
+            WHERE {columns.subject} = ? OR {columns.object} = ?
+            """,
+            (resource_id, resource_id),
+        )
+        return [_normalize_derived_row(row) for row in rows]
+
+    def _derived_relations_within(self, resource_ids: Sequence[str]) -> list[dict[str, Any]]:
+        """Derived relations whose subject AND object are both in ``resource_ids``.
+
+        Used to fold derived edges into ``release_graph()``'s per-vocabulary
+        map: the derived-relations table is not known to carry its own
+        source/target-release columns, so "within this release" is decided
+        by membership in that release's own already-resolved node ids.
+        """
+
+        ids = list(resource_ids)
+        if not ids or not self._prepare_derived_relations():
+            return []
+        columns = self._derived_relations_columns
+        assert columns is not None  # only set by _prepare_derived_relations(), called just above
+        rows = self.query_rows(
+            f"""
+            SELECT {self._derived_relations_select_sql()}
+            FROM {_DERIVED_RELATIONS_VIEW}
+            WHERE {columns.subject} = ANY(?) AND {columns.object} = ANY(?)
+            """,
+            (ids, ids),
+        )
+        return [_normalize_derived_row(row) for row in rows]
+
+    def _derived_relations_internal_counts(self, *, status: str) -> dict[str, int]:
+        """Count derived relations per release, for releases whose subject and
+        object share that one release (see ``overview()``)."""
+
+        if not self._prepare_derived_relations():
+            return {}
+        columns = self._derived_relations_columns
+        assert columns is not None  # only set by _prepare_derived_relations(), called just above
+        rows = self.query_rows(
+            f"""
+            SELECT subject_resource.release AS release, count(*) AS count
+            FROM {_DERIVED_RELATIONS_VIEW} AS derived
+            JOIN atlas_resources AS subject_resource ON subject_resource.id = derived.{columns.subject}
+            JOIN atlas_resources AS object_resource ON object_resource.id = derived.{columns.object}
+            WHERE subject_resource.release = object_resource.release
+              AND {_status_predicate("subject_resource.record_status")}
+              AND {_status_predicate("object_resource.record_status")}
+            GROUP BY subject_resource.release
+            """,
+            (status, status),
+        )
+        return {row["release"]: row["count"] for row in rows}
+
+    def _derived_relations_count(self) -> int:
+        if not self._prepare_derived_relations():
+            return 0
+        return self.query_rows(f"SELECT count(*) AS count FROM {_DERIVED_RELATIONS_VIEW}")[0]["count"]
+
     def _table_exists(self, table: str) -> bool:
         return bool(
             self._connection.execute(
@@ -918,6 +1187,47 @@ def _validate_status(status: str) -> None:
         raise AtlasDuckDBViewError(
             f"status filter must be one of {sorted(_STATUS_FILTERS)}, got {status!r}"
         )
+
+
+def _validate_relations(relations: str) -> None:
+    if relations not in _RELATIONS_FILTERS:
+        raise AtlasDuckDBViewError(
+            f"relations filter must be one of {sorted(_RELATIONS_FILTERS)}, got {relations!r}"
+        )
+
+
+def _pick_column(available: set[str], candidates: Sequence[str]) -> str | None:
+    """Return the first of ``candidates`` present in ``available``, or ``None``."""
+
+    return next((name for name in candidates if name in available), None)
+
+
+def _normalize_derived_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Shape one derived-relations row like an ``atlas_statements`` row.
+
+    Gives every derived relation the fields the explorer's asserted-relation
+    rendering already expects (``statement_type``, ``policy``), a synthetic
+    ``id`` when the table did not carry one, and ``sha256:``-prefixed hex
+    text for a binary ``content_digest`` (REF-042's real schema stores it as
+    32 raw bytes, the same encoding ``evidence_source_digest``/
+    ``source_digest`` already use elsewhere) -- DuckDB rows are not JSON-
+    serializable as raw bytes, and every other binary digest this module
+    returns is rendered the same ``sha256:<hex>`` way before it reaches a
+    caller (see ``explorer.py``'s ``_sha256_text``).
+    """
+
+    row["statement_type"] = _DERIVED_RELATION_STATEMENT_TYPE
+    row["policy"] = "derived"
+    row.setdefault("asserted_at", None)
+    row.setdefault("source_ring", None)
+    row.setdefault("target_ring", None)
+    row.setdefault("supersedes_assertion", None)
+    digest = row.get("content_digest")
+    if isinstance(digest, (bytes, bytearray)):
+        row["content_digest"] = f"sha256:{digest.hex()}"
+    if not row.get("id"):
+        row["id"] = f"urn:ref:atlas-derived-relation:{row['subject']}|{row['predicate']}|{row['object']}"
+    return row
 
 
 def _status_predicate(column: str) -> str:

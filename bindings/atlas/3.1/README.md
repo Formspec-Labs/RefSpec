@@ -576,7 +576,7 @@ rows sorted by assertion IRI. Which `(rule, engine, engineVersion)` tuples a
 distribution may use is a registry (`validate.py`'s
 `_DERIVED_RULE_ADMISSIONS`), not one hardcoded tuple: each entry names its own
 admitted semantic ring(s) and predicate(s), evidence kind, row-shape check,
-and replay. Two rules are registered as of REF-042 (`docs/decisions.md`).
+and replay. Three rules are registered as of REF-043 (`docs/decisions.md`).
 
 `urn:ref:rule:skos-exact-match-closure-path`, executed by `owlrl` 7.1.4, is
 ring `atlas:subject`, predicate `skos:exactMatch`, and every input MUST be a
@@ -605,6 +605,24 @@ the *complete* expected `(child, parent)` edge set from the asserted graph's
 own `atlas:notation` facts and requires the shipped row set to equal it
 exactly, catching a missing edge or a guessed ambiguous parent that a
 per-row replay alone could not.
+
+`urn:ref:rule:gcmd-science-keywords-csv-column-nesting`, executed by this
+binding's own code
+(`https://refspec.org/code/atlas-v3-derived-gcmd-column-nesting` version
+`"1"`), is ring `atlas:subject`, predicate `skos:broader`, and every input
+MUST be exactly two active `atlas:SourceRecord`s whose
+`atlas:representsResource` targets are exactly the row's own subject and
+object. Both endpoints MUST sit in the GCMD Science Keywords scheme
+(`urn:ref:atlas-resource-scheme:gcmd-science-keywords`), and each cited
+record's `atlas:nativePayload` MUST carry the publisher's nesting columns
+(`category`…`detailedVariable`) such that the object's path is exactly the
+subject's path minus its final column; the output MUST NOT already have a
+directly asserted projection or its SKOS inverse (`skos:narrower`) asserted
+in the opposite direction. Like the MeSH rule this is a closed, one-release
+projection, so its replay regenerates the complete expected edge set from
+the asserted graph's own source-record payloads -- scoped to the scheme, so
+a locally valid but incomplete or over-complete edge set fails even though
+every shipped row passes its own check.
 
 `skos:exactMatch` retains its W3C semantics. A producer that does not accept
 transitive consequences SHOULD use `skos:closeMatch` or a ring-specific Atlas

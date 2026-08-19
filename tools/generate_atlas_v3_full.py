@@ -65,6 +65,12 @@ from refspec.atlas.derived_graph import (
     collect_asserted_fact_view,
     collect_node_digests,
 )
+from refspec.atlas.derived_graph.gcmd_column_nesting import (
+    derive_gcmd_column_nesting_rows,
+    gcmd_column_nesting_evidence_nodes,
+    gcmd_path_from_payload,
+    resolve_gcmd_column_nesting_edges,
+)
 from refspec.atlas.derived_graph.mesh_tree_numbers import (
     derive_mesh_tree_number_broader_rows,
     mesh_tree_number_evidence_nodes,
@@ -4077,34 +4083,44 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
     return value
 
 
-# The one release the shipped derivation registry currently reads. REF-042
-# admits exactly one second rule (MeSH tree-number broader); the producer's
-# job is narrower than the binding's -- it only has to know WHICH releases
-# feed a registered rule, not carry the registry itself, since (per
-# `src/refspec/atlas/derived_graph/__init__.py`'s own extension-point
-# docstring) a rule registered without its binding allowlist entry already
-# refuses loudly in the generation receipt rather than shipping unaccepted
-# rows. FR-compound and GCMD are recorded as the next entries in REF-042;
-# neither is wired here.
+# The releases the shipped derivation registry currently reads. REF-042
+# admitted the second rule (MeSH tree-number broader); REF-043 the third
+# (GCMD column nesting). The producer's job is narrower than the binding's
+# -- it only has to know WHICH releases feed a registered rule, not carry
+# the registry itself, since (per `src/refspec/atlas/derived_graph/__init__.py`'s
+# own extension-point docstring) a rule registered without its binding
+# allowlist entry already refuses loudly in the generation receipt rather
+# than shipping unaccepted rows. FR-compound is recorded as the next
+# entry; it is not wired here.
 MESH_DESCRIPTORS_RELEASE_KEY = "mesh-descriptors-2026"
+GCMD_SCIENCE_KEYWORDS_RELEASE_KEY = "gcmd-science-keywords-24-4"
 
 
 def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
-    """The MeSH tree-number-broader edge count this build's inputs imply.
+    """The registered-rule edge count this build's inputs imply.
 
-    Computed directly from the loaded, in-memory release resources --
-    `resolve_tree_number_edges_from_notations` is the same pure function
-    the post-streaming derivation pass below calls, so the prebuild receipt
-    this seeds and the row set the streamed build actually emits can never
-    independently drift.
+    Computed directly from the loaded, in-memory release resources -- the
+    same pure resolvers the post-streaming derivation pass below calls, so
+    the prebuild receipt this seeds and the row set the streamed build
+    actually emits can never independently drift. Each rule contributes
+    only when its own source release is loaded, which is what keeps the
+    derived graph opt-in at release-selection granularity.
     """
 
+    expected = 0
     for release in releases:
         if release.spec.key == MESH_DESCRIPTORS_RELEASE_KEY:
             notations_by_resource = {resource.iri: resource.notations for resource in release.resources}
             edges, _counts = resolve_tree_number_edges_from_notations(notations_by_resource)
-            return len(edges)
-    return 0
+            expected += len(edges)
+        elif release.spec.key == GCMD_SCIENCE_KEYWORDS_RELEASE_KEY:
+            paths_by_resource = {
+                resource.iri: gcmd_path_from_payload(resource.native_payload or {})
+                for resource in release.resources
+            }
+            edges, _counts = resolve_gcmd_column_nesting_edges(paths_by_resource)
+            expected += len(edges)
+    return expected
 
 
 def _reconcile_prebuild_construction_counts(
@@ -6766,48 +6782,64 @@ def _derive_registered_relations(
     """Populate the derived graph from every registered rule this build's
     loaded releases admit.
 
-    REF-042 registers exactly one producer-side rule today (MeSH tree-number
-    broader); FR-compound and GCMD are recorded as the next entries, not
-    wired here. A rule only fires when its source release was actually part
-    of this build, which is what keeps the derived graph opt-in at the
-    release-selection level a bounded/scoped build already has (REF-040's
-    same precedent for the FAST-LCSH S27 reconciliation): a build that never
-    loads ``mesh-descriptors-2026`` never runs this rule and never emits a
-    row for it, exactly like today.
+    REF-042 registered the second rule (MeSH tree-number broader) and
+    REF-043 the third (GCMD column nesting, reading each keyword's own
+    source-record payload path columns); FR-compound is recorded as the
+    next entry, not wired here. A rule only fires when its source release
+    was actually part of this build, which is what keeps the derived graph
+    opt-in at the release-selection level a bounded/scoped build already
+    has (REF-040's same precedent for the FAST-LCSH S27 reconciliation):
+    a build that never loads ``mesh-descriptors-2026`` or
+    ``gcmd-science-keywords-24-4`` never runs those rules and never emits
+    a row for them.
     """
 
+    def _release(key: str) -> LoadedRelease | None:
+        return next((release for release in all_source_releases if release.spec.key == key), None)
+
     derived = Graph()
-    mesh_release = next(
-        (release for release in all_source_releases if release.spec.key == MESH_DESCRIPTORS_RELEASE_KEY),
-        None,
-    )
-    if mesh_release is None:
-        return derived, 0
-    lines = list(_spooled_release_lines(spool, MESH_DESCRIPTORS_RELEASE_KEY))
-    facts = collect_asserted_fact_view(lines)
-    wanted = mesh_tree_number_evidence_nodes(facts)
-    node_digest = collect_node_digests(lines, wanted)
-    context = DerivationContext(
-        facts=facts,
-        node_digest=node_digest,
-        canonical_sha256=ATLAS_VALIDATE.canonical_sha256,
-        generated_at=generated_at,
-    )
-    # The module's own docstring calls this out as the one thing real
-    # wiring must add beyond the synthetic fixture: thread the release's
-    # own asserted relations through, so a future non-empty MeSH relation
-    # set (today it is exactly zero) still refuses a duplicate rather than
-    # silently emitting one.
-    asserted_relations = frozenset(
-        (relation.subject, relation.predicate, relation.object) for relation in mesh_release.relations
-    )
-    outcome = derive_mesh_tree_number_broader_rows(context, asserted_relations=asserted_relations)
-    for row in outcome.rows:
-        for triple in _derived_relation_graph(row):
-            derived.add(triple)
-    if len(set(derived.subjects(RDF.type, ATLAS.DerivedRelation))) != len(outcome.rows):
-        raise ValueError("mesh tree-number derivation produced a duplicate derived-relation identity")
-    return derived, len(outcome.rows)
+    total_rows = 0
+    for release_key, evidence_nodes, derive in (
+        (
+            MESH_DESCRIPTORS_RELEASE_KEY,
+            mesh_tree_number_evidence_nodes,
+            derive_mesh_tree_number_broader_rows,
+        ),
+        (
+            GCMD_SCIENCE_KEYWORDS_RELEASE_KEY,
+            gcmd_column_nesting_evidence_nodes,
+            derive_gcmd_column_nesting_rows,
+        ),
+    ):
+        release = _release(release_key)
+        if release is None:
+            continue
+        lines = list(_spooled_release_lines(spool, release_key))
+        facts = collect_asserted_fact_view(lines)
+        wanted = evidence_nodes(facts)
+        node_digest = collect_node_digests(lines, wanted)
+        context = DerivationContext(
+            facts=facts,
+            node_digest=node_digest,
+            canonical_sha256=ATLAS_VALIDATE.canonical_sha256,
+            generated_at=generated_at,
+        )
+        # Each module's own docstring calls this out as the one thing real
+        # wiring must add beyond a synthetic fixture: thread the release's
+        # own asserted relations through, so a future non-empty relation
+        # set (today both are exactly zero) still refuses a duplicate
+        # rather than silently emitting one.
+        asserted_relations = frozenset(
+            (relation.subject, relation.predicate, relation.object) for relation in release.relations
+        )
+        outcome = derive(context, asserted_relations=asserted_relations)
+        for row in outcome.rows:
+            for triple in _derived_relation_graph(row):
+                derived.add(triple)
+        total_rows += len(outcome.rows)
+    if len(set(derived.subjects(RDF.type, ATLAS.DerivedRelation))) != total_rows:
+        raise ValueError("registered-rule derivation produced a duplicate derived-relation identity")
+    return derived, total_rows
 
 
 def _stream_construct_graphs(

@@ -516,6 +516,24 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherDistribution",
         },
     ),
+    # REF-043 closed the gap the old SOURCE_BLOCKERS entry recorded: the
+    # column-nesting reader's edges now ship as the derived graph's third
+    # registered rule, and the reader is exercised through that rule's own
+    # reproduction checks -- the CSV-level oracle here, plus the
+    # asserted-payload derivation and its pair-for-pair oracle agreement in
+    # tests/test_gcmd_column_nesting.py -- against the same pinned
+    # publisher artifact the base reader pins.
+    "gcmd_science_keywords_hierarchy.py": (
+        {
+            "name": "gcmdScienceKeywords244",
+            "localPath": "output/registry-real-data-sources/gcmd-science-keywords-24.4.csv",
+            "publisherUrl": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv",
+            "sha256": "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2",
+            "byteLength": 504_190,
+            "acquisition": "zyteRawHttp",
+            "provenance": "publisherDistribution",
+        },
+    ),
     "icpsr_subject.py": (
         {
             "name": "icpsrSubjectXml",
@@ -1107,16 +1125,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
 
 
 SOURCE_BLOCKERS: dict[str, list[str]] = {
-    "gcmd_science_keywords_hierarchy.py": [
-        (
-            "REF-041 derivation reader: it re-reads the CSV gcmd_science_keywords.py "
-            "already pins and acquires nothing of its own, so it consumes no publisher "
-            "capture under its own name. Its edges cannot ship until the derived graph "
-            "admits a GCMD rule (REF-042 built the registry; the rule is not registered "
-            "yet), at which point this reader is exercised through that rule's own "
-            "reproduction check rather than a separate pin."
-        )
-    ],
     "eurovoc_organization_experiment.py": [
         (
             "Experiment reads injected archive and metadata paths; its tests exercise "

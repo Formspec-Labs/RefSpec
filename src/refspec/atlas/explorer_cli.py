@@ -23,10 +23,20 @@ from refspec.atlas.parquet_search_view import MANIFEST_FILE
 from refspec.registry.infrastructure.artifact_serialization import sha256_digest
 
 _DEFAULT_STATUS_FILTER = "active"
+_DEFAULT_RELATIONS_FILTER = "asserted"
 
 
 def _status_filter(query: dict[str, list[str]]) -> str:
     return query.get("status", [_DEFAULT_STATUS_FILTER])[0]
+
+
+def _relations_filter(query: dict[str, list[str]]) -> str:
+    """Read the ``?relations=`` opt-in for REF-042's non-authoritative derived
+    relations. Defaults to ``"asserted"`` (hidden), the same hidden-unless-
+    requested posture ``_status_filter`` already uses for deprecated status.
+    """
+
+    return query.get("relations", [_DEFAULT_RELATIONS_FILTER])[0]
 
 
 def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
@@ -71,12 +81,18 @@ def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
                         render_atlas_agency_projection_frontend().encode(),
                     )
                 elif parsed.path == "/api/overview":
-                    self._json(view.overview(status=_status_filter(query)))
+                    self._json(
+                        view.overview(
+                            status=_status_filter(query),
+                            relations=_relations_filter(query),
+                        )
+                    )
                 elif parsed.path == "/api/release-graph":
                     self._json(
                         view.release_graph(
                             query.get("id", [""])[0],
                             status=_status_filter(query),
+                            relations=_relations_filter(query),
                         )
                     )
                 elif parsed.path == "/api/search":
@@ -95,6 +111,7 @@ def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
                         view.resource(
                             query.get("id", [""])[0],
                             status=_status_filter(query),
+                            relations=_relations_filter(query),
                         )
                     )
                 elif parsed.path == "/api/agency-projection":

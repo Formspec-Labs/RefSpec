@@ -14,12 +14,12 @@ It is still not an assertion. The pinned CSV carries no relation field;
 the predicate choice (``skos:broader``) is RefSpec's, made under REF-035
 tier E5: an inferred edge is never an assertion, belongs only in the
 derived graph, and stays opt-in. Nothing in this module feeds the asserted
-graph, and the Atlas 3.1 binding does not yet admit any second derivation
-rule -- the shipped validator allowlists exactly one rule
-(``urn:ref:rule:skos-exact-match-closure-path``) with exactMatch-only
-semantics and an assertion-cited evidence model this rule cannot satisfy.
-This module exists so the derivation, its evidence, and its frozen pins
-are exact and testable the day the binding gains a second rule.
+graph. REF-043 registered the rule this module derives for as the Atlas
+3.1 derived graph's third admitted rule
+(``src/refspec/atlas/derived_graph/gcmd_column_nesting.py`` producer-side,
+``_DERIVED_RULE_ADMISSIONS`` binding-side); this module remains the
+CSV-level oracle its real-data tests prove that rule against, pair for
+pair over the same pinned bytes.
 
 Identity is path-scoped, never label-scoped: 512 (level, label) pairs in
 the pinned 24.4 export appear under more than one parent, so any
@@ -42,10 +42,10 @@ from refspec.storage import canonical_json
 SKOS_BROADER = "http://www.w3.org/2004/02/skos/core#broader"
 SKOS_NARROWER = "http://www.w3.org/2004/02/skos/core#narrower"
 
-# Proposed rule identity for the binding's derived-graph allowlist. The 3.1
-# validator's `dataset.derived-rule` check refuses every rule except
-# urn:ref:rule:skos-exact-match-closure-path today; wiring this IRI into a
-# distribution requires a binding revision (REF-041 records what it needs).
+# Rule identity for the binding's derived-graph allowlist. REF-043
+# registered this IRI as the derived graph's third admitted rule; the
+# derived-graph implementation that carries it lives in
+# refspec.atlas.derived_graph.gcmd_column_nesting.
 GCMD_COLUMN_NESTING_RULE = "urn:ref:rule:gcmd-science-keywords-csv-column-nesting"
 
 GCMD_HIERARCHY_PACKAGE_VERSION = "gcmd-science-keywords-derived-hierarchy-v1"

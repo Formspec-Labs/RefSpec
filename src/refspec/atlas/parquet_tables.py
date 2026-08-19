@@ -24,17 +24,31 @@ re-encoding that could agree with the emitter by sharing its bug.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from refspec.atlas.agency_projection import AgencyProjection
 from refspec.atlas.compact_pack import CompactRecordRole, compact_record_fields
-from refspec.atlas.parquet_artifact import arrow_schema_sha256, file_sha256
+from refspec.atlas.parquet_artifact import (
+    arrow_schema_sha256,
+    canonical_payload_sha256,
+    file_sha256,
+)
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 from refspec.release_model import canonical_native_json_bytes
+
+if TYPE_CHECKING:
+    # Typing only. Importing `refspec.atlas.derived_graph` at runtime
+    # registers the producer's derivation rules -- a side effect no view
+    # verifier should pay for or depend on -- so at runtime the writer
+    # duck-types the row's attributes, exactly as the producer's own
+    # `_derived_relation_graph(row)` already does.
+    pass
 
 ROW_GROUP_SIZE = 50_000
 COMPRESSION = "zstd"
@@ -294,6 +308,214 @@ def agency_projection_table_relative_path(role: str) -> str:
     """Return one REF-038 table's view-relative path."""
 
     return f"{TABLE_DIRECTORY}/{AGENCY_PROJECTION_TABLE_NAMES[role]}"
+
+
+#: The derived graph is non-authoritative and opt-in by contract, so its rows
+#: are a separate optional table, never rows inside ``statements.parquet`` --
+#: a consumer reading the statements table keeps getting asserted content
+#: only. Column names mirror the statements table where they mean the same
+#: thing; ``semantic_ring`` carries the same closed ring tokens
+#: (``SEMANTIC_RINGS``) the statements column does, and the two digest
+#: columns are the same 32-byte binary encoding. The columns that make a
+#: derived row treatable as derived -- the rule IRI, the engine pair, the
+#: sorted asserted node identifiers it cites, the input digest over those
+#: citations, and the one generation stamp -- have no asserted counterpart
+#: and are named for the wire properties they carry.
+DERIVED_RELATION_ROLE = "derivedRelations"
+DERIVED_RELATION_TABLE_NAME = "derived-relations.parquet"
+DERIVED_RELATION_ID_PREFIX = "urn:ref:atlas-derived:"
+DERIVED_RELATION_RING_NAMESPACE = "https://refspec.org/ns/atlas/v3#"
+DERIVED_RELATION_DECISION = "REF-042"
+DERIVED_RELATION_TABLE_SCHEMA: pa.Schema = pa.schema(
+    [
+        pa.field("id", pa.string(), nullable=False),
+        pa.field("subject", pa.string(), nullable=False),
+        pa.field("predicate", pa.string(), nullable=False),
+        pa.field("object", pa.string(), nullable=False),
+        pa.field("semantic_ring", pa.string(), nullable=False),
+        pa.field("derivation_rule", pa.string(), nullable=False),
+        pa.field("engine", pa.string(), nullable=False),
+        pa.field("engine_version", pa.string(), nullable=False),
+        pa.field("derived_from_assertions", pa.list_(pa.string()), nullable=False),
+        _binary_digest_field("input_digest", nullable=False),
+        pa.field("generated_at", pa.string(), nullable=False),
+        _binary_digest_field("content_digest", nullable=False),
+    ]
+)
+
+
+def derived_relation_table_relative_path() -> str:
+    """Return the derived-relation table's view-relative path."""
+
+    return f"{TABLE_DIRECTORY}/{DERIVED_RELATION_TABLE_NAME}"
+
+
+def _required_text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise AtlasParquetTableError(f"{label} must be a non-empty string")
+    return value
+
+
+def _derived_ring_token(ring: object) -> str:
+    """Return the ring token a derived row's ring IRI must name."""
+
+    if not isinstance(ring, str) or not ring.startswith(DERIVED_RELATION_RING_NAMESPACE):
+        raise AtlasParquetTableError(
+            f"derived relation semantic ring is not an Atlas ring IRI: {ring!r}"
+        )
+    token = ring.removeprefix(DERIVED_RELATION_RING_NAMESPACE)
+    if token not in SEMANTIC_RINGS:
+        raise AtlasParquetTableError(
+            f"derived relation semantic ring is not a known ring: {ring!r}"
+        )
+    return token
+
+
+def derived_relation_parquet_row(row: Any) -> dict[str, Any]:
+    """Project one derived-relation record onto its typed Parquet row.
+
+    The record is a producer-side ``DerivedRelationRow``, read by attribute
+    (see the TYPE_CHECKING note). Two identity facts are enforced here
+    because every later consumer trusts them: the row identifier is its own
+    content digest under the derived-relation prefix, and the cited
+    asserted nodes are non-empty and carried sorted and deduplicated, the
+    same normalization ``build_derived_row`` applies.
+    """
+
+    content_digest = _digest_bytes(row.content_digest, "contentDigest")
+    if (
+        not isinstance(row.node_iri, str)
+        or row.node_iri
+        != DERIVED_RELATION_ID_PREFIX + row.content_digest.removeprefix("sha256:")
+    ):
+        raise AtlasParquetTableError(
+            "derived relation identifier differs from its contentDigest"
+        )
+    evidence = sorted(set(row.evidence))
+    if not evidence:
+        raise AtlasParquetTableError("derived relation cites no asserted evidence rows")
+    return {
+        "id": row.node_iri,
+        "subject": _required_text(row.subject, "derived relation subject"),
+        "predicate": _required_text(row.predicate, "derived relation predicate"),
+        "object": _required_text(row.object, "derived relation object"),
+        "semantic_ring": _derived_ring_token(row.ring),
+        "derivation_rule": _required_text(row.rule_iri, "derived relation rule"),
+        "engine": _required_text(row.engine_iri, "derived relation engine"),
+        "engine_version": _required_text(row.engine_version, "derived relation engine version"),
+        "derived_from_assertions": evidence,
+        "input_digest": _digest_bytes(row.input_digest, "inputDigest"),
+        "generated_at": _required_text(row.generated_at, "derived relation generatedAt"),
+        "content_digest": content_digest,
+    }
+
+
+def derived_relation_logical_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Render one derived-relation Parquet row in its digest-input shape.
+
+    One renderer serves both digest directions -- the emitted metadata and
+    the verifier that recomputes it from the table -- so the two can only
+    agree or fail, never drift.
+    """
+
+    return {
+        "id": row["id"],
+        "subject": row["subject"],
+        "predicate": row["predicate"],
+        "object": row["object"],
+        "semantic_ring": row["semantic_ring"],
+        "derivation_rule": row["derivation_rule"],
+        "engine": row["engine"],
+        "engine_version": row["engine_version"],
+        "derived_from_assertions": list(row["derived_from_assertions"]),
+        "input_digest": "sha256:" + bytes(row["input_digest"]).hex(),
+        "generated_at": row["generated_at"],
+        "content_digest": "sha256:" + bytes(row["content_digest"]).hex(),
+    }
+
+
+def derived_relation_coverage(
+    logical_rows: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Reconcile derived rows into the coverage the view manifest publishes."""
+
+    if not logical_rows:
+        raise AtlasParquetTableError("derived relation coverage requires at least one row")
+    rule_counts: Counter[str] = Counter()
+    predicate_counts: Counter[str] = Counter()
+    generated_at: set[str] = set()
+    for row in logical_rows:
+        rule_counts[row["derivation_rule"]] += 1
+        predicate_counts[row["predicate"]] += 1
+        generated_at.add(row["generated_at"])
+    if len(generated_at) != 1:
+        raise AtlasParquetTableError(
+            "derived relations carry more than one generatedAt stamp"
+        )
+    return {
+        "rowCount": len(logical_rows),
+        "ruleCounts": dict(sorted(rule_counts.items())),
+        "predicateCounts": dict(sorted(predicate_counts.items())),
+        "generatedAt": next(iter(generated_at)),
+    }
+
+
+def derived_relation_content_digest(
+    logical_rows: Iterable[Mapping[str, Any]],
+    coverage: Mapping[str, Any],
+) -> str:
+    """Return the logical-content digest over derived rows and their coverage.
+
+    Rows are sorted by identifier, so the digest is over logical content
+    only -- two row orders of the same rows are the same content.
+    """
+
+    return canonical_payload_sha256(
+        {
+            "coverage": coverage,
+            "rows": sorted(logical_rows, key=lambda row: row["id"]),
+        }
+    )
+
+
+def derived_relation_manifest_metadata(rows: Sequence[Any]) -> dict[str, Any]:
+    """Return the emitted derived-relations block for the view manifest."""
+
+    logical = [
+        derived_relation_logical_row(derived_relation_parquet_row(row))
+        for row in rows
+    ]
+    coverage = derived_relation_coverage(logical)
+    return {
+        "status": "emitted",
+        "decision": DERIVED_RELATION_DECISION,
+        "digest": derived_relation_content_digest(logical, coverage),
+        "coverage": coverage,
+    }
+
+
+def write_derived_relation_table(output: Path, rows: Sequence[Any]) -> None:
+    """Write and round-trip-check the optional derived-relation view table."""
+
+    parquet_rows = [derived_relation_parquet_row(row) for row in rows]
+    directory = output / TABLE_DIRECTORY
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / DERIVED_RELATION_TABLE_NAME
+    if target.exists():
+        raise FileExistsError(f"derived relation table already exists: {target}")
+    pq.write_table(
+        pa.Table.from_pylist(parquet_rows, schema=DERIVED_RELATION_TABLE_SCHEMA),
+        target,
+        compression=COMPRESSION,
+        compression_level=COMPRESSION_LEVEL,
+        use_dictionary=True,
+        write_statistics=True,
+        version=PARQUET_VERSION,
+        data_page_version=DATA_PAGE_VERSION,
+        row_group_size=ROW_GROUP_SIZE,
+    )
+    if pq.read_table(target).to_pylist() != parquet_rows:
+        raise AtlasParquetTableError("derived relation Parquet round trip differs")
 
 
 def write_agency_projection_tables(
@@ -612,6 +834,12 @@ __all__ = [
     "COMPRESSION",
     "COMPRESSION_LEVEL",
     "DATA_PAGE_VERSION",
+    "DERIVED_RELATION_DECISION",
+    "DERIVED_RELATION_ID_PREFIX",
+    "DERIVED_RELATION_RING_NAMESPACE",
+    "DERIVED_RELATION_ROLE",
+    "DERIVED_RELATION_TABLE_NAME",
+    "DERIVED_RELATION_TABLE_SCHEMA",
     "PARQUET_VERSION",
     "ROW_GROUP_SIZE",
     "TABLE_MEDIA_TYPE",
@@ -621,10 +849,17 @@ __all__ = [
     "AtlasParquetTableWriter",
     "agency_projection_table_relative_path",
     "column_name",
+    "derived_relation_content_digest",
+    "derived_relation_coverage",
+    "derived_relation_logical_row",
+    "derived_relation_manifest_metadata",
+    "derived_relation_parquet_row",
+    "derived_relation_table_relative_path",
     "logical_records_preserved",
     "parquet_row",
     "table_relative_path",
     "unpreserved_record_fields",
     "write_agency_projection_tables",
+    "write_derived_relation_table",
     "write_parquet_tables",
 ]

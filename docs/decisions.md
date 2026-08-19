@@ -3340,3 +3340,169 @@ than the five new cases and the pre-existing registry-coverage/descriptors
 drift above — the exactMatch rule's own fixtures are the same bytes they
 were, just reissued under a validator whose behavior this entry proves is
 identical.
+
+### REF-043: GCMD column nesting becomes the derived graph's third rule; the real-data audit gap it opened closes
+
+- **Date:** 2026-08-19
+- **Status:** Accepted and executed. Numbered REF-043: REF-042 is the
+  highest prior entry, and its "next entries" paragraph named this exact
+  registration as future work.
+
+**The decision.** REF-041 froze the judgment (column nesting is publisher
+hierarchy, but only ever a derived edge) and REF-042 built the registry it
+needed. This entry registers
+`urn:ref:rule:gcmd-science-keywords-csv-column-nesting` — the rule IRI
+REF-041 minted, reused, not re-minted — as the third
+`_DERIVED_RULE_ADMISSIONS` entry in
+`bindings/atlas/3.1/tools/validate.py`, with engine
+`https://refspec.org/code/atlas-v3-derived-gcmd-column-nesting`
+version `"1"`, ring `atlas:subject`, predicate `skos:broader`, evidence
+kind `SourceRecord`, mirror predicate `skos:narrower` (the same
+parameterized duplicate-of-asserted check the first two rules run), its
+own row-shape validator, and its own whole-of-rule replay. The producer
+side is `src/refspec/atlas/derived_graph/gcmd_column_nesting.py`,
+registered in the package's built-ins beside the MeSH rule.
+
+**Where the premise lives.** MeSH's premise is an `atlas:notation`
+literal on the descriptor. GCMD's premise — the CSV column path — is
+carried by the asserted graph exactly once: as the canonical
+`atlas:nativePayload` JSON on each keyword's own `SourceRecord`
+(`v3_registry_vocabularies._normalize_gcmd` writes the seven path columns
+there verbatim from the pinned bytes). The rule reads each keyword's path
+out of its record's payload, so producer and validator read the same
+asserted bytes the way the shared fact-view machinery already demands:
+`AssertedFactView` gained a `payloads` field fed by a new watched
+predicate (`atlas:nativePayload`), the extension its own docstring
+prescribed. Each edge cites the child's and the parent's `SourceRecord`
+as evidence — a source record receipts one exact CSV row (its payload is
+that row's columns; its locator digest covers the row path and UUID), so
+citing two records is citing the two rows the edge came from, the same
+warrant REF-041's CSV-level module expresses with `csv:row[n]` paths.
+UUID `atlas:notation`s stay unread: identity is path-scoped, never
+label-scoped.
+
+**Scoping, from the first line.** The MeSH rule shipped scheme-blind and
+an adversarial battery caught it proving parentage from notation shape
+alone. This rule requires the GCMD scheme
+(`urn:ref:atlas-resource-scheme:gcmd-science-keywords`) in its producer
+fact selection, in its binding row check, and in its replay. A "keyword"
+is precisely a resource in that scheme that some `SourceRecord`
+represents — the scheme's release node also carries `atlas:inScheme` but
+represents nothing, so "in scheme AND represented" (not "in scheme"
+alone) is the definition both sides share. Proven three ways: the
+producer-side unit test (a foreign-scheme resource with a perfectly
+GCMD-shaped payload contributes nothing), a binding-side unit test over
+the real `_validate_gcmd_column_nesting_row` and
+`_replay_gcmd_column_nesting` (a foreign-scheme row refused on scheme
+alone; the replay ignores a foreign column-shaped pair), and the corpus
+positive case itself — the base fixture's other source records carry no
+GCMD columns, so an unscoped replay would fail that valid case outright.
+
+**GCMD counts and anomalies.** Verified against the same pinned 24.4
+export REF-041 froze (`sha256:f31d8137…3f02e2`, 3,774 rows): 2 roots (the
+two Categories), **3,772 derived `skos:broader` edges**, 512 (level,
+label) homonym pairs (`homonymLabels`, the standing refusal to ever key
+this scheme by label). Zero missing ancestors, zero repeated paths, zero
+self-edges — and unlike the MeSH rule's counters, which skip-and-count a
+missing or ambiguous parent, this rule raises on every premise violation:
+REF-041's reader refuses a missing ancestor-prefix row and a repeated
+path outright, and the derived-graph path inherits that fail-closed shape
+(the replay refuses the same shapes in a shipped graph). The two paths
+are one judgment with two readers: `tests/test_gcmd_column_nesting.py`
+proves the asserted-payload derivation and REF-041's committed CSV-level
+module produce the **identical UUID pair set** over the real pinned bytes
+(3,772 pairs, zero divergence) — the oracle discipline, not just an
+equal count.
+
+**Corpus cases.** Six new entries in `REQUIRED_CORPUS_CASES`
+(141 → 147; 126 → 131 invalid):
+
+1. `gcmd-column-nesting-broader` — the positive case, built in the REAL
+   GCMD scheme on a prefix-closed trio of real 24.4 rows
+   (EARTH SCIENCE > AGRICULTURE > AGRICULTURAL AQUATIC SCIENCES,
+   csv:row[1..3] of the pinned export, real UUIDs as notations). The
+   lesson applied: REF-042's MeSH positive case had first been built on
+   fixture concepts its own fixed rule should never have accepted; this
+   one ships the complete two-row edge set the trio implies so the
+   whole-of-rule replay finds no gap and no extra.
+2. `gcmd-column-nesting-unallowlisted-rule` — a GCMD row's
+   `derivationRule` rewritten to an unregistered IRI;
+   `dataset.derived-rule`.
+3. `gcmd-column-nesting-wrong-predicate` — `skos:related` instead of
+   `skos:broader` under this rule; `dataset.derived-rule`.
+4. `gcmd-column-nesting-malformed-inputs` — one cited `SourceRecord`
+   instead of two; `dataset.derived-rule`.
+5. `gcmd-column-nesting-duplicates-asserted` — an asserted
+   `(root, skos:narrower, topic)` `NativeRelationAssertion` beside the
+   derived `(topic, skos:broader, root)`; `dataset.derived-authority`.
+6. `gcmd-column-nesting-missing-edge` — the case class the MeSH work
+   lacked: the shipped row is locally valid (its cited records' payload
+   paths really nest) but the set is incomplete — the
+   AGRICULTURAL-AQUATIC-SCIENCES → AGRICULTURE edge is missing, and only
+   the whole-of-rule replay can refuse it; `reasoning.authority`.
+
+The base fixture gained one inert GCMD release (three concepts, three
+records, one release node) no pre-existing case cites, so only the six
+mutations touch the derived graph over it; `all-resource-profiles`' own
+counts moved as a direct consequence (resources 14 → 17, labels 14 → 17,
+sourceRecords 14 → 17, releases 11 → 12).
+
+**Producer.** `_derive_registered_relations` now loops the registered
+rule table — (release key, evidence-node finder, derive function) —
+instead of a MeSH-only branch, so a rule only fires when its source
+release was loaded (the same release-selection scoping REF-042
+established), rows from every rule land in one derived graph under one
+duplicate-identity refusal, and the prebuild receipt's
+`derivedRelations` count is the sum over the same pure resolvers the
+streamed pass calls (`_expected_derived_relation_count`). Verified end
+to end on real data three ways: a bounded
+`--only-release gcmd-science-keywords-24-4` build derived 3,772 rows and
+the independent standalone validator passed every gate over that real
+distribution (`"derivedRelations":3772`, including
+`check-reasoning-isolation`'s whole-set regeneration); a bounded
+two-release build (`mesh-descriptors-2026` +
+`gcmd-science-keywords-24-4`) derived exactly 46,291 rows
+(42,519 + 3,772, both rules in one graph) and validated identically —
+rather than the ~2h14m full distribution build this work deliberately
+did not run.
+
+**The audit gap closes.** REF-042 left
+`tools/build_registry_source_manifest.py`'s `SOURCE_BLOCKERS` recording
+that `gcmd_science_keywords_hierarchy.py` could not ship "until the
+derived graph admits a GCMD rule," to be exercised "through that rule's
+own reproduction check rather than a separate pin." The rule now exists
+and the reader is exercised through it: the module's env-gated real-data
+test re-derives the frozen edge set from the pinned bytes (the receipt
+the audit's plugin captures — `derive_gcmd_science_keywords_hierarchy`
+over `sha256:f31d8137…` with `edges.items: 3772`), and
+`tests/test_gcmd_column_nesting.py` runs the registered rule over the
+same pinned bytes and proves pair-for-pair agreement with that oracle.
+The blocker entry is deleted; the module now pins the same publisher
+artifact the base reader pins (`gcmdScienceKeywords244`) in
+`TEST_INPUTS` — one shared pin for one shared artifact, not a second
+capture — and `research/evidence/registry-real-data-audit-2026-08-03/sources.json`
+regenerated: the module moved `blocked` → `publisherBytes` (76/86), the
+only remaining declared gap is eurovoc, and `make audit-registry-real-data`
+passes with exactly that one eurovoc failure listed.
+
+**Digests.** `contractDigest` did not move — `ontology/atlas.ttl`,
+`shapes/atlas.shacl.ttl`, `registry-resource-profiles.json`,
+`tests/registry-coverage.json`, `tests/registry-descriptors.json`, and
+`tests/registry-descriptors.nq` are byte-identical (the rule needed no
+ontology or shape change: `skos:broader` was already an admitted subject-
+ring predicate and `SourceRecord` an already-admitted evidence kind).
+What moved: the binding-tool digest (`validate.py` and `build_fixtures.py`
+changed, the cache-invalidation key by design), `corpus_digest()`
+(`fixtures/corpus.json`, now 147 cases), and `fixtures-receipt.json`'s
+`fixturesDigest`, rebuilt by running `build_fixtures.py` as the six new
+cases require regardless.
+
+**Deliberately not done.** The reader
+(`refspec.registry.gcmd_science_keywords`) is untouched —
+`hierarchyIsDescriptiveNotInferred` stays true in every asserted payload,
+and the asserted release still emits zero relations; only its stale
+"the binding does not yet admit any second derivation rule" commentary
+was updated to point at this entry. FR-compound
+(`tools/atlas_v3_derived_fr_compound.py`) is now the only rule REF-042
+named that remains unregistered; it still has no ledger entry of its own
+and registering it changes nothing here.

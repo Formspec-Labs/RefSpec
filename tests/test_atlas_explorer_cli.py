@@ -97,13 +97,19 @@ class FakeExplorer:
     def facets(self) -> dict[str, Any]:
         return {}
 
-    def overview(self, *, status: str = "active") -> dict[str, Any]:
-        self.overview_arguments = {"status": status}
+    def overview(self, *, status: str = "active", relations: str = "asserted") -> dict[str, Any]:
+        self.overview_arguments = {"status": status, "relations": relations}
         return {"edges": [], "nodes": [{"id": "urn:test:release"}]}
 
-    def release_graph(self, release_id: str, *, status: str = "active") -> dict[str, Any]:
+    def release_graph(
+        self, release_id: str, *, status: str = "active", relations: str = "asserted"
+    ) -> dict[str, Any]:
         self.release_graph_id = release_id
-        self.release_graph_arguments = {"release_id": release_id, "status": status}
+        self.release_graph_arguments = {
+            "release_id": release_id,
+            "status": status,
+            "relations": relations,
+        }
         return {"nodes": [], "edges": [], "release": {"id": release_id}}
 
     def search(
@@ -128,8 +134,14 @@ class FakeExplorer:
         }
         return [{"id": "urn:test:result"}]
 
-    def resource(self, resource_id: str, *, status: str = "active") -> dict[str, Any]:
-        self.resource_arguments = {"resource_id": resource_id, "status": status}
+    def resource(
+        self, resource_id: str, *, status: str = "active", relations: str = "asserted"
+    ) -> dict[str, Any]:
+        self.resource_arguments = {
+            "resource_id": resource_id,
+            "status": status,
+            "relations": relations,
+        }
         return {"id": resource_id}
 
     def agency_projection(self, query: str = "") -> dict[str, Any]:
@@ -179,11 +191,12 @@ def test_api_search_passes_stable_page_offset() -> None:
             "offset": 80,
         }
         # /api/overview and /api/release-graph default to hiding deprecated
-        # resources; /api/resource does too.
-        assert view.overview_arguments == {"status": "active"}
+        # resources and derived relations; /api/resource does too.
+        assert view.overview_arguments == {"status": "active", "relations": "asserted"}
         assert view.release_graph_arguments == {
             "release_id": "urn:test:release",
             "status": "active",
+            "relations": "asserted",
         }
         with urlopen(
             f"{base_url}/api/resource?id=urn%3Atest%3Aresource", timeout=5
@@ -192,6 +205,7 @@ def test_api_search_passes_stable_page_offset() -> None:
         assert view.resource_arguments == {
             "resource_id": "urn:test:resource",
             "status": "active",
+            "relations": "asserted",
         }
     finally:
         server.shutdown()
@@ -208,7 +222,7 @@ def test_api_endpoints_pass_through_a_show_deprecated_status_toggle() -> None:
         base_url = f"http://127.0.0.1:{server.server_address[1]}"
         with urlopen(f"{base_url}/api/overview?status=all", timeout=5):
             pass
-        assert view.overview_arguments == {"status": "all"}
+        assert view.overview_arguments == {"status": "all", "relations": "asserted"}
 
         with urlopen(
             f"{base_url}/api/release-graph?id=urn%3Atest%3Arelease&status=all", timeout=5
@@ -217,6 +231,7 @@ def test_api_endpoints_pass_through_a_show_deprecated_status_toggle() -> None:
         assert view.release_graph_arguments == {
             "release_id": "urn:test:release",
             "status": "all",
+            "relations": "asserted",
         }
 
         with urlopen(f"{base_url}/api/search?q=x&status=all", timeout=5):
@@ -230,6 +245,43 @@ def test_api_endpoints_pass_through_a_show_deprecated_status_toggle() -> None:
         assert view.resource_arguments == {
             "resource_id": "urn:test:resource",
             "status": "all",
+            "relations": "asserted",
+        }
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_api_endpoints_pass_through_a_show_derived_relations_toggle() -> None:
+    view = FakeExplorer()
+    server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        base_url = f"http://127.0.0.1:{server.server_address[1]}"
+        with urlopen(f"{base_url}/api/overview?relations=all", timeout=5):
+            pass
+        assert view.overview_arguments == {"status": "active", "relations": "all"}
+
+        with urlopen(
+            f"{base_url}/api/release-graph?id=urn%3Atest%3Arelease&relations=all", timeout=5
+        ):
+            pass
+        assert view.release_graph_arguments == {
+            "release_id": "urn:test:release",
+            "status": "active",
+            "relations": "all",
+        }
+
+        with urlopen(
+            f"{base_url}/api/resource?id=urn%3Atest%3Aresource&relations=all", timeout=5
+        ):
+            pass
+        assert view.resource_arguments == {
+            "resource_id": "urn:test:resource",
+            "status": "active",
+            "relations": "all",
         }
     finally:
         server.shutdown()

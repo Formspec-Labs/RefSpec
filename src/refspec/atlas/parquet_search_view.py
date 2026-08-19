@@ -32,7 +32,10 @@ from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_ROLE,
     AGENCY_PROJECTION_TABLE_SCHEMAS,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    DERIVED_RELATION_ROLE,
+    DERIVED_RELATION_TABLE_SCHEMA,
     agency_projection_table_relative_path,
+    derived_relation_table_relative_path,
 )
 from refspec.atlas.parquet_view import verify_atlas_parquet_view
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
@@ -41,7 +44,7 @@ SEARCH_VIEW_RECORD_TYPE = "AtlasParquetSearchViewManifest"
 SEARCH_VIEW_SCHEMA_VERSION = "1.1"
 SEARCH_VIEW_ID_PREFIX = "urn:ref:atlas-parquet-search-view:"
 SEARCH_VIEW_IMPLEMENTATION = "refspec.atlas.parquet_search_view"
-SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.2"
+SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.3"
 MANIFEST_FILE = "search-view-manifest.json"
 ROW_GROUP_SIZE = 50_000
 COMPRESSION_LEVEL = 19
@@ -55,6 +58,25 @@ COMPRESSION_LEVEL = 19
 #: verified full view, never recomputed -- rather than by the per-role
 #: `_write_role` transform every compact record role goes through.
 PROJECTION_MEMBER_ROLES = frozenset({AGENCY_PROJECTION_ROLE, AGENCY_PROJECTION_UNRESOLVED_ROLE})
+
+#: REF-042's derived-relations table rides the same rails: a separate,
+#: optional member carried by verbatim byte copy with its digest forwarded
+#: from the verified full view. It is a single table with no pair rule --
+#: present or absent, exactly as the full view's verified manifest declares.
+#: The manifest contract does not change (no new field; one more admitted
+#: optional member role), so the schema version stays 1.1; only the
+#: implementation version moves.
+_VERBATIM_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+    **AGENCY_PROJECTION_TABLE_SCHEMAS,
+    DERIVED_RELATION_ROLE: DERIVED_RELATION_TABLE_SCHEMA,
+}
+_VERBATIM_RELATIVE_PATHS: Mapping[str, str] = {
+    AGENCY_PROJECTION_ROLE: agency_projection_table_relative_path(AGENCY_PROJECTION_ROLE),
+    AGENCY_PROJECTION_UNRESOLVED_ROLE: agency_projection_table_relative_path(
+        AGENCY_PROJECTION_UNRESOLVED_ROLE
+    ),
+    DERIVED_RELATION_ROLE: derived_relation_table_relative_path(),
+}
 
 _PREFIXES = {
     "assertion": "urn:ref:atlas-assertion:",
@@ -334,16 +356,21 @@ def build_atlas_parquet_search_view(
         full_view,
         expected_manifest_digest=expected_manifest_digest,
     )
-    # The full view may also ship REF-038's agency-projection tables, carried
-    # here as a separate optional member category (see PROJECTION_MEMBER_ROLES).
+    # The full view may also ship REF-038's agency-projection tables and
+    # REF-042's derived-relations table, carried here as separate optional
+    # member categories (see PROJECTION_MEMBER_ROLES and
+    # _VERBATIM_TABLE_SCHEMAS).
     by_role: dict[CompactRecordRole, dict[str, Any]] = {}
-    projection_members: dict[str, dict[str, Any]] = {}
+    verbatim_members: dict[str, dict[str, Any]] = {}
     for member in full_manifest["members"]:
-        if member["role"] in PROJECTION_MEMBER_ROLES:
-            projection_members[member["role"]] = member
+        if member["role"] in _VERBATIM_TABLE_SCHEMAS:
+            verbatim_members[member["role"]] = member
         else:
             by_role[CompactRecordRole(member["role"])] = member
-    if projection_members and set(projection_members) != PROJECTION_MEMBER_ROLES:
+    projection_seen = {
+        role for role in verbatim_members if role in PROJECTION_MEMBER_ROLES
+    }
+    if projection_seen and projection_seen != PROJECTION_MEMBER_ROLES:
         raise AtlasParquetSearchViewError(
             "agency projection tables must be carried through together"
         )
@@ -374,22 +401,21 @@ def build_atlas_parquet_search_view(
                     "sha256": file_sha256(target),
                 }
             )
-        for role in (AGENCY_PROJECTION_ROLE, AGENCY_PROJECTION_UNRESOLVED_ROLE):
-            source_member = projection_members.get(role)
+        for role, relative in _VERBATIM_RELATIVE_PATHS.items():
+            source_member = verbatim_members.get(role)
             if source_member is None:
                 continue
             source = full_view / source_member["path"]
-            relative = agency_projection_table_relative_path(role)
             target = temporary / relative
             shutil.copyfile(source, target)
             if target.stat().st_size != source_member["byteLength"] or file_sha256(target) != source_member["sha256"]:
-                raise AtlasParquetSearchViewError(f"agency projection table copy differs from the full view: {role}")
+                raise AtlasParquetSearchViewError(f"optional table copy differs from the full view: {role}")
             copied_schema = pq.ParquetFile(target).schema_arrow
             if (
-                copied_schema != AGENCY_PROJECTION_TABLE_SCHEMAS[role]
+                copied_schema != _VERBATIM_TABLE_SCHEMAS[role]
                 or arrow_schema_sha256(copied_schema) != source_member["schemaDigest"]
             ):
-                raise AtlasParquetSearchViewError(f"agency projection table schema differs from the full view: {role}")
+                raise AtlasParquetSearchViewError(f"optional table schema differs from the full view: {role}")
             counts[role] = source_member["rowCount"]
             members.append(
                 {
@@ -495,17 +521,17 @@ def verify_atlas_parquet_search_view(
     expected_files = {MANIFEST_FILE}
     counts = {}
     seen: set[CompactRecordRole] = set()
-    seen_projection_roles: set[str] = set()
+    seen_verbatim_roles: set[str] = set()
     for member in manifest["members"]:
         if set(member) != PARQUET_MEMBER_FIELDS:
             raise AtlasParquetSearchViewError("compact view member fields are unsupported")
         member_role = member["role"]
-        is_projection = member_role in PROJECTION_MEMBER_ROLES
-        if is_projection:
-            if member_role in seen_projection_roles:
+        is_verbatim = member_role in _VERBATIM_TABLE_SCHEMAS
+        if is_verbatim:
+            if member_role in seen_verbatim_roles:
                 raise AtlasParquetSearchViewError("compact view repeats a table role")
-            seen_projection_roles.add(member_role)
-            schema = AGENCY_PROJECTION_TABLE_SCHEMAS[member_role]
+            seen_verbatim_roles.add(member_role)
+            schema = _VERBATIM_TABLE_SCHEMAS[member_role]
         else:
             role = CompactRecordRole(member_role)
             if role in seen:
@@ -519,16 +545,17 @@ def verify_atlas_parquet_search_view(
         if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetSearchViewError(f"compact view member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
-        if not is_projection and role is CompactRecordRole.LABEL and "id" not in parquet.schema_arrow.names:
+        if not is_verbatim and role is CompactRecordRole.LABEL and "id" not in parquet.schema_arrow.names:
             raise AtlasParquetSearchViewError(f"{_MISSING_LABEL_ID}: {member['path']}")
         if parquet.schema_arrow != schema or arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]:
             raise AtlasParquetSearchViewError(f"compact view schema differs: {member['path']}")
         if parquet.metadata.num_rows != member["rowCount"]:
             raise AtlasParquetSearchViewError(f"compact view row count differs: {member['path']}")
-        counts[member_role if is_projection else role.value] = parquet.metadata.num_rows
+        counts[member_role if is_verbatim else role.value] = parquet.metadata.num_rows
     if seen != set(CompactRecordRole) or counts != manifest["counts"]:
         raise AtlasParquetSearchViewError("compact view roles or aggregate counts differ")
-    if seen_projection_roles and seen_projection_roles != PROJECTION_MEMBER_ROLES:
+    projection_seen = seen_verbatim_roles & PROJECTION_MEMBER_ROLES
+    if projection_seen and projection_seen != PROJECTION_MEMBER_ROLES:
         raise AtlasParquetSearchViewError(
             "compact view agency projection tables must be carried through together"
         )

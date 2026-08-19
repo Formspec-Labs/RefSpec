@@ -1,12 +1,15 @@
 """Derived skos:broader edges from GCMD Science Keywords column nesting.
 
-The judgment and its evidence are REF-041 in docs/decisions.md. These tests
-prove the derivation over both a byte-faithful complete-branch excerpt and
-the real pinned 24.4 bytes (when configured), and prove every fail-closed
-premise bites: the excerpt fixture that is NOT prefix-closed (the existing
-mini excerpt), a deleted parent row, a repeated path with a fresh UUID, an
-asserted-relation collision in both directions, and the fact that the
-shipped Atlas 3.1 validator refuses this rule's IRI today.
+The judgment and its evidence are REF-041 in docs/decisions.md; REF-043
+registered the rule as the derived graph's third entry and made this
+module the CSV-level oracle the registered rule's own tests prove
+agreement against. These tests prove the derivation over both a
+byte-faithful complete-branch excerpt and the real pinned 24.4 bytes
+(when configured), and prove every fail-closed premise bites: the excerpt
+fixture that is NOT prefix-closed (the existing mini excerpt), a deleted
+parent row, a repeated path with a fresh UUID, an asserted-relation
+collision in both directions, and that the rule IRI the binding admits is
+this module's.
 """
 
 from __future__ import annotations
@@ -185,19 +188,23 @@ def test_asserted_relation_collision_fails_closed_in_both_directions(
     assert len(unrelated.edges) == 125
 
 
-def test_binding_does_not_allowlist_this_rule_today() -> None:
+def test_the_binding_admits_exactly_this_rule_iri() -> None:
     sys.path.insert(0, str(BINDING_TOOLS))
     try:
         import validate as atlas_validate
     finally:
         sys.path.remove(str(BINDING_TOOLS))
 
-    assert hierarchy.GCMD_COLUMN_NESTING_RULE != str(
-        atlas_validate.EXACT_MATCH_TRANSITIVITY_RULE
+    # REF-043 registered this rule; the day someone re-points either side
+    # at a different IRI, this fails rather than shipping a silent
+    # divergence between the oracle and the admitted rule.
+    assert hierarchy.GCMD_COLUMN_NESTING_RULE == str(
+        atlas_validate.GCMD_COLUMN_NESTING_RULE
     )
-    assert atlas_validate.EXACT_MATCH_TRANSITIVITY_RULE == atlas_validate.URIRef(
-        "urn:ref:rule:skos-exact-match-closure-path"
-    )
+    assert atlas_validate.GCMD_COLUMN_NESTING_RULE not in {
+        atlas_validate.EXACT_MATCH_TRANSITIVITY_RULE,
+        atlas_validate.MESH_TREE_NUMBER_BROADER_RULE,
+    }
 
 
 def test_frozen_pins_match_the_documented_real_release() -> None:

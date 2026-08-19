@@ -203,6 +203,48 @@ MESH_TREE_NUMBER_BROADER_RULE = URIRef("urn:ref:rule:mesh-tree-number-broader")
 MESH_TREE_NUMBER_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-mesh-tree-numbers")
 MESH_TREE_NUMBER_ENGINE_VERSION = "1"
 MESH_TREE_NUMBER_SCHEME = URIRef("urn:ref:atlas-resource-scheme:mesh-descriptors")
+# The third entry in `_DERIVED_RULE_ADMISSIONS` (see REF-041 and REF-043 in
+# docs/decisions.md). Same replay shape as the MeSH rule -- regenerate the
+# complete expected edge set from the asserted graph and require an exact
+# match -- but the premise it regenerates from is each keyword's own
+# `atlas:nativePayload` path columns (the CSV row the publisher shipped),
+# not a notation. `src/refspec/atlas/derived_graph/gcmd_column_nesting.py`
+# carries the identical constants and column keys on the producer side;
+# the two modules do not import each other (the binding stays importable
+# standalone), so `tests/test_gcmd_column_nesting.py` proves they agree.
+# The scheme constant is load-bearing in BOTH the row check and the
+# replay: the MeSH rule shipped scheme-blind and an adversarial battery
+# caught it, and this rule does not repeat that bug.
+GCMD_COLUMN_NESTING_RULE = URIRef("urn:ref:rule:gcmd-science-keywords-csv-column-nesting")
+GCMD_COLUMN_NESTING_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-gcmd-column-nesting")
+GCMD_COLUMN_NESTING_ENGINE_VERSION = "1"
+GCMD_COLUMN_NESTING_SCHEME = URIRef("urn:ref:atlas-resource-scheme:gcmd-science-keywords")
+GCMD_PAYLOAD_PATH_KEYS = (
+    "category",
+    "topic",
+    "term",
+    "variableLevel1",
+    "variableLevel2",
+    "variableLevel3",
+    "detailedVariable",
+)
+# The fourth entry in `_DERIVED_RULE_ADMISSIONS` (see REF-044 in
+# docs/decisions.md). The Office of the Federal Register's 2025 thesaurus is
+# a deliberately flat vocabulary (705 official terms, 1,451 `skos:related`
+# references, zero broader/narrower), but 48 of its compound headings have a
+# head segment that is itself an authorized preferred term of the same
+# release; reading that as `skos:broader` is RefSpec's structural projection,
+# not OFR's assertion, so it lives only in the derived graph. The scheme
+# constant is load-bearing in BOTH the row check and the replay, the lesson
+# the MeSH rule's scheme-blind shipping already paid for.
+# `src/refspec/atlas/derived_graph/fr_compound_headings.py` carries the
+# identical three constants on the producer side; the two modules do not
+# import each other (the binding stays importable standalone), so
+# `tests/test_fr_compound_headings.py` proves they still agree.
+FR_COMPOUND_HEADING_BROADER_RULE = URIRef("urn:ref:rule:fr-thesaurus-compound-head-broader")
+FR_COMPOUND_HEADING_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-fr-compound-headings")
+FR_COMPOUND_HEADING_ENGINE_VERSION = "1"
+FR_COMPOUND_HEADING_SCHEME = URIRef("urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025")
 
 SCHEMAS = {
     "manifest": "atlas-manifest.schema.json",
@@ -987,6 +1029,18 @@ REQUIRED_CORPUS_CASES = frozenset(
         "evidence-retargeted",
         "evidence-reviewer-retargeted",
         "evidence-warrant-unsanctioned",
+        "fr-compound-head-broader",
+        "fr-compound-head-duplicates-asserted",
+        "fr-compound-head-malformed-inputs",
+        "fr-compound-head-replay-gap",
+        "fr-compound-head-unallowlisted-rule",
+        "fr-compound-head-wrong-predicate",
+        "gcmd-column-nesting-broader",
+        "gcmd-column-nesting-duplicates-asserted",
+        "gcmd-column-nesting-malformed-inputs",
+        "gcmd-column-nesting-missing-edge",
+        "gcmd-column-nesting-unallowlisted-rule",
+        "gcmd-column-nesting-wrong-predicate",
         "identifier-conflict-recorded",
         "identifier-missing-value",
         "identifier-pair-conflict",
@@ -7219,6 +7273,324 @@ def _replay_mesh_tree_number_broader(
         )
 
 
+def _gcmd_payload_path(
+    asserted: Graph,
+    record: URIRef,
+) -> tuple[str, ...] | None:
+    """One source record's GCMD nesting path, or ``None`` if it has none.
+
+    Reads the exact ``atlas:nativePayload`` JSON the producer writes from
+    the pinned CSV's path columns. ``None`` means "this record is not a
+    GCMD keyword row" -- a payload without the column keys, a malformed
+    JSON document, an empty path, or a level populated after a blank
+    ancestor (a shape the pinned reader refuses upstream) all collapse to
+    ``None`` and the caller decides what that means for its check.
+    """
+
+    payload = asserted.value(record, ATLAS.nativePayload)
+    if payload is None:
+        return None
+    try:
+        document = json.loads(str(payload))
+    except ValueError:
+        return None
+    if not isinstance(document, dict) or any(key not in document for key in GCMD_PAYLOAD_PATH_KEYS):
+        return None
+    path: list[str] = []
+    for key in GCMD_PAYLOAD_PATH_KEYS:
+        value = document[key]
+        if value is None or value == "":
+            break
+        if not isinstance(value, str):
+            return None
+        path.append(value)
+    if not path:
+        return None
+    trailing = tuple(document[key] for key in GCMD_PAYLOAD_PATH_KEYS)[len(path) :]
+    if any(value is not None and value != "" for value in trailing):
+        return None
+    return tuple(path)
+
+
+def _validate_gcmd_column_nesting_row(context: _DerivedRowContext) -> None:
+    """The GCMD column-nesting rule's row shape.
+
+    Proved locally, from only this row's own cited evidence: the two cited
+    ``SourceRecord``s must represent exactly the row's endpoints, each
+    endpoint must sit in the GCMD Science Keywords scheme, and the parent's
+    payload path must be exactly the subject's path with its final column
+    removed. The whole-of-rule completeness proof lives in
+    `_replay_gcmd_column_nesting`.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    # This rule is a projection over ONE publisher's CSV columns. Without a
+    # scheme check the prefix proof holds for any column-shaped payload in
+    # any vocabulary, so the rule's name would be the only thing keeping
+    # foreign concepts out. Both endpoints must sit in the GCMD scheme.
+    for endpoint in (subject, obj):
+        if (endpoint, ATLAS.inScheme, GCMD_COLUMN_NESTING_SCHEME) not in asserted:
+            _fail(
+                "dataset.derived-rule",
+                f"{node} endpoint {endpoint} is not in the GCMD Science Keywords scheme",
+            )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} column-nesting parent is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    record_by_resource: dict[URIRef, URIRef] = {}
+    for evidence in inputs:
+        represented = _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule")
+        record_by_resource[represented] = evidence
+    if set(record_by_resource) != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    subject_path = _gcmd_payload_path(asserted, record_by_resource[subject])
+    obj_path = _gcmd_payload_path(asserted, record_by_resource[obj])
+    if subject_path is None or obj_path is None:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} endpoint source record does not carry a GCMD nesting payload",
+        )
+    if len(subject_path) < 2 or subject_path[:-1] != obj_path:
+        _fail("dataset.derived-rule", f"{node} is not the column-nesting parent of its subject")
+
+
+def _replay_gcmd_column_nesting(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE column-nesting edge set from the asserted
+    graph's own source-record payloads and require it to equal exactly what
+    this rule's derived nodes ship -- a locally valid but incomplete (or
+    over-complete) edge set fails here even though every shipped row passes
+    its own row check. Same whole-of-rule scope as the MeSH replay: a
+    closed, one-release projection with a definite total edge count.
+
+    A keyword is a resource in the GCMD scheme that a source record
+    represents. The scheme's release node also carries ``atlas:inScheme``
+    but represents nothing, so it is not a keyword; a represented resource
+    whose record carries no GCMD nesting payload, a repeated path, or a
+    missing ancestor prefix all fail here outright -- the premises
+    REF-041 recorded, refused rather than guessed past, because a
+    distribution whose derived graph was built from violated premises is
+    not one this replay can certify.
+    """
+
+    path_by_resource: dict[URIRef, tuple[str, ...]] = {}
+    for record, resource in asserted.subject_objects(ATLAS.representsResource):
+        if not isinstance(resource, URIRef):
+            continue
+        if (resource, ATLAS.inScheme, GCMD_COLUMN_NESTING_SCHEME) not in asserted:
+            continue
+        path = _gcmd_payload_path(asserted, record)
+        if path is None:
+            _fail(
+                "reasoning.authority",
+                f"GCMD keyword {resource} source record carries no GCMD nesting payload",
+            )
+        previous = path_by_resource.get(resource)
+        if previous is not None and previous != path:
+            _fail(
+                "reasoning.authority",
+                f"GCMD keyword {resource} is represented by records with different nesting paths",
+            )
+        path_by_resource[resource] = path
+
+    resource_by_path: dict[tuple[str, ...], URIRef] = {}
+    for resource, path in path_by_resource.items():
+        previous = resource_by_path.get(path)
+        if previous is not None:
+            _fail(
+                "reasoning.authority",
+                f"Science Keywords path repeats: {path} on {previous} and {resource}",
+            )
+        resource_by_path[path] = resource
+
+    expected: set[tuple[URIRef, URIRef]] = set()
+    for resource, path in path_by_resource.items():
+        if len(path) < 2:
+            continue
+        parent = resource_by_path.get(path[:-1])
+        if parent is None:
+            _fail(
+                "reasoning.authority",
+                f"GCMD keyword {resource} has no materialized parent row for its {path[:-1]!r} prefix",
+            )
+        if parent == resource:
+            _fail("reasoning.authority", f"GCMD keyword {resource} derives a self-edge")
+        expected.add((resource, parent))
+
+    actual: set[tuple[URIRef, URIRef]] = set()
+    for node in nodes:
+        subject = _iri(
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived subject",
+        )
+        obj = _iri(
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived object",
+        )
+        actual.add((subject, obj))
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "gcmd column-nesting broader edges do not regenerate the identical set from the "
+            f"asserted graph (missing={missing}, extra={extra})",
+        )
+
+
+def _fr_preferred_label_texts(asserted: Graph, resource: URIRef) -> set[str]:
+    """The resource's preferred-label texts, read through SKOS-XL."""
+
+    texts: set[str] = set()
+    for label in asserted.objects(resource, SKOSXL.prefLabel):
+        forms = {str(form) for form in asserted.objects(label, SKOSXL.literalForm)}
+        if len(forms) != 1:
+            _fail(
+                "dataset.derived-rule",
+                f"{resource} preferred label does not carry exactly one literal form",
+            )
+        texts |= forms
+    return texts
+
+
+def _validate_fr_compound_heading_broader_row(context: _DerivedRowContext) -> None:
+    """The FR compound-heading rule's row shape, proved locally from only
+    this row's own cited evidence and its endpoints' own preferred
+    labels -- the same "prove it from what this row cites" discipline the
+    other rules follow. The whole-of-rule completeness proof lives in
+    `_replay_fr_compound_heading_broader`.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    # This rule is a projection over ONE publisher's term list. Without a
+    # scheme check the head-segment proof holds for any hyphenated label
+    # in any vocabulary, so unrelated concepts would be admissible heads
+    # (the scheme-blind bug the MeSH rule shipped with). Both endpoints
+    # must sit in the Federal Register thesaurus scheme.
+    for endpoint in (subject, obj):
+        if (endpoint, ATLAS.inScheme, FR_COMPOUND_HEADING_SCHEME) not in asserted:
+            _fail(
+                "dataset.derived-rule",
+                f"{node} endpoint {endpoint} is not in the Federal Register thesaurus scheme",
+            )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} compound-heading head is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    represented = {
+        _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule") for evidence in inputs
+    }
+    if represented != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    heads = {
+        text.split("-", 1)[0]
+        for text in _fr_preferred_label_texts(asserted, subject)
+        if "-" in text
+    }
+    if not heads or not heads & _fr_preferred_label_texts(asserted, obj):
+        _fail("dataset.derived-rule", f"{node} object is not the compound head of its subject")
+
+
+def _replay_fr_compound_heading_broader(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE compound-heading edge set from the asserted
+    graph's own preferred labels and require it to equal exactly what this
+    rule's derived nodes ship. Same whole-of-rule scope as the MeSH and
+    GCMD replays: a closed, one-release projection with a definite total
+    edge count. The eight hyphenated words whose heads are not terms never
+    enter the expected set, so no row for them can survive here by
+    accident, and no hand-maintained denylist exists on either side."""
+
+    label_links: dict[URIRef, list[URIRef]] = defaultdict(list)
+    for resource, label in asserted.subject_objects(SKOSXL.prefLabel):
+        if not isinstance(resource, URIRef):
+            continue
+        if (resource, ATLAS.inScheme, FR_COMPOUND_HEADING_SCHEME) not in asserted:
+            continue
+        label_links[resource].append(label)
+    labels_by_resource: dict[URIRef, str] = {}
+    for resource, links in label_links.items():
+        if len(links) != 1:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register term {resource} does not carry exactly one preferred label",
+            )
+        forms = {str(form) for form in asserted.objects(links[0], SKOSXL.literalForm)}
+        if len(forms) != 1:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label of {resource} does not carry exactly one literal form",
+            )
+        (text,) = forms
+        if not text or text != text.strip():
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label of {resource} is not non-empty trimmed text: {text!r}",
+            )
+        labels_by_resource[resource] = text
+    resource_by_text: dict[str, URIRef] = {}
+    for resource, text in labels_by_resource.items():
+        previous = resource_by_text.setdefault(text, resource)
+        if previous != resource:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label is ambiguous between two terms: {text!r}",
+            )
+    expected: set[tuple[URIRef, URIRef]] = set()
+    for resource, text in labels_by_resource.items():
+        if "-" not in text:
+            continue
+        head = resource_by_text.get(text.split("-", 1)[0])
+        if head is not None and head != resource:
+            expected.add((resource, head))
+    actual: set[tuple[URIRef, URIRef]] = set()
+    for node in nodes:
+        subject = _iri(
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived subject",
+        )
+        obj = _iri(
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived object",
+        )
+        actual.add((subject, obj))
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "fr compound-heading broader edges do not regenerate the identical set from the "
+            f"asserted graph (missing={missing}, extra={extra})",
+        )
+
+
 _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {
     (EXACT_MATCH_TRANSITIVITY_RULE, DERIVATION_ENGINE, DERIVATION_ENGINE_VERSION): _DerivedRuleAdmission(
         rule=EXACT_MATCH_TRANSITIVITY_RULE,
@@ -7245,6 +7617,36 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         mirror_predicate=SKOS.narrower,
         validate_row=_validate_mesh_tree_number_broader_row,
         replay=_replay_mesh_tree_number_broader,
+    ),
+    (
+        GCMD_COLUMN_NESTING_RULE,
+        GCMD_COLUMN_NESTING_ENGINE,
+        GCMD_COLUMN_NESTING_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=GCMD_COLUMN_NESTING_RULE,
+        engine=GCMD_COLUMN_NESTING_ENGINE,
+        engine_version=GCMD_COLUMN_NESTING_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.broader}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        mirror_predicate=SKOS.narrower,
+        validate_row=_validate_gcmd_column_nesting_row,
+        replay=_replay_gcmd_column_nesting,
+    ),
+    (
+        FR_COMPOUND_HEADING_BROADER_RULE,
+        FR_COMPOUND_HEADING_ENGINE,
+        FR_COMPOUND_HEADING_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=FR_COMPOUND_HEADING_BROADER_RULE,
+        engine=FR_COMPOUND_HEADING_ENGINE,
+        engine_version=FR_COMPOUND_HEADING_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.broader}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        mirror_predicate=SKOS.narrower,
+        validate_row=_validate_fr_compound_heading_broader_row,
+        replay=_replay_fr_compound_heading_broader,
     ),
 }
 

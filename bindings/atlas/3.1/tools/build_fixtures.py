@@ -208,6 +208,30 @@ def _add_release(
     return release, scheme, source_release, result
 
 
+def _set_native_payload(graph: Graph, resource: URIRef, payload: Mapping[str, Any]) -> None:
+    """Rewrite one resource's source-record payload and its digest pin.
+
+    `atlas:sourceDigest` on a SourceRecord is sha256 over the record's own
+    canonical nativePayload bytes, and `_check_native_payloads` recomputes
+    it, so a rewritten payload must re-pin the digest in the same motion.
+    """
+
+    record = next(graph.objects(resource, ATLAS.sourceRecord))
+    payload_bytes = atlas_validate.canonical_native_json_bytes(dict(payload))
+    _remove_subject_predicate(graph, record, ATLAS.nativePayload)
+    graph.add(
+        (
+            record,
+            ATLAS.nativePayload,
+            Literal(payload_bytes.decode("utf-8"), datatype=RDF.JSON, normalize=False),
+        )
+    )
+    _remove_subject_predicate(graph, record, ATLAS.sourceDigest)
+    graph.add(
+        (record, ATLAS.sourceDigest, Literal("sha256:" + hashlib.sha256(payload_bytes).hexdigest()))
+    )
+
+
 def _add_policy(graph: Graph, *, version: str) -> URIRef:
     pending = URIRef(f"urn:ref:atlas-policy:pending:{version}")
     payload = atlas_validate.canonical_json_bytes(
@@ -803,6 +827,96 @@ def _base_fixture() -> Fixture:
     mesh_child, _mesh_child_source = mesh_rows[1]
     asserted.add((mesh_parent, ATLAS.notation, Literal("C14.280")))
     asserted.add((mesh_child, ATLAS.notation, Literal("C14.280.647")))
+    # Raw material for the GCMD column-nesting derived rule (REF-043): a
+    # prefix-closed trio of real 24.4 rows (csv:row[1..3] of the pinned
+    # export), in the REAL GCMD scheme, with the nesting columns their
+    # source records' native payloads carry in a real release. The MeSH
+    # rule's early corpus work proved the rule on fixture concepts its
+    # fixed rule should never have accepted; this fixture builds the
+    # positive case inside the scheme the rule actually scopes itself to.
+    # No case in the base fixture cites these in a derived row; each
+    # GCMD-specific mutation below adds its own.
+    (
+        _gcmd_release,
+        _gcmd_scheme,
+        _gcmd_source_release,
+        gcmd_rows,
+    ) = _add_release(
+        asserted,
+        name="gcmd-science-keywords",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=URIRef("urn:ref:atlas-resource-scheme:gcmd-science-keywords"),
+        resources=[
+            ("gcmd-earth-science", ATLAS.SubjectConcept, "EARTH SCIENCE"),
+            ("gcmd-agriculture", ATLAS.SubjectConcept, "AGRICULTURE"),
+            (
+                "gcmd-agricultural-aquatic-sciences",
+                ATLAS.SubjectConcept,
+                "AGRICULTURAL AQUATIC SCIENCES",
+            ),
+        ],
+    )
+    _gcmd_uuids = {
+        "gcmd-earth-science": "e9f67a66-e9fc-435c-b720-ae32a2c3d8f5",
+        "gcmd-agriculture": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+        "gcmd-agricultural-aquatic-sciences": "ca227ff0-4742-4e51-a763-4582fa28291c",
+    }
+    _gcmd_paths = {
+        "gcmd-earth-science": ("EARTH SCIENCE", None, None, None, None, None, None),
+        "gcmd-agriculture": ("EARTH SCIENCE", "AGRICULTURE", None, None, None, None, None),
+        "gcmd-agricultural-aquatic-sciences": (
+            "EARTH SCIENCE",
+            "AGRICULTURE",
+            "AGRICULTURAL AQUATIC SCIENCES",
+            None,
+            None,
+            None,
+            None,
+        ),
+    }
+    for (gcmd_resource, _gcmd_record) in gcmd_rows:
+        local_name = str(gcmd_resource).rsplit(":", 1)[-1]
+        asserted.add((gcmd_resource, ATLAS.notation, Literal(_gcmd_uuids[local_name])))
+        _set_native_payload(
+            asserted,
+            gcmd_resource,
+            {
+                **dict(zip(atlas_validate.GCMD_PAYLOAD_PATH_KEYS, _gcmd_paths[local_name], strict=True)),
+                "hierarchyIsDescriptiveNotInferred": True,
+                "publisherIdentifier": {
+                    "kind": "gcmdConceptUUID",
+                    "value": _gcmd_uuids[local_name],
+                },
+            },
+        )
+    # Raw material for the FR compound-heading derived rule (REF-044): four
+    # ordinary SubjectConcepts in the REAL Federal Register thesaurus
+    # scheme, two head terms and two compound headings whose head segment
+    # is the other term's own preferred label ("Grant programs-agriculture"
+    # heads at "Grant programs"). No asserted relation between either pair
+    # and no derived row over any of them in base, so every pre-existing
+    # case's derived graph is unchanged and only the FR-specific mutations
+    # below touch them. Two admissible pairs, so the replay-gap case has a
+    # gap to leave.
+    (
+        _fr_release,
+        _fr_scheme,
+        _fr_source_release,
+        fr_rows,
+    ) = _add_release(
+        asserted,
+        name="federal-register-thesaurus",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=atlas_validate.FR_COMPOUND_HEADING_SCHEME,
+        resources=[
+            ("fr-head", ATLAS.SubjectConcept, "Grant programs"),
+            ("fr-compound", ATLAS.SubjectConcept, "Grant programs-agriculture"),
+            ("fr-loan-head", ATLAS.SubjectConcept, "Loan programs"),
+            ("fr-loan-compound", ATLAS.SubjectConcept, "Loan programs-veterans"),
+        ],
+    )
     value_release, value_scheme, _value_source_release, value_rows = _add_release(
         asserted,
         name="values",
@@ -2410,6 +2524,238 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def mesh_tree_number_broader(fixture: Fixture) -> None:
         # The positive case: a real MeSH-shaped derived row validates.
         add_mesh_derived_row(fixture)
+
+    # REF-043: the GCMD column-nesting rule, the registry's third entry.
+    # `_base_fixture` seeds the raw material (a prefix-closed trio of real
+    # 24.4 keyword rows in the real GCMD scheme) but adds no derived row
+    # over it, so the pre-existing cases keep exactly one derived node (the
+    # exactMatch one) and these mutations are the only thing that cites the
+    # trio in the derived graph.
+    gcmd_root = URIRef("urn:ref:atlas-fixture:resource:gcmd-earth-science")
+    gcmd_topic = URIRef("urn:ref:atlas-fixture:resource:gcmd-agriculture")
+    gcmd_term = URIRef("urn:ref:atlas-fixture:resource:gcmd-agricultural-aquatic-sciences")
+    gcmd_root_source = URIRef("urn:ref:atlas-fixture:source-record:gcmd-earth-science")
+    gcmd_topic_source = URIRef("urn:ref:atlas-fixture:source-record:gcmd-agriculture")
+    gcmd_term_source = URIRef("urn:ref:atlas-fixture:source-record:gcmd-agricultural-aquatic-sciences")
+
+    def add_gcmd_derived_row(
+        fixture: Fixture,
+        *,
+        subject: URIRef,
+        obj: URIRef,
+        evidence: tuple[URIRef, ...],
+        predicate: URIRef = SKOS.broader,
+    ) -> URIRef:
+        """Mint one GCMD column-nesting derived row, following the exact
+        identity formula `add_mesh_derived_row` uses."""
+
+        node = URIRef("urn:ref:atlas-derived:pending")
+        fixture.derived.add((node, RDF.type, ATLAS.DerivedRelation))
+        fixture.derived.add((node, ATLAS.relationSubject, subject))
+        fixture.derived.add((node, ATLAS.relationPredicate, predicate))
+        fixture.derived.add((node, ATLAS.relationObject, obj))
+        for item in evidence:
+            fixture.derived.add((node, ATLAS.derivedFromAssertion, item))
+        fixture.derived.add((node, ATLAS.semanticRing, ATLAS.subject))
+        fixture.derived.add((node, ATLAS.derivationRule, atlas_validate.GCMD_COLUMN_NESTING_RULE))
+        fixture.derived.add((node, ATLAS.engine, atlas_validate.GCMD_COLUMN_NESTING_ENGINE))
+        fixture.derived.add(
+            (node, ATLAS.engineVersion, Literal(atlas_validate.GCMD_COLUMN_NESTING_ENGINE_VERSION))
+        )
+        fixture.derived.add(
+            (
+                node,
+                RKAF.inputDigest,
+                Literal(atlas_validate.derived_input_digest(fixture.asserted, list(evidence))),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.generatedAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        return _reidentify_derived(fixture.derived, node)
+
+    def gcmd_column_nesting_broader(fixture: Fixture) -> None:
+        # The positive case: the complete, exact edge set the trio's
+        # nesting implies -- both rows, so the replay's whole-of-rule
+        # regeneration finds no gap and no extra.
+        add_gcmd_derived_row(
+            fixture, subject=gcmd_topic, obj=gcmd_root, evidence=(gcmd_topic_source, gcmd_root_source)
+        )
+        add_gcmd_derived_row(
+            fixture, subject=gcmd_term, obj=gcmd_topic, evidence=(gcmd_term_source, gcmd_topic_source)
+        )
+
+    def gcmd_column_nesting_unallowlisted_rule(fixture: Fixture) -> None:
+        node = add_gcmd_derived_row(
+            fixture, subject=gcmd_topic, obj=gcmd_root, evidence=(gcmd_topic_source, gcmd_root_source)
+        )
+        _remove_subject_predicate(fixture.derived, node, ATLAS.derivationRule)
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, URIRef("urn:ref:rule:bogus-unregistered-rule"))
+        )
+        _reidentify_derived(fixture.derived, node)
+
+    def gcmd_column_nesting_wrong_predicate(fixture: Fixture) -> None:
+        add_gcmd_derived_row(
+            fixture,
+            subject=gcmd_topic,
+            obj=gcmd_root,
+            evidence=(gcmd_topic_source, gcmd_root_source),
+            predicate=SKOS.related,
+        )
+
+    def gcmd_column_nesting_malformed_inputs(fixture: Fixture) -> None:
+        add_gcmd_derived_row(fixture, subject=gcmd_topic, obj=gcmd_root, evidence=(gcmd_topic_source,))
+
+    def gcmd_column_nesting_duplicates_asserted(fixture: Fixture) -> None:
+        gcmd_release_iri = next(fixture.asserted.objects(gcmd_root, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=gcmd_root,
+            predicate=SKOS.narrower,
+            obj=gcmd_topic,
+            source_release=gcmd_release_iri,
+            target_release=gcmd_release_iri,
+            evidence_record=gcmd_root_source,
+            evidence_name="gcmd-root-narrower-gcmd-topic",
+            review_warrant="publisherAssertion",
+        )
+        add_gcmd_derived_row(
+            fixture, subject=gcmd_topic, obj=gcmd_root, evidence=(gcmd_topic_source, gcmd_root_source)
+        )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def gcmd_column_nesting_missing_edge(fixture: Fixture) -> None:
+        # The case the MeSH work lacked: every shipped row is locally valid
+        # (its cited records' payload paths really nest), but the set is
+        # incomplete -- the aquatic-sciences -> agriculture edge is missing.
+        # Only the whole-of-rule replay can refuse this shape, and only
+        # because it scopes itself to the GCMD scheme and regenerates the
+        # complete expected set from the asserted payloads.
+        add_gcmd_derived_row(
+            fixture, subject=gcmd_topic, obj=gcmd_root, evidence=(gcmd_topic_source, gcmd_root_source)
+        )
+
+    # REF-044: the FR compound-heading rule, the registry's fourth entry.
+    # `_base_fixture` seeds the raw material (two head terms and two compound
+    # headings in the real FR scheme) but adds no derived row over it, so the
+    # pre-existing cases keep exactly one derived node (the exactMatch one)
+    # and these mutations are the only thing that cites this material in the
+    # derived graph.
+    fr_head = URIRef("urn:ref:atlas-fixture:resource:fr-head")
+    fr_compound = URIRef("urn:ref:atlas-fixture:resource:fr-compound")
+    fr_head_source = URIRef("urn:ref:atlas-fixture:source-record:fr-head")
+    fr_compound_source = URIRef("urn:ref:atlas-fixture:source-record:fr-compound")
+    fr_loan_head = URIRef("urn:ref:atlas-fixture:resource:fr-loan-head")
+    fr_loan_compound = URIRef("urn:ref:atlas-fixture:resource:fr-loan-compound")
+    fr_loan_head_source = URIRef("urn:ref:atlas-fixture:source-record:fr-loan-head")
+    fr_loan_compound_source = URIRef("urn:ref:atlas-fixture:source-record:fr-loan-compound")
+
+    def add_fr_derived_row(
+        fixture: Fixture,
+        *,
+        subject: URIRef = fr_compound,
+        predicate: URIRef = SKOS.broader,
+        obj: URIRef = fr_head,
+        evidence: tuple[URIRef, ...] = (fr_compound_source, fr_head_source),
+    ) -> URIRef:
+        """Mint one FR compound-heading derived row, following the exact
+        identity formula `add_mesh_derived_row` uses."""
+
+        node = URIRef("urn:ref:atlas-derived:pending")
+        fixture.derived.add((node, RDF.type, ATLAS.DerivedRelation))
+        fixture.derived.add((node, ATLAS.relationSubject, subject))
+        fixture.derived.add((node, ATLAS.relationPredicate, predicate))
+        fixture.derived.add((node, ATLAS.relationObject, obj))
+        for item in evidence:
+            fixture.derived.add((node, ATLAS.derivedFromAssertion, item))
+        fixture.derived.add((node, ATLAS.semanticRing, ATLAS.subject))
+        fixture.derived.add((node, ATLAS.derivationRule, atlas_validate.FR_COMPOUND_HEADING_BROADER_RULE))
+        fixture.derived.add((node, ATLAS.engine, atlas_validate.FR_COMPOUND_HEADING_ENGINE))
+        fixture.derived.add(
+            (node, ATLAS.engineVersion, Literal(atlas_validate.FR_COMPOUND_HEADING_ENGINE_VERSION))
+        )
+        fixture.derived.add(
+            (
+                node,
+                RKAF.inputDigest,
+                Literal(atlas_validate.derived_input_digest(fixture.asserted, list(evidence))),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.generatedAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        return _reidentify_derived(fixture.derived, node)
+
+    def fr_compound_head_broader(fixture: Fixture) -> None:
+        # The positive case: the complete, exact edge set the four FR terms
+        # imply -- both rows, so the replay's whole-of-rule regeneration
+        # finds no gap and no extra.
+        add_fr_derived_row(fixture)
+        add_fr_derived_row(
+            fixture,
+            subject=fr_loan_compound,
+            obj=fr_loan_head,
+            evidence=(fr_loan_compound_source, fr_loan_head_source),
+        )
+
+    def fr_compound_head_unallowlisted_rule(fixture: Fixture) -> None:
+        # Same mutation discipline as the mesh/gcmd cases: one row's rule
+        # IRI rewritten to an unregistered IRI; dataset.derived-rule.
+        node = add_fr_derived_row(fixture)
+        _remove_subject_predicate(fixture.derived, node, ATLAS.derivationRule)
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, URIRef("urn:ref:rule:bogus-unregistered-rule"))
+        )
+        _reidentify_derived(fixture.derived, node)
+
+    def fr_compound_head_wrong_predicate(fixture: Fixture) -> None:
+        # skos:related is admitted for the subject ring in general but not
+        # for THIS rule; dataset.derived-rule.
+        add_fr_derived_row(fixture, predicate=SKOS.related)
+
+    def fr_compound_head_malformed_inputs(fixture: Fixture) -> None:
+        # One cited source record instead of two: passes the common
+        # active-input-superset check, caught only by the rule's own
+        # row-shape check; dataset.derived-rule.
+        add_fr_derived_row(fixture, evidence=(fr_compound_source,))
+
+    def fr_compound_head_duplicates_asserted(fixture: Fixture) -> None:
+        # An asserted (head, skos:narrower, compound) beside the derived
+        # (compound, skos:broader, head): the mirror-predicate duplicate
+        # check; dataset.derived-authority.
+        fr_release_iri = next(fixture.asserted.objects(fr_head, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=fr_head,
+            predicate=SKOS.narrower,
+            obj=fr_compound,
+            source_release=fr_release_iri,
+            target_release=fr_release_iri,
+            evidence_record=fr_head_source,
+            evidence_name="fr-head-narrower-fr-compound",
+            review_warrant="publisherAssertion",
+        )
+        add_fr_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def fr_compound_head_replay_gap(fixture: Fixture) -> None:
+        # The reasoning.authority negative: the grant pair's row passes
+        # every row-shape check, but the loan pair ships no row, so only
+        # the whole-set replay notices (missing=1).
+        add_fr_derived_row(fixture)
 
     def mesh_tree_number_unallowlisted_rule(fixture: Fixture) -> None:
         # The registry bites on a rule IRI it has never seen, exactMatch's
@@ -4786,6 +5132,78 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset", "reasoning"],
             "dataset.derived-authority",
             mesh_tree_number_duplicates_asserted,
+        ),
+        (
+            "gcmd-column-nesting-broader",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            gcmd_column_nesting_broader,
+        ),
+        (
+            "gcmd-column-nesting-unallowlisted-rule",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            gcmd_column_nesting_unallowlisted_rule,
+        ),
+        (
+            "gcmd-column-nesting-wrong-predicate",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            gcmd_column_nesting_wrong_predicate,
+        ),
+        (
+            "gcmd-column-nesting-malformed-inputs",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            gcmd_column_nesting_malformed_inputs,
+        ),
+        (
+            "gcmd-column-nesting-duplicates-asserted",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            gcmd_column_nesting_duplicates_asserted,
+        ),
+        (
+            "gcmd-column-nesting-missing-edge",
+            ["dataset", "reasoning"],
+            "reasoning.authority",
+            gcmd_column_nesting_missing_edge,
+        ),
+        (
+            "fr-compound-head-broader",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            fr_compound_head_broader,
+        ),
+        (
+            "fr-compound-head-unallowlisted-rule",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_compound_head_unallowlisted_rule,
+        ),
+        (
+            "fr-compound-head-wrong-predicate",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_compound_head_wrong_predicate,
+        ),
+        (
+            "fr-compound-head-malformed-inputs",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_compound_head_malformed_inputs,
+        ),
+        (
+            "fr-compound-head-duplicates-asserted",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            fr_compound_head_duplicates_asserted,
+        ),
+        (
+            "fr-compound-head-replay-gap",
+            ["dataset", "reasoning"],
+            "reasoning.authority",
+            fr_compound_head_replay_gap,
         ),
     ]
 

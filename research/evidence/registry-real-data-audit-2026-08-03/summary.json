@@ -10,7 +10,7 @@
     "errors": 0,
     "failures": 0,
     "passed": 1295,
-    "seconds": 300.552,
+    "seconds": 262.239,
     "skipped": 2,
     "testFiles": 83,
     "tests": 1297
@@ -12191,7 +12191,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-7a8a-94e5-3bb0acedfd30",
+                "fetch_id": "019fb304-0930-7d23-9188-c36df51d5f24",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -22203,19 +22203,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea"
+                  "sha256": "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999"
+                  "sha256": "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919"
+                  "sha256": "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0"
+                  "sha256": "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26"
                 }
               },
               "manifest": {
@@ -22226,7 +22226,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:703bcdcf19413f0e66e9a2057df8009b232458b39a050e0e1d0715382ae09aef",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:d4f33a95ae81bcba2f478597e571e2f16ab9d658f92884a2fe9b603c2e49d417",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -22282,7 +22282,7 @@
               "byteLengths": [
                 0,
                 566,
-                594,
+                597,
                 1080,
                 1315,
                 1504,
@@ -22293,20 +22293,20 @@
                 5213
               ],
               "digests": [
-                "sha256:00b3c3e83ec7df80acfc581c31744645f04a07b94b83a00d32897a3437206857",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999",
+                "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52",
+                "sha256:3636fe63df33b728ecc556e1a6feee17bf2834f14760ac98b5fd5f656b03d2b5",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:63cb69c5733857af5d96b7263016c511e8d5b247d2f5534ca7705f1b9b8b83f8",
-                "sha256:74942f71bdaa935d38d4f23ddbfb26ae92c0cdb46bd737e01540cfedbc9ce0ce",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea",
+                "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26",
+                "sha256:b1e85d1dd4c58a863d9867c354e3e2487f79afc63dbb8c2b534ffd94b38de9f5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:eb2606e31811656333fd274424deabeefc7967f8f941c7f999efe4bec767c0f8",
+                "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
               ],
               "paths": [],
               "urls": [
@@ -22330,7 +22330,7 @@
               "byteLengths": [
                 0,
                 566,
-                594,
+                597,
                 1080,
                 1315,
                 1504,
@@ -22341,20 +22341,20 @@
                 5213
               ],
               "digests": [
-                "sha256:00b3c3e83ec7df80acfc581c31744645f04a07b94b83a00d32897a3437206857",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999",
+                "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52",
+                "sha256:3636fe63df33b728ecc556e1a6feee17bf2834f14760ac98b5fd5f656b03d2b5",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:63cb69c5733857af5d96b7263016c511e8d5b247d2f5534ca7705f1b9b8b83f8",
-                "sha256:74942f71bdaa935d38d4f23ddbfb26ae92c0cdb46bd737e01540cfedbc9ce0ce",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea",
+                "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26",
+                "sha256:b1e85d1dd4c58a863d9867c354e3e2487f79afc63dbb8c2b534ffd94b38de9f5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:eb2606e31811656333fd274424deabeefc7967f8f941c7f999efe4bec767c0f8",
+                "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
               ],
               "paths": [],
               "urls": [
@@ -22374,7 +22374,7 @@
               "byteLengths": [
                 0,
                 566,
-                594,
+                597,
                 1080,
                 1315,
                 1504,
@@ -22385,20 +22385,20 @@
                 5213
               ],
               "digests": [
-                "sha256:00b3c3e83ec7df80acfc581c31744645f04a07b94b83a00d32897a3437206857",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999",
+                "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52",
+                "sha256:3636fe63df33b728ecc556e1a6feee17bf2834f14760ac98b5fd5f656b03d2b5",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:63cb69c5733857af5d96b7263016c511e8d5b247d2f5534ca7705f1b9b8b83f8",
-                "sha256:74942f71bdaa935d38d4f23ddbfb26ae92c0cdb46bd737e01540cfedbc9ce0ce",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea",
+                "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26",
+                "sha256:b1e85d1dd4c58a863d9867c354e3e2487f79afc63dbb8c2b534ffd94b38de9f5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:eb2606e31811656333fd274424deabeefc7967f8f941c7f999efe4bec767c0f8",
+                "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
               ],
               "paths": [],
               "urls": [
@@ -22419,9 +22419,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 795,
+              "archive_byte_length": 799,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
+              "archive_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22439,10 +22439,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 795,
+                "expected_byte_length": 799,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
-                "expected_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
+                "expected_member_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
+                "expected_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22461,7 +22461,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+              "sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22529,9 +22529,9 @@
                 2908
               ],
               "digests": [
-                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+                "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
                 "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
-                "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4"
+                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
               ],
               "paths": [],
               "urls": [
@@ -22547,9 +22547,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 795,
+              "archive_byte_length": 799,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
+              "archive_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22558,10 +22558,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 795,
+                "expected_byte_length": 799,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
-                "expected_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
+                "expected_member_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
+                "expected_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22575,7 +22575,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+              "sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22622,8 +22622,8 @@
                 2908
               ],
               "digests": [
-                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
-                "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4"
+                "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
               ],
               "paths": [],
               "urls": [
@@ -22753,7 +22753,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+              "source_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -22943,8 +22943,8 @@
                 2908
               ],
               "digests": [
-                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
-                "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4"
+                "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
               ],
               "paths": [],
               "urls": [
@@ -23494,7 +23494,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+              "source_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -23684,7 +23684,7 @@
                 2908
               ],
               "digests": [
-                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a"
+                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
               ],
               "paths": [],
               "urls": [
@@ -36776,7 +36776,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7a42-9ed4-d116b0608e1d",
+                "fetch_id": "019fb2e5-4e00-74ae-8f75-9b763b8fd8e3",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -41208,6 +41208,86 @@
               "acquisition_mode": "local",
               "byte_length": 11807,
               "cache_hit": false,
+              "compressed_byte_length": 2809,
+              "compressed_sha256": "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
+                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "expected_byte_length": 11807,
+                "expected_compressed_byte_length": 2809,
+                "expected_compressed_sha256": "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
+                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "filename": "gemet-mini.rdf",
+                "landing_page_url": "https://example.test/gemet-landing-page",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "publisher": "European Environment Agency / Eionet",
+                "source_url": "https://example.test/gemet-mini.rdf",
+                "version": "fixture"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_url": "https://example.test/gemet-mini.rdf"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "compressed_byte_length": "int",
+                "compressed_sha256": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_compressed_byte_length": "int",
+                    "expected_compressed_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "publisher": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                11807
+              ],
+              "digests": [
+                "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/gemet-landing-page",
+                "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gemet_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 11807,
+              "cache_hit": false,
               "compressed_byte_length": null,
               "compressed_sha256": null,
               "local_source_path": "<pathlib.PosixPath>",
@@ -41270,86 +41350,6 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/gemet-landing-page",
-                "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_gemet_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "byte_length": 11807,
-              "cache_hit": false,
-              "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3",
-              "local_source_path": "<pathlib.PosixPath>",
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
-                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 11807,
-                "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3",
-                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "filename": "gemet-mini.rdf",
-                "landing_page_url": "https://example.test/gemet-landing-page",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "publisher": "European Environment Agency / Eionet",
-                "source_url": "https://example.test/gemet-mini.rdf",
-                "version": "fixture"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-              "source_url": "https://example.test/gemet-mini.rdf"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "compressed_byte_length": "int",
-                "compressed_sha256": "str",
-                "local_source_path": "pathlib.PosixPath",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_compressed_byte_length": "int",
-                    "expected_compressed_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "publisher": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                11807
-              ],
-              "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3"
               ],
               "paths": [],
               "urls": [
@@ -41629,6 +41629,7 @@
                 11807
               ],
               "digests": [
+                "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
@@ -41992,8 +41993,7 @@
                 11807
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3"
+                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
               "urls": [
@@ -74420,7 +74420,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7b51-b2ca-55e1605e9f1a",
+              "fetch_id": "019fb2e5-4e00-7d67-af5c-e78c00ba0196",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -74477,7 +74477,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7e87-a3f1-ed270d9e99a1"
+              "registration_id": "019fb80b-aa00-776d-a709-22d5f4cfb627"
             },
             "shape": {
               "fields": {
@@ -110593,14 +110593,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:d2ab1570f914bbca969e5dfb219fc019904f031e7b0eaf2e58d579841795b569",
+            "sample": "sha256:cf0a640142f7c191f090b577d1759feb7c04e198bd4665dd2f327f6d4567680f",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                364729
+                364730
               ],
               "digests": [
-                "sha256:d2ab1570f914bbca969e5dfb219fc019904f031e7b0eaf2e58d579841795b569"
+                "sha256:cf0a640142f7c191f090b577d1759feb7c04e198bd4665dd2f327f6d4567680f"
               ],
               "paths": [],
               "urls": []
@@ -116382,18 +116382,27 @@
     },
     {
       "auditRole": "dataReader",
-      "blockers": [
-        "REF-041 derivation reader: it re-reads the CSV gcmd_science_keywords.py already pins and acquires nothing of its own, so it consumes no publisher capture under its own name. Its edges cannot ship until the derived graph admits a GCMD rule (REF-042 built the registry; the rule is not registered yet), at which point this reader is exercised through that rule's own reproduction check rather than a separate pin."
-      ],
+      "blockers": [],
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
         "http://www.w3.org/2004/02/skos/core#broader",
-        "http://www.w3.org/2004/02/skos/core#narrower"
+        "http://www.w3.org/2004/02/skos/core#narrower",
+        "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
       ],
       "module": "gcmd_science_keywords_hierarchy.py",
-      "sourceStatus": "blocked",
-      "testInputs": []
+      "sourceStatus": "publisherBytes",
+      "testInputs": [
+        {
+          "acquisition": "zyteRawHttp",
+          "byteLength": 504190,
+          "localPath": "output/registry-real-data-sources/gcmd-science-keywords-24.4.csv",
+          "name": "gcmdScienceKeywords244",
+          "provenance": "publisherDistribution",
+          "publisherUrl": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv",
+          "sha256": "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2"
+        }
+      ]
     },
     {
       "auditRole": "dataReader",
@@ -118129,14 +118138,13 @@
   ],
   "realDataGate": {
     "failures": [
-      "eurovoc_organization_experiment.py: Experiment reads injected archive and metadata paths; its tests exercise synthetic fixtures only, so no pinned publisher capture is consumed.",
-      "gcmd_science_keywords_hierarchy.py: REF-041 derivation reader: it re-reads the CSV gcmd_science_keywords.py already pins and acquires nothing of its own, so it consumes no publisher capture under its own name. Its edges cannot ship until the derived graph admits a GCMD rule (REF-042 built the registry; the rule is not registered yet), at which point this reader is exercised through that rule's own reproduction check rather than a separate pin."
+      "eurovoc_organization_experiment.py: Experiment reads injected archive and metadata paths; its tests exercise synthetic fixtures only, so no pinned publisher capture is consumed."
     ],
     "status": "failed"
   },
   "sourceStatuses": {
-    "blocked": 2,
+    "blocked": 1,
     "notApplicable": 9,
-    "publisherBytes": 75
+    "publisherBytes": 76
   }
 }

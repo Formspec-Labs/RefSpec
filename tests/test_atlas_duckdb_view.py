@@ -31,6 +31,8 @@ from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_TABLE_NAMES,
     AGENCY_PROJECTION_TABLE_SCHEMAS,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    DERIVED_RELATION_TABLE_NAME,
+    DERIVED_RELATION_TABLE_SCHEMA,
 )
 
 _SAME_ENTITY_AS = "https://refspec.org/ns/atlas/v3#sameEntityAs"
@@ -241,7 +243,16 @@ def _make_view(
     return AtlasDuckDBView(
         root=root,
         manifest_digest="sha256:" + "0" * 64,
-        manifest={"input": {"atlas": {}}, "counts": {}},
+        manifest={
+            "input": {"atlas": {}},
+            # facets() only reads the resource/statement counts; the rest are
+            # left absent, matching every existing caller of this helper that
+            # never touched .counts before facets() started reading it.
+            "counts": {
+                CompactRecordRole.RESOURCE.value: len(rows_by_role[CompactRecordRole.RESOURCE]),
+                CompactRecordRole.STATEMENT.value: len(rows_by_role[CompactRecordRole.STATEMENT]),
+            },
+        },
         tables={},
         temporary_directory=temporary_directory,
         database_path=root / "test.duckdb",
@@ -700,5 +711,343 @@ def test_agency_projection_lookup_filters_and_flags_known_org(tmp_path: Path) ->
         no_match = view.agency_projection("no-such-agency-xyz")
         assert no_match["resolved"] == []
         assert no_match["unresolved"] == []
+    finally:
+        view.close()
+
+
+# --------------------------------------------------------------------------
+# Derived relations (REF-042): opt-in-hidden, schema discovered at runtime.
+#
+# The sibling table's real column names were not settled at the time this
+# reader was written, so two fixture shapes are used below: a "canonical"
+# shape (the column names duckdb_view.py's candidate lists check first) and
+# an "alternate" shape using different names for the two genuinely uncertain
+# columns (rule / derived-from-assertions) plus a schema that omits the
+# cosmetic id/ring/digest columns entirely -- proving the runtime DESCRIBE-
+# based discovery, not a hardcoded guess, is what makes both work.
+# --------------------------------------------------------------------------
+
+
+def _write_derived_relations_fixture(
+    root: Path,
+    rows: list[dict[str, Any]],
+    schema: pa.Schema,
+) -> None:
+    tables_dir = root / "tables"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    pq.write_table(
+        pa.Table.from_pylist(rows, schema=schema),
+        tables_dir / "derived-relations.parquet",
+    )
+
+
+_CANONICAL_DERIVED_SCHEMA = pa.schema(
+    [
+        pa.field("id", pa.string(), nullable=False),
+        pa.field("subject", pa.string(), nullable=False),
+        pa.field("predicate", pa.string(), nullable=False),
+        pa.field("object", pa.string(), nullable=False),
+        pa.field("semantic_ring", pa.string()),
+        pa.field("content_digest", pa.string()),
+        pa.field("rule_iri", pa.string()),
+        pa.field("derived_from_assertions", pa.list_(pa.string())),
+    ]
+)
+
+# Deliberately different names for the two genuinely unsettled columns, and
+# no id/semantic_ring/content_digest columns at all -- the minimal schema
+# duckdb_view.py must still be able to use.
+_ALTERNATE_DERIVED_SCHEMA = pa.schema(
+    [
+        pa.field("subject", pa.string(), nullable=False),
+        pa.field("predicate", pa.string(), nullable=False),
+        pa.field("object", pa.string(), nullable=False),
+        pa.field("rule", pa.string()),
+        pa.field("evidence", pa.list_(pa.string())),
+    ]
+)
+
+
+def _broader() -> str:
+    return "http://www.w3.org/2004/02/skos/core#broader"
+
+
+def test_derived_relations_unavailable_when_table_is_missing(tmp_path: Path) -> None:
+    view = _make_view(tmp_path)
+    try:
+        assert view.derived_relations_available() is False
+        assert view.facets()["derivedRelations"] == {"available": False, "count": 0}
+        default_all = view.overview(relations="all")
+        assert default_all == view.overview()
+    finally:
+        view.close()
+
+
+def test_resource_hides_derived_relations_by_default_and_shows_them_opted_in(
+    tmp_path: Path,
+) -> None:
+    _write_derived_relations_fixture(
+        tmp_path,
+        rows=[
+            {
+                "id": "urn:ref:atlas-derived-relation:1",
+                "subject": "urn:mesh:child",
+                "predicate": _broader(),
+                "object": "urn:mesh:parent",
+                "semantic_ring": "subject",
+                "content_digest": "sha256:" + "a" * 64,
+                "rule_iri": "urn:ref:rule:mesh-tree-number-broader",
+                "derived_from_assertions": ["urn:st:asserted-1", "urn:st:asserted-2"],
+            }
+        ],
+        schema=_CANONICAL_DERIVED_SCHEMA,
+    )
+    view = _make_view(
+        tmp_path,
+        releases=[_release_row("urn:r:mesh", "mesh")],
+        resources=[
+            _resource_row("urn:mesh:child", "urn:r:mesh", status="active"),
+            _resource_row("urn:mesh:parent", "urn:r:mesh", status="active"),
+        ],
+        labels=[
+            {
+                "id": "urn:lbl:1",
+                "resource": "urn:mesh:child",
+                "label_role": "preferred",
+                "value": "Child concept",
+                "language": "en",
+                "release": "urn:r:mesh",
+                "source_record": "urn:mesh:child:source",
+            },
+            {
+                "id": "urn:lbl:2",
+                "resource": "urn:mesh:parent",
+                "label_role": "preferred",
+                "value": "Parent concept",
+                "language": "en",
+                "release": "urn:r:mesh",
+                "source_record": "urn:mesh:parent:source",
+            },
+        ],
+    )
+    try:
+        assert view.derived_relations_available() is True
+        assert view.facets()["derivedRelations"] == {"available": True, "count": 1}
+
+        hidden = view.resource("urn:mesh:child")
+        assert hidden["relations"] == []
+
+        shown = view.resource("urn:mesh:child", relations="all")
+        assert len(shown["relations"]) == 1
+        edge = shown["relations"][0]
+        assert edge["statement_type"] == "DerivedRelation"
+        assert edge["subject"] == "urn:mesh:child"
+        assert edge["object"] == "urn:mesh:parent"
+        assert edge["predicate"] == _broader()
+        assert edge["derivation_rule"] == "urn:ref:rule:mesh-tree-number-broader"
+        assert edge["derived_from_assertions"] == ["urn:st:asserted-1", "urn:st:asserted-2"]
+        assert edge["content_digest"] == "sha256:" + "a" * 64
+        assert edge["evidence"] == []
+        assert edge["evidence_count"] == 0
+        assert edge["subject_label"] == "Child concept"
+        assert edge["object_label"] == "Parent concept"
+        assert edge["source_release"] == "urn:r:mesh"
+        assert edge["target_release"] == "urn:r:mesh"
+
+        # Also reachable from the object side.
+        from_parent = view.resource("urn:mesh:parent", relations="all")
+        assert len(from_parent["relations"]) == 1
+    finally:
+        view.close()
+
+
+def test_derived_relations_discovers_alternate_column_names_at_runtime(tmp_path: Path) -> None:
+    _write_derived_relations_fixture(
+        tmp_path,
+        rows=[
+            {
+                "subject": "urn:mesh:child",
+                "predicate": _broader(),
+                "object": "urn:mesh:parent",
+                "rule": "urn:ref:rule:gcmd-column-nesting-broader",
+                "evidence": ["urn:src:record-1"],
+            }
+        ],
+        schema=_ALTERNATE_DERIVED_SCHEMA,
+    )
+    view = _make_view(
+        tmp_path,
+        releases=[_release_row("urn:r:mesh", "mesh")],
+        resources=[
+            _resource_row("urn:mesh:child", "urn:r:mesh", status="active"),
+            _resource_row("urn:mesh:parent", "urn:r:mesh", status="active"),
+        ],
+    )
+    try:
+        shown = view.resource("urn:mesh:child", relations="all")
+        edge = shown["relations"][0]
+        assert edge["derivation_rule"] == "urn:ref:rule:gcmd-column-nesting-broader"
+        assert edge["derived_from_assertions"] == ["urn:src:record-1"]
+        # No id column in this schema -- a stable synthetic id is minted instead.
+        assert edge["id"] == "urn:ref:atlas-derived-relation:urn:mesh:child|" + _broader() + "|urn:mesh:parent"
+        # No semantic_ring/content_digest columns in this schema.
+        assert edge["semantic_ring"] is None
+        assert edge["content_digest"] is None
+    finally:
+        view.close()
+
+
+def test_derived_relations_reads_the_real_ref042_parquet_schema(tmp_path: Path) -> None:
+    """Same as the canonical-shape test above, but against
+    :data:`refspec.atlas.parquet_tables.DERIVED_RELATION_TABLE_SCHEMA` itself
+    -- REF-042's actual writer schema, binary digest columns included -- so a
+    future rename in that module fails this test loudly instead of silently
+    drifting from what duckdb_view.py was written against.
+    """
+
+    content_digest = b"\xab" * 32
+    tables_dir = tmp_path / "tables"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    pq.write_table(
+        pa.Table.from_pylist(
+            [
+                {
+                    "id": "urn:ref:atlas-derived:" + content_digest.hex(),
+                    "subject": "urn:mesh:child",
+                    "predicate": _broader(),
+                    "object": "urn:mesh:parent",
+                    "semantic_ring": "subject",
+                    "derivation_rule": "urn:ref:rule:mesh-tree-number-broader",
+                    "engine": "https://refspec.org/code/mesh-tree-broader",
+                    "engine_version": "1",
+                    "derived_from_assertions": ["urn:st:asserted-1"],
+                    "input_digest": b"\xcd" * 32,
+                    "generated_at": "2026-08-18T00:00:00+00:00",
+                    "content_digest": content_digest,
+                }
+            ],
+            schema=DERIVED_RELATION_TABLE_SCHEMA,
+        ),
+        tables_dir / DERIVED_RELATION_TABLE_NAME,
+    )
+    view = _make_view(
+        tmp_path,
+        releases=[_release_row("urn:r:mesh", "mesh")],
+        resources=[
+            _resource_row("urn:mesh:child", "urn:r:mesh", status="active"),
+            _resource_row("urn:mesh:parent", "urn:r:mesh", status="active"),
+        ],
+    )
+    try:
+        assert view.derived_relations_available() is True
+        edge = view.resource("urn:mesh:child", relations="all")["relations"][0]
+        assert edge["id"] == "urn:ref:atlas-derived:" + content_digest.hex()
+        assert edge["derivation_rule"] == "urn:ref:rule:mesh-tree-number-broader"
+        assert edge["derived_from_assertions"] == ["urn:st:asserted-1"]
+        assert edge["semantic_ring"] == "subject"
+        assert edge["content_digest"] == "sha256:" + content_digest.hex()
+    finally:
+        view.close()
+
+
+def test_resource_rejects_unknown_relations_value(tmp_path: Path) -> None:
+    view = _make_view(tmp_path)
+    try:
+        with pytest.raises(AtlasDuckDBViewError, match="relations filter"):
+            view.resource("urn:res:missing", relations="bogus")
+    finally:
+        view.close()
+
+
+def test_release_graph_includes_derived_edges_only_within_the_release_when_opted_in(
+    tmp_path: Path,
+) -> None:
+    _write_derived_relations_fixture(
+        tmp_path,
+        rows=[
+            {
+                "id": "urn:ref:atlas-derived-relation:in-release",
+                "subject": "urn:mesh:child",
+                "predicate": _broader(),
+                "object": "urn:mesh:parent",
+                "semantic_ring": "subject",
+                "content_digest": None,
+                "rule_iri": "urn:ref:rule:mesh-tree-number-broader",
+                "derived_from_assertions": [],
+            },
+            {
+                # object is outside this release's node set -- must be dropped,
+                # exactly like an out-of-release asserted relation already is.
+                "id": "urn:ref:atlas-derived-relation:outside",
+                "subject": "urn:mesh:child",
+                "predicate": _broader(),
+                "object": "urn:other:concept",
+                "semantic_ring": "subject",
+                "content_digest": None,
+                "rule_iri": "urn:ref:rule:mesh-tree-number-broader",
+                "derived_from_assertions": [],
+            },
+        ],
+        schema=_CANONICAL_DERIVED_SCHEMA,
+    )
+    view = _make_view(
+        tmp_path,
+        releases=[_release_row("urn:r:mesh", "mesh")],
+        resources=[
+            _resource_row("urn:mesh:child", "urn:r:mesh", status="active"),
+            _resource_row("urn:mesh:parent", "urn:r:mesh", status="active"),
+        ],
+    )
+    try:
+        default_graph = view.release_graph("urn:r:mesh")
+        assert default_graph["edges"] == []
+        assert default_graph["types"] == []
+
+        all_graph = view.release_graph("urn:r:mesh", relations="all")
+        assert all_graph["types"] == ["DerivedRelation"]
+        assert len(all_graph["edges"]) == 1
+        subject_index, object_index, _predicate_index, type_index = all_graph["edges"][0]
+        assert all_graph["nodes"][subject_index][0] == "urn:mesh:child"
+        assert all_graph["nodes"][object_index][0] == "urn:mesh:parent"
+        assert all_graph["types"][type_index] == "DerivedRelation"
+    finally:
+        view.close()
+
+
+def test_overview_folds_derived_relations_into_internal_relations_when_opted_in(
+    tmp_path: Path,
+) -> None:
+    _write_derived_relations_fixture(
+        tmp_path,
+        rows=[
+            {
+                "id": "urn:ref:atlas-derived-relation:1",
+                "subject": "urn:mesh:child",
+                "predicate": _broader(),
+                "object": "urn:mesh:parent",
+                "semantic_ring": "subject",
+                "content_digest": None,
+                "rule_iri": "urn:ref:rule:mesh-tree-number-broader",
+                "derived_from_assertions": [],
+            }
+        ],
+        schema=_CANONICAL_DERIVED_SCHEMA,
+    )
+    view = _make_view(
+        tmp_path,
+        releases=[_release_row("urn:r:mesh", "mesh")],
+        resources=[
+            _resource_row("urn:mesh:child", "urn:r:mesh", status="active"),
+            _resource_row("urn:mesh:parent", "urn:r:mesh", status="active"),
+        ],
+    )
+    try:
+        default_overview = view.overview()
+        nodes = {node["id"]: node for node in default_overview["nodes"]}
+        assert nodes["urn:r:mesh"]["internalRelations"] == 0
+
+        all_overview = view.overview(relations="all")
+        nodes_all = {node["id"]: node for node in all_overview["nodes"]}
+        assert nodes_all["urn:r:mesh"]["internalRelations"] == 1
     finally:
         view.close()

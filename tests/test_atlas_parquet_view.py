@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import re
@@ -10,6 +11,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import urlopen
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from rdflib import Namespace
@@ -19,6 +21,15 @@ from refspec.atlas.compact_pack import (
     CompactRecordRole,
     compact_record_fields,
     normalize_compact_record,
+)
+from refspec.atlas.derived_graph import (
+    EVIDENCE_INPUT_SOURCE_RECORD,
+    AssertedFactView,
+    DerivationContext,
+    DerivationRule,
+    DerivedRelationRow,
+    DerivedRuleOutcome,
+    build_derived_row,
 )
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
 from refspec.atlas.explorer import (
@@ -50,12 +61,17 @@ from refspec.atlas.parquet_search_view import (
 from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_ROLE,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    DERIVED_RELATION_ROLE,
     TABLE_SCHEMAS,
+    AtlasParquetTableError,
     AtlasParquetTableWriter,
     column_name,
+    derived_relation_manifest_metadata,
+    derived_relation_parquet_row,
     logical_records_preserved,
     unpreserved_record_fields,
     write_agency_projection_tables,
+    write_derived_relation_table,
 )
 from refspec.atlas.parquet_view import (
     VIEW_SCHEMA_VERSION,
@@ -117,6 +133,89 @@ def _seal_view(source: Path, output: Path, *, expected_manifest_digest: str) -> 
                 "regulations-gov-agencies-roster-2026-08-16"
             ],
         },
+        derived_relations={"status": "notEmitted"},
+    )
+
+
+#: A rule object shaped exactly like the registered ones, deliberately never
+#: registered: `build_derived_row` takes the rule explicitly, and the view
+#: machinery must not care which rules the producer registry holds.
+_DERIVED_TEST_RULE = DerivationRule(
+    rule_iri="urn:test:rule:test-broader",
+    engine_iri="https://refspec.org/code/test-deriver",
+    engine_version="1",
+    evidence_input_kind=EVIDENCE_INPUT_SOURCE_RECORD,
+    watch_predicates=frozenset(),
+    evidence_nodes=lambda facts: frozenset(),
+    derive=lambda context: DerivedRuleOutcome(rows=()),
+    label="view-fixture rule",
+)
+
+
+def _canonical_sha256(payload: object, *, terminal_lf: bool) -> str:
+    raw = canonical_json_bytes(payload)
+    if not terminal_lf:
+        raw = raw.rstrip(b"\n")
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _derived_relation_rows() -> tuple[DerivedRelationRow, ...]:
+    """Two real derived rows, identified by the binding's own formulas."""
+
+    first_record = "urn:ref:atlas-source-record:" + "a" * 64
+    second_record = "urn:ref:atlas-source-record:" + "b" * 64
+    context = DerivationContext(
+        facts=AssertedFactView(),
+        node_digest={first_record: _D1, second_record: _D2},
+        canonical_sha256=_canonical_sha256,
+        generated_at="2026-08-16T00:00:00+00:00",
+    )
+    return (
+        build_derived_row(
+            rule=_DERIVED_TEST_RULE,
+            subject="urn:test:resource",
+            predicate="http://www.w3.org/2004/02/skos/core#broader",
+            obj="urn:test:parent",
+            ring="https://refspec.org/ns/atlas/v3#subject",
+            evidence=(first_record, second_record),
+            context=context,
+        ),
+        build_derived_row(
+            rule=_DERIVED_TEST_RULE,
+            subject="urn:test:parent",
+            predicate="http://www.w3.org/2004/02/skos/core#broader",
+            obj="urn:test:grandparent",
+            ring="https://refspec.org/ns/atlas/v3#subject",
+            evidence=(second_record,),
+            context=context,
+        ),
+    )
+
+
+def _seal_view_with_derived_relations(
+    source: Path,
+    output: Path,
+    *,
+    expected_manifest_digest: str,
+    rows: tuple[DerivedRelationRow, ...],
+) -> dict[str, object]:
+    """Like ``_seal_view``, but also stages and declares the derived table."""
+
+    staged = output.parent / f".{output.name}.staged-tables"
+    _stage_tables(source, staged)
+    write_derived_relation_table(staged, rows)
+    return seal_atlas_parquet_view(
+        source,
+        staged,
+        output,
+        expected_manifest_digest=expected_manifest_digest,
+        agency_projection={
+            "status": "notEmitted",
+            "missingReleaseKeys": [
+                "regulations-gov-agencies-roster-2026-08-16"
+            ],
+        },
+        derived_relations=derived_relation_manifest_metadata(rows),
     )
 
 
@@ -256,6 +355,7 @@ def _seal_view_with_agency_projection(
             "digest": projection.digest,
             "coverage": projection.coverage.to_dict(),
         },
+        derived_relations={"status": "notEmitted"},
     )
 
 
@@ -278,6 +378,7 @@ def _fixture_distribution(
     source_digest: str = _D3,
     include_alias: bool = False,
     include_mapping: bool = False,
+    derived_relation_count: int | None = None,
 ) -> str:
     release = "urn:test:atlas-release"
     source_record = "urn:ref:atlas-source-record:" + "5" * 64
@@ -469,7 +570,9 @@ def _fixture_distribution(
             "contractDigest": binding_digest,
             "ontologyDigest": "sha256:" + "b" * 64,
         },
-        "counts": {},
+        "counts": {}
+        if derived_relation_count is None
+        else {"derivedRelations": derived_relation_count},
         "createdAt": "2026-08-07T00:00:00+00:00",
         "distributionId": "urn:test:atlas-distribution",
         "format": "refspec-atlas-packed-nquads-3.1",
@@ -642,7 +745,7 @@ def test_warrant_columns_carry_every_axis_and_the_optional_referent(
     assert row["evidence_role"] == "urn:test:role"
     assert row["evidentiary_function"] == "urn:test:function"
     assert row["based_on_attestation"] is None
-    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.1"
+    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.2"
 
 
 def test_logical_records_preserved_is_computed_from_the_record_contract() -> None:
@@ -1002,6 +1105,274 @@ def test_verify_still_refuses_an_undeclared_agency_projection_file(tmp_path: Pat
         verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
 
 
+def _resealed_manifest(manifest: dict[str, object], path: Path) -> str:
+    """Recompute the payload digest around a tampered manifest and re-pin it."""
+
+    resealed = {key: value for key, value in manifest.items() if key != "canonicalPayloadDigest"}
+    resealed["canonicalPayloadDigest"] = canonical_payload_sha256(resealed)
+    path.write_bytes(canonical_json_bytes(resealed))
+    return sha256_digest(path.read_bytes())
+
+
+def test_derived_relation_table_seals_compacts_and_never_mingles_with_statements(
+    tmp_path: Path,
+) -> None:
+    """REF-042's derived graph reaches both views as its own table.
+
+    A full view over a distribution that declares derived content carries a
+    ``derived-relations.parquet`` whose rows carry the rule and the asserted
+    nodes each edge was derived from; compaction copies it verbatim; and the
+    statements table still holds exactly the asserted rows -- the derived
+    graph's non-authoritative, opt-in contract survives being served.
+    """
+
+    rows = _derived_relation_rows()
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, derived_relation_count=len(rows))
+    full = tmp_path / "full"
+    manifest = _seal_view_with_derived_relations(
+        source, full, expected_manifest_digest=source_pin, rows=rows
+    )
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+
+    derived_metadata = manifest["derivedRelations"]
+    assert derived_metadata["status"] == "emitted"
+    assert derived_metadata["decision"] == "REF-042"
+    assert derived_metadata["coverage"] == {
+        "rowCount": 2,
+        "ruleCounts": {"urn:test:rule:test-broader": 2},
+        "predicateCounts": {"http://www.w3.org/2004/02/skos/core#broader": 2},
+        "generatedAt": "2026-08-16T00:00:00+00:00",
+    }
+    assert manifest["counts"][DERIVED_RELATION_ROLE] == 2
+    assert verify_atlas_parquet_view(full, expected_manifest_digest=full_pin) == manifest
+
+    table = pq.read_table(full / "tables/derived-relations.parquet")
+    assert table.num_rows == 2
+    first = table.to_pylist()[0]
+    assert first["id"] == "urn:ref:atlas-derived:" + bytes(first["content_digest"]).hex()
+    assert first["subject"] == "urn:test:resource"
+    assert first["semantic_ring"] == "subject"
+    assert first["derivation_rule"] == "urn:test:rule:test-broader"
+    assert first["derived_from_assertions"] == sorted(
+        ["urn:ref:atlas-source-record:" + "a" * 64, "urn:ref:atlas-source-record:" + "b" * 64]
+    )
+    # The asserted statements table is untouched by the derived rows.
+    statements = pq.read_table(full / "tables/statements.parquet")
+    assert statements.num_rows == 1
+    assert all(
+        row["statement_type"] == "NativeRelationAssertion" for row in statements.to_pylist()
+    )
+
+    compact = tmp_path / "compact"
+    compact_manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_member = next(
+        member for member in compact_manifest["members"] if member["role"] == DERIVED_RELATION_ROLE
+    )
+    full_member = next(
+        member for member in manifest["members"] if member["role"] == DERIVED_RELATION_ROLE
+    )
+    assert compact_member["sha256"] == full_member["sha256"]
+    assert (compact / compact_member["path"]).read_bytes() == (
+        full / "tables/derived-relations.parquet"
+    ).read_bytes()
+    assert compact_manifest["counts"][DERIVED_RELATION_ROLE] == 2
+    assert compact_manifest["counts"][CompactRecordRole.STATEMENT.value] == 1
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+    assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == compact_manifest
+
+
+def test_derived_relation_table_is_optional_and_omitted_cleanly(tmp_path: Path) -> None:
+    """A distribution with an empty derived graph yields no table, and the
+    view and its compact descendant still verify -- every pre-2026-08-18
+    build's shape.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    manifest = _seal_view(source, full, expected_manifest_digest=source_pin)
+
+    assert manifest["derivedRelations"] == {"status": "notEmitted"}
+    assert DERIVED_RELATION_ROLE not in manifest["counts"]
+    assert not (full / "tables/derived-relations.parquet").exists()
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    assert verify_atlas_parquet_view(full, expected_manifest_digest=full_pin) == manifest
+
+    compact = tmp_path / "compact"
+    compact_manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    assert DERIVED_RELATION_ROLE not in compact_manifest["counts"]
+    assert not (compact / "tables/derived-relations.parquet").exists()
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+    assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == compact_manifest
+
+
+def test_seal_refuses_a_view_that_drops_derived_content_the_distribution_declares(
+    tmp_path: Path,
+) -> None:
+    """The 2026-08-18 failure mode, made impossible: 42,519 derived relations
+    sealed in the packs while the view silently shipped none. A view of a
+    distribution that declares derived content must carry it.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, derived_relation_count=2)
+    staged = tmp_path / ".staged-tables"
+    _stage_tables(source, staged)
+    with pytest.raises(AtlasParquetViewError, match="declares derived relations"):
+        seal_atlas_parquet_view(
+            source,
+            staged,
+            tmp_path / "view",
+            expected_manifest_digest=source_pin,
+            agency_projection={
+                "status": "notEmitted",
+                "missingReleaseKeys": ["regulations-gov-agencies-roster-2026-08-16"],
+            },
+            derived_relations={"status": "notEmitted"},
+        )
+
+
+def test_seal_ties_the_derived_table_to_the_distribution_declared_count(
+    tmp_path: Path,
+) -> None:
+    """The emitted block is reconciled against the distribution's own
+    authenticated count, not just against the table that happens to be staged.
+    """
+
+    rows = _derived_relation_rows()
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, derived_relation_count=3)
+    staged = tmp_path / ".staged-tables"
+    _stage_tables(source, staged)
+    write_derived_relation_table(staged, rows)
+    with pytest.raises(AtlasParquetViewError, match="distribution's declared count"):
+        seal_atlas_parquet_view(
+            source,
+            staged,
+            tmp_path / "view",
+            expected_manifest_digest=source_pin,
+            agency_projection={
+                "status": "notEmitted",
+                "missingReleaseKeys": ["regulations-gov-agencies-roster-2026-08-16"],
+            },
+            derived_relations=derived_relation_manifest_metadata(rows),
+        )
+
+
+def test_verify_refuses_derived_coverage_that_differs_from_the_table_rows(
+    tmp_path: Path,
+) -> None:
+    """Coverage is recomputed from the sealed bytes, so a manifest that
+    disagrees with its own table is refused even under a fresh pin.
+    """
+
+    rows = _derived_relation_rows()
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, derived_relation_count=len(rows))
+    full = tmp_path / "full"
+    manifest = _seal_view_with_derived_relations(
+        source, full, expected_manifest_digest=source_pin, rows=rows
+    )
+
+    tampered = dict(manifest)
+    tampered["derivedRelations"] = {
+        **manifest["derivedRelations"],
+        "coverage": {
+            **manifest["derivedRelations"]["coverage"],
+            "ruleCounts": {"urn:test:rule:someone-elses-rule": 2},
+        },
+    }
+    view_pin = _resealed_manifest(tampered, full / "view-manifest.json")
+
+    with pytest.raises(AtlasParquetViewError, match="coverage differs from table rows"):
+        verify_atlas_parquet_view(full, expected_manifest_digest=view_pin)
+
+
+def test_verify_refuses_a_derived_row_whose_identity_is_not_its_content_digest(
+    tmp_path: Path,
+) -> None:
+    """A re-identified row breaks the one identity rule the table has: the
+    identifier is the derived-relation prefix plus the row's own content
+    digest -- the same fact `_suffix` enforces for compact statements.
+    """
+
+    rows = _derived_relation_rows()
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, derived_relation_count=len(rows))
+    full = tmp_path / "full"
+    manifest = _seal_view_with_derived_relations(
+        source, full, expected_manifest_digest=source_pin, rows=rows
+    )
+
+    derived_path = full / "tables/derived-relations.parquet"
+    table = pq.read_table(derived_path)
+    data = table.to_pylist()
+    data[0] = {**data[0], "id": "urn:ref:atlas-derived:" + "0" * 64}
+    pq.write_table(
+        pa.Table.from_pylist(data, schema=table.schema),
+        derived_path,
+        compression="zstd",
+    )
+    member = next(
+        member for member in manifest["members"] if member["role"] == DERIVED_RELATION_ROLE
+    )
+    member["byteLength"] = derived_path.stat().st_size
+    member["sha256"] = file_sha256(derived_path)
+    view_pin = _resealed_manifest(dict(manifest), full / "view-manifest.json")
+
+    with pytest.raises(AtlasParquetViewError, match="differs from its contentDigest"):
+        verify_atlas_parquet_view(full, expected_manifest_digest=view_pin)
+
+
+def test_compact_view_refuses_an_undeclared_derived_relation_file(tmp_path: Path) -> None:
+    """Closure on the compact side admits exactly the declared members: an
+    undeclared derived table on disk is refused, exactly as an undeclared
+    projection table is.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    _seal_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+
+    write_derived_relation_table(compact, _derived_relation_rows())
+
+    with pytest.raises(AtlasParquetSearchViewError, match="membership is not closed"):
+        verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
+
+
+def test_derived_relation_row_projection_refuses_forbidden_rows() -> None:
+    """The writer is the first gate: identity, ring, and evidence shape are
+    refused here, before any table or manifest exists to carry them.
+    """
+
+    rows = _derived_relation_rows()
+    with pytest.raises(AtlasParquetTableError, match="differs from its contentDigest"):
+        derived_relation_parquet_row(
+            dataclasses.replace(rows[0], node_iri="urn:ref:atlas-derived:" + "0" * 64)
+        )
+    with pytest.raises(AtlasParquetTableError, match="not an Atlas ring IRI"):
+        derived_relation_parquet_row(dataclasses.replace(rows[0], ring="urn:test:not-a-ring"))
+    with pytest.raises(AtlasParquetTableError, match="not a known ring"):
+        derived_relation_parquet_row(
+            dataclasses.replace(rows[0], ring="https://refspec.org/ns/atlas/v3#chaos")
+        )
+    with pytest.raises(AtlasParquetTableError, match="cites no asserted evidence rows"):
+        derived_relation_parquet_row(dataclasses.replace(rows[0], evidence=()))
+
+
 def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None:
     source = tmp_path / "atlas"
     source.mkdir()
@@ -1205,14 +1576,22 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     assert 'id="more-results"' not in rendered
     # The Atlas overview map opens first and stays open beside neighborhoods.
     assert "class OverviewView" in rendered
-    assert 'async function loadOverview(){const data=await get(`/api/overview?status=${statusParam()}`)' in rendered
+    assert (
+        'async function loadOverview(){const data=await get('
+        '`/api/overview?status=${statusParam()}&relations=${relationsParam()}`)'
+    ) in rendered
     assert "workspace.prepend(this.element)" in rendered
     # Deprecated-status resources hide by default across search, graphs, and
     # the overview; one toggle flips all three to include them.
     assert 'id="show-deprecated"' in rendered
     assert 'function statusParam(){return showDeprecated.checked?"all":"active"}' in rendered
     assert "status:statusParam()" in rendered
-    assert "reopenGraphsWithCurrentStatus" in rendered
+    assert "reopenGraphsWithCurrentFilters" in rendered
+    # Non-authoritative derived relations (REF-042) hide by default too, with
+    # their own opt-in toggle -- hidden entirely when a view has none.
+    assert 'id="show-derived-wrap" hidden' in rendered
+    assert 'function relationsParam(){return showDerived.checked?"all":"asserted"}' in rendered
+    assert 'DerivedRelation:"#c596e5"' in rendered
     assert "const count=graphs.size+(overview?1:0)" in rendered
     assert "overview?.refresh(fit)" in rendered
     # A selected vocabulary links to its full map, and the map links back into
