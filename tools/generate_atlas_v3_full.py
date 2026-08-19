@@ -66,6 +66,12 @@ from refspec.atlas.derived_graph import (
     collect_asserted_fact_view,
     collect_node_digests,
 )
+from refspec.atlas.derived_graph.fr_compound_headings import (
+    collect_fr_preferred_labels,
+    derive_fr_compound_heading_broader_rows,
+    fr_compound_heading_evidence_nodes,
+    resolve_compound_heading_edges_from_labels,
+)
 from refspec.atlas.derived_graph.gcmd_column_nesting import (
     derive_gcmd_column_nesting_rows,
     gcmd_column_nesting_evidence_nodes,
@@ -4107,6 +4113,7 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
 # entry; it is not wired here.
 MESH_DESCRIPTORS_RELEASE_KEY = "mesh-descriptors-2026"
 GCMD_SCIENCE_KEYWORDS_RELEASE_KEY = "gcmd-science-keywords-24-4"
+FR_THESAURUS_RELEASE_KEY = "federal-register-thesaurus-2025"
 
 
 def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
@@ -4132,6 +4139,19 @@ def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
                 for resource in release.resources
             }
             edges, _counts = resolve_gcmd_column_nesting_edges(paths_by_resource)
+            expected += len(edges)
+        elif release.spec.key == FR_THESAURUS_RELEASE_KEY:
+            # This rule reads the preferred label TEXT, not a notation or a
+            # payload, so the in-memory view it needs is the one preferred
+            # label each resource carries. Same resolver the streamed pass
+            # uses, for the same no-drift reason as the two above.
+            preferred_by_resource = {
+                resource.iri: label.value
+                for resource in release.resources
+                for label in resource.labels
+                if label.role == "preferred"
+            }
+            edges, _counts = resolve_compound_heading_edges_from_labels(preferred_by_resource)
             expected += len(edges)
     return expected
 
@@ -6814,16 +6834,30 @@ def _derive_registered_relations(
     derived = Graph()
     all_rows: list[DerivedRelationRow] = []
     total_rows = 0
-    for release_key, evidence_nodes, derive in (
+    # MeSH reads hierarchy from notations and GCMD from native payloads --
+    # both already in the shared fact view. The Federal Register rule reads it
+    # from the label TEXT ('Grant programs-agriculture' names its own parent),
+    # and labels live behind SKOS-XL nodes the fact view never collected. Its
+    # module ships that one-pass label view itself, so a rule declares an
+    # optional collector here and its two entry points receive it.
+    for release_key, evidence_nodes, derive, collect_labels in (
         (
             MESH_DESCRIPTORS_RELEASE_KEY,
             mesh_tree_number_evidence_nodes,
             derive_mesh_tree_number_broader_rows,
+            None,
         ),
         (
             GCMD_SCIENCE_KEYWORDS_RELEASE_KEY,
             gcmd_column_nesting_evidence_nodes,
             derive_gcmd_column_nesting_rows,
+            None,
+        ),
+        (
+            FR_THESAURUS_RELEASE_KEY,
+            fr_compound_heading_evidence_nodes,
+            derive_fr_compound_heading_broader_rows,
+            collect_fr_preferred_labels,
         ),
     ):
         release = _release(release_key)
@@ -6831,7 +6865,11 @@ def _derive_registered_relations(
             continue
         lines = list(_spooled_release_lines(spool, release_key))
         facts = collect_asserted_fact_view(lines)
-        wanted = evidence_nodes(facts)
+        # A rule with a label collector gets its label view built from the very
+        # lines the fact view just read, then passed to both of its entry
+        # points; a rule without one is called exactly as before.
+        labels = collect_labels(lines, facts) if collect_labels is not None else None
+        wanted = evidence_nodes(facts) if labels is None else evidence_nodes(facts, labels)
         node_digest = collect_node_digests(lines, wanted)
         context = DerivationContext(
             facts=facts,
@@ -6847,7 +6885,11 @@ def _derive_registered_relations(
         asserted_relations = frozenset(
             (relation.subject, relation.predicate, relation.object) for relation in release.relations
         )
-        outcome = derive(context, asserted_relations=asserted_relations)
+        outcome = (
+            derive(context, asserted_relations=asserted_relations)
+            if labels is None
+            else derive(context, labels, asserted_relations=asserted_relations)
+        )
         for row in outcome.rows:
             for triple in _derived_relation_graph(row):
                 derived.add(triple)
