@@ -3064,6 +3064,63 @@ consume. When the binding gains its second rule, the frozen pins above
 are the acceptance bar: the shipped edge set must regenerate them exactly
 or the rule is not the rule recorded here.
 
+### REF-043: EuroVoc does not assert microthesaurus-to-domain; the link exists only as a notation prefix
+
+- **Date:** 2026-08-19
+- **Status:** Finding recorded. No release, no rule, no emission -- this
+  entry exists so nobody re-litigates the question from scratch.
+
+**The question.** The Atlas holds EuroVoc flat: `eurovoc-4.24` (7,515
+concepts) and `eurovoc-domains-4.24` (21 domains), with nothing connecting
+them. A months-old sidecar at `output/eurovoc-organization-experiment-4.24/`
+holds the missing organization -- 148 objects (21 domains + 127
+microthesauri), 7,902 publisher-asserted `concept -> microthesaurus`
+memberships, and 127 operator-derived `microthesaurus -> domain`
+candidates. Before promoting the derived half, the obvious question: does
+the Publications Office assert that link itself? It demonstrably asserts
+the level below (the 7,902 memberships are real `skos:inScheme`
+statements), and a publisher that states one level of its own hierarchy
+usually states the other.
+
+**It does not, and the check was exhaustive.** Against the pinned
+`eurovoc-4.24-skos-core.zip` (sha256 `91bdb24e...f1a0ca2f`, verified before
+parsing), member `eurovoc_in_skos_core_concepts.rdf`, 60,691,531 bytes,
+524,093 triples -- the same artifact `eurovoc-4.24` and
+`eurovoc-domains-4.24` are built from:
+
+- The complete predicate inventory on the 127 microthesauri is `rdf:type`
+  (127), `skos:notation` (127), `skos:prefLabel` (3,429), `skos:altLabel`
+  (1). No predicate whose object is anything but a literal.
+- Zero microthesaurus-to-domain triples under any predicate; zero in the
+  reverse direction; zero microthesaurus-to-microthesaurus.
+- `euvoc:domain` -- the predicate the sidecar's candidates use -- appears
+  nowhere in the graph at all.
+- Nothing anywhere points at any of the 21 domain concept IRIs; the domains
+  are only ever subjects.
+- The pinned metadata TTL names none of the 148 organization IRIs.
+- The only linkage that exists is notational: all 127 microthesaurus
+  4-digit notations carry a 2-digit prefix naming exactly one of the 21
+  domain codes.
+
+**And the prefix rule is only valid one level up.** Measured against the
+sealed corpus: EuroVoc *concept* notations are opaque sequential ids, not
+hierarchical codes -- `1` is "Arhus (county)", `10` is "domestic trade",
+`100` is "racial conflict". Applying a two-digit prefix rule at the concept
+level produces 1,730 confident nonsense claims out of 7,506, including
+"business tax" under EMPLOYMENT AND WORKING CONDITIONS and "contemporary
+history" under AGRICULTURE, FORESTRY AND FISHERIES. The relationship is
+real at the microthesaurus level and meaningless below it.
+
+**What follows.** The 7,902 memberships are publisher assertions and belong
+in the asserted graph whenever the organization layer is promoted. The 127
+domain links are a derivation, MeSH-shaped -- structure encoded in a
+notation -- and belong in the derived graph under their own registered
+rule, scheme-scoped, never as publisher assertions. Neither is emitted
+today; the sidecar remains non-authoritative and
+`eurovoc_organization_experiment.py` remains the one entry in
+`SOURCE_BLOCKERS`, which is why the real-data gate still reports a declared
+gap.
+
 ### REF-042: The derived graph gets a rule registry; MeSH tree-number broader is the second entry
 
 - **Date:** 2026-08-18
