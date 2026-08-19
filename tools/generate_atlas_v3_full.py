@@ -62,6 +62,7 @@ from refspec.atlas.agency_projection import (
 from refspec.atlas.compact_pack import CompactRecordRole, normalize_compact_record
 from refspec.atlas.derived_graph import (
     DerivationContext,
+    DerivedRelationRow,
     collect_asserted_fact_view,
     collect_node_digests,
 )
@@ -80,7 +81,9 @@ from refspec.atlas.parquet_tables import (
     TABLE_DIRECTORY,
     TABLE_NAMES,
     AtlasParquetTableWriter,
+    derived_relation_manifest_metadata,
     write_agency_projection_tables,
+    write_derived_relation_table,
 )
 from refspec.atlas.parquet_view import seal_atlas_parquet_view
 from refspec.atlas.registry_claim_input import (
@@ -2147,6 +2150,16 @@ def _agency_projection_manifest_metadata(
         "digest": projection.digest,
         "coverage": projection.coverage.to_dict(),
     }
+
+
+def _derived_relation_view_metadata(
+    rows: Sequence[DerivedRelationRow],
+) -> dict[str, Any]:
+    """Describe whether this build emitted the REF-042 derived table."""
+
+    if not rows:
+        return {"status": "notEmitted"}
+    return derived_relation_manifest_metadata(rows)
 
 
 def _declared_construction_unit_keys() -> frozenset[str]:
@@ -6263,6 +6276,7 @@ class _StreamedConstruction:
     compiled_validation: dict[str, Any]
     spool: _StreamingGraphSpool
     derived: Graph
+    derived_rows: tuple[DerivedRelationRow, ...]
 
 
 def _copy_subject_facts(source: Graph, target: Graph, subject: URIRef) -> None:
@@ -6778,7 +6792,7 @@ def _derive_registered_relations(
     all_source_releases: Sequence[LoadedRelease],
     *,
     generated_at: str,
-) -> tuple[Graph, int]:
+) -> tuple[Graph, int, tuple[DerivedRelationRow, ...]]:
     """Populate the derived graph from every registered rule this build's
     loaded releases admit.
 
@@ -6798,6 +6812,7 @@ def _derive_registered_relations(
         return next((release for release in all_source_releases if release.spec.key == key), None)
 
     derived = Graph()
+    all_rows: list[DerivedRelationRow] = []
     total_rows = 0
     for release_key, evidence_nodes, derive in (
         (
@@ -6836,10 +6851,12 @@ def _derive_registered_relations(
         for row in outcome.rows:
             for triple in _derived_relation_graph(row):
                 derived.add(triple)
+        all_rows.extend(outcome.rows)
         total_rows += len(outcome.rows)
     if len(set(derived.subjects(RDF.type, ATLAS.DerivedRelation))) != total_rows:
         raise ValueError("registered-rule derivation produced a duplicate derived-relation identity")
-    return derived, total_rows
+    all_rows.sort(key=lambda row: row.node_iri)
+    return derived, total_rows, tuple(all_rows)
 
 
 def _stream_construct_graphs(
@@ -6922,7 +6939,7 @@ def _stream_construct_graphs(
 
     spool.append_catalog()
     _STATUS.phase("derive-registered-relations")
-    derived, derived_relation_count = _derive_registered_relations(
+    derived, derived_relation_count, derived_rows = _derive_registered_relations(
         spool,
         all_source_releases,
         generated_at=prebuild.generation_report["createdAt"],
@@ -7002,6 +7019,7 @@ def _stream_construct_graphs(
         compiled_validation=compiled_validation,
         spool=spool,
         derived=derived,
+        derived_rows=derived_rows,
     )
 
 
@@ -8899,6 +8917,8 @@ def _write_streamed_candidate_distribution(
         streamed.spool.write_parquet(parquet_tables)
         if agency_projection is not None:
             write_agency_projection_tables(parquet_tables, agency_projection)
+        if streamed.derived_rows:
+            write_derived_relation_table(parquet_tables, streamed.derived_rows)
         _STATUS.phase("check-parquet-view-against-rdf")
         parquet_parity = streamed.spool.check_parquet(parquet_tables)
 
@@ -9143,6 +9163,7 @@ def _write_distribution(
                     agency_projection,
                     agency_projection_missing_keys,
                 ),
+                derived_relations={"status": "notEmitted"},
             )
         report = {
             **_plain(generation_report),
@@ -9239,6 +9260,7 @@ def _write_streamed_distribution(
                     agency_projection,
                     agency_projection_missing_keys,
                 ),
+                derived_relations=_derived_relation_view_metadata(streamed.derived_rows),
             )
         report = {
             **_plain(generation_report),

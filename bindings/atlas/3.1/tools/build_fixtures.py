@@ -903,7 +903,7 @@ def _base_fixture() -> Fixture:
         _fr_release,
         _fr_scheme,
         _fr_source_release,
-        fr_rows,
+        _fr_rows,
     ) = _add_release(
         asserted,
         name="federal-register-thesaurus",
