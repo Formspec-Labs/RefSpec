@@ -1495,3 +1495,18 @@ computed at corpus scope: consolidation brought LCSH's own hierarchy into
 the corpus, and the reconciliation now mirrors the binding's
 `_check_skos_integrity` exactly rather than reading one mapping release's
 claims.
+
+**ARTIFACT OF RECORD, SEALED: `output/atlas-3.1-full-2026-08-18` (2026-08-19).
+Supersedes 2026-08-17. The derived graph carries content.** distributionId
+`urn:ref:atlas:distribution:3.1-full-development:9382eda3…c58e27e0`,
+manifest `8b28b8fd…6f5bca`, acceptance `d5b59c09…044cb5`, parquet view
+manifest `30fa2d15…f3b9c3`, signer atlas-release@refspec. 128 releases;
+1,497,638 resources; 2,203,714 statements; **42,519 derivedRelations** in
+`packs/views/derived.nq.zst` — 0 quads in every prior 3.1 build. Carries
+REF-042: the derived-graph gate is a rule registry rather than one
+hardcoded rule, and MeSH tree numbers are its second entry, giving 31,110
+descriptors the hierarchy NLM published and RefSpec had captured but never
+expressed. Built in 2h14m against the prior 2h54m: record-id derivation
+byte-filters to rdf:type lines before rdflib (83.3% of input skipped), and
+the independent Parquet row is re-derived for the ~40 sampled positions
+instead of computed and stored for all 2.7M subjects.
