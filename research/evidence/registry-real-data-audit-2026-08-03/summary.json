@@ -9,11 +9,11 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1295,
-    "seconds": 262.239,
+    "passed": 1297,
+    "seconds": 343.48,
     "skipped": 2,
     "testFiles": 83,
-    "tests": 1297
+    "tests": 1299
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
@@ -12191,7 +12191,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-7d23-9188-c36df51d5f24",
+                "fetch_id": "019fb304-0930-7f11-a3ec-b9d37a5da0b8",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -22202,20 +22202,20 @@
                   "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                 },
                 "experiment-manifest.json": {
-                  "byteLength": 4917,
-                  "sha256": "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
+                  "byteLength": 7818,
+                  "sha256": "sha256:b65c9c780195ecb9524d8c4e4df7be347e137d8107b9477041f9b1d5122f5d06"
                 },
                 "operator-derived-domain-candidates.jsonl": {
-                  "byteLength": 3064,
-                  "sha256": "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506"
+                  "byteLength": 204089,
+                  "sha256": "sha256:f344a8487ae0aee1f9c41dab75200f2c806412c1954c85712edb53fd77f577bd"
                 },
                 "publisher-organization-assertions.jsonl": {
-                  "byteLength": 4524,
-                  "sha256": "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52"
+                  "byteLength": 9515986,
+                  "sha256": "sha256:e659d0457751a579ed981e209bb51aff5d5c1de5fcc3f0cf207b898bf4bb7c35"
                 },
                 "publisher-organization-objects.jsonl": {
-                  "byteLength": 5213,
-                  "sha256": "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26"
+                  "byteLength": 719509,
+                  "sha256": "sha256:e4f7a392e509ba34fdc2d5281f14b8adf76ea27dc079ce9d5934318c0b5d9736"
                 }
               },
               "manifest": {
@@ -22226,7 +22226,146 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:d4f33a95ae81bcba2f478597e571e2f16ab9d658f92884a2fe9b603c2e49d417",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:4223b28c3a0a9c410522ee954194fd510f7b0aab118dc868f8ea7c28c0a6507f",
+                "recordType": "EuroVocOrganizationExperimentManifest",
+                "schemaVersion": "1.0",
+                "status": {
+                  "atlasSearchView": false,
+                  "candidateUseOnly": true,
+                  "canonicalAtlas": false,
+                  "developmentOnly": true,
+                  "spicySearchUseAuthorized": false
+                }
+              }
+            },
+            "shape": {
+              "fields": {
+                "files": {
+                  "count": 8,
+                  "keys": [
+                    "change-events.jsonl",
+                    "experiment-manifest.json",
+                    "operator-derived-domain-candidates.jsonl",
+                    "publisher-organization-assertions.jsonl",
+                    "publisher-organization-objects.jsonl",
+                    "rights.json",
+                    "source-accounting.json",
+                    "validation-receipt.json"
+                  ],
+                  "type": "mapping",
+                  "valueShape": {
+                    "byteLength": 7818,
+                    "type": "bytes"
+                  }
+                },
+                "manifest": {
+                  "count": 10,
+                  "keys": [
+                    "canonicalPayloadDigest",
+                    "claims",
+                    "construction",
+                    "experimentId",
+                    "identityReconciliation",
+                    "inputs",
+                    "members",
+                    "recordType",
+                    "schemaVersion",
+                    "status"
+                  ],
+                  "type": "mapping",
+                  "valueShape": "str"
+                }
+              },
+              "type": "refspec.registry.eurovoc_organization_experiment.EuroVocOrganizationArtifact"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                0,
+                577,
+                1253,
+                1685,
+                7818,
+                36011,
+                204089,
+                719509,
+                8567290,
+                9515986,
+                60691531
+              ],
+              "digests": [
+                "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:13acbba6eca64266d79e8b01038d51297d632b4d9dc26240eeab72184196d5e4",
+                "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+                "sha256:69220190823d8af600b12d2e55aad87dd880630138debaf8249dfcc484c9c063",
+                "sha256:6c362f79ad03e325ba1b4818f1ca3a847bb6167c2a8f7167e2e4df91305b6620",
+                "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:84a022046df42fc2619f3708c99c02256186634c86dbd61ef3367da2b428193d",
+                "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+                "sha256:a6d9edc434398e52561008e0341c4b63a4c44e1e4ecf413ef10b84fea9d5620d",
+                "sha256:b65c9c780195ecb9524d8c4e4df7be347e137d8107b9477041f9b1d5122f5d06",
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:e4f7a392e509ba34fdc2d5281f14b8adf76ea27dc079ce9d5934318c0b5d9736",
+                "sha256:e659d0457751a579ed981e209bb51aff5d5c1de5fcc3f0cf207b898bf4bb7c35",
+                "sha256:f344a8487ae0aee1f9c41dab75200f2c806412c1954c85712edb53fd77f577bd"
+              ],
+              "paths": [
+                "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/registry-real-data-sources/eurovoc-4.24-metadata.ttl",
+                "/Users/mikewolfd/Work/spicy-regs/RefSpec/output/registry-real-data-sources/eurovoc-4.24-skos-core.zip"
+              ],
+              "urls": [
+                "http://eurovoc.europa.eu/100141",
+                "http://eurovoc.europa.eu/void.ttl",
+                "http://eurovoc.europa.eu/void.ttl#EuroVoc_4.24",
+                "http://eurovoc.europa.eu/void.ttl#dataset_eurovoc-20260709",
+                "http://eurovoc.europa.eu/void.ttl#dataset_eurovoc-abs",
+                "http://eurovoc.europa.eu/void.ttl#eurovoc-dump-skos-ap-act_4.24",
+                "http://eurovoc.europa.eu/void.ttl#eurovoc-dump-skos_4.24",
+                "http://eurovoc.europa.eu/void.ttl#eurovoc-dump-xml_4.24",
+                "http://publications.europa.eu/resource/dataset/eurovoc/20260708-0#thesaurus-concepts",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://op.europa.eu/en/web/eu-vocabularies/dataset/-/resource?uri=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdataset%2Feurovoc",
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl",
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "manifest.members": 7
+            },
+            "function": "build_eurovoc_organization_artifact_from_paths",
+            "sample": {
+              "files": {
+                "change-events.jsonl": {
+                  "byteLength": 0,
+                  "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                },
+                "experiment-manifest.json": {
+                  "byteLength": 4917,
+                  "sha256": "sha256:7c03de4b32cf8d23efaeb004e04c29baaca2137b4e4d0c3d0c8b2584d9112cf6"
+                },
+                "operator-derived-domain-candidates.jsonl": {
+                  "byteLength": 3064,
+                  "sha256": "sha256:22bfeb152b2572866809322b586ffc90f98812c0659a36ec48924065d3544afd"
+                },
+                "publisher-organization-assertions.jsonl": {
+                  "byteLength": 4524,
+                  "sha256": "sha256:c38afb5834fc507891a36992d7a6ac184f2d483767775288c8c7f843128c9949"
+                },
+                "publisher-organization-objects.jsonl": {
+                  "byteLength": 5213,
+                  "sha256": "sha256:45d63d024b88f92d6dcb2f4f341c7c51c2d98f189567a1efb5e798757c26557b"
+                }
+              },
+              "manifest": {
+                "construction": {
+                  "parser": "refspec.registry.eurovoc_thesaurus.parse_acquired_eurovoc_release",
+                  "parserCodeDigest": "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                  "recipe": "refspec.registry.eurovoc_organization_experiment",
+                  "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                  "recipeVersion": "1.0"
+                },
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:e176eff079d77d6fc512258f8451899b530e5dc46829d85a5909c5222ff66e2a",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -22282,7 +22421,7 @@
               "byteLengths": [
                 0,
                 566,
-                597,
+                603,
                 1080,
                 1315,
                 1504,
@@ -22294,19 +22433,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52",
-                "sha256:3636fe63df33b728ecc556e1a6feee17bf2834f14760ac98b5fd5f656b03d2b5",
+                "sha256:22bfeb152b2572866809322b586ffc90f98812c0659a36ec48924065d3544afd",
+                "sha256:23a927e297214c09fd7120cdc21c1c5e0c2cc8f099d61c5daab37608c075c3c9",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:45d63d024b88f92d6dcb2f4f341c7c51c2d98f189567a1efb5e798757c26557b",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:7c03de4b32cf8d23efaeb004e04c29baaca2137b4e4d0c3d0c8b2584d9112cf6",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26",
-                "sha256:b1e85d1dd4c58a863d9867c354e3e2487f79afc63dbb8c2b534ffd94b38de9f5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506",
+                "sha256:c38afb5834fc507891a36992d7a6ac184f2d483767775288c8c7f843128c9949",
+                "sha256:c66216018afdfc6f9c99b7fa258d61f885b0915248f4ee73cd9d631f39e96f88",
+                "sha256:c71701ebf43bb4ac0ba1b1271eea1b778b8ab1c0e103b18daf3eed854b2617eb",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:eb2606e31811656333fd274424deabeefc7967f8f941c7f999efe4bec767c0f8",
-                "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -22330,7 +22469,7 @@
               "byteLengths": [
                 0,
                 566,
-                597,
+                603,
                 1080,
                 1315,
                 1504,
@@ -22342,19 +22481,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52",
-                "sha256:3636fe63df33b728ecc556e1a6feee17bf2834f14760ac98b5fd5f656b03d2b5",
+                "sha256:22bfeb152b2572866809322b586ffc90f98812c0659a36ec48924065d3544afd",
+                "sha256:23a927e297214c09fd7120cdc21c1c5e0c2cc8f099d61c5daab37608c075c3c9",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:45d63d024b88f92d6dcb2f4f341c7c51c2d98f189567a1efb5e798757c26557b",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:7c03de4b32cf8d23efaeb004e04c29baaca2137b4e4d0c3d0c8b2584d9112cf6",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26",
-                "sha256:b1e85d1dd4c58a863d9867c354e3e2487f79afc63dbb8c2b534ffd94b38de9f5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506",
+                "sha256:c38afb5834fc507891a36992d7a6ac184f2d483767775288c8c7f843128c9949",
+                "sha256:c66216018afdfc6f9c99b7fa258d61f885b0915248f4ee73cd9d631f39e96f88",
+                "sha256:c71701ebf43bb4ac0ba1b1271eea1b778b8ab1c0e103b18daf3eed854b2617eb",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:eb2606e31811656333fd274424deabeefc7967f8f941c7f999efe4bec767c0f8",
-                "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -22374,7 +22513,7 @@
               "byteLengths": [
                 0,
                 566,
-                597,
+                603,
                 1080,
                 1315,
                 1504,
@@ -22386,19 +22525,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:2038b6628d269e297cd23fd72a11a766d7cc48227da0674cff151fcd2dc93d52",
-                "sha256:3636fe63df33b728ecc556e1a6feee17bf2834f14760ac98b5fd5f656b03d2b5",
+                "sha256:22bfeb152b2572866809322b586ffc90f98812c0659a36ec48924065d3544afd",
+                "sha256:23a927e297214c09fd7120cdc21c1c5e0c2cc8f099d61c5daab37608c075c3c9",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:45d63d024b88f92d6dcb2f4f341c7c51c2d98f189567a1efb5e798757c26557b",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:7c03de4b32cf8d23efaeb004e04c29baaca2137b4e4d0c3d0c8b2584d9112cf6",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:af85a2cfddf54acc64b815b19e9f4acdd8b43007d7dc40294c2fce5b95b89e26",
-                "sha256:b1e85d1dd4c58a863d9867c354e3e2487f79afc63dbb8c2b534ffd94b38de9f5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:cc499959058f65768c73024ce525c86b4806f327742f43b740e53336ba2a1506",
+                "sha256:c38afb5834fc507891a36992d7a6ac184f2d483767775288c8c7f843128c9949",
+                "sha256:c66216018afdfc6f9c99b7fa258d61f885b0915248f4ee73cd9d631f39e96f88",
+                "sha256:c71701ebf43bb4ac0ba1b1271eea1b778b8ab1c0e103b18daf3eed854b2617eb",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:eb2606e31811656333fd274424deabeefc7967f8f941c7f999efe4bec767c0f8",
-                "sha256:f5dbf2c63f84c2712cd11d7716064719c2da724b73af1ddbae4bbe9ea545655b"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -22421,7 +22560,7 @@
               "acquisition_mode": "local",
               "archive_byte_length": 799,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+              "archive_sha256": "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22441,8 +22580,8 @@
                 "concept_scheme_iri": "urn:example:thesaurus",
                 "expected_byte_length": 799,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
-                "expected_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+                "expected_member_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "expected_sha256": "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22461,7 +22600,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
+              "sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22529,9 +22668,9 @@
                 2908
               ],
               "digests": [
-                "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
                 "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
-                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
+                "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9"
               ],
               "paths": [],
               "urls": [
@@ -22549,7 +22688,7 @@
               "acquisition_mode": "local",
               "archive_byte_length": 799,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+              "archive_sha256": "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22560,8 +22699,8 @@
                 "concept_scheme_iri": "urn:example:thesaurus",
                 "expected_byte_length": 799,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
-                "expected_sha256": "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
+                "expected_member_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "expected_sha256": "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22575,7 +22714,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
+              "sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22622,8 +22761,8 @@
                 2908
               ],
               "digests": [
-                "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
-                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9"
               ],
               "paths": [],
               "urls": [
@@ -22753,7 +22892,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
+              "source_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -22943,8 +23082,8 @@
                 2908
               ],
               "digests": [
-                "sha256:906d6265348fce4484cd8917218f8535ce20f8203889d062b90dd77044576c91",
-                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "sha256:d6f0bebfd002d047512b99aac464adaa6f1050cd97ad37390e34485fc7fd6bc9"
               ],
               "paths": [],
               "urls": [
@@ -23494,7 +23633,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d",
+              "source_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -23684,7 +23823,7 @@
                 2908
               ],
               "digests": [
-                "sha256:e75f29aafa9ff199351f419a795b6e8c1c38c9fac15dcb87ea6a87e46a704c4d"
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147"
               ],
               "paths": [],
               "urls": [
@@ -36776,7 +36915,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-74ae-8f75-9b763b8fd8e3",
+                "fetch_id": "019fb2e5-4e00-740b-b0e0-3f9556715318",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -41206,87 +41345,7 @@
             "function": "acquire_gemet_release",
             "sample": {
               "acquisition_mode": "local",
-              "byte_length": 11807,
-              "cache_hit": false,
-              "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
-              "local_source_path": "<pathlib.PosixPath>",
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
-                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 11807,
-                "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
-                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "filename": "gemet-mini.rdf",
-                "landing_page_url": "https://example.test/gemet-landing-page",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "publisher": "European Environment Agency / Eionet",
-                "source_url": "https://example.test/gemet-mini.rdf",
-                "version": "fixture"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-              "source_url": "https://example.test/gemet-mini.rdf"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "compressed_byte_length": "int",
-                "compressed_sha256": "str",
-                "local_source_path": "pathlib.PosixPath",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_compressed_byte_length": "int",
-                    "expected_compressed_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "publisher": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                11807
-              ],
-              "digests": [
-                "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/gemet-landing-page",
-                "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_gemet_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "byte_length": 11807,
+              "byte_length": 16000,
               "cache_hit": false,
               "compressed_byte_length": null,
               "compressed_sha256": null,
@@ -41295,10 +41354,10 @@
               "release": {
                 "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 11807,
+                "expected_byte_length": 16000,
                 "expected_compressed_byte_length": null,
                 "expected_compressed_sha256": null,
-                "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+                "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
                 "license_iri": "https://creativecommons.org/licenses/by/4.0/",
@@ -41308,7 +41367,7 @@
                 "version": "fixture"
               },
               "resolved_url": null,
-              "sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
               "source_url": "https://example.test/gemet-mini.rdf"
             },
             "shape": {
@@ -41346,10 +41405,90 @@
             },
             "sourceEvidence": {
               "byteLengths": [
-                11807
+                16000
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/gemet-landing-page",
+                "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gemet_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 16000,
+              "cache_hit": false,
+              "compressed_byte_length": 3627,
+              "compressed_sha256": "sha256:bb36be991ac9701df6f460ae07bce7ad5cb4c8c5ee0382b96738a5b58124aa6a",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
+                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "expected_byte_length": 16000,
+                "expected_compressed_byte_length": 3627,
+                "expected_compressed_sha256": "sha256:bb36be991ac9701df6f460ae07bce7ad5cb4c8c5ee0382b96738a5b58124aa6a",
+                "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
+                "filename": "gemet-mini.rdf",
+                "landing_page_url": "https://example.test/gemet-landing-page",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "publisher": "European Environment Agency / Eionet",
+                "source_url": "https://example.test/gemet-mini.rdf",
+                "version": "fixture"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
+              "source_url": "https://example.test/gemet-mini.rdf"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "compressed_byte_length": "int",
+                "compressed_sha256": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_compressed_byte_length": "int",
+                    "expected_compressed_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "publisher": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                16000
+              ],
+              "digests": [
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
+                "sha256:bb36be991ac9701df6f460ae07bce7ad5cb4c8c5ee0382b96738a5b58124aa6a"
               ],
               "paths": [],
               "urls": [
@@ -41372,9 +41511,14 @@
               "metadata_literals.items": 17,
               "notations.items": 1,
               "notes.items": 16,
-              "predicate_counts.items": 24,
+              "organization_hierarchy_relations.items": 1,
+              "organization_labels.items": 6,
+              "organization_membership_relations.items": 7,
+              "organization_metadata_literals.items": 13,
+              "organization_resources.items": 5,
+              "predicate_counts.items": 27,
               "semantic_relations.items": 23,
-              "source_iris.items": 83
+              "source_iris.items": 99
             },
             "function": "parse_acquired_gemet_source",
             "sample": {
@@ -41460,9 +41604,68 @@
                   "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
                 }
               ],
+              "organization_hierarchy_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                  "predicate_iri": "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_membership_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/1517",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                },
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/2944",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_metadata_literals": [
+                {
+                  "property_iri": "http://purl.org/dc/terms/created",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://purl.org/dc/terms/modified",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_resources": [
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                },
+                {
+                  "kind": "groupCollection",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/groupCollection",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                }
+              ],
               "predicate_counts": [
                 {
-                  "assertion_count": 8,
+                  "assertion_count": 11,
                   "predicate_iri": "http://purl.org/dc/terms/created"
                 },
                 {
@@ -41482,14 +41685,14 @@
                   "subject_iri": "http://www.eionet.europa.eu/gemet/concept/10003"
                 }
               ],
-              "source_bytes": 11807,
+              "source_bytes": 16000,
               "source_iris": [
                 "http://aims.fao.org/aos/agrovoc/c_1178",
                 "http://aims.fao.org/aos/agrovoc/c_1520"
               ],
-              "source_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
               "source_url": "https://example.test/gemet-mini.rdf",
-              "triple_count": 130
+              "triple_count": 170
             },
             "shape": {
               "fields": {
@@ -41589,8 +41792,70 @@
                   },
                   "type": "tuple"
                 },
+                "organization_hierarchy_relations": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_labels": {
+                  "count": 6,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "organization_membership_relations": {
+                  "count": 7,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_metadata_literals": {
+                  "count": 13,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetMetadataLiteral"
+                  },
+                  "type": "tuple"
+                },
+                "organization_resources": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "kind": "str",
+                      "resource_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "type_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetOrganizationResource"
+                  },
+                  "type": "tuple"
+                },
                 "predicate_counts": {
-                  "count": 24,
+                  "count": 27,
                   "itemShape": {
                     "fields": {
                       "assertion_count": "int",
@@ -41614,7 +41879,7 @@
                 },
                 "source_bytes": "int",
                 "source_iris": {
-                  "count": 83,
+                  "count": 99,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -41626,11 +41891,10 @@
             },
             "sourceEvidence": {
               "byteLengths": [
-                11807
+                16000
               ],
               "digests": [
-                "sha256:75716e256ecb699444b98e9a47681bd1f7be8de49b9f566eea2d5f618bb3fd0f",
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
               ],
               "paths": [],
               "urls": [
@@ -41666,8 +41930,13 @@
                 "http://purl.org/dc/terms/created",
                 "http://purl.org/dc/terms/licence",
                 "http://purl.org/dc/terms/modified",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#SuperGroup",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Theme",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#acronymLabel",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#hasWikipediaArticle",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#source",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
                 "http://www.eionet.europa.eu/gemet/concept/10003",
                 "http://www.eionet.europa.eu/gemet/concept/1029",
                 "http://www.eionet.europa.eu/gemet/concept/1033",
@@ -41682,8 +41951,12 @@
                 "http://www.eionet.europa.eu/gemet/concept/11089",
                 "http://www.eionet.europa.eu/gemet/concept/1298",
                 "http://www.eionet.europa.eu/gemet/concept/1327",
+                "http://www.eionet.europa.eu/gemet/concept/1517",
                 "http://www.eionet.europa.eu/gemet/concept/1911",
+                "http://www.eionet.europa.eu/gemet/concept/21",
+                "http://www.eionet.europa.eu/gemet/concept/24",
                 "http://www.eionet.europa.eu/gemet/concept/2783",
+                "http://www.eionet.europa.eu/gemet/concept/2944",
                 "http://www.eionet.europa.eu/gemet/concept/363",
                 "http://www.eionet.europa.eu/gemet/concept/3788",
                 "http://www.eionet.europa.eu/gemet/concept/3887",
@@ -41696,9 +41969,15 @@
                 "http://www.eionet.europa.eu/gemet/concept/8629",
                 "http://www.eionet.europa.eu/gemet/concept/867",
                 "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "http://www.eionet.europa.eu/gemet/group/10111",
+                "http://www.eionet.europa.eu/gemet/groupCollection",
+                "http://www.eionet.europa.eu/gemet/superGroupCollection",
+                "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                "http://www.eionet.europa.eu/gemet/theme/1",
                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
                 "http://www.w3.org/2000/01/rdf-schema#label",
                 "http://www.w3.org/2001/XMLSchema#dateTime",
+                "http://www.w3.org/2004/02/skos/core#Collection",
                 "http://www.w3.org/2004/02/skos/core#Concept",
                 "http://www.w3.org/2004/02/skos/core#ConceptScheme",
                 "http://www.w3.org/2004/02/skos/core#altLabel",
@@ -41711,6 +41990,7 @@
                 "http://www.w3.org/2004/02/skos/core#hasTopConcept",
                 "http://www.w3.org/2004/02/skos/core#hiddenLabel",
                 "http://www.w3.org/2004/02/skos/core#inScheme",
+                "http://www.w3.org/2004/02/skos/core#member",
                 "http://www.w3.org/2004/02/skos/core#narrowMatch",
                 "http://www.w3.org/2004/02/skos/core#narrower",
                 "http://www.w3.org/2004/02/skos/core#notation",
@@ -41736,9 +42016,14 @@
               "metadata_literals.items": 17,
               "notations.items": 1,
               "notes.items": 16,
-              "predicate_counts.items": 24,
+              "organization_hierarchy_relations.items": 1,
+              "organization_labels.items": 6,
+              "organization_membership_relations.items": 7,
+              "organization_metadata_literals.items": 13,
+              "organization_resources.items": 5,
+              "predicate_counts.items": 27,
               "semantic_relations.items": 23,
-              "source_iris.items": 83
+              "source_iris.items": 99
             },
             "function": "parse_acquired_gemet_source",
             "sample": {
@@ -41824,9 +42109,68 @@
                   "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
                 }
               ],
+              "organization_hierarchy_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                  "predicate_iri": "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_membership_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/1517",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                },
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/2944",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_metadata_literals": [
+                {
+                  "property_iri": "http://purl.org/dc/terms/created",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://purl.org/dc/terms/modified",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_resources": [
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                },
+                {
+                  "kind": "groupCollection",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/groupCollection",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                }
+              ],
               "predicate_counts": [
                 {
-                  "assertion_count": 8,
+                  "assertion_count": 11,
                   "predicate_iri": "http://purl.org/dc/terms/created"
                 },
                 {
@@ -41846,14 +42190,14 @@
                   "subject_iri": "http://www.eionet.europa.eu/gemet/concept/10003"
                 }
               ],
-              "source_bytes": 11807,
+              "source_bytes": 16000,
               "source_iris": [
                 "http://aims.fao.org/aos/agrovoc/c_1178",
                 "http://aims.fao.org/aos/agrovoc/c_1520"
               ],
-              "source_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
               "source_url": "https://example.test/gemet-mini.rdf",
-              "triple_count": 130
+              "triple_count": 170
             },
             "shape": {
               "fields": {
@@ -41953,8 +42297,70 @@
                   },
                   "type": "tuple"
                 },
+                "organization_hierarchy_relations": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_labels": {
+                  "count": 6,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "organization_membership_relations": {
+                  "count": 7,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_metadata_literals": {
+                  "count": 13,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetMetadataLiteral"
+                  },
+                  "type": "tuple"
+                },
+                "organization_resources": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "kind": "str",
+                      "resource_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "type_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetOrganizationResource"
+                  },
+                  "type": "tuple"
+                },
                 "predicate_counts": {
-                  "count": 24,
+                  "count": 27,
                   "itemShape": {
                     "fields": {
                       "assertion_count": "int",
@@ -41978,7 +42384,7 @@
                 },
                 "source_bytes": "int",
                 "source_iris": {
-                  "count": 83,
+                  "count": 99,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -41990,10 +42396,11 @@
             },
             "sourceEvidence": {
               "byteLengths": [
-                11807
+                16000
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
+                "sha256:bb36be991ac9701df6f460ae07bce7ad5cb4c8c5ee0382b96738a5b58124aa6a"
               ],
               "paths": [],
               "urls": [
@@ -42029,8 +42436,13 @@
                 "http://purl.org/dc/terms/created",
                 "http://purl.org/dc/terms/licence",
                 "http://purl.org/dc/terms/modified",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#SuperGroup",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Theme",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#acronymLabel",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#hasWikipediaArticle",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#source",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
                 "http://www.eionet.europa.eu/gemet/concept/10003",
                 "http://www.eionet.europa.eu/gemet/concept/1029",
                 "http://www.eionet.europa.eu/gemet/concept/1033",
@@ -42045,8 +42457,12 @@
                 "http://www.eionet.europa.eu/gemet/concept/11089",
                 "http://www.eionet.europa.eu/gemet/concept/1298",
                 "http://www.eionet.europa.eu/gemet/concept/1327",
+                "http://www.eionet.europa.eu/gemet/concept/1517",
                 "http://www.eionet.europa.eu/gemet/concept/1911",
+                "http://www.eionet.europa.eu/gemet/concept/21",
+                "http://www.eionet.europa.eu/gemet/concept/24",
                 "http://www.eionet.europa.eu/gemet/concept/2783",
+                "http://www.eionet.europa.eu/gemet/concept/2944",
                 "http://www.eionet.europa.eu/gemet/concept/363",
                 "http://www.eionet.europa.eu/gemet/concept/3788",
                 "http://www.eionet.europa.eu/gemet/concept/3887",
@@ -42059,9 +42475,15 @@
                 "http://www.eionet.europa.eu/gemet/concept/8629",
                 "http://www.eionet.europa.eu/gemet/concept/867",
                 "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "http://www.eionet.europa.eu/gemet/group/10111",
+                "http://www.eionet.europa.eu/gemet/groupCollection",
+                "http://www.eionet.europa.eu/gemet/superGroupCollection",
+                "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                "http://www.eionet.europa.eu/gemet/theme/1",
                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
                 "http://www.w3.org/2000/01/rdf-schema#label",
                 "http://www.w3.org/2001/XMLSchema#dateTime",
+                "http://www.w3.org/2004/02/skos/core#Collection",
                 "http://www.w3.org/2004/02/skos/core#Concept",
                 "http://www.w3.org/2004/02/skos/core#ConceptScheme",
                 "http://www.w3.org/2004/02/skos/core#altLabel",
@@ -42074,6 +42496,7 @@
                 "http://www.w3.org/2004/02/skos/core#hasTopConcept",
                 "http://www.w3.org/2004/02/skos/core#hiddenLabel",
                 "http://www.w3.org/2004/02/skos/core#inScheme",
+                "http://www.w3.org/2004/02/skos/core#member",
                 "http://www.w3.org/2004/02/skos/core#narrowMatch",
                 "http://www.w3.org/2004/02/skos/core#narrower",
                 "http://www.w3.org/2004/02/skos/core#notation",
@@ -42099,6 +42522,11 @@
               "metadata_literals.items": 11147,
               "notations.items": 20,
               "notes.items": 52044,
+              "organization_hierarchy_relations.items": 32,
+              "organization_labels.items": 1263,
+              "organization_membership_relations.items": 16178,
+              "organization_metadata_literals.items": 2419,
+              "organization_resources.items": 78,
               "predicate_counts.items": 34,
               "semantic_relations.items": 14764,
               "source_iris.items": 17412
@@ -42190,6 +42618,70 @@
                   "property_iri": "http://www.w3.org/2004/02/skos/core#definition",
                   "subject_iri": "http://www.eionet.europa.eu/gemet/concept/100",
                   "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_hierarchy_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                  "predicate_iri": "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                },
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/supergroup/4044",
+                  "predicate_iri": "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10112"
+                }
+              ],
+              "organization_labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_membership_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/10166",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                },
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/10193",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_metadata_literals": [
+                {
+                  "property_iri": "http://purl.org/dc/terms/created",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://purl.org/dc/terms/modified",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_resources": [
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                },
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/10112",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
                 }
               ],
               "predicate_counts": [
@@ -42318,6 +42810,68 @@
                       "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
                     },
                     "type": "refspec.registry.gemet_thesaurus.GemetNote"
+                  },
+                  "type": "tuple"
+                },
+                "organization_hierarchy_relations": {
+                  "count": 32,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_labels": {
+                  "count": 1263,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "organization_membership_relations": {
+                  "count": 16178,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_metadata_literals": {
+                  "count": 2419,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetMetadataLiteral"
+                  },
+                  "type": "tuple"
+                },
+                "organization_resources": {
+                  "count": 78,
+                  "itemShape": {
+                    "fields": {
+                      "kind": "str",
+                      "resource_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "type_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetOrganizationResource"
                   },
                   "type": "tuple"
                 },
@@ -42569,6 +43123,9 @@
                 "http://purl.org/dc/terms/modified",
                 "http://purl.org/dc/terms/publisher",
                 "http://purl.org/dc/terms/title",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#SuperGroup",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Theme",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#acronymLabel",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#hasWikipediaArticle",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#sameEEAGlossary",
@@ -42678,16 +43235,26 @@
                 "http://www.eionet.europa.eu/gemet/concept/10236",
                 "http://www.eionet.europa.eu/gemet/concept/10237",
                 "http://www.eionet.europa.eu/gemet/concept/10238",
+                "http://www.eionet.europa.eu/gemet/concept/1042",
                 "http://www.eionet.europa.eu/gemet/concept/1063",
                 "http://www.eionet.europa.eu/gemet/concept/10670",
                 "http://www.eionet.europa.eu/gemet/concept/10706",
                 "http://www.eionet.europa.eu/gemet/concept/10785",
                 "http://www.eionet.europa.eu/gemet/concept/1084",
+                "http://www.eionet.europa.eu/gemet/concept/10935",
+                "http://www.eionet.europa.eu/gemet/concept/1094",
                 "http://www.eionet.europa.eu/gemet/concept/10971",
                 "http://www.eionet.europa.eu/gemet/concept/10977",
+                "http://www.eionet.europa.eu/gemet/concept/1098",
                 "http://www.eionet.europa.eu/gemet/concept/1100",
                 "http://www.eionet.europa.eu/gemet/concept/11089",
                 "http://www.eionet.europa.eu/gemet/concept/11148",
+                "http://www.eionet.europa.eu/gemet/concept/11184",
+                "http://www.eionet.europa.eu/gemet/concept/11201",
+                "http://www.eionet.europa.eu/gemet/concept/11209",
+                "http://www.eionet.europa.eu/gemet/concept/11211",
+                "http://www.eionet.europa.eu/gemet/concept/11212",
+                "http://www.eionet.europa.eu/gemet/concept/11271",
                 "http://www.eionet.europa.eu/gemet/concept/11433",
                 "http://www.eionet.europa.eu/gemet/concept/11499",
                 "http://www.eionet.europa.eu/gemet/concept/11583",
@@ -42702,46 +43269,126 @@
                 "http://www.eionet.europa.eu/gemet/concept/11661",
                 "http://www.eionet.europa.eu/gemet/concept/1168",
                 "http://www.eionet.europa.eu/gemet/concept/1173",
+                "http://www.eionet.europa.eu/gemet/concept/11787",
+                "http://www.eionet.europa.eu/gemet/concept/11813",
+                "http://www.eionet.europa.eu/gemet/concept/11814",
+                "http://www.eionet.europa.eu/gemet/concept/1201",
+                "http://www.eionet.europa.eu/gemet/concept/12011",
                 "http://www.eionet.europa.eu/gemet/concept/12022",
                 "http://www.eionet.europa.eu/gemet/concept/12189",
+                "http://www.eionet.europa.eu/gemet/concept/12394",
+                "http://www.eionet.europa.eu/gemet/concept/1244",
+                "http://www.eionet.europa.eu/gemet/concept/1247",
                 "http://www.eionet.europa.eu/gemet/concept/12586",
+                "http://www.eionet.europa.eu/gemet/concept/1266",
+                "http://www.eionet.europa.eu/gemet/concept/1290",
+                "http://www.eionet.europa.eu/gemet/concept/1307",
+                "http://www.eionet.europa.eu/gemet/concept/13124",
                 "http://www.eionet.europa.eu/gemet/concept/13146",
                 "http://www.eionet.europa.eu/gemet/concept/13161",
+                "http://www.eionet.europa.eu/gemet/concept/13167",
                 "http://www.eionet.europa.eu/gemet/concept/13187",
                 "http://www.eionet.europa.eu/gemet/concept/13188",
                 "http://www.eionet.europa.eu/gemet/concept/13189",
                 "http://www.eionet.europa.eu/gemet/concept/1319",
                 "http://www.eionet.europa.eu/gemet/concept/13190",
+                "http://www.eionet.europa.eu/gemet/concept/13195",
+                "http://www.eionet.europa.eu/gemet/concept/13196",
+                "http://www.eionet.europa.eu/gemet/concept/13197",
+                "http://www.eionet.europa.eu/gemet/concept/13198",
+                "http://www.eionet.europa.eu/gemet/concept/13199",
                 "http://www.eionet.europa.eu/gemet/concept/1320",
+                "http://www.eionet.europa.eu/gemet/concept/13200",
+                "http://www.eionet.europa.eu/gemet/concept/13202",
+                "http://www.eionet.europa.eu/gemet/concept/13205",
                 "http://www.eionet.europa.eu/gemet/concept/13209",
                 "http://www.eionet.europa.eu/gemet/concept/1322",
                 "http://www.eionet.europa.eu/gemet/concept/1327",
                 "http://www.eionet.europa.eu/gemet/concept/1328",
                 "http://www.eionet.europa.eu/gemet/concept/13292",
+                "http://www.eionet.europa.eu/gemet/concept/1343",
                 "http://www.eionet.europa.eu/gemet/concept/1348",
                 "http://www.eionet.europa.eu/gemet/concept/13577",
+                "http://www.eionet.europa.eu/gemet/concept/14236",
+                "http://www.eionet.europa.eu/gemet/concept/14245",
+                "http://www.eionet.europa.eu/gemet/concept/14254",
+                "http://www.eionet.europa.eu/gemet/concept/14330",
+                "http://www.eionet.europa.eu/gemet/concept/1458",
+                "http://www.eionet.europa.eu/gemet/concept/14602",
                 "http://www.eionet.europa.eu/gemet/concept/1462",
                 "http://www.eionet.europa.eu/gemet/concept/14848",
+                "http://www.eionet.europa.eu/gemet/concept/1489",
+                "http://www.eionet.europa.eu/gemet/concept/14957",
+                "http://www.eionet.europa.eu/gemet/concept/1500",
+                "http://www.eionet.europa.eu/gemet/concept/15020",
+                "http://www.eionet.europa.eu/gemet/concept/15034",
+                "http://www.eionet.europa.eu/gemet/concept/15048",
+                "http://www.eionet.europa.eu/gemet/concept/15052",
                 "http://www.eionet.europa.eu/gemet/concept/15075",
                 "http://www.eionet.europa.eu/gemet/concept/15078",
                 "http://www.eionet.europa.eu/gemet/concept/15108",
+                "http://www.eionet.europa.eu/gemet/concept/15122",
+                "http://www.eionet.europa.eu/gemet/concept/15153",
+                "http://www.eionet.europa.eu/gemet/concept/15160",
+                "http://www.eionet.europa.eu/gemet/concept/15168",
+                "http://www.eionet.europa.eu/gemet/concept/1517",
                 "http://www.eionet.europa.eu/gemet/concept/15173",
+                "http://www.eionet.europa.eu/gemet/concept/15177",
+                "http://www.eionet.europa.eu/gemet/concept/15178",
+                "http://www.eionet.europa.eu/gemet/concept/15180",
+                "http://www.eionet.europa.eu/gemet/concept/15181",
                 "http://www.eionet.europa.eu/gemet/concept/15197",
                 "http://www.eionet.europa.eu/gemet/concept/15198",
+                "http://www.eionet.europa.eu/gemet/concept/15200",
+                "http://www.eionet.europa.eu/gemet/concept/15224",
+                "http://www.eionet.europa.eu/gemet/concept/15225",
+                "http://www.eionet.europa.eu/gemet/concept/15226",
+                "http://www.eionet.europa.eu/gemet/concept/15227",
+                "http://www.eionet.europa.eu/gemet/concept/15231",
+                "http://www.eionet.europa.eu/gemet/concept/15248",
+                "http://www.eionet.europa.eu/gemet/concept/15249",
+                "http://www.eionet.europa.eu/gemet/concept/15252",
+                "http://www.eionet.europa.eu/gemet/concept/15274",
+                "http://www.eionet.europa.eu/gemet/concept/15287",
                 "http://www.eionet.europa.eu/gemet/concept/15294",
+                "http://www.eionet.europa.eu/gemet/concept/15299",
+                "http://www.eionet.europa.eu/gemet/concept/1530",
+                "http://www.eionet.europa.eu/gemet/concept/15310",
+                "http://www.eionet.europa.eu/gemet/concept/15335",
                 "http://www.eionet.europa.eu/gemet/concept/15353",
                 "http://www.eionet.europa.eu/gemet/concept/15354",
                 "http://www.eionet.europa.eu/gemet/concept/15384",
+                "http://www.eionet.europa.eu/gemet/concept/1554",
+                "http://www.eionet.europa.eu/gemet/concept/1646",
                 "http://www.eionet.europa.eu/gemet/concept/1647",
+                "http://www.eionet.europa.eu/gemet/concept/1649",
+                "http://www.eionet.europa.eu/gemet/concept/1677",
+                "http://www.eionet.europa.eu/gemet/concept/1746",
+                "http://www.eionet.europa.eu/gemet/concept/1782",
+                "http://www.eionet.europa.eu/gemet/concept/1786",
+                "http://www.eionet.europa.eu/gemet/concept/1800",
+                "http://www.eionet.europa.eu/gemet/concept/1809",
+                "http://www.eionet.europa.eu/gemet/concept/1827",
                 "http://www.eionet.europa.eu/gemet/concept/1850",
+                "http://www.eionet.europa.eu/gemet/concept/1885",
                 "http://www.eionet.europa.eu/gemet/concept/1921",
+                "http://www.eionet.europa.eu/gemet/concept/1952",
+                "http://www.eionet.europa.eu/gemet/concept/1993",
+                "http://www.eionet.europa.eu/gemet/concept/2042",
                 "http://www.eionet.europa.eu/gemet/concept/2060",
+                "http://www.eionet.europa.eu/gemet/concept/2131",
                 "http://www.eionet.europa.eu/gemet/concept/216",
+                "http://www.eionet.europa.eu/gemet/concept/2179",
                 "http://www.eionet.europa.eu/gemet/concept/219",
+                "http://www.eionet.europa.eu/gemet/concept/220",
                 "http://www.eionet.europa.eu/gemet/concept/2215",
                 "http://www.eionet.europa.eu/gemet/concept/2232",
+                "http://www.eionet.europa.eu/gemet/concept/2237",
+                "http://www.eionet.europa.eu/gemet/concept/2293",
+                "http://www.eionet.europa.eu/gemet/concept/2294",
                 "http://www.eionet.europa.eu/gemet/concept/23",
                 "http://www.eionet.europa.eu/gemet/concept/232",
+                "http://www.eionet.europa.eu/gemet/concept/2339",
                 "http://www.eionet.europa.eu/gemet/concept/25",
                 "http://www.eionet.europa.eu/gemet/concept/2516",
                 "http://www.eionet.europa.eu/gemet/concept/2547",
@@ -42806,6 +43453,7 @@
                 "http://www.eionet.europa.eu/gemet/concept/4749",
                 "http://www.eionet.europa.eu/gemet/concept/4855",
                 "http://www.eionet.europa.eu/gemet/concept/4985",
+                "http://www.eionet.europa.eu/gemet/concept/5033",
                 "http://www.eionet.europa.eu/gemet/concept/5086",
                 "http://www.eionet.europa.eu/gemet/concept/5116",
                 "http://www.eionet.europa.eu/gemet/concept/5119",
@@ -42820,6 +43468,7 @@
                 "http://www.eionet.europa.eu/gemet/concept/5305",
                 "http://www.eionet.europa.eu/gemet/concept/5346",
                 "http://www.eionet.europa.eu/gemet/concept/538",
+                "http://www.eionet.europa.eu/gemet/concept/5498",
                 "http://www.eionet.europa.eu/gemet/concept/5544",
                 "http://www.eionet.europa.eu/gemet/concept/5545",
                 "http://www.eionet.europa.eu/gemet/concept/5608",
@@ -42858,6 +43507,7 @@
                 "http://www.eionet.europa.eu/gemet/concept/7223",
                 "http://www.eionet.europa.eu/gemet/concept/7233",
                 "http://www.eionet.europa.eu/gemet/concept/7236",
+                "http://www.eionet.europa.eu/gemet/concept/7348",
                 "http://www.eionet.europa.eu/gemet/concept/7362",
                 "http://www.eionet.europa.eu/gemet/concept/7472",
                 "http://www.eionet.europa.eu/gemet/concept/7578",
@@ -42884,9 +43534,88 @@
                 "http://www.eionet.europa.eu/gemet/concept/9391",
                 "http://www.eionet.europa.eu/gemet/concept/961",
                 "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "http://www.eionet.europa.eu/gemet/group/10111",
+                "http://www.eionet.europa.eu/gemet/group/10112",
+                "http://www.eionet.europa.eu/gemet/group/10114",
+                "http://www.eionet.europa.eu/gemet/group/10117",
+                "http://www.eionet.europa.eu/gemet/group/10118",
+                "http://www.eionet.europa.eu/gemet/group/1062",
+                "http://www.eionet.europa.eu/gemet/group/13109",
+                "http://www.eionet.europa.eu/gemet/group/1349",
+                "http://www.eionet.europa.eu/gemet/group/14979",
+                "http://www.eionet.europa.eu/gemet/group/14980",
+                "http://www.eionet.europa.eu/gemet/group/1922",
+                "http://www.eionet.europa.eu/gemet/group/234",
+                "http://www.eionet.europa.eu/gemet/group/2504",
+                "http://www.eionet.europa.eu/gemet/group/2711",
+                "http://www.eionet.europa.eu/gemet/group/3875",
+                "http://www.eionet.europa.eu/gemet/group/4125",
+                "http://www.eionet.europa.eu/gemet/group/4281",
+                "http://www.eionet.europa.eu/gemet/group/4630",
+                "http://www.eionet.europa.eu/gemet/group/4750",
+                "http://www.eionet.europa.eu/gemet/group/4856",
+                "http://www.eionet.europa.eu/gemet/group/618",
+                "http://www.eionet.europa.eu/gemet/group/6237",
+                "http://www.eionet.europa.eu/gemet/group/7007",
+                "http://www.eionet.europa.eu/gemet/group/7136",
+                "http://www.eionet.europa.eu/gemet/group/7243",
+                "http://www.eionet.europa.eu/gemet/group/7779",
+                "http://www.eionet.europa.eu/gemet/group/7956",
+                "http://www.eionet.europa.eu/gemet/group/8575",
+                "http://www.eionet.europa.eu/gemet/group/8603",
+                "http://www.eionet.europa.eu/gemet/group/893",
+                "http://www.eionet.europa.eu/gemet/group/9117",
+                "http://www.eionet.europa.eu/gemet/group/96",
+                "http://www.eionet.europa.eu/gemet/groupCollection",
+                "http://www.eionet.europa.eu/gemet/superGroupCollection",
+                "http://www.eionet.europa.eu/gemet/supergroup/2894",
+                "http://www.eionet.europa.eu/gemet/supergroup/4044",
+                "http://www.eionet.europa.eu/gemet/supergroup/5306",
+                "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                "http://www.eionet.europa.eu/gemet/theme/1",
+                "http://www.eionet.europa.eu/gemet/theme/10",
+                "http://www.eionet.europa.eu/gemet/theme/11",
+                "http://www.eionet.europa.eu/gemet/theme/12",
+                "http://www.eionet.europa.eu/gemet/theme/13",
+                "http://www.eionet.europa.eu/gemet/theme/14",
+                "http://www.eionet.europa.eu/gemet/theme/15",
+                "http://www.eionet.europa.eu/gemet/theme/16",
+                "http://www.eionet.europa.eu/gemet/theme/17",
+                "http://www.eionet.europa.eu/gemet/theme/18",
+                "http://www.eionet.europa.eu/gemet/theme/19",
+                "http://www.eionet.europa.eu/gemet/theme/2",
+                "http://www.eionet.europa.eu/gemet/theme/20",
+                "http://www.eionet.europa.eu/gemet/theme/21",
+                "http://www.eionet.europa.eu/gemet/theme/22",
+                "http://www.eionet.europa.eu/gemet/theme/23",
+                "http://www.eionet.europa.eu/gemet/theme/24",
+                "http://www.eionet.europa.eu/gemet/theme/25",
+                "http://www.eionet.europa.eu/gemet/theme/26",
+                "http://www.eionet.europa.eu/gemet/theme/27",
+                "http://www.eionet.europa.eu/gemet/theme/28",
+                "http://www.eionet.europa.eu/gemet/theme/29",
+                "http://www.eionet.europa.eu/gemet/theme/3",
+                "http://www.eionet.europa.eu/gemet/theme/30",
+                "http://www.eionet.europa.eu/gemet/theme/31",
+                "http://www.eionet.europa.eu/gemet/theme/32",
+                "http://www.eionet.europa.eu/gemet/theme/33",
+                "http://www.eionet.europa.eu/gemet/theme/34",
+                "http://www.eionet.europa.eu/gemet/theme/35",
+                "http://www.eionet.europa.eu/gemet/theme/36",
+                "http://www.eionet.europa.eu/gemet/theme/37",
+                "http://www.eionet.europa.eu/gemet/theme/38",
+                "http://www.eionet.europa.eu/gemet/theme/39",
+                "http://www.eionet.europa.eu/gemet/theme/4",
+                "http://www.eionet.europa.eu/gemet/theme/40",
+                "http://www.eionet.europa.eu/gemet/theme/5",
+                "http://www.eionet.europa.eu/gemet/theme/6",
+                "http://www.eionet.europa.eu/gemet/theme/7",
+                "http://www.eionet.europa.eu/gemet/theme/8",
+                "http://www.eionet.europa.eu/gemet/theme/9",
                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
                 "http://www.w3.org/2000/01/rdf-schema#label",
                 "http://www.w3.org/2001/XMLSchema#dateTime",
+                "http://www.w3.org/2004/02/skos/core#Collection",
                 "http://www.w3.org/2004/02/skos/core#altLabel",
                 "http://www.w3.org/2004/02/skos/core#broadMatch",
                 "http://www.w3.org/2004/02/skos/core#broader",
@@ -42922,9 +43651,14 @@
               "metadata_literals.items": 17,
               "notations.items": 1,
               "notes.items": 16,
-              "predicate_counts.items": 24,
+              "organization_hierarchy_relations.items": 1,
+              "organization_labels.items": 6,
+              "organization_membership_relations.items": 7,
+              "organization_metadata_literals.items": 13,
+              "organization_resources.items": 5,
+              "predicate_counts.items": 27,
               "semantic_relations.items": 23,
-              "source_iris.items": 83
+              "source_iris.items": 99
             },
             "function": "parse_gemet_file",
             "sample": {
@@ -43010,9 +43744,68 @@
                   "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
                 }
               ],
+              "organization_hierarchy_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                  "predicate_iri": "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_membership_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/1517",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                },
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/2944",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_metadata_literals": [
+                {
+                  "property_iri": "http://purl.org/dc/terms/created",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://purl.org/dc/terms/modified",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_resources": [
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                },
+                {
+                  "kind": "groupCollection",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/groupCollection",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                }
+              ],
               "predicate_counts": [
                 {
-                  "assertion_count": 8,
+                  "assertion_count": 11,
                   "predicate_iri": "http://purl.org/dc/terms/created"
                 },
                 {
@@ -43032,14 +43825,14 @@
                   "subject_iri": "http://www.eionet.europa.eu/gemet/concept/10003"
                 }
               ],
-              "source_bytes": 11807,
+              "source_bytes": 16000,
               "source_iris": [
                 "http://aims.fao.org/aos/agrovoc/c_1178",
                 "http://aims.fao.org/aos/agrovoc/c_1520"
               ],
-              "source_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
               "source_url": "https://example.test/gemet-mini.rdf",
-              "triple_count": 130
+              "triple_count": 170
             },
             "shape": {
               "fields": {
@@ -43139,8 +43932,70 @@
                   },
                   "type": "tuple"
                 },
+                "organization_hierarchy_relations": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_labels": {
+                  "count": 6,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "organization_membership_relations": {
+                  "count": 7,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_metadata_literals": {
+                  "count": 13,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetMetadataLiteral"
+                  },
+                  "type": "tuple"
+                },
+                "organization_resources": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "kind": "str",
+                      "resource_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "type_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetOrganizationResource"
+                  },
+                  "type": "tuple"
+                },
                 "predicate_counts": {
-                  "count": 24,
+                  "count": 27,
                   "itemShape": {
                     "fields": {
                       "assertion_count": "int",
@@ -43164,7 +44019,7 @@
                 },
                 "source_bytes": "int",
                 "source_iris": {
-                  "count": 83,
+                  "count": 99,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -43177,7 +44032,7 @@
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
               ],
               "paths": [],
               "urls": [
@@ -43213,8 +44068,13 @@
                 "http://purl.org/dc/terms/created",
                 "http://purl.org/dc/terms/licence",
                 "http://purl.org/dc/terms/modified",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#SuperGroup",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Theme",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#acronymLabel",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#hasWikipediaArticle",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#source",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
                 "http://www.eionet.europa.eu/gemet/concept/10003",
                 "http://www.eionet.europa.eu/gemet/concept/1029",
                 "http://www.eionet.europa.eu/gemet/concept/1033",
@@ -43229,8 +44089,12 @@
                 "http://www.eionet.europa.eu/gemet/concept/11089",
                 "http://www.eionet.europa.eu/gemet/concept/1298",
                 "http://www.eionet.europa.eu/gemet/concept/1327",
+                "http://www.eionet.europa.eu/gemet/concept/1517",
                 "http://www.eionet.europa.eu/gemet/concept/1911",
+                "http://www.eionet.europa.eu/gemet/concept/21",
+                "http://www.eionet.europa.eu/gemet/concept/24",
                 "http://www.eionet.europa.eu/gemet/concept/2783",
+                "http://www.eionet.europa.eu/gemet/concept/2944",
                 "http://www.eionet.europa.eu/gemet/concept/363",
                 "http://www.eionet.europa.eu/gemet/concept/3788",
                 "http://www.eionet.europa.eu/gemet/concept/3887",
@@ -43243,9 +44107,15 @@
                 "http://www.eionet.europa.eu/gemet/concept/8629",
                 "http://www.eionet.europa.eu/gemet/concept/867",
                 "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "http://www.eionet.europa.eu/gemet/group/10111",
+                "http://www.eionet.europa.eu/gemet/groupCollection",
+                "http://www.eionet.europa.eu/gemet/superGroupCollection",
+                "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                "http://www.eionet.europa.eu/gemet/theme/1",
                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
                 "http://www.w3.org/2000/01/rdf-schema#label",
                 "http://www.w3.org/2001/XMLSchema#dateTime",
+                "http://www.w3.org/2004/02/skos/core#Collection",
                 "http://www.w3.org/2004/02/skos/core#Concept",
                 "http://www.w3.org/2004/02/skos/core#ConceptScheme",
                 "http://www.w3.org/2004/02/skos/core#altLabel",
@@ -43258,6 +44128,7 @@
                 "http://www.w3.org/2004/02/skos/core#hasTopConcept",
                 "http://www.w3.org/2004/02/skos/core#hiddenLabel",
                 "http://www.w3.org/2004/02/skos/core#inScheme",
+                "http://www.w3.org/2004/02/skos/core#member",
                 "http://www.w3.org/2004/02/skos/core#narrowMatch",
                 "http://www.w3.org/2004/02/skos/core#narrower",
                 "http://www.w3.org/2004/02/skos/core#notation",
@@ -43266,184 +44137,6 @@
                 "http://www.w3.org/2004/02/skos/core#relatedMatch",
                 "http://www.w3.org/2004/02/skos/core#scopeNote",
                 "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {
-              "concept_schemes.items": 1,
-              "concepts": 1,
-              "concepts.items": 1,
-              "labels": 1,
-              "labels.items": 1,
-              "license_relations.items": 0,
-              "mapping_relations.items": 0,
-              "metadata_literals.items": 0,
-              "notations.items": 0,
-              "notes.items": 0,
-              "predicate_counts.items": 5,
-              "semantic_relations.items": 0,
-              "source_iris.items": 12
-            },
-            "function": "parse_gemet_rdf_xml",
-            "sample": {
-              "concept_schemes": [
-                {
-                  "scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                  "top_concept_iris": "<builtins.tuple>"
-                }
-              ],
-              "concepts": [
-                {
-                  "concept_iri": "http://www.eionet.europa.eu/gemet/concept/1",
-                  "scheme_iris": "<builtins.tuple>",
-                  "top_concept_of_iris": "<builtins.tuple>"
-                }
-              ],
-              "labels": [
-                {
-                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
-                  "role": "preferred",
-                  "subject_iri": "http://www.eionet.europa.eu/gemet/concept/1",
-                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
-                }
-              ],
-              "license_relations": [],
-              "mapping_relations": [],
-              "metadata_literals": [],
-              "notations": [],
-              "notes": [],
-              "predicate_counts": [
-                {
-                  "assertion_count": 4,
-                  "predicate_iri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                },
-                {
-                  "assertion_count": 1,
-                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#hasTopConcept"
-                }
-              ],
-              "semantic_relations": [],
-              "source_bytes": 893,
-              "source_iris": [
-                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
-                "http://www.eionet.europa.eu/gemet/concept/1"
-              ],
-              "source_sha256": "sha256:5f4684bdafbfafaddf8e38e18e56119fdacf9bc843677ebe053621bbc1cbb089",
-              "source_url": "https://example.test/synthetic.rdf",
-              "triple_count": 9
-            },
-            "shape": {
-              "fields": {
-                "concept_schemes": {
-                  "count": 1,
-                  "itemShape": {
-                    "fields": {
-                      "scheme_iri": "str",
-                      "top_concept_iris": "builtins.tuple"
-                    },
-                    "type": "refspec.registry.gemet_thesaurus.GemetConceptScheme"
-                  },
-                  "type": "tuple"
-                },
-                "concepts": {
-                  "count": 1,
-                  "itemShape": {
-                    "fields": {
-                      "concept_iri": "str",
-                      "scheme_iris": "builtins.tuple",
-                      "top_concept_of_iris": "builtins.tuple"
-                    },
-                    "type": "refspec.registry.gemet_thesaurus.GemetConcept"
-                  },
-                  "type": "tuple"
-                },
-                "labels": {
-                  "count": 1,
-                  "itemShape": {
-                    "fields": {
-                      "property_iri": "str",
-                      "role": "str",
-                      "subject_iri": "str",
-                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
-                    },
-                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
-                  },
-                  "type": "tuple"
-                },
-                "license_relations": {
-                  "count": 0,
-                  "itemShape": null,
-                  "type": "tuple"
-                },
-                "mapping_relations": {
-                  "count": 0,
-                  "itemShape": null,
-                  "type": "tuple"
-                },
-                "metadata_literals": {
-                  "count": 0,
-                  "itemShape": null,
-                  "type": "tuple"
-                },
-                "notations": {
-                  "count": 0,
-                  "itemShape": null,
-                  "type": "tuple"
-                },
-                "notes": {
-                  "count": 0,
-                  "itemShape": null,
-                  "type": "tuple"
-                },
-                "predicate_counts": {
-                  "count": 5,
-                  "itemShape": {
-                    "fields": {
-                      "assertion_count": "int",
-                      "predicate_iri": "str"
-                    },
-                    "type": "refspec.registry.gemet_thesaurus.GemetPredicateCount"
-                  },
-                  "type": "tuple"
-                },
-                "semantic_relations": {
-                  "count": 0,
-                  "itemShape": null,
-                  "type": "tuple"
-                },
-                "source_bytes": "int",
-                "source_iris": {
-                  "count": 12,
-                  "itemShape": "str",
-                  "type": "tuple"
-                },
-                "source_sha256": "str",
-                "source_url": "str",
-                "triple_count": "int"
-              },
-              "type": "refspec.registry.gemet_thesaurus.GemetVocabulary"
-            },
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [
-                "sha256:5f4684bdafbfafaddf8e38e18e56119fdacf9bc843677ebe053621bbc1cbb089"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
-                "http://www.eionet.europa.eu/gemet/concept/1",
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "http://www.eionet.europa.eu/gemet/group/1",
-                "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-                "http://www.w3.org/2004/02/skos/core#Collection",
-                "http://www.w3.org/2004/02/skos/core#Concept",
-                "http://www.w3.org/2004/02/skos/core#ConceptScheme",
-                "http://www.w3.org/2004/02/skos/core#hasTopConcept",
-                "http://www.w3.org/2004/02/skos/core#inScheme",
-                "http://www.w3.org/2004/02/skos/core#notation",
-                "http://www.w3.org/2004/02/skos/core#prefLabel",
-                "https://example.test/synthetic.rdf"
               ]
             }
           },
@@ -43459,9 +44152,14 @@
               "metadata_literals.items": 17,
               "notations.items": 1,
               "notes.items": 16,
-              "predicate_counts.items": 24,
+              "organization_hierarchy_relations.items": 1,
+              "organization_labels.items": 6,
+              "organization_membership_relations.items": 7,
+              "organization_metadata_literals.items": 13,
+              "organization_resources.items": 5,
+              "predicate_counts.items": 27,
               "semantic_relations.items": 23,
-              "source_iris.items": 83
+              "source_iris.items": 99
             },
             "function": "parse_gemet_rdf_xml",
             "sample": {
@@ -43547,9 +44245,68 @@
                   "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
                 }
               ],
+              "organization_hierarchy_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                  "predicate_iri": "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_membership_relations": [
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/1517",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                },
+                {
+                  "object_iri": "http://www.eionet.europa.eu/gemet/concept/2944",
+                  "predicate_iri": "http://www.w3.org/2004/02/skos/core#member",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111"
+                }
+              ],
+              "organization_metadata_literals": [
+                {
+                  "property_iri": "http://purl.org/dc/terms/created",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                },
+                {
+                  "property_iri": "http://purl.org/dc/terms/modified",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_resources": [
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/10111",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                },
+                {
+                  "kind": "groupCollection",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/groupCollection",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                }
+              ],
               "predicate_counts": [
                 {
-                  "assertion_count": 8,
+                  "assertion_count": 11,
                   "predicate_iri": "http://purl.org/dc/terms/created"
                 },
                 {
@@ -43569,14 +44326,14 @@
                   "subject_iri": "http://www.eionet.europa.eu/gemet/concept/10003"
                 }
               ],
-              "source_bytes": 11807,
+              "source_bytes": 16000,
               "source_iris": [
                 "http://aims.fao.org/aos/agrovoc/c_1178",
                 "http://aims.fao.org/aos/agrovoc/c_1520"
               ],
-              "source_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
+              "source_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
               "source_url": "https://example.test/gemet-mini.rdf",
-              "triple_count": 130
+              "triple_count": 170
             },
             "shape": {
               "fields": {
@@ -43676,8 +44433,70 @@
                   },
                   "type": "tuple"
                 },
+                "organization_hierarchy_relations": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_labels": {
+                  "count": 6,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "organization_membership_relations": {
+                  "count": 7,
+                  "itemShape": {
+                    "fields": {
+                      "object_iri": "str",
+                      "predicate_iri": "str",
+                      "subject_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetIriRelation"
+                  },
+                  "type": "tuple"
+                },
+                "organization_metadata_literals": {
+                  "count": 13,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetMetadataLiteral"
+                  },
+                  "type": "tuple"
+                },
+                "organization_resources": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "kind": "str",
+                      "resource_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "type_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetOrganizationResource"
+                  },
+                  "type": "tuple"
+                },
                 "predicate_counts": {
-                  "count": 24,
+                  "count": 27,
                   "itemShape": {
                     "fields": {
                       "assertion_count": "int",
@@ -43701,7 +44520,7 @@
                 },
                 "source_bytes": "int",
                 "source_iris": {
-                  "count": 83,
+                  "count": 99,
                   "itemShape": "str",
                   "type": "tuple"
                 },
@@ -43713,10 +44532,10 @@
             },
             "sourceEvidence": {
               "byteLengths": [
-                11807
+                16000
               ],
               "digests": [
-                "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
               ],
               "paths": [],
               "urls": [
@@ -43752,8 +44571,13 @@
                 "http://purl.org/dc/terms/created",
                 "http://purl.org/dc/terms/licence",
                 "http://purl.org/dc/terms/modified",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#SuperGroup",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Theme",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#acronymLabel",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#hasWikipediaArticle",
                 "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#source",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#subGroupOf",
                 "http://www.eionet.europa.eu/gemet/concept/10003",
                 "http://www.eionet.europa.eu/gemet/concept/1029",
                 "http://www.eionet.europa.eu/gemet/concept/1033",
@@ -43768,8 +44592,12 @@
                 "http://www.eionet.europa.eu/gemet/concept/11089",
                 "http://www.eionet.europa.eu/gemet/concept/1298",
                 "http://www.eionet.europa.eu/gemet/concept/1327",
+                "http://www.eionet.europa.eu/gemet/concept/1517",
                 "http://www.eionet.europa.eu/gemet/concept/1911",
+                "http://www.eionet.europa.eu/gemet/concept/21",
+                "http://www.eionet.europa.eu/gemet/concept/24",
                 "http://www.eionet.europa.eu/gemet/concept/2783",
+                "http://www.eionet.europa.eu/gemet/concept/2944",
                 "http://www.eionet.europa.eu/gemet/concept/363",
                 "http://www.eionet.europa.eu/gemet/concept/3788",
                 "http://www.eionet.europa.eu/gemet/concept/3887",
@@ -43782,9 +44610,15 @@
                 "http://www.eionet.europa.eu/gemet/concept/8629",
                 "http://www.eionet.europa.eu/gemet/concept/867",
                 "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "http://www.eionet.europa.eu/gemet/group/10111",
+                "http://www.eionet.europa.eu/gemet/groupCollection",
+                "http://www.eionet.europa.eu/gemet/superGroupCollection",
+                "http://www.eionet.europa.eu/gemet/supergroup/5499",
+                "http://www.eionet.europa.eu/gemet/theme/1",
                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
                 "http://www.w3.org/2000/01/rdf-schema#label",
                 "http://www.w3.org/2001/XMLSchema#dateTime",
+                "http://www.w3.org/2004/02/skos/core#Collection",
                 "http://www.w3.org/2004/02/skos/core#Concept",
                 "http://www.w3.org/2004/02/skos/core#ConceptScheme",
                 "http://www.w3.org/2004/02/skos/core#altLabel",
@@ -43797,6 +44631,7 @@
                 "http://www.w3.org/2004/02/skos/core#hasTopConcept",
                 "http://www.w3.org/2004/02/skos/core#hiddenLabel",
                 "http://www.w3.org/2004/02/skos/core#inScheme",
+                "http://www.w3.org/2004/02/skos/core#member",
                 "http://www.w3.org/2004/02/skos/core#narrowMatch",
                 "http://www.w3.org/2004/02/skos/core#narrower",
                 "http://www.w3.org/2004/02/skos/core#notation",
@@ -43805,6 +44640,253 @@
                 "http://www.w3.org/2004/02/skos/core#relatedMatch",
                 "http://www.w3.org/2004/02/skos/core#scopeNote",
                 "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "concept_schemes.items": 1,
+              "concepts": 1,
+              "concepts.items": 1,
+              "labels": 1,
+              "labels.items": 1,
+              "license_relations.items": 0,
+              "mapping_relations.items": 0,
+              "metadata_literals.items": 0,
+              "notations.items": 0,
+              "notes.items": 0,
+              "organization_hierarchy_relations.items": 0,
+              "organization_labels.items": 1,
+              "organization_membership_relations.items": 0,
+              "organization_metadata_literals.items": 0,
+              "organization_resources.items": 1,
+              "predicate_counts.items": 7,
+              "semantic_relations.items": 0,
+              "source_iris.items": 16
+            },
+            "function": "parse_gemet_rdf_xml",
+            "sample": {
+              "concept_schemes": [
+                {
+                  "scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                  "top_concept_iris": "<builtins.tuple>"
+                }
+              ],
+              "concepts": [
+                {
+                  "concept_iri": "http://www.eionet.europa.eu/gemet/concept/1",
+                  "scheme_iris": "<builtins.tuple>",
+                  "top_concept_of_iris": "<builtins.tuple>"
+                }
+              ],
+              "labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/concept/1",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "license_relations": [],
+              "mapping_relations": [],
+              "metadata_literals": [],
+              "notations": [],
+              "notes": [],
+              "organization_hierarchy_relations": [],
+              "organization_labels": [
+                {
+                  "property_iri": "http://www.w3.org/2004/02/skos/core#prefLabel",
+                  "role": "preferred",
+                  "subject_iri": "http://www.eionet.europa.eu/gemet/group/1",
+                  "value": "<refspec.registry.gemet_thesaurus.GemetLiteral>"
+                }
+              ],
+              "organization_membership_relations": [],
+              "organization_metadata_literals": [],
+              "organization_resources": [
+                {
+                  "kind": "group",
+                  "resource_iri": "http://www.eionet.europa.eu/gemet/group/1",
+                  "scheme_iris": "<builtins.tuple>",
+                  "type_iris": "<builtins.tuple>"
+                }
+              ],
+              "predicate_counts": [
+                {
+                  "assertion_count": 1,
+                  "predicate_iri": "http://purl.org/dc/terms/title"
+                },
+                {
+                  "assertion_count": 5,
+                  "predicate_iri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                }
+              ],
+              "semantic_relations": [],
+              "source_bytes": 1360,
+              "source_iris": [
+                "http://purl.org/dc/terms/title",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group"
+              ],
+              "source_sha256": "sha256:76726bdc792995f5adc30ab20b840f7f923e8f2704f564f15b0c181a1d638504",
+              "source_url": "https://example.test/synthetic.rdf",
+              "triple_count": 13
+            },
+            "shape": {
+              "fields": {
+                "concept_schemes": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "scheme_iri": "str",
+                      "top_concept_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetConceptScheme"
+                  },
+                  "type": "tuple"
+                },
+                "concepts": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "concept_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "top_concept_of_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetConcept"
+                  },
+                  "type": "tuple"
+                },
+                "labels": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "license_relations": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "mapping_relations": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "metadata_literals": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "notations": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "notes": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "organization_hierarchy_relations": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "organization_labels": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "property_iri": "str",
+                      "role": "str",
+                      "subject_iri": "str",
+                      "value": "refspec.registry.gemet_thesaurus.GemetLiteral"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetLabelExpression"
+                  },
+                  "type": "tuple"
+                },
+                "organization_membership_relations": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "organization_metadata_literals": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "organization_resources": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "kind": "str",
+                      "resource_iri": "str",
+                      "scheme_iris": "builtins.tuple",
+                      "type_iris": "builtins.tuple"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetOrganizationResource"
+                  },
+                  "type": "tuple"
+                },
+                "predicate_counts": {
+                  "count": 7,
+                  "itemShape": {
+                    "fields": {
+                      "assertion_count": "int",
+                      "predicate_iri": "str"
+                    },
+                    "type": "refspec.registry.gemet_thesaurus.GemetPredicateCount"
+                  },
+                  "type": "tuple"
+                },
+                "semantic_relations": {
+                  "count": 0,
+                  "itemShape": null,
+                  "type": "tuple"
+                },
+                "source_bytes": "int",
+                "source_iris": {
+                  "count": 16,
+                  "itemShape": "str",
+                  "type": "tuple"
+                },
+                "source_sha256": "str",
+                "source_url": "str",
+                "triple_count": "int"
+              },
+              "type": "refspec.registry.gemet_thesaurus.GemetVocabulary"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:76726bdc792995f5adc30ab20b840f7f923e8f2704f564f15b0c181a1d638504"
+              ],
+              "paths": [],
+              "urls": [
+                "http://purl.org/dc/terms/title",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+                "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Source",
+                "http://www.eionet.europa.eu/gemet/concept/1",
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "http://www.eionet.europa.eu/gemet/group/1",
+                "http://www.eionet.europa.eu/gemet/source/1",
+                "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+                "http://www.w3.org/2000/01/rdf-schema#label",
+                "http://www.w3.org/2004/02/skos/core#Collection",
+                "http://www.w3.org/2004/02/skos/core#Concept",
+                "http://www.w3.org/2004/02/skos/core#ConceptScheme",
+                "http://www.w3.org/2004/02/skos/core#hasTopConcept",
+                "http://www.w3.org/2004/02/skos/core#inScheme",
+                "http://www.w3.org/2004/02/skos/core#notation",
+                "http://www.w3.org/2004/02/skos/core#prefLabel",
+                "https://example.test/synthetic.rdf"
               ]
             }
           }
@@ -74420,7 +75502,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7d67-af5c-e78c00ba0196",
+              "fetch_id": "019fb2e5-4e00-7a6d-a0a4-a751cb54c221",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -74477,7 +75559,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-776d-a709-22d5f4cfb627"
+              "registration_id": "019fb80b-aa00-7c32-a57b-a5184caf1690"
             },
             "shape": {
               "fields": {
@@ -110561,6 +111643,22 @@
           {
             "counts": {},
             "function": "sha256_digest",
+            "sample": "sha256:6c56bbb00ee925f0a82529dac9722e6337530d4bb31b3565108573047fda5520",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                364729
+              ],
+              "digests": [
+                "sha256:6c56bbb00ee925f0a82529dac9722e6337530d4bb31b3565108573047fda5520"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
             "sample": "sha256:7a43d33c291a9ab233ed76237dec3cbfb28ebd10169183328077227f6c0cf2ea",
             "shape": "str",
             "sourceEvidence": {
@@ -110585,22 +111683,6 @@
               ],
               "digests": [
                 "sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
-            "sample": "sha256:cf0a640142f7c191f090b577d1759feb7c04e198bd4665dd2f327f6d4567680f",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                364730
-              ],
-              "digests": [
-                "sha256:cf0a640142f7c191f090b577d1759feb7c04e198bd4665dd2f327f6d4567680f"
               ],
               "paths": [],
               "urls": []
@@ -115801,9 +116883,7 @@
     },
     {
       "auditRole": "dataReader",
-      "blockers": [
-        "Experiment reads injected archive and metadata paths; its tests exercise synthetic fixtures only, so no pinned publisher capture is consumed."
-      ],
+      "blockers": [],
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
@@ -115812,11 +116892,30 @@
         "http://publications.europa.eu/resource/dataset/eurovoc/20260708-0#thesaurus-concepts",
         "http://rdfs.org/ns/void#",
         "http://www.w3.org/ns/dcat#",
-        "http://xmlns.com/foaf/0.1/"
+        "http://xmlns.com/foaf/0.1/",
+        "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl",
+        "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip"
       ],
       "module": "eurovoc_organization_experiment.py",
-      "sourceStatus": "blocked",
-      "testInputs": []
+      "sourceStatus": "publisherBytes",
+      "testInputs": [
+        {
+          "byteLength": 8567290,
+          "localPath": "output/registry-real-data-sources/eurovoc-4.24-skos-core.zip",
+          "name": "eurovocSkosCore",
+          "provenance": "publisherDistribution",
+          "publisherUrl": "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip",
+          "sha256": "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f"
+        },
+        {
+          "byteLength": 36011,
+          "localPath": "output/registry-real-data-sources/eurovoc-4.24-metadata.ttl",
+          "name": "eurovocMetadata",
+          "provenance": "publisherDistribution",
+          "publisherUrl": "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl",
+          "sha256": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d"
+        }
+      ]
     },
     {
       "auditRole": "dataReader",
@@ -116452,6 +117551,8 @@
         "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#",
         "http://www.eionet.europa.eu/gemet/concept/",
         "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+        "http://www.eionet.europa.eu/gemet/groupCollection",
+        "http://www.eionet.europa.eu/gemet/superGroupCollection",
         "http://www.w3.org/2000/01/rdf-schema#label",
         "https://creativecommons.org/licenses/by/4.0/",
         "https://www.eionet.europa.eu/gemet/en/exports/rdf/latest",
@@ -118137,14 +119238,11 @@
     }
   ],
   "realDataGate": {
-    "failures": [
-      "eurovoc_organization_experiment.py: Experiment reads injected archive and metadata paths; its tests exercise synthetic fixtures only, so no pinned publisher capture is consumed."
-    ],
-    "status": "failed"
+    "failures": [],
+    "status": "passed"
   },
   "sourceStatuses": {
-    "blocked": 1,
     "notApplicable": 9,
-    "publisherBytes": 76
+    "publisherBytes": 77
   }
 }

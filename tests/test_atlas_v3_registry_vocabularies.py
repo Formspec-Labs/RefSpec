@@ -155,6 +155,11 @@ def test_gemet_normalization_keeps_variant_synonym_and_deduplicates_twins(
         notes=(),
         notations=(),
         semantic_relations=(),
+        organization_resources=(),
+        organization_labels=(),
+        organization_metadata_literals=(),
+        organization_membership_relations=(),
+        organization_hierarchy_relations=(),
     )
     monkeypatch.setitem(vocabularies.EXPECTED_RESOURCE_COUNTS, "gemet-4.2.3", 1)
     monkeypatch.setitem(vocabularies.EXPECTED_LABEL_COUNTS, "gemet-4.2.3", 3)

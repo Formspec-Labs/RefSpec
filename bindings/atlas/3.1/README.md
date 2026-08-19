@@ -576,7 +576,7 @@ rows sorted by assertion IRI. Which `(rule, engine, engineVersion)` tuples a
 distribution may use is a registry (`validate.py`'s
 `_DERIVED_RULE_ADMISSIONS`), not one hardcoded tuple: each entry names its own
 admitted semantic ring(s) and predicate(s), evidence kind, row-shape check,
-and replay. Three rules are registered as of REF-043 (`docs/decisions.md`).
+and replay. Five rules are registered as of REF-046 (`docs/decisions.md`).
 
 `urn:ref:rule:skos-exact-match-closure-path`, executed by `owlrl` 7.1.4, is
 ring `atlas:subject`, predicate `skos:exactMatch`, and every input MUST be a
@@ -623,6 +623,43 @@ projection, so its replay regenerates the complete expected edge set from
 the asserted graph's own source-record payloads -- scoped to the scheme, so
 a locally valid but incomplete or over-complete edge set fails even though
 every shipped row passes its own check.
+
+`urn:ref:rule:fr-thesaurus-compound-head-broader`, executed by this
+binding's own code
+(`https://refspec.org/code/atlas-v3-derived-fr-compound-headings` version
+`"1"`), is ring `atlas:subject`, predicate `skos:broader`, and every input
+MUST be exactly two active `atlas:SourceRecord`s whose
+`atlas:representsResource` targets are exactly the row's own subject and
+object. Both endpoints MUST sit in the Federal Register thesaurus scheme
+(`urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025`), and the
+subject's own preferred-label text MUST contain a hyphen whose segment
+before the first hyphen equals one of the object's own preferred-label
+texts; the output MUST NOT already have a directly asserted projection or
+its SKOS inverse (`skos:narrower`) asserted in the opposite direction.
+Like the MeSH and GCMD rules this is a closed, one-release projection, so
+its replay regenerates the complete expected compound/head pair set from
+the asserted graph's own preferred labels -- scoped to the scheme, with no
+hand-maintained denylist for the 8 hyphenated terms whose head is not
+itself a term.
+
+`urn:ref:rule:eurovoc-microthesaurus-domain-notation-prefix`, executed by
+this binding's own code
+(`https://refspec.org/code/atlas-v3-derived-eurovoc-microthesaurus-domain`
+version `"1"`), is ring `atlas:subject`, predicate `skos:broader`, and
+every input MUST be exactly two active `atlas:SourceRecord`s whose
+`atlas:representsResource` targets are exactly the row's own subject and
+object. Unlike every prior rule, subject and object sit in two DIFFERENT
+schemes: the subject MUST sit in the EuroVoc microthesauri scheme
+(`urn:ref:atlas-resource-scheme:eurovoc:microthesauri`) and the object MUST
+sit in the EuroVoc domains scheme (`urn:ref:atlas-resource-scheme:eurovoc:domains`),
+checked independently rather than as one shared scheme. The subject's own
+`atlas:notation` MUST include a four-digit value whose two-digit prefix
+equals one of the object's own `atlas:notation` values; the output MUST
+NOT already have a directly asserted projection or its SKOS inverse
+(`skos:narrower`) asserted in the opposite direction. Like the MeSH, GCMD,
+and FR rules this is a closed, one-release projection, so its replay
+regenerates the complete expected edge set from the asserted graph's own
+notations, scoped to both schemes independently.
 
 `skos:exactMatch` retains its W3C semantics. A producer that does not accept
 transitive consequences SHOULD use `skos:closeMatch` or a ring-specific Atlas

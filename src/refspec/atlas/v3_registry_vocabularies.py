@@ -59,6 +59,7 @@ from refspec.registry.elsst import (
 )
 from refspec.registry.eurovoc_thesaurus import (
     EUROVOC_RELEASE_4_24,
+    SCHEME_MEMBERSHIP_PREDICATE_IRI,
     EuroVocVocabulary,
     acquire_eurovoc_release,
     parse_acquired_eurovoc_release,
@@ -83,9 +84,27 @@ from refspec.registry.gcmd_science_keywords import (
     parse_gcmd_science_keywords_csv,
 )
 from refspec.registry.gemet_thesaurus import (
+    ACRONYM_LABEL_PREDICATE_IRI as GEMET_ACRONYM_LABEL,
+)
+from refspec.registry.gemet_thesaurus import (
+    DISPLAY_LABEL_PREDICATE_IRI as GEMET_DISPLAY_LABEL,
+)
+from refspec.registry.gemet_thesaurus import (
     GEMET_RELEASE_4_2_3,
     GemetVocabulary,
     parse_gemet_file,
+)
+from refspec.registry.gemet_thesaurus import (
+    GROUP_COLLECTION_IRI as GEMET_GROUP_COLLECTION_IRI,
+)
+from refspec.registry.gemet_thesaurus import (
+    MEMBER_PREDICATE_IRI as GEMET_MEMBER_PREDICATE_IRI,
+)
+from refspec.registry.gemet_thesaurus import (
+    SUB_GROUP_OF_PREDICATE_IRI as GEMET_SUB_GROUP_OF_PREDICATE_IRI,
+)
+from refspec.registry.gemet_thesaurus import (
+    SUPER_GROUP_COLLECTION_IRI as GEMET_SUPER_GROUP_COLLECTION_IRI,
 )
 from refspec.registry.infrastructure.registry_claim_release import (
     RegistryClaimReleaseView,
@@ -125,9 +144,10 @@ EXPECTED_RESOURCE_COUNTS = {
     "elsst-r6": 3_470,
     "eurovoc-4.24": 7_515,
     "eurovoc-domains-4.24": 21,
+    "eurovoc-microthesauri-4.24": 127,
     "federal-register-thesaurus-2025": 705,
     "gcmd-science-keywords-24-4": 3_774,
-    "gemet-4.2.3": 5_573,
+    "gemet-4.2.3": 5_649,
     "mesh-descriptors-2026": 31_110,
     "nasa-thesaurus-skos": 22_622,
 }
@@ -136,9 +156,10 @@ EXPECTED_RELATION_COUNTS = {
     "elsst-r6": 12_482,
     "eurovoc-4.24": 26_429,
     "eurovoc-domains-4.24": 0,
+    "eurovoc-microthesauri-4.24": 7_902,
     "federal-register-thesaurus-2025": 1_451,
     "gcmd-science-keywords-24-4": 0,
-    "gemet-4.2.3": 14_764,
+    "gemet-4.2.3": 30_906,
     "mesh-descriptors-2026": 0,
     "nasa-thesaurus-skos": 160_370,
 }
@@ -147,9 +168,10 @@ EXPECTED_LABEL_COUNTS = {
     "elsst-r6": 6_234,
     "eurovoc-4.24": 17_431,
     "eurovoc-domains-4.24": 21,
+    "eurovoc-microthesauri-4.24": 3_430,
     "federal-register-thesaurus-2025": 1_138,
     "gcmd-science-keywords-24-4": 3_774,
-    "gemet-4.2.3": 5_876,
+    "gemet-4.2.3": 5_993,
     "mesh-descriptors-2026": 134_904,
     "nasa-thesaurus-skos": 27_125,
 }
@@ -158,6 +180,24 @@ _ROLE_ORDER = {"preferred": 0, "alternate": 1, "hidden": 2}
 _NASA_RELATION_PREDICATES = {
     NASA_USE: "https://refspec.org/ns/atlas/v3#thesaurusUse",
     NASA_USED_FOR: "https://refspec.org/ns/atlas/v3#thesaurusUsedFor",
+}
+_ATLAS_HAS_SCHEME_MEMBER = "https://refspec.org/ns/atlas/v3#hasSchemeMember"
+# GEMET's Group/SuperGroup/Theme collections assert membership toward their
+# member concepts (or, for a SuperGroup, toward its member Groups) as
+# skos:member -- a real predicate, same direction as atlas:hasSchemeMember,
+# but not itself an admitted subject-ring NativeRelationAssertion predicate
+# (registry-resource-profiles.json). This is a same-publisher, same-release
+# predicate substitution -- GEMET owns every endpoint -- so it is recorded
+# the way NASA's USE/USED_FOR remap above is: per-row, via
+# _direct_relations' predicate_map (every emitted relation's source_payload
+# keeps both the original predicateIri and the normalizedPredicateIri), plus
+# a release-level note in _normalize_gemet's metadata. REF-035's adoption
+# apparatus (RegistryMapping/RegistryMappingEvidence) is deliberately not
+# used here: that machinery answers an evidence-warrant question -- do two
+# *different* publishers' claims correspond -- and this is a predicate
+# translation within one publisher's own release, not an adjudicated claim.
+_GEMET_ORGANIZATION_MEMBERSHIP_PREDICATES = {
+    GEMET_MEMBER_PREDICATE_IRI: _ATLAS_HAS_SCHEME_MEMBER,
 }
 _SKOS_BROADER = "http://www.w3.org/2004/02/skos/core#broader"
 _SKOS_NARROWER = "http://www.w3.org/2004/02/skos/core#narrower"
@@ -863,6 +903,243 @@ def _normalize_eurovoc(
     return concepts, domains
 
 
+_ATLAS_HAS_SCHEME_MEMBER = "https://refspec.org/ns/atlas/v3#hasSchemeMember"
+# REF-046 (docs/decisions.md) found the 7,902 concept-to-microthesaurus
+# skos:inScheme memberships are real publisher assertions. They cannot be
+# projected as a second skos:inScheme triple on the concept:
+# atlas:SubjectConceptShape fixes skos:inScheme to exactly one value, equal
+# to atlas:inScheme, already spent on the concept's single primary EuroVoc
+# scheme. Asserting the fact from the microthesaurus toward its member
+# concept instead -- the mirror direction, under a distinct native predicate
+# -- keeps the SAME fact (never a second, additional assertion in the
+# opposite direction) while satisfying that cardinality and the producer's
+# own requirement that a relation's evidence be a SourceRecord native to the
+# release that owns the relation (the microthesaurus's own record, which
+# lives in this release, not eurovoc-4.24's).
+_EUROVOC_MICROTHESAURUS_MEMBERSHIP_TRANSFORMATION = {
+    "fromPredicate": SCHEME_MEMBERSHIP_PREDICATE_IRI,
+    "reason": "SubjectConceptShape fixes skos:inScheme to exactly one value equal to atlas:inScheme",
+    "rule": "assertAdditionalSchemeMembershipFromContainerTowardMember",
+    "toPredicate": _ATLAS_HAS_SCHEME_MEMBER,
+}
+
+
+def _eurovoc_microthesauri(parsed: EuroVocVocabulary) -> dict[str, str]:
+    """Every EuroVoc concept scheme that is a notated microthesaurus.
+
+    A microthesaurus is a concept scheme carrying a four-digit numeric
+    publisher notation -- the same selection rule
+    ``refspec.registry.eurovoc_organization_experiment`` uses. The main
+    thesaurus scheme and the domains grouping scheme both carry
+    ``notation=None`` and are excluded by construction.
+    """
+
+    return {
+        scheme.scheme_iri: scheme.notation
+        for scheme in parsed.concept_schemes
+        if scheme.notation is not None and len(scheme.notation) == 4 and scheme.notation.isdigit()
+    }
+
+
+def _normalize_eurovoc_microthesauri(
+    parsed: EuroVocVocabulary,
+    archive: RegistryInputPin,
+    metadata: RegistryInputPin,
+) -> RegistryRelease:
+    """Build the EuroVoc microthesauri organization release.
+
+    The Publications Office asserts 127 notated microthesaurus schemes and
+    7,902 concept-to-microthesaurus ``skos:inScheme`` memberships in the
+    same pinned SKOS Core member ``eurovoc-4.24``/``eurovoc-domains-4.24``
+    are already built from. REF-045 (docs/decisions.md) found both are real
+    publisher facts, promoted here for the first time.
+
+    Multilingual labels are carried verbatim, unlike every other
+    EuroVoc-derived release in this module: no language's label text is
+    dropped, because every EuroVoc label already carries an explicit
+    language tag (the parser refuses an untagged one --
+    ``eurovoc_thesaurus._label_expressions``), so RefSpec never determines
+    one here. Every membership is emitted, including the 142+121+1
+    concepts that belong to two, three, or four microthesauri at once --
+    multi-membership is a real publisher fact and is never collapsed.
+
+    Carrying every language does not mean carrying every language's own
+    ``skos:prefLabel`` role: `atlas.shacl.ttl`'s `SkosXlPrefLabelShape`
+    fixes ``skosxl:prefLabel`` to exactly one value per resource (Atlas has
+    no notion of "the preferred label in French" alongside "the preferred
+    label in English" -- one resource, one preferred label), so only the
+    publisher's own English ``skos:prefLabel`` -- present for all 127
+    microthesauri -- keeps the ``preferred`` role. Every other language's
+    preferred term is retained in full, text and language tag unchanged,
+    demoted to ``alternate`` (unbounded cardinality, no shape conflict);
+    the publisher's own existing alternate and hidden labels keep their
+    own roles unchanged. RefSpec never invents an English label here: this
+    demotion only ever fires because the pinned release already carries
+    one, checked below rather than assumed.
+    """
+
+    microthesauri = _eurovoc_microthesauri(parsed)
+    concept_iris = {concept.concept_iri for concept in parsed.concepts}
+
+    labels_by_iri: dict[str, list[RegistryLabel]] = defaultdict(list)
+    for row in parsed.labels:
+        if row.subject_iri not in microthesauri:
+            continue
+        role = row.role
+        if role == "preferred" and row.value.language_tag.casefold() != "en":
+            role = "alternate"
+        labels_by_iri[row.subject_iri].append(
+            RegistryLabel(
+                value=row.value.lexical_form,
+                role=role,
+                source_path=f"{row.subject_iri}::{row.property_iri}::{row.value.language_tag}",
+                language=row.value.language_tag.casefold(),
+            )
+        )
+    missing_english_preferred = {
+        iri
+        for iri in microthesauri
+        if sum(1 for label in labels_by_iri.get(iri, ()) if label.role == "preferred") != 1
+    }
+    if missing_english_preferred:
+        raise ValueError(
+            "EuroVoc microthesaurus has no exactly-one English preferred label to keep: "
+            f"{sorted(missing_english_preferred)[:1]}"
+        )
+
+    common_payload = {
+        "attribution": EUROVOC_RELEASE_4_24.attribution,
+        "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+        "publisher": EUROVOC_RELEASE_4_24.publisher,
+        "releaseVersion": EUROVOC_RELEASE_4_24.version,
+    }
+    resources: list[RegistryResource] = []
+    for scheme_iri, notation in sorted(microthesauri.items()):
+        labels = _sorted_labels(labels_by_iri.get(scheme_iri, ()))
+        if not labels:
+            raise ValueError(f"EuroVoc microthesaurus {scheme_iri} has no label")
+        resources.append(
+            RegistryResource(
+                iri=scheme_iri,
+                labels=labels,
+                native_payload={
+                    **common_payload,
+                    "publisherConceptIri": scheme_iri,
+                    "publisherResourceKind": "MicroThesaurus",
+                },
+                source_locator=scheme_iri,
+                source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
+                notations=(notation,),
+                status="active",
+            )
+        )
+
+    seen: set[tuple[str, str]] = set()
+    relations: list[RegistryRelation] = []
+    for row in parsed.scheme_memberships:
+        if row.subject_iri not in concept_iris or row.object_iri not in microthesauri:
+            continue
+        if row.predicate_iri != SCHEME_MEMBERSHIP_PREDICATE_IRI:
+            raise ValueError(
+                f"EuroVoc microthesaurus membership uses an unexpected predicate: {row.predicate_iri}"
+            )
+        key = (row.object_iri, row.subject_iri)
+        if key in seen:
+            raise ValueError(f"duplicate EuroVoc microthesaurus membership: {key!r}")
+        seen.add(key)
+        relations.append(
+            RegistryRelation(
+                subject=row.object_iri,
+                predicate=_ATLAS_HAS_SCHEME_MEMBER,
+                object=row.subject_iri,
+                source_payload={
+                    "subjectIri": row.subject_iri,
+                    "predicateIri": row.predicate_iri,
+                    "objectIri": row.object_iri,
+                    "normalizedPredicateIri": _ATLAS_HAS_SCHEME_MEMBER,
+                    "editorialTransformation": _EUROVOC_MICROTHESAURUS_MEMBERSHIP_TRANSFORMATION,
+                },
+            )
+        )
+    relations.sort(key=lambda item: (item.subject, item.predicate, item.object))
+
+    return _release(
+        key="eurovoc-microthesauri-4.24",
+        resource_id="eurovoc",
+        source_module="refspec.registry.eurovoc_thesaurus",
+        scope="publisherRelease",
+        issued=EUROVOC_RELEASE_4_24.issued,
+        source_release_iri=(
+            "http://publications.europa.eu/resource/dataset/"
+            "eurovoc/20260708-0#thesaurus-microthesauri"
+        ),
+        atlas_release_iri="urn:ref:atlas-release:3:eurovoc-microthesauri:4.24",
+        scheme_iri="urn:ref:atlas-resource-scheme:eurovoc:microthesauri",
+        source=archive,
+        inputs=(archive, metadata),
+        source_release_digest=canonical_digest(
+            {
+                "archiveDigest": archive.sha256,
+                "memberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+                "metadataDigest": metadata.sha256,
+                "memberPartition": "microthesauri",
+                "version": EUROVOC_RELEASE_4_24.version,
+            }
+        ),
+        resources=resources,
+        relations=tuple(relations),
+        metadata={
+            "completePublisherRelease": True,
+            "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+            "memberPartition": "microthesauri",
+            "publisherConceptCount": len(resources),
+            "sourceArchiveDigest": archive.sha256,
+            "sourceMemberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+            "sourceMetadataDigest": metadata.sha256,
+            "thesaurusVersion": parsed.thesaurus_version,
+        },
+    )
+
+
+def load_eurovoc_microthesauri_4_24_release(
+    source_root: Path = DEFAULT_SOURCE_ROOT,
+) -> RegistryRelease:
+    """Load the EuroVoc 4.24 microthesauri organization release.
+
+    Reads the same pinned archive and metadata ``load_eurovoc_4_24_releases``
+    reads, independently of it: unlike ``eurovoc-4.24``/
+    ``eurovoc-domains-4.24``, this release has no claim-input replay path,
+    so it is always built from the raw pinned RDF.
+    """
+
+    archive = _input_pin(
+        source_root,
+        filename="eurovoc-4.24-skos-core.zip",
+        sha256=EUROVOC_RELEASE_4_24.expected_sha256,
+        byte_length=EUROVOC_RELEASE_4_24.expected_byte_length,
+        source_iri=EUROVOC_RELEASE_4_24.source_url,
+    )
+    metadata_source = EUROVOC_RELEASE_4_24.metadata_source
+    if metadata_source is None:
+        raise ValueError("EuroVoc 4.24 has no pinned publisher metadata")
+    metadata = _input_pin(
+        source_root,
+        filename="eurovoc-4.24-metadata.ttl",
+        sha256=metadata_source.expected_sha256,
+        byte_length=metadata_source.expected_byte_length,
+        source_iri=metadata_source.source_url,
+    )
+    with tempfile.TemporaryDirectory(prefix="refspec-eurovoc-microthesauri-4.24-") as directory:
+        acquired = acquire_eurovoc_release(
+            EUROVOC_RELEASE_4_24,
+            Path(directory),
+            source_path=archive.path,
+            metadata_path=metadata.path,
+        )
+        parsed = parse_acquired_eurovoc_release(acquired)
+    return _normalize_eurovoc_microthesauri(parsed, archive, metadata)
+
+
 def _claim_release_input_pin(
     view: RegistryClaimReleaseView,
     filename: str,
@@ -1163,8 +1440,51 @@ def load_eurovoc_4_24_releases(
     return _normalize_eurovoc(parsed, archive, metadata)
 
 
+def _gemet_theme_labels(
+    parsed: GemetVocabulary,
+    theme_iris: Collection[str],
+) -> dict[str, list[RegistryLabel]]:
+    """Theme rdfs:label/acronymLabel take their own path, not the SKOS-role
+    helpers above: unlike concept and Group/SuperGroup skos:prefLabel, these
+    are not SKOS label roles, so SKOS S13 preferred/alternate precedence
+    does not apply. English-only, per this module's house policy; en/en-US
+    exact-duplicate text collapses within each predicate (never across
+    rdfs:label vs acronymLabel, which are always kept as two distinct
+    labels when both are present). acronymLabel becomes an "alternate"
+    label -- GEMET's own predicate name calls it a label, and it is an
+    alternate name for the Theme, not a classification code -- never
+    promoted to "preferred" and never dropped."""
+
+    by_subject_predicate: dict[tuple[str, str], dict[str, str]] = defaultdict(dict)
+    for row in parsed.organization_metadata_literals:
+        if row.subject_iri not in theme_iris:
+            continue
+        if row.property_iri not in (GEMET_DISPLAY_LABEL, GEMET_ACRONYM_LABEL):
+            continue
+        if not is_english_language_tag(row.value.language_tag):
+            continue
+        by_subject_predicate[(row.subject_iri, row.property_iri)][row.value.language_tag] = row.value.lexical_form
+
+    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
+    for (subject_iri, predicate_iri), by_language in by_subject_predicate.items():
+        role: LabelRole = "preferred" if predicate_iri == GEMET_DISPLAY_LABEL else "alternate"
+        for value in sorted(set(by_language.values())):
+            labels[subject_iri].append(
+                RegistryLabel(value=value, role=role, source_path=f"{subject_iri}::{predicate_iri}")
+            )
+    return labels
+
+
 def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> RegistryRelease:
-    member_iris = {concept.concept_iri for concept in parsed.concepts}
+    concept_iris = {concept.concept_iri for concept in parsed.concepts}
+    group_iris = {item.resource_iri for item in parsed.organization_resources if item.kind == "group"}
+    super_group_iris = {item.resource_iri for item in parsed.organization_resources if item.kind == "superGroup"}
+    theme_iris = {item.resource_iri for item in parsed.organization_resources if item.kind == "theme"}
+    organization_by_iri = {item.resource_iri: item for item in parsed.organization_resources}
+    # Group/SuperGroup join the same skos:prefLabel/label-role pipeline as
+    # concepts below; Theme does not (see _gemet_theme_labels) and so is
+    # deliberately excluded from this member_iris set.
+    member_iris = concept_iris | group_iris | super_group_iris
     (
         labels,
         dropped,
@@ -1180,21 +1500,22 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
                 row.role,
                 f"{row.subject_iri}::{row.property_iri}",
             )
-            for row in parsed.labels
+            for row in (*parsed.labels, *parsed.organization_labels)
         ),
         member_iris,
     )
+    theme_labels = _gemet_theme_labels(parsed, theme_iris)
     notes: dict[str, list[Any]] = defaultdict(list)
     for row in parsed.notes:
-        if row.subject_iri in member_iris and is_english_language_tag(row.value.language_tag):
+        if row.subject_iri in concept_iris and is_english_language_tag(row.value.language_tag):
             notes[row.subject_iri].append(row)
     notations: dict[str, list[str]] = defaultdict(list)
     for row in parsed.notations:
-        if row.subject_iri in member_iris and is_english_language_tag(row.value.language_tag):
+        if row.subject_iri in concept_iris and is_english_language_tag(row.value.language_tag):
             notations[row.subject_iri].append(row.value.lexical_form)
     metadata: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in parsed.metadata_literals:
-        if row.subject_iri in member_iris and (
+        if row.subject_iri in concept_iris and (
             row.value.language_tag is None
             or is_english_language_tag(row.value.language_tag)
         ):
@@ -1233,6 +1554,78 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
                 notations=tuple(notations.get(concept.concept_iri, ())),
             )
         )
+
+    # GEMET's second, publisher-asserted organizing layer: Group, SuperGroup,
+    # and Theme skos:Collections. E1 status (GEMET owns every endpoint), so
+    # this is native relations under an admitted predicate, never a derived
+    # rule. The two named meta-collections (groupCollection/
+    # superGroupCollection) and gemet-schema:subGroupOf are deliberately not
+    # emitted -- see the metadata block below for what was observed and why.
+    for kind, iris in (("group", group_iris), ("superGroup", super_group_iris)):
+        for resource_iri in sorted(iris):
+            organization_resource = organization_by_iri[resource_iri]
+            normalized_labels, label_role_conflicts = _normalize_skos_label_roles(
+                labels[resource_iri]
+            )
+            label_role_conflict_count += len(label_role_conflicts)
+            native_payload = {
+                "organizationKind": kind,
+                "publisherResourceIri": resource_iri,
+                "typeIris": list(organization_resource.type_iris),
+                "schemeIris": list(organization_resource.scheme_iris),
+            }
+            if label_role_conflicts:
+                native_payload["labelRoleNormalization"] = {
+                    "conflicts": list(label_role_conflicts),
+                    "rule": "skos-s13-preferred-alternate-hidden-precedence-v1",
+                }
+            resources.append(
+                RegistryResource(
+                    iri=resource_iri,
+                    labels=normalized_labels,
+                    native_payload=native_payload,
+                    source_locator=resource_iri,
+                    source_digest=source.sha256,
+                )
+            )
+    for resource_iri in sorted(theme_iris):
+        organization_resource = organization_by_iri[resource_iri]
+        resources.append(
+            RegistryResource(
+                iri=resource_iri,
+                labels=theme_labels[resource_iri],
+                native_payload={
+                    "organizationKind": "theme",
+                    "publisherResourceIri": resource_iri,
+                    "typeIris": list(organization_resource.type_iris),
+                    "schemeIris": list(organization_resource.scheme_iris),
+                    "labelPredicates": {
+                        "preferred": GEMET_DISPLAY_LABEL,
+                        "alternate": GEMET_ACRONYM_LABEL,
+                    },
+                },
+                source_locator=resource_iri,
+                source_digest=source.sha256,
+            )
+        )
+
+    all_member_iris = member_iris | theme_iris
+    organization_relations = _direct_relations(
+        parsed.organization_membership_relations,
+        all_member_iris,
+        predicate_map=_GEMET_ORGANIZATION_MEMBERSHIP_PREDICATES,
+    )
+    relations = (
+        *_direct_relations(parsed.semantic_relations, member_iris),
+        *organization_relations,
+    )
+
+    subgroup_of_count = len(parsed.organization_hierarchy_relations)
+    meta_collection_iris = {GEMET_GROUP_COLLECTION_IRI, GEMET_SUPER_GROUP_COLLECTION_IRI} & set(organization_by_iri)
+    meta_collection_membership_count = sum(
+        1 for row in parsed.organization_membership_relations if row.subject_iri in meta_collection_iris
+    )
+
     return _release(
         key="gemet-4.2.3",
         resource_id="gemet",
@@ -1244,7 +1637,7 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
         scheme_iri="urn:ref:atlas-resource-scheme:gemet",
         source=source,
         resources=resources,
-        relations=_direct_relations(parsed.semantic_relations, member_iris),
+        relations=relations,
         dropped_label_count=dropped,
         metadata={
             "englishFamilyDuplicateLabelCount": english_family_duplicates,
@@ -1254,6 +1647,55 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
             "labelRoleConflictRule": (
                 "skos-s13-preferred-alternate-hidden-precedence-v1"
             ),
+            "organizationGroupCount": len(group_iris),
+            "organizationSuperGroupCount": len(super_group_iris),
+            "organizationThemeCount": len(theme_iris),
+            "organizationMembershipPredicateAdoption": {
+                "adoptedBy": "RefSpecOperator",
+                "fromPredicateIri": GEMET_MEMBER_PREDICATE_IRI,
+                "toPredicateIri": _ATLAS_HAS_SCHEME_MEMBER,
+                "reason": (
+                    "skos:member is not an admitted subject-ring NativeRelationAssertion "
+                    "predicate; atlas:hasSchemeMember is the admitted predicate for a "
+                    "grouping/scheme resource's membership toward its member concept, and "
+                    "its assertion direction matches skos:member's exactly. This is a "
+                    "same-publisher, same-release predicate translation (GEMET owns "
+                    "Group, SuperGroup, Theme, and Concept alike), not a cross-vocabulary "
+                    "adjudicated claim, so it is recorded here rather than through "
+                    "RegistryMapping/RegistryMappingEvidence."
+                ),
+                "emittedRelationCount": len(organization_relations),
+            },
+            "organizationHierarchyObservedNotEmitted": {
+                "predicateIri": GEMET_SUB_GROUP_OF_PREDICATE_IRI,
+                "observedCount": subgroup_of_count,
+                "reason": (
+                    "gemet-schema:subGroupOf is exactly reciprocal with the SuperGroup's own "
+                    "skos:member (0 mismatches over all 32 pairs in the pinned release); it "
+                    "carries no information the emitted superGroup->group "
+                    "atlas:hasSchemeMember relation lacks, and subGroupOf is not an admitted "
+                    "subject-ring predicate."
+                ),
+            },
+            "organizationMetaCollectionsObservedNotEmitted": {
+                "resourceIris": sorted(meta_collection_iris),
+                "observedMembershipCount": meta_collection_membership_count,
+                "reason": (
+                    "groupCollection/superGroupCollection carry only an enumeration "
+                    "rdfs:label and skos:member listing every Group/SuperGroup; that "
+                    "closure is already fully recoverable from the emitted Group/SuperGroup "
+                    "resources and their superGroup->group atlas:hasSchemeMember relations, "
+                    "so the two meta-collections are not promoted to resources."
+                ),
+            },
+            "organizationThemeAcronymLanguageCoverage": {
+                "rdfsLabelLanguageCount": 36,
+                "acronymLabelLanguageCount": 21,
+                "languagesWithLabelButNoAcronym": [
+                    "ar", "az", "ca", "cs", "ga", "hr", "hy", "is",
+                    "ka", "lt", "lv", "mt", "ro", "tr", "uk",
+                ],
+            },
         },
     )
 
@@ -1649,6 +2091,7 @@ def load_federal_register_2025_release(
 REGISTRY_VOCABULARY_LOADERS = (
     load_doe_osti_release,
     load_elsst_r6_release,
+    load_eurovoc_microthesauri_4_24_release,
     load_federal_register_2025_release,
     load_gcmd_24_4_release,
     load_gemet_release,
@@ -1675,6 +2118,7 @@ def load_all_registry_vocabulary_releases(
     individual_loaders = (
         ("doe-osti-semantic-thesaurus-2020", load_doe_osti_release),
         ("elsst-r6", load_elsst_r6_release),
+        ("eurovoc-microthesauri-4.24", load_eurovoc_microthesauri_4_24_release),
         ("federal-register-thesaurus-2025", load_federal_register_2025_release),
         ("gcmd-science-keywords-24-4", load_gcmd_24_4_release),
         ("gemet-4.2.3", load_gemet_release),
@@ -1739,6 +2183,7 @@ __all__ = [
     "load_eurovoc_4_24_domain_release_from_claims",
     "load_eurovoc_4_24_releases",
     "load_eurovoc_4_24_releases_from_claims",
+    "load_eurovoc_microthesauri_4_24_release",
     "load_federal_register_2025_release",
     "load_gcmd_24_4_release",
     "load_gemet_release",

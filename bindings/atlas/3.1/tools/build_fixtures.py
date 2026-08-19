@@ -917,6 +917,51 @@ def _base_fixture() -> Fixture:
             ("fr-loan-compound", ATLAS.SubjectConcept, "Loan programs-veterans"),
         ],
     )
+    # Raw material for the EuroVoc microthesaurus-domain derived rule
+    # (REF-046): two ordinary SubjectConcepts in the REAL EuroVoc
+    # microthesauri scheme and one in the REAL EuroVoc domains scheme --
+    # the first rule whose fixture spans two different schemes. Both
+    # microthesauri's four-digit notations share the domain's two-digit
+    # notation as their prefix, so both admit an edge to it -- the
+    # replay-gap case has a gap to leave, and the positive case ships both.
+    # No asserted relation between any pair and no derived row over any of
+    # them in base, so every pre-existing case's derived graph is unchanged
+    # and only the EuroVoc-specific mutations below touch them.
+    (
+        _eurovoc_micro_release,
+        _eurovoc_micro_scheme,
+        _eurovoc_micro_source_release,
+        eurovoc_micro_rows,
+    ) = _add_release(
+        asserted,
+        name="eurovoc-microthesauri",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=atlas_validate.EUROVOC_MICROTHESAURI_SCHEME,
+        resources=[
+            ("eurovoc-micro-political-framework", ATLAS.SubjectConcept, "0406 political framework"),
+            ("eurovoc-micro-political-party", ATLAS.SubjectConcept, "0411 political party"),
+        ],
+    )
+    (
+        _eurovoc_domain_release,
+        _eurovoc_domain_scheme,
+        _eurovoc_domain_source_release,
+        eurovoc_domain_rows,
+    ) = _add_release(
+        asserted,
+        name="eurovoc-domains-fixture",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=atlas_validate.EUROVOC_DOMAINS_SCHEME,
+        resources=[("eurovoc-domain-politics", ATLAS.SubjectConcept, "04 POLITICS")],
+    )
+    eurovoc_micro_a, _eurovoc_micro_a_source = eurovoc_micro_rows[0]
+    eurovoc_micro_b, _eurovoc_micro_b_source = eurovoc_micro_rows[1]
+    eurovoc_domain, _eurovoc_domain_source = eurovoc_domain_rows[0]
+    asserted.add((eurovoc_micro_a, ATLAS.notation, Literal("0406")))
+    asserted.add((eurovoc_micro_b, ATLAS.notation, Literal("0411")))
+    asserted.add((eurovoc_domain, ATLAS.notation, Literal("04")))
     value_release, value_scheme, _value_source_release, value_rows = _add_release(
         asserted,
         name="values",
@@ -2756,6 +2801,115 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # every row-shape check, but the loan pair ships no row, so only
         # the whole-set replay notices (missing=1).
         add_fr_derived_row(fixture)
+
+    eurovoc_micro_a = URIRef("urn:ref:atlas-fixture:resource:eurovoc-micro-political-framework")
+    eurovoc_micro_b = URIRef("urn:ref:atlas-fixture:resource:eurovoc-micro-political-party")
+    eurovoc_domain = URIRef("urn:ref:atlas-fixture:resource:eurovoc-domain-politics")
+    eurovoc_micro_a_source = URIRef("urn:ref:atlas-fixture:source-record:eurovoc-micro-political-framework")
+    eurovoc_micro_b_source = URIRef("urn:ref:atlas-fixture:source-record:eurovoc-micro-political-party")
+    eurovoc_domain_source = URIRef("urn:ref:atlas-fixture:source-record:eurovoc-domain-politics")
+
+    def add_eurovoc_derived_row(
+        fixture: Fixture,
+        *,
+        subject: URIRef = eurovoc_micro_a,
+        predicate: URIRef = SKOS.broader,
+        obj: URIRef = eurovoc_domain,
+        evidence: tuple[URIRef, ...] = (eurovoc_micro_a_source, eurovoc_domain_source),
+    ) -> URIRef:
+        """Mint one EuroVoc microthesaurus-domain derived row, following the
+        exact identity formula `add_mesh_derived_row` uses."""
+
+        node = URIRef("urn:ref:atlas-derived:pending")
+        fixture.derived.add((node, RDF.type, ATLAS.DerivedRelation))
+        fixture.derived.add((node, ATLAS.relationSubject, subject))
+        fixture.derived.add((node, ATLAS.relationPredicate, predicate))
+        fixture.derived.add((node, ATLAS.relationObject, obj))
+        for item in evidence:
+            fixture.derived.add((node, ATLAS.derivedFromAssertion, item))
+        fixture.derived.add((node, ATLAS.semanticRing, ATLAS.subject))
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, atlas_validate.EUROVOC_MICROTHESAURUS_DOMAIN_RULE)
+        )
+        fixture.derived.add((node, ATLAS.engine, atlas_validate.EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE))
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.engineVersion,
+                Literal(atlas_validate.EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                RKAF.inputDigest,
+                Literal(atlas_validate.derived_input_digest(fixture.asserted, list(evidence))),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.generatedAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        return _reidentify_derived(fixture.derived, node)
+
+    def eurovoc_microthesaurus_domain_broader(fixture: Fixture) -> None:
+        # The positive case: the complete, exact edge set the two
+        # microthesauri imply -- both rows, so the replay's whole-of-rule
+        # regeneration finds no gap and no extra.
+        add_eurovoc_derived_row(fixture)
+        add_eurovoc_derived_row(
+            fixture,
+            subject=eurovoc_micro_b,
+            evidence=(eurovoc_micro_b_source, eurovoc_domain_source),
+        )
+
+    def eurovoc_microthesaurus_domain_unallowlisted_rule(fixture: Fixture) -> None:
+        node = add_eurovoc_derived_row(fixture)
+        _remove_subject_predicate(fixture.derived, node, ATLAS.derivationRule)
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, URIRef("urn:ref:rule:bogus-unregistered-rule"))
+        )
+        _reidentify_derived(fixture.derived, node)
+
+    def eurovoc_microthesaurus_domain_wrong_predicate(fixture: Fixture) -> None:
+        add_eurovoc_derived_row(fixture, predicate=SKOS.related)
+
+    def eurovoc_microthesaurus_domain_malformed_inputs(fixture: Fixture) -> None:
+        add_eurovoc_derived_row(fixture, evidence=(eurovoc_micro_a_source,))
+
+    def eurovoc_microthesaurus_domain_duplicates_asserted(fixture: Fixture) -> None:
+        # An asserted (domain, skos:narrower, microthesaurus) beside the
+        # derived (microthesaurus, skos:broader, domain): the
+        # mirror-predicate duplicate check, cross-release like the real
+        # relation itself -- the asserted relation's subject (the domain)
+        # owns it, its object (the microthesaurus) sits in the other
+        # release.
+        eurovoc_domain_release_iri = next(fixture.asserted.objects(eurovoc_domain, ATLAS.inRelease))
+        eurovoc_micro_release_iri = next(fixture.asserted.objects(eurovoc_micro_a, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=eurovoc_domain,
+            predicate=SKOS.narrower,
+            obj=eurovoc_micro_a,
+            source_release=eurovoc_domain_release_iri,
+            target_release=eurovoc_micro_release_iri,
+            evidence_record=eurovoc_domain_source,
+            evidence_name="eurovoc-domain-narrower-eurovoc-micro-a",
+            review_warrant="publisherAssertion",
+        )
+        add_eurovoc_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def eurovoc_microthesaurus_domain_replay_gap(fixture: Fixture) -> None:
+        # The reasoning.authority negative: micro_a's row passes every
+        # row-shape check, but micro_b ships no row, so only the whole-set
+        # replay notices (missing=1).
+        add_eurovoc_derived_row(fixture)
 
     def mesh_tree_number_unallowlisted_rule(fixture: Fixture) -> None:
         # The registry bites on a rule IRI it has never seen, exactMatch's
@@ -5204,6 +5358,42 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset", "reasoning"],
             "reasoning.authority",
             fr_compound_head_replay_gap,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-broader",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            eurovoc_microthesaurus_domain_broader,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-unallowlisted-rule",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            eurovoc_microthesaurus_domain_unallowlisted_rule,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-wrong-predicate",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            eurovoc_microthesaurus_domain_wrong_predicate,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-malformed-inputs",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            eurovoc_microthesaurus_domain_malformed_inputs,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-duplicates-asserted",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            eurovoc_microthesaurus_domain_duplicates_asserted,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-replay-gap",
+            ["dataset", "reasoning"],
+            "reasoning.authority",
+            eurovoc_microthesaurus_domain_replay_gap,
         ),
     ]
 

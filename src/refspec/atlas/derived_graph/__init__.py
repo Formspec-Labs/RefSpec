@@ -13,7 +13,7 @@ This package is the producer-side half of that machinery:
 * a fact view collected from the spooled asserted N-Quads lines
   (:class:`AssertedFactView`), so every rule reads the same asserted
   bytes the validator will later replay against;
-* one derivation rule today: the MeSH tree-number hierarchy
+* the MeSH tree-number hierarchy
   (:mod:`refspec.atlas.derived_graph.mesh_tree_numbers`), which derives
   ``skos:broader`` edges between MeSH descriptors from the tree numbers
   NLM published and RefSpec already captures as ``atlas:notation``. It is
@@ -26,6 +26,17 @@ This package is the producer-side half of that machinery:
   ``skos:broader`` edges from the CSV path columns each keyword's
   ``SourceRecord`` native payload carries verbatim (REF-041's judgment,
   registered as the third rule by REF-043).
+* the Federal Register compound-heading hierarchy
+  (:mod:`refspec.atlas.derived_graph.fr_compound_headings`), which derives
+  ``skos:broader`` edges from a compound term's own preferred-label text
+  when its hyphenated head segment is itself a preferred term of the same
+  release (the fourth registered rule).
+* the EuroVoc microthesaurus-domain hierarchy
+  (:mod:`refspec.atlas.derived_graph.eurovoc_microthesaurus_domain`), which
+  derives ``skos:broader`` edges from a microthesaurus's four-digit
+  publisher notation to the domain named by its two-digit prefix -- the
+  first rule whose subject and object sit in two different schemes
+  (registered as the fifth rule by REF-046 in ``docs/decisions.md``).
 
 **Extension point for additional rules.** A new rule is one module in
 this package that builds a :class:`DerivationRule`, plus two deliberate
@@ -550,6 +561,9 @@ def collect_node_digests(lines: Iterable[str], wanted: frozenset[str]) -> dict[s
     return digests
 
 
+from refspec.atlas.derived_graph.eurovoc_microthesaurus_domain import (
+    EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
+)
 from refspec.atlas.derived_graph.gcmd_column_nesting import (
     GCMD_COLUMN_NESTING_DERIVATION_RULE,
 )
@@ -559,7 +573,12 @@ from refspec.atlas.derived_graph.mesh_tree_numbers import (
 
 register_derivation_rule(MESH_TREE_NUMBER_BROADER_RULE)
 register_derivation_rule(GCMD_COLUMN_NESTING_DERIVATION_RULE)
-_BUILTIN_RULES = (MESH_TREE_NUMBER_BROADER_RULE, GCMD_COLUMN_NESTING_DERIVATION_RULE)
+register_derivation_rule(EUROVOC_MICROTHESAURUS_DOMAIN_RULE)
+_BUILTIN_RULES = (
+    MESH_TREE_NUMBER_BROADER_RULE,
+    GCMD_COLUMN_NESTING_DERIVATION_RULE,
+    EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
+)
 
 __all__ = [
     "ATLAS_DERIVATION_RULE_TERM",

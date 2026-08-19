@@ -12,19 +12,40 @@ concept-scheme IRI, language tag, literal datatype, and one record per RDF
 assertion for the vocabulary features RefSpec consumes; it never mints an
 identifier the publisher did not supply.
 
-GEMET's RDF/XML also carries three entity kinds RefSpec does not model here
-(``Group``, ``Theme``, and ``SuperGroup`` collections, plus bibliographic
-``Source`` records) that reuse some SKOS predicates -- including, on a
-minority of ``Group`` records, ``skos:prefLabel`` itself, and on every
-``Source`` record, an untagged ``skos:notation`` -- in ways inconsistent
-with how GEMET uses them on concepts. The catalog scope for this source is
-"preserve source concept IRIs and scheme membership", so every typed feature
-extractor below is restricted to subjects that are the pinned concept scheme
-or an ``rdf:type skos:Concept`` subject; nothing beyond that boundary is
-promoted into a modeled feature. No triple is silently dropped from view:
-``predicate_counts`` and ``source_iris`` census every predicate and IRI the
-payload actually contains, typed or not, so a reviewer can see what this
-reader chose not to model.
+GEMET's RDF/XML also publishes a second, independent organizing layer above
+its concepts: 32 ``Group``, 4 ``SuperGroup``, and 40 ``Theme`` resources
+(every one of them also typed ``skos:Collection``), plus the two named
+meta-collections ``groupCollection`` and ``superGroupCollection`` that
+enumerate the Groups and SuperGroups via ``skos:member``. These are genuine
+publisher assertions -- every Group and SuperGroup carries multilingual
+``skos:prefLabel`` labels, every Theme carries a multilingual ``rdfs:label`` and
+a (narrower-coverage) GEMET-native ``acronymLabel``, every Group states
+exactly one GEMET-native ``subGroupOf`` parent SuperGroup, and Group/Theme
+membership is asserted as ``skos:member`` triples on the collection, never
+as a reverse predicate on the concept. This reader preserves all of it,
+scoped to exactly those 78 collection subjects and kept in its own
+``organization_resources``/``organization_labels``/
+``organization_metadata_literals``/``organization_membership_relations``/
+``organization_hierarchy_relations`` fields rather than mixed into the
+concept-scoped ``labels``/``metadata_literals`` above. Themes are *not*
+nested under Group/SuperGroup or vice versa -- the two hierarchies are
+parallel, disjoint classifications GEMET never links to one another, and
+neither one is built from (or even fully covers) the 112 concepts that are
+``skos:Concept`` roots under ``skos:broader``/``skos:hasTopConcept``.
+
+The one entity kind this reader still does not model is GEMET's 87
+bibliographic ``Source`` records, which reuse some SKOS predicates in ways
+inconsistent with how GEMET uses them on concepts -- most notably an
+untagged ``skos:notation`` on every record. The catalog scope for this
+source is "preserve source concept IRIs, scheme membership, and the
+publisher's Group/SuperGroup/Theme organization", so every typed feature
+extractor below is restricted to subjects that are the pinned concept
+scheme, an ``rdf:type skos:Concept`` subject, or one of the 78 organization
+subjects; nothing beyond that boundary is promoted into a modeled feature.
+No triple is silently dropped from view: ``predicate_counts`` and
+``source_iris`` census every predicate and IRI the payload actually
+contains, typed or not, so a reviewer can see what this reader chose not to
+model.
 
 Importing this module never opens a network connection. A caller must either
 supply an existing local distribution or set ``allow_network=True``. Every
@@ -46,7 +67,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal as LiteralType
@@ -109,6 +130,41 @@ GEMET_METADATA_LITERAL_PREDICATE_IRIS = (
     CREATED_PREDICATE_IRI,
     MODIFIED_PREDICATE_IRI,
     DISPLAY_LABEL_PREDICATE_IRI,
+)
+
+# GEMET's second, publisher-asserted organizing layer: Group, SuperGroup, and
+# Theme skos:Collections, plus the two named meta-collections that enumerate
+# the Groups and SuperGroups. See the module docstring for the exact shape.
+GROUP_TYPE_IRI = GEMET_SCHEMA_NAMESPACE + "Group"
+SUPER_GROUP_TYPE_IRI = GEMET_SCHEMA_NAMESPACE + "SuperGroup"
+THEME_TYPE_IRI = GEMET_SCHEMA_NAMESPACE + "Theme"
+SUB_GROUP_OF_PREDICATE_IRI = GEMET_SCHEMA_NAMESPACE + "subGroupOf"
+ACRONYM_LABEL_PREDICATE_IRI = GEMET_SCHEMA_NAMESPACE + "acronymLabel"
+MEMBER_PREDICATE_IRI = str(SKOS.member)
+GROUP_COLLECTION_IRI = "http://www.eionet.europa.eu/gemet/groupCollection"
+SUPER_GROUP_COLLECTION_IRI = "http://www.eionet.europa.eu/gemet/superGroupCollection"
+
+# skos:member is the only predicate ever used to assert Group/Theme
+# membership or SuperGroup/groupCollection/superGroupCollection enumeration;
+# gemet-schema:subGroupOf is the only predicate linking a Group to its
+# SuperGroup. Both are exhaustively confirmed against the pinned 4.2.3
+# release: every skos:member triple in the payload has one of the 78
+# organization subjects below on the left, and every subGroupOf triple has a
+# Group on the left and a SuperGroup on the right.
+ORGANIZATION_MEMBERSHIP_PREDICATE_IRIS = (MEMBER_PREDICATE_IRI,)
+ORGANIZATION_HIERARCHY_PREDICATE_IRIS = (SUB_GROUP_OF_PREDICATE_IRI,)
+
+# Group and SuperGroup individuals carry only skos:prefLabel (never
+# altLabel/hiddenLabel); Theme individuals and the two meta-collections carry
+# rdfs:label (the same predicate the concept scheme's own display label
+# uses) and, for a narrower set of languages, the GEMET-native acronymLabel;
+# Group/SuperGroup/Theme individuals (never the two meta-collections) carry
+# dct:created/dct:modified exactly as concepts do.
+ORGANIZATION_METADATA_LITERAL_PREDICATE_IRIS = (
+    CREATED_PREDICATE_IRI,
+    MODIFIED_PREDICATE_IRI,
+    DISPLAY_LABEL_PREDICATE_IRI,
+    ACRONYM_LABEL_PREDICATE_IRI,
 )
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
@@ -231,11 +287,32 @@ class GemetIriRelation:
 
 @dataclass(frozen=True, slots=True)
 class GemetMetadataLiteral:
-    """One authored lifecycle or display-label literal on a concept or scheme."""
+    """One authored lifecycle or display-label literal on a concept, scheme,
+    or (see ``organization_metadata_literals``) Group/SuperGroup/Theme/
+    meta-collection organization resource."""
 
     subject_iri: str
     property_iri: str
     value: GemetLiteral
+
+
+GemetOrganizationResourceKind = LiteralType[
+    "groupCollection", "superGroupCollection", "superGroup", "group", "theme"
+]
+
+
+@dataclass(frozen=True, slots=True)
+class GemetOrganizationResource:
+    """One of GEMET's 78 publisher-asserted organization resources: a
+    ``Group``, ``SuperGroup``, or ``Theme`` individual (each also typed
+    ``skos:Collection``), or one of the two named meta-collections
+    (``groupCollection``/``superGroupCollection``) that enumerate the Groups
+    and SuperGroups via ``skos:member``. Never a ``skos:Concept``."""
+
+    resource_iri: str
+    kind: GemetOrganizationResourceKind
+    type_iris: tuple[str, ...]
+    scheme_iris: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,6 +351,19 @@ class GemetImportCounts:
     created_assertions: int
     modified_assertions: int
     display_label_assertions: int
+    organization_resources: int
+    groups: int
+    super_groups: int
+    themes: int
+    organization_meta_collections: int
+    organization_labels: int
+    organization_metadata_literals: int
+    organization_created_assertions: int
+    organization_modified_assertions: int
+    organization_display_label_assertions: int
+    organization_acronym_label_assertions: int
+    organization_membership_relations: int
+    organization_hierarchy_relations: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,6 +385,11 @@ class GemetVocabulary:
     mapping_relations: tuple[GemetIriRelation, ...]
     license_relations: tuple[GemetIriRelation, ...]
     metadata_literals: tuple[GemetMetadataLiteral, ...]
+    organization_resources: tuple[GemetOrganizationResource, ...]
+    organization_labels: tuple[GemetLabelExpression, ...]
+    organization_metadata_literals: tuple[GemetMetadataLiteral, ...]
+    organization_membership_relations: tuple[GemetIriRelation, ...]
+    organization_hierarchy_relations: tuple[GemetIriRelation, ...]
 
     @property
     def counts(self) -> GemetImportCounts:
@@ -302,6 +397,8 @@ class GemetVocabulary:
         semantics = Counter(item.predicate_iri for item in self.semantic_relations)
         mappings = Counter(item.predicate_iri for item in self.mapping_relations)
         metadata = Counter(item.property_iri for item in self.metadata_literals)
+        organization_kinds = Counter(item.kind for item in self.organization_resources)
+        organization_metadata = Counter(item.property_iri for item in self.organization_metadata_literals)
         return GemetImportCounts(
             source_bytes=self.source_bytes,
             triples=self.triple_count,
@@ -327,10 +424,32 @@ class GemetVocabulary:
             created_assertions=metadata[CREATED_PREDICATE_IRI],
             modified_assertions=metadata[MODIFIED_PREDICATE_IRI],
             display_label_assertions=metadata[DISPLAY_LABEL_PREDICATE_IRI],
+            organization_resources=len(self.organization_resources),
+            groups=organization_kinds["group"],
+            super_groups=organization_kinds["superGroup"],
+            themes=organization_kinds["theme"],
+            organization_meta_collections=(
+                organization_kinds["groupCollection"] + organization_kinds["superGroupCollection"]
+            ),
+            organization_labels=len(self.organization_labels),
+            organization_metadata_literals=len(self.organization_metadata_literals),
+            organization_created_assertions=organization_metadata[CREATED_PREDICATE_IRI],
+            organization_modified_assertions=organization_metadata[MODIFIED_PREDICATE_IRI],
+            organization_display_label_assertions=organization_metadata[DISPLAY_LABEL_PREDICATE_IRI],
+            organization_acronym_label_assertions=organization_metadata[ACRONYM_LABEL_PREDICATE_IRI],
+            organization_membership_relations=len(self.organization_membership_relations),
+            organization_hierarchy_relations=len(self.organization_hierarchy_relations),
         )
 
 
-def _label_expressions(graph: Graph, concept_iris: frozenset[URIRef]) -> tuple[GemetLabelExpression, ...]:
+def _label_expressions(graph: Graph, subjects: frozenset[URIRef]) -> tuple[GemetLabelExpression, ...]:
+    """SKOS label assertions on the given subjects. Used both for concepts
+    (which publish prefLabel/altLabel/hiddenLabel) and, with a
+    Group/SuperGroup subject set, for the organization layer (which
+    publishes only prefLabel -- the loop still checks all three so an
+    unexpected future altLabel/hiddenLabel on a Group is preserved rather
+    than silently dropped)."""
+
     properties: tuple[tuple[URIRef, GemetLabelRole], ...] = (
         (SKOS.prefLabel, "preferred"),
         (SKOS.altLabel, "alternate"),
@@ -340,7 +459,7 @@ def _label_expressions(graph: Graph, concept_iris: frozenset[URIRef]) -> tuple[G
     preferred_by_language: dict[tuple[str, str], str] = {}
     for predicate, role in properties:
         for subject, value in graph.subject_objects(predicate):
-            if subject not in concept_iris:
+            if subject not in subjects:
                 continue
             subject_iri = _iri(subject, f"{role} label subject")
             literal = _literal(value, f"{role} label")
@@ -496,9 +615,14 @@ def _concept_schemes(graph: Graph, scheme_iris: frozenset[URIRef]) -> tuple[Geme
     return tuple(sorted(schemes, key=lambda item: item.scheme_iri))
 
 
-def _metadata_literals(graph: Graph, subjects: frozenset[URIRef]) -> tuple[GemetMetadataLiteral, ...]:
+def _metadata_literals(
+    graph: Graph,
+    subjects: frozenset[URIRef],
+    *,
+    predicate_iris: tuple[str, ...] = GEMET_METADATA_LITERAL_PREDICATE_IRIS,
+) -> tuple[GemetMetadataLiteral, ...]:
     assertions: list[GemetMetadataLiteral] = []
-    for predicate_iri in GEMET_METADATA_LITERAL_PREDICATE_IRIS:
+    for predicate_iri in predicate_iris:
         for subject, value in graph.subject_objects(URIRef(predicate_iri)):
             if subject not in subjects:
                 continue
@@ -521,6 +645,30 @@ def _metadata_literals(graph: Graph, subjects: frozenset[URIRef]) -> tuple[Gemet
             ),
         )
     )
+
+
+def _organization_resources(
+    graph: Graph,
+    kind_by_subject: Mapping[URIRef, GemetOrganizationResourceKind],
+) -> tuple[GemetOrganizationResource, ...]:
+    resources: list[GemetOrganizationResource] = []
+    for subject, kind in kind_by_subject.items():
+        resource_iri = _iri(subject, f"{kind} organization resource")
+        type_iris = tuple(
+            sorted(_iri(item, f"{kind} rdf:type object") for item in graph.objects(subject, RDF.type))
+        )
+        scheme_iris = tuple(
+            sorted(_iri(item, f"{kind} skos:inScheme object") for item in graph.objects(subject, SKOS.inScheme))
+        )
+        resources.append(
+            GemetOrganizationResource(
+                resource_iri=resource_iri,
+                kind=kind,
+                type_iris=type_iris,
+                scheme_iris=scheme_iris,
+            )
+        )
+    return tuple(sorted(resources, key=lambda item: item.resource_iri))
 
 
 def parse_gemet_rdf_xml(
@@ -566,6 +714,35 @@ def parse_gemet_rdf_xml(
     concept_iris = frozenset(graph.subjects(RDF.type, SKOS.Concept))
     scheme_iris = frozenset(graph.subjects(RDF.type, SKOS.ConceptScheme))
     metadata_subjects = concept_iris | scheme_iris
+
+    group_iris = frozenset(graph.subjects(RDF.type, URIRef(GROUP_TYPE_IRI)))
+    super_group_iris = frozenset(graph.subjects(RDF.type, URIRef(SUPER_GROUP_TYPE_IRI)))
+    theme_iris = frozenset(graph.subjects(RDF.type, URIRef(THEME_TYPE_IRI)))
+    group_collection_iri = URIRef(GROUP_COLLECTION_IRI)
+    super_group_collection_iri = URIRef(SUPER_GROUP_COLLECTION_IRI)
+
+    organization_type_overlap = (group_iris | super_group_iris | theme_iris) & (concept_iris | scheme_iris)
+    if organization_type_overlap:
+        raise GemetParseError(
+            "a GEMET Group/SuperGroup/Theme subject is also typed skos:Concept or "
+            f"skos:ConceptScheme: {sorted(str(item) for item in organization_type_overlap)[:5]!r}"
+        )
+
+    all_subjects = frozenset(graph.subjects())
+    kind_by_subject: dict[URIRef, GemetOrganizationResourceKind] = {}
+    kind_by_subject.update(dict.fromkeys(group_iris, "group"))
+    kind_by_subject.update(dict.fromkeys(super_group_iris, "superGroup"))
+    kind_by_subject.update(dict.fromkeys(theme_iris, "theme"))
+    # The two meta-collections are identified by their fixed, publisher-named
+    # IRI rather than an rdf:type -- unlike Group/SuperGroup/Theme, GEMET
+    # gives them no gemet-schema type at all, only skos:Collection. Only
+    # register one if the payload actually asserts a triple about it, so a
+    # trimmed fixture that omits it does not get a phantom resource.
+    if group_collection_iri in all_subjects:
+        kind_by_subject[group_collection_iri] = "groupCollection"
+    if super_group_collection_iri in all_subjects:
+        kind_by_subject[super_group_collection_iri] = "superGroupCollection"
+    organization_iris = frozenset(kind_by_subject)
 
     source_iris = tuple(
         sorted(
@@ -613,6 +790,25 @@ def parse_gemet_rdf_xml(
             label="license relation",
         ),
         metadata_literals=_metadata_literals(graph, metadata_subjects),
+        organization_resources=_organization_resources(graph, kind_by_subject),
+        organization_labels=_label_expressions(graph, group_iris | super_group_iris),
+        organization_metadata_literals=_metadata_literals(
+            graph,
+            organization_iris,
+            predicate_iris=ORGANIZATION_METADATA_LITERAL_PREDICATE_IRIS,
+        ),
+        organization_membership_relations=_iri_relations(
+            graph,
+            ORGANIZATION_MEMBERSHIP_PREDICATE_IRIS,
+            subjects=organization_iris,
+            label="GEMET organization membership",
+        ),
+        organization_hierarchy_relations=_iri_relations(
+            graph,
+            ORGANIZATION_HIERARCHY_PREDICATE_IRIS,
+            subjects=group_iris,
+            label="GEMET group super-group relation",
+        ),
     )
 
 

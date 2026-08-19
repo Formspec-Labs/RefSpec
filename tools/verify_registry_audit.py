@@ -39,6 +39,8 @@ TEST_INPUT_ENVIRONMENT = {
     "federalRegisterDocument202615493": "REFSPEC_FR_DOCUMENT_2026_15493_PATH",
     "federalRegisterDocument9632865": "REFSPEC_FR_DOCUMENT_96_32865_PATH",
     "elsstR6": "REFSPEC_ELSST_R6_PATH",
+    "eurovocSkosCore": "REFSPEC_EUROVOC_SKOS_CORE_PATH",
+    "eurovocMetadata": "REFSPEC_EUROVOC_METADATA_PATH",
     "federalRegister2025": "REFSPEC_FR_THESAURUS_2025_PATH",
     "gemet": "REFSPEC_GEMET_PATH",
     "meshDescriptors2026Xml": "REFSPEC_MESH_DESCRIPTORS_PATH",

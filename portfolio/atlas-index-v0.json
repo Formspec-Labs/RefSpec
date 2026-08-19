@@ -29,8 +29,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:e27e1adf8344347a448db2e79d039c60fce360f84fa6e73027279949a2868101",
-  "indexId": "urn:ref:atlas-index:e27e1adf8344347a448db2e79d039c60fce360f84fa6e73027279949a2868101",
+  "indexDigest": "sha256:ca11824ea52709045b075d5583ae8900f3dbde298d38bd5ea54ed6508cffa338",
+  "indexId": "urn:ref:atlas-index:ca11824ea52709045b075d5583ae8900f3dbde298d38bd5ea54ed6508cffa338",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
@@ -815,7 +815,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_eurovoc_organization_experiment.py",
-          "sha256": "sha256:f5048cd330b0645b02c025332bdeefcb726d08aa72996753737d149fac9ceb65"
+          "sha256": "sha256:1fd7c182368c7a6458637dd8855fbc2171a971b4719c5cef2799e777cfcdc7cc"
         },
         {
           "kind": "sourceImplementation",
@@ -825,8 +825,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:b8c11399abdc0af1c49f1812067e1bc3744f188bf915703fb05e71f6878bdd77",
-      "rowId": "urn:ref:atlas-index-row:b8c11399abdc0af1c49f1812067e1bc3744f188bf915703fb05e71f6878bdd77",
+      "rowDigest": "sha256:417a34ef16775e00096603f46b45d41f78ee13336e2f11d93e93127b31da52e2",
+      "rowId": "urn:ref:atlas-index-row:417a34ef16775e00096603f46b45d41f78ee13336e2f11d93e93127b31da52e2",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_organization_experiment"
     },
@@ -843,7 +843,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_vocabularies.py",
-          "sha256": "sha256:20d3f22e86413f49f6fb6af7a446d22644f1419d9c28a7ecd37bfaa11093ff11"
+          "sha256": "sha256:f6eece984bd4e97e358c27f655b314db59bda9c35611e7796f78f76a15087079"
         },
         {
           "kind": "parserTest",
@@ -853,7 +853,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_vocabularies.py",
-          "sha256": "sha256:61bb2775b380c747802f2b0822b769e9bd726b2140345a70953e5fff4ea636f0"
+          "sha256": "sha256:2f4b4644af7131cf102315afff3c7bd84ae358b9a147c5d0e011eff737692f8c"
         },
         {
           "kind": "sourceImplementation",
@@ -863,8 +863,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:69e3fa39d4d43b8ddde36554951b33fadda4ac25c9bb3f95dcb32f3cac03b5bd",
-      "rowId": "urn:ref:atlas-index-row:69e3fa39d4d43b8ddde36554951b33fadda4ac25c9bb3f95dcb32f3cac03b5bd",
+      "rowDigest": "sha256:c1d6ab3c6840157190508b88db1c8e2af4c3ad546265fc88f125225efd88ae9b",
+      "rowId": "urn:ref:atlas-index-row:c1d6ab3c6840157190508b88db1c8e2af4c3ad546265fc88f125225efd88ae9b",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_thesaurus"
     },
@@ -1517,18 +1517,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_gemet_thesaurus.py",
-          "sha256": "sha256:5f5a1be7fe443090770d256c5ff5e779ec656f4b26e27f03864e748dd2909171"
+          "sha256": "sha256:7c28df472f66dda3e9b764e75600333b6bcc220587aac1955209c303323baa6b"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gemet_thesaurus.py",
-          "sha256": "sha256:0eea313fa121bea5144782b83a2bb22927cd3ab6196053529c4fc010c673e6dc"
+          "sha256": "sha256:ccd6762814ae5ca41c73eb8263cc1839c30cd82a69ab63f11c800784270b48c2"
         }
       ],
       "release": null,
       "resourceId": "gemet",
-      "rowDigest": "sha256:c95c8d8db39e8f84da4e6953a5a782a7572e202980dd915020c34d3e5b92ebb9",
-      "rowId": "urn:ref:atlas-index-row:c95c8d8db39e8f84da4e6953a5a782a7572e202980dd915020c34d3e5b92ebb9",
+      "rowDigest": "sha256:66e05e9f7823cc1d0d636e499f3c1bd675ea35b87b2fce96485208d881a2d4c9",
+      "rowId": "urn:ref:atlas-index-row:66e05e9f7823cc1d0d636e499f3c1bd675ea35b87b2fce96485208d881a2d4c9",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_thesaurus"
     },

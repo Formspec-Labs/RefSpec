@@ -837,6 +837,13 @@ atlas:thesaurusRelated
   rdfs:label "thesaurus related"@en ;
   rdfs:comment "Publisher-authored associative link retained when projecting it as skos:related would violate a SKOS integrity condition."@en .
 
+atlas:hasSchemeMember
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SubjectConcept ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "has scheme member"@en ;
+  rdfs:comment "Publisher-authored additional concept-scheme membership, asserted from the grouping scheme resource toward its member concept, for a publisher that structures one vocabulary with member concept sub-schemes (EuroVoc's microthesauri are the first user). skos:inScheme itself is never reused for this: SubjectConceptShape fixes it to exactly one value equal to atlas:inScheme, so a concept's additional membership in a sub-scheme beyond its single primary scheme is asserted the other direction instead of widening that cardinality."@en .
+
 atlas:sameEntityAs
   a owl:ObjectProperty ;
   rdfs:domain atlas:EntityResource ;

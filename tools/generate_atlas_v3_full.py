@@ -66,6 +66,11 @@ from refspec.atlas.derived_graph import (
     collect_asserted_fact_view,
     collect_node_digests,
 )
+from refspec.atlas.derived_graph.eurovoc_microthesaurus_domain import (
+    derive_eurovoc_microthesaurus_domain_rows,
+    eurovoc_microthesaurus_domain_evidence_nodes,
+    resolve_microthesaurus_domain_edges,
+)
 from refspec.atlas.derived_graph.fr_compound_headings import (
     collect_fr_preferred_labels,
     derive_fr_compound_heading_broader_rows,
@@ -700,7 +705,7 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:8d2d80654c0e2fafacbab6b3c9a938f2314c8094eaaef5cf28ca8c2f8e18b685"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:5a092aa7543cd5f33de5f11be921bff1c8c084a0241f2384d177b441d0962ef4"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:79fd0b972c6bd1097db582cc5fa4fc4aaafb77c726ce18027f46853747865122"
 
 
 def _load_validator() -> Any:
@@ -4104,16 +4109,22 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
 
 # The releases the shipped derivation registry currently reads. REF-042
 # admitted the second rule (MeSH tree-number broader); REF-043 the third
-# (GCMD column nesting). The producer's job is narrower than the binding's
-# -- it only has to know WHICH releases feed a registered rule, not carry
-# the registry itself, since (per `src/refspec/atlas/derived_graph/__init__.py`'s
-# own extension-point docstring) a rule registered without its binding
-# allowlist entry already refuses loudly in the generation receipt rather
-# than shipping unaccepted rows. FR-compound is recorded as the next
-# entry; it is not wired here.
+# (GCMD column nesting); the Federal Register compound-heading rule is the
+# fourth; the EuroVoc microthesaurus-domain rule is the fifth, and the first
+# whose premise spans two DIFFERENT releases (a microthesaurus's notation and
+# a domain's notation), so it names two release keys rather than one -- it
+# only fires when BOTH are loaded, never from one alone. The producer's job
+# is narrower than the binding's -- it only has to know WHICH releases feed
+# a registered rule, not carry the registry itself, since (per
+# `src/refspec/atlas/derived_graph/__init__.py`'s own extension-point
+# docstring) a rule registered without its binding allowlist entry already
+# refuses loudly in the generation receipt rather than shipping unaccepted
+# rows.
 MESH_DESCRIPTORS_RELEASE_KEY = "mesh-descriptors-2026"
 GCMD_SCIENCE_KEYWORDS_RELEASE_KEY = "gcmd-science-keywords-24-4"
 FR_THESAURUS_RELEASE_KEY = "federal-register-thesaurus-2025"
+EUROVOC_MICROTHESAURI_RELEASE_KEY = "eurovoc-microthesauri-4.24"
+EUROVOC_DOMAINS_RELEASE_KEY = "eurovoc-domains-4.24"
 
 
 def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
@@ -4153,6 +4164,23 @@ def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
             }
             edges, _counts = resolve_compound_heading_edges_from_labels(preferred_by_resource)
             expected += len(edges)
+    releases_by_key = {release.spec.key: release for release in releases}
+    microthesauri_release = releases_by_key.get(EUROVOC_MICROTHESAURI_RELEASE_KEY)
+    domains_release = releases_by_key.get(EUROVOC_DOMAINS_RELEASE_KEY)
+    if microthesauri_release is not None and domains_release is not None:
+        # The only rule whose premise spans two releases: it fires only when
+        # BOTH are loaded, matching `_derive_registered_relations` below.
+        microthesaurus_notations_by_resource = {
+            resource.iri: resource.notations for resource in microthesauri_release.resources
+        }
+        domain_notation_by_resource = {
+            resource.iri: resource.notations[0] for resource in domains_release.resources
+        }
+        edges, _counts = resolve_microthesaurus_domain_edges(
+            microthesaurus_notations_by_resource,
+            domain_notation_by_resource,
+        )
+        expected += len(edges)
     return expected
 
 
@@ -6816,11 +6844,13 @@ def _derive_registered_relations(
     """Populate the derived graph from every registered rule this build's
     loaded releases admit.
 
-    REF-042 registered the second rule (MeSH tree-number broader) and
-    REF-043 the third (GCMD column nesting, reading each keyword's own
-    source-record payload path columns); FR-compound is recorded as the
-    next entry, not wired here. A rule only fires when its source release
-    was actually part of this build, which is what keeps the derived graph
+    REF-042 registered the second rule (MeSH tree-number broader), REF-043
+    the third (GCMD column nesting, reading each keyword's own
+    source-record payload path columns), and later work the fourth
+    (Federal Register compound headings, reading preferred-label text) and
+    fifth (EuroVoc microthesaurus-domain, reading notation prefixes across
+    two releases at once). A rule only fires when its source release(s)
+    were actually part of this build, which is what keeps the derived graph
     opt-in at the release-selection level a bounded/scoped build already
     has (REF-040's same precedent for the FAST-LCSH S27 reconciliation):
     a build that never loads ``mesh-descriptors-2026`` or
@@ -6839,12 +6869,18 @@ def _derive_registered_relations(
     # from the label TEXT ('Grant programs-agriculture' names its own parent),
     # and labels live behind SKOS-XL nodes the fact view never collected. Its
     # module ships that one-pass label view itself, so a rule declares an
-    # optional collector here and its two entry points receive it.
-    for release_key, evidence_nodes, derive, collect_labels in (
+    # optional collector here and its two entry points receive it. The EuroVoc
+    # rule is the first whose premise spans two releases (a microthesaurus's
+    # own notation and a domain's own notation) rather than one, so it names
+    # an optional second release key: both must be loaded for it to fire, and
+    # its fact view and cited asserted relations are read from both releases'
+    # spooled lines combined.
+    for release_key, evidence_nodes, derive, collect_labels, second_release_key in (
         (
             MESH_DESCRIPTORS_RELEASE_KEY,
             mesh_tree_number_evidence_nodes,
             derive_mesh_tree_number_broader_rows,
+            None,
             None,
         ),
         (
@@ -6852,18 +6888,30 @@ def _derive_registered_relations(
             gcmd_column_nesting_evidence_nodes,
             derive_gcmd_column_nesting_rows,
             None,
+            None,
         ),
         (
             FR_THESAURUS_RELEASE_KEY,
             fr_compound_heading_evidence_nodes,
             derive_fr_compound_heading_broader_rows,
             collect_fr_preferred_labels,
+            None,
+        ),
+        (
+            EUROVOC_MICROTHESAURI_RELEASE_KEY,
+            eurovoc_microthesaurus_domain_evidence_nodes,
+            derive_eurovoc_microthesaurus_domain_rows,
+            None,
+            EUROVOC_DOMAINS_RELEASE_KEY,
         ),
     ):
         release = _release(release_key)
-        if release is None:
+        second_release = _release(second_release_key) if second_release_key is not None else None
+        if release is None or (second_release_key is not None and second_release is None):
             continue
         lines = list(_spooled_release_lines(spool, release_key))
+        if second_release is not None:
+            lines.extend(_spooled_release_lines(spool, second_release_key))
         facts = collect_asserted_fact_view(lines)
         # A rule with a label collector gets its label view built from the very
         # lines the fact view just read, then passed to both of its entry
@@ -6883,7 +6931,8 @@ def _derive_registered_relations(
         # set (today both are exactly zero) still refuses a duplicate
         # rather than silently emitting one.
         asserted_relations = frozenset(
-            (relation.subject, relation.predicate, relation.object) for relation in release.relations
+            (relation.subject, relation.predicate, relation.object)
+            for relation in (*release.relations, *(second_release.relations if second_release is not None else ()))
         )
         outcome = (
             derive(context, asserted_relations=asserted_relations)

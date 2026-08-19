@@ -245,6 +245,30 @@ FR_COMPOUND_HEADING_BROADER_RULE = URIRef("urn:ref:rule:fr-thesaurus-compound-he
 FR_COMPOUND_HEADING_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-fr-compound-headings")
 FR_COMPOUND_HEADING_ENGINE_VERSION = "1"
 FR_COMPOUND_HEADING_SCHEME = URIRef("urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025")
+# The fifth entry in `_DERIVED_RULE_ADMISSIONS` (see REF-046 in
+# docs/decisions.md). The Publications Office never asserts a
+# microthesaurus's domain anywhere in the pinned SKOS Core distribution
+# (REF-045 recorded the exhaustive check); the only linkage is notational --
+# every microthesaurus's four-digit publisher notation carries a two-digit
+# prefix naming exactly one of the 21 domain codes. Reading that prefix as
+# the microthesaurus's `skos:broader` domain is RefSpec's structural
+# projection, not the publisher's assertion, so it lives only in the derived
+# graph. Unlike every prior rule, subject and object sit in two DIFFERENT
+# schemes (the microthesaurus scheme and the domains scheme), so this rule
+# is scheme-scoped in BOTH directions: a microthesaurus-shaped notation on a
+# foreign-scheme resource, or a domain-shaped notation on one, can never
+# admit an edge -- the MeSH rule shipped scheme-blind and an adversarial
+# battery caught it admitting any dot-structured notation; this rule does
+# not repeat that bug for either endpoint.
+# `src/refspec/atlas/derived_graph/eurovoc_microthesaurus_domain.py` carries
+# the identical constants on the producer side; the two modules do not
+# import each other (the binding stays importable standalone), so
+# `tests/test_eurovoc_microthesaurus_domain.py` proves they still agree.
+EUROVOC_MICROTHESAURUS_DOMAIN_RULE = URIRef("urn:ref:rule:eurovoc-microthesaurus-domain-notation-prefix")
+EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-eurovoc-microthesaurus-domain")
+EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION = "1"
+EUROVOC_MICROTHESAURI_SCHEME = URIRef("urn:ref:atlas-resource-scheme:eurovoc:microthesauri")
+EUROVOC_DOMAINS_SCHEME = URIRef("urn:ref:atlas-resource-scheme:eurovoc:domains")
 
 SCHEMAS = {
     "manifest": "atlas-manifest.schema.json",
@@ -1022,6 +1046,12 @@ REQUIRED_CORPUS_CASES = frozenset(
         "derived-reflexive-output",
         "derived-rescinded-input",
         "duplicate-preferred-language",
+        "eurovoc-microthesaurus-domain-broader",
+        "eurovoc-microthesaurus-domain-duplicates-asserted",
+        "eurovoc-microthesaurus-domain-malformed-inputs",
+        "eurovoc-microthesaurus-domain-replay-gap",
+        "eurovoc-microthesaurus-domain-unallowlisted-rule",
+        "eurovoc-microthesaurus-domain-wrong-predicate",
         "evidence-attested-at-not-datetime",
         "evidence-attestor-kind-unknown",
         "evidence-decision-not-approved",
@@ -7591,6 +7621,127 @@ def _replay_fr_compound_heading_broader(
         )
 
 
+def _validate_eurovoc_microthesaurus_domain_row(context: _DerivedRowContext) -> None:
+    """The EuroVoc microthesaurus-domain rule's row shape.
+
+    Proved locally, from only this row's own cited evidence and the two
+    endpoints' own asserted `atlas:notation` values -- the same "prove it
+    from what this row cites" discipline the other rules follow. Unlike
+    every prior rule, subject and object are checked against two DIFFERENT
+    schemes, not one shared scheme: the subject must sit in the EuroVoc
+    microthesauri scheme and the object must sit in the EuroVoc domains
+    scheme, in that fixed direction. The whole-of-rule proof that the
+    shipped edge set is COMPLETE and UNAMBIGUOUS lives in
+    `_replay_eurovoc_microthesaurus_domain`.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    if (subject, ATLAS.inScheme, EUROVOC_MICROTHESAURI_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} subject {subject} is not in the EuroVoc microthesauri scheme",
+        )
+    if (obj, ATLAS.inScheme, EUROVOC_DOMAINS_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} object {obj} is not in the EuroVoc domains scheme",
+        )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} microthesaurus-domain edge is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    represented = {
+        _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule") for evidence in inputs
+    }
+    if represented != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    subject_notations = {str(value) for value in asserted.objects(subject, ATLAS.notation)}
+    obj_notations = {str(value) for value in asserted.objects(obj, ATLAS.notation)}
+    domain_prefixes = {notation[:2] for notation in subject_notations if len(notation) == 4 and notation.isdigit()}
+    if not domain_prefixes & obj_notations:
+        _fail("dataset.derived-rule", f"{node} is not the domain of its microthesaurus subject")
+
+
+def _replay_eurovoc_microthesaurus_domain(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE microthesaurus-domain edge set from the asserted
+    graph's own `atlas:notation` facts and require it to equal exactly what
+    this rule's derived nodes ship. Same whole-of-rule scope as the other
+    structural rules: a closed, one-release projection with a definite total
+    edge count. Scoped to both schemes independently, the same as the row
+    check: a microthesaurus-shaped notation on a foreign-scheme resource, or
+    a domain-shaped notation on one, is never a candidate endpoint here.
+    """
+
+    microthesauri: dict[URIRef, set[str]] = defaultdict(set)
+    domains: dict[URIRef, set[str]] = defaultdict(set)
+    for resource, notation in asserted.subject_objects(ATLAS.notation):
+        if not isinstance(resource, URIRef):
+            continue
+        if (resource, ATLAS.inScheme, EUROVOC_MICROTHESAURI_SCHEME) in asserted:
+            microthesauri[resource].add(str(notation))
+        elif (resource, ATLAS.inScheme, EUROVOC_DOMAINS_SCHEME) in asserted:
+            domains[resource].add(str(notation))
+
+    domain_owners: dict[str, set[URIRef]] = defaultdict(set)
+    for resource, notations in domains.items():
+        if len(notations) != 1:
+            _fail(
+                "reasoning.authority",
+                f"EuroVoc domain {resource} does not carry exactly one notation",
+            )
+        (notation,) = notations
+        domain_owners[notation].add(resource)
+
+    expected: set[tuple[URIRef, URIRef]] = set()
+    for resource, notations in microthesauri.items():
+        prefixes = {notation[:2] for notation in notations if len(notation) == 4 and notation.isdigit()}
+        for prefix in prefixes:
+            owners = domain_owners.get(prefix)
+            if not owners or len(owners) > 1:
+                continue
+            (domain,) = owners
+            if domain == resource:
+                _fail(
+                    "reasoning.authority",
+                    f"microthesaurus notation prefix {prefix!r} on {resource} resolves its own domain to itself",
+                )
+            expected.add((resource, domain))
+
+    actual: set[tuple[URIRef, URIRef]] = set()
+    for node in nodes:
+        subject = _iri(
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived subject",
+        )
+        obj = _iri(
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived object",
+        )
+        actual.add((subject, obj))
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "eurovoc microthesaurus-domain broader edges do not regenerate the identical set from the "
+            f"asserted graph (missing={missing}, extra={extra})",
+        )
+
+
 _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {
     (EXACT_MATCH_TRANSITIVITY_RULE, DERIVATION_ENGINE, DERIVATION_ENGINE_VERSION): _DerivedRuleAdmission(
         rule=EXACT_MATCH_TRANSITIVITY_RULE,
@@ -7647,6 +7798,21 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         mirror_predicate=SKOS.narrower,
         validate_row=_validate_fr_compound_heading_broader_row,
         replay=_replay_fr_compound_heading_broader,
+    ),
+    (
+        EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
+        EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE,
+        EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
+        engine=EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE,
+        engine_version=EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.broader}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        mirror_predicate=SKOS.narrower,
+        validate_row=_validate_eurovoc_microthesaurus_domain_row,
+        replay=_replay_eurovoc_microthesaurus_domain,
     ),
 }
 

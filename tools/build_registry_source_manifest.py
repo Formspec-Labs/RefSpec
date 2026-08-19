@@ -818,6 +818,36 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherDistribution",
         },
     ),
+    # REF-046 closed the gap the old SOURCE_BLOCKERS entry recorded: the
+    # organization experiment's 127 microthesauri and 7,902 memberships
+    # now ship as a real Atlas release (eurovoc-microthesauri-4.24) and the
+    # microthesaurus-to-domain notation-prefix link now ships as the
+    # derived graph's fifth registered rule, and the module is exercised
+    # through a real-data test over the same pinned publisher artifact
+    # `claim_release_exports.py` already pins -- one shared pin for one
+    # shared artifact, not a second capture.
+    "eurovoc_organization_experiment.py": (
+        {
+            "name": "eurovocSkosCore",
+            "localPath": "output/registry-real-data-sources/eurovoc-4.24-skos-core.zip",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip"
+            ),
+            "sha256": "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+            "byteLength": 8_567_290,
+            "provenance": "publisherDistribution",
+        },
+        {
+            "name": "eurovocMetadata",
+            "localPath": "output/registry-real-data-sources/eurovoc-4.24-metadata.ttl",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl"
+            ),
+            "sha256": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+            "byteLength": 36_011,
+            "provenance": "publisherDistribution",
+        },
+    ),
     "nasa_thesaurus.py": (
         {
             "name": "nasaThesaurusSkos",
@@ -1124,14 +1154,12 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
 }
 
 
-SOURCE_BLOCKERS: dict[str, list[str]] = {
-    "eurovoc_organization_experiment.py": [
-        (
-            "Experiment reads injected archive and metadata paths; its tests exercise "
-            "synthetic fixtures only, so no pinned publisher capture is consumed."
-        )
-    ],
-}
+# REF-046 closed the last entry (eurovoc_organization_experiment.py): its
+# 127 microthesauri and 7,902 memberships now ship as a real Atlas release
+# and its notation-prefix link now ships as the derived graph's fifth
+# registered rule, exercised through a real-data test over the pinned
+# publisher artifact declared in TEST_INPUTS above.
+SOURCE_BLOCKERS: dict[str, list[str]] = {}
 
 NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
     "adapters/concept_domain_bridge.py": {

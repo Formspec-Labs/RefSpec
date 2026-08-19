@@ -98,8 +98,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 153,
-        "invalidCount": 136,
+        "caseCount": 159,
+        "invalidCount": 141,
         "registryDescriptorCount": 104,
         "registryDescriptorQuadCount": 1230,
         "schemaCount": 10,
@@ -114,8 +114,8 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 153,
-        "invalidCount": 136,
+        "caseCount": 159,
+        "invalidCount": 141,
         "registryDescriptorCount": 104,
         "registryDescriptorQuadCount": 1230,
         "schemaCount": 10,
@@ -182,17 +182,17 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "derivedRelations": 1,
         "evidenceBindings": 13,
         "identifiers": 1,
-        "labels": 21,
+        "labels": 24,
         "mappingAssertions": 5,
         "nativeRelationAssertions": 2,
         "projectedRelations": 13,
         "relationAssertions": 13,
-        "releases": 13,
-        "resources": 21,
+        "releases": 15,
+        "resources": 24,
         "sourceAssignments": 3,
-        "sourceRecords": 21,
+        "sourceRecords": 24,
     }
-    assert result["quadCount"] == 1289
+    assert result["quadCount"] == 1402
     assert result["inferredMappingCount"] == 7
 
 

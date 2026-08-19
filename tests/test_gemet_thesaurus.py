@@ -10,19 +10,25 @@ from pathlib import Path
 import pytest
 
 from refspec.registry.gemet_thesaurus import (
+    ACRONYM_LABEL_PREDICATE_IRI,
     ALT_LABEL_PREDICATE_IRI,
     BROADER_PREDICATE_IRI,
+    DISPLAY_LABEL_PREDICATE_IRI,
     GEMET_CONCEPT_SCHEME_IRI,
     GEMET_DEFINITION_SOURCE_PREDICATE_IRI,
     GEMET_METADATA_LITERAL_PREDICATE_IRIS,
     GEMET_NOTE_PREDICATE_IRIS,
     GEMET_RELEASE_4_2_3,
+    GROUP_COLLECTION_IRI,
     HIDDEN_LABEL_PREDICATE_IRI,
     LICENSE_PREDICATE_IRI,
+    MEMBER_PREDICATE_IRI,
     NARROWER_PREDICATE_IRI,
     NOTE_PREDICATE_IRIS,
     PREF_LABEL_PREDICATE_IRI,
     RELATED_PREDICATE_IRI,
+    SUB_GROUP_OF_PREDICATE_IRI,
+    SUPER_GROUP_COLLECTION_IRI,
     GemetAcquisitionError,
     GemetImportCounts,
     GemetParseError,
@@ -45,14 +51,24 @@ CHEMICAL = "http://www.eionet.europa.eu/gemet/concept/1327"
 NIMBY_APTITUDE = "http://www.eionet.europa.eu/gemet/concept/10968"
 ANIMAL_LIFE = "http://www.eionet.europa.eu/gemet/concept/10003"
 
+GROUP_10111 = "http://www.eionet.europa.eu/gemet/group/10111"
+SUPER_GROUP_5499 = "http://www.eionet.europa.eu/gemet/supergroup/5499"
+THEME_1 = "http://www.eionet.europa.eu/gemet/theme/1"
+
 # Clearly synthetic: not copied from any GEMET distribution. It exercises the
-# real (but out-of-scope) shape of GEMET's Group/Collection entities -- which
-# reuse skos:prefLabel and, unlike concepts, an untagged skos:notation -- to
-# prove the reader scopes typed features to concepts and the concept scheme
-# rather than crashing on, or silently absorbing, shapes it does not model.
-SYNTHETIC_OUT_OF_SCOPE_ENTITY_RDF_XML = """<?xml version="1.0" encoding="UTF-8"?>
+# real shape of a GEMET Group entity -- typed both gemet-schema:Group and
+# skos:Collection, publishing skos:prefLabel like a concept but, unlike a
+# concept, also an untagged skos:notation -- to prove the reader now models
+# the Group's identity and label (via organization_resources/
+# organization_labels) while still leaving the untagged notation and the
+# separate Source entity's own predicates entirely unmodeled, rather than
+# crashing on or silently absorbing either.
+SYNTHETIC_PARTIALLY_MODELED_ENTITY_RDF_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+ xmlns:dcterms="http://purl.org/dc/terms/"
+ xmlns="http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#"
  xml:base="http://www.eionet.europa.eu/gemet/">
 
 <skos:ConceptScheme rdf:about="gemetThesaurus">
@@ -67,8 +83,15 @@ SYNTHETIC_OUT_OF_SCOPE_ENTITY_RDF_XML = """<?xml version="1.0" encoding="UTF-8"?
 <rdf:Description rdf:about="group/1">
   <rdf:type rdf:resource="http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group"/>
   <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Collection"/>
-  <skos:prefLabel xml:lang="en">out-of-scope group label</skos:prefLabel>
+  <skos:prefLabel xml:lang="en">group label</skos:prefLabel>
   <skos:notation>untagged-group-notation</skos:notation>
+</rdf:Description>
+
+<rdf:Description rdf:about="source/1">
+  <rdf:type rdf:resource="http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Source"/>
+  <rdfs:label>edge source</rdfs:label>
+  <skos:notation>untagged-source-notation</skos:notation>
+  <dcterms:title xml:lang="en">Edge Source Title</dcterms:title>
 </rdf:Description>
 
 </rdf:RDF>
@@ -244,25 +267,182 @@ def test_scope_note_preserves_embedded_quote_characters_verbatim() -> None:
     assert scope_note.value.lexical_form == 'aptitude "not in my back yard"'
 
 
-def test_typed_features_are_scoped_to_concepts_and_the_scheme_not_other_gemet_entities() -> None:
-    """GEMET's own Group/Theme/SuperGroup collections and Source citations
-    reuse SKOS predicates in shapes concepts do not use (e.g. an untagged
-    skos:notation). The reader must neither crash on nor silently model
-    those out-of-scope assertions -- it should leave them entirely out of
-    the typed features while keeping them visible in the raw census."""
+def test_parser_preserves_the_publisher_asserted_group_supergroup_theme_organization() -> None:
+    """GEMET publishes a second, independent organizing layer above its
+    concepts -- Group, SuperGroup, and Theme skos:Collections, plus the two
+    named meta-collections that enumerate the Groups and SuperGroups -- and
+    asserts membership as skos:member triples on the collection, never as a
+    reverse predicate on the concept. This fixture carries one real,
+    verbatim excerpt of that shape: group/10111 is a real skos:member of
+    supergroup/5499 and also asserts subGroupOf back to it; group/10111 and
+    theme/1 both list concept IRIs outside this trimmed fixture's own five
+    concepts as members, exactly like the concept-to-concept relations
+    tested elsewhere in this file."""
 
-    parsed = parse_gemet_rdf_xml(SYNTHETIC_OUT_OF_SCOPE_ENTITY_RDF_XML, source_url="https://example.test/synthetic.rdf")
+    parsed = parse_gemet_rdf_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
+
+    kinds_by_iri = {item.resource_iri: item.kind for item in parsed.organization_resources}
+    assert kinds_by_iri == {
+        GROUP_10111: "group",
+        SUPER_GROUP_5499: "superGroup",
+        THEME_1: "theme",
+        GROUP_COLLECTION_IRI: "groupCollection",
+        SUPER_GROUP_COLLECTION_IRI: "superGroupCollection",
+    }
+    group_resource = next(item for item in parsed.organization_resources if item.resource_iri == GROUP_10111)
+    assert group_resource.scheme_iris == (GEMET_CONCEPT_SCHEME_IRI,)
+    assert group_resource.type_iris == (
+        "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+        "http://www.w3.org/2004/02/skos/core#Collection",
+    )
+
+    # Group/SuperGroup labels are skos:prefLabel, exactly like a concept,
+    # and are kept separate from the concept-scoped `labels` field.
+    group_labels = {
+        item.value.language_tag: item.value.lexical_form
+        for item in parsed.organization_labels
+        if item.subject_iri == GROUP_10111
+    }
+    assert group_labels == {
+        "ar": "بيئة (بيئة طبيعية، بيئة بشرية)",
+        "en": "ENVIRONMENT (natural environment, anthropic environment)",
+        "es": "MEDIO AMBIENTE (medio natural, medio antrópico)",
+    }
+    assert {item.role for item in parsed.organization_labels} == {"preferred"}
+    assert {item.property_iri for item in parsed.organization_labels} == {PREF_LABEL_PREDICATE_IRI}
+
+    # Theme labels use rdfs:label (not skos:prefLabel) plus a GEMET-native
+    # acronymLabel that, in the real release, covers fewer languages than
+    # rdfs:label does -- "ar" here has a label but no acronym, exactly as in
+    # the pinned 4.2.3 release.
+    theme_literals = {
+        (item.property_iri, item.value.language_tag): item.value.lexical_form
+        for item in parsed.organization_metadata_literals
+        if item.subject_iri == THEME_1
+    }
+    assert theme_literals[(DISPLAY_LABEL_PREDICATE_IRI, "ar")] == "إدارة"
+    assert theme_literals[(DISPLAY_LABEL_PREDICATE_IRI, "bg")] == "администрация"
+    assert theme_literals[(ACRONYM_LABEL_PREDICATE_IRI, "bg")] == "ADM"
+    assert theme_literals[(ACRONYM_LABEL_PREDICATE_IRI, "da")] == "ADM"
+    assert (ACRONYM_LABEL_PREDICATE_IRI, "ar") not in theme_literals
+
+    # dct:created/dct:modified are the same empty xsd:dateTime literal
+    # GEMET publishes on every concept -- preserved, not rejected.
+    group_lifecycle = {
+        item.property_iri: item.value
+        for item in parsed.organization_metadata_literals
+        if item.subject_iri == GROUP_10111
+    }
+    for predicate_iri in ("http://purl.org/dc/terms/created", "http://purl.org/dc/terms/modified"):
+        assert group_lifecycle[predicate_iri].lexical_form == ""
+        assert group_lifecycle[predicate_iri].datatype_iri == "http://www.w3.org/2001/XMLSchema#dateTime"
+
+    # The two named meta-collections carry only an untagged rdfs:label.
+    meta_collection_labels = {
+        item.subject_iri: item.value.lexical_form
+        for item in parsed.organization_metadata_literals
+        if item.subject_iri in (GROUP_COLLECTION_IRI, SUPER_GROUP_COLLECTION_IRI)
+    }
+    assert meta_collection_labels == {
+        GROUP_COLLECTION_IRI: "GEMET - Groups, version 4.2.3, 2021-12-06T13:37:25.364764+00:00",
+        SUPER_GROUP_COLLECTION_IRI: "GEMET - Super groups, version 4.2.3, 2021-12-06T13:37:25.364764+00:00",
+    }
+
+    # Membership is asserted only as skos:member on the collection side --
+    # groupCollection enumerates Groups, superGroupCollection enumerates
+    # SuperGroups, a SuperGroup enumerates its member Groups, and a Group or
+    # Theme enumerates its member concepts. No concept, group, or theme ever
+    # asserts a reverse "memberOf" predicate.
+    membership = {
+        (item.subject_iri, item.object_iri) for item in parsed.organization_membership_relations
+    }
+    assert membership == {
+        (GROUP_COLLECTION_IRI, GROUP_10111),
+        (SUPER_GROUP_COLLECTION_IRI, SUPER_GROUP_5499),
+        (SUPER_GROUP_5499, GROUP_10111),
+        (GROUP_10111, "http://www.eionet.europa.eu/gemet/concept/1517"),
+        (GROUP_10111, "http://www.eionet.europa.eu/gemet/concept/2944"),
+        (THEME_1, "http://www.eionet.europa.eu/gemet/concept/21"),
+        (THEME_1, "http://www.eionet.europa.eu/gemet/concept/24"),
+    }
+    assert {item.predicate_iri for item in parsed.organization_membership_relations} == {MEMBER_PREDICATE_IRI}
+
+    # A Group's own subGroupOf assertion is the only hierarchy predicate,
+    # and it agrees with the SuperGroup's reciprocal skos:member above.
+    assert len(parsed.organization_hierarchy_relations) == 1
+    hierarchy_row = parsed.organization_hierarchy_relations[0]
+    assert (hierarchy_row.subject_iri, hierarchy_row.predicate_iri, hierarchy_row.object_iri) == (
+        GROUP_10111,
+        SUB_GROUP_OF_PREDICATE_IRI,
+        SUPER_GROUP_5499,
+    )
+
+    # Concepts never carry group/theme/supergroup identity on the concept
+    # side, and the organization layer is never confused with concepts.
+    concept_iris = {item.concept_iri for item in parsed.concepts}
+    organization_iris = set(kinds_by_iri)
+    assert concept_iris.isdisjoint(organization_iris)
+
+
+def test_group_identity_and_label_are_modeled_but_notation_and_source_records_are_not() -> None:
+    """GEMET's own Group/Theme/SuperGroup collections reuse skos:prefLabel
+    like a concept but, unlike a concept, an untagged skos:notation; GEMET's
+    Source citations reuse other SKOS predicates in shapes concepts do not
+    use at all. The reader now models a Group's identity and label -- it
+    must neither crash on, nor silently model, the untagged notation or any
+    of the separate Source entity's predicates, while keeping everything
+    visible in the raw census."""
+
+    parsed = parse_gemet_rdf_xml(
+        SYNTHETIC_PARTIALLY_MODELED_ENTITY_RDF_XML, source_url="https://example.test/synthetic.rdf"
+    )
 
     assert len(parsed.concepts) == 1
     assert parsed.concepts[0].concept_iri == "http://www.eionet.europa.eu/gemet/concept/1"
     assert [item.value.lexical_form for item in parsed.labels] == ["edge concept"]
+    # Concept-scoped notations never absorb the Group's untagged notation.
     assert parsed.notations == ()
 
     group_iri = "http://www.eionet.europa.eu/gemet/group/1"
+    source_iri = "http://www.eionet.europa.eu/gemet/source/1"
     assert group_iri in parsed.source_iris
+    assert source_iri in parsed.source_iris
     predicate_counts = {item.predicate_iri: item.assertion_count for item in parsed.predicate_counts}
     assert predicate_counts["http://www.w3.org/2004/02/skos/core#prefLabel"] == 2
-    assert predicate_counts["http://www.w3.org/2004/02/skos/core#notation"] == 1
+    assert predicate_counts["http://www.w3.org/2004/02/skos/core#notation"] == 2
+
+    # The Group's identity and preferred label are now modeled...
+    assert [item.resource_iri for item in parsed.organization_resources] == [group_iri]
+    assert parsed.organization_resources[0].kind == "group"
+    assert parsed.organization_resources[0].type_iris == (
+        "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#Group",
+        "http://www.w3.org/2004/02/skos/core#Collection",
+    )
+    assert parsed.organization_resources[0].scheme_iris == ()
+    assert [(item.subject_iri, item.value.lexical_form) for item in parsed.organization_labels] == [
+        (group_iri, "group label")
+    ]
+
+    # ...but its untagged notation, and every one of the separate Source
+    # entity's predicates (rdfs:label, notation, dcterms:title, rdf:type),
+    # remain entirely unmodeled: no organization resource, membership,
+    # hierarchy, or metadata-literal row exists for either the notation or
+    # the Source subject.
+    assert parsed.organization_metadata_literals == ()
+    assert parsed.organization_membership_relations == ()
+    assert parsed.organization_hierarchy_relations == ()
+    assert all(item.resource_iri != source_iri for item in parsed.organization_resources)
+    assert not any(
+        source_iri in (item.subject_iri, getattr(item, "object_iri", None))
+        for items in (
+            parsed.labels,
+            parsed.notes,
+            parsed.notations,
+            parsed.metadata_literals,
+            parsed.organization_labels,
+        )
+        for item in items
+    )
 
 
 @pytest.mark.parametrize(
@@ -467,6 +647,19 @@ PINNED_REAL_COUNTS = GemetImportCounts(
     created_assertions=5_573,
     modified_assertions=5_573,
     display_label_assertions=1,
+    organization_resources=78,
+    groups=32,
+    super_groups=4,
+    themes=40,
+    organization_meta_collections=2,
+    organization_labels=1_263,
+    organization_metadata_literals=2_419,
+    organization_created_assertions=76,
+    organization_modified_assertions=76,
+    organization_display_label_assertions=1_427,
+    organization_acronym_label_assertions=840,
+    organization_membership_relations=16_178,
+    organization_hierarchy_relations=32,
 )
 
 

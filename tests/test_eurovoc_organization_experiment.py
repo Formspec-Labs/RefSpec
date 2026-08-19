@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import zipfile
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from refspec.registry.eurovoc_organization_experiment import (
     verify_eurovoc_organization_directory,
 )
 from refspec.registry.eurovoc_thesaurus import (
+    EUROVOC_RELEASE_4_24,
     EuroVocMetadataSource,
     EuroVocReleaseSource,
 )
@@ -270,3 +272,46 @@ def test_verifier_refuses_an_extra_member(tmp_path: Path) -> None:
 
     with pytest.raises(EuroVocOrganizationExperimentError, match="file set differs"):
         verify_eurovoc_organization_directory(output, artifact)
+
+
+def test_real_pinned_release_builds_the_frozen_organization_counts() -> None:
+    """REF-046's audit-gap closure: the module exercised over real bytes.
+
+    Gated on the same two publisher artifacts `claim_release_exports.py`
+    already pins (`eurovocSkosCore`/`eurovocMetadata`) -- one shared pin
+    for one shared artifact, not a second capture, mirroring how REF-043
+    closed the equivalent GCMD gap.
+    """
+
+    archive_text = os.environ.get("REFSPEC_EUROVOC_SKOS_CORE_PATH")
+    metadata_text = os.environ.get("REFSPEC_EUROVOC_METADATA_PATH")
+    if archive_text is None or metadata_text is None:
+        pytest.skip("real EuroVoc publisher distribution is not configured")
+
+    artifact = build_eurovoc_organization_artifact_from_paths(
+        EUROVOC_RELEASE_4_24,
+        archive_path=Path(archive_text),
+        metadata_path=Path(metadata_text),
+    )
+
+    members_by_role = {member["role"]: member for member in artifact.manifest["members"]}
+    assert members_by_role["publisherOrganizationObjects"]["rowCount"] == 148
+    assert members_by_role["publisherOrganizationAssertions"]["rowCount"] == 7_902
+    assert members_by_role["operatorDerivedDomainCandidates"]["rowCount"] == 127
+    assert artifact.manifest["claims"]["publisherOrganizationSlicePreserved"] is True
+    assert artifact.manifest["claims"]["publisherMicrothesaurusDomainRelationsPresent"] is False
+
+    objects = _jsonl(artifact.files[OBJECTS_PATH])
+    domains = [row for row in objects if row["organizationKind"] == "domain"]
+    microthesauri = [row for row in objects if row["organizationKind"] == "microthesaurus"]
+    assert len(domains) == 21
+    assert len(microthesauri) == 127
+
+    # Cold rebuild determinism: independently regenerating from the same
+    # pinned bytes yields byte-identical artifact files.
+    again = build_eurovoc_organization_artifact_from_paths(
+        EUROVOC_RELEASE_4_24,
+        archive_path=Path(archive_text),
+        metadata_path=Path(metadata_text),
+    )
+    assert dict(artifact.files) == dict(again.files)

@@ -3064,7 +3064,7 @@ consume. When the binding gains its second rule, the frozen pins above
 are the acceptance bar: the shipped edge set must regenerate them exactly
 or the rule is not the rule recorded here.
 
-### REF-043: EuroVoc does not assert microthesaurus-to-domain; the link exists only as a notation prefix
+### REF-045: EuroVoc does not assert microthesaurus-to-domain; the link exists only as a notation prefix
 
 - **Date:** 2026-08-19
 - **Status:** Finding recorded. No release, no rule, no emission -- this
@@ -3563,3 +3563,257 @@ was updated to point at this entry. FR-compound
 (`tools/atlas_v3_derived_fr_compound.py`) is now the only rule REF-042
 named that remains unregistered; it still has no ledger entry of its own
 and registering it changes nothing here.
+
+### REF-044: Federal Register compound headings become the derived graph's fourth entry (backfilled)
+
+- **Date:** 2026-08-19
+- **Status:** Accepted and executed, entry written after the fact. Both
+  `bindings/atlas/3.1/tools/validate.py` and
+  `bindings/atlas/3.1/tools/build_fixtures.py` shipped code citing "REF-044"
+  for this rule (commit `ae23819d`, same day as REF-043's GCMD entry) with
+  no matching ledger entry; the producer wiring landed one commit later
+  (`2a6e61a2`). This entry closes that gap without re-deciding anything —
+  every judgment below shipped already; nothing here changes code.
+
+**The decision.** The Office of the Federal Register's 2025 thesaurus
+(`federal-register-thesaurus-2025`, 705 official indexing terms) is
+deliberately flat: it publishes 1,451 `skos:related` references and zero
+`skos:broader`/`skos:narrower` statements. But 56 of its 705 preferred
+labels contain a hyphen, and 48 of those have a head segment — the text
+before the first hyphen — that is itself an authorized preferred term of
+the same release: `Grant programs-agriculture` under `Grant programs`,
+`Loan programs-veterans` under `Loan programs` (19 under `Grant programs`,
+9 under `Indians`, 14 under `Loan programs`, 6 under `Public lands`).
+Reading a compound heading's broader term as its head segment is a
+structural projection of the publisher's own term list, not an invention —
+but it is still RefSpec's act, not OFR's assertion of `skos:broader`, so
+under REF-035 tier E5 it belongs only in the derived graph, registered as
+`urn:ref:rule:fr-thesaurus-compound-head-broader` — the fourth entry in
+`_DERIVED_RULE_ADMISSIONS`, engine
+`https://refspec.org/code/atlas-v3-derived-fr-compound-headings` version
+`"1"`, ring `atlas:subject`, predicate `skos:broader`, evidence kind
+`SourceRecord`, mirror predicate `skos:narrower`.
+
+**The 8 self-exclusions are the rule checking itself.** The remaining 8
+hyphenated preferred labels are hyphenated *words*, not compound subjects:
+`X-rays`, `Truth-in-lending`, `Truth-in-savings`, `Rights-of-way`,
+`Over-the-counter drugs`, `Government-sponsored enterprises`, `Human cells
+and tissue-based products`, `Old-age, Survivors and Disability Insurance`.
+Their head segments (`X`, `Truth`, `Old`, ...) are not preferred terms, so
+they exclude themselves — there is no hand-maintained denylist anywhere,
+on either the producer or binding side.
+
+**Where the premise lives.** Unlike MeSH (a notation literal) or GCMD (a
+CSV path in `atlas:nativePayload`), this rule's premise is preferred-label
+*text*, which sits behind SKOS-XL `prefLabel`/`literalForm` nodes the
+shared `AssertedFactView` does not collect. `fr_compound_headings.py`
+ships its own one-pass label collector
+(`collect_fr_preferred_labels`) instead of widening the shared view for
+one rule, and both of its entry points (`fr_compound_heading_evidence_nodes`,
+`derive_fr_compound_heading_broader_rows`) take that label view as a
+second argument alongside the shared `DerivationContext`.
+
+**Scoping, from the first line.** The MeSH rule shipped scheme-blind and
+an adversarial battery caught it proving parentage from notation shape
+alone; this rule requires the Federal Register thesaurus scheme
+(`urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025`) in its
+producer label collection, its binding row check, and its binding replay,
+so a `Grant programs` term in any other vocabulary can never admit a
+Federal Register compound.
+
+**Verified against the real pinned 2025 release**
+(`sha256:66dd28fff5defedfb151d04dc4ef255181085cce76618cb10c9372db6540810f`,
+1,051,423 bytes, 705 official terms, 1,451 resolved `skos:related`
+references): 48 derived `skos:broader` edges, 56 hyphenated preferred
+labels, 8 self-excluded, zero ambiguous heads, zero admitted heads that
+are themselves hyphenated, zero two-resource label collisions in this
+release. Like the MeSH and GCMD replays, this rule's replay is
+whole-of-rule, not row-local: it regenerates the *complete* expected
+compound/head pair set from the asserted graph's own preferred labels and
+requires the shipped row set to equal it exactly.
+
+**Corpus cases.** Six entries in `REQUIRED_CORPUS_CASES`, the second half
+of the same-day move from 141 to 153 total cases GCMD's own six opened
+(REF-043's entry pins 141 → 147 for GCMD alone, so FR's six carried
+147 → 153): `fr-compound-head-broader` (positive, the complete 48-edge set
+so the whole-of-rule replay finds no gap or extra), `fr-compound-head-
+unallowlisted-rule`, `fr-compound-head-wrong-predicate`,
+`fr-compound-head-malformed-inputs`, `fr-compound-head-duplicates-
+asserted`, and `fr-compound-head-replay-gap` (the `reasoning.authority`
+completeness case GCMD's own sixth case established the pattern for).
+
+**Producer.** `tools/generate_atlas_v3_full.py`'s `_derive_registered_relations`
+loop gained an optional per-rule label-collector parameter for this rule
+alone (MeSH and GCMD pass `None`): a rule with a collector gets its label
+view built from the same spooled lines the shared fact view just read,
+then passed to both of its entry points. `_expected_derived_relation_count`
+gained the matching branch, calling the same
+`resolve_compound_heading_edges_from_labels` resolver the streamed pass
+uses, so the prebuild receipt and the emitted rows cannot independently
+drift. A bounded `--only-release federal-register-thesaurus-2025` build
+derives exactly 48 relations.
+
+**Deliberately not done.** `bindings/atlas/3.1/README.md`'s derived-graph
+section was never updated to document this rule (it still read "Three
+rules are registered" after this rule shipped as the fourth) — closed by
+the EuroVoc entry (REF-046) that follows, which updates the same section
+for the fifth rule and adds the missing fourth-rule paragraph in the same
+pass.
+
+### REF-046: EuroVoc's microthesauri become a real Atlas release; the registry's fifth derived rule closes the domain gap REF-045 found
+
+- **Date:** 2026-08-19
+- **Status:** Accepted and executed.
+
+**The decision.** REF-045 found that the Publications Office asserts the
+127 EuroVoc microthesauri and the 7,902 concept-to-microthesaurus
+`skos:inScheme` memberships, but never the microthesaurus-to-domain link —
+that exists only as a two-digit notation prefix. This entry executes what
+REF-045 said would follow: the memberships are publisher assertions and
+enter the asserted graph as a real Atlas release; the notation-prefix link
+is a derivation and enters the derived graph as the registry's fifth rule.
+
+**The asserted half.** `eurovoc-microthesauri-4.24` is a new Atlas v3
+source release (`src/refspec/atlas/v3_registry_vocabularies.py`,
+`load_eurovoc_microthesauri_4_24_release`), independent of
+`eurovoc-4.24`/`eurovoc-domains-4.24` but reading the same pinned SKOS Core
+member: 127 microthesaurus resources in their own scheme
+(`urn:ref:atlas-resource-scheme:eurovoc:microthesauri`), each carrying its
+publisher notation and EVERY publisher label in EVERY language the source
+asserts — 3,430 labels across 27 languages, never filtered to English
+(unlike every other EuroVoc-derived release in this module). RefSpec
+never determines a language tag here: `eurovoc_thesaurus._label_expressions`
+already refuses an untagged label at parse time, so every label this
+release carries was read, not guessed. All 7,902 memberships are emitted
+as native relations, including every one of the 142+121+1 concepts that
+belong to two, three, or four microthesauri at once — multi-membership is
+a real publisher fact and none of it is collapsed.
+
+**The predicate the memberships could not use, and the one they do.**
+`skos:inScheme` is not an admitted `NativeRelationAssertion` predicate
+(`SKOS_NATIVE_RELATION_PREDICATES` is exactly `{skos:broader, skos:narrower,
+skos:related}`), and it could not become one for this purpose: the binding's
+`SubjectConceptShape` fixes `skos:inScheme` to `sh:maxCount 1`, equal to
+`atlas:inScheme` — a concept's one primary EuroVoc scheme membership,
+already spent. A concept that belongs to up to four microthesauri cannot
+carry four `skos:inScheme` triples under that shape. RefSpec mints a new
+native predicate instead, `atlas:hasSchemeMember` (domain and range
+`atlas:SubjectConcept`, declared in `ontology/atlas.ttl` beside
+`atlas:thesaurusUse`/`atlas:thesaurusUsedFor`/`atlas:thesaurusRelated` —
+the same family of Atlas-native predicates that preserve a publisher
+relation SKOS cannot project verbatim), added to the subject ring's
+`NativeRelationAssertion` list in `registry-resource-profiles.json`
+(`profileDigest` recomputed to `sha256:7d7c493346bc80ba45090b2bb32ca3ecd24f2e71cc1f91a23a63fb2d29292942`;
+`schemas/registry-resource-profiles.schema.json`'s `NativeRelationAssertion`
+`maxItems` raised from 6 to 7 to admit the seventh predicate, the one
+contract-shape edit this entry required).
+
+**Direction is inverted from the publisher's own statement, and that is
+recorded, not hidden.** The Publications Office asserts `concept
+skos:inScheme microthesaurus`. RefSpec asserts `microthesaurus
+atlas:hasSchemeMember concept` — the mirror direction, under a distinct
+predicate, for a structural reason: the producer requires a relation's
+evidence to be a `SourceRecord` native to the release that owns the
+relation, and the microthesaurus's own record lives in
+`eurovoc-microthesauri-4.24`, not in `eurovoc-4.24`. Keeping the concept as
+subject would have required attaching the memberships to `eurovoc-4.24`
+instead, coupling that release's construction (and its separate
+claim-input replay path, `load_eurovoc_4_24_releases_from_claims`, which
+has no way to select "all notated concept schemes" the way it selects
+"all resources under `http://eurovoc.europa.eu/domains`") to a release that
+did not exist before this entry. This is the SAME fact stated once, in the
+other direction — not a second, additional assertion of the publisher's own
+direction, which REF-035 forbids. Each relation's `source_payload` records
+the transformation explicitly (`fromPredicate`/`toPredicate`/`reason`), the
+same transparency `_S27_TRANSFORMATION` already gives EuroVoc's own
+`skos:related`-to-`atlas:thesaurusRelated` rewrite.
+
+**The derived half.** `src/refspec/atlas/derived_graph/eurovoc_microthesaurus_domain.py`
+derives `skos:broader` edges from a microthesaurus's four-digit notation to
+the domain named by its two-digit prefix, registered as
+`urn:ref:rule:eurovoc-microthesaurus-domain-notation-prefix` — the fifth
+`_DERIVED_RULE_ADMISSIONS` entry, engine
+`https://refspec.org/code/atlas-v3-derived-eurovoc-microthesaurus-domain`
+version `"1"`, ring `atlas:subject`, predicate `skos:broader`, evidence
+kind `SourceRecord`, mirror predicate `skos:narrower`. `skos:broader`
+is chosen over `euvoc:domain` under REF-035's predicate rule:
+`euvoc:domain` appears nowhere in the publisher graph at all (REF-045), so
+naming it as "the" predicate would misrepresent the publisher's own
+vocabulary rather than translate it, and it is not an admitted predicate
+regardless. `skos:broader` is the predicate every other structural
+projection in this registry already uses for a notation-implied parent
+(MeSH tree numbers, GCMD column nesting, FR compound headings, REF-042
+through REF-044), so it is the honest, consistent choice: a domain is the
+broader grouping a microthesaurus's own notation places it under.
+
+**The first cross-scheme rule.** Every prior structural rule derives an
+edge between two resources of the *same* scheme. This rule's subject
+(microthesaurus) and object (domain) sit in two different, already-shipped
+schemes, so it is scheme-scoped in BOTH directions rather than once: the
+row validator and the replay each check the subject against
+`urn:ref:atlas-resource-scheme:eurovoc:microthesauri` and the object
+against `urn:ref:atlas-resource-scheme:eurovoc:domains` independently — a
+microthesaurus-shaped four-digit notation on a foreign-scheme resource, or
+a domain-shaped two-digit notation on one, can never admit an edge. The
+MeSH rule shipped scheme-blind and an adversarial battery caught it; this
+rule does not repeat that bug for either endpoint.
+
+**Verified against the real pinned 4.24 release**
+(`sha256:6c362f79ad03e325ba1b4818f1ca3a847bb6167c2a8f7167e2e4df91305b6620`,
+the same `eurovoc_in_skos_core_concepts.rdf` member `eurovoc-4.24` and
+`eurovoc-domains-4.24` are already built from): all 127 microthesauri
+resolve their notation prefix to exactly one of the 21 domains — 127
+derived edges, zero missing domains, zero ambiguous domains, zero
+malformed notations. This is the identical pair set the
+`operator-derived-domain-candidates.jsonl` sidecar layer
+(`refspec.registry.eurovoc_organization_experiment`,
+`generationMethod: microthesaurusNotationTwoDigitPrefix`) already carried
+as a non-authoritative candidate; the derived graph now carries the same
+127 edges as an admitted, replayable rule instead.
+
+**Producer.** `_derive_registered_relations` gained an optional per-rule
+second release key: this is the first rule whose premise spans two
+releases at once (a microthesaurus's own notation and a domain's own
+notation), so it fires only when BOTH `eurovoc-microthesauri-4.24` and
+`eurovoc-domains-4.24` are loaded, reading both releases' spooled lines
+combined into one `AssertedFactView`. `_expected_derived_relation_count`
+gained the matching branch, calling the same `resolve_microthesaurus_domain_edges`
+resolver the streamed pass uses. A bounded
+`--only-release eurovoc-microthesauri-4.24 --only-release eurovoc-domains-4.24`
+build derives exactly 127 relations.
+
+**Corpus cases.** Six entries in `REQUIRED_CORPUS_CASES`:
+`eurovoc-microthesaurus-domain-broader` (positive, built in the real
+microthesauri and domains schemes), `eurovoc-microthesaurus-domain-
+unallowlisted-rule`, `eurovoc-microthesaurus-domain-wrong-predicate`,
+`eurovoc-microthesaurus-domain-malformed-inputs`,
+`eurovoc-microthesaurus-domain-duplicates-asserted`, and
+`eurovoc-microthesaurus-domain-replay-gap` (the `reasoning.authority`
+completeness case, following GCMD's and FR's precedent rather than
+MeSH's, which lacked it). Corpus 153 → 159 cases, 136 → 141 invalid. The
+base fixture gained two inert releases (two microthesauri, one domain, in
+their own real schemes) no pre-existing case cites, so only the six
+mutations touch the derived graph over them; `all-resource-profiles`'s own
+counts moved as a direct consequence (releases 13 → 15, resources 21 → 24,
+labels 21 → 24, sourceRecords 21 → 24, quadCount 1289 → 1402 for the full
+distribution and 1161 → 1271 for the asserted-only view).
+
+**The audit gap closes.** `eurovoc_organization_experiment.py` was the
+last entry in `tools/build_registry_source_manifest.py`'s
+`SOURCE_BLOCKERS`. It is deleted; the module gains a `TEST_INPUTS` pin
+reusing the exact `eurovocSkosCore`/`eurovocMetadata` pins
+`claim_release_exports.py` already carries (one shared pin for one shared
+artifact, not a second capture — the same discipline REF-043 established
+for GCMD), and a new env-gated real-data test exercises
+`build_eurovoc_organization_artifact_from_paths` over the real pinned
+bytes. `make audit-registry-real-data` reports zero blocked modules for
+the first time.
+
+**Deliberately not done.** `load_eurovoc_4_24_releases_from_claims` (the
+claim-input replay path for `eurovoc-4.24`/`eurovoc-domains-4.24`) is
+untouched and does not gain a microthesauri or membership counterpart:
+`eurovoc-microthesauri-4.24` has no claim-input replay path of its own and
+is always built from the raw pinned RDF. `bindings/atlas/3.1/README.md`'s
+derived-graph section, stale since REF-044's rule shipped without a
+documentation update, is corrected here for both the fourth rule (FR) and
+this entry's fifth.

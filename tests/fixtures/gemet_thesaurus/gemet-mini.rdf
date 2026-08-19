@@ -166,4 +166,94 @@
   <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Animal"/>
 </skos:Concept>
 
+<!-- Group/SuperGroup/Theme/meta-collection triples below are also copied
+     verbatim from the same pinned GEMET 4.2.3 publication, trimmed to fewer
+     languages and members per entity exactly as the concepts above are
+     trimmed. group/10111's real subGroupOf target (supergroup/5499) and
+     its real reciprocal skos:member of group/10111 are both kept so the
+     fixture proves the two assertions agree, exactly as they do in the
+     full release. The concept IRIs group/10111 and theme/1 list as
+     skos:member fall outside this trimmed fixture's own five concepts,
+     exercising the same dangling-IRI preservation the concept relations
+     above already exercise. -->
+
+<skos:Collection rdf:about="superGroupCollection">
+ <rdfs:label>GEMET - Super groups, version 4.2.3, 2021-12-06T13:37:25.364764+00:00</rdfs:label>
+ <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+</skos:Collection>
+
+<rdf:Description rdf:about="superGroupCollection">
+      <skos:member rdf:resource="supergroup/5499"/>
+</rdf:Description>
+
+<skos:Collection rdf:about="groupCollection">
+ <rdfs:label>GEMET - Groups, version 4.2.3, 2021-12-06T13:37:25.364764+00:00</rdfs:label>
+ <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+</skos:Collection>
+
+<rdf:Description rdf:about="groupCollection">
+  <skos:member rdf:resource="group/10111"/>
+</rdf:Description>
+
+<SuperGroup rdf:about="supergroup/5499">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Collection"/>
+</SuperGroup>
+
+<rdf:Description rdf:about="supergroup/5499">
+  <skos:prefLabel xml:lang="ar">البيئة الطبيعية - البيئة البشرية</skos:prefLabel>
+  <skos:prefLabel xml:lang="bg">природна среда, антропична среда</skos:prefLabel>
+  <skos:prefLabel xml:lang="en">NATURAL ENVIRONMENT, ANTHROPIC ENVIRONMENT</skos:prefLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="supergroup/5499">
+  <skos:member rdf:resource="group/10111"/>
+</rdf:Description>
+
+<Group rdf:about="group/10111">
+ <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+ <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+ <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+ <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Collection"/>
+</Group>
+
+<rdf:Description rdf:about="group/10111">
+    <skos:prefLabel xml:lang="ar">بيئة (بيئة طبيعية، بيئة بشرية)</skos:prefLabel>
+    <skos:prefLabel xml:lang="en">ENVIRONMENT (natural environment, anthropic environment)</skos:prefLabel>
+    <skos:prefLabel xml:lang="es">MEDIO AMBIENTE (medio natural, medio antrópico)</skos:prefLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="group/10111">
+    <subGroupOf rdf:resource="supergroup/5499"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="group/10111">
+  <skos:member rdf:resource="concept/1517"/>
+  <skos:member rdf:resource="concept/2944"/>
+</rdf:Description>
+
+<Theme rdf:about="theme/1">
+ <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+ <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+ <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+ <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Collection"/>
+</Theme>
+
+<rdf:Description rdf:about="theme/1">
+  <rdfs:label xml:lang="ar">إدارة</rdfs:label>
+
+  <acronymLabel xml:lang="bg">ADM</acronymLabel>
+  <rdfs:label xml:lang="bg">администрация</rdfs:label>
+
+  <acronymLabel xml:lang="da">ADM</acronymLabel>
+  <rdfs:label xml:lang="da">administration</rdfs:label>
+</rdf:Description>
+
+<rdf:Description rdf:about="theme/1">
+  <skos:member rdf:resource="concept/21"/>
+  <skos:member rdf:resource="concept/24"/>
+</rdf:Description>
+
 </rdf:RDF>
