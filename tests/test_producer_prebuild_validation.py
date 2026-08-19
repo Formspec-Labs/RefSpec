@@ -423,7 +423,20 @@ def test_default_prebuild_refuses_each_mutated_logical_aggregate(
     "field",
     (
         "crossRingRelationAssertions",
-        "derivedRelations",
+        # "derivedRelations" is deliberately absent here as of REF-042: it is
+        # no longer a field `_reconcile_prebuild_construction_counts` refuses
+        # outright the way "projectedRelations" still is, because it can now
+        # be legitimately nonzero (a registered derivation rule's expected
+        # row count). That function's actual job -- reconciling the eight
+        # logical construction-record roles -- never covered derivedRelations
+        # anyway (`source_and_mapping_construction_record_counts` does not
+        # reference it). A mutated derivedRelations expected count is still
+        # caught, just by a different, already-tested check: the streamed
+        # build's own `spool.counts != prebuild.compiled_rows.expected_counts`
+        # comparison in `_stream_construct_graphs`
+        # (`tests/test_generate_atlas_v3_full.py`'s
+        # `test_streamed_whole_graph_refusal_probe[count-mismatch]` proves
+        # that comparison refuses a wrong aggregate count generically).
         "evidenceBindings",
         "identifiers",
         "labels",
@@ -442,7 +455,8 @@ def test_default_prebuild_refuses_each_mutated_semantic_aggregate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Every manifest aggregate is reconciled before graph construction."""
+    """Every manifest aggregate `_reconcile_prebuild_construction_counts`
+    still owns is reconciled before graph construction."""
 
     _install_synthetic_release_schemes(monkeypatch)
     releases = _synthetic_releases(tmp_path)

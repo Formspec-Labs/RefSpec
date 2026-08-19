@@ -60,6 +60,16 @@ from refspec.atlas.agency_projection import (
     build_agency_projection,
 )
 from refspec.atlas.compact_pack import CompactRecordRole, normalize_compact_record
+from refspec.atlas.derived_graph import (
+    DerivationContext,
+    collect_asserted_fact_view,
+    collect_node_digests,
+)
+from refspec.atlas.derived_graph.mesh_tree_numbers import (
+    derive_mesh_tree_number_broader_rows,
+    mesh_tree_number_evidence_nodes,
+    resolve_tree_number_edges_from_notations,
+)
 from refspec.atlas.parquet_tables import (
     TABLE_DIRECTORY,
     TABLE_NAMES,
@@ -159,6 +169,7 @@ _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD = 50_000
 _PACK_LARGE_RELEASE_BUCKETS = 16
 _PACK_ZSTD_LEVEL = 1
 _STREAM_CONSTRUCTION_BATCH_SIZE = 2_000
+_RDF_TYPE_PREDICATE_BYTES = " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
 _COMPILED_PRODUCER_PROFILE = "atlas-3-source-and-evidence-backed-mapping-v1"
 _COMPILED_PRODUCER_MODE = "compiledSourceAndEvidenceBackedMappingProducerValidation"
 _CONSTRUCTION_SUMMARY_PROFILE = "atlas-3-release-local-construction-v1"
@@ -674,7 +685,7 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:8d2d80654c0e2fafacbab6b3c9a938f2314c8094eaaef5cf28ca8c2f8e18b685"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:36653a9342efe63a25860132937896d738409ff07cca787a980f3c7176e34ba8"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:5a092aa7543cd5f33de5f11be921bff1c8c084a0241f2384d177b441d0962ef4"
 
 
 def _load_validator() -> Any:
@@ -4066,6 +4077,36 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
     return value
 
 
+# The one release the shipped derivation registry currently reads. REF-042
+# admits exactly one second rule (MeSH tree-number broader); the producer's
+# job is narrower than the binding's -- it only has to know WHICH releases
+# feed a registered rule, not carry the registry itself, since (per
+# `src/refspec/atlas/derived_graph/__init__.py`'s own extension-point
+# docstring) a rule registered without its binding allowlist entry already
+# refuses loudly in the generation receipt rather than shipping unaccepted
+# rows. FR-compound and GCMD are recorded as the next entries in REF-042;
+# neither is wired here.
+MESH_DESCRIPTORS_RELEASE_KEY = "mesh-descriptors-2026"
+
+
+def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
+    """The MeSH tree-number-broader edge count this build's inputs imply.
+
+    Computed directly from the loaded, in-memory release resources --
+    `resolve_tree_number_edges_from_notations` is the same pure function
+    the post-streaming derivation pass below calls, so the prebuild receipt
+    this seeds and the row set the streamed build actually emits can never
+    independently drift.
+    """
+
+    for release in releases:
+        if release.spec.key == MESH_DESCRIPTORS_RELEASE_KEY:
+            notations_by_resource = {resource.iri: resource.notations for resource in release.resources}
+            edges, _counts = resolve_tree_number_edges_from_notations(notations_by_resource)
+            return len(edges)
+    return 0
+
+
 def _reconcile_prebuild_construction_counts(
     aggregate_counts: Mapping[str, int],
     *,
@@ -4074,10 +4115,8 @@ def _reconcile_prebuild_construction_counts(
 ) -> dict[str, int]:
     """Refuse semantic/logical count drift before constructing distribution RDF."""
 
-    if aggregate_counts["projectedRelations"] or aggregate_counts["derivedRelations"]:
-        raise ValueError(
-            "the source-and-mapping producer declares projection or derived records"
-        )
+    if aggregate_counts["projectedRelations"]:
+        raise ValueError("the source-and-mapping producer declares projection records")
     expected = ATLAS_VALIDATE.source_and_mapping_construction_record_counts(
         aggregate_counts,
         source_release_count=source_release_count,
@@ -4526,7 +4565,7 @@ def _validate_compiled_producer_rows(
         )
         expected_counts = {
             "crossRingRelationAssertions": cross_ring_count,
-            "derivedRelations": 0,
+            "derivedRelations": _expected_derived_relation_count(releases),
             "evidenceBindings": evidence_binding_count,
             "identifiers": identifier_count,
             "labels": label_count,
@@ -5350,16 +5389,24 @@ def _production_relation_scope(graphs: BuildGraphs) -> dict[str, Any]:
 def _production_relation_scope_from_counts(
     counts: Mapping[str, int],
 ) -> dict[str, Any]:
-    """Close a receipted writer to source claims and evidence-backed mappings."""
+    """Close a receipted writer to source claims, evidence-backed mappings,
+    and whatever registered derivation rules this build's releases admit.
 
-    scope = {
+    REF-042 replaced the flat "zero derived relations" refusal this scope
+    used to enforce: derived relations are no longer categorically excluded
+    from this mode, because the only thing that can ever populate
+    ``derivedRelations`` is `_derive_registered_relations`, which only ever
+    runs a rule the binding's own allowlist (`validate.py`'s
+    ``_DERIVED_RULE_ADMISSIONS``) admits. A count reaching this function is
+    therefore already rule-admitted by construction; this scope records it
+    rather than gating it a second time.
+    """
+
+    return {
         "derivedRelations": counts["derivedRelations"],
         "mappingAssertions": counts["mappingAssertions"],
         "mode": "sourceClaimsAndEvidenceBackedMappings",
     }
-    if scope["derivedRelations"]:
-        raise ValueError("evidence-backed Atlas build must contain zero derived relations")
-    return scope
 
 
 def _dataset_lines(graphs: BuildGraphs) -> Iterable[str]:
@@ -5775,31 +5822,18 @@ class _StreamingGraphSpool:
                     role,
                     _compact_record_from_graph(graph, subject, role),
                 )
-                try:
-                    independent = {
-                        "row": _json_safe_binary(
-                            ATLAS_VALIDATE.parquet_row_from_rdf(
-                                graph,
-                                subject,
-                                role.value,
-                            )
-                        )
-                    }
-                except ATLAS_VALIDATE.AtlasValidationError as error:
-                    independent = {
-                        "error": {
-                            "code": error.code,
-                            "detail": error.detail,
-                            "type": "AtlasValidationError",
-                        }
-                    }
-                except (TypeError, ValueError) as error:
-                    independent = {
-                        "error": {
-                            "detail": str(error),
-                            "type": type(error).__name__,
-                        }
-                    }
+                # The independent Parquet row used to be computed here for
+                # EVERY subject and stored beside the record -- but
+                # `_compact_sample_indices` compares at most five positions per
+                # role, so >99.99% of those rows were computed, serialized, and
+                # then thrown away, and they were what made this spool roughly
+                # 2.3x its necessary size. Sampled positions depend on each
+                # role's FINAL count, which is unknowable while rows are still
+                # being appended, so the comparison now re-derives the row for
+                # just the sampled subjects at check time from their own quads
+                # (`_independent_row_for_subject`). Every access
+                # `_construction_record_from_rdf` makes is (subject, predicate,
+                # ?), so one subject's own quads are a sufficient graph.
                 compact_stream = compact_streams.get(role)
                 if compact_stream is None:
                     compact_stream = stack.enter_context(
@@ -5807,7 +5841,7 @@ class _StreamingGraphSpool:
                     )
                     compact_streams[role] = compact_stream
                 payload = json.dumps(
-                    {"independent": independent, "record": record},
+                    {"record": record},
                     ensure_ascii=False,
                     separators=(",", ":"),
                     sort_keys=True,
@@ -5949,6 +5983,58 @@ class _StreamingGraphSpool:
             writer.__exit__()
             raise
 
+    def _independent_row_for_subject(
+        self,
+        subject_id: str,
+        role: CompactRecordRole,
+    ) -> dict[str, Any]:
+        """Re-derive one subject's Parquet row from its own asserted quads.
+
+        The binding's `parquet_row_from_rdf` stays the comparand -- this only
+        changes WHEN it runs, not what computes the expected side. Called for
+        the at-most-five sampled positions per role, never per subject.
+        `_construction_record_from_rdf` reads only (subject, predicate, ?), so
+        a graph holding this subject's own quads is a sufficient input; a
+        subject whose lines are absent is itself a finding, not a skip.
+        """
+
+        # Not only lines where this subject is the SUBJECT: a Label's role is
+        # proved by its INBOUND triple (resource skosxl:prefLabel label), so
+        # `_construction_record_from_rdf` calls graph.subjects(predicate,
+        # subject) for that role. Match either position.
+        needle = f"<{subject_id}>"
+        lines: list[str] = []
+        for path in self.sorted_rdf_paths.values():
+            with path.open("r", encoding="utf-8", newline="") as rdf:
+                for line in rdf:
+                    if needle in line:
+                        lines.append(line)
+        if not lines:
+            raise ValueError(
+                f"sampled {role.value} record {subject_id} has no asserted quads to re-derive from"
+            )
+        dataset = Dataset(default_union=True)
+        try:
+            ATLAS_VALIDATE._parse_nquads_preserving_lexical_forms(
+                dataset,
+                io.StringIO("".join(lines)),
+            )
+            # A subject's quads span role graphs -- a Label's type claim sits
+            # in the projection graph, not the asserted one -- and the original
+            # per-subject call received the whole constructed graph. Narrowing
+            # to one role graph drops facts the row needs, so read the union.
+            return _json_restore_binary(
+                _json_safe_binary(
+                    ATLAS_VALIDATE.parquet_row_from_rdf(
+                        dataset,
+                        URIRef(subject_id),
+                        role.value,
+                    )
+                )
+            )
+        finally:
+            dataset.close()
+
     def _spooled_rdf_ids_by_role(self) -> dict[CompactRecordRole, Path]:
         """Derive logical record ids from sorted RDF in bounded graph batches.
 
@@ -5988,12 +6074,22 @@ class _StreamingGraphSpool:
                     dataset.close()
                 lines.clear()
 
+            # `_rdf_record_ids_by_role` reads exactly one predicate --
+            # rdf:type -- and only nine object IRIs. Parsing every quad in the
+            # corpus to reach them cost ~18% of construction wall-clock at the
+            # 2026-08-17 scale. Pre-filter to type lines by bytes, then hand
+            # that stream to the binding function UNCHANGED: the binding still
+            # computes the expected side, so the producer's compact rows still
+            # never stand on it. Byte filtering only decides which lines the
+            # oracle is shown, never what it concludes from them.
             for path in self.sorted_rdf_paths.values():
                 lines: list[str] = []
                 current_subject: str | None = None
                 subject_count = 0
                 with path.open("r", encoding="utf-8", newline="") as rdf:
                     for line in rdf:
+                        if _RDF_TYPE_PREDICATE_BYTES not in line:
+                            continue
                         subject = line.partition(" ")[0]
                         if subject != current_subject:
                             if subject_count >= _STREAM_CONSTRUCTION_BATCH_SIZE:
@@ -6087,7 +6183,7 @@ class _StreamingGraphSpool:
                                 f"served {role.value} records are not the asserted "
                                 f"{role.value} records; extra={observed['id']}"
                             )
-                        expected_id, payload = expected_line.rstrip("\n").split("\t", 1)
+                        expected_id, _payload = expected_line.rstrip("\n").split("\t", 1)
                         if observed["id"] != expected_id:
                             raise ValueError(
                                 f"served {role.value} records are not the asserted "
@@ -6102,28 +6198,10 @@ class _StreamingGraphSpool:
                                 )
                             payload_rows += 1
                         if position in wanted:
-                            independent = json.loads(payload)["independent"]
-                            error = independent.get("error")
-                            if isinstance(error, Mapping):
-                                if error.get("type") == "AtlasValidationError":
-                                    raise ATLAS_VALIDATE.AtlasValidationError(
-                                        str(error["code"]),
-                                        str(error["detail"]),
-                                    )
-                                exception = (
-                                    TypeError
-                                    if error.get("type") == "TypeError"
-                                    else ValueError
-                                )
-                                raise exception(
-                                    str(
-                                        error.get(
-                                            "detail",
-                                            "independent Parquet comparison failed",
-                                        )
-                                    )
-                                )
-                            expected = _json_restore_binary(independent["row"])
+                            expected = self._independent_row_for_subject(
+                                expected_id,
+                                role,
+                            )
                             if observed != expected:
                                 differing = sorted(
                                     column
@@ -6168,6 +6246,7 @@ class _StreamedConstruction:
     accounting: dict[str, Any]
     compiled_validation: dict[str, Any]
     spool: _StreamingGraphSpool
+    derived: Graph
 
 
 def _copy_subject_facts(source: Graph, target: Graph, subject: URIRef) -> None:
@@ -6627,6 +6706,110 @@ def _stream_mapping_release(
     }
 
 
+def _derived_relation_graph(
+    row: Any,
+) -> Iterable[tuple[URIRef, URIRef, URIRef | Literal]]:
+    """Render one `DerivedRelationRow` as the triples its DerivedRelation carries.
+
+    Placeholder-IRI-then-reidentify is unnecessary here: `row.node_iri` is
+    already the row's own content-derived identity (`build_derived_row`
+    minted it from exactly this fact set), so the node is emitted under its
+    final IRI directly.
+    """
+
+    node = URIRef(row.node_iri)
+    yield (node, RDF.type, ATLAS.DerivedRelation)
+    yield (node, ATLAS.relationSubject, URIRef(row.subject))
+    yield (node, ATLAS.relationPredicate, URIRef(row.predicate))
+    yield (node, ATLAS.relationObject, URIRef(row.object))
+    for evidence in row.evidence:
+        yield (node, ATLAS.derivedFromAssertion, URIRef(evidence))
+    yield (node, ATLAS.semanticRing, URIRef(row.ring))
+    yield (node, ATLAS.derivationRule, URIRef(row.rule_iri))
+    yield (node, ATLAS.engine, URIRef(row.engine_iri))
+    yield (node, ATLAS.engineVersion, Literal(row.engine_version))
+    yield (node, RKAF.inputDigest, Literal(row.input_digest))
+    yield (node, ATLAS.generatedAt, Literal(row.generated_at, datatype=XSD.dateTime, normalize=False))
+    yield (node, ATLAS.contentDigest, Literal(row.content_digest))
+
+
+def _spooled_release_lines(spool: _StreamingGraphSpool, release_key: str) -> Iterable[str]:
+    """Every canonical N-Quads line one already-streamed release wrote.
+
+    Reads back the spool's own accumulation files -- the same bytes that
+    will be sorted and compressed into that release's shipped RDF pack --
+    order-independent, exactly as `refspec.atlas.derived_graph`'s
+    line-based collectors expect. Only valid to call after every batch for
+    ``release_key`` has been appended and its files closed, which is true
+    once `_stream_construct_graphs`'s per-release loop has moved on.
+    """
+
+    token = spool.token_by_key.get(release_key)
+    if token is None:
+        return
+    # Order-independent (see the docstring), so no sort is needed -- and
+    # `PackSpoolKey` partitions can be `None`, which plain `sorted()` over
+    # `(key, path)` pairs cannot compare against a string partition.
+    for key, path in spool.spool_paths.items():
+        if key[0] != token:
+            continue
+        with path.open("r", encoding="utf-8", newline="") as lines:
+            yield from lines
+
+
+def _derive_registered_relations(
+    spool: _StreamingGraphSpool,
+    all_source_releases: Sequence[LoadedRelease],
+    *,
+    generated_at: str,
+) -> tuple[Graph, int]:
+    """Populate the derived graph from every registered rule this build's
+    loaded releases admit.
+
+    REF-042 registers exactly one producer-side rule today (MeSH tree-number
+    broader); FR-compound and GCMD are recorded as the next entries, not
+    wired here. A rule only fires when its source release was actually part
+    of this build, which is what keeps the derived graph opt-in at the
+    release-selection level a bounded/scoped build already has (REF-040's
+    same precedent for the FAST-LCSH S27 reconciliation): a build that never
+    loads ``mesh-descriptors-2026`` never runs this rule and never emits a
+    row for it, exactly like today.
+    """
+
+    derived = Graph()
+    mesh_release = next(
+        (release for release in all_source_releases if release.spec.key == MESH_DESCRIPTORS_RELEASE_KEY),
+        None,
+    )
+    if mesh_release is None:
+        return derived, 0
+    lines = list(_spooled_release_lines(spool, MESH_DESCRIPTORS_RELEASE_KEY))
+    facts = collect_asserted_fact_view(lines)
+    wanted = mesh_tree_number_evidence_nodes(facts)
+    node_digest = collect_node_digests(lines, wanted)
+    context = DerivationContext(
+        facts=facts,
+        node_digest=node_digest,
+        canonical_sha256=ATLAS_VALIDATE.canonical_sha256,
+        generated_at=generated_at,
+    )
+    # The module's own docstring calls this out as the one thing real
+    # wiring must add beyond the synthetic fixture: thread the release's
+    # own asserted relations through, so a future non-empty MeSH relation
+    # set (today it is exactly zero) still refuses a duplicate rather than
+    # silently emitting one.
+    asserted_relations = frozenset(
+        (relation.subject, relation.predicate, relation.object) for relation in mesh_release.relations
+    )
+    outcome = derive_mesh_tree_number_broader_rows(context, asserted_relations=asserted_relations)
+    for row in outcome.rows:
+        for triple in _derived_relation_graph(row):
+            derived.add(triple)
+    if len(set(derived.subjects(RDF.type, ATLAS.DerivedRelation))) != len(outcome.rows):
+        raise ValueError("mesh tree-number derivation produced a duplicate derived-relation identity")
+    return derived, len(outcome.rows)
+
+
 def _stream_construct_graphs(
     releases: list[LoadedRelease],
     mapping_releases: list[RegistryMappingRelease],
@@ -6706,6 +6889,13 @@ def _stream_construct_graphs(
         gc.collect()
 
     spool.append_catalog()
+    _STATUS.phase("derive-registered-relations")
+    derived, derived_relation_count = _derive_registered_relations(
+        spool,
+        all_source_releases,
+        generated_at=prebuild.generation_report["createdAt"],
+    )
+    spool.counts["derivedRelations"] = derived_relation_count
     accounting_rows.sort(key=lambda row: row["sourceRelease"])
     represented = sum(
         disposition["status"] == "represented"
@@ -6779,6 +6969,7 @@ def _stream_construct_graphs(
         accounting=accounting,
         compiled_validation=compiled_validation,
         spool=spool,
+        derived=derived,
     )
 
 
@@ -8638,6 +8829,39 @@ def _write_streamed_candidate_distribution(
         output,
         incremental=incremental,
     )
+    if streamed.derived:
+        # The derived graph never runs through the streaming spool's
+        # compact/Parquet machinery: `COMPACT_ROLES` has no DerivedRelation
+        # role (REF-042 -- non-authoritative rows are deliberately absent
+        # from the compact/Parquet consumer view, only ever visible in the
+        # raw RDF "derived" view pack), so it is written the same way the
+        # non-streamed `BuildGraphs` path already writes it:
+        # `_write_view_pack`, a small standalone RDF pack over one
+        # in-memory graph. Derived rows are always a small fraction of a
+        # distribution's size, so holding them in memory here is not the
+        # streaming concession the asserted content needed.
+        asserted_descriptor = next(row for row in graph_descriptors if row["role"] == "asserted")
+        derived_pack = _write_view_pack(
+            output,
+            role="derived",
+            graph=streamed.derived,
+            asserted_packs=packs,
+            asserted_inventory_digest=asserted_descriptor["inventoryDigest"],
+            incremental=incremental,
+        )
+        if derived_pack is None:
+            raise ValueError("derived graph is non-empty but produced no pack")
+        packs = sorted([*packs, derived_pack], key=lambda pack: pack["packId"])
+        graph_descriptors = [
+            {
+                "id": _ROLE_GRAPH_IDS[role],
+                "inventoryDigest": _graph_inventory_digest(packs, role),
+                "packCount": sum(bool(pack["graphCounts"][role]) for pack in packs),
+                "quadCount": sum(pack["graphCounts"][role] for pack in packs),
+                "role": role,
+            }
+            for role in ("asserted", "projection", "derived")
+        ]
     parquet_parity: dict[str, Any] | None = None
     if parquet_tables is not None:
         streamed.spool.write_parquet(parquet_tables)

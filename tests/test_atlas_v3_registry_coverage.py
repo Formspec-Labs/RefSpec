@@ -48,10 +48,10 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         "atlasIndexRowCount": 111,
         "catalogOnlyDescriptorCount": 18,
         "catalogResourceCount": 115,
-        "implementationModuleCount": 25,
+        "implementationModuleCount": 26,
         "indexedResourceCount": 97,
         "indexedWithoutExactReleaseCount": 92,
-        "registryModuleCount": 85,
+        "registryModuleCount": 86,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the

@@ -13,8 +13,9 @@ number with the last dot-segment removed is therefore a structural
 projection of a publisher fact RefSpec already holds, not an invention --
 but it is still RefSpec's act, not NLM's assertion of ``skos:broader``, so
 under REF-035 tier E5 it belongs only in the derived graph and stays
-opt-in (see REF-041 and the MeSH entry in docs/decisions.md for the
-GCMD-shaped precedent this module follows).
+opt-in (see REF-041's GCMD-shaped precedent, and REF-042 in
+docs/decisions.md for the binding revision and producer wiring that let
+this specific rule ship).
 
 **Verified against the real pinned 2026 release**
 (``sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba``,
@@ -53,18 +54,23 @@ resource-level fact, not a relation assertion, so there is no assertion
 node to cite), and mints the row through :func:`build_derived_row` so its
 identity and input digest match the binding's formula exactly.
 
-Wiring this into a real distribution still requires the same binding
-revision REF-041 records for the GCMD rule: the 3.1 validator's
-``dataset.derived-rule`` check allowlists only
-``urn:ref:rule:skos-exact-match-closure-path`` and its exactMatch-only
-shape, and ``atlas:derivedFromAssertion`` must cite an active *assertion*
-node today, not a ``SourceRecord``. Nothing in this module is imported by
-``tools/generate_atlas_v3_full.py``, and the producer keeps refusing to
-populate the derived graph.
+REF-042 wired this rule end to end: ``bindings/atlas/3.1/tools/validate.py``
+admits ``urn:ref:rule:mesh-tree-number-broader`` as the second entry in
+``_DERIVED_RULE_ADMISSIONS`` (its own row-shape check and whole-set replay,
+alongside exactMatch transitivity's unchanged one), and
+``tools/generate_atlas_v3_full.py``'s ``_derive_registered_relations`` calls
+this module's ``derive_mesh_tree_number_broader_rows`` for real, over the
+already-streamed ``mesh-descriptors-2026`` release, whenever that release is
+part of the build. Verified against the real pinned release through both
+the producer (a bounded ``--only-release mesh-descriptors-2026`` build) and
+the independent validator (which accepted the resulting 42,519-row derived
+graph and reproduced the identical edge set from the asserted graph's own
+``atlas:notation`` facts).
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from refspec.atlas.derived_graph import (
@@ -123,18 +129,17 @@ def _mesh_resources(facts: AssertedFactView) -> frozenset[str]:
     return frozenset(resource for resource, scheme in facts.schemes.items() if scheme == MESH_SCHEME_IRI)
 
 
-def _tree_number_owners(facts: AssertedFactView, mesh_resources: frozenset[str]) -> dict[str, set[str]]:
-    owners: dict[str, set[str]] = {}
-    for resource in mesh_resources:
-        for tree_number in facts.notations.get(resource, ()):
-            owners.setdefault(tree_number, set()).add(resource)
-    return owners
-
-
-def _resolve_edge_pairs(
-    facts: AssertedFactView,
+def resolve_tree_number_edges_from_notations(
+    notations_by_resource: Mapping[str, Iterable[str]],
 ) -> tuple[tuple[tuple[str, str], ...], MeshTreeNumberCounts]:
-    """Resolve every MeSH tree number to its parent descriptor, or count why not.
+    """Resolve every tree number to its parent resource, or count why not.
+
+    The one algorithm both the asserted-fact-view path
+    (:func:`_resolve_edge_pairs`, reading a real spooled N-Quads pass) and
+    the producer's prebuild count (reading in-memory ``RegistryResource``
+    objects before any spool exists) delegate to -- so the row count the
+    prebuild receipt commits to and the row set the streamed build actually
+    emits can never independently drift, because they run the same code.
 
     Returns the distinct, sorted ``(child, parent)`` resource-IRI pairs the
     tree numbers imply, plus the counters that reconcile every tree number
@@ -144,16 +149,18 @@ def _resolve_edge_pairs(
     arithmetic should never produce.
     """
 
-    mesh_resources = _mesh_resources(facts)
-    owners = _tree_number_owners(facts, mesh_resources)
+    owners: dict[str, set[str]] = {}
+    for resource, notations in notations_by_resource.items():
+        for tree_number in notations:
+            owners.setdefault(tree_number, set()).add(resource)
     duplicate_tree_numbers = sum(1 for resources in owners.values() if len(resources) > 1)
 
     roots = 0
     missing_parent = 0
     ambiguous_parent = 0
     pairs: set[tuple[str, str]] = set()
-    for resource in mesh_resources:
-        for tree_number in facts.notations.get(resource, ()):
+    for resource, notations in notations_by_resource.items():
+        for tree_number in notations:
             if "." not in tree_number:
                 roots += 1
                 continue
@@ -180,6 +187,16 @@ def _resolve_edge_pairs(
         duplicate_tree_numbers=duplicate_tree_numbers,
     )
     return tuple(sorted(pairs)), counts
+
+
+def _resolve_edge_pairs(
+    facts: AssertedFactView,
+) -> tuple[tuple[tuple[str, str], ...], MeshTreeNumberCounts]:
+    """Resolve every MeSH tree number to its parent descriptor, or count why not."""
+
+    mesh_resources = _mesh_resources(facts)
+    notations_by_resource = {resource: facts.notations.get(resource, ()) for resource in mesh_resources}
+    return resolve_tree_number_edges_from_notations(notations_by_resource)
 
 
 def resolve_mesh_tree_number_edges(
@@ -337,11 +354,17 @@ def main() -> None:
     facts = collect_asserted_fact_view(lines)
     wanted = mesh_tree_number_evidence_nodes(facts)
     node_digest = collect_node_digests(lines, wanted)
-    context = DerivationContext(facts=facts, node_digest=node_digest, canonical_sha256=canonical_sha256)
+    context = DerivationContext(
+        facts=facts,
+        node_digest=node_digest,
+        canonical_sha256=canonical_sha256,
+        generated_at="2026-01-01T00:00:00+00:00",
+    )
     outcome = derive_mesh_tree_number_broader_rows(context)
     print(f"descriptors={len(release.resources)} lines={len(lines)}")
     print(f"counts={outcome.counts}")
     print(f"edges={len(outcome.rows)}")
+    print(f"sample row={outcome.rows[0]}")
 
 
 if __name__ == "__main__":
@@ -371,4 +394,5 @@ __all__ = [
     "derive_mesh_tree_number_broader_rows",
     "mesh_tree_number_evidence_nodes",
     "resolve_mesh_tree_number_edges",
+    "resolve_tree_number_edges_from_notations",
 ]

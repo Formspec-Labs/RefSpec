@@ -3063,3 +3063,280 @@ tree-number work owns the produce-side plumbing this would eventually
 consume. When the binding gains its second rule, the frozen pins above
 are the acceptance bar: the shipped edge set must regenerate them exactly
 or the rule is not the rule recorded here.
+
+### REF-042: The derived graph gets a rule registry; MeSH tree-number broader is the second entry
+
+- **Date:** 2026-08-18
+- **Status:** Accepted and executed. Numbered REF-042, not REF-041: that
+  number was taken the same day by the GCMD entry above, landed on this
+  branch before this work started (REF-040's own numbering note records
+  the same kind of collision).
+
+**The decision.** `bindings/atlas/3.1/tools/validate.py`'s derived-graph
+gate used to allowlist exactly one `(rule, engine, engineVersion)` tuple by
+direct equality, then run one undifferentiated body of exactMatch-only
+checks against every derived row it saw. `_check_derived` now looks the
+tuple up in `_DERIVED_RULE_ADMISSIONS`, a dict of `_DerivedRuleAdmission`
+records, each naming its own admitted semantic ring(s) and predicate(s),
+its evidence kind (an active `RelationAssertion`, or — new — an active
+`SourceRecord`), a row-shape validator, and a replay/regeneration check
+`_check_reasoning_isolation` dispatches to per rule. A second rule is a
+second entry in that dict, not a second `if` branch woven through the
+first rule's body. The registry, not a rewritten single rule, is what
+REF-041 said this would require.
+
+**Why a registry rather than a second hardcoded branch.** The prior shape
+made "is this rule admitted" and "does this row satisfy exactMatch
+transitivity" one inseparable check. Threading a second rule's shape
+through that check by adding more `or` clauses would have made both rules
+harder to prove correct together than apart, and would have left the
+allowlist itself — the actual security-relevant boundary, "which rule/
+engine/version tuples exist" — implicit in a chain of tuple comparisons
+instead of enumerable. A registry makes the admitted set inspectable
+(`_DERIVED_RULE_ADMISSIONS` is a literal dict a reader can enumerate) and
+makes each rule's contract — ring, predicate, evidence kind, row shape,
+replay — a value instead of control flow.
+
+**The exactMatch-transitivity rule did not change behavior.** Its row-shape
+body (canonical IRI ordering, the one-exact-simple-path proof over cited
+`skos:exactMatch` edges, the reflexive/duplicate-edge refusals) was moved
+verbatim into `_validate_exact_match_transitivity_row`; its OWL-RL replay
+body was moved verbatim into `_replay_exact_match_transitivity`. Neither
+function's internal logic differs from the code it replaced by one token —
+only its indentation and the names of the two functions it now lives in.
+The proof that this held is direct, not asserted: the full existing
+conformance corpus (136 cases, committed before this work) was rerun
+against the refactored validator unchanged and passed every case with the
+same accept/reject verdict and the same `firstIssue` failure code, and
+`tests/test_atlas_v3_binding.py` and `tests/test_atlas_v3_validator_regressions.py`
+passed unchanged (184 tests, 0 failures — one fixture needed a
+`derivationRule`/`engine`/`engineVersion` triple it had never needed
+before, because `_check_reasoning_isolation` now has to know which rule a
+node uses before it can decide how to replay it; that is new information
+the dispatch itself requires, not new behavior of the exactMatch rule).
+`firstIssue` pins a failure *code*, never message text, which is what let
+several checks move to a different point in the function without changing
+what any existing fixture proves.
+
+**What the contract now admits.** A derived row whose rule is
+`urn:ref:rule:mesh-tree-number-broader`, engine
+`https://refspec.org/code/atlas-v3-derived-mesh-tree-numbers`, engine
+version `"1"`; ring `atlas:subject`; predicate `skos:broader`; exactly two
+cited `atlas:SourceRecord` inputs whose `atlas:representsResource` targets
+are exactly the row's own subject and object; and whose subject and object
+each carry an `atlas:notation` such that one of the subject's notations,
+with its final dot-segment removed, equals one of the object's notations.
+Evidence citation widened from "an active `RelationAssertion`" to "an
+active `RelationAssertion` *or* an active `SourceRecord`, per the citing
+rule's own declared evidence kind" — `atlas:derivedFromAssertion` never had
+an `rdfs:range` (its comment already says the target type "is checked by
+the dataset validator rather than inferred into the derived graph"), so
+this widening is a validator change, not an ontology change.
+`ontology/atlas.ttl`, `shapes/atlas.shacl.ttl`, and
+`registry-resource-profiles.json` are byte-identical to what they were
+before this work: `skos:broader` was already an admitted
+`NativeRelationAssertion` predicate for the subject ring (LCSH's 301,442
+native `skos:broader` statements from REF-040 already needed it), and
+`atlas:generatedAt`/`atlas:derivedFromAssertion`/the rest of
+`DerivedRelationShape` already had the shape a second rule needed.
+**What it still refuses.** Every other rule/engine/version tuple; a
+MeSH-shaped row for any ring or predicate other than
+`atlas:subject`/`skos:broader`; a row citing anything other than exactly
+two `SourceRecord`s representing its own endpoints; a row whose notations
+do not actually resolve the claimed parent; and — generalized, not
+special-cased — a row duplicating an asserted relation *or its predicate's
+mirror*, where the exactMatch rule's mirror is itself (symmetric) and the
+new rule's mirror is `skos:narrower` (`skos:broader`'s SKOS-defined
+inverse). The duplicate-of-asserted check that used to read
+`predicate == SKOS.exactMatch` now reads
+`admission.mirror_predicate`, which is `SKOS.exactMatch` for the first
+rule and `SKOS.narrower` for the second — the same check, parameterized,
+not two checks.
+
+**The replay asymmetry is real and intentional.** `_check_reasoning_isolation`
+dispatches per rule too, but the two rules' replays are not shaped the
+same way. exactMatch transitivity replays *locally*, per row, over only
+that row's own cited inputs, under a pinned OWL-RL reasoner — because
+REF-035 already ruled that RefSpec never asserts the full transitive
+closure over an open-ended mapping graph; only specific requested rows are
+ever materialized, so there is no fixed "whole closure" to regenerate and
+diff against. MeSH tree-number broader is the opposite shape: it is a
+closed, one-release projection with a definite total edge count, so
+`_replay_mesh_tree_number_broader` recomputes the *complete* expected
+`(child, parent)` pair set from the asserted graph's own `atlas:notation`
+facts once, and requires the shipped MeSH-rule row set to equal it exactly
+— not "each row replays," but "the set is the set." A row naming an
+ambiguous or missing parent can never appear in the expected set, so it
+cannot survive this check by accident; the row-level check
+(`_validate_mesh_tree_number_broader_row`) proves each row locally from
+only its own two cited source records, matching the exactMatch rule's "prove
+it from what this row cites" discipline, and the whole-of-rule replay
+proves the set has no gaps and no guesses. Both are "regenerate from the
+asserted graph and require the identical result"; they differ only in
+whether "the asserted graph" for that proof is the row's own cited slice or
+the whole release, because one rule's admitted output is unbounded and the
+other's is not.
+
+**MeSH counts and anomalies.** Verified against the same pinned 2026
+release `mesh_tree_numbers.py` already carried the frozen pins for
+(`sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba`,
+31,110 descriptors, 65,360 tree numbers): 115 root tree numbers (no dot,
+no parent by construction); 42,519 derived `skos:broader` edges (fewer
+than 65,245 non-root tree numbers because a descriptor with several tree
+numbers under one parent yields one edge to it, and 9,349 descriptors are
+true MeSH polyhierarchy — multiple tree numbers under distinct parents,
+yielding multiple edges); zero missing-parent anomalies and zero
+ambiguous-parent anomalies in this release (both counted, never guessed,
+so a future annual release that is not this clean fails loudly rather than
+silently mis-deriving); three tree numbers each carried by two descriptors
+at once (a bacterial reclassification artifact), counted as
+`duplicateTreeNumbers` and confirmed to never actually gate an edge in
+this release. These are the same figures REF-041's GCMD-precedent
+commentary already recorded for this module; nothing here changed them —
+this entry is what let the binding admit them.
+
+**Corpus cases.** Five new entries in `REQUIRED_CORPUS_CASES` (136 → 141;
+122 → 126 invalid), each proving the registry bites where the mission asked:
+
+1. `mesh-tree-number-broader` — the positive case. A real MeSH-shaped
+   derived row (two ordinary `SubjectConcept`s, tree numbers `C14.280` and
+   `C14.280.647`, no asserted relation between them) validates end to end.
+2. `mesh-tree-number-unallowlisted-rule` — the exactMatch row's own
+   `derivationRule` rewritten to an unregistered IRI; `dataset.derived-rule`.
+3. `mesh-tree-number-wrong-predicate` — the MeSH rule, `skos:related`
+   instead of `skos:broader`. `skos:related` is itself an admitted native
+   relation predicate for the subject ring (other rows use it), so this
+   only bites if the per-rule admitted-predicate check runs, not the
+   ring-level one; `dataset.derived-rule`.
+4. `mesh-tree-number-malformed-inputs` — one cited `SourceRecord` instead
+   of two. Passes the common active-input-superset check (it is a real,
+   active source record) and is caught only by the rule's own row-shape
+   check; `dataset.derived-rule`.
+5. `mesh-tree-number-duplicates-asserted` — an asserted
+   `(parent, skos:narrower, child)` `NativeRelationAssertion` alongside a
+   derived `(child, skos:broader, parent)` row: the mirror-predicate
+   generalization, not the direct-duplicate path the exactMatch rule
+   already exercised. `dataset.derived-authority`.
+
+`_base_fixture()` gained one inert MeSH-shaped resource pair (raw
+material: tree numbers, no relation, no derived row) that the 136
+pre-existing cases never cite, so their own single derived node
+(exactMatch) and every count a mutation depends on stayed put; only the
+five new mutations add a MeSH-rule row over that pair. `all-resource-profiles`'
+own counts moved as a direct consequence (`resources` 12 → 14, `labels` 12
+→ 14, `sourceRecords` 12 → 14, `releases` 10 → 11, `quadCount` 1020 → 1088)
+— `derivedRelations` stayed at 1, because the baseline valid case still
+carries only the original exactMatch row.
+
+**Producer.** `tools/generate_atlas_v3_full.py` stops declaring
+`"derivedRelations": 0` unconditionally in two places: the prebuild
+row-count receipt (`_validate_compiled_producer_rows`) and the streamed
+build's aggregate-count refusal
+(`_reconcile_prebuild_construction_counts`, which used to refuse outright
+if either projection or derived counts were nonzero — it now refuses only
+on projection, still out of scope). `_expected_derived_relation_count`
+computes the real expected count straight from the loaded, in-memory
+`LoadedRelease` resources — no spool exists yet at that point in the
+build — by calling `resolve_tree_number_edges_from_notations`, the pure
+function `src/refspec/atlas/derived_graph/mesh_tree_numbers.py` now
+exposes so the prebuild receipt and the post-streaming derivation share
+one algorithm instead of two that could drift apart. After all source and
+mapping releases are streamed and spooled, `_derive_registered_relations`
+reads `mesh-descriptors-2026`'s own already-spooled canonical N-Quads
+lines back off disk — the same bytes the shipped RDF pack will be sorted
+and compressed from — through the shared, package-level
+`refspec.atlas.derived_graph` machinery
+(`collect_asserted_fact_view`/`collect_node_digests`/
+`derive_mesh_tree_number_broader_rows`), and threads the release's own
+(empty, today) asserted-relations set through as the module's docstring
+said real wiring would have to. The resulting rows are rendered into one
+small in-memory graph and written as a standalone RDF "view" pack via
+`_write_view_pack` — the same function the non-streamed `BuildGraphs` path
+already used for projection and derived content — because the streaming
+spool's compact/Parquet machinery
+(`_StreamingGraphSpool.append_graph`, `COMPACT_ROLES`) has no
+`DerivedRelation` role and was never meant to: non-authoritative rows are
+deliberately absent from the compact/Parquet consumer view, visible only
+in the raw RDF "derived" pack. A build that never loads
+`mesh-descriptors-2026` — including every bounded `--only-release` build
+that omits it — never runs this rule and emits nothing for it, which is
+what keeps the derived graph opt-in at exactly the release-selection
+granularity a scoped build already has, the same precedent REF-040 used
+for the FAST-LCSH S27 reconciliation. `_production_relation_scope_from_counts`
+no longer refuses a nonzero `derivedRelations` count: the only code path
+that can ever populate one is `_derive_registered_relations`, which only
+ever runs a rule the binding's own `_DERIVED_RULE_ADMISSIONS` admits, so a
+count reaching that scope function is already rule-admitted by
+construction. Verified end to end with a bounded `--only-release
+mesh-descriptors-2026` build against the real, pinned 2026 release (74.2s
+total against a 56.7s unwired baseline: the derivation pass reading back
+the already-spooled ~1.27M-line pack and deriving 42,519 rows takes 8.1s,
+the rest is writing the additional pack) rather than the ~3-hour full
+build this task was told not to run. The independent standalone validator
+then ran against that same real bounded distribution — not a synthetic
+fixture — and passed every gate including `check-derived-graph` and
+`check-reasoning-isolation`'s whole-set regeneration proof over the real
+42,519 rows, confirming `"derivedRelations":42519` in its own count
+receipt.
+
+`tests/test_producer_prebuild_validation.py`'s
+`test_default_prebuild_refuses_each_mutated_semantic_aggregate` used to
+assert that mutating *any* aggregate field, `derivedRelations` included,
+made `_reconcile_prebuild_construction_counts` raise. `derivedRelations`
+is dropped from that parametrization here, with the reason recorded
+in-line: that function's actual job is reconciling the eight logical
+construction-record roles, which never included `derivedRelations` (only
+its former "must be exactly zero" scope guard touched it, and only
+`projectedRelations` keeps that guard now). A wrong `derivedRelations`
+expected count is still caught — by `_stream_construct_graphs`'s own
+`spool.counts != prebuild.compiled_rows.expected_counts` comparison, which
+`test_streamed_whole_graph_refusal_probe[count-mismatch]` already proves
+refuses a mismatched aggregate generically, independent of which field
+carries the mismatch.
+
+**Digests.** `contractDigest` — the hash of `ontology.ttl`,
+`shapes/atlas.shacl.ttl`, `registry-resource-profiles.json`,
+`tests/registry-coverage.json`, `tests/registry-descriptors.json`, and
+`tests/registry-descriptors.nq` — did **not** move: none of those six
+files changed, confirmed by direct byte comparison and by
+`ATLAS_VALIDATE._binding_digests()["contractDigest"]` computing the
+identical value before and after this work. What moved: the binding-tool
+digest (`validate.py` and `build_fixtures.py` changed, so
+`_binding_tool_digest()`'s hash of `BINDING_TOOL_PATHS` moved, which is
+the cache-invalidation key, not conformance identity — see the commentary
+at `validate.py:118-149` and REF-029 for why those are deliberately two
+different digests); `corpus_digest()` (`fixtures/corpus.json`'s own hash,
+now 141 cases); and `fixtures-receipt.json`'s `fixturesDigest`, rebuilt and
+repinned by running `bindings/atlas/3.1/tools/build_fixtures.py` (the
+house process for regenerating the gitignored fixture tree), which this
+work already required for the five new corpus cases regardless of the
+producer or registry changes. One more thing moved that this work did not
+cause: `fixtures-receipt.json`'s recorded digests for
+`tests/registry-coverage.json` and `tests/registry-descriptors.json` were
+already wrong before this work started — REF-040 (`657d1b85`) changed
+those two files without a fixture rebuild to match, and the stale receipt
+shipped on this branch's starting commit. Rebuilding the fixtures to add
+the five new corpus cases incidentally corrected that pre-existing drift;
+it is called out here so it is not mistaken for something this entry's
+registry or producer work moved.
+
+**Next entries.** FR-compound and GCMD are still not registered rules.
+GCMD's judgment, derivation, and frozen pins already shipped in REF-041
+and are unchanged by this entry; its acceptance bar (regenerate the frozen
+edge set exactly) still applies whenever it becomes the registry's third
+entry. The Federal Register compound-heading rule
+(`tools/atlas_v3_derived_fr_compound.py`) has WIP scaffolding in-tree but
+no decisions-ledger entry of its own yet; registering either as a third
+`_DERIVED_RULE_ADMISSIONS` entry is future work this entry does not do.
+
+**Deliberately not done.** No new build mode, CLI flag, or opt-in switch
+was added to the producer — the derived graph's opt-in property is
+structural (a separate graph role a consumer may ignore) and, now,
+release-selection-scoped (a rule only fires when its source release is
+loaded), not a flag a caller has to remember to pass. Projection stays
+exactly as refused as before; only derived relations were unblocked. No
+existing corpus case's fixture bytes were regenerated for reasons other
+than the five new cases and the pre-existing registry-coverage/descriptors
+drift above — the exactMatch rule's own fixtures are the same bytes they
+were, just reissued under a validator whose behavior this entry proves is
+identical.

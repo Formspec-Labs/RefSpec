@@ -2136,7 +2136,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 1020
+    assert result["quadCount"] == 1088
     assert result["inferredMappingCount"] == 7
 
 
@@ -2148,7 +2148,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 1020
+    assert result["quadCount"] == 1088
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -2263,7 +2263,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 901
+    assert result["quadCount"] == 967
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(
@@ -3277,6 +3277,11 @@ def test_reasoning_isolation_sends_only_mapping_triples_to_owl(
     derived.add((derived_node, ATLAS.relationObject, target))
     derived.add((derived_node, ATLAS.derivedFromAssertion, first_assertion))
     derived.add((derived_node, ATLAS.derivedFromAssertion, second_assertion))
+    derived.add((derived_node, ATLAS.derivationRule, atlas_validate.EXACT_MATCH_TRANSITIVITY_RULE))
+    derived.add((derived_node, ATLAS.engine, atlas_validate.DERIVATION_ENGINE))
+    derived.add(
+        (derived_node, ATLAS.engineVersion, Literal(atlas_validate.DERIVATION_ENGINE_VERSION))
+    )
     captured: dict[str, Any] = {}
 
     class CapturingClosure:

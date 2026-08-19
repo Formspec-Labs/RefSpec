@@ -572,16 +572,39 @@ editorial mapping query. Applications opt into derived relations explicitly.
 
 The derived input digest is SHA-256 over canonical REF JSON without a terminal
 LF: `{"assertions":[{"assertion":<IRI>,"contentDigest":<digest>},...]}` with
-rows sorted by assertion IRI. The 3.0 baseline allowlists only
-`urn:ref:rule:skos-exact-match-closure-path` executed by `owlrl` 7.1.4. Every
-input MUST be a terminal current exact-match assertion. The output endpoints
-MUST be distinct, the cited undirected exact-match edges MUST form one simple
-path of at least two edges with no branches, cycles, duplicates, or unused
-inputs, and the output MUST NOT already have a directly asserted projection.
-The validator recomputes the input digest, checks endpoint existence and rings,
-pins the engine, and replays that exact proof path. A separate pinned `owlrl`
-closure then confirms that every derived output is a newly inferred mapping,
-not a direct projection relation.
+rows sorted by assertion IRI. Which `(rule, engine, engineVersion)` tuples a
+distribution may use is a registry (`validate.py`'s
+`_DERIVED_RULE_ADMISSIONS`), not one hardcoded tuple: each entry names its own
+admitted semantic ring(s) and predicate(s), evidence kind, row-shape check,
+and replay. Two rules are registered as of REF-042 (`docs/decisions.md`).
+
+`urn:ref:rule:skos-exact-match-closure-path`, executed by `owlrl` 7.1.4, is
+ring `atlas:subject`, predicate `skos:exactMatch`, and every input MUST be a
+terminal current exact-match assertion. The output endpoints MUST be
+distinct, the cited undirected exact-match edges MUST form one simple path of
+at least two edges with no branches, cycles, duplicates, or unused inputs,
+and the output MUST NOT already have a directly asserted projection (nor, for
+this predicate specifically, its symmetric form asserted in the opposite
+direction). The validator recomputes the input digest, checks endpoint
+existence and rings, pins the engine, and replays that exact proof path. A
+separate pinned `owlrl` closure then confirms that every derived output is a
+newly inferred mapping, not a direct projection relation.
+
+`urn:ref:rule:mesh-tree-number-broader`, executed by this binding's own code
+(`https://refspec.org/code/atlas-v3-derived-mesh-tree-numbers` version `"1"`),
+is ring `atlas:subject`, predicate `skos:broader`, and every input MUST be
+exactly two active `atlas:SourceRecord`s whose `atlas:representsResource`
+targets are exactly the row's own subject and object. The subject's own
+`atlas:notation` values MUST include one that, with its final dot-segment
+removed, equals one of the object's own `atlas:notation` values, and the
+output MUST NOT already have a directly asserted projection or its SKOS
+inverse (`skos:narrower`) asserted in the opposite direction. Because this
+rule's admitted output is a closed, one-release projection rather than an
+open-ended closure, its replay is not row-local: the validator regenerates
+the *complete* expected `(child, parent)` edge set from the asserted graph's
+own `atlas:notation` facts and requires the shipped row set to equal it
+exactly, catching a missing edge or a guessed ambiguous parent that a
+per-row replay alone could not.
 
 `skos:exactMatch` retains its W3C semantics. A producer that does not accept
 transitive consequences SHOULD use `skos:closeMatch` or a ring-specific Atlas

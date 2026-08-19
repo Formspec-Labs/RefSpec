@@ -1107,6 +1107,16 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
 
 
 SOURCE_BLOCKERS: dict[str, list[str]] = {
+    "gcmd_science_keywords_hierarchy.py": [
+        (
+            "REF-041 derivation reader: it re-reads the CSV gcmd_science_keywords.py "
+            "already pins and acquires nothing of its own, so it consumes no publisher "
+            "capture under its own name. Its edges cannot ship until the derived graph "
+            "admits a GCMD rule (REF-042 built the registry; the rule is not registered "
+            "yet), at which point this reader is exercised through that rule's own "
+            "reproduction check rather than a separate pin."
+        )
+    ],
     "eurovoc_organization_experiment.py": [
         (
             "Experiment reads injected archive and metadata paths; its tests exercise "

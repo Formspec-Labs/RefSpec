@@ -87,7 +87,7 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["nonAuthorizing"] is True
     assert index["summary"] == {
         "exactReleaseCount": 6,
-        "implementationModuleCount": 25,
+        "implementationModuleCount": 26,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
         # REF-035 through REF-037 add the mapping and acquisition bridges.

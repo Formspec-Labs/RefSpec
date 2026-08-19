@@ -16,19 +16,29 @@ This package is the producer-side half of that machinery:
 * one derivation rule today: the MeSH tree-number hierarchy
   (:mod:`refspec.atlas.derived_graph.mesh_tree_numbers`), which derives
   ``skos:broader`` edges between MeSH descriptors from the tree numbers
-  NLM published and RefSpec already captures as ``atlas:notation``.
+  NLM published and RefSpec already captures as ``atlas:notation``. It is
+  wired into the producer (``tools/generate_atlas_v3_full.py``,
+  ``_derive_registered_relations``) and admitted by the binding
+  (``bindings/atlas/3.1/tools/validate.py``,
+  ``_DERIVED_RULE_ADMISSIONS``) as of REF-042 (``docs/decisions.md``).
 
 **Extension point for additional rules.** A new rule is one module in
 this package that builds a :class:`DerivationRule`, plus two deliberate
 registration lines at the bottom of this ``__init__`` (see the mesh
 registration below), plus one allowlist entry in the binding validator
-(``bindings/atlas/3.1/tools/validate.py``, ``_DERIVED_RULES``) carrying
-the same rule/engine/engine-version tuple and the rule's replay check.
-Registration here is necessary but not sufficient: the producer only
-populates rows for rules the binding's ``derived_rule_admission()``
-admits, so a rule registered without its binding entry refuses loudly in
-the generation receipt instead of shipping rows no validator will
-accept.
+(``bindings/atlas/3.1/tools/validate.py``, ``_DERIVED_RULE_ADMISSIONS``)
+carrying the same rule/engine/engine-version tuple, its admitted ring(s)
+and predicate(s), its evidence kind, and its own row-shape and replay
+checks -- the binding does not import this package (it stays a portable,
+standalone validator), so the two sides are kept in sync by tests that
+compare the literal constants, not by a shared import. Registration here
+is necessary but not sufficient: the producer only populates rows for
+rules whose source release was actually part of the build AND that the
+binding's own registry admits (`tools/generate_atlas_v3_full.py` does not
+consult the binding either; a rule wired into the producer without its
+binding allowlist entry would ship rows the validator refuses, which is
+exactly the failure mode REF-042's corpus cases prove the registry
+catches).
 """
 
 from __future__ import annotations
@@ -36,7 +46,6 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
 
 EVIDENCE_INPUT_ASSERTION = "assertion"
 EVIDENCE_INPUT_SOURCE_RECORD = "sourceRecord"
@@ -45,6 +54,31 @@ ATLAS_NOTATION_TERM = "<https://refspec.org/ns/atlas/v3#notation>"
 ATLAS_IN_SCHEME_TERM = "<https://refspec.org/ns/atlas/v3#inScheme>"
 ATLAS_REPRESENTS_RESOURCE_TERM = "<https://refspec.org/ns/atlas/v3#representsResource>"
 ATLAS_SEMANTIC_RING_TERM = "<https://refspec.org/ns/atlas/v3#semanticRing>"
+
+# The DerivedRelation record shape itself -- every predicate a derived row
+# carries, in the same terms `rdf_node_digest` would render them in if the
+# row were built as an actual rdflib graph. `build_derived_row` renders these
+# directly as strings instead of constructing a Graph: every value that
+# lands here is either an IRI already read off the asserted graph (so already
+# proven free of characters the canonical profile forbids) or a digest/version
+# string this module itself mints, so the escaping `ntriples_term` would apply
+# is always the identity transform. `test_mesh_tree_numbers.py`
+# (`test_content_digest_matches_an_actual_rdflib_render`) proves that
+# equivalence against the real `rdf_canonical.ntriples_term`, not just by
+# argument.
+RDF_TYPE_TERM = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
+ATLAS_DERIVED_RELATION_TERM = "<https://refspec.org/ns/atlas/v3#DerivedRelation>"
+ATLAS_RELATION_SUBJECT_TERM = "<https://refspec.org/ns/atlas/v3#relationSubject>"
+ATLAS_RELATION_PREDICATE_TERM = "<https://refspec.org/ns/atlas/v3#relationPredicate>"
+ATLAS_RELATION_OBJECT_TERM = "<https://refspec.org/ns/atlas/v3#relationObject>"
+ATLAS_DERIVED_FROM_ASSERTION_TERM = "<https://refspec.org/ns/atlas/v3#derivedFromAssertion>"
+ATLAS_DERIVATION_RULE_TERM = "<https://refspec.org/ns/atlas/v3#derivationRule>"
+ATLAS_ENGINE_TERM = "<https://refspec.org/ns/atlas/v3#engine>"
+ATLAS_ENGINE_VERSION_TERM = "<https://refspec.org/ns/atlas/v3#engineVersion>"
+ATLAS_GENERATED_AT_TERM = "<https://refspec.org/ns/atlas/v3#generatedAt>"
+RKAF_INPUT_DIGEST_TERM = "<https://rulespec.org/ns/v1#inputDigest>"
+XSD_DATETIME_IRI = "http://www.w3.org/2001/XMLSchema#dateTime"
+
 _ATLAS_SELF_DIGEST_TERMS = frozenset(
     {
         "<https://refspec.org/ns/atlas/v3#contentDigest>",
@@ -60,9 +94,21 @@ class DerivedRelationRow:
     """One fully identified derived-relation record, pre-rendering.
 
     ``input_digest`` follows the binding's derived input digest formula
-    (canonical REF JSON over the cited evidence rows, no terminal LF) and
-    ``content_digest``/``node_iri`` pin the record's content-derived
-    identity, so the row is reproducible from the asserted graph alone.
+    (canonical REF JSON over the cited evidence rows, no terminal LF).
+    ``content_digest``/``node_iri`` follow the binding's OTHER identity
+    formula instead: `rdf_node_digest` -- the sha256 of this row's own
+    sorted, rendered ``predicate object .`` facts (every property below
+    plus ``rdf:type atlas:DerivedRelation``, excluding the self-digest
+    predicates), exactly as `build_fixtures.py` already mints the
+    exactMatch-transitivity row's identity. A row that used a different
+    formula would still satisfy every check the 3.1 validator runs today
+    (it only checks that the IRI and the stored digest agree with each
+    other, not that the digest is THE canonical one), but it would mint
+    derived-relation identity two different ways for two different rules,
+    which is the kind of unforced inconsistency this package exists to
+    rule out. `test_content_digest_matches_an_actual_rdflib_render` in
+    ``tests/test_mesh_tree_numbers.py`` proves the two formulas agree byte
+    for byte against the real `rdf_canonical.ntriples_term` renderer.
     """
 
     rule_iri: str
@@ -74,6 +120,7 @@ class DerivedRelationRow:
     ring: str
     evidence: tuple[str, ...]
     input_digest: str
+    generated_at: str
     content_digest: str
     node_iri: str
 
@@ -112,13 +159,21 @@ class DerivationContext:
 
     ``node_digest`` maps evidence node IRI to the binding-formula
     content digest of that node's asserted facts; ``canonical_sha256``
-    is the binding's canonical-JSON digest (no terminal LF) so row
-    identities match what the validator recomputes.
+    is the binding's canonical-JSON digest, called with ``terminal_lf``
+    as a keyword so callers must accept it exactly as
+    ``validate.canonical_sha256`` does. ``generated_at`` is
+    one ISO 8601 timestamp with an explicit offset, shared by every row
+    one derivation run produces -- `atlas:generatedAt` is a required,
+    single-valued property of `atlas:DerivedRelation`
+    (``shapes/atlas.shacl.ttl``), so a producer run mints exactly one and
+    stamps every row it emits with it, the same way a single build stamps
+    every resource it touches with one `atlas:AtlasRelease`.
     """
 
     facts: AssertedFactView
     node_digest: Mapping[str, str]
-    canonical_sha256: Callable[[Any], str]
+    canonical_sha256: Callable[..., str]
+    generated_at: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,6 +225,61 @@ def reset_derivation_rule_registry() -> None:
         register_derivation_rule(rule)
 
 
+def _derived_row_content_digest(
+    *,
+    rule: DerivationRule,
+    subject: str,
+    predicate: str,
+    obj: str,
+    ring: str,
+    inputs: tuple[str, ...],
+    input_digest: str,
+    generated_at: str,
+) -> str:
+    """The binding's OTHER identity formula: hash this row's own facts.
+
+    Mirrors `rdf_node_digest` exactly -- sorted, rendered
+    ``predicate object .`` rows over every fact this record would carry
+    as an actual RDF node (including its own `rdf:type`), excluding the
+    self-digest predicates -- without building an rdflib graph to get
+    there. Every value substituted below is either an IRI already read
+    off the asserted graph (so already proven free of characters the
+    canonical profile forbids) or a digest/version/timestamp string this
+    module mints itself in a form `ntriples_term` renders unchanged, so
+    string-formatting the term text here and asking `rdf_canonical` to do
+    it are the same operation.
+    """
+
+    facts = [
+        (RDF_TYPE_TERM, ATLAS_DERIVED_RELATION_TERM),
+        (ATLAS_RELATION_SUBJECT_TERM, f"<{subject}>"),
+        (ATLAS_RELATION_PREDICATE_TERM, f"<{predicate}>"),
+        (ATLAS_RELATION_OBJECT_TERM, f"<{obj}>"),
+        (ATLAS_SEMANTIC_RING_TERM, f"<{ring}>"),
+        (ATLAS_DERIVATION_RULE_TERM, f"<{rule.rule_iri}>"),
+        (ATLAS_ENGINE_TERM, f"<{rule.engine_iri}>"),
+        (ATLAS_ENGINE_VERSION_TERM, f'"{rule.engine_version}"'),
+        (RKAF_INPUT_DIGEST_TERM, f'"{input_digest}"'),
+        (ATLAS_GENERATED_AT_TERM, f'"{generated_at}"^^<{XSD_DATETIME_IRI}>'),
+        *((ATLAS_DERIVED_FROM_ASSERTION_TERM, f"<{node}>") for node in inputs),
+    ]
+    rows = sorted(f"{predicate_term} {object_term} ." for predicate_term, object_term in facts)
+    return "sha256:" + hashlib.sha256(("\n".join(rows) + "\n").encode("utf-8")).hexdigest()
+
+
+def _require_offset_datetime(value: str, *, label: str) -> None:
+    """Refuse a timestamp `_rdf_datetime` would refuse: no naive datetimes."""
+
+    from datetime import datetime
+
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{label} is not a valid ISO 8601 datetime: {value!r}") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{label} must include an explicit timezone offset: {value!r}")
+
+
 def build_derived_row(
     *,
     rule: DerivationRule,
@@ -188,6 +298,9 @@ def build_derived_row(
     evidence is a source record rather than a relation assertion: the
     formula is part of the derived-record contract, and widening what a
     row may cite does not change how the cited rows are hashed.
+
+    The content digest -- and the node IRI minted from it -- follows the
+    OTHER formula instead: see `_derived_row_content_digest`.
     """
 
     inputs = tuple(sorted(set(evidence)))
@@ -198,24 +311,24 @@ def build_derived_row(
         raise ValueError(
             f"{rule.rule_iri} derived row {subject} cites evidence with no retained digest: {missing[0]}"
         )
+    _require_offset_datetime(context.generated_at, label=f"{rule.rule_iri} derived row {subject} generatedAt")
     input_digest = context.canonical_sha256(
         {
             "assertions": [
                 {"assertion": node, "contentDigest": context.node_digest[node]} for node in inputs
             ]
-        }
+        },
+        terminal_lf=False,
     )
-    content_digest = context.canonical_sha256(
-        {
-            "engine": rule.engine_iri,
-            "engineVersion": rule.engine_version,
-            "inputs": list(inputs),
-            "object": obj,
-            "predicate": predicate,
-            "ring": ring,
-            "rule": rule.rule_iri,
-            "subject": subject,
-        }
+    content_digest = _derived_row_content_digest(
+        rule=rule,
+        subject=subject,
+        predicate=predicate,
+        obj=obj,
+        ring=ring,
+        inputs=inputs,
+        input_digest=input_digest,
+        generated_at=context.generated_at,
     )
     return DerivedRelationRow(
         rule_iri=rule.rule_iri,
@@ -227,6 +340,7 @@ def build_derived_row(
         ring=ring,
         evidence=inputs,
         input_digest=input_digest,
+        generated_at=context.generated_at,
         content_digest=content_digest,
         node_iri="urn:ref:atlas-derived:" + content_digest.removeprefix("sha256:"),
     )
@@ -431,12 +545,24 @@ register_derivation_rule(MESH_TREE_NUMBER_BROADER_RULE)
 _BUILTIN_RULES = (MESH_TREE_NUMBER_BROADER_RULE,)
 
 __all__ = [
+    "ATLAS_DERIVATION_RULE_TERM",
+    "ATLAS_DERIVED_FROM_ASSERTION_TERM",
+    "ATLAS_DERIVED_RELATION_TERM",
+    "ATLAS_ENGINE_TERM",
+    "ATLAS_ENGINE_VERSION_TERM",
+    "ATLAS_GENERATED_AT_TERM",
     "ATLAS_IN_SCHEME_TERM",
     "ATLAS_NOTATION_TERM",
+    "ATLAS_RELATION_OBJECT_TERM",
+    "ATLAS_RELATION_PREDICATE_TERM",
+    "ATLAS_RELATION_SUBJECT_TERM",
     "ATLAS_REPRESENTS_RESOURCE_TERM",
     "ATLAS_SEMANTIC_RING_TERM",
     "EVIDENCE_INPUT_ASSERTION",
     "EVIDENCE_INPUT_SOURCE_RECORD",
+    "RDF_TYPE_TERM",
+    "RKAF_INPUT_DIGEST_TERM",
+    "XSD_DATETIME_IRI",
     "AssertedFactView",
     "DerivationContext",
     "DerivationRule",

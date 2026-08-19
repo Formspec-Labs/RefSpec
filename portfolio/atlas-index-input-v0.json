@@ -8,6 +8,7 @@
     "refspec.registry.adapters.icpsr_zyte",
     "refspec.registry.claim_release_exports",
     "refspec.registry.entity_registry_release",
+    "refspec.registry.gcmd_science_keywords_hierarchy",
     "refspec.registry.infrastructure.artifact_serialization",
     "refspec.registry.infrastructure.controlled_identifier",
     "refspec.registry.infrastructure.identifier_validation",

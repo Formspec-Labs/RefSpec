@@ -3544,7 +3544,7 @@ def test_mapping_evidence_archive_preserves_all_exact_proof_bytes() -> None:
         assert descriptor["sha256"] == ("sha256:" + hashlib.sha256(payload).hexdigest())
 
 
-def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() -> None:
+def test_production_relation_scope_allows_pinned_mappings_and_registered_derived() -> None:
     clean = generator.BuildGraphs(Graph(), Graph(), Graph(), {})
     assert generator._production_relation_scope(clean) == {
         "derivedRelations": 0,
@@ -3566,6 +3566,10 @@ def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() 
         "mode": "sourceClaimsAndEvidenceBackedMappings",
     }
 
+    # REF-042: a nonzero derivedRelations count is no longer refused here.
+    # The only path that ever populates it is `_derive_registered_relations`,
+    # which only ever runs a binding-admitted rule, so this scope records
+    # the count instead of gating it a second time.
     derived = generator.BuildGraphs(Graph(), Graph(), Graph(), {})
     derived.derived.add(
         (
@@ -3574,8 +3578,11 @@ def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() 
             generator.ATLAS.DerivedRelation,
         )
     )
-    with pytest.raises(ValueError, match="zero derived relations"):
-        generator._production_relation_scope(derived)
+    assert generator._production_relation_scope(derived) == {
+        "derivedRelations": 1,
+        "mappingAssertions": 0,
+        "mode": "sourceClaimsAndEvidenceBackedMappings",
+    }
 
 
 def test_recursive_english_normalization_covers_complete_elsst_profile() -> None:

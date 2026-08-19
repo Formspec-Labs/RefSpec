@@ -9,6 +9,7 @@
     "refspec.registry.adapters.icpsr_zyte",
     "refspec.registry.claim_release_exports",
     "refspec.registry.entity_registry_release",
+    "refspec.registry.gcmd_science_keywords_hierarchy",
     "refspec.registry.infrastructure.artifact_serialization",
     "refspec.registry.infrastructure.controlled_identifier",
     "refspec.registry.infrastructure.identifier_validation",
@@ -28,8 +29,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:9688ddbc8a0b71a648d182bad8687f9edee5acd4fbb35be856409eed9272a355",
-  "indexId": "urn:ref:atlas-index:9688ddbc8a0b71a648d182bad8687f9edee5acd4fbb35be856409eed9272a355",
+  "indexDigest": "sha256:e27e1adf8344347a448db2e79d039c60fce360f84fa6e73027279949a2868101",
+  "indexId": "urn:ref:atlas-index:e27e1adf8344347a448db2e79d039c60fce360f84fa6e73027279949a2868101",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
@@ -786,7 +787,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments.py",
-          "sha256": "sha256:ff3693eada8bf326ada680ebf8b91527f09d225d4ba4540e6bbf56b315ed30de"
+          "sha256": "sha256:d856b3082382ff1b8b65626acb9b1240423a66e0b7d3c13d1b2521bf6a7fc122"
         },
         {
           "kind": "sourceImplementation",
@@ -796,8 +797,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc-lcsh-alignment",
-      "rowDigest": "sha256:245c8d6a70dd036d5a5f1a7817b20139f95d7b33afd11f5f2bcd4d7e3f7b519c",
-      "rowId": "urn:ref:atlas-index-row:245c8d6a70dd036d5a5f1a7817b20139f95d7b33afd11f5f2bcd4d7e3f7b519c",
+      "rowDigest": "sha256:3e7d8143e00a4d0a376c983394766371d6e18836b2d74dd79373d3d3179a465d",
+      "rowId": "urn:ref:atlas-index-row:3e7d8143e00a4d0a376c983394766371d6e18836b2d74dd79373d3d3179a465d",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
     },
@@ -917,7 +918,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments.py",
-          "sha256": "sha256:ff3693eada8bf326ada680ebf8b91527f09d225d4ba4540e6bbf56b315ed30de"
+          "sha256": "sha256:d856b3082382ff1b8b65626acb9b1240423a66e0b7d3c13d1b2521bf6a7fc122"
         },
         {
           "kind": "sourceImplementation",
@@ -927,8 +928,8 @@
       ],
       "release": null,
       "resourceId": "fast-lcsh-adopted-mapping",
-      "rowDigest": "sha256:285442c080cef016ac3da645e952ecb39d7ca01d47f2e8e7d496d0c40a3f8747",
-      "rowId": "urn:ref:atlas-index-row:285442c080cef016ac3da645e952ecb39d7ca01d47f2e8e7d496d0c40a3f8747",
+      "rowDigest": "sha256:9d8d77af7319bb62046348acd74fc37206bde7b967623638fd2f0315f1e4c559",
+      "rowId": "urn:ref:atlas-index-row:9d8d77af7319bb62046348acd74fc37206bde7b967623638fd2f0315f1e4c559",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.fast_topical"
     },
@@ -2376,7 +2377,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments.py",
-          "sha256": "sha256:ff3693eada8bf326ada680ebf8b91527f09d225d4ba4540e6bbf56b315ed30de"
+          "sha256": "sha256:d856b3082382ff1b8b65626acb9b1240423a66e0b7d3c13d1b2521bf6a7fc122"
         },
         {
           "kind": "sourceImplementation",
@@ -2401,8 +2402,8 @@
       ],
       "release": null,
       "resourceId": "lcsh-subjects",
-      "rowDigest": "sha256:75281950a978f7318693228f45c78a781efa1c148cc639e003d7dd3d9dddb04f",
-      "rowId": "urn:ref:atlas-index-row:75281950a978f7318693228f45c78a781efa1c148cc639e003d7dd3d9dddb04f",
+      "rowDigest": "sha256:cd0cc714da29c1401d3e013a44328dee83a8e6e3184b33a7fb3dc206fc4c5b46",
+      "rowId": "urn:ref:atlas-index-row:cd0cc714da29c1401d3e013a44328dee83a8e6e3184b33a7fb3dc206fc4c5b46",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },
@@ -3432,7 +3433,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments.py",
-          "sha256": "sha256:ff3693eada8bf326ada680ebf8b91527f09d225d4ba4540e6bbf56b315ed30de"
+          "sha256": "sha256:d856b3082382ff1b8b65626acb9b1240423a66e0b7d3c13d1b2521bf6a7fc122"
         },
         {
           "kind": "sourceImplementation",
@@ -3447,8 +3448,8 @@
       ],
       "release": null,
       "resourceId": "unified-agenda-gao-cra-priority-mapping",
-      "rowDigest": "sha256:d2548ff433dc5f6d1001f4ad1ab17a2e5b303a2562a5d3c944e106379c34d490",
-      "rowId": "urn:ref:atlas-index-row:d2548ff433dc5f6d1001f4ad1ab17a2e5b303a2562a5d3c944e106379c34d490",
+      "rowDigest": "sha256:799211a2c091a34d35e85e562e8b2411f7a15cfb0739169e421c6aa2b4e1cc26",
+      "rowId": "urn:ref:atlas-index-row:799211a2c091a34d35e85e562e8b2411f7a15cfb0739169e421c6aa2b4e1cc26",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
@@ -3567,7 +3568,7 @@
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 25,
+    "implementationModuleCount": 26,
     "participationCounts": {
       "bridge": 34,
       "core": 1,

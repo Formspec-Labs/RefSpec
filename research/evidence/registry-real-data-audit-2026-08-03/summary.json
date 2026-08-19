@@ -1,6 +1,6 @@
 {
   "classifications": {
-    "data-registry": 62,
+    "data-registry": 63,
     "registry-adapter": 5,
     "registry-infrastructure": 12,
     "registry-managed-release": 2,
@@ -9,15 +9,15 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1285,
-    "seconds": 255.258,
+    "passed": 1295,
+    "seconds": 300.552,
     "skipped": 2,
-    "testFiles": 82,
-    "tests": 1287
+    "testFiles": 83,
+    "tests": 1297
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
-    "moduleCount": 85,
+    "moduleCount": 86,
     "modules": [
       {
         "executions": [
@@ -12191,7 +12191,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-70b6-9c45-b355f2a19f92",
+                "fetch_id": "019fb304-0930-7a8a-94e5-3bb0acedfd30",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -22203,19 +22203,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3"
+                  "sha256": "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186"
+                  "sha256": "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241"
+                  "sha256": "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590"
+                  "sha256": "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0"
                 }
               },
               "manifest": {
@@ -22226,7 +22226,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:241fb57cc814a9d18cc8ef8e5dc226ecb8c0e767eae60d747a9d70949e56644a",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:703bcdcf19413f0e66e9a2057df8009b232458b39a050e0e1d0715382ae09aef",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -22282,7 +22282,7 @@
               "byteLengths": [
                 0,
                 566,
-                593,
+                594,
                 1080,
                 1315,
                 1504,
@@ -22293,19 +22293,19 @@
                 5213
               ],
               "digests": [
+                "sha256:00b3c3e83ec7df80acfc581c31744645f04a07b94b83a00d32897a3437206857",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:23cf32d9422547a09f54a400e1ff886b5d286580304af406f355180c79d2eae5",
-                "sha256:2b1749f9e364bd8136f0d50c2db534e0261a5025a16b2241c05fc162857dd92c",
+                "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186",
+                "sha256:63cb69c5733857af5d96b7263016c511e8d5b247d2f5534ca7705f1b9b8b83f8",
+                "sha256:74942f71bdaa935d38d4f23ddbfb26ae92c0cdb46bd737e01540cfedbc9ce0ce",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:86b0b374f96be78886e3b7ede93ce668302c3f6ac3ccaa5389290d4d10f3f5c1",
-                "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241",
+                "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3",
+                "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
+                "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
@@ -22330,7 +22330,7 @@
               "byteLengths": [
                 0,
                 566,
-                593,
+                594,
                 1080,
                 1315,
                 1504,
@@ -22341,19 +22341,19 @@
                 5213
               ],
               "digests": [
+                "sha256:00b3c3e83ec7df80acfc581c31744645f04a07b94b83a00d32897a3437206857",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:23cf32d9422547a09f54a400e1ff886b5d286580304af406f355180c79d2eae5",
-                "sha256:2b1749f9e364bd8136f0d50c2db534e0261a5025a16b2241c05fc162857dd92c",
+                "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186",
+                "sha256:63cb69c5733857af5d96b7263016c511e8d5b247d2f5534ca7705f1b9b8b83f8",
+                "sha256:74942f71bdaa935d38d4f23ddbfb26ae92c0cdb46bd737e01540cfedbc9ce0ce",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:86b0b374f96be78886e3b7ede93ce668302c3f6ac3ccaa5389290d4d10f3f5c1",
-                "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241",
+                "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3",
+                "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
+                "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
@@ -22374,7 +22374,7 @@
               "byteLengths": [
                 0,
                 566,
-                593,
+                594,
                 1080,
                 1315,
                 1504,
@@ -22385,19 +22385,19 @@
                 5213
               ],
               "digests": [
+                "sha256:00b3c3e83ec7df80acfc581c31744645f04a07b94b83a00d32897a3437206857",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:23cf32d9422547a09f54a400e1ff886b5d286580304af406f355180c79d2eae5",
-                "sha256:2b1749f9e364bd8136f0d50c2db534e0261a5025a16b2241c05fc162857dd92c",
+                "sha256:2f57440db278fcd9faf4cba6fd25afaf4f6cd84b14e9f6c6c32fcaa56392b999",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:5fb0e64dd33c243add955f090916dd7f02aa35a6fc2df7790a482afd13a4b186",
+                "sha256:63cb69c5733857af5d96b7263016c511e8d5b247d2f5534ca7705f1b9b8b83f8",
+                "sha256:74942f71bdaa935d38d4f23ddbfb26ae92c0cdb46bd737e01540cfedbc9ce0ce",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:86b0b374f96be78886e3b7ede93ce668302c3f6ac3ccaa5389290d4d10f3f5c1",
-                "sha256:997571133b5d7a20be49a429ab6a09e7daec48bd37fcebfd24128b769003d241",
+                "sha256:7b5cc62ff0b1659cb920bf2d77b5e777c662303e87e4a245431127441adfb919",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a4f83d5a3743633393b3035f64a1137224ad39cd661f7931d76270c5c545c1e3",
+                "sha256:ac7a7ea4ebe8ddae3dd3f261bc45e2bdcd38eff611ab00eedf683165ac3c81ea",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:d32d1335b2fb363f6d5f8e8b96eaf61590dd00066e4746c5b27410f526f25590",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
+                "sha256:db636e262932242465e9def67d531653ac3c49d8538d729e58b999eaa5370bc0",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
@@ -22419,100 +22419,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 793,
+              "archive_byte_length": 795,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
-              "byte_length": 2908,
-              "cache_hit": false,
-              "local_source_path": "<pathlib.PosixPath>",
-              "metadata": null,
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "Publications Office of the European Union, EuroVoc",
-                "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 793,
-                "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
-                "expected_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
-                "filename": "eurovoc.zip",
-                "issued": "2026-07-08",
-                "landing_page_url": "https://example.test/eurovoc",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "member_filename": "eurovoc.rdf",
-                "metadata_source": null,
-                "publisher": "Publications Office of the European Union",
-                "release_id": "fixture-9.9",
-                "source_url": "https://example.test/eurovoc.zip",
-                "version": "9.9"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
-              "source_url": "https://example.test/eurovoc.zip"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "archive_byte_length": "int",
-                "archive_path": "pathlib.PosixPath",
-                "archive_sha256": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "local_source_path": "pathlib.PosixPath",
-                "metadata": "NoneType",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_member_byte_length": "int",
-                    "expected_member_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "issued": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "member_filename": "str",
-                    "metadata_source": "NoneType",
-                    "publisher": "str",
-                    "release_id": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                2908
-              ],
-              "digests": [
-                "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
-                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5"
-              ],
-              "paths": [],
-              "urls": [
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/eurovoc",
-                "https://example.test/eurovoc.zip"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_eurovoc_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "archive_byte_length": 793,
-              "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
+              "archive_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22530,10 +22439,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 793,
+                "expected_byte_length": 795,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
-                "expected_sha256": "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
+                "expected_member_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+                "expected_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22552,7 +22461,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
+              "sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22620,15 +22529,106 @@
                 2908
               ],
               "digests": [
-                "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
-                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
-                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
+                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
+                "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4"
               ],
               "paths": [],
               "urls": [
                 "https://creativecommons.org/licenses/by/4.0/",
                 "https://example.test/eurovoc",
                 "https://example.test/eurovoc-metadata.ttl",
+                "https://example.test/eurovoc.zip"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_eurovoc_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "archive_byte_length": 795,
+              "archive_path": "<pathlib.PosixPath>",
+              "archive_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
+              "byte_length": 2908,
+              "cache_hit": false,
+              "local_source_path": "<pathlib.PosixPath>",
+              "metadata": null,
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "Publications Office of the European Union, EuroVoc",
+                "concept_scheme_iri": "urn:example:thesaurus",
+                "expected_byte_length": 795,
+                "expected_member_byte_length": 2908,
+                "expected_member_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+                "expected_sha256": "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4",
+                "filename": "eurovoc.zip",
+                "issued": "2026-07-08",
+                "landing_page_url": "https://example.test/eurovoc",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "member_filename": "eurovoc.rdf",
+                "metadata_source": null,
+                "publisher": "Publications Office of the European Union",
+                "release_id": "fixture-9.9",
+                "source_url": "https://example.test/eurovoc.zip",
+                "version": "9.9"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+              "source_url": "https://example.test/eurovoc.zip"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "archive_byte_length": "int",
+                "archive_path": "pathlib.PosixPath",
+                "archive_sha256": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "local_source_path": "pathlib.PosixPath",
+                "metadata": "NoneType",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_member_byte_length": "int",
+                    "expected_member_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "issued": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "member_filename": "str",
+                    "metadata_source": "NoneType",
+                    "publisher": "str",
+                    "release_id": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                2908
+              ],
+              "digests": [
+                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+                "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4"
+              ],
+              "paths": [],
+              "urls": [
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/eurovoc",
                 "https://example.test/eurovoc.zip"
               ]
             }
@@ -22753,7 +22753,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
+              "source_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -22943,8 +22943,8 @@
                 2908
               ],
               "digests": [
-                "sha256:1a19a3349c93a4ed87cb1a1c2a8bdcc56da4cfcdc71e75ff46db0af35f806c17",
-                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5"
+                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
+                "sha256:ffc955cfb7826b01d2f94c9364600b75e9b32cdc0d0e2e45112cee16d93156b4"
               ],
               "paths": [],
               "urls": [
@@ -23494,7 +23494,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5",
+              "source_sha256": "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -23684,7 +23684,7 @@
                 2908
               ],
               "digests": [
-                "sha256:3c47e25052222507ebe1d36e7ada5f7788d94d6e51e5a258af5cd2de004913a5"
+                "sha256:3e60dbaf53327be42a2eb40a53b0b9e39b30d70bd15c994c4f1d1e5eff7daf0a"
               ],
               "paths": [],
               "urls": [
@@ -36776,7 +36776,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7530-a72c-45d89aa5f404",
+                "fetch_id": "019fb2e5-4e00-7a42-9ed4-d116b0608e1d",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -39146,6 +39146,152 @@
             "function": "acquire_gcmd_science_keywords",
             "sample": {
               "acquisition_mode": "local",
+              "byte_length": 14484,
+              "cache_hit": false,
+              "content_type": "text/csv",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "pin": {
+                "expected_byte_length": 14484,
+                "expected_keyword_version": "24.4",
+                "expected_revision": "2026-07-22T11:07:16.739Z",
+                "expected_row_count": 126,
+                "expected_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d",
+                "retrieved_at": "2026-08-03T19:03:43Z",
+                "source": {
+                  "filename": "gcmd-science-keywords.csv",
+                  "scheme_uuid": "27478148-b4b6-4c89-8829-08d2ee7bfe10",
+                  "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+                }
+              },
+              "resolved_url": null,
+              "sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d",
+              "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "content_type": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "pin": {
+                  "fields": {
+                    "expected_byte_length": "int",
+                    "expected_keyword_version": "str",
+                    "expected_revision": "str",
+                    "expected_row_count": "int",
+                    "expected_sha256": "str",
+                    "retrieved_at": "str",
+                    "source": {
+                      "fields": {
+                        "filename": "str",
+                        "scheme_uuid": "str",
+                        "source_url": "str"
+                      },
+                      "type": "refspec.registry.gcmd_science_keywords.GCMDScienceKeywordsSource"
+                    }
+                  },
+                  "type": "refspec.registry.gcmd_science_keywords.GCMDSnapshotPin"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords.AcquiredGCMDSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14484
+              ],
+              "digests": [
+                "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gcmd_science_keywords",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 14597,
+              "cache_hit": false,
+              "content_type": "text/csv",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "pin": {
+                "expected_byte_length": 14597,
+                "expected_keyword_version": "24.4",
+                "expected_revision": "2026-07-22T11:07:16.739Z",
+                "expected_row_count": 127,
+                "expected_sha256": "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0",
+                "retrieved_at": "2026-08-03T19:03:43Z",
+                "source": {
+                  "filename": "gcmd-science-keywords.csv",
+                  "scheme_uuid": "27478148-b4b6-4c89-8829-08d2ee7bfe10",
+                  "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+                }
+              },
+              "resolved_url": null,
+              "sha256": "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0",
+              "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "content_type": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "pin": {
+                  "fields": {
+                    "expected_byte_length": "int",
+                    "expected_keyword_version": "str",
+                    "expected_revision": "str",
+                    "expected_row_count": "int",
+                    "expected_sha256": "str",
+                    "retrieved_at": "str",
+                    "source": {
+                      "fields": {
+                        "filename": "str",
+                        "scheme_uuid": "str",
+                        "source_url": "str"
+                      },
+                      "type": "refspec.registry.gcmd_science_keywords.GCMDScienceKeywordsSource"
+                    }
+                  },
+                  "type": "refspec.registry.gcmd_science_keywords.GCMDSnapshotPin"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords.AcquiredGCMDSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14597
+              ],
+              "digests": [
+                "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0"
+              ],
+              "paths": [],
+              "urls": [
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gcmd_science_keywords",
+            "sample": {
+              "acquisition_mode": "local",
               "byte_length": 1604,
               "cache_hit": false,
               "content_type": "text/csv",
@@ -39280,6 +39426,79 @@
               ],
               "digests": [
                 "sha256:d69167235958229fd2287df17d347e9b253b5a615b769cbf2048c9e93030737f"
+              ],
+              "paths": [],
+              "urls": [
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gcmd_science_keywords",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 14371,
+              "cache_hit": false,
+              "content_type": "text/csv",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "pin": {
+                "expected_byte_length": 14371,
+                "expected_keyword_version": "24.4",
+                "expected_revision": "2026-07-22T11:07:16.739Z",
+                "expected_row_count": 125,
+                "expected_sha256": "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe",
+                "retrieved_at": "2026-08-03T19:03:43Z",
+                "source": {
+                  "filename": "gcmd-science-keywords.csv",
+                  "scheme_uuid": "27478148-b4b6-4c89-8829-08d2ee7bfe10",
+                  "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+                }
+              },
+              "resolved_url": null,
+              "sha256": "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe",
+              "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "content_type": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "pin": {
+                  "fields": {
+                    "expected_byte_length": "int",
+                    "expected_keyword_version": "str",
+                    "expected_revision": "str",
+                    "expected_row_count": "int",
+                    "expected_sha256": "str",
+                    "retrieved_at": "str",
+                    "source": {
+                      "fields": {
+                        "filename": "str",
+                        "scheme_uuid": "str",
+                        "source_url": "str"
+                      },
+                      "type": "refspec.registry.gcmd_science_keywords.GCMDScienceKeywordsSource"
+                    }
+                  },
+                  "type": "refspec.registry.gcmd_science_keywords.GCMDSnapshotPin"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords.AcquiredGCMDSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14371
+              ],
+              "digests": [
+                "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe"
               ],
               "paths": [],
               "urls": [
@@ -39631,6 +39850,381 @@
           {
             "counts": {
               "gaps.items": 3,
+              "rows": 126,
+              "rows.items": 126
+            },
+            "function": "parse_gcmd_science_keywords_csv",
+            "sample": {
+              "gaps": [
+                {
+                  "kind": "skosRelationshipsUnavailable",
+                  "reason": "The CSV export carries no SKOS broader/narrower, definition, or altLabel data; only the separate RDF export publishes those relationships, and this module does not fetch or model them."
+                },
+                {
+                  "kind": "instrumentAndPlatformBranchesExcluded",
+                  "reason": "GCMD publishes Instruments, Platforms, Projects, and Providers as separate KMS concept schemes; only EARTH SCIENCE and EARTH SCIENCE SERVICES rows from the Science Keywords scheme are accepted here."
+                }
+              ],
+              "keyword_version": "24.4",
+              "retrieved_at": "2026-08-03T19:03:43Z",
+              "revision": "2026-07-22T11:07:16.739Z",
+              "rows": [
+                {
+                  "category": "EARTH SCIENCE",
+                  "detailed_variable": null,
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "preferred_label": "EARTH SCIENCE",
+                  "source_ordinal": 0,
+                  "source_path": "csv:row[0]",
+                  "term": null,
+                  "topic": null,
+                  "variable_level_1": null,
+                  "variable_level_2": null,
+                  "variable_level_3": null
+                },
+                {
+                  "category": "EARTH SCIENCE",
+                  "detailed_variable": null,
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "preferred_label": "AGRICULTURE",
+                  "source_ordinal": 1,
+                  "source_path": "csv:row[1]",
+                  "term": null,
+                  "topic": "AGRICULTURE",
+                  "variable_level_1": null,
+                  "variable_level_2": null,
+                  "variable_level_3": null
+                }
+              ],
+              "source": {
+                "filename": "gcmd-science-keywords.csv",
+                "scheme_uuid": "27478148-b4b6-4c89-8829-08d2ee7bfe10",
+                "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              },
+              "source_byte_length": 14484,
+              "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+            },
+            "shape": {
+              "fields": {
+                "gaps": {
+                  "count": 3,
+                  "itemShape": {
+                    "count": 2,
+                    "keys": [
+                      "kind",
+                      "reason"
+                    ],
+                    "type": "mapping",
+                    "valueShape": "str"
+                  },
+                  "type": "tuple"
+                },
+                "keyword_version": "str",
+                "retrieved_at": "str",
+                "revision": "str",
+                "rows": {
+                  "count": 126,
+                  "itemShape": {
+                    "fields": {
+                      "category": "str",
+                      "detailed_variable": "NoneType",
+                      "identifiers": "builtins.tuple",
+                      "is_general_subject_concept": "bool",
+                      "preferred_label": "str",
+                      "source_ordinal": "int",
+                      "source_path": "str",
+                      "term": "NoneType",
+                      "topic": "NoneType",
+                      "variable_level_1": "NoneType",
+                      "variable_level_2": "NoneType",
+                      "variable_level_3": "NoneType"
+                    },
+                    "type": "refspec.registry.gcmd_science_keywords.GCMDKeywordRow"
+                  },
+                  "type": "tuple"
+                },
+                "source": {
+                  "fields": {
+                    "filename": "str",
+                    "scheme_uuid": "str",
+                    "source_url": "str"
+                  },
+                  "type": "refspec.registry.gcmd_science_keywords.GCMDScienceKeywordsSource"
+                },
+                "source_byte_length": "int",
+                "source_sha256": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords.ParsedGCMDScienceKeywords"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14484
+              ],
+              "digests": [
+                "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://gcmd.earthdata.nasa.gov/kms/",
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "gaps.items": 3,
+              "rows": 127,
+              "rows.items": 127
+            },
+            "function": "parse_gcmd_science_keywords_csv",
+            "sample": {
+              "gaps": [
+                {
+                  "kind": "skosRelationshipsUnavailable",
+                  "reason": "The CSV export carries no SKOS broader/narrower, definition, or altLabel data; only the separate RDF export publishes those relationships, and this module does not fetch or model them."
+                },
+                {
+                  "kind": "instrumentAndPlatformBranchesExcluded",
+                  "reason": "GCMD publishes Instruments, Platforms, Projects, and Providers as separate KMS concept schemes; only EARTH SCIENCE and EARTH SCIENCE SERVICES rows from the Science Keywords scheme are accepted here."
+                }
+              ],
+              "keyword_version": "24.4",
+              "retrieved_at": "2026-08-03T19:03:43Z",
+              "revision": "2026-07-22T11:07:16.739Z",
+              "rows": [
+                {
+                  "category": "EARTH SCIENCE",
+                  "detailed_variable": null,
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "preferred_label": "EARTH SCIENCE",
+                  "source_ordinal": 0,
+                  "source_path": "csv:row[0]",
+                  "term": null,
+                  "topic": null,
+                  "variable_level_1": null,
+                  "variable_level_2": null,
+                  "variable_level_3": null
+                },
+                {
+                  "category": "EARTH SCIENCE",
+                  "detailed_variable": null,
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "preferred_label": "AGRICULTURE",
+                  "source_ordinal": 1,
+                  "source_path": "csv:row[1]",
+                  "term": null,
+                  "topic": "AGRICULTURE",
+                  "variable_level_1": null,
+                  "variable_level_2": null,
+                  "variable_level_3": null
+                }
+              ],
+              "source": {
+                "filename": "gcmd-science-keywords.csv",
+                "scheme_uuid": "27478148-b4b6-4c89-8829-08d2ee7bfe10",
+                "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              },
+              "source_byte_length": 14597,
+              "source_sha256": "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0"
+            },
+            "shape": {
+              "fields": {
+                "gaps": {
+                  "count": 3,
+                  "itemShape": {
+                    "count": 2,
+                    "keys": [
+                      "kind",
+                      "reason"
+                    ],
+                    "type": "mapping",
+                    "valueShape": "str"
+                  },
+                  "type": "tuple"
+                },
+                "keyword_version": "str",
+                "retrieved_at": "str",
+                "revision": "str",
+                "rows": {
+                  "count": 127,
+                  "itemShape": {
+                    "fields": {
+                      "category": "str",
+                      "detailed_variable": "NoneType",
+                      "identifiers": "builtins.tuple",
+                      "is_general_subject_concept": "bool",
+                      "preferred_label": "str",
+                      "source_ordinal": "int",
+                      "source_path": "str",
+                      "term": "NoneType",
+                      "topic": "NoneType",
+                      "variable_level_1": "NoneType",
+                      "variable_level_2": "NoneType",
+                      "variable_level_3": "NoneType"
+                    },
+                    "type": "refspec.registry.gcmd_science_keywords.GCMDKeywordRow"
+                  },
+                  "type": "tuple"
+                },
+                "source": {
+                  "fields": {
+                    "filename": "str",
+                    "scheme_uuid": "str",
+                    "source_url": "str"
+                  },
+                  "type": "refspec.registry.gcmd_science_keywords.GCMDScienceKeywordsSource"
+                },
+                "source_byte_length": "int",
+                "source_sha256": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords.ParsedGCMDScienceKeywords"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14597
+              ],
+              "digests": [
+                "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0"
+              ],
+              "paths": [],
+              "urls": [
+                "https://gcmd.earthdata.nasa.gov/kms/",
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "gaps.items": 3,
+              "rows": 125,
+              "rows.items": 125
+            },
+            "function": "parse_gcmd_science_keywords_csv",
+            "sample": {
+              "gaps": [
+                {
+                  "kind": "skosRelationshipsUnavailable",
+                  "reason": "The CSV export carries no SKOS broader/narrower, definition, or altLabel data; only the separate RDF export publishes those relationships, and this module does not fetch or model them."
+                },
+                {
+                  "kind": "instrumentAndPlatformBranchesExcluded",
+                  "reason": "GCMD publishes Instruments, Platforms, Projects, and Providers as separate KMS concept schemes; only EARTH SCIENCE and EARTH SCIENCE SERVICES rows from the Science Keywords scheme are accepted here."
+                }
+              ],
+              "keyword_version": "24.4",
+              "retrieved_at": "2026-08-03T19:03:43Z",
+              "revision": "2026-07-22T11:07:16.739Z",
+              "rows": [
+                {
+                  "category": "EARTH SCIENCE",
+                  "detailed_variable": null,
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "preferred_label": "EARTH SCIENCE",
+                  "source_ordinal": 0,
+                  "source_path": "csv:row[0]",
+                  "term": null,
+                  "topic": null,
+                  "variable_level_1": null,
+                  "variable_level_2": null,
+                  "variable_level_3": null
+                },
+                {
+                  "category": "EARTH SCIENCE",
+                  "detailed_variable": null,
+                  "identifiers": "<builtins.tuple>",
+                  "is_general_subject_concept": false,
+                  "preferred_label": "AGRICULTURE",
+                  "source_ordinal": 1,
+                  "source_path": "csv:row[1]",
+                  "term": null,
+                  "topic": "AGRICULTURE",
+                  "variable_level_1": null,
+                  "variable_level_2": null,
+                  "variable_level_3": null
+                }
+              ],
+              "source": {
+                "filename": "gcmd-science-keywords.csv",
+                "scheme_uuid": "27478148-b4b6-4c89-8829-08d2ee7bfe10",
+                "source_url": "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              },
+              "source_byte_length": 14371,
+              "source_sha256": "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe"
+            },
+            "shape": {
+              "fields": {
+                "gaps": {
+                  "count": 3,
+                  "itemShape": {
+                    "count": 2,
+                    "keys": [
+                      "kind",
+                      "reason"
+                    ],
+                    "type": "mapping",
+                    "valueShape": "str"
+                  },
+                  "type": "tuple"
+                },
+                "keyword_version": "str",
+                "retrieved_at": "str",
+                "revision": "str",
+                "rows": {
+                  "count": 125,
+                  "itemShape": {
+                    "fields": {
+                      "category": "str",
+                      "detailed_variable": "NoneType",
+                      "identifiers": "builtins.tuple",
+                      "is_general_subject_concept": "bool",
+                      "preferred_label": "str",
+                      "source_ordinal": "int",
+                      "source_path": "str",
+                      "term": "NoneType",
+                      "topic": "NoneType",
+                      "variable_level_1": "NoneType",
+                      "variable_level_2": "NoneType",
+                      "variable_level_3": "NoneType"
+                    },
+                    "type": "refspec.registry.gcmd_science_keywords.GCMDKeywordRow"
+                  },
+                  "type": "tuple"
+                },
+                "source": {
+                  "fields": {
+                    "filename": "str",
+                    "scheme_uuid": "str",
+                    "source_url": "str"
+                  },
+                  "type": "refspec.registry.gcmd_science_keywords.GCMDScienceKeywordsSource"
+                },
+                "source_byte_length": "int",
+                "source_sha256": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords.ParsedGCMDScienceKeywords"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14371
+              ],
+              "digests": [
+                "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe"
+              ],
+              "paths": [],
+              "urls": [
+                "https://gcmd.earthdata.nasa.gov/kms/",
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "gaps.items": 3,
               "rows": 3774,
               "rows.items": 3774
             },
@@ -39822,6 +40416,38 @@
           {
             "counts": {},
             "function": "sha256_digest",
+            "sample": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                14484
+              ],
+              "digests": [
+                "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                14597
+              ],
+              "digests": [
+                "sha256:a38d6dc9e735c09c9f93167198a35fb15330baed32aca89b745ec73c73f413f0"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
             "sample": "sha256:cdcad39ed3803803bbbd922e8b187dd02fb6b6c2519ce5bade79fbb5469403c1",
             "shape": "str",
             "sourceEvidence": {
@@ -39850,9 +40476,386 @@
               "paths": [],
               "urls": []
             }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                14371
+              ],
+              "digests": [
+                "sha256:ec2e7d57d1ac6e963cf73878b03ae768ab52eda19952f6309e9f85054413befe"
+              ],
+              "paths": [],
+              "urls": []
+            }
           }
         ],
         "module": "gcmd_science_keywords.py"
+      },
+      {
+        "executions": [
+          {
+            "counts": {},
+            "function": "GCMDHierarchyEdge.record",
+            "sample": {
+              "childLevel": "Variable_Level_1",
+              "childSourcePath": "csv:row[99]",
+              "childUuid": "e0c0af2a-1429-4248-8d5b-ccae510da0c9",
+              "edgeId": "urn:ref:gcmd-derived-edge:c3fba9174278781c0cd8b459fe916fa86fcafd526948a57588a61d6ae8b5eb7b",
+              "parentLevel": "Term"
+            },
+            "shape": {
+              "count": 10,
+              "keys": [
+                "childLevel",
+                "childSourcePath",
+                "childUuid",
+                "edgeId",
+                "parentLevel",
+                "parentSourcePath",
+                "parentUuid",
+                "predicate",
+                "rule",
+                "sourceSha256"
+              ],
+              "type": "mapping",
+              "valueShape": "str"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.w3.org/2004/02/skos/core#broader"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "GCMDScienceKeywordsHierarchy.by_child_uuid",
+            "sample": {
+              "8495b76a-16ba-418c-bbb9-3c6bcfb12aba": {
+                "child_label": "ICE STUPA",
+                "child_level": "Variable_Level_1",
+                "child_source_path": "csv:row[5]",
+                "child_uuid": "8495b76a-16ba-418c-bbb9-3c6bcfb12aba",
+                "edge_id": "urn:ref:gcmd-derived-edge:20301597f7b2346a0033fe7e66177cfa6861d8bdcbdf3680487b94883c5e439f",
+                "parent_label": "AGRICULTURAL AQUATIC SCIENCES",
+                "parent_level": "Term",
+                "parent_source_path": "csv:row[2]",
+                "parent_uuid": "ca227ff0-4742-4e51-a763-4582fa28291c",
+                "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              },
+              "8916dafb-5ad5-45c6-ab64-3500ea1e9577": {
+                "child_label": "AQUACULTURE",
+                "child_level": "Variable_Level_1",
+                "child_source_path": "csv:row[3]",
+                "child_uuid": "8916dafb-5ad5-45c6-ab64-3500ea1e9577",
+                "edge_id": "urn:ref:gcmd-derived-edge:93b351172243050d376a594353a94c86f7a6fcb658bf52f2fcda81f2dc607838",
+                "parent_label": "AGRICULTURAL AQUATIC SCIENCES",
+                "parent_level": "Term",
+                "parent_source_path": "csv:row[2]",
+                "parent_uuid": "ca227ff0-4742-4e51-a763-4582fa28291c",
+                "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              },
+              "a956d045-3b12-441c-8a18-fac7d33b2b4e": {
+                "child_label": "AGRICULTURE",
+                "child_level": "Topic",
+                "child_source_path": "csv:row[1]",
+                "child_uuid": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+                "edge_id": "urn:ref:gcmd-derived-edge:005e005a14a12aaaa17b30ed1ed6eed1be9cc56483a285edb40058fb18d7d8be",
+                "parent_label": "EARTH SCIENCE",
+                "parent_level": "Category",
+                "parent_source_path": "csv:row[0]",
+                "parent_uuid": "e9f67a66-e9fc-435c-b720-ae32a2c3d8f5",
+                "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              },
+              "c7112a64-be39-414a-9125-f63ab44ecb5b": {
+                "child_label": "FISHERIES",
+                "child_level": "Variable_Level_1",
+                "child_source_path": "csv:row[4]",
+                "child_uuid": "c7112a64-be39-414a-9125-f63ab44ecb5b",
+                "edge_id": "urn:ref:gcmd-derived-edge:a79d1c15ea7b9dfede3069ad940904499d57e6d0917aa291411d1a94581d8a53",
+                "parent_label": "AGRICULTURAL AQUATIC SCIENCES",
+                "parent_level": "Term",
+                "parent_source_path": "csv:row[2]",
+                "parent_uuid": "ca227ff0-4742-4e51-a763-4582fa28291c",
+                "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              },
+              "ca227ff0-4742-4e51-a763-4582fa28291c": {
+                "child_label": "AGRICULTURAL AQUATIC SCIENCES",
+                "child_level": "Term",
+                "child_source_path": "csv:row[2]",
+                "child_uuid": "ca227ff0-4742-4e51-a763-4582fa28291c",
+                "edge_id": "urn:ref:gcmd-derived-edge:921b38680b294eb40e94ee0bf70ebc5a29c8a3f6f004c6b3e134b07b99cc672a",
+                "parent_label": "AGRICULTURE",
+                "parent_level": "Topic",
+                "parent_source_path": "csv:row[1]",
+                "parent_uuid": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+                "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              }
+            },
+            "shape": {
+              "count": 125,
+              "keys": [
+                "02b3a632-15af-4d18-9611-e2423428ec59",
+                "06053150-d796-477b-b305-292442d658ed",
+                "0ab5ead8-6037-42b3-b3c0-0746f3645af6",
+                "18a8197e-3a3f-408c-9c51-e9fe89dd6b45",
+                "199e3af8-4cf3-48ba-8b28-b9b54756b3db",
+                "1e2557c5-d232-48e4-8276-369a22ae6aae",
+                "1fc22c9d-cf29-4bd7-90b1-b0f6f139fd92",
+                "213cefd8-806f-40f5-b3ca-05022cde9498",
+                "223ce1f2-e2f1-4612-8fce-b96b7d34710f",
+                "22ec2f9b-1f1a-469b-bc09-851d58637ff4",
+                "23336b57-1ba3-42a6-9ec7-152285c55689",
+                "2473e776-4449-4351-9835-1507532ae60e",
+                "257633ec-8f9f-4482-be86-3570426410a0",
+                "25be3b9a-9d4c-4b5b-8d24-b1f519913d90",
+                "25c5c222-c053-4081-ac0f-52e6c774198c",
+                "26089a3e-469d-44b3-a9aa-231d0a072ef9",
+                "26f5bb2a-b872-41e8-922f-3a9a0e9f9bcd",
+                "2a9bce94-c391-4834-96bb-a9685d3590b1",
+                "2b91245e-a779-42fa-89c2-303217463b95",
+                "2c31fc22-747a-476f-b76d-fec61220b5b1"
+              ],
+              "type": "mapping",
+              "valueShape": {
+                "fields": {
+                  "child_label": "str",
+                  "child_level": "str",
+                  "child_source_path": "str",
+                  "child_uuid": "str",
+                  "edge_id": "str",
+                  "parent_label": "str",
+                  "parent_level": "str",
+                  "parent_source_path": "str",
+                  "parent_uuid": "str",
+                  "predicate": "str",
+                  "rule": "str",
+                  "source_sha256": "str"
+                },
+                "type": "refspec.registry.gcmd_science_keywords_hierarchy.GCMDHierarchyEdge"
+              }
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:08076bf7425e757b2872c4bda3bd8b3175782ddbd164a6471c497977f2ea5a45",
+                "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.w3.org/2004/02/skos/core#broader"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "edges.items": 125
+            },
+            "function": "derive_gcmd_science_keywords_hierarchy",
+            "sample": {
+              "edge_set_digest": "sha256:08076bf7425e757b2872c4bda3bd8b3175782ddbd164a6471c497977f2ea5a45",
+              "edges": [
+                {
+                  "child_label": "AGRICULTURE",
+                  "child_level": "Topic",
+                  "child_source_path": "csv:row[1]",
+                  "child_uuid": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+                  "edge_id": "urn:ref:gcmd-derived-edge:005e005a14a12aaaa17b30ed1ed6eed1be9cc56483a285edb40058fb18d7d8be",
+                  "parent_label": "EARTH SCIENCE",
+                  "parent_level": "Category",
+                  "parent_source_path": "csv:row[0]",
+                  "parent_uuid": "e9f67a66-e9fc-435c-b720-ae32a2c3d8f5",
+                  "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                  "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                  "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+                },
+                {
+                  "child_label": "AGRICULTURAL AQUATIC SCIENCES",
+                  "child_level": "Term",
+                  "child_source_path": "csv:row[2]",
+                  "child_uuid": "ca227ff0-4742-4e51-a763-4582fa28291c",
+                  "edge_id": "urn:ref:gcmd-derived-edge:921b38680b294eb40e94ee0bf70ebc5a29c8a3f6f004c6b3e134b07b99cc672a",
+                  "parent_label": "AGRICULTURE",
+                  "parent_level": "Topic",
+                  "parent_source_path": "csv:row[1]",
+                  "parent_uuid": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+                  "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                  "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                  "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+                }
+              ],
+              "homonym_label_count": 0,
+              "keyword_version": "24.4",
+              "revision": "2026-07-22T11:07:16.739Z",
+              "root_count": 1,
+              "row_count": 126,
+              "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+              "source_sha256": "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+            },
+            "shape": {
+              "fields": {
+                "edge_set_digest": "str",
+                "edges": {
+                  "count": 125,
+                  "itemShape": {
+                    "fields": {
+                      "child_label": "str",
+                      "child_level": "str",
+                      "child_source_path": "str",
+                      "child_uuid": "str",
+                      "edge_id": "str",
+                      "parent_label": "str",
+                      "parent_level": "str",
+                      "parent_source_path": "str",
+                      "parent_uuid": "str",
+                      "predicate": "str",
+                      "rule": "str",
+                      "source_sha256": "str"
+                    },
+                    "type": "refspec.registry.gcmd_science_keywords_hierarchy.GCMDHierarchyEdge"
+                  },
+                  "type": "tuple"
+                },
+                "homonym_label_count": "int",
+                "keyword_version": "str",
+                "revision": "str",
+                "root_count": "int",
+                "row_count": "int",
+                "rule": "str",
+                "source_sha256": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords_hierarchy.GCMDScienceKeywordsHierarchy"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                14484
+              ],
+              "digests": [
+                "sha256:08076bf7425e757b2872c4bda3bd8b3175782ddbd164a6471c497977f2ea5a45",
+                "sha256:9e5ea02df58bd686d5ed10ff26e1e15661c6078495ef42e3991638770dce0e0d"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.w3.org/2004/02/skos/core#broader",
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "edges.items": 3772
+            },
+            "function": "derive_gcmd_science_keywords_hierarchy",
+            "sample": {
+              "edge_set_digest": "sha256:9685d20fd9e10d2e12d916b4e5f543ae17b332b6d13a3a311e14db9f79fcc964",
+              "edges": [
+                {
+                  "child_label": "AGRICULTURE",
+                  "child_level": "Topic",
+                  "child_source_path": "csv:row[1]",
+                  "child_uuid": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+                  "edge_id": "urn:ref:gcmd-derived-edge:2e45c55ca030338d978fb2115ea0ea976be3ab71935d4ae732dc29054c721294",
+                  "parent_label": "EARTH SCIENCE",
+                  "parent_level": "Category",
+                  "parent_source_path": "csv:row[0]",
+                  "parent_uuid": "e9f67a66-e9fc-435c-b720-ae32a2c3d8f5",
+                  "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                  "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                  "source_sha256": "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2"
+                },
+                {
+                  "child_label": "AGRICULTURAL AQUATIC SCIENCES",
+                  "child_level": "Term",
+                  "child_source_path": "csv:row[2]",
+                  "child_uuid": "ca227ff0-4742-4e51-a763-4582fa28291c",
+                  "edge_id": "urn:ref:gcmd-derived-edge:ff1491aebc5aba0b52d04e0608e795bc1802e8b00e9887229c3d8437004813be",
+                  "parent_label": "AGRICULTURE",
+                  "parent_level": "Topic",
+                  "parent_source_path": "csv:row[1]",
+                  "parent_uuid": "a956d045-3b12-441c-8a18-fac7d33b2b4e",
+                  "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+                  "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+                  "source_sha256": "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2"
+                }
+              ],
+              "homonym_label_count": 512,
+              "keyword_version": "24.4",
+              "revision": "2026-07-22T11:07:16.739Z",
+              "root_count": 2,
+              "row_count": 3774,
+              "rule": "urn:ref:rule:gcmd-science-keywords-csv-column-nesting",
+              "source_sha256": "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2"
+            },
+            "shape": {
+              "fields": {
+                "edge_set_digest": "str",
+                "edges": {
+                  "count": 3772,
+                  "itemShape": {
+                    "fields": {
+                      "child_label": "str",
+                      "child_level": "str",
+                      "child_source_path": "str",
+                      "child_uuid": "str",
+                      "edge_id": "str",
+                      "parent_label": "str",
+                      "parent_level": "str",
+                      "parent_source_path": "str",
+                      "parent_uuid": "str",
+                      "predicate": "str",
+                      "rule": "str",
+                      "source_sha256": "str"
+                    },
+                    "type": "refspec.registry.gcmd_science_keywords_hierarchy.GCMDHierarchyEdge"
+                  },
+                  "type": "tuple"
+                },
+                "homonym_label_count": "int",
+                "keyword_version": "str",
+                "revision": "str",
+                "root_count": "int",
+                "row_count": "int",
+                "rule": "str",
+                "source_sha256": "str"
+              },
+              "type": "refspec.registry.gcmd_science_keywords_hierarchy.GCMDScienceKeywordsHierarchy"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                504190
+              ],
+              "digests": [
+                "sha256:9685d20fd9e10d2e12d916b4e5f543ae17b332b6d13a3a311e14db9f79fcc964",
+                "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.w3.org/2004/02/skos/core#broader",
+                "https://gcmd.earthdata.nasa.gov/kms/concepts/concept_scheme/sciencekeywords?format=csv"
+              ]
+            }
+          }
+        ],
+        "module": "gcmd_science_keywords_hierarchy.py"
       },
       {
         "executions": [
@@ -40285,7 +41288,7 @@
               "byte_length": 11807,
               "cache_hit": false,
               "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0",
+              "compressed_sha256": "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3",
               "local_source_path": "<pathlib.PosixPath>",
               "path": "<pathlib.PosixPath>",
               "release": {
@@ -40293,7 +41296,7 @@
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
                 "expected_byte_length": 11807,
                 "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0",
+                "expected_compressed_sha256": "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3",
                 "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
@@ -40346,7 +41349,7 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0"
+                "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3"
               ],
               "paths": [],
               "urls": [
@@ -40990,7 +41993,7 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:bdd7fd2c992698ae6edc444d68a08729a625ca3ed66b7f7da66df8bb55f865a0"
+                "sha256:af09a10b43d23ce49cbf5d3823e7cbcfa3c650c914ab8e9066bc5403d2a7c8f3"
               ],
               "paths": [],
               "urls": [
@@ -73417,7 +74420,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7b73-b6aa-03e5daf17da8",
+              "fetch_id": "019fb2e5-4e00-7b51-b2ca-55e1605e9f1a",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -73474,7 +74477,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7b17-ab91-a4a46670b727"
+              "registration_id": "019fb80b-aa00-7e87-a3f1-ed270d9e99a1"
             },
             "shape": {
               "fields": {
@@ -109558,22 +110561,6 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:59531dc7fc2fc5ec977cff7fc6df07fc7b02881c5640ae1c130730bb56935864",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                364730
-              ],
-              "digests": [
-                "sha256:59531dc7fc2fc5ec977cff7fc6df07fc7b02881c5640ae1c130730bb56935864"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
             "sample": "sha256:7a43d33c291a9ab233ed76237dec3cbfb28ebd10169183328077227f6c0cf2ea",
             "shape": "str",
             "sourceEvidence": {
@@ -109598,6 +110585,22 @@
               ],
               "digests": [
                 "sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:d2ab1570f914bbca969e5dfb219fc019904f031e7b0eaf2e58d579841795b569",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                364729
+              ],
+              "digests": [
+                "sha256:d2ab1570f914bbca969e5dfb219fc019904f031e7b0eaf2e58d579841795b569"
               ],
               "paths": [],
               "urls": []
@@ -114001,7 +115004,7 @@
   },
   "format": "refspec-registry-audit-summary/v1",
   "fullSuiteExecution": null,
-  "moduleCount": 85,
+  "moduleCount": 86,
   "modules": [
     {
       "auditRole": "support",
@@ -115376,6 +116379,21 @@
           "sha256": "sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2"
         }
       ]
+    },
+    {
+      "auditRole": "dataReader",
+      "blockers": [
+        "REF-041 derivation reader: it re-reads the CSV gcmd_science_keywords.py already pins and acquires nothing of its own, so it consumes no publisher capture under its own name. Its edges cannot ship until the derived graph admits a GCMD rule (REF-042 built the registry; the rule is not registered yet), at which point this reader is exercised through that rule's own reproduction check rather than a separate pin."
+      ],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [
+        "http://www.w3.org/2004/02/skos/core#broader",
+        "http://www.w3.org/2004/02/skos/core#narrower"
+      ],
+      "module": "gcmd_science_keywords_hierarchy.py",
+      "sourceStatus": "blocked",
+      "testInputs": []
     },
     {
       "auditRole": "dataReader",
@@ -117111,12 +118129,13 @@
   ],
   "realDataGate": {
     "failures": [
-      "eurovoc_organization_experiment.py: Experiment reads injected archive and metadata paths; its tests exercise synthetic fixtures only, so no pinned publisher capture is consumed."
+      "eurovoc_organization_experiment.py: Experiment reads injected archive and metadata paths; its tests exercise synthetic fixtures only, so no pinned publisher capture is consumed.",
+      "gcmd_science_keywords_hierarchy.py: REF-041 derivation reader: it re-reads the CSV gcmd_science_keywords.py already pins and acquires nothing of its own, so it consumes no publisher capture under its own name. Its edges cannot ship until the derived graph admits a GCMD rule (REF-042 built the registry; the rule is not registered yet), at which point this reader is exercised through that rule's own reproduction check rather than a separate pin."
     ],
     "status": "failed"
   },
   "sourceStatuses": {
-    "blocked": 1,
+    "blocked": 2,
     "notApplicable": 9,
     "publisherBytes": 75
   }

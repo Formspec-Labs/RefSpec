@@ -776,6 +776,33 @@ def _base_fixture() -> Fixture:
         ring=ATLAS.subject,
         resources=[("subject-c", ATLAS.SubjectConcept, "Administrative law")],
     )
+    # Raw material for the MeSH tree-number-broader derived rule (REF-042):
+    # two ordinary SubjectConcepts carrying publisher-shaped tree-number
+    # notations, one under the other by dot-segment construction. Nothing in
+    # the asserted graph here claims a relation between them -- that is
+    # exactly the gap the derived rule fills. No case in the base fixture
+    # cites these in a derived row; each MeSH-specific mutation below adds
+    # its own, so the 122 pre-existing cases keep exactly one derived node
+    # and this pair sits inert for them.
+    _mesh_release, _mesh_scheme, _mesh_source_release, mesh_rows = _add_release(
+        asserted,
+        name="mesh-tree-numbers",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        # The rule is a projection over ONE publisher's tree numbers, so the
+        # validator requires both endpoints in the MeSH descriptor scheme.
+        # The fixture has to model that or it proves the rule on concepts the
+        # rule does not actually admit.
+        scheme=URIRef("urn:ref:atlas-resource-scheme:mesh-descriptors"),
+        resources=[
+            ("mesh-parent", ATLAS.SubjectConcept, "Mesh parent concept"),
+            ("mesh-child", ATLAS.SubjectConcept, "Mesh child concept"),
+        ],
+    )
+    mesh_parent, _mesh_parent_source = mesh_rows[0]
+    mesh_child, _mesh_child_source = mesh_rows[1]
+    asserted.add((mesh_parent, ATLAS.notation, Literal("C14.280")))
+    asserted.add((mesh_child, ATLAS.notation, Literal("C14.280.647")))
     value_release, value_scheme, _value_source_release, value_rows = _add_release(
         asserted,
         name="values",
@@ -2324,6 +2351,112 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             release=next(fixture.asserted.objects(entity, ATLAS.inRelease)),
             source_record=next(fixture.asserted.objects(entity, ATLAS.sourceRecord)),
         )
+
+    # REF-042: the MeSH tree-number-broader rule, the registry's second entry.
+    # `_base_fixture` seeds the raw material (mesh-parent/mesh-child, tree
+    # numbers "C14.280"/"C14.280.647", no asserted relation between them) but
+    # adds no derived row over it, so the 122 pre-REF-042 cases keep exactly
+    # one derived node (the exactMatch one) and these mutations are the only
+    # thing that cites this pair in the derived graph.
+    mesh_parent = URIRef("urn:ref:atlas-fixture:resource:mesh-parent")
+    mesh_child = URIRef("urn:ref:atlas-fixture:resource:mesh-child")
+    mesh_parent_source = URIRef("urn:ref:atlas-fixture:source-record:mesh-parent")
+    mesh_child_source = URIRef("urn:ref:atlas-fixture:source-record:mesh-child")
+
+    def add_mesh_derived_row(
+        fixture: Fixture,
+        *,
+        subject: URIRef = mesh_child,
+        predicate: URIRef = SKOS.broader,
+        obj: URIRef = mesh_parent,
+        ring: URIRef = ATLAS.subject,
+        evidence: tuple[URIRef, ...] = (mesh_child_source, mesh_parent_source),
+    ) -> URIRef:
+        """Mint one MeSH tree-number-broader derived row over the base
+        fixture's mesh-parent/mesh-child pair, following the exact identity
+        formula `_base_fixture` already uses for the exactMatch row: a
+        placeholder IRI, every property added, then `_reidentify_derived`.
+        """
+
+        node = URIRef("urn:ref:atlas-derived:pending")
+        fixture.derived.add((node, RDF.type, ATLAS.DerivedRelation))
+        fixture.derived.add((node, ATLAS.relationSubject, subject))
+        fixture.derived.add((node, ATLAS.relationPredicate, predicate))
+        fixture.derived.add((node, ATLAS.relationObject, obj))
+        for item in evidence:
+            fixture.derived.add((node, ATLAS.derivedFromAssertion, item))
+        fixture.derived.add((node, ATLAS.semanticRing, ring))
+        fixture.derived.add((node, ATLAS.derivationRule, atlas_validate.MESH_TREE_NUMBER_BROADER_RULE))
+        fixture.derived.add((node, ATLAS.engine, atlas_validate.MESH_TREE_NUMBER_ENGINE))
+        fixture.derived.add(
+            (node, ATLAS.engineVersion, Literal(atlas_validate.MESH_TREE_NUMBER_ENGINE_VERSION))
+        )
+        fixture.derived.add(
+            (
+                node,
+                RKAF.inputDigest,
+                Literal(atlas_validate.derived_input_digest(fixture.asserted, list(evidence))),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.generatedAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        return _reidentify_derived(fixture.derived, node)
+
+    def mesh_tree_number_broader(fixture: Fixture) -> None:
+        # The positive case: a real MeSH-shaped derived row validates.
+        add_mesh_derived_row(fixture)
+
+    def mesh_tree_number_unallowlisted_rule(fixture: Fixture) -> None:
+        # The registry bites on a rule IRI it has never seen, exactMatch's
+        # own row untouched otherwise -- proving the allowlist lookup itself,
+        # not any one rule's body.
+        node = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
+        _remove_subject_predicate(fixture.derived, node, ATLAS.derivationRule)
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, URIRef("urn:ref:rule:bogus-unregistered-rule"))
+        )
+        _reidentify_derived(fixture.derived, node)
+
+    def mesh_tree_number_wrong_predicate(fixture: Fixture) -> None:
+        # skos:related is admitted for the subject ring in general (it is a
+        # native relation predicate other rows use) but not for THIS rule,
+        # so this only bites if the per-rule admitted-predicate check runs.
+        add_mesh_derived_row(fixture, predicate=SKOS.related)
+
+    def mesh_tree_number_malformed_inputs(fixture: Fixture) -> None:
+        # One cited source record instead of two: passes the common
+        # active-input-superset check (it is a real, active SourceRecord)
+        # and only the rule's own row-shape check catches it.
+        add_mesh_derived_row(fixture, evidence=(mesh_child_source,))
+
+    def mesh_tree_number_duplicates_asserted(fixture: Fixture) -> None:
+        # skos:narrower is skos:broader's SKOS-defined inverse, so an
+        # asserted (parent, narrower, child) makes the derived
+        # (child, broader, parent) a duplicate in mirrored form -- the same
+        # class of check the exactMatch rule already runs against its own
+        # symmetric predicate, generalized to a rule whose admitted
+        # predicate is asymmetric.
+        mesh_release_iri = next(fixture.asserted.objects(mesh_parent, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=mesh_parent,
+            predicate=SKOS.narrower,
+            obj=mesh_child,
+            source_release=mesh_release_iri,
+            target_release=mesh_release_iri,
+            evidence_record=mesh_parent_source,
+            evidence_name="mesh-parent-narrower-mesh-child",
+            review_warrant="publisherAssertion",
+        )
+        add_mesh_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def no_derived(fixture: Fixture) -> None:
         fixture.derived.remove((None, None, None))
@@ -4623,6 +4756,36 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["rdf"],
             "rdf.canonical",
             literal_uppercase_language_tag,
+        ),
+        (
+            "mesh-tree-number-broader",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            mesh_tree_number_broader,
+        ),
+        (
+            "mesh-tree-number-unallowlisted-rule",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            mesh_tree_number_unallowlisted_rule,
+        ),
+        (
+            "mesh-tree-number-wrong-predicate",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            mesh_tree_number_wrong_predicate,
+        ),
+        (
+            "mesh-tree-number-malformed-inputs",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            mesh_tree_number_malformed_inputs,
+        ),
+        (
+            "mesh-tree-number-duplicates-asserted",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            mesh_tree_number_duplicates_asserted,
         ),
     ]
 

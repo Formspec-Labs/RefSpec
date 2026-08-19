@@ -189,6 +189,20 @@ ADMITTED_MAPPING_PREDICATE_TRANSLATIONS = frozenset(
 )
 DERIVATION_ENGINE = URIRef("https://pypi.org/project/owlrl/7.1.4/")
 DERIVATION_ENGINE_VERSION = "7.1.4"
+# The second entry in `_DERIVED_RULE_ADMISSIONS` (see REF-042 in
+# docs/decisions.md). Its engine is this binding's own code, not a
+# third-party reasoner: the rule is a structural projection of a
+# publisher's own tree-number notation, not a logical entailment, so
+# "replay" for it means regenerating the projection from the asserted
+# graph's `atlas:notation` facts, not re-running a description-logic
+# closure. `src/refspec/atlas/derived_graph/mesh_tree_numbers.py` carries
+# the identical three constants on the producer side; the two modules do
+# not import each other (the binding stays importable standalone), so
+# `tests/test_atlas_v3_binding.py` proves they still agree.
+MESH_TREE_NUMBER_BROADER_RULE = URIRef("urn:ref:rule:mesh-tree-number-broader")
+MESH_TREE_NUMBER_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-mesh-tree-numbers")
+MESH_TREE_NUMBER_ENGINE_VERSION = "1"
+MESH_TREE_NUMBER_SCHEME = URIRef("urn:ref:atlas-resource-scheme:mesh-descriptors")
 
 SCHEMAS = {
     "manifest": "atlas-manifest.schema.json",
@@ -996,6 +1010,11 @@ REQUIRED_CORPUS_CASES = frozenset(
         "mapping-undated-legal-identity",
         "mapping-undated-value-crosswalk",
         "mapping-wrong-endpoint-release",
+        "mesh-tree-number-broader",
+        "mesh-tree-number-duplicates-asserted",
+        "mesh-tree-number-malformed-inputs",
+        "mesh-tree-number-unallowlisted-rule",
+        "mesh-tree-number-wrong-predicate",
         "native-payload-digest-mismatch",
         "native-payload-noncanonical",
         "naked-projected-mapping",
@@ -6909,6 +6928,327 @@ def derived_input_digest(
     return canonical_sha256({"assertions": rows}, terminal_lf=False)
 
 
+# Evidence-input kinds a derivation rule may cite. `derivedFromAssertion` has
+# no `rdfs:range` in the ontology -- its comment says the target type "is
+# checked by the dataset validator rather than inferred into the derived
+# graph" -- so widening what it may name is this dict's job, not a contract
+# edit. exactMatch transitivity cites active RelationAssertion nodes, exactly
+# as it always has; the MeSH tree-number rule cites SourceRecord nodes,
+# because a tree number is a fact about a descriptor's own record, not a
+# relation someone asserted between two descriptors.
+_EVIDENCE_KIND_ASSERTION = "assertion"
+_EVIDENCE_KIND_SOURCE_RECORD = "sourceRecord"
+
+
+@dataclass(frozen=True)
+class _DerivedRowContext:
+    """What a rule's row-shape validator sees, after the checks common to
+    every rule have already run: `node` is a singly-typed `DerivedRelation`
+    with a well-formed identity; `subject`/`object` are asserted Atlas
+    resources agreeing on `ring`; `predicate` is admitted for that ring; and
+    `inputs` are exactly the node's own cited evidence, already proven to be
+    active members of the rule's declared evidence kind. What is left for the
+    rule itself to decide is narrower: whether ITS OWN premise -- an exactMatch
+    transitive path, a tree-number parent relationship, whatever a future rule
+    adds -- actually holds between this subject, predicate, object, and
+    evidence.
+    """
+
+    node: URIRef
+    subject: URIRef
+    predicate: URIRef
+    obj: URIRef
+    ring: URIRef
+    inputs: frozenset[URIRef]
+    asserted: Graph
+
+
+@dataclass(frozen=True)
+class _DerivedRuleAdmission:
+    """One allowlisted derivation rule.
+
+    Replacing this dataclass's one hardcoded predecessor -- a single
+    ``(rule, engine, engineVersion)`` tuple equality, followed by a body of
+    exactMatch-only assertions with no seam for a second rule to enter through
+    -- with a registry of these is the whole shape of REF-042: a second rule
+    becomes a second entry naming its own admitted ring/predicate, evidence
+    kind, row-shape check, and replay, not a second ``if`` branch threaded
+    through the first rule's.
+    """
+
+    rule: URIRef
+    engine: URIRef
+    engine_version: str
+    admitted_rings: frozenset[URIRef]
+    admitted_predicates: frozenset[URIRef]
+    evidence_kind: str
+    mirror_predicate: URIRef | None
+    validate_row: Callable[[_DerivedRowContext], None]
+    replay: Callable[..., None]
+
+
+def _validate_exact_match_transitivity_row(context: _DerivedRowContext) -> None:
+    """The exactMatch-transitivity rule's row shape.
+
+    BYTE-IDENTICAL to the body of the single hardcoded rule this replaces:
+    every check below -- the ring/predicate/reflexivity/arity guard, canonical
+    IRI ordering, and the one-exact-simple-path proof over the cited
+    exactMatch edges -- is unchanged from the validator this rule used to be
+    the entirety of. See REF-042 in docs/decisions.md.
+    """
+
+    node, subject, predicate, obj, ring, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.predicate,
+        context.obj,
+        context.ring,
+        context.inputs,
+        context.asserted,
+    )
+    if ring != ATLAS.subject or predicate != SKOS.exactMatch or subject == obj or len(inputs) < 2:
+        _fail("dataset.derived-rule", f"{node} does not match the exactMatch transitivity rule")
+    if str(subject) >= str(obj):
+        _fail(
+            "dataset.derived-rule",
+            f"{node} exactMatch endpoints are not in canonical IRI order",
+        )
+    adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
+    edges: set[frozenset[URIRef]] = set()
+    for assertion in inputs:
+        assertion_type = _assertion_type(asserted, assertion)
+        _, triple = _assertion_basis(asserted, assertion)
+        if assertion_type != ATLAS.MappingAssertion or triple[1] != SKOS.exactMatch:
+            _fail("dataset.derived-rule", f"{node} cites a non-exactMatch input")
+        if triple[0] == triple[2]:
+            _fail("dataset.derived-rule", f"{node} cites a reflexive exactMatch input")
+        edge = frozenset((triple[0], triple[2]))
+        if edge in edges:
+            _fail("dataset.derived-rule", f"{node} cites a duplicate exactMatch edge")
+        edges.add(edge)
+        adjacency[triple[0]].add(triple[2])
+        adjacency[triple[2]].add(triple[0])
+    frontier = [subject]
+    visited = {subject}
+    while frontier:
+        visiting = frontier.pop()
+        for target in adjacency[visiting] - visited:
+            visited.add(target)
+            frontier.append(target)
+    graph_nodes = set(adjacency)
+    if (
+        obj not in visited
+        or visited != graph_nodes
+        or len(edges) != len(graph_nodes) - 1
+        or adjacency[subject] == set()
+        or len(adjacency[subject]) != 1
+        or len(adjacency[obj]) != 1
+        or any(len(adjacency[path_node]) != 2 for path_node in graph_nodes - {subject, obj})
+    ):
+        _fail(
+            "dataset.derived-rule",
+            f"{node} inputs are not one exact simple path between its endpoints",
+        )
+
+
+def _validate_mesh_tree_number_broader_row(context: _DerivedRowContext) -> None:
+    """The MeSH tree-number-broader rule's row shape.
+
+    Proved locally, from only this row's own cited evidence and the two
+    endpoint resources' own asserted `atlas:notation` values -- the same
+    "prove it from what this row cites, not the whole graph" discipline the
+    exactMatch rule's row check already follows. The whole-of-rule proof that
+    the shipped edge set is COMPLETE and UNAMBIGUOUS (no missing edge, no
+    edge guessed past a genuine ambiguity) lives in
+    `_replay_mesh_tree_number_broader` instead, exactly where the exactMatch
+    rule's own whole-of-rule figure (`ExactMatchIndex.inferred_count`) is
+    computed separately from its row checks.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    # This rule is a projection over ONE publisher's tree numbers. Without a
+    # scheme check the dot-parent proof holds for any dot-structured notation
+    # in any vocabulary, so the rule's name would be the only thing keeping
+    # foreign concepts out. Both endpoints must sit in the MeSH scheme.
+    for endpoint in (subject, obj):
+        if (endpoint, ATLAS.inScheme, MESH_TREE_NUMBER_SCHEME) not in asserted:
+            _fail(
+                "dataset.derived-rule",
+                f"{node} endpoint {endpoint} is not in the MeSH descriptor scheme",
+            )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} tree-number parent is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    represented = {
+        _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule") for evidence in inputs
+    }
+    if represented != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    subject_notations = {str(value) for value in asserted.objects(subject, ATLAS.notation)}
+    obj_notations = {str(value) for value in asserted.objects(obj, ATLAS.notation)}
+    parent_tree_numbers = {notation.rsplit(".", 1)[0] for notation in subject_notations if "." in notation}
+    if not parent_tree_numbers & obj_notations:
+        _fail("dataset.derived-rule", f"{node} is not a tree-number parent of its subject")
+
+
+def _replay_exact_match_transitivity(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport],
+    asserted: Graph | None = None,
+) -> None:
+    """BYTE-IDENTICAL to the per-node body that used to be the entirety of
+    `_check_reasoning_isolation`. See REF-042 in docs/decisions.md."""
+
+    direct_mappings = {triple for triple in current if triple[1] in SKOS_MAPPING_PREDICATES}
+    assertion_triples = {assertion: triple for triple, assertions in current.items() for assertion in assertions}
+    for node in sorted(nodes):
+        output = (
+            _iri(
+                _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+                code="reasoning.authority",
+                label="derived subject",
+            ),
+            _iri(
+                _one(derived, node, ATLAS.relationPredicate, code="reasoning.authority"),
+                code="reasoning.authority",
+                label="derived predicate",
+            ),
+            _iri(
+                _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+                code="reasoning.authority",
+                label="derived object",
+            ),
+        )
+        replay = Graph()
+        for assertion in derived.objects(node, ATLAS.derivedFromAssertion):
+            input_triple = assertion_triples.get(assertion)
+            if input_triple is not None:
+                replay.add(input_triple)
+        replay.add((SKOS.exactMatch, RDF.type, OWL.TransitiveProperty))
+        replay.add((SKOS.exactMatch, RDF.type, OWL.SymmetricProperty))
+        DeductiveClosure(
+            OWLRL_Semantics,
+            axiomatic_triples=False,
+            datatype_axioms=False,
+        ).expand(replay)
+        if output in direct_mappings or output not in replay:
+            _fail(
+                "reasoning.authority",
+                f"{node} is not a newly inferred mapping under the pinned reasoner",
+            )
+
+
+def _replay_mesh_tree_number_broader(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE tree-number-broader edge set from the asserted
+    graph's own `atlas:notation` facts and require it to equal exactly what
+    this rule's derived nodes ship -- missing edge, extra edge, or an edge
+    that names an ambiguous parent all fail this check. This is the
+    whole-of-rule reproducibility proof at the scope this rule is naturally
+    bounded at: unlike exactMatch transitivity, whose closure over an
+    open-ended mapping graph REF-035 deliberately never asserts in full (see
+    "RefSpec never asserts closure" there), a tree-number hierarchy is a
+    closed, one-shot projection over one release's own notations, so
+    regenerating all of it and diffing is the right-sized proof, not an
+    approximation of one.
+    """
+
+    # The producer scopes this rule to one release's scheme
+    # (mesh_tree_numbers.MESH_SCHEME_IRI). The validator must agree, or the
+    # rule admits dot-structured notations from any vocabulary and -- worse --
+    # demands edges the producer will never emit. Scope both sides the same.
+    notation_pairs = [
+        (resource, str(notation))
+        for resource, notation in asserted.subject_objects(ATLAS.notation)
+        if isinstance(resource, URIRef)
+        and (resource, ATLAS.inScheme, MESH_TREE_NUMBER_SCHEME) in asserted
+    ]
+    owners: dict[str, set[URIRef]] = {}
+    for resource, notation in notation_pairs:
+        owners.setdefault(notation, set()).add(resource)
+
+    expected: set[tuple[URIRef, URIRef]] = set()
+    for resource, notation in notation_pairs:
+        if "." not in notation:
+            continue
+        parent_owners = owners.get(notation.rsplit(".", 1)[0])
+        if not parent_owners or len(parent_owners) > 1:
+            continue
+        (parent,) = parent_owners
+        if parent == resource:
+            _fail(
+                "reasoning.authority",
+                f"tree number {notation!r} on {resource} resolves its own parent to itself",
+            )
+        expected.add((resource, parent))
+
+    actual: set[tuple[URIRef, URIRef]] = set()
+    for node in nodes:
+        subject = _iri(
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived subject",
+        )
+        obj = _iri(
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived object",
+        )
+        actual.add((subject, obj))
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "mesh tree-number broader edges do not regenerate the identical set from the "
+            f"asserted graph (missing={missing}, extra={extra})",
+        )
+
+
+_DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {
+    (EXACT_MATCH_TRANSITIVITY_RULE, DERIVATION_ENGINE, DERIVATION_ENGINE_VERSION): _DerivedRuleAdmission(
+        rule=EXACT_MATCH_TRANSITIVITY_RULE,
+        engine=DERIVATION_ENGINE,
+        engine_version=DERIVATION_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.exactMatch}),
+        evidence_kind=_EVIDENCE_KIND_ASSERTION,
+        mirror_predicate=SKOS.exactMatch,
+        validate_row=_validate_exact_match_transitivity_row,
+        replay=_replay_exact_match_transitivity,
+    ),
+    (
+        MESH_TREE_NUMBER_BROADER_RULE,
+        MESH_TREE_NUMBER_ENGINE,
+        MESH_TREE_NUMBER_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=MESH_TREE_NUMBER_BROADER_RULE,
+        engine=MESH_TREE_NUMBER_ENGINE,
+        engine_version=MESH_TREE_NUMBER_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.broader}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        mirror_predicate=SKOS.narrower,
+        validate_row=_validate_mesh_tree_number_broader_row,
+        replay=_replay_mesh_tree_number_broader,
+    ),
+}
+
+
 def _check_derived(
     asserted: Graph,
     projection: Graph,
@@ -6917,6 +7257,7 @@ def _check_derived(
     derived_nodes: AbstractSet[URIRef] | None = None,
     *,
     node_digests: _AssertedNodeDigests | None = None,
+    inventory: SemanticInventory | None = None,
 ) -> None:
     if derived_nodes is None:
         derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
@@ -6924,6 +7265,7 @@ def _check_derived(
         return
     relation_policies = _relation_policies()
     active_assertions = {assertion for assertions in current.values() for assertion in assertions}
+    active_source_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
     direct_relations = set(current)
     for node in derived_nodes:
         if (node, RDF.type, ATLAS.RelationAssertion) in derived or any(
@@ -6931,7 +7273,7 @@ def _check_derived(
         ):
             _fail("dataset.derived-authority", f"{node} is both derived and authoritative")
         inputs = set(derived.objects(node, ATLAS.derivedFromAssertion))
-        if not inputs or not inputs <= active_assertions:
+        if not inputs:
             _fail(
                 "dataset.derived",
                 f"{node} has missing, unknown, withdrawn, or superseded input assertions",
@@ -6993,55 +7335,30 @@ def _check_derived(
             code="dataset.derived-rule",
             label="engineVersion",
         )
-        if (rule, engine, engine_version) != (
-            EXACT_MATCH_TRANSITIVITY_RULE,
-            DERIVATION_ENGINE,
-            DERIVATION_ENGINE_VERSION,
-        ):
+        admission = _DERIVED_RULE_ADMISSIONS.get((rule, engine, engine_version))
+        if admission is None:
             _fail("dataset.derived-rule", f"{node} uses an unallowlisted rule or engine")
-        if ring != ATLAS.subject or predicate != SKOS.exactMatch or subject == obj or len(inputs) < 2:
-            _fail("dataset.derived-rule", f"{node} does not match the exactMatch transitivity rule")
-        if str(subject) >= str(obj):
+        if ring not in admission.admitted_rings or predicate not in admission.admitted_predicates:
+            _fail("dataset.derived-rule", f"{node} ring or predicate is not admitted for its rule")
+        active_inputs = (
+            active_assertions if admission.evidence_kind == _EVIDENCE_KIND_ASSERTION else active_source_records
+        )
+        if not inputs <= active_inputs:
             _fail(
-                "dataset.derived-rule",
-                f"{node} exactMatch endpoints are not in canonical IRI order",
+                "dataset.derived",
+                f"{node} has missing, unknown, withdrawn, or superseded input assertions",
             )
-        adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
-        edges: set[frozenset[URIRef]] = set()
-        for assertion in inputs:
-            assertion_type = _assertion_type(asserted, assertion)
-            _, triple = _assertion_basis(asserted, assertion)
-            if assertion_type != ATLAS.MappingAssertion or triple[1] != SKOS.exactMatch:
-                _fail("dataset.derived-rule", f"{node} cites a non-exactMatch input")
-            if triple[0] == triple[2]:
-                _fail("dataset.derived-rule", f"{node} cites a reflexive exactMatch input")
-            edge = frozenset((triple[0], triple[2]))
-            if edge in edges:
-                _fail("dataset.derived-rule", f"{node} cites a duplicate exactMatch edge")
-            edges.add(edge)
-            adjacency[triple[0]].add(triple[2])
-            adjacency[triple[2]].add(triple[0])
-        frontier = [subject]
-        visited = {subject}
-        while frontier:
-            current = frontier.pop()
-            for target in adjacency[current] - visited:
-                visited.add(target)
-                frontier.append(target)
-        graph_nodes = set(adjacency)
-        if (
-            obj not in visited
-            or visited != graph_nodes
-            or len(edges) != len(graph_nodes) - 1
-            or adjacency[subject] == set()
-            or len(adjacency[subject]) != 1
-            or len(adjacency[obj]) != 1
-            or any(len(adjacency[path_node]) != 2 for path_node in graph_nodes - {subject, obj})
-        ):
-            _fail(
-                "dataset.derived-rule",
-                f"{node} inputs are not one exact simple path between its endpoints",
+        admission.validate_row(
+            _DerivedRowContext(
+                node=node,
+                subject=subject,
+                predicate=predicate,
+                obj=obj,
+                ring=ring,
+                inputs=frozenset(inputs),
+                asserted=asserted,
             )
+        )
 
         stored_node_digest = _literal_text(
             _one(derived, node, ATLAS.contentDigest, code="dataset.derived-identity"),
@@ -7051,12 +7368,16 @@ def _check_derived(
         expected_id = URIRef("urn:ref:atlas-derived:" + stored_node_digest.removeprefix("sha256:"))
         if node != expected_id:
             _fail("dataset.derived-identity", f"{node} is not its content-derived IRI")
+        mirror_predicate = admission.mirror_predicate
         if (
             (subject, predicate, obj) in direct_relations
             or (subject, predicate, obj) in projection
             or (
-                predicate == SKOS.exactMatch
-                and ((obj, predicate, subject) in direct_relations or (obj, predicate, subject) in projection)
+                mirror_predicate is not None
+                and (
+                    (obj, mirror_predicate, subject) in direct_relations
+                    or (obj, mirror_predicate, subject) in projection
+                )
             )
         ):
             _fail(
@@ -7070,49 +7391,40 @@ def _check_reasoning_isolation(
     current: Mapping[AssertionTriple, AssertionSupport],
     exact_index: ExactMatchIndex | None = None,
     derived_nodes: AbstractSet[URIRef] | None = None,
+    *,
+    asserted: Graph | None = None,
 ) -> int:
     exact_index = exact_index or _build_exact_match_index(current)
     if derived_nodes is None:
         derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
     if not derived_nodes:
         return exact_index.inferred_count
-    direct_mappings = {triple for triple in current if triple[1] in SKOS_MAPPING_PREDICATES}
-    assertion_triples = {assertion: triple for triple, assertions in current.items() for assertion in assertions}
-    for node in sorted(derived_nodes):
-        output = (
-            _iri(
-                _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
-                code="reasoning.authority",
-                label="derived subject",
-            ),
-            _iri(
-                _one(derived, node, ATLAS.relationPredicate, code="reasoning.authority"),
-                code="reasoning.authority",
-                label="derived predicate",
-            ),
-            _iri(
-                _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
-                code="reasoning.authority",
-                label="derived object",
-            ),
+    nodes_by_rule: dict[tuple[URIRef, URIRef, str], set[URIRef]] = defaultdict(set)
+    for node in derived_nodes:
+        rule = _iri(
+            _one(derived, node, ATLAS.derivationRule, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derivation rule",
         )
-        replay = Graph()
-        for assertion in derived.objects(node, ATLAS.derivedFromAssertion):
-            input_triple = assertion_triples.get(assertion)
-            if input_triple is not None:
-                replay.add(input_triple)
-        replay.add((SKOS.exactMatch, RDF.type, OWL.TransitiveProperty))
-        replay.add((SKOS.exactMatch, RDF.type, OWL.SymmetricProperty))
-        DeductiveClosure(
-            OWLRL_Semantics,
-            axiomatic_triples=False,
-            datatype_axioms=False,
-        ).expand(replay)
-        if output in direct_mappings or output not in replay:
+        engine = _iri(
+            _one(derived, node, ATLAS.engine, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derivation engine",
+        )
+        engine_version = _literal_text(
+            _one(derived, node, ATLAS.engineVersion, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="engineVersion",
+        )
+        nodes_by_rule[(rule, engine, engine_version)].add(node)
+    for key in sorted(nodes_by_rule, key=lambda item: (str(item[0]), str(item[1]), item[2])):
+        admission = _DERIVED_RULE_ADMISSIONS.get(key)
+        if admission is None:
             _fail(
                 "reasoning.authority",
-                f"{node} is not a newly inferred mapping under the pinned reasoner",
+                f"derived nodes use an unallowlisted rule or engine: {min(nodes_by_rule[key])}",
             )
+        admission.replay(nodes_by_rule[key], derived=derived, current=current, asserted=asserted)
     return exact_index.inferred_count
 
 
@@ -8738,6 +9050,7 @@ def _validate_semantic_graphs(
         current_assertions,
         inventory.derived_nodes,
         node_digests=node_digests,
+        inventory=inventory,
     )
     _STATUS.phase("check-payload-and-node-digests")
     _check_native_payloads(graphs["asserted"], inventory, node_digests=node_digests)
@@ -8750,6 +9063,7 @@ def _validate_semantic_graphs(
         current_assertions,
         exact_index,
         inventory.derived_nodes,
+        asserted=graphs["asserted"],
     )
     _STATUS.phase("check-acceptance")
     _check_acceptance(manifest, accounting, acceptance, member_digests)
