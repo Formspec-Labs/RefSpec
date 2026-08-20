@@ -93,6 +93,37 @@ Sub-agency counting inflates dispersion precisely where a parent department has
 many sub-agencies, which is exactly where subject-specific topics concentrate —
 so the failure mode is misfiling real subjects as boilerplate.
 
+## What this boundary actually separates
+
+This artifact was derived to route a two-track tagger within one corpus. A
+later reframing of the objective — tagging as *a document's relationship to
+specific vocabularies*, not as reproducing one publisher's index — makes the
+line it found more general than its original purpose.
+
+The procedural band is **filing metadata, not subject matter**. `Reporting and
+recordkeeping requirements`, `Incorporation by reference`, `Administrative
+practice and procedure` describe a rule's *paperwork*. They are meaningful on a
+Federal Register rule and meaningless on a court opinion, a research paper, or
+a public comment. They are attached by the issuing agency as part of rulemaking,
+which is also why an agency-conditioned prior predicts them so well — that
+prior is close to tautological, since the same agency both files the document
+and attaches the topics.
+
+So the dispersion rule separates **what a document is about** from **how it was
+filed**, and only the first transfers to another source. Read that way:
+
+- the **substantive band (74.7%)** is the portion of this answer key that could
+  in principle be evaluated against any corpus, and the only portion for which
+  "is this the right concept" is a question about the document;
+- the **procedural band (25.3%)** is publisher-specific and should not be used
+  to score a general tagger at all, in either direction — neither credited when
+  hit nor penalised when missed.
+
+That is a stronger claim than the artifact originally made, and it inverts the
+practical advice: the procedural band is not the half to solve with an agency
+prior, it is the half to *exclude from a general-tagging metric* and serve
+separately as what it is — a filing-metadata predictor for one publisher.
+
 ## Why it matters for the tagger
 
 The procedural band is 25.3% of the answer key and is **3.1% textually
