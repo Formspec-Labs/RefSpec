@@ -138,6 +138,48 @@ settles it: this artifact is not substantially wrong about the CFR. It is
 answering a question one level coarser than the one being asked, and most of
 what looks like error is that mismatch.
 
+### The prediction, tested: 30% right
+
+The granularity account made a falsifiable claim — score at *part* level rather
+than document level and the gap should shrink, score against the part's union
+and it should vanish. Both were run:
+
+| scoring level | source | P | R | F1 |
+|---|---|---:|---:|---:|
+| document | publisher index | 67.5 | 85.1 | 75.3 |
+| document | witnessed @0.5 | 89.0 | 89.8 | 89.4 |
+| **part (union gold)** | publisher index | **79.6** | 80.7 | 80.2 |
+| **part (union gold)** | witnessed @0.5 | **98.3** | 83.0 | 90.0 |
+
+Gap at document level **14.1**; at part level **9.8**.
+
+**Shrinks — by 4.3 points, about 30%. Does not vanish.** And the mechanism is
+visible exactly where predicted: the index's *precision* jumps 67.5 → 79.6 once
+it is judged against what a part covers instead of what one document said.
+
+So granularity is real and worth about 4.3 of the 14.1 points. The other 9.8 are
+something else.
+
+### The residual is not granularity — it is that the ground truth is filings all the way down
+
+The witnessed table scores **98.3 precision** at part level. That is not a good
+result; it is a tell. Part-level gold is the union of topics on documents citing
+that part, and the witnessed table is built from documents' topics on that same
+part. Train and eval documents are disjoint, but a part's vocabulary is stable
+across its documents, so the table is predicting almost exactly the thing it was
+derived from. **Near-perfect precision is what circularity looks like.**
+
+Which gives the sharper statement, and it is stronger than the granularity one:
+
+> There is no level of aggregation at which the publisher's index can win,
+> because the ground truth is filings at every level. Document level asks what a
+> filer wrote; part level asks what filers collectively wrote. The index is the
+> only artifact in the comparison not derived from filings, and it loses at both.
+
+That is not a property of granularity. It is a property of having only one kind
+of evidence. Changing the scoring level cannot fix it, because every level of
+this benchmark is made of the same material.
+
 Any part-level prior inherits this ceiling. On a part whose index lists twelve
 terms, proposing the list can be at best about 4/12 precise however correct the
 list is — which is why a rate threshold that prunes toward *typical* terms
