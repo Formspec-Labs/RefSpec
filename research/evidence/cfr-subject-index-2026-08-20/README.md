@@ -111,6 +111,38 @@ different title is a cross-reference and stays a term.
 Zero rejects from a permissive regex would mean nothing. Zero from a parser
 that raises on every unmatched entry means the pattern covers the data.
 
+## How far agencies stray from the controlled vocabulary
+
+1 CFR 18.20 requires index terms drawn from the Federal Register Thesaurus but
+permits agency-added terms, so the resolution rate against Atlas measures how
+far agencies actually depart from the controlled vocabulary. Measured:
+
+| | terms | share |
+|---|---:|---:|
+| resolve somewhere in Atlas | 953 | **88.7%** |
+| resolve to `federal-register-api-topics` | 840 | 78.1% |
+| resolve to `federal-register-thesaurus-2025` | 722 | 67.2% |
+| **unresolved** | **122** | 11.3% |
+
+But weighted by use, the departure is far smaller: the 122 unresolved terms
+account for **202 of 32,200 assignments — 0.63%**.
+
+And most are not agency inventions. They are near-misses of thesaurus terms:
+
+```
+administrative practice and procedures   (plural; thesaurus has singular)
+reporting and recordkeeping              (truncated)
+indian-tribal government                 (separator variant)
+foreign investments in u.s               (lost terminal period)
+```
+
+So agencies comply with the controlled vocabulary closely, and the residue is
+dominated by transcription drift rather than by genuine local terms. That is a
+vocabulary-governance finding in its own right, independent of any consumer.
+
+**Terms ship as publisher strings, not concept identities.** Resolving them is
+a deliberate separate step; this artifact records what the publisher wrote.
+
 ## Limits
 
 - **Annual cadence.** The pages are "current as of April 1, 2025"; the capture
