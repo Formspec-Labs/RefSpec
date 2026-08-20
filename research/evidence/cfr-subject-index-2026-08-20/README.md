@@ -117,6 +117,18 @@ that raises on every unmatched entry means the pattern covers the data.
 
 ## How far agencies stray from the controlled vocabulary
 
+**Denominator correction, 2026-08-20.** This table first reported 88.7%. The
+numerator (953) was right and the denominator was stale: it was computed over
+1,075 terms, *before* the mistyped-`<dd>` fix removed 32 part headings that had
+been admitted as terms. Over the corrected 1,043 the rate is **91.4%**. The
+fix was applied to the artifact and not propagated to a statistic derived from
+it in the same document.
+
+Counting note: 1,043 is distinct terms **case-folded**. Verbatim it is 1,068 —
+the publisher spells some terms two ways. And the index carries **8,426 part
+entries** over **8,423 distinct parts**: three parts (7 CFR 1000, 29 CFR 4231,
+48 CFR 642) are listed twice by the publisher.
+
 1 CFR 18.20 requires index terms drawn from the Federal Register Thesaurus but
 permits agency-added terms, so the resolution rate against Atlas measures how
 far agencies actually depart from the controlled vocabulary. Measured:
