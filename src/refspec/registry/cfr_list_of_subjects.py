@@ -12,6 +12,18 @@ one part, and it does not turn topic labels into concept identifiers.  The
 result is source-assigned filing evidence for candidate ranking and
 evaluation, not a governed vocabulary or accepted-output authority.
 
+**Correction, 2026-08-20.**  An earlier version of this docstring let the true
+statement above about *eCFR* stand as though it were a statement about the
+world, and this module was built on that reading.  It is not true of the
+world.  The Office of the Federal Register publishes the per-part index
+directly, as fifty static HTML pages under
+``https://www.archives.gov/federal-register/cfr/subject-title-NN.html`` --
+"a list of Code of Federal Regulations (CFR) Subjects arranged by CFR Title
+and Part", revised annually.  ``parse_cfr_subject_index`` reads them.  That is
+a publisher assertion of ``(title, part) -> terms``, so it does not need the
+multi-part attribution this module refuses to invent: the publisher has
+already done it, which is the whole point of the page.
+
 The separate eCFR administrative agencies endpoint is a publisher-authored
 roster, not List of Subjects evidence. ``parse_ecfr_agency_roster`` preserves
 all 316 agency rows and their 487 CFR structure references from one exact,
@@ -28,6 +40,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from html import unescape
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -44,6 +57,7 @@ ECFR_STRUCTURE_TITLE_1_2026_07_31_URL = "https://www.ecfr.gov/api/versioner/v1/s
 ECFR_FULL_TITLE_1_PART_18_2026_07_31_URL = "https://www.ecfr.gov/api/versioner/v1/full/2026-07-31/title-1.xml?part=18"
 FEDERAL_REGISTER_DOCUMENT_2026_15493_URL = "https://www.federalregister.gov/api/v1/documents/2026-15493.json"
 FEDERAL_REGISTER_DOCUMENT_96_32865_URL = "https://www.federalregister.gov/api/v1/documents/96-32865.json"
+CFR_SUBJECT_INDEX_URL_TEMPLATE = "https://www.archives.gov/federal-register/cfr/subject-title-{title:02d}.html"
 ECFR_AGENCIES_LICENSE_RIGHTS_STATEMENT = "US federal public domain (17 USC 105) with no explicit CC license"
 ECFR_AGENCIES_SOURCE_VERSION_NOTE = (
     "The publisher exposes this as a rolling, unversioned endpoint; no versioned URL is available."
@@ -660,6 +674,147 @@ def _parse_cfr_reference(value: object, ordinal: int) -> CFRReference:
 def _record_iri(document_number: str, source_sha256: str, ordinal: int) -> str:
     digest = source_sha256.removeprefix("sha256:")
     return f"urn:ref:federal-register-list-of-subjects-record:{digest}:{quote(document_number, safe='')}:{ordinal}"
+
+
+@dataclass(frozen=True, slots=True)
+class CfrSubjectIndexPin:
+    """Exact identity and rights record for one archives.gov subject-index page."""
+
+    source_url: str
+    retrieved_at: str
+    expected_sha256: str
+    expected_byte_length: int
+    cfr_title: int
+    revision_note: str
+
+    def __post_init__(self) -> None:
+        parsed = urlsplit(self.source_url)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "www.archives.gov"
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise CFRListOfSubjectsError(
+                "CFR subject index source_url must be the official credential-free archives.gov endpoint"
+            )
+        if parsed.query or parsed.fragment:
+            raise CFRListOfSubjectsError("CFR subject index source_url must not carry a query or fragment")
+        if parsed.path != f"/federal-register/cfr/subject-title-{self.cfr_title:02d}.html":
+            raise CFRListOfSubjectsError("CFR subject index source_url does not match its declared title")
+        if _SHA256.fullmatch(self.expected_sha256) is None:
+            raise CFRListOfSubjectsError("CFR subject index expected_sha256 must be sha256:<64 lowercase hex>")
+        if self.expected_byte_length <= 0:
+            raise CFRListOfSubjectsError("CFR subject index expected_byte_length must be positive")
+        if not self.retrieved_at.endswith("Z"):
+            raise CFRListOfSubjectsError("CFR subject index retrieved_at must be a UTC timestamp")
+        if not (1 <= self.cfr_title <= 50):
+            raise CFRListOfSubjectsError("CFR title must be between 1 and 50")
+        if "current as of" not in self.revision_note:
+            raise CFRListOfSubjectsError("CFR subject index revision note must record the publisher's revision date")
+
+
+@dataclass(frozen=True, slots=True)
+class CfrPartSubjects:
+    """One CFR part and the index terms the publisher assigns to it."""
+
+    cfr_title: int
+    cfr_part: str
+    part_heading: str
+    terms: tuple[str, ...]
+
+
+#: The publisher's own HTML is hand-maintained and carries a small number of
+#: recurring irregularities. Each is handled BY NAME and counted, so that a
+#: malformation of a kind not seen before surfaces as a reject instead of
+#: joining a permissive catch-all. Measured over the 2026-08-20 capture of all
+#: fifty pages: 13 missing keyword, 1 "Oart" typo, 1 non-underscore separator,
+#: 1 leaked tag, 0 rejects.
+_SUBJECT_DT_DD = re.compile(r"<dt>(?P<dt>.*?)</dt>\s*(?P<dds>(?:\s*<dd>.*?</dd>)+)", re.S | re.I)
+_SUBJECT_DD = re.compile(r"<dd>(.*?)</dd>", re.S | re.I)
+_SUBJECT_TAGS = re.compile(r"<[^>]*>")
+_SUBJECT_HEAD = re.compile(
+    r"(?P<title>\d{1,2})\s*CFR\s*(?:(?P<kw>Parts?|Oart|Chapter)\s*)?"
+    r"(?P<part>[0-9][0-9A-Za-z.\-]*)\s*[_\u2014\u2013-]\s*(?P<heading>.*)",
+    re.I | re.S,
+)
+_SUBJECT_LEAKED_TAG = "strong>"
+
+#: Title 35 is reserved in the Code of Federal Regulations, so its subject
+#: index page legitimately carries no parts. An empty parse is correct there
+#: and a drift error everywhere else -- and a NON-empty parse for a reserved
+#: title is itself drift, because it would mean the title was un-reserved.
+CFR_RESERVED_TITLES: frozenset[int] = frozenset({35})
+
+
+def _subject_text(fragment: str) -> str:
+    return " ".join(unescape(_SUBJECT_TAGS.sub(" ", fragment)).split())
+
+
+def parse_cfr_subject_index(
+    payload: bytes,
+    *,
+    pin: CfrSubjectIndexPin,
+) -> tuple[CfrPartSubjects, ...]:
+    """Parse one archives.gov subject-index page into publisher part assignments.
+
+    Fail-closed in both directions. The payload must match the pin's digest
+    and byte length exactly, and every ``<dt>`` that names a CFR citation must
+    yield a title and a part or the parse raises -- an unmatched entry is
+    never skipped. Entries whose declared title disagrees with the pin raise
+    too, so a page fetched under the wrong title cannot be silently absorbed.
+    """
+
+    digest = sha256_digest(payload)
+    if digest != pin.expected_sha256:
+        raise CFRSourceDriftError(
+            f"CFR subject index title {pin.cfr_title} digest {digest} does not match the pinned {pin.expected_sha256}"
+        )
+    if len(payload) != pin.expected_byte_length:
+        raise CFRSourceDriftError(
+            f"CFR subject index title {pin.cfr_title} is {len(payload)} bytes; pinned {pin.expected_byte_length}"
+        )
+
+    body = payload.decode("utf-8", errors="replace")
+    parts: list[CfrPartSubjects] = []
+    for match in _SUBJECT_DT_DD.finditer(body):
+        entry = _subject_text(match.group("dt"))
+        if not entry or "CFR" not in entry.upper():
+            continue
+        if entry.lower().startswith(_SUBJECT_LEAKED_TAG):
+            entry = entry[len(_SUBJECT_LEAKED_TAG) :].lstrip()
+        head = _SUBJECT_HEAD.match(entry)
+        if head is None:
+            raise CFRSourceDriftError(
+                f"CFR subject index title {pin.cfr_title} has an unparsable part entry: {entry[:120]!r}"
+            )
+        declared_title = int(head.group("title"))
+        if declared_title != pin.cfr_title:
+            raise CFRSourceDriftError(
+                f"CFR subject index for title {pin.cfr_title} contains a title {declared_title} entry"
+            )
+        terms = tuple(
+            term.rstrip(".")
+            for term in (_subject_text(dd) for dd in _SUBJECT_DD.findall(match.group("dds")))
+            if term and term.upper() != "N/A"
+        )
+        if not terms:
+            continue
+        parts.append(
+            CfrPartSubjects(
+                cfr_title=declared_title,
+                cfr_part=head.group("part").rstrip("."),
+                part_heading=head.group("heading").strip().rstrip("."),
+                terms=terms,
+            )
+        )
+    if not parts and pin.cfr_title not in CFR_RESERVED_TITLES:
+        raise CFRSourceDriftError(f"CFR subject index title {pin.cfr_title} yielded no part assignments")
+    if parts and pin.cfr_title in CFR_RESERVED_TITLES:
+        raise CFRSourceDriftError(
+            f"CFR title {pin.cfr_title} is reserved but its subject index carries {len(parts)} parts"
+        )
+    return tuple(parts)
 
 
 def parse_federal_register_document_assignments(
