@@ -53,7 +53,42 @@ attribution guesswork in it at all.
 | publication range | 2000-01-18 → 2026-07-23 |
 
 Columns: `cfr_title`, `cfr_part`, `topic`, `atlas_concept`, `witness_documents`,
-`first_witnessed`, `last_witnessed`.
+`part_witness_documents`, `witness_rate`, `first_witnessed`, `last_witnessed`.
+
+## Threshold on the rate, not the count
+
+**This is the most important thing to know about the artifact.** Used unfiltered
+it is an accumulated *union* — every term ever witnessed on a part across
+2000–2026 — so it proposes nearly everything and is right about half the time.
+A consumer measured it as shipped at P 44.5 / R 96.7 / **F1 61.0**, which is the
+signature of exactly that.
+
+An absolute count does not fix it. 20 witnesses out of 25 citing documents is
+80% and strong; 20 out of 400 is 5% and noise. Thresholding on
+`witness_documents` alone plateaus around F1 75.
+
+`witness_rate` = `witness_documents / part_witness_documents` is the fix, and it
+is why `part_witness_documents` ships. Measured on 57,180 held-out documents:
+
+| threshold | P | R | F1 | substantive F1 | parts |
+|---|---:|---:|---:|---:|---:|
+| rate ≥ 0.3 | 85.6 | 92.4 | 88.9 | 88.8 | 4,251 |
+| **rate ≥ 0.5** | 89.0 | 89.7 | **89.4** | 89.4 | 4,247 |
+| rate ≥ 0.7 | 93.4 | 82.8 | 87.8 | 87.7 | 4,173 |
+| rate ≥ 0.9 | 97.2 | 68.4 | 80.3 | 83.3 | 4,085 |
+| *(inferred baseline)* | 91.2 | 80.0 | 85.3 | 85.3 | 2,215 |
+
+**Use 0.5** for balanced F1; **0.7** when precision matters more; **0.9** when
+tags will be *asserted* rather than suggested — 97.2 precision at 68.4 recall is
+the shape that warrants an assertion.
+
+The comparison row is a table built by inference — terms carried by ≥70% of
+training documents citing a part — rather than witnessed. Rate-thresholded
+witnessed evidence beats it by 4.1 points on nearly twice the parts.
+
+**Both columns ship so the artifact stands alone.** Without the denominator a
+consumer has to join back to the corpus this was derived from, which defeats
+most of the point of pinning it.
 
 Two properties requested by the consumer and both held:
 
@@ -80,7 +115,11 @@ evidence than one witnessed 400 times across two decades.
 - **The 84.9% subset is not a random sample of the CFR.** Documents amending one
   part skew toward routine single-part actions; complex rulemakings citing many
   parts are exactly the ones excluded, so the parts they touch are
-  under-represented here.
+  under-represented here. **This confound was measured, not just asserted:**
+  restricted to the 1,788 parts both this table and an inferred one cover, the
+  inferred table scores 87.7 against its 85.3 overall — so shared parts are
+  easier by about **2.4 points**. That is smaller than the 4.1-point margin it
+  would have to explain away, but it is real and should be held in mind.
 - **This does not license the multi-part case.** The remaining 15.1% still has no
   warranted attribution, and nothing here should be read as a method for
   supplying one.
