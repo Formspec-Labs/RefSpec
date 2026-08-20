@@ -77,6 +77,7 @@ label-shaped facts earn a shared field later, both modules move together.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
@@ -97,6 +98,7 @@ from refspec.atlas.derived_graph import (
 SKOS_CLOSE_MATCH = "http://www.w3.org/2004/02/skos/core#closeMatch"
 SKOS_EXACT_MATCH = "http://www.w3.org/2004/02/skos/core#exactMatch"
 
+SKOSXL_ALT_LABEL_TERM = "<http://www.w3.org/2008/05/skos-xl#altLabel>"
 SKOSXL_PREF_LABEL_TERM = "<http://www.w3.org/2008/05/skos-xl#prefLabel>"
 SKOSXL_LITERAL_FORM_TERM = "<http://www.w3.org/2008/05/skos-xl#literalForm>"
 
@@ -415,3 +417,58 @@ FR_THESAURUS_API_TOPIC_RULE = DerivationRule(
     derive=derive_fr_thesaurus_api_topic_rows,
     label="Federal Register thesaurus-to-API-topic label-equality closeMatch",
 )
+
+
+def _escape_literal(text: str) -> str:
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def build_fr_alignment_asserted_nquads_lines(
+    thesaurus_release: object,
+    topics_release: object,
+) -> tuple[str, ...]:
+    """Project the two Federal Register releases into the facts this rule reads.
+
+    Emits scheme membership, semantic ring, one synthetic ``SourceRecord``
+    per resource, and SKOS-XL label nodes for every preferred and alternate
+    label. Alternates are included on purpose: the rule must keep deriving
+    exactly its 698 preferred-label edges over a graph that also carries the
+    thesaurus's 433 alternates, and must never match on one. Label-node IRIs
+    are synthetic content-derived digests -- stable and unique per label,
+    which is all evidence citation and joining need.
+    """
+
+    graph_id = "<urn:ref:atlas:graph:v3:asserted>"
+    lines: list[str] = []
+    for release, expected_scheme in (
+        (thesaurus_release, FR_THESAURUS_SCHEME_IRI),
+        (topics_release, FR_API_TOPICS_SCHEME_IRI),
+    ):
+        scheme_iri = release.scheme_iri  # type: ignore[attr-defined]
+        if scheme_iri != expected_scheme:
+            raise FrThesaurusApiTopicDerivationError(
+                f"release is not the expected Federal Register scheme: {scheme_iri}"
+            )
+        if release.ring != "subject":  # type: ignore[attr-defined]
+            raise FrThesaurusApiTopicDerivationError(
+                f"release is not in the subject ring: {release.ring}"  # type: ignore[attr-defined]
+            )
+        for resource in release.resources:  # type: ignore[attr-defined]
+            iri = resource.iri  # type: ignore[attr-defined]
+            subject = f"<{iri}>"
+            slug = iri.rsplit(":", 1)[-1]
+            record = f"<urn:ref:atlas-source-record:fr-alignment-fixture:{slug}>"
+            lines.append(f"{subject} {ATLAS_IN_SCHEME_TERM} <{scheme_iri}> {graph_id} .")
+            lines.append(f"{subject} {ATLAS_SEMANTIC_RING_TERM} <{ATLAS_SUBJECT_RING}> {graph_id} .")
+            for label_row in resource.labels:  # type: ignore[attr-defined]
+                role = label_row.role  # type: ignore[attr-defined]
+                value = label_row.value  # type: ignore[attr-defined]
+                digest = hashlib.sha256(f"{iri}|{role}|{value}".encode()).hexdigest()[:32]
+                label = f"<urn:ref:atlas-label:fr-alignment-fixture:{digest}>"
+                role_term = SKOSXL_PREF_LABEL_TERM if role == "preferred" else SKOSXL_ALT_LABEL_TERM
+                lines.append(f"{subject} {role_term} {label} {graph_id} .")
+                lines.append(
+                    f'{label} {SKOSXL_LITERAL_FORM_TERM} "{_escape_literal(value)}"@en {graph_id} .'
+                )
+            lines.append(f"{record} {ATLAS_REPRESENTS_RESOURCE_TERM} {subject} {graph_id} .")
+    return tuple(lines)

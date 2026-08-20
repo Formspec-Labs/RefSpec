@@ -350,3 +350,47 @@ def test_bijection_guard_is_defensive_the_index_fires_first() -> None:
         fta.resolve_fr_thesaurus_api_topic_edges(facts, labels)
     assert "folded preferred label" in str(excinfo.value)
     assert "bijection" not in str(excinfo.value)
+
+
+def test_real_releases_reproduce_the_frozen_edge_set() -> None:
+    """The two real Federal Register releases derive exactly 698 edges.
+
+    Every count here was independently derived from the sealed 2026-08-20
+    Parquet search view by a different code path (DuckDB over
+    `labels.parquet`) before this rule existed. Agreement between that
+    measurement and this derivation is the point of the test: two routes to
+    the same numbers, so a drift in either is visible.
+
+    It also proves the rule ignores alternates. The projection emits all 433
+    of the thesaurus's alternate labels alongside its 705 preferred ones,
+    and the edge count is unmoved -- this rule matches preferred labels only,
+    which is what makes it a vocabulary-identity link rather than a
+    surface-form one.
+    """
+
+    from refspec.atlas.v3_registry_large import load_federal_register_topics_release
+    from refspec.atlas.v3_registry_vocabularies import load_federal_register_2025_release
+
+    thesaurus = load_federal_register_2025_release()
+    topics = load_federal_register_topics_release()
+    lines = list(fta.build_fr_alignment_asserted_nquads_lines(thesaurus, topics))
+    context, labels = _context(lines)
+
+    outcome = fta.derive_fr_thesaurus_api_topic_rows(context, labels)
+
+    assert outcome.counts == {
+        "edges": fta.FR_ALIGNMENT_EDGE_COUNT,
+        "thesaurusTerms": fta.FR_ALIGNMENT_THESAURUS_TERM_COUNT,
+        "apiTopics": fta.FR_ALIGNMENT_API_TOPIC_COUNT,
+        "thesaurusUnmatched": 7,
+        "apiTopicUnmatched": 346,
+        # Armed Forces, Armed Forces Reserves, Diesel fuel -- the three terms
+        # the same publisher spells two ways across its own two lists.
+        "caseFoldedOnly": fta.FR_ALIGNMENT_EDGE_COUNT - fta.FR_ALIGNMENT_VERBATIM_EDGE_COUNT,
+    }
+    assert len(outcome.rows) == fta.FR_ALIGNMENT_EDGE_COUNT
+    assert all(row.predicate == fta.SKOS_CLOSE_MATCH for row in outcome.rows)
+    subjects = {row.subject for row in outcome.rows}
+    objects = {row.object for row in outcome.rows}
+    assert len(subjects) == len(objects) == fta.FR_ALIGNMENT_EDGE_COUNT
+    assert not (subjects & objects)
