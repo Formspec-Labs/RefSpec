@@ -31,6 +31,7 @@ from refspec.atlas.v3_registry_selection import (
 from refspec.atlas.v3_source_data import (
     LabelRole,
     RegistryInputPin,
+    RegistryIdentifier,
     RegistryLabel,
     RegistryRelation,
     RegistryRelease,
@@ -1800,6 +1801,9 @@ def load_nasa_thesaurus_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> Regi
     return _normalize_nasa(parsed, source)
 
 
+MESH_DESCRIPTORS_SCHEME_IRI = "urn:ref:atlas-resource-scheme:mesh-descriptors"
+
+
 def _normalize_mesh(parsed: MeshDescriptorSnapshot, source: RegistryInputPin) -> RegistryRelease:
     if len(parsed.descriptors) != MESH_2026_DESCRIPTOR_COUNT:
         raise ValueError(
@@ -1832,6 +1836,21 @@ def _normalize_mesh(parsed: MeshDescriptorSnapshot, source: RegistryInputPin) ->
             source_locator=descriptor.concept_iri,
             source_digest=source.sha256,
             notations=descriptor.tree_numbers,
+            # The DescriptorUI is NLM's own stable identifier for the concept.
+            # `mesh_descriptors.py` already builds it as a ControlledIdentifier
+            # and it was being dropped here, so no MeSH row reached the Atlas
+            # identifiers table. It survives in the IRI and in native_payload,
+            # but only as text a consumer has to parse; this makes it a typed,
+            # queryable row alongside the Treasury account symbols that were
+            # previously the table's only occupant.
+            identifiers=tuple(
+                RegistryIdentifier(
+                    value=identifier.value,
+                    scheme_iri=MESH_DESCRIPTORS_SCHEME_IRI,
+                    source_path=f"xml:DescriptorRecord[{descriptor.descriptor_ui}]/DescriptorUI",
+                )
+                for identifier in descriptor.identifiers
+            ),
             status="active",
         )
         for descriptor in parsed.descriptors
