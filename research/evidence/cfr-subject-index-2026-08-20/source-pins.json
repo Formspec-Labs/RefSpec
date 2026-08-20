@@ -16,7 +16,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-02.html",
    "sha256": "sha256:41e7e65685771813ac0a2e0178b77dae537a6f6442006b8d880a4829cbd8a94b",
    "byteLength": 73358,
-   "parts": 87
+   "parts": 104
   },
   {
    "cfrTitle": 3,
@@ -51,7 +51,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-07.html",
    "sha256": "sha256:a617e770552103f7a0457fae26e74a501ddab518307f6f489472f31aaec5fd63",
    "byteLength": 164244,
-   "parts": 466
+   "parts": 467
   },
   {
    "cfrTitle": 8,
@@ -72,7 +72,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-10.html",
    "sha256": "sha256:a229552584bf963223e4f31a52297d0c77d275e03b9ab054d598771eee185302",
    "byteLength": 93742,
-   "parts": 179
+   "parts": 181
   },
   {
    "cfrTitle": 11,
@@ -100,21 +100,21 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-14.html",
    "sha256": "sha256:1d5f5a64ec265035243daf67085a41e104bd3cf845d096124fe00edb8a332b41",
    "byteLength": 85013,
-   "parts": 195
+   "parts": 196
   },
   {
    "cfrTitle": 15,
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-15.html",
    "sha256": "sha256:e3449cf820d586d6eb9de638b9a1263de4df524e41c48fc8d4601716ef1e0a8e",
    "byteLength": 77751,
-   "parts": 152
+   "parts": 153
   },
   {
    "cfrTitle": 16,
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-16.html",
    "sha256": "sha256:42ca1113ace56b3c8e26f78eca52b396318427a1ebf155f8b71c5a179aebbd4d",
    "byteLength": 92067,
-   "parts": 219
+   "parts": 221
   },
   {
    "cfrTitle": 17,
@@ -149,7 +149,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-21.html",
    "sha256": "sha256:7c98df4468a0f0f3cd3341e4479e893aaebccb31070f6a4eb01cd2cbd278a343",
    "byteLength": 91081,
-   "parts": 258
+   "parts": 259
   },
   {
    "cfrTitle": 22,
@@ -163,7 +163,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-23.html",
    "sha256": "sha256:aa06fb5cb15a9cc8fff5b0dac8417940d33e2ddf2c7c4728487f03328448613b",
    "byteLength": 59575,
-   "parts": 70
+   "parts": 71
   },
   {
    "cfrTitle": 24,
@@ -184,7 +184,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-26.html",
    "sha256": "sha256:1c8ff3d7b2b02d094da405ea35b70c21bda6fb829be919ec31f9942f329f74cc",
    "byteLength": 58249,
-   "parts": 70
+   "parts": 71
   },
   {
    "cfrTitle": 27,
@@ -212,7 +212,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-30.html",
    "sha256": "sha256:60c3f40c550af1d8a7113288975750abc1d69297c4e960df77a46edd27aa0d51",
    "byteLength": 93295,
-   "parts": 204
+   "parts": 205
   },
   {
    "cfrTitle": 31,
@@ -226,7 +226,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-32.html",
    "sha256": "sha256:c015a1335bbc7676f6dbcd5d422f46c26b5895e4f677ef6e61c4ec809d5d6ba6",
    "byteLength": 92267,
-   "parts": 233
+   "parts": 234
   },
   {
    "cfrTitle": 33,
@@ -282,7 +282,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-40.html",
    "sha256": "sha256:f56a17f997053ca3489764b32bd904538b3821f48d8a97d79f06d6932571afc4",
    "byteLength": 139078,
-   "parts": 350
+   "parts": 351
   },
   {
    "cfrTitle": 41,
@@ -317,7 +317,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-45.html",
    "sha256": "sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3",
    "byteLength": 122694,
-   "parts": 320
+   "parts": 321
   },
   {
    "cfrTitle": 46,
@@ -338,7 +338,7 @@
    "sourceUrl": "https://www.archives.gov/federal-register/cfr/subject-title-48.html",
    "sha256": "sha256:f9ddd39f2ff30312a326ab367dbc45aed7a30488955ac9ac6c59dad28fc236a6",
    "byteLength": 162521,
-   "parts": 835
+   "parts": 836
   },
   {
    "cfrTitle": 49,

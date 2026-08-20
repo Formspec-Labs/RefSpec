@@ -33,9 +33,9 @@ artifact referenced it.
 
 | | |
 |---|---:|
-| assignments | **32,232** |
-| CFR parts | **8,391** |
-| distinct terms | 1,075 |
+| assignments | **32,200** |
+| CFR parts | **8,426** |
+| distinct terms | 1,043 |
 | titles present | 49 *(title 35 is reserved)* |
 | pages captured and pinned | 50 |
 
@@ -49,8 +49,8 @@ that Federal Register documents happened to cite alone:
 
 | | witnessed | **publisher index** |
 |---|---:|---:|
-| parts | 4,256 | **8,391** |
-| terms | 852 | 1,075 |
+| parts | 4,256 | **8,426** |
+| terms | 852 | 1,043 |
 | attribution | witnessed from single-part filings | **asserted by the publisher** |
 | multi-part problem | 15.1% of documents discarded | **does not arise** |
 
@@ -95,7 +95,18 @@ surfaces as a reject instead of joining a permissive catch-all:
 | `Oart` for `Part` | 1 | `48 CFR Oart 739_…` |
 | em-dash for `_` | 1 | `40 CFR Part 60—…` |
 | leaked `<strong>` tag | 1 | `strong>48 CFR Part 2952_…` |
+| **part heading marked `<dd>` not `<dt>`** | **32** | `<dd><strong>40 CFR Part 1033_…</strong></dd>` |
 | **rejects** | **0** | — |
+
+The fifth is the consequential one and it was **not** caught by the fail-closed
+posture, because a `<dd>` containing text is structurally valid. It surfaced
+only when resolving terms against Atlas, where part headings appeared among the
+unresolved "terms". Left alone it is doubly wrong: the mistyped part vanishes
+entirely *and* its terms are attributed to the part above it. Recovering the 32
+adds 35 parts and removes 32 spurious terms.
+
+Only same-title citations are treated as mistyped headings; a `<dd>` naming a
+different title is a cross-reference and stays a term.
 
 Zero rejects from a permissive regex would mean nothing. Zero from a parser
 that raises on every unmatched entry means the pattern covers the data.

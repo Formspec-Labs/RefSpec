@@ -132,10 +132,9 @@ cfr_title,cfr_part,part_heading,term
 2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 376_Nonprocurement debarment and suspension
-2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,376,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,376,Nonprocurement debarment and suspension,Grant programs
+2,376,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,382,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
 2,382,Requirements for drug-free workplace (financial assistance),Drug abuse
 2,382,Requirements for drug-free workplace (financial assistance),Grant programs-health
@@ -190,10 +189,9 @@ cfr_title,cfr_part,part_heading,term
 2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 601_Nonprocurement debarment and suspension
-2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,600,"The uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,601,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,601,Nonprocurement debarment and suspension,Grant programs
+2,601,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,700,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
 2,700,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
 2,700,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
@@ -218,10 +216,9 @@ cfr_title,cfr_part,part_heading,term
 2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 901_Nonprocurement debarment and suspension
-2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,802,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,901,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,901,Nonprocurement debarment and suspension,Grant programs
+2,901,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,902,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
 2,902,Requirements for drug-free workplace (financial assistance),Drug abuse
 2,902,Requirements for drug-free workplace (financial assistance),Grant programs
@@ -354,19 +351,17 @@ cfr_title,cfr_part,part_heading,term
 2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 1326_Nonprocurement debarment and suspension
-2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,1201,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,1326,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,1326,Nonprocurement debarment and suspension,Grant programs
+2,1326,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
 2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
 2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
 2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
-2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 1329_Requirements for drug-free workplace (financial assistance)
-2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Drug abuse
-2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,1327,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,1329,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
+2,1329,Requirements for drug-free workplace (financial assistance),Drug abuse
+2,1329,Requirements for drug-free workplace (financial assistance),Grant programs
+2,1329,Requirements for drug-free workplace (financial assistance),Reporting and recordkeeping requirements
 2,1400,Nonprocurement debarment and suspension,Administrative practice and procedure
 2,1400,Nonprocurement debarment and suspension,Grant programs
 2,1400,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
@@ -380,19 +375,18 @@ cfr_title,cfr_part,part_heading,term
 2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards","2 CFR Part 1500_Uniform administrative requirements, cost principles, and audit requirements for Federal awards"
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Accounting
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Grant programs--environmental protection
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Grants administration
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Loan programs
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Waste treatment and disposal
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Water pollution control
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Water resources
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Water supply
-2,1402,"Financial assistance Interior regulation, supplementing the Uniform Administrative Requirements, cost principles, and audit requirements for Federal awards",Watersheds
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs--environmental protection
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Waste treatment and disposal
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Water pollution control
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Water resources
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Water supply
+2,1500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Watersheds
 2,1532,Nonprocurement debarment and suspension,Administrative practice and procedure
 2,1532,Nonprocurement debarment and suspension,Grant programs
 2,1532,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
@@ -433,21 +427,19 @@ cfr_title,cfr_part,part_heading,term
 2,2205,Implementation of and exemptions to 2 CFR,Grants administration
 2,2205,Implementation of and exemptions to 2 CFR,Loan programs
 2,2205,Implementation of and exemptions to 2 CFR,Scholarships and fellowships
-2,2205,Implementation of and exemptions to 2 CFR,2 CFR Part 2245_Requirements for drug-free workplace (financial assistance)
-2,2205,Implementation of and exemptions to 2 CFR,Administrative practice and procedure
-2,2205,Implementation of and exemptions to 2 CFR,Drug abuse
-2,2205,Implementation of and exemptions to 2 CFR,Grant programs
-2,2205,Implementation of and exemptions to 2 CFR,Reporting and recordkeeping requirements
+2,2245,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
+2,2245,Requirements for drug-free workplace (financial assistance),Drug abuse
+2,2245,Requirements for drug-free workplace (financial assistance),Grant programs
+2,2245,Requirements for drug-free workplace (financial assistance),Reporting and recordkeeping requirements
 2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
 2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
 2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
 2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 2336_Nonprocurement debarment and suspension
-2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,2300,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,2336,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,2336,Nonprocurement debarment and suspension,Grant programs
+2,2336,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,2339,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
 2,2339,Requirements for drug-free workplace (financial assistance),Drug abuse
 2,2339,Requirements for drug-free workplace (financial assistance),Grant programs
@@ -471,37 +463,33 @@ cfr_title,cfr_part,part_heading,term
 2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 2520_Nonprocurement debarment and suspension
-2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,2500,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,2520,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,2520,Nonprocurement debarment and suspension,Grant programs
+2,2520,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
 2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
 2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
 2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 2700_Nonprocurement debarment and suspension
-2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,2600,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,2700,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,2700,Nonprocurement debarment and suspension,Grant programs
+2,2700,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
 2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
 2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
 2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards","2 CFR Part 2800_Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice"
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 2867_Nonprocurement debarment and suspension
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,2701,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,2800,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice",Accounting
+2,2800,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice",Administrative practice and procedure
+2,2800,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice",Government contracts
+2,2800,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice",Grants administration
+2,2800,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice",Loan programs
+2,2800,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards by the Department of Justice",Scholarships and fellowships
+2,2867,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,2867,Nonprocurement debarment and suspension,Grant programs
+2,2867,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,2900,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
 2,2900,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
 2,2900,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
@@ -528,10 +516,9 @@ cfr_title,cfr_part,part_heading,term
 2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 3185_Nonprocurement debarment and suspension
-2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,3002,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,3185,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,3185,Nonprocurement debarment and suspension,Grant programs
+2,3185,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,3186,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
 2,3186,Requirements for drug-free workplace (financial assistance),Drug abuse
 2,3186,Requirements for drug-free workplace (financial assistance),Grant programs
@@ -549,11 +536,10 @@ cfr_title,cfr_part,part_heading,term
 2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 3256_Requirements for drug-free workplace (financial assistance)
-2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Drug abuse
-2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,3255,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,3256,Requirements for drug-free workplace (financial assistance),Administrative practice and procedure
+2,3256,Requirements for drug-free workplace (financial assistance),Drug abuse
+2,3256,Requirements for drug-free workplace (financial assistance),Grant programs
+2,3256,Requirements for drug-free workplace (financial assistance),Reporting and recordkeeping requirements
 2,3369,Nonprocurement debarment and suspension,Administrative practice and procedure
 2,3369,Nonprocurement debarment and suspension,Grant programs
 2,3369,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
@@ -567,17 +553,15 @@ cfr_title,cfr_part,part_heading,term
 2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards","2 CFR Part 3474_Uniform administrative requirements, cost principles, and audit requirements for Federal awards"
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 3485_Nonprocurement debarment and suspension
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,3374,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,3474,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Accounting
+2,3474,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
+2,3474,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Government contracts
+2,3474,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
+2,3474,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
+2,3474,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
+2,3485,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,3485,Nonprocurement debarment and suspension,Grant programs
+2,3485,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,3513,Nonprocurement debarment and suspension,Administrative practice and procedure
 2,3513,Nonprocurement debarment and suspension,Grant programs
 2,3513,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
@@ -587,10 +571,9 @@ cfr_title,cfr_part,part_heading,term
 2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grants administration
 2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Loan programs
 2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Scholarships and fellowships
-2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",2 CFR Part 3700_Nonprocurement debarment and suspension
-2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Administrative practice and procedure
-2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Grant programs
-2,3603,"Uniform administrative requirements, cost principles, and audit requirements for Federal awards",Reporting and recordkeeping requirements
+2,3700,Nonprocurement debarment and suspension,Administrative practice and procedure
+2,3700,Nonprocurement debarment and suspension,Grant programs
+2,3700,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
 2,5800,Nonprocurement debarment and suspension,Administrative practice and procedure
 2,5800,Nonprocurement debarment and suspension,Grant programs
 2,5800,Nonprocurement debarment and suspension,Reporting and recordkeeping requirements
@@ -3804,12 +3787,11 @@ cfr_title,cfr_part,part_heading,term
 7,4284,Grants,Grant programs-Technical assistance
 7,4284,Grants,Reporting and recordkeeping requirements
 7,4284,Grants,Rural areas
-7,4284,Grants,7 CFR Part 4285_Cooperative agreements
-7,4284,Grants,Agricultural commodities
-7,4284,Grants,Agricultural research
-7,4284,Grants,Cooperatives
-7,4284,Grants,Reporting and recordkeeping requirements
-7,4284,Grants,Rural areas
+7,4285,Cooperative agreements,Agricultural commodities
+7,4285,Cooperative agreements,Agricultural research
+7,4285,Cooperative agreements,Cooperatives
+7,4285,Cooperative agreements,Reporting and recordkeeping requirements
+7,4285,Cooperative agreements,Rural areas
 7,4287,Servicing,Community development
 7,4287,Servicing,Economic development
 7,4287,Servicing,Energy
@@ -5195,21 +5177,19 @@ cfr_title,cfr_part,part_heading,term
 10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Engineers
 10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Federal buildings and facilities
 10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Housing
-10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,10 CFR Part 434_Energy code for new Federal commercial and multi-family high rise residential buildings
-10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Buildings and facilities
-10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Energy conservation
-10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Engineers
-10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Federal buildings and facilities
-10,433,Energy efficiency standards for the design and construction of new Federal commercial and multi-family high-rise residential buildings,Housing
+10,434,Energy code for new Federal commercial and multi-family high rise residential buildings,Buildings and facilities
+10,434,Energy code for new Federal commercial and multi-family high rise residential buildings,Energy conservation
+10,434,Energy code for new Federal commercial and multi-family high rise residential buildings,Engineers
+10,434,Energy code for new Federal commercial and multi-family high rise residential buildings,Federal buildings and facilities
+10,434,Energy code for new Federal commercial and multi-family high rise residential buildings,Housing
 10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Buildings and facilities
 10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Energy conservation
 10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Federal buildings and facilities
 10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Housing
-10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,10 CFR Part 436_Federal energy management and planning programs
-10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Energy conservation
-10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Federal buildings and facilities
-10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Reporting and recordkeeping requirements
-10,435,Energy efficiency standards for the design and construction of new Federal low-rise residential buildings,Solar energy
+10,436,Federal energy management and planning programs,Energy conservation
+10,436,Federal energy management and planning programs,Federal buildings and facilities
+10,436,Federal energy management and planning programs,Reporting and recordkeeping requirements
+10,436,Federal energy management and planning programs,Solar energy
 10,440,Weatherization assistance program for low-income persons,Administrative practice and procedure
 10,440,Weatherization assistance program for low-income persons,Aged
 10,440,Weatherization assistance program for low-income persons,Energy conservation
@@ -7822,11 +7802,10 @@ cfr_title,cfr_part,part_heading,term
 14,36,Noise standards: Aircraft type and airworthiness certification,Noise control
 14,38,Airplaine fuel efficiency certification,Air pollution control
 14,38,Airplaine fuel efficiency certification,Aircraft
-14,38,Airplaine fuel efficiency certification,14 CFR Part 39_Airworthiness directives
-14,38,Airplaine fuel efficiency certification,Air transportation
-14,38,Airplaine fuel efficiency certification,Aircraft
-14,38,Airplaine fuel efficiency certification,Aviation safety
-14,38,Airplaine fuel efficiency certification,Safety
+14,39,Airworthiness directives,Air transportation
+14,39,Airworthiness directives,Aircraft
+14,39,Airworthiness directives,Aviation safety
+14,39,Airworthiness directives,Safety
 14,43,"Maintenance, preventive maintenance, rebuilding, and alteration",Aircraft
 14,43,"Maintenance, preventive maintenance, rebuilding, and alteration",Aviation safety
 14,43,"Maintenance, preventive maintenance, rebuilding, and alteration",Reporting and recordkeeping requirements
@@ -8815,10 +8794,9 @@ cfr_title,cfr_part,part_heading,term
 15,748,"Applications (classification, advisory, and license) and documentation",Exports
 15,748,"Applications (classification, advisory, and license) and documentation",Reporting and recordkeeping requirements
 15,748,"Applications (classification, advisory, and license) and documentation",Terrorism
-15,748,"Applications (classification, advisory, and license) and documentation","15 CFR Part 750_Application processing, issuance or and denial"
-15,748,"Applications (classification, advisory, and license) and documentation",Administrative practice and procedure
-15,748,"Applications (classification, advisory, and license) and documentation",Exports
-15,748,"Applications (classification, advisory, and license) and documentation",Reporting and recordkeeping requirements
+15,750,"Application processing, issuance or and denial",Administrative practice and procedure
+15,750,"Application processing, issuance or and denial",Exports
+15,750,"Application processing, issuance or and denial",Reporting and recordkeeping requirements
 15,754,Short supply controls,Agricultural commodities
 15,754,Short supply controls,Exports
 15,754,Short supply controls,Forests and forest products
@@ -9271,10 +9249,9 @@ cfr_title,cfr_part,part_heading,term
 16,463,Combating auto retail scams trade regulation rule,Motor vehicles
 16,463,Combating auto retail scams trade regulation rule,Reporting and recordkeeping requirements
 16,463,Combating auto retail scams trade regulation rule,Trade practices
-16,463,Combating auto retail scams trade regulation rule,16 CFR Part 464_Rule on unfair or deceptive fees
-16,463,Combating auto retail scams trade regulation rule,Advertising
-16,463,Combating auto retail scams trade regulation rule,Consumer protection
-16,463,Combating auto retail scams trade regulation rule,Trade practices
+16,464,Rule on unfair or deceptive fees,Advertising
+16,464,Rule on unfair or deceptive fees,Consumer protection
+16,464,Rule on unfair or deceptive fees,Trade practices
 16,465,Rule on the use of consumer reviews and testimonials,Advertising
 16,500,Regulations under Section 4 of the Fair Packaging and Labeling Act,Labeling
 16,500,Regulations under Section 4 of the Fair Packaging and Labeling Act,Packaging and containers
@@ -9757,12 +9734,11 @@ cfr_title,cfr_part,part_heading,term
 16,1263,Safety standard for button cell or coin batteries and consumer products containing such batteries,Safety
 16,1270,Safety standard for adult portable bed rails,Administrative practice and procedure
 16,1270,Safety standard for adult portable bed rails,Consumer protection
-16,1270,Safety standard for adult portable bed rails,"16 CFR Part 1272_Marking of toy, look-alike, and imitation firearms"
-16,1270,Safety standard for adult portable bed rails,Consumer protection
-16,1270,Safety standard for adult portable bed rails,Imports
-16,1270,Safety standard for adult portable bed rails,Law enforcement
-16,1270,Safety standard for adult portable bed rails,Safety
-16,1270,Safety standard for adult portable bed rails,Toys
+16,1272,"Marking of toy, look-alike, and imitation firearms",Consumer protection
+16,1272,"Marking of toy, look-alike, and imitation firearms",Imports
+16,1272,"Marking of toy, look-alike, and imitation firearms",Law enforcement
+16,1272,"Marking of toy, look-alike, and imitation firearms",Safety
+16,1272,"Marking of toy, look-alike, and imitation firearms",Toys
 16,1301,Ban of unstable refuse bins,Consumer protection
 16,1302,Ban of extremely flammable contact adhesives,Adhesives
 16,1302,Ban of extremely flammable contact adhesives,Consumer protection
@@ -12044,8 +12020,7 @@ cfr_title,cfr_part,part_heading,term
 21,520,Oral dosage form new animal drugs,Animal drugs
 21,522,Implantation or injectable dosage form new animal drugs,Animal drugs
 21,524,Ophthalmic and topical dosage form new animal drugs,Animal drugs
-21,524,Ophthalmic and topical dosage form new animal drugs,21 CFR Part 526_Intramammary dosage forms
-21,524,Ophthalmic and topical dosage form new animal drugs,Animal drugs
+21,526,Intramammary dosage forms,Animal drugs
 21,528,Intentional Genomic Alterations in Animals,Animal drugs
 21,529,Certain other dosage form new animal drugs,Animal drugs
 21,530,Extralabel drug use in animals,Administrative practice and procedure
@@ -13108,9 +13083,8 @@ cfr_title,cfr_part,part_heading,term
 23,624,Interstate system access,Reporting and recordkeeping requirements
 23,625,Design standards for highways,Grant programs-transportation
 23,625,Design standards for highways,Highways and roads
-23,625,Design standards for highways,23 CFR Part 626_Pavement policy
-23,625,Design standards for highways,Grant programs-transportation
-23,625,Design standards for highways,Highways and roads
+23,626,Pavement policy,Grant programs-transportation
+23,626,Pavement policy,Highways and roads
 23,627,Value engineering,Grant programs-transportation
 23,627,Value engineering,Highways and roads
 23,630,Preconstruction procedures,Government contracts
@@ -14726,9 +14700,8 @@ cfr_title,cfr_part,part_heading,term
 26,57,Health insurance providers fee,Reporting and recordkeeping requirements
 26,58,Stock repurchase excise tax,Insurance
 26,58,Stock repurchase excise tax,Reporting and recordkeeping requirements
-26,58,Stock repurchase excise tax,26 CFR Part 141_Temporary excise tax regulations under the Employee Retirement Income Security Act of 1974
-26,58,Stock repurchase excise tax,Excise taxes
-26,58,Stock repurchase excise tax,Pensions
+26,141,Temporary excise tax regulations under the Employee Retirement Income Security Act of 1974,Excise taxes
+26,141,Temporary excise tax regulations under the Employee Retirement Income Security Act of 1974,Pensions
 26,143,Temporary excise tax regulations under the Tax Reform Act of 1969,Excise taxes
 26,143,Temporary excise tax regulations under the Tax Reform Act of 1969,Foundations
 26,145,Temporary excise tax regulations under the Highway Revenue Act of 1982 (Pub. L. 97-424),Excise taxes
@@ -17826,11 +17799,10 @@ cfr_title,cfr_part,part_heading,term
 30,1241,Penalties,Oil and gas exploration
 30,1241,Penalties,Penalties
 30,1241,Penalties,Public lands-mineral resources
-30,1241,Penalties,30 CFR Part 1243_Suspensions pending appeal and bonding_Office of Natural Resources Revenue
-30,1241,Penalties,Administrative practice and procedure
-30,1241,Penalties,Government contracts
-30,1241,Penalties,Mineral royalties
-30,1241,Penalties,Public lands-mineral resources
+30,1243,Suspensions pending appeal and bonding_Office of Natural Resources Revenue,Administrative practice and procedure
+30,1243,Suspensions pending appeal and bonding_Office of Natural Resources Revenue,Government contracts
+30,1243,Suspensions pending appeal and bonding_Office of Natural Resources Revenue,Mineral royalties
+30,1243,Suspensions pending appeal and bonding_Office of Natural Resources Revenue,Public lands-mineral resources
 30,1290,Appeal procedures,Administrative practice and procedure
 31,0,Department of the Treasury employee rules of conduct,Conflict of interests
 31,0,Department of the Treasury employee rules of conduct,Government employees
@@ -19113,9 +19085,8 @@ cfr_title,cfr_part,part_heading,term
 32,170,Cybersecurity Maturity Model Certification (CMMC) program,Computer technology
 32,170,Cybersecurity Maturity Model Certification (CMMC) program,Government procurement
 32,170,Cybersecurity Maturity Model Certification (CMMC) program,Security measures
-32,170,Cybersecurity Maturity Model Certification (CMMC) program,32 CFR Part 173_Competitive Information Certificate and Profit Reduction Clause
-32,170,Cybersecurity Maturity Model Certification (CMMC) program,Armed forces
-32,170,Cybersecurity Maturity Model Certification (CMMC) program,Government procurement
+32,173,Competitive Information Certificate and Profit Reduction Clause,Armed forces
+32,173,Competitive Information Certificate and Profit Reduction Clause,Government procurement
 32,174,Revitalizing base closure communities and addressing impacts of realignment,Community development
 32,174,Revitalizing base closure communities and addressing impacts of realignment,Surplus Government property
 32,175,"Indemnification or defense, or providing notice to the Department of Defense, relating to a third-party environmental claim",Administrative practice and procedure
@@ -23533,14 +23504,13 @@ cfr_title,cfr_part,part_heading,term
 40,1031,Control of air pollution from aircraft engines,Air pollution control
 40,1031,Control of air pollution from aircraft engines,Aircraft
 40,1031,Control of air pollution from aircraft engines,Environmental protection
-40,1031,Control of air pollution from aircraft engines,40 CFR Part 1033_Control of emissions from locomotives
-40,1031,Control of air pollution from aircraft engines,Administrative practice and procedure
-40,1031,Control of air pollution from aircraft engines,Confidential business information
-40,1031,Control of air pollution from aircraft engines,Environmental protection
-40,1031,Control of air pollution from aircraft engines,Labeling
-40,1031,Control of air pollution from aircraft engines,Penalties
-40,1031,Control of air pollution from aircraft engines,Railroads
-40,1031,Control of air pollution from aircraft engines,Reporting and recordkeeping requirements
+40,1033,Control of emissions from locomotives,Administrative practice and procedure
+40,1033,Control of emissions from locomotives,Confidential business information
+40,1033,Control of emissions from locomotives,Environmental protection
+40,1033,Control of emissions from locomotives,Labeling
+40,1033,Control of emissions from locomotives,Penalties
+40,1033,Control of emissions from locomotives,Railroads
+40,1033,Control of emissions from locomotives,Reporting and recordkeeping requirements
 40,1036,Control of emissions from new and in-use heavy-duty highway engines,Administrative practice and procedure
 40,1036,Control of emissions from new and in-use heavy-duty highway engines,Air pollution control
 40,1036,Control of emissions from new and in-use heavy-duty highway engines,Confidential business information
@@ -26271,11 +26241,10 @@ cfr_title,cfr_part,part_heading,term
 45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Grants administration
 45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Loan programs
 45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Scholarships and fellowships
-45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",45 CFR Part 77_Remedial actions applicable to letter of credit administration
-45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Accounting
-45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Administrative practice and procedure
-45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Government contracts
-45,75,"Uniform administrative requirements, cost principles, and audit requirements for HHS awards",Grant programs
+45,77,Remedial actions applicable to letter of credit administration,Accounting
+45,77,Remedial actions applicable to letter of credit administration,Administrative practice and procedure
+45,77,Remedial actions applicable to letter of credit administration,Government contracts
+45,77,Remedial actions applicable to letter of credit administration,Grant programs
 45,78,Conditions for waiver of denial of Federal benefits,Drug abuse
 45,79,Program fraud civil remedies,Administrative practice and procedure
 45,79,Program fraud civil remedies,Claims
@@ -29253,8 +29222,7 @@ cfr_title,cfr_part,part_heading,term
 48,750,Extraordinary contractual actions and the Safety Act,Government procurement
 48,752,Solicitation provisions and contract clauses,Government procurement
 48,752,Solicitation provisions and contract clauses,Reporting and recordkeeping requirements
-48,752,Solicitation provisions and contract clauses,48 CFR Part 753_Forms
-48,752,Solicitation provisions and contract clauses,Government procurement
+48,753,Forms,Government procurement
 48,801,Department of Veterans Affairs Acquisition Regulation System,Administrative practice and procedure
 48,801,Department of Veterans Affairs Acquisition Regulation System,Government procurement
 48,801,Department of Veterans Affairs Acquisition Regulation System,Reporting and recordkeeping requirements

@@ -163,3 +163,40 @@ def test_parser_performs_no_network_access() -> None:
     text = open(source, encoding="utf-8").read()
     for forbidden in ("import requests", "urlopen", "httpx", "socket."):
         assert forbidden not in text
+
+
+def test_a_part_heading_mistyped_as_dd_is_recovered_not_admitted_as_a_term() -> None:
+    """The publisher marks 32 part headings as <dd> instead of <dt>.
+
+    Left alone this is doubly wrong: the mistyped part vanishes entirely, and
+    its terms are silently attributed to the part above it. Both halves are
+    checked here.
+    """
+
+    payload = _page(
+        "<dt><strong>40 CFR Part 1031_Control of air pollution from aircraft engines.</strong></dt>"
+        "<dd>Air pollution control</dd><dd>Aircraft</dd>"
+        "<dd><strong>40 CFR Part 1033_Control of emissions from locomotives. </strong></dd>"
+        "<dd>Administrative practice and procedure</dd>"
+    )
+    parts = {p.cfr_part: p for p in parse_cfr_subject_index(payload, pin=_pin(payload))}
+    assert set(parts) == {"1031", "1033"}
+    assert parts["1031"].terms == ("Air pollution control", "Aircraft")
+    assert parts["1033"].terms == ("Administrative practice and procedure",)
+    assert parts["1033"].part_heading == "Control of emissions from locomotives"
+
+
+def test_a_nested_citation_from_another_title_stays_a_term() -> None:
+    """Only same-title citations are treated as mistyped headings.
+
+    A <dd> naming a DIFFERENT title is a cross-reference, not a misplaced
+    heading, and must not silently create a part under the wrong title.
+    """
+
+    payload = _page(
+        "<dt><strong>40 CFR Part 52_Implementation plans. </strong></dt>"
+        "<dd>Air pollution control</dd><dd>12 CFR Part 3_Something else</dd>"
+    )
+    (part,) = parse_cfr_subject_index(payload, pin=_pin(payload))
+    assert part.cfr_part == "52"
+    assert part.terms == ("Air pollution control", "12 CFR Part 3_Something else")

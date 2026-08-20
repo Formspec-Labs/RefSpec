@@ -793,21 +793,42 @@ def parse_cfr_subject_index(
             raise CFRSourceDriftError(
                 f"CFR subject index for title {pin.cfr_title} contains a title {declared_title} entry"
             )
-        terms = tuple(
-            term.rstrip(".")
-            for term in (_subject_text(dd) for dd in _SUBJECT_DD.findall(match.group("dds")))
-            if term and term.upper() != "N/A"
-        )
-        if not terms:
-            continue
-        parts.append(
-            CfrPartSubjects(
-                cfr_title=declared_title,
-                cfr_part=head.group("part").rstrip("."),
-                part_heading=head.group("heading").strip().rstrip("."),
-                terms=terms,
+        # Fifth documented publisher irregularity, and the consequential one:
+        # 32 part headings across 14 pages are marked up as <dd> rather than
+        # <dt>. Left alone, the mistyped part vanishes AND its terms are
+        # wrongly attributed to the part above it. Recover them as the part
+        # headings they plainly are, rather than admitting them as terms.
+        pending: list[tuple[str, str, list[str]]] = [
+            (head.group("part").rstrip("."), head.group("heading").strip().rstrip("."), [])
+        ]
+        for raw_dd in _SUBJECT_DD.findall(match.group("dds")):
+            value = _subject_text(raw_dd)
+            if not value or value.upper() == "N/A":
+                continue
+            if value.lower().startswith(_SUBJECT_LEAKED_TAG):
+                value = value[len(_SUBJECT_LEAKED_TAG) :].lstrip()
+            nested = _SUBJECT_HEAD.match(value) if "CFR" in value.upper() else None
+            if nested is not None and int(nested.group("title")) == declared_title:
+                pending.append(
+                    (
+                        nested.group("part").rstrip("."),
+                        nested.group("heading").strip().rstrip("."),
+                        [],
+                    )
+                )
+                continue
+            pending[-1][2].append(value.rstrip("."))
+        for part_number, heading, collected in pending:
+            if not collected:
+                continue
+            parts.append(
+                CfrPartSubjects(
+                    cfr_title=declared_title,
+                    cfr_part=part_number,
+                    part_heading=heading,
+                    terms=tuple(collected),
+                )
             )
-        )
     if not parts and pin.cfr_title not in CFR_RESERVED_TITLES:
         raise CFRSourceDriftError(f"CFR subject index title {pin.cfr_title} yielded no part assignments")
     if parts and pin.cfr_title in CFR_RESERVED_TITLES:
