@@ -71,6 +71,11 @@ from refspec.atlas.derived_graph.eurovoc_microthesaurus_domain import (
     eurovoc_microthesaurus_domain_evidence_nodes,
     resolve_microthesaurus_domain_edges,
 )
+from refspec.atlas.derived_graph.fr_thesaurus_api_topic_alignment import (
+    collect_fr_alignment_preferred_labels,
+    derive_fr_thesaurus_api_topic_rows,
+    fr_thesaurus_api_topic_evidence_nodes,
+)
 from refspec.atlas.derived_graph.fr_compound_headings import (
     collect_fr_preferred_labels,
     derive_fr_compound_heading_broader_rows,
@@ -4125,6 +4130,9 @@ GCMD_SCIENCE_KEYWORDS_RELEASE_KEY = "gcmd-science-keywords-24-4"
 FR_THESAURUS_RELEASE_KEY = "federal-register-thesaurus-2025"
 EUROVOC_MICROTHESAURI_RELEASE_KEY = "eurovoc-microthesauri-4.24"
 EUROVOC_DOMAINS_RELEASE_KEY = "eurovoc-domains-4.24"
+# Date-pinned upstream, unlike its siblings: the Federal Register API topic
+# list is a mutable-API capture, so its release key carries the capture date.
+FR_API_TOPICS_RELEASE_KEY = "federal-register-api-topics-2026-08-03"
 
 
 def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
@@ -6903,6 +6911,16 @@ def _derive_registered_relations(
             derive_eurovoc_microthesaurus_domain_rows,
             None,
             EUROVOC_DOMAINS_RELEASE_KEY,
+        ),
+        # The only entry that is BOTH cross-scheme and label-collecting: it
+        # spans two releases like the EuroVoc rule and needs a label view like
+        # the compound-heading rule, so it is the first to use both columns.
+        (
+            FR_THESAURUS_RELEASE_KEY,
+            fr_thesaurus_api_topic_evidence_nodes,
+            derive_fr_thesaurus_api_topic_rows,
+            collect_fr_alignment_preferred_labels,
+            FR_API_TOPICS_RELEASE_KEY,
         ),
     ):
         release = _release(release_key)

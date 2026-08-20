@@ -106,6 +106,48 @@ substantive band to retrieval. **Union, never intersect** — roughly 90% of
 assignments land on terms used by two or more agencies, so a hard agency filter
 is wrong even though the prior is strong.
 
+## The baseline you compare against is population-dependent
+
+A parallel session built the baseline harness on this artifact and measured
+something that qualifies the result this band split was derived to serve.
+
+Measured on the full corpus, a perfect lexical matcher loses to reading
+nothing: oracle recall 13.3% (F1 ~23.2 at perfect precision) against
+constant-top-8 at F1 29.2. That was the finding that motivated the two-track
+design.
+
+It does not survive agency stratification:
+
+| population | const@8 F1 | oracle |
+|---|---:|---:|
+| full corpus | **29.2** | 23.2 |
+| random sample | 28.9–29.0 | 22.9–23.0 |
+| **agency-stratified** | **19.4–19.6** | **23.1–25.0** |
+
+Reproduced independently here at 19.6 with a cap-200-per-agency draw.
+
+**The asymmetry is the point. The oracle is stable across every population
+(22.9–25.0); `constant_majority` is the unstable one**, collapsing from 29.2 to
+19.4. So "a matcher loses to guessing" is not a property of the tagging task —
+it is a property of this corpus's agency concentration. A few large agencies
+dominate, their procedural boilerplate is ubiquitous, and the constant harvests
+it. Spread the draw across agencies and the advantage evaporates.
+
+Both populations are defensible, and which one is honest depends on the claim
+being made. If the tagger is meant to mirror the corpus, use the corpus. If it
+is meant to work *across agencies*, stratify — and on that population a lexical
+matcher is not hopeless.
+
+Banded, the same session measured `constant_majority` as almost entirely a
+procedural-band phenomenon: F1 26.9–31.3 procedural against 0.0–3.1
+substantive, while the oracle holds 28.0–28.5 substantive across every
+population. The five commonest topics are all procedural, so in the
+substantive band the constant has nothing to harvest.
+
+That is this boundary confirmed from a third independent direction — arms,
+after dispersion (this document) and vocabulary gain (+0.00 procedural /
++5.04 substantive).
+
 ## Edge cases that need a human
 
 The rule is mechanical and four members are genuinely arguable. These are the
