@@ -22,7 +22,21 @@ that mean anything outside the Federal Register.
 |---|---:|---:|
 | expressible outside Federal Register vocabularies | **615** | **72.2%** |
 | **Federal Register only** | **237** | **27.8%** |
-| absent from Atlas entirely | 30 | 3.5% |
+| absent from Atlas entirely | **0** | 0% |
+
+**Correction.** An earlier version of this table reported "absent from Atlas
+entirely: 30". That was wrong and a parallel session caught it. All 852 terms
+are in Atlas by construction — they come from the CFR artifact, every row of
+which resolves to a `federal-register-api-topics` concept. The 30 were absent
+from the FR *thesaurus* and from every general scheme, which is a much weaker
+claim than the one the table made. Verified: 0 of 852 are absent from Atlas.
+
+**Matching rule.** Reach here counts **preferred and alternate** labels. A
+preferred-only reading gives 580 (68.1%) outside FR and 383 (45.0%) for LCSH —
+about 4 points tighter on the headline. The permissive reading is used because
+if a term matches an LCSH alternate label, the concept *is* expressible in
+LCSH; but the two readings differ enough that stating which one is in force
+matters.
 
 By reach:
 
@@ -77,6 +91,59 @@ policy-programme layer that regulatory work is usually about.**
 That is an argument for keeping the Federal Register thesaurus in the serving
 set rather than treating it as a stepping stone to a general one, and against
 any design that routes a document to exactly one vocabulary.
+
+## Small vocabularies: dense, but mostly not additive
+
+Raw reach understates small vocabularies, because a 3,810-concept thesaurus is
+competing with LCSH's 514,837. Per concept:
+
+| vocabulary | concepts | reach | reach per 1,000 concepts |
+|---|---:|---:|---:|
+| federal-register-thesaurus-2025 | 705 | 676 | **958.9** |
+| crs-legislative-subject-terms | 565 | 37 | 65.5 |
+| elsst | 3,470 | 194 | 55.9 |
+| **icpsr-subject-thesaurus** | 3,810 | 183 | **48.0** |
+| **eurovoc** | 7,515 | 218 | **29.0** |
+| gemet | 5,649 | 113 | 20.0 |
+| fast-topical | 441,127 | 470 | 1.07 |
+| lcsh-subjects | 514,837 | 483 | 0.94 |
+
+ICPSR is **51× denser** than LCSH in this space and EuroVoc **31×**. LCSH earns
+its 56.7% by being 137× larger, not by being better suited.
+
+**But density is not the same as additive value.** Against a serving set that
+already holds LCSH and FAST:
+
+| | reach | unique beyond LCSH/FAST | share of its reach that is unique |
+|---|---:|---:|---:|
+| eurovoc | 218 | **+58** | 27% |
+| icpsr-subject-thesaurus | 183 | **+19** | 10% |
+| both | — | **+72** | 483 → 555 (56.7% → 65.1%) |
+
+ICPSR overlaps LCSH almost entirely — both are anglophone library-tradition
+vocabularies, so it adds 19 terms for 3,810 concepts of carrying cost.
+
+EuroVoc looks three times better, **but inspect what it adds**:
+
+```
+nicaragua   libya   cuba   liberia   somalia   eritrea
+yemen   ukraine   american samoa   central african republic
+```
+
+Its unique contribution is dominated by **country names**. EuroVoc carries
+geography as concepts because EU legislation must reference countries; LCSH
+treats places as *name authorities* rather than topical subjects, so they are
+absent from `lcsh-subjects`.
+
+So EuroVoc is adding **facet values, not policy depth** — and
+`research/parent-domain-taxonomy-2026-08-19.md` already establishes that
+jurisdiction and geography are a facet rather than a subject. The right way to
+serve those is a geographic authority, not a second subject thesaurus.
+
+**Practical read: neither ICPSR nor EuroVoc earns a place in a subject-serving
+set on this evidence.** The +72 is real but it is mostly geography, and the
+carrying cost is 11,325 concepts. If geography is wanted, serve it as
+geography.
 
 ## Method and limits
 
