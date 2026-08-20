@@ -34,10 +34,14 @@ artifact referenced it.
 | | |
 |---|---:|
 | assignments | **32,200** |
-| CFR parts | **8,426** |
-| distinct terms | 1,043 |
+| part entries | 8,426 |
+| distinct CFR parts | **8,423** |
+| distinct terms | 1,068 |
 | titles present | 49 *(title 35 is reserved)* |
 | pages captured and pinned | 50 |
+
+Part entries and distinct parts differ by three because the publisher lists
+7 CFR 1000, 29 CFR 4231, and 48 CFR 642 twice each.
 
 `part-subjects.csv` — `cfr_title`, `cfr_part`, `part_heading`, `term`.
 `source-pins.json` — per-page source URL, SHA-256, byte length, part count.
@@ -49,8 +53,8 @@ that Federal Register documents happened to cite alone:
 
 | | witnessed | **publisher index** |
 |---|---:|---:|
-| parts | 4,256 | **8,426** |
-| terms | 852 | 1,043 |
+| parts | 4,256 | **8,423** |
+| terms | 852 | 1,068 |
 | attribution | witnessed from single-part filings | **asserted by the publisher** |
 | multi-part problem | 15.1% of documents discarded | **does not arise** |
 
@@ -119,13 +123,14 @@ far agencies actually depart from the controlled vocabulary. Measured:
 
 | | terms | share |
 |---|---:|---:|
-| resolve somewhere in Atlas | 953 | **88.7%** |
-| resolve to `federal-register-api-topics` | 840 | 78.1% |
-| resolve to `federal-register-thesaurus-2025` | 722 | 67.2% |
-| **unresolved** | **122** | 11.3% |
+| resolve to `federal-register-api-topics` | 863 | **80.8%** |
+| resolve to `federal-register-thesaurus-2025` | 713 | 66.8% |
+| resolve to either | 869 | 81.4% |
+| **unresolved by both** | **199** | 18.6% |
 
-But weighted by use, the departure is far smaller: the 122 unresolved terms
-account for **202 of 32,200 assignments — 0.63%**.
+But weighted by use, the departure is far smaller: the 199 terms neither
+Federal Register vocabulary carries account for **412 of 32,200 assignments —
+1.28%**.
 
 And most are not agency inventions. They are near-misses of thesaurus terms:
 
@@ -140,6 +145,15 @@ So agencies comply with the controlled vocabulary closely, and the residue is
 dominated by transcription drift rather than by genuine local terms. That is a
 vocabulary-governance finding in its own right, independent of any consumer.
 
+**Correction, 2026-08-20.** An earlier draft of this table reported 1,043
+distinct terms, 953 resolving "somewhere in Atlas" (88.7%) and 122 unresolved.
+Those figures do not reproduce against the CSV this directory ships, which
+carries 1,068 distinct terms, and the wider set they were measured over was
+never stated. The rows above are measured by
+`tests/test_atlas_v3_registry_rosters.py` against exactly two named schemes and
+fail if they move. The Atlas release built from this capture resolves against
+`federal-register-api-topics` alone: 863 terms, 205 skipped and counted.
+
 **Terms ship as publisher strings, not concept identities.** Resolving them is
 a deliberate separate step; this artifact records what the publisher wrote.
 
@@ -153,4 +167,8 @@ a deliberate separate step; this artifact records what the publisher wrote.
   pass rather than an assumption.
 - **No concept identity claimed here.** This artifact carries term *strings* as
   the publisher writes them. Resolving them to Atlas concepts is a separate,
-  deliberate step.
+  deliberate step -- taken in `src/refspec/atlas/v3_registry_rosters.py`, which
+  turns these pages into 8,423 legal-identity CFR parts and 31,683
+  `atlas:hasIndexedSubject` cross-ring relations. The fifty pages are tracked
+  and digest-pinned under `tests/fixtures/cfr_list_of_subjects/subject-index/`;
+  this directory keeps the derived CSV, not the source bytes.
