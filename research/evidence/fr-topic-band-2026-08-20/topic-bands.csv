@@ -1,0 +1,901 @@
+topic,assignments,agencies,in_text_pct,top_agency_share_pct,proposed_band
+reporting and recordkeeping requirements,55448,89,0.09,29.77,procedural
+incorporation by reference,34920,30,2.98,68.55,procedural
+administrative practice and procedure,23538,121,0.15,26.62,procedural
+aircraft,21656,11,12.53,99.21,substantive
+aviation safety,21565,7,7.49,99.68,substantive
+safety,20363,18,10.99,97.77,substantive
+air transportation,19688,7,0.04,99.69,substantive
+environmental protection,19593,24,45.52,96.95,substantive
+intergovernmental relations,13842,38,0.0,80.95,substantive
+air pollution control,13715,10,8.01,99.79,substantive
+navigation (air),8639,3,0.0,99.75,substantive
+airspace,7475,1,86.88,100.0,substantive
+ozone,7411,3,43.89,99.96,substantive
+navigation (water),7389,8,0.0,84.11,substantive
+marine safety,7328,9,1.43,85.25,substantive
+waterways,7088,9,2.09,85.67,substantive
+penalties,6656,54,12.62,21.89,procedural
+security measures,6627,23,0.48,76.72,substantive
+volatile organic compounds,6605,2,12.76,99.98,substantive
+imports,6339,18,1.88,31.53,substantive
+harbors,5746,8,0.61,88.46,substantive
+nitrogen dioxide,5705,1,4.7,100.0,substantive
+particulate matter,5555,1,31.14,100.0,substantive
+exports,4764,19,5.98,40.91,substantive
+transportation,3920,16,7.98,50.54,substantive
+sulfur oxides,3758,1,0.35,100.0,substantive
+government procurement,3753,29,1.65,67.52,substantive
+agricultural commodities,3574,9,6.44,79.16,substantive
+pesticides and pests,3011,6,0.0,97.87,substantive
+carbon monoxide,2984,2,9.25,99.97,substantive
+fisheries,2703,6,89.35,99.37,substantive
+hazardous substances,2627,16,30.68,90.18,substantive
+claims,2518,62,14.89,29.59,procedural
+income taxes,2441,25,0.94,93.28,substantive
+lead,2424,3,14.15,99.92,substantive
+confidential business information,2283,41,0.61,32.68,procedural
+fishing,2237,3,62.76,96.29,substantive
+government employees,2147,74,0.84,36.61,procedural
+labeling,2115,15,16.17,28.42,substantive
+radio,2066,10,68.44,93.13,substantive
+hazardous waste,1989,8,36.35,78.53,substantive
+privacy,1966,87,49.54,18.77,procedural
+freedom of information,1965,105,23.92,17.2,procedural
+marketing agreements,1923,2,0.31,99.84,substantive
+endangered and threatened species,1888,8,6.73,83.37,substantive
+securities,1814,22,53.47,50.66,substantive
+"banks, banking",1760,17,0.0,33.35,substantive
+chemicals,1750,8,9.09,90.17,substantive
+flood insurance,1728,12,94.44,80.38,substantive
+airports,1714,12,80.4,93.17,substantive
+health facilities,1671,13,0.0,65.65,substantive
+consumer protection,1592,23,14.89,21.17,substantive
+air traffic control,1533,3,0.85,99.87,substantive
+water pollution control,1525,17,0.79,84.72,substantive
+government contracts,1452,37,1.58,23.97,procedural
+health care,1362,14,19.09,45.96,substantive
+health professions,1336,11,0.15,52.69,substantive
+medical devices,1322,8,40.54,76.1,substantive
+advertising,1271,21,5.59,30.06,substantive
+small businesses,1269,24,5.83,37.98,substantive
+individuals with disabilities,1268,45,3.94,14.75,procedural
+pensions,1225,11,0.57,30.37,substantive
+water supply,1191,13,0.67,90.85,substantive
+veterans,1178,18,88.88,84.47,substantive
+organization and functions (government agencies),1172,56,0.0,10.58,procedural
+indians,1170,24,1.79,29.74,substantive
+bridges,1156,4,20.59,76.47,substantive
+investigations,1133,42,8.12,13.59,procedural
+television,1128,10,79.7,92.2,substantive
+wildlife,1119,7,69.35,69.71,substantive
+credit,1104,26,39.95,25.91,substantive
+grant programs-health,1097,15,0.0,56.79,substantive
+indians-lands,1049,14,0.0,59.77,substantive
+medicare,1038,5,87.96,98.07,substantive
+nitrogen oxides,1007,1,18.87,100.0,substantive
+telecommunications,1004,19,25.2,87.45,substantive
+animal drugs,1002,3,93.81,99.6,substantive
+hazardous materials transportation,982,8,2.04,48.88,substantive
+rural areas,960,16,3.75,40.94,substantive
+motor vehicle safety,958,5,48.23,96.56,substantive
+quarantine,955,4,50.58,96.54,substantive
+accounting,949,42,8.32,16.65,procedural
+wages,910,41,2.53,38.79,procedural
+energy conservation,888,13,74.32,81.64,substantive
+law enforcement,843,20,4.27,22.18,substantive
+authority delegations (government agencies),842,30,0.0,14.01,procedural
+alaska,841,12,73.25,53.86,substantive
+packaging and containers,837,10,0.0,28.91,substantive
+brokers,833,14,17.17,26.53,substantive
+surety bonds,832,18,0.36,22.6,substantive
+health insurance,831,5,29.6,46.57,substantive
+communications common carriers,827,3,0.12,99.4,substantive
+flood plains,811,9,0.0,80.64,substantive
+underground mining,811,4,2.1,94.7,substantive
+superfund,808,2,84.65,99.5,substantive
+occupational safety and health,803,10,12.95,35.99,substantive
+disability benefits,799,10,4.13,45.31,substantive
+surface mining,799,3,96.12,98.12,substantive
+vessels,797,14,35.01,37.52,substantive
+aged,781,25,2.18,25.48,substantive
+civil rights,776,50,7.73,12.76,procedural
+mortgages,769,15,12.48,21.46,substantive
+radiation protection,768,9,2.86,63.02,substantive
+foreign relations,766,21,0.0,28.59,substantive
+savings associations,765,6,20.92,42.88,substantive
+excise taxes,762,4,5.91,97.51,substantive
+drug abuse,762,21,0.79,38.85,substantive
+plant diseases and pests,746,1,0.0,100.0,substantive
+credit unions,742,7,45.69,63.61,substantive
+customs duties and inspection,739,10,0.0,46.28,substantive
+agriculture,738,17,25.2,48.1,substantive
+wilderness areas,726,3,0.41,94.63,substantive
+communications equipment,707,10,1.41,90.38,substantive
+employee benefit plans,705,9,4.4,49.93,substantive
+aliens,693,11,27.99,41.56,substantive
+household appliances,685,6,0.58,80.15,substantive
+fish,684,5,63.16,64.04,substantive
+medicaid,675,6,57.78,94.07,substantive
+drugs,672,8,23.36,87.2,substantive
+telephone,664,12,17.47,81.48,substantive
+courts,663,42,3.17,29.26,procedural
+hydrocarbons,662,2,0.3,97.89,substantive
+alcohol abuse,658,9,0.15,45.59,substantive
+health records,653,11,0.77,49.0,substantive
+social security,651,11,33.18,53.15,substantive
+waste treatment and disposal,651,14,0.15,66.21,substantive
+infants and children,636,20,4.56,36.32,substantive
+education,636,21,36.32,21.86,substantive
+employment,635,20,40.16,34.96,substantive
+business and industry,629,27,1.91,27.19,substantive
+grant programs,624,37,3.53,23.88,procedural
+loan programs-housing and community development,622,15,0.0,54.18,substantive
+air carriers,611,11,19.15,77.25,substantive
+nuclear materials,606,5,1.98,90.43,substantive
+military personnel,603,12,1.99,58.87,substantive
+fraud,600,34,18.17,15.17,procedural
+puerto rico,592,9,4.73,39.36,substantive
+motor carriers,591,7,24.53,86.29,substantive
+investments,582,15,14.78,50.86,substantive
+drug traffic control,581,7,0.0,83.65,substantive
+grant programs-education,578,21,0.0,45.67,substantive
+classified information,577,29,3.81,45.75,substantive
+insurance,572,28,11.71,19.23,substantive
+grant programs-housing and community development,559,15,0.0,60.29,substantive
+terrorism,546,8,7.69,70.88,substantive
+travel and transportation expenses,543,8,0.0,65.56,substantive
+crime,541,21,5.73,26.43,substantive
+laboratories,536,10,6.16,68.28,substantive
+motor vehicles,536,15,13.43,75.0,substantive
+treaties,527,13,1.52,76.28,substantive
+cotton,515,3,23.88,95.53,substantive
+research,514,23,16.15,23.54,substantive
+employment taxes,514,3,4.09,99.22,substantive
+immigration,501,6,57.68,44.31,substantive
+hospitals,500,22,23.4,75.0,substantive
+animal diseases,497,2,3.22,99.8,substantive
+foreign trade,493,15,6.09,49.7,substantive
+natural resources,488,14,5.12,40.78,substantive
+whistleblowing,481,14,0.0,69.65,substantive
+natural gas,481,8,38.05,57.59,substantive
+environmental impact statements,478,30,0.0,30.13,procedural
+hunting,477,3,72.75,98.74,substantive
+holding companies,474,7,32.28,45.15,substantive
+railroad safety,473,5,6.34,93.87,substantive
+estate taxes,472,1,0.42,100.0,substantive
+copyright,469,11,88.7,87.63,substantive
+equal employment opportunity,462,44,20.78,16.88,procedural
+electric utilities,457,10,1.75,66.96,substantive
+continental shelf,456,7,65.35,54.61,substantive
+gift taxes,452,1,0.22,100.0,substantive
+colleges and universities,451,28,1.33,41.69,substantive
+highway safety,447,5,6.49,95.75,substantive
+dental health,446,4,0.0,66.82,substantive
+signs and symbols,446,10,0.0,63.68,substantive
+freight,444,10,4.73,49.32,substantive
+oil pollution,442,9,14.71,47.29,substantive
+grant programs-social programs,440,11,0.0,38.18,substantive
+nuclear power plants and reactors,435,5,0.0,95.17,substantive
+inventions and patents,431,17,0.46,77.49,substantive
+poultry and poultry products,429,2,1.86,99.07,substantive
+electric power,429,11,3.73,47.32,substantive
+biologics,427,6,11.48,80.33,substantive
+trade practices,425,11,0.24,62.82,substantive
+archives and records,425,38,8.47,30.12,procedural
+wine,424,2,85.38,99.29,substantive
+airmen,422,5,5.69,91.0,substantive
+blind,421,16,7.6,85.99,substantive
+fruits,419,3,43.91,95.94,substantive
+housing,418,17,44.26,19.86,substantive
+homeless,417,12,12.47,70.26,substantive
+livestock,415,3,21.69,93.49,substantive
+pension insurance,410,1,29.76,100.0,substantive
+vegetables,408,2,44.61,98.77,substantive
+medical research,408,5,0.25,58.82,substantive
+lawyers,407,31,0.49,25.8,procedural
+public assistance programs,404,10,0.25,50.0,substantive
+marine mammals,404,6,81.44,84.9,substantive
+highways and roads,403,5,0.0,85.11,substantive
+oil and gas exploration,403,6,3.97,79.16,substantive
+virgin islands,400,13,10.75,50.0,substantive
+mortgage insurance,398,13,18.34,71.61,substantive
+plants,390,4,57.18,69.23,substantive
+manpower training programs,388,12,0.0,59.28,substantive
+schools,383,13,12.01,24.02,substantive
+day care,382,7,2.09,80.37,substantive
+low and moderate income housing,382,7,0.0,59.95,substantive
+grant programs-veterans,380,3,0.0,94.47,substantive
+antitrust,378,19,9.52,62.96,substantive
+tires,376,2,13.83,92.82,substantive
+mental health programs,373,5,0.0,86.86,substantive
+greenhouse gases,368,5,20.11,98.64,substantive
+petroleum,365,8,8.22,48.49,substantive
+government property,364,23,3.02,50.82,substantive
+radioactive materials,364,10,1.92,53.3,substantive
+nursing homes,359,4,3.9,74.93,substantive
+loan programs-business,357,8,0.0,84.03,substantive
+fire prevention,356,12,0.28,38.76,substantive
+technical assistance,354,20,4.8,25.42,substantive
+commodity futures,353,5,84.99,87.82,substantive
+fishing vessels,349,4,6.59,76.79,substantive
+grant programs-transportation,343,2,0.0,97.67,substantive
+maritime carriers,341,12,0.0,42.23,substantive
+alcoholism,330,8,0.0,85.15,substantive
+rice,329,1,4.86,100.0,substantive
+kidney diseases,326,2,0.0,97.55,substantive
+public lands,324,10,42.28,36.11,substantive
+loan programs,323,33,2.48,30.65,procedural
+food labeling,323,3,17.96,52.01,substantive
+nursery stock,320,2,6.25,98.75,substantive
+community development,315,18,14.92,25.4,substantive
+passports and visas,315,6,0.63,46.35,substantive
+unemployment compensation,313,7,6.07,42.49,substantive
+food additives,311,4,43.41,61.41,substantive
+supplemental security income (ssi),311,7,18.97,76.85,substantive
+coffee,310,2,0.0,99.03,substantive
+bank deposit insurance,306,4,0.0,63.73,substantive
+x-rays,304,5,1.64,95.07,substantive
+currency,303,8,25.41,83.17,substantive
+retirement,299,8,56.86,55.85,substantive
+marine resources,298,5,1.34,89.6,substantive
+disaster assistance,297,18,21.55,38.72,substantive
+communications,297,21,60.61,58.25,substantive
+investment companies,296,4,38.85,72.97,substantive
+food grades and standards,295,2,0.0,82.03,substantive
+arms and munitions,294,7,0.0,64.63,substantive
+guam,293,12,11.95,49.83,substantive
+sunshine act,289,41,3.81,22.84,procedural
+sex discrimination,289,20,2.08,36.68,substantive
+motor vehicle pollution,286,2,0.0,99.65,substantive
+health maintenance organizations (hmo),285,3,0.0,95.79,substantive
+recycling,284,3,11.27,98.24,substantive
+nutrition,284,2,40.14,54.58,substantive
+drug testing,284,4,12.32,78.17,substantive
+manufactured homes,283,6,8.83,51.59,substantive
+pipelines,277,6,12.64,54.51,substantive
+computer technology,274,24,0.0,37.96,substantive
+national forests,273,3,5.13,94.87,substantive
+fees,273,24,32.6,28.94,substantive
+meat and meat products,270,3,6.3,95.93,substantive
+health,266,13,58.65,47.74,substantive
+vocational education,264,12,0.76,51.89,substantive
+gasoline,262,6,54.96,91.6,substantive
+student aid,262,14,6.49,63.36,substantive
+nuclear energy,262,7,5.34,76.72,substantive
+emergency medical services,261,5,0.0,77.39,substantive
+scholarships and fellowships,260,16,0.0,72.31,substantive
+electronic funds transfers,260,10,0.0,66.15,substantive
+uranium,259,8,6.56,57.14,substantive
+seals and insignia,257,23,0.39,35.02,substantive
+law enforcement officers,257,9,1.95,41.63,substantive
+federal buildings and facilities,256,40,0.0,16.41,procedural
+american samoa,255,11,18.82,62.75,substantive
+medical and dental schools,255,4,0.0,92.55,substantive
+fair housing,254,7,13.39,42.13,substantive
+rent subsidies,254,5,0.0,74.02,substantive
+milk,252,4,23.81,95.24,substantive
+loan programs-agriculture,250,8,0.0,93.2,substantive
+public housing,248,4,37.9,73.79,substantive
+nonprofit organizations,248,32,4.44,22.18,procedural
+agricultural research,242,1,5.79,100.0,substantive
+state and local governments,240,24,2.92,42.08,substantive
+students,240,11,13.33,43.75,substantive
+loan programs-education,239,8,0.0,56.9,substantive
+railroads,239,9,15.48,51.46,substantive
+hawaiian natives,239,7,0.0,46.03,substantive
+labor,238,14,77.73,71.85,substantive
+satellites,238,4,3.78,80.67,substantive
+anchorage grounds,237,2,30.8,81.01,substantive
+seizures and forfeitures,236,8,0.85,44.07,substantive
+nuts,235,2,44.26,99.15,substantive
+cosmetics,232,2,9.05,87.5,substantive
+pipeline safety,228,4,86.4,92.98,substantive
+seamen,227,5,1.32,77.09,substantive
+northern mariana islands,226,9,12.39,61.95,substantive
+recreation and recreation areas,226,8,0.0,36.73,substantive
+equal access to justice,225,28,10.22,14.22,substantive
+warehouses,225,6,5.33,46.67,substantive
+armed forces,223,8,5.38,41.26,substantive
+crop insurance,221,1,90.95,100.0,substantive
+grant programs-business,219,7,0.0,84.47,substantive
+mineral royalties,219,2,0.0,99.09,substantive
+prisoners,218,5,26.61,92.2,substantive
+advisory committees,217,15,14.29,44.7,substantive
+seafood,215,5,1.86,85.58,substantive
+cable television,211,3,14.22,87.68,substantive
+foreign banking,209,6,4.31,76.56,substantive
+water resources,209,14,9.09,38.28,substantive
+trusts and trustees,208,15,0.0,21.63,substantive
+fuel additives,207,2,36.23,97.58,substantive
+scientific equipment,206,6,0.0,57.77,substantive
+railroad retirement,206,4,24.27,71.36,substantive
+legal services,204,10,41.67,40.2,substantive
+women,200,16,21.0,38.0,substantive
+foods,198,5,8.08,90.91,substantive
+grapes,196,1,75.0,100.0,substantive
+common carriers,193,8,2.59,37.82,substantive
+grant programs-indians,192,10,0.0,53.13,substantive
+home improvement,191,10,0.0,68.59,substantive
+science and technology,191,16,2.09,46.6,substantive
+mine safety and health,191,3,45.55,80.63,substantive
+soil conservation,191,2,0.0,98.95,substantive
+forests and forest products,191,8,0.0,29.32,substantive
+federal home loan banks,190,3,52.11,52.63,substantive
+community facilities,188,12,3.19,30.85,substantive
+philippines,184,1,1.09,100.0,substantive
+vietnam,180,3,10.0,98.33,substantive
+taxes,177,14,5.08,36.72,substantive
+vocational rehabilitation,177,12,25.42,48.59,substantive
+food assistance programs,177,3,0.0,97.18,substantive
+energy,176,8,59.66,38.07,substantive
+potatoes,175,2,80.0,98.29,substantive
+grapefruit,172,1,75.0,100.0,substantive
+oranges,172,1,75.0,100.0,substantive
+swaps,170,5,58.82,87.65,substantive
+loan programs-health,169,8,0.0,76.33,substantive
+loan programs-veterans,169,3,0.0,88.76,substantive
+electric power rates,167,8,0.0,80.84,substantive
+government securities,167,9,10.18,56.89,substantive
+coastal zone,166,8,4.82,50.6,substantive
+blocking of assets,166,1,0.6,100.0,substantive
+prescription drugs,166,4,4.22,48.8,substantive
+toys,165,3,15.15,98.79,substantive
+elementary and secondary education,165,9,34.55,81.82,substantive
+freight forwarders,164,6,12.2,57.93,substantive
+indemnity payments,163,12,1.23,61.96,substantive
+foreign officials,163,4,1.23,63.8,substantive
+bonds,161,6,31.68,50.93,substantive
+gambling,160,7,0.63,41.25,substantive
+housing standards,160,5,0.0,66.25,substantive
+government property management,158,11,0.0,57.59,substantive
+migrant labor,157,11,0.0,36.94,substantive
+diseases,154,5,1.3,91.56,substantive
+milk marketing orders,153,1,40.52,100.0,substantive
+"old-age, survivors and disability insurance",151,1,5.96,100.0,substantive
+cultural exchange programs,151,9,1.32,50.99,substantive
+air taxis,149,1,0.67,100.0,substantive
+electric power plants,149,2,0.0,59.73,substantive
+mexico,148,6,8.11,61.49,substantive
+religious discrimination,145,16,0.0,26.21,substantive
+internet,144,9,10.42,81.25,substantive
+animals,144,5,14.58,83.33,substantive
+historic preservation,143,12,9.09,27.97,substantive
+elections,143,9,15.38,72.73,substantive
+canada,142,6,12.68,40.85,substantive
+child support,142,6,33.8,57.75,substantive
+color additives,142,1,62.68,100.0,substantive
+onions,142,2,82.39,97.89,substantive
+warranties,141,7,0.71,72.34,substantive
+economic statistics,139,4,0.0,96.4,substantive
+mass transportation,138,6,1.45,82.61,substantive
+lead poisoning,137,4,2.19,85.4,substantive
+cargo vessels,135,4,2.22,78.52,substantive
+food packaging,134,2,0.0,67.91,substantive
+statistics,133,9,3.01,85.71,substantive
+uniform system of accounts,132,7,16.67,28.79,substantive
+information,132,27,51.52,16.67,substantive
+tobacco,132,6,83.33,37.88,substantive
+charter flights,132,1,0.76,100.0,substantive
+pets,131,3,5.34,71.76,substantive
+condominiums,131,6,3.05,47.33,substantive
+labor management relations,131,12,0.0,25.19,substantive
+public health,129,5,29.46,86.05,substantive
+price support programs,129,1,3.1,100.0,substantive
+grains,128,5,10.16,60.94,substantive
+coal,128,4,32.81,46.88,substantive
+youth,128,8,8.59,64.84,substantive
+alcohol and alcoholic beverages,127,7,0.0,70.08,substantive
+national defense,126,12,15.08,19.05,substantive
+noise control,126,6,0.79,83.33,substantive
+pears,125,1,46.4,100.0,substantive
+government-sponsored enterprises,124,4,0.0,62.1,substantive
+lobbying,124,14,13.71,36.29,substantive
+dairy products,123,2,13.01,92.68,substantive
+citizenship and naturalization,122,10,0.0,22.95,substantive
+oils and fats,121,2,0.0,95.04,substantive
+buildings and facilities,120,16,6.67,31.67,substantive
+teachers,120,10,8.33,45.0,substantive
+railroad employees,120,3,13.33,74.17,substantive
+trademarks,119,5,5.88,83.19,substantive
+meat inspection,119,1,29.41,100.0,substantive
+surplus agricultural commodities,118,1,0.0,100.0,substantive
+political candidates,118,3,0.0,33.9,substantive
+rubber and rubber products,116,2,0.0,94.83,substantive
+raisins,116,1,88.79,100.0,substantive
+cattle,116,1,72.41,100.0,substantive
+olives,115,1,50.43,100.0,substantive
+libraries,114,8,16.67,79.82,substantive
+insurance companies,113,7,3.54,30.97,substantive
+wildlife refuges,112,4,29.46,81.25,substantive
+maternal and child health,111,4,0.0,39.64,substantive
+kiwifruit,110,1,55.45,100.0,substantive
+cemeteries,110,4,32.73,89.09,substantive
+intermodal transportation,109,4,0.92,76.15,substantive
+carbon dioxide,109,2,12.84,62.39,substantive
+ammonia,109,2,6.42,80.73,substantive
+honey,109,1,21.1,100.0,substantive
+phosphate,108,2,1.85,90.74,substantive
+campaign funds,107,3,10.28,92.52,substantive
+explosives,107,7,25.23,39.25,substantive
+minority businesses,106,10,0.0,30.19,substantive
+community development block grants,104,3,7.69,97.12,substantive
+services,104,1,5.77,100.0,substantive
+hawaii,104,3,71.15,67.31,substantive
+indians-tribal government,103,8,0.0,40.78,substantive
+trade agreements,103,6,1.94,66.99,substantive
+mines,102,5,3.92,64.71,substantive
+loan programs-energy,101,8,0.0,81.19,substantive
+iraq,99,3,18.18,70.71,substantive
+prunes,99,1,74.75,100.0,substantive
+bison,98,1,44.9,100.0,substantive
+indians-education,97,7,0.0,63.92,substantive
+strategic and critical materials,97,5,0.0,76.29,substantive
+aluminum,97,3,6.19,94.85,substantive
+grant programs-agriculture,96,7,0.0,83.33,substantive
+political committees and parties,96,2,0.0,97.92,substantive
+life insurance,96,4,73.96,59.38,substantive
+liquors,95,2,3.16,95.79,substantive
+alimony,95,5,4.21,44.21,substantive
+air traffic controllers,94,2,1.06,63.83,substantive
+educational facilities,94,10,0.0,41.49,substantive
+tangerines,94,1,96.81,100.0,substantive
+marital status discrimination,93,9,0.0,40.86,substantive
+fluoride,93,1,4.3,100.0,substantive
+avocados,93,1,48.39,100.0,substantive
+passenger vessels,93,3,17.2,72.04,substantive
+spearmint oil,93,1,100.0,100.0,substantive
+organically produced products,91,1,2.2,100.0,substantive
+cuba,91,5,34.07,35.16,substantive
+district of columbia,90,7,1.11,83.33,substantive
+solar energy,90,4,0.0,88.89,substantive
+foreign currencies,90,12,0.0,60.0,substantive
+metals,89,4,2.25,56.18,substantive
+fertilizers,88,1,0.0,100.0,substantive
+probation and parole,87,2,0.0,77.01,substantive
+school breakfast and lunch programs,86,1,0.0,100.0,substantive
+buses,85,3,7.06,92.94,substantive
+acreage allotments,85,1,0.0,100.0,substantive
+walnuts,84,1,79.76,100.0,substantive
+firefighters,83,6,12.05,72.29,substantive
+great lakes,83,4,77.11,75.9,substantive
+grant programs-law,82,3,0.0,87.8,substantive
+diesel fuel,82,1,12.2,100.0,substantive
+workers' compensation,81,4,37.04,75.31,substantive
+mineral resources,80,4,2.5,70.0,substantive
+animal welfare,80,5,41.25,76.25,substantive
+moving of household goods,80,3,0.0,85.0,substantive
+plums,79,1,3.8,100.0,substantive
+paper and paper products industry,78,1,0.0,100.0,substantive
+tangelos,78,1,87.18,100.0,substantive
+loan programs-communications,77,7,0.0,77.92,substantive
+antarctica,77,3,7.79,81.82,substantive
+tomatoes,76,1,77.63,100.0,substantive
+sulfur,76,2,55.26,98.68,substantive
+fruit juices,75,4,0.0,61.33,substantive
+eggs and egg products,75,2,0.0,90.67,substantive
+cigars and cigarettes,74,4,1.35,68.92,substantive
+oil and gas reserves,74,2,0.0,89.19,substantive
+food stamps,74,1,8.11,100.0,substantive
+fuel economy,73,6,57.53,46.58,substantive
+hogs,73,1,0.0,100.0,substantive
+peanuts,72,2,38.89,97.22,substantive
+recordings,72,4,8.33,90.28,substantive
+hostages,71,2,1.41,98.59,substantive
+lebanon,71,2,1.41,98.59,substantive
+volunteers,71,8,19.72,69.01,substantive
+pacific islands trust territory,71,4,0.0,77.46,substantive
+watersheds,71,12,0.0,53.52,substantive
+accountants,70,3,11.43,67.14,substantive
+kuwait,70,1,0.0,100.0,substantive
+education of disadvantaged,70,7,0.0,52.86,substantive
+construction industry,70,3,2.86,84.29,substantive
+maritime security,69,1,21.74,100.0,substantive
+human research subjects,69,15,2.9,37.68,substantive
+methane,69,1,10.14,100.0,substantive
+indians-law,69,3,0.0,42.03,substantive
+peaches,69,1,92.75,100.0,substantive
+private schools,68,2,0.0,98.53,substantive
+bees,68,1,11.76,100.0,substantive
+cooperatives,67,7,4.48,40.3,substantive
+dates,67,1,77.61,100.0,substantive
+cancer,67,3,35.82,64.18,substantive
+government publications,66,10,0.0,30.3,substantive
+child welfare,66,7,16.67,56.06,substantive
+surplus government property,66,4,0.0,39.39,substantive
+beer,66,1,28.79,100.0,substantive
+oil imports,66,3,0.0,77.27,substantive
+blood,66,3,42.42,87.88,substantive
+hospice care,65,1,10.77,100.0,substantive
+nectarines,65,1,100.0,100.0,substantive
+grant programs-energy,65,6,0.0,50.77,substantive
+international organizations,65,14,1.54,16.92,substantive
+grant programs-labor,64,3,0.0,96.88,substantive
+rights-of-way,64,5,14.06,64.06,substantive
+cheese,64,3,4.69,50.0,substantive
+utilities,64,12,10.94,28.13,substantive
+equal educational opportunity,63,11,0.0,57.14,substantive
+minimum wages,62,2,1.61,96.77,substantive
+russian federation,62,2,0.0,91.94,substantive
+space transportation and exploration,61,4,0.0,72.13,substantive
+sulfuric acid plants,61,1,0.0,100.0,substantive
+mercury,61,1,31.15,100.0,substantive
+spices and flavorings,60,2,0.0,93.33,substantive
+sewage disposal,60,5,0.0,73.33,substantive
+over-the-counter drugs,59,1,0.0,100.0,substantive
+education of individuals with disabilities,59,9,0.0,66.1,substantive
+countervailing duties,59,3,5.08,88.14,substantive
+beryllium,59,3,30.51,64.41,substantive
+tuberculosis,58,1,84.48,100.0,substantive
+adult education,57,11,14.04,50.88,substantive
+foreign trade zones,57,3,0.0,66.67,substantive
+travel restrictions,57,5,0.0,52.63,substantive
+parking,56,5,0.0,62.5,substantive
+fiduciaries,55,2,60.0,94.55,substantive
+pistachios,55,1,96.36,100.0,substantive
+vinegar,55,1,0.0,100.0,substantive
+loan programs-indians,54,4,0.0,59.26,substantive
+longshore and harbor workers,54,3,25.93,90.74,substantive
+cranberries,54,1,94.44,100.0,substantive
+cottonseeds,54,1,0.0,100.0,substantive
+electronic products,53,10,13.21,52.83,substantive
+beverages,53,2,20.75,62.26,substantive
+foreign aid,53,5,5.66,56.6,substantive
+iran,53,2,71.7,90.57,substantive
+flags,53,5,3.77,73.58,substantive
+real property acquisition,53,11,15.09,28.3,substantive
+limes,53,1,9.43,100.0,substantive
+geothermal energy,53,1,0.0,100.0,substantive
+electronic filing,52,8,17.31,50.0,substantive
+indians-business and finance,51,3,0.0,60.78,substantive
+educational study programs,51,13,0.0,35.29,substantive
+black lung benefits,51,4,27.45,64.71,substantive
+foundations,50,1,10.0,100.0,substantive
+bankruptcy,50,6,44.0,34.0,substantive
+civil defense,50,8,0.0,54.0,substantive
+renewable energy,50,8,22.0,30.0,substantive
+antidumping,49,3,71.43,83.67,substantive
+steel,49,3,28.57,75.51,substantive
+oilseeds,49,1,12.24,100.0,substantive
+almonds,49,1,97.96,100.0,substantive
+communicable diseases,48,1,50.0,100.0,substantive
+biobased products,47,2,85.11,97.87,substantive
+asbestos,47,3,23.4,72.34,substantive
+polychlorinated biphenyls (pcb's),47,3,4.26,51.06,substantive
+benzene,46,2,0.0,82.61,substantive
+marketing quotas,46,2,6.52,65.22,substantive
+smoking,46,2,23.91,52.17,substantive
+family planning,46,1,13.04,100.0,substantive
+ophthalmic goods and services,45,2,0.0,82.22,substantive
+adoption and foster care,45,4,20.0,62.22,substantive
+caribbean basin initiative,45,2,2.22,80.0,substantive
+concessions,45,6,13.33,42.22,substantive
+cherries,45,1,95.56,100.0,substantive
+vinyl chloride,44,1,0.0,100.0,substantive
+textiles,44,4,13.64,47.73,substantive
+personally identifiable information,43,11,0.0,51.16,substantive
+apricots,43,1,100.0,100.0,substantive
+frozen foods,43,3,0.0,55.81,substantive
+military law,42,2,0.0,97.62,substantive
+afghanistan,42,2,14.29,88.1,substantive
+wheat,41,2,14.63,87.8,substantive
+labor unions,41,6,4.88,58.54,substantive
+oceanographic research vessels,41,2,4.88,85.37,substantive
+museums,40,5,20.0,75.0,substantive
+grant programs-science and technology,40,5,0.0,75.0,substantive
+filberts,40,1,0.0,100.0,substantive
+broadband,40,4,62.5,47.5,substantive
+"decorations, medals, awards",39,7,0.0,30.77,substantive
+acid rain,39,1,53.85,100.0,substantive
+gases,39,4,12.82,61.54,substantive
+railroad unemployment insurance,39,3,41.03,48.72,substantive
+telegraph,39,1,7.69,100.0,substantive
+hiv/aids,39,3,0.0,61.54,substantive
+music,39,3,43.59,87.18,substantive
+iron,38,2,47.37,97.37,substantive
+horses,38,2,13.16,57.89,substantive
+armed forces reserves,38,4,0.0,47.37,substantive
+federally affected areas,38,9,0.0,55.26,substantive
+estates,38,4,28.95,44.74,substantive
+arsenic,38,1,0.0,100.0,substantive
+feed grains,37,1,8.11,100.0,substantive
+glass and glass products,37,2,0.0,89.19,substantive
+educational research,37,9,0.0,54.05,substantive
+animal biologics,36,1,0.0,100.0,substantive
+grant programs-natural resources,36,2,0.0,66.67,substantive
+insulation,36,2,8.33,91.67,substantive
+immunization,36,2,0.0,94.44,substantive
+copper,35,2,20.0,97.14,substantive
+grant programs-environmental protection,35,3,0.0,80.0,substantive
+aid to families with dependent children,35,2,0.0,97.14,substantive
+plastics materials and synthetics,35,1,0.0,100.0,substantive
+relocation assistance,35,6,17.14,48.57,substantive
+flammable materials,34,4,0.0,64.71,substantive
+sugar,34,3,52.94,76.47,substantive
+carbon oxides,33,2,0.0,96.97,substantive
+vinyl,33,1,0.0,100.0,substantive
+juvenile delinquency,33,2,0.0,84.85,substantive
+zinc,33,1,0.0,100.0,substantive
+school construction,33,7,0.0,60.61,substantive
+grant programs-communications,33,6,0.0,51.52,substantive
+child labor,33,2,18.18,90.91,substantive
+indians-claims,32,1,0.0,100.0,substantive
+gasohol,32,2,0.0,93.75,substantive
+ethiopia,31,2,9.68,96.77,substantive
+seeds,31,1,12.9,100.0,substantive
+waivers,31,5,3.23,58.06,substantive
+lung diseases,30,3,0.0,43.33,substantive
+loan programs-social programs,30,5,0.0,40.0,substantive
+prisons,30,5,20.0,50.0,substantive
+clothing,29,3,17.24,48.28,substantive
+trees,29,1,3.45,100.0,substantive
+hazelnuts,29,1,100.0,100.0,substantive
+census data,29,1,3.45,100.0,substantive
+grazing lands,29,2,0.0,62.07,substantive
+yugoslavia,27,2,0.0,96.3,substantive
+dry cleaners,27,1,0.0,100.0,substantive
+ammonium sulfate plants,27,1,0.0,100.0,substantive
+urethane,27,1,0.0,100.0,substantive
+cement industry,27,1,0.0,100.0,substantive
+nitric acid plants,27,1,0.0,100.0,substantive
+soybeans,27,1,7.41,100.0,substantive
+paving and roofing materials,27,1,0.0,100.0,substantive
+watches and jewelry,27,2,7.41,59.26,substantive
+graphic arts industry,27,1,0.0,100.0,substantive
+metallic and nonmetallic mineral processing plants,27,1,0.0,100.0,substantive
+sudan,26,1,80.77,100.0,substantive
+specially designated nationals,26,1,0.0,100.0,substantive
+formaldehyde,26,2,96.15,96.15,substantive
+u.s. investments abroad,26,4,0.0,69.23,substantive
+news media,25,4,4.0,84.0,substantive
+straw,25,1,0.0,100.0,substantive
+monuments and memorials,25,5,0.0,60.0,substantive
+licensing and registration,25,7,0.0,36.0,substantive
+syria,25,2,48.0,56.0,substantive
+hay,25,1,0.0,100.0,substantive
+measurement standards,25,5,0.0,32.0,substantive
+travel,25,5,48.0,44.0,substantive
+urban areas,24,8,0.0,37.5,substantive
+pummelos,24,1,83.33,100.0,substantive
+sheep,24,1,37.5,100.0,substantive
+nuclear vessels,24,2,0.0,87.5,substantive
+wiretapping and electronic surveillance,23,4,0.0,78.26,substantive
+air rates and fares,23,1,0.0,100.0,substantive
+trade adjustment assistance,23,3,78.26,43.48,substantive
+ethics,22,9,54.55,31.82,substantive
+barley,22,1,4.55,100.0,substantive
+rabbits and rabbit products,22,1,0.0,100.0,substantive
+defense communications,21,4,0.0,71.43,substantive
+stockyards,21,1,90.48,100.0,substantive
+methyl chloroform,21,1,14.29,100.0,substantive
+libya,21,2,52.38,66.67,substantive
+supplemental nutrition assistance program,21,1,95.24,100.0,substantive
+bilingual education,21,7,0.0,47.62,substantive
+swine,21,1,61.9,100.0,substantive
+humanitarian aid,20,1,0.0,100.0,substantive
+poison prevention,20,2,55.0,55.0,substantive
+peer review organizations (pro),20,1,0.0,100.0,substantive
+conduct standards,20,6,0.0,60.0,substantive
+north korea,20,2,55.0,50.0,substantive
+veterinarians,19,1,47.37,100.0,substantive
+metric system,19,2,0.0,94.74,substantive
+trade names,19,4,10.53,47.37,substantive
+radionuclides,19,1,15.79,100.0,substantive
+domestic violence,19,5,5.26,57.89,substantive
+industrial facilities,19,2,0.0,89.47,substantive
+foreign investments in united states,19,3,0.0,84.21,substantive
+bottled water,18,1,61.11,100.0,substantive
+scientists,18,3,0.0,61.11,substantive
+boycotts,18,1,11.11,100.0,substantive
+law,18,3,55.56,83.33,substantive
+motion pictures,18,4,5.56,55.56,substantive
+blueberries,18,1,27.78,100.0,substantive
+flood control,18,3,33.33,77.78,substantive
+time,18,2,27.78,88.89,substantive
+wool,18,4,5.56,55.56,substantive
+radon,17,1,29.41,100.0,substantive
+polymers,17,1,0.0,100.0,substantive
+executive orders,17,6,17.65,52.94,substantive
+emergency preparedness,17,6,0.0,23.53,substantive
+dams,17,3,0.0,41.18,substantive
+apples,17,1,35.29,100.0,substantive
+search warrants,17,4,17.65,29.41,substantive
+stills,17,1,5.88,100.0,substantive
+code of federal regulations,16,5,37.5,68.75,substantive
+united states investments abroad,16,3,0.0,50.0,substantive
+health statistics,16,2,0.0,87.5,substantive
+voluntary standards,16,5,18.75,25.0,substantive
+land sales,16,3,6.25,68.75,substantive
+miners,16,3,31.25,68.75,substantive
+qualified financial contracts,16,3,31.25,56.25,substantive
+lie detector tests,15,2,0.0,80.0,substantive
+methadone,15,1,20.0,100.0,substantive
+lotteries,15,2,13.33,60.0,substantive
+foreign exchange,15,4,73.33,46.67,substantive
+reclamation,15,4,80.0,66.67,substantive
+human cells and tissue-based products,15,1,0.0,100.0,substantive
+critical infrastructure,15,4,13.33,60.0,substantive
+weather,15,3,13.33,73.33,substantive
+sorghum,15,1,6.67,100.0,substantive
+corn,14,2,14.29,92.86,substantive
+printing,14,6,28.57,21.43,substantive
+burma,14,2,50.0,92.86,substantive
+batteries,14,2,21.43,78.57,substantive
+engineers,14,2,28.57,92.86,substantive
+somalia,14,2,50.0,85.71,substantive
+range management,13,2,15.38,76.92,substantive
+loan programs-foreign relations,13,2,0.0,92.31,substantive
+federal register,13,2,92.31,84.62,substantive
+youth organizations,13,3,0.0,84.62,substantive
+homeworkers,13,1,0.0,100.0,substantive
+loan programs-transportation,13,3,0.0,76.92,substantive
+indians-arts and crafts,13,2,0.0,84.62,substantive
+refugees,12,3,0.0,58.33,substantive
+petroleum allocation,12,1,0.0,100.0,substantive
+ukraine,12,2,66.67,75.0,substantive
+loan programs-natural resources,12,2,0.0,83.33,substantive
+rivers,12,2,0.0,75.0,substantive
+political activities (government employees),12,5,0.0,33.33,substantive
+dietary foods,12,1,0.0,100.0,substantive
+chile,12,2,41.67,83.33,substantive
+crowdfunding,11,1,81.82,100.0,substantive
+melons,11,1,100.0,100.0,substantive
+heaters,11,1,0.0,100.0,substantive
+diving,11,2,18.18,72.73,substantive
+watermelons,11,1,27.27,100.0,substantive
+job corps,11,1,63.64,100.0,substantive
+manpower,10,4,0.0,40.0,substantive
+international boundaries,10,2,0.0,80.0,substantive
+yemen,10,2,40.0,80.0,substantive
+mango,10,1,60.0,100.0,substantive
+homesteads,10,2,0.0,80.0,substantive
+goats,10,1,80.0,100.0,substantive
+potassium,10,1,0.0,100.0,substantive
+adhesives,10,1,70.0,100.0,substantive
+christmas trees,10,1,60.0,100.0,substantive
+popcorn,10,1,20.0,100.0,substantive
+sodium,10,1,0.0,100.0,substantive
+reservoirs,9,3,22.22,44.44,substantive
+charitable contributions,9,1,0.0,100.0,substantive
+micrographics,9,1,0.0,100.0,substantive
+civil disorders,9,2,0.0,55.56,substantive
+foreign investments in u.s.,8,2,0.0,75.0,substantive
+urban renewal,8,2,0.0,87.5,substantive
+mattresses and mattress pads,8,1,62.5,100.0,substantive
+foreign claims,8,3,12.5,75.0,substantive
+revenue sharing,8,1,0.0,100.0,substantive
+human remains,8,3,62.5,62.5,substantive
+australia,8,2,50.0,75.0,substantive
+feedlots,8,1,12.5,100.0,substantive
+irrigation,8,2,25.0,75.0,substantive
+towing vessels,8,1,50.0,100.0,substantive
+foreign service,8,1,37.5,100.0,substantive
+smallpox,7,1,71.43,100.0,substantive
+oats,7,1,0.0,100.0,substantive
+wake island,7,2,28.57,71.43,substantive
+western balkans,7,1,57.14,100.0,substantive
+voting rights,7,2,85.71,57.14,substantive
+alternative fuel,7,2,57.14,71.43,substantive
+semiconductor chip products,7,2,0.0,71.43,substantive
+forgery,7,1,0.0,100.0,substantive
+mushrooms,7,1,0.0,100.0,substantive
+seashores,7,2,0.0,85.71,substantive
+lasers,7,1,0.0,100.0,substantive
+"guantanamo bay naval station, cuba",7,1,0.0,100.0,substantive
+emergency powers,6,3,0.0,66.67,substantive
+federal open market committee,6,1,66.67,100.0,substantive
+zimbabwe,6,1,83.33,100.0,substantive
+military academies,6,2,0.0,50.0,substantive
+victim compensation,6,1,16.67,100.0,substantive
+grant programs-recreation,6,1,0.0,100.0,substantive
+cervids,6,1,100.0,100.0,substantive
+furs,6,2,0.0,83.33,substantive
+liberia,6,1,83.33,100.0,substantive
+new investment,6,1,0.0,100.0,substantive
+federal national mortgage association,5,2,80.0,60.0,substantive
+military air transportation,5,2,0.0,60.0,substantive
+midway islands,5,1,0.0,100.0,substantive
+bicycles,5,2,40.0,80.0,substantive
+alternative fueled vehicle,5,1,80.0,100.0,substantive
+diamonds,5,1,60.0,100.0,substantive
+usury,5,1,0.0,100.0,substantive
+jukeboxes,5,1,0.0,100.0,substantive
+federal home loan mortgage corporation,5,2,80.0,60.0,substantive
+paleontological resources,4,2,100.0,50.0,substantive
+yogurt,4,1,100.0,100.0,substantive
+presidential documents,4,2,50.0,50.0,substantive
+furniture industry,4,2,75.0,75.0,substantive
+seismic safety,4,1,100.0,100.0,substantive
+nicaragua,4,2,100.0,50.0,substantive
+belarus,4,1,100.0,100.0,substantive
+vegetable juices,4,1,25.0,100.0,substantive
+sports,4,1,0.0,100.0,substantive
+blood diseases,4,2,0.0,75.0,substantive
+weekly compilation of presidential documents,4,1,100.0,100.0,substantive
+price controls,4,1,0.0,100.0,substantive
+citrus fruits,4,1,0.0,100.0,substantive
+uniformed services,4,1,100.0,100.0,substantive
+hobbies,4,1,0.0,100.0,substantive
+cream,4,1,100.0,100.0,substantive
+historical records,4,2,0.0,50.0,substantive
+political affiliation discrimination,4,2,0.0,75.0,substantive
+bakery products,4,1,0.0,100.0,substantive
+"korea, democratic peoples republic of",3,2,0.0,66.67,substantive
+cigarette lighters,3,1,100.0,100.0,substantive
+community action programs,3,2,0.0,66.67,substantive
+beans,3,1,0.0,100.0,substantive
+pewter,3,1,100.0,100.0,substantive
+mohair,3,1,66.67,100.0,substantive
+newspapers and magazines,3,2,0.0,66.67,substantive
+united states government manual,3,1,66.67,100.0,substantive
+hong kong,3,1,33.33,100.0,substantive
+plutonium,3,2,0.0,66.67,substantive
+asparagus,3,1,66.67,100.0,substantive
+kingman reef,3,1,0.0,100.0,substantive
+public papers of presidents of united states,3,1,0.0,100.0,substantive
+public papers of presidents of u.s.,3,1,0.0,100.0,substantive
+stocks,3,1,0.0,100.0,substantive
+people's republic of china,3,1,0.0,100.0,substantive
+money orders,2,1,0.0,100.0,substantive
+grant programs-foreign relations,2,2,0.0,50.0,substantive
+cribs and bassinets,2,1,0.0,100.0,substantive
+clemency,2,1,100.0,100.0,substantive
+holidays,2,1,50.0,100.0,substantive
+shoes,2,1,0.0,100.0,substantive
+mississippi river,2,1,0.0,100.0,substantive
+antibiotics,2,1,0.0,100.0,substantive
+coil coating industry,2,1,0.0,100.0,substantive
+assisted suicide,2,1,0.0,100.0,substantive
+national grasslands,2,1,0.0,100.0,substantive
+reindeer,2,1,100.0,100.0,substantive
+indians-judgment funds,2,1,0.0,100.0,substantive
+silver,2,2,50.0,50.0,substantive
+cambodia,2,1,0.0,100.0,substantive
+fairs and expositions,2,1,0.0,100.0,substantive
+south sudan,2,1,100.0,100.0,substantive
+arson,2,2,50.0,50.0,substantive
+jordan,2,1,100.0,100.0,substantive
+central african republic,2,1,100.0,100.0,substantive
+national arboretum,2,1,100.0,100.0,substantive
+mali,2,1,100.0,100.0,substantive
+compilation of presidential documents,2,1,50.0,100.0,substantive
+proclamations,2,2,50.0,50.0,substantive
+literary works,2,1,0.0,100.0,substantive
+home health care,2,1,0.0,100.0,substantive
+cacao products,2,1,0.0,100.0,substantive
+arts and crafts,2,2,0.0,50.0,substantive
+grant programs-national defense,2,1,0.0,100.0,substantive
+microwave ovens,2,1,0.0,100.0,substantive
+loan programs-national defense,2,1,0.0,100.0,substantive
+leather and leather products industry,2,1,0.0,100.0,substantive
+heart diseases,1,1,0.0,100.0,substantive
+genetic diseases,1,1,0.0,100.0,substantive
+ice cream,1,1,0.0,100.0,substantive
+margarine,1,1,0.0,100.0,substantive
+aquatic plant control,1,1,100.0,100.0,substantive
+war risk insurance,1,1,100.0,100.0,substantive
+war claims,1,1,0.0,100.0,substantive
+united service organizations (uso),1,1,0.0,100.0,substantive
+national foundation on arts and humanities,1,1,0.0,100.0,substantive
+electroplating,1,1,0.0,100.0,substantive
+eritrea,1,1,0.0,100.0,substantive
+fireworks,1,1,100.0,100.0,substantive
+conscientious objectors,1,1,100.0,100.0,substantive
+red cross,1,1,100.0,100.0,substantive
+alien property,1,1,0.0,100.0,substantive
+student loan marketing association (sallie mae),1,1,0.0,100.0,substantive
+centers for medicare medicaid services,1,1,0.0,100.0,substantive
+turkey,1,1,0.0,100.0,substantive
+chaplains,1,1,0.0,100.0,substantive
+carpets and rugs,1,1,0.0,100.0,substantive
+photographic industry,1,1,0.0,100.0,substantive
+early learning and development,1,1,0.0,100.0,substantive
+prisoners of war,1,1,0.0,100.0,substantive
+venereal diseases,1,1,0.0,100.0,substantive
+national wild and scenic rivers system,1,1,0.0,100.0,substantive
+haiti,1,1,0.0,100.0,substantive
+helium,1,1,100.0,100.0,substantive
+gold,1,1,0.0,100.0,substantive
+zoning,1,1,0.0,100.0,substantive
+venezuela,1,1,100.0,100.0,substantive
+carpools,1,1,0.0,100.0,substantive
