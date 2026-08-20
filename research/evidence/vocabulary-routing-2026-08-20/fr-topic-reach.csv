@@ -1,0 +1,853 @@
+topic,general_schemes,in_lcsh,in_mesh,in_eurovoc,in_gemet,in_fr_thesaurus
+coal,13,true,true,true,true,true
+education,13,true,true,true,true,true
+copper,12,true,true,true,true,false
+environmental protection,12,true,true,true,true,true
+internet,12,true,true,true,true,true
+natural gas,12,true,true,true,true,true
+petroleum,12,true,true,true,true,true
+agriculture,11,true,true,true,true,true
+ammonia,11,true,true,true,true,false
+arsenic,11,true,true,true,true,false
+cattle,11,true,true,true,true,true
+clothing,11,true,true,true,true,true
+ethics,11,true,true,true,true,false
+gasoline,11,true,true,true,false,true
+lead,11,true,true,true,true,true
+public health,11,true,true,true,true,true
+solar energy,11,true,true,true,true,true
+telecommunications,11,true,true,true,true,true
+transportation,11,true,true,false,true,true
+tuberculosis,11,true,true,true,false,false
+zinc,11,true,true,true,true,true
+accounting,10,true,true,true,true,true
+acid rain,10,true,true,true,true,false
+advertising,10,true,true,true,false,true
+asbestos,10,true,true,true,true,true
+cancer,10,true,true,true,true,true
+carbon dioxide,10,true,true,true,true,false
+carbon monoxide,10,true,true,true,true,false
+consumer protection,10,true,false,true,true,true
+crime,10,true,true,true,true,true
+energy,10,true,false,false,true,true
+energy conservation,10,true,false,true,true,true
+health,10,true,true,true,true,true
+insurance,10,true,true,true,true,true
+iron,10,true,true,true,true,true
+law,10,true,true,true,false,false
+livestock,10,true,true,true,true,true
+methane,10,true,true,true,true,false
+music,10,true,true,true,true,true
+nutrition,10,true,false,true,true,true
+research,10,true,true,true,true,true
+rice,10,true,true,true,true,false
+silver,10,true,true,true,true,true
+statistics,10,true,true,true,true,true
+television,10,true,true,true,true,true
+terrorism,10,true,true,true,false,true
+weather,10,true,true,false,true,true
+antarctica,9,true,true,true,true,false
+bankruptcy,9,true,true,true,false,true
+benzene,9,true,true,true,true,false
+blood,9,true,true,false,false,true
+construction industry,9,true,true,true,false,true
+cotton,9,true,false,true,true,true
+drug abuse,9,true,true,true,true,true
+employment,9,true,true,false,true,true
+fish,9,true,false,true,true,true
+geothermal energy,9,true,true,true,true,true
+health care,9,true,true,true,true,true
+housing,9,true,true,true,true,true
+irrigation,9,true,false,true,true,true
+law enforcement,9,true,true,false,true,true
+mercury,9,true,true,true,true,false
+metals,9,true,true,true,false,true
+nitrogen dioxide,9,true,true,false,true,false
+nuclear energy,9,true,true,true,true,true
+ozone,9,true,true,true,true,true
+radiation protection,9,true,true,true,true,true
+radon,9,true,true,true,true,false
+recycling,9,true,true,false,true,true
+sheep,9,true,true,true,false,true
+sodium,9,true,true,true,false,true
+sulfur,9,true,true,false,true,false
+tobacco,9,true,false,true,true,true
+travel,9,true,true,true,true,true
+uranium,9,true,true,true,true,false
+vocational education,9,true,true,true,false,true
+wildlife,9,true,false,true,true,true
+women,9,true,true,true,false,true
+youth,9,true,true,true,true,true
+adult education,8,true,false,true,true,true
+aircraft,8,true,true,true,true,true
+airports,8,true,true,false,false,true
+animals,8,true,true,false,false,true
+antibiotics,8,true,true,false,false,true
+armed forces,8,true,false,true,true,true
+barley,8,true,true,true,false,false
+beryllium,8,true,true,true,true,false
+fisheries,8,true,true,true,false,true
+fishing,8,true,true,true,true,true
+formaldehyde,8,true,true,false,false,false
+fraud,8,true,true,true,false,true
+health insurance,8,true,true,true,false,true
+horses,8,true,true,false,false,false
+hospitals,8,true,true,false,false,true
+hunting,8,true,true,true,true,true
+immigration,8,true,true,true,false,true
+libraries,8,true,true,false,false,true
+manpower,8,true,true,true,true,true
+military personnel,8,true,true,true,false,true
+milk,8,true,true,true,true,true
+nitrogen oxides,8,true,true,false,true,false
+plutonium,8,true,true,true,true,false
+potassium,8,true,true,true,false,false
+railroads,8,true,true,false,false,true
+schools,8,true,true,false,false,true
+smoking,8,true,true,true,true,true
+students,8,true,true,false,false,true
+time,8,true,true,false,true,true
+urban areas,8,true,false,false,false,true
+water resources,8,true,true,true,false,true
+wool,8,true,true,true,true,true
+alcohol abuse,7,true,true,true,false,true
+alcoholism,7,true,true,true,false,true
+animal welfare,7,true,true,true,false,true
+community development,7,true,true,false,false,true
+credit,7,true,false,true,true,true
+drugs,7,true,true,false,false,true
+explosives,7,true,true,false,false,true
+family planning,7,true,true,true,true,true
+fertilizers,7,true,true,false,false,true
+gambling,7,true,true,true,false,true
+gases,7,true,true,false,false,true
+hydrocarbons,7,true,true,false,false,true
+laboratories,7,true,true,false,false,true
+natural resources,7,true,true,true,false,true
+oats,7,true,true,true,false,false
+oil pollution,7,false,true,true,true,true
+pipelines,7,true,false,false,false,true
+public housing,7,true,true,false,false,true
+retirement,7,true,true,false,false,true
+seeds,7,true,true,false,false,true
+social security,7,true,true,true,true,true
+soil conservation,7,true,false,true,true,true
+sports,7,true,true,false,false,true
+steel,7,true,true,true,true,false
+sulfur oxides,7,true,true,false,false,false
+taxes,7,true,true,false,false,true
+textiles,7,true,true,false,false,true
+treaties,7,true,true,false,false,true
+urban renewal,7,true,true,true,true,true
+voting rights,7,true,true,true,false,true
+watersheds,7,true,false,false,false,true
+wheat,7,true,true,true,false,false
+adhesives,6,true,true,false,false,true
+aluminum,6,true,true,false,true,true
+beverages,6,true,true,false,false,true
+buses,6,true,true,false,false,true
+child welfare,6,true,true,false,false,true
+civil defense,6,true,true,false,false,true
+civil rights,6,true,true,true,false,true
+communications,6,true,false,true,true,true
+continental shelf,6,true,false,true,true,true
+courts,6,true,false,false,false,true
+domestic violence,6,true,true,true,false,true
+educational research,6,true,false,true,false,true
+electric power,6,true,false,false,true,true
+electric utilities,6,true,false,false,false,true
+engineers,6,true,false,false,false,true
+exports,6,true,false,false,false,true
+flood control,6,true,false,false,true,true
+food additives,6,true,true,false,false,true
+foreign exchange,6,true,false,true,false,false
+foreign trade,6,true,false,true,true,true
+foundations,6,true,true,false,false,true
+freedom of information,6,true,false,false,false,true
+gasohol,6,true,false,true,true,true
+goats,6,true,true,false,false,false
+greenhouse gases,6,true,true,false,false,true
+helium,6,true,true,true,false,false
+humanitarian aid,6,true,false,true,true,false
+immunization,6,true,true,false,false,true
+imports,6,true,false,false,false,true
+international organizations,6,true,false,false,false,true
+juvenile delinquency,6,true,true,true,false,true
+life insurance,6,true,true,true,false,true
+marine resources,6,true,false,true,false,true
+medicare,6,true,true,false,false,true
+miners,6,true,true,false,false,true
+motor vehicles,6,true,true,false,false,true
+museums,6,true,true,false,false,true
+mushrooms,6,true,true,false,false,false
+plants,6,true,true,false,false,true
+prescription drugs,6,true,true,false,false,true
+printing,6,true,true,true,false,true
+privacy,6,true,true,false,false,true
+quarantine,6,true,true,false,false,true
+radio,6,true,true,false,true,true
+radioactive materials,6,true,false,true,false,true
+radionuclides,6,true,true,false,false,true
+renewable energy,6,false,true,true,true,true
+rivers,6,true,true,false,false,true
+satellites,6,true,false,false,false,true
+scientists,6,true,false,false,false,true
+small businesses,6,true,false,false,false,true
+smallpox,6,true,true,true,false,true
+sorghum,6,true,true,true,false,false
+surface mining,6,true,false,false,false,true
+swine,6,true,true,true,false,true
+teachers,6,true,false,false,false,true
+trees,6,true,true,false,false,false
+vegetables,6,true,true,false,false,true
+veterans,6,true,true,false,false,true
+vinyl chloride,6,true,true,false,false,true
+volatile organic compounds,6,true,true,false,false,true
+wages,6,true,true,true,false,true
+water supply,6,false,true,true,true,true
+aged,5,true,true,false,false,true
+agricultural research,5,true,false,true,false,true
+air traffic control,5,true,true,true,false,true
+air transportation,5,false,false,false,true,true
+arson,5,true,true,false,false,false
+assisted suicide,5,true,true,false,false,true
+beer,5,true,true,true,false,true
+bees,5,true,true,false,false,true
+cable television,5,true,false,true,false,true
+cheese,5,true,true,true,false,true
+classified information,5,true,false,false,false,true
+coffee,5,true,true,true,false,true
+communicable diseases,5,true,true,false,false,true
+cooperatives,5,true,false,false,false,true
+copyright,5,true,true,true,false,true
+corn,5,true,true,false,false,false
+cosmetics,5,true,true,false,false,true
+cream,5,true,false,true,false,true
+dairy products,5,true,true,false,false,true
+dams,5,true,false,false,false,true
+diamonds,5,true,true,false,false,true
+diesel fuel,5,false,true,true,true,true
+diseases,5,true,false,false,false,true
+educational facilities,5,true,false,false,false,true
+fire prevention,5,true,false,false,false,true
+firefighters,5,true,true,false,false,true
+foreign relations,5,true,false,true,false,true
+fruits,5,true,false,false,false,true
+government procurement,5,true,false,false,false,true
+great lakes,5,true,false,false,false,true
+hay,5,true,false,true,false,true
+hazardous substances,5,true,true,false,false,true
+health professions,5,true,true,false,false,true
+hobbies,5,true,true,false,false,true
+honey,5,true,true,true,false,false
+household appliances,5,true,false,true,false,true
+human remains,5,true,true,false,false,true
+information,5,false,false,true,true,true
+investments,5,true,true,false,false,true
+kidney diseases,5,true,true,false,false,true
+labor,5,true,false,false,true,true
+labor unions,5,true,true,false,false,true
+lawyers,5,true,true,false,false,true
+lead poisoning,5,true,true,false,false,true
+lebanon,5,false,true,true,false,false
+lobbying,5,true,true,false,false,true
+marine mammals,5,true,false,false,false,true
+medicaid,5,true,true,false,false,true
+medical research,5,true,true,true,false,true
+metric system,5,true,true,false,false,true
+military law,5,true,false,true,false,true
+mineral resources,5,true,false,true,false,true
+mortgages,5,true,false,false,false,true
+news media,5,true,false,false,false,true
+nursing homes,5,true,true,false,false,true
+particulate matter,5,true,true,false,false,true
+peanuts,5,true,true,false,false,false
+pensions,5,true,true,false,false,true
+pets,5,true,true,false,false,true
+phosphate,5,false,true,true,true,false
+polymers,5,true,true,false,false,true
+potatoes,5,true,true,false,false,false
+prisoners of war,5,true,true,false,false,true
+private schools,5,true,false,false,false,true
+refugees,5,true,true,false,false,true
+rural areas,5,false,false,false,false,true
+safety,5,false,true,false,true,true
+seafood,5,true,true,false,false,true
+securities,5,true,false,true,false,true
+sewage disposal,5,true,false,false,true,true
+sex discrimination,5,true,true,false,false,true
+straw,5,true,false,true,false,true
+sugar,5,true,true,true,false,true
+telephone,5,true,true,true,false,true
+tires,5,true,false,false,false,true
+tomatoes,5,true,true,false,false,false
+trademarks,5,true,true,false,false,true
+urethane,5,true,true,false,false,true
+veterinarians,5,true,true,false,false,true
+vocational rehabilitation,5,true,true,false,false,true
+volunteers,5,true,true,false,false,true
+whistleblowing,5,true,true,true,false,true
+x-rays,5,true,true,true,false,true
+yemen,5,false,true,true,false,false
+afghanistan,4,false,true,true,false,false
+aliens,4,true,true,false,false,true
+alimony,4,true,false,false,false,true
+animal diseases,4,true,true,false,false,true
+australia,4,false,true,true,false,false
+belarus,4,false,true,true,false,false
+bicycles,4,true,false,false,false,true
+bison,4,true,true,false,false,false
+blueberries,4,true,true,false,false,false
+bottled water,4,true,true,false,false,true
+bridges,4,true,false,false,false,true
+canada,4,false,true,true,false,false
+cement industry,4,false,false,true,true,false
+central african republic,4,false,true,true,false,false
+chemicals,4,true,false,true,false,true
+child support,4,true,true,false,false,true
+chile,4,false,true,true,false,false
+civil disorders,4,true,true,false,false,true
+cranberries,4,true,true,false,false,false
+crop insurance,4,true,false,false,false,true
+cuba,4,false,true,true,false,false
+currency,4,true,false,true,false,true
+diving,4,true,true,false,false,true
+drug testing,4,true,false,false,false,true
+elections,4,true,false,false,false,true
+emergency preparedness,4,true,true,false,false,true
+environmental impact statements,4,true,false,false,false,true
+ethiopia,4,false,true,true,false,false
+executive orders,4,true,false,false,false,true
+fees,4,true,true,true,false,true
+flags,4,true,true,false,false,true
+foreign aid,4,false,true,true,false,true
+forgery,4,true,false,false,false,true
+frozen foods,4,true,true,false,false,true
+fruit juices,4,true,true,false,false,true
+government employees,4,true,true,false,false,true
+government securities,4,true,false,true,false,true
+grapefruit,4,true,true,true,false,false
+grapes,4,true,true,false,false,false
+guam,4,false,true,true,false,false
+haiti,4,false,true,true,false,false
+harbors,4,true,false,false,false,true
+hawaii,4,false,true,true,false,false
+hazardous waste,4,false,true,true,true,true
+hiv/aids,4,false,false,false,false,true
+hong kong,4,false,true,true,false,false
+hospice care,4,true,true,false,false,false
+hostages,4,true,true,false,false,true
+iran,4,false,true,true,false,false
+iraq,4,false,true,true,false,false
+jordan,4,false,true,true,false,false
+kuwait,4,false,true,true,false,false
+law enforcement officers,4,true,true,false,false,true
+liberia,4,false,true,true,false,false
+limes,4,true,true,false,false,false
+lotteries,4,true,false,false,false,true
+mali,4,false,true,true,false,false
+mango,4,true,true,true,false,false
+mexico,4,false,true,true,false,false
+migrant labor,4,true,false,false,true,true
+mississippi river,4,true,false,false,false,false
+motion pictures,4,true,true,false,false,true
+nicaragua,4,false,true,true,false,false
+noise control,4,true,false,false,true,true
+nonprofit organizations,4,true,true,false,false,true
+north korea,4,false,true,true,false,false
+nuts,4,true,true,false,false,true
+occupational safety and health,4,true,false,false,false,true
+onions,4,true,true,false,false,false
+oranges,4,true,true,false,false,false
+over-the-counter drugs,4,true,true,false,false,true
+pears,4,true,true,false,false,false
+philippines,4,false,true,true,false,false
+prisoners,4,true,true,false,false,true
+prisons,4,true,true,false,false,true
+public lands,4,true,false,false,false,true
+puerto rico,4,false,true,true,false,false
+raisins,4,true,true,false,false,false
+red cross,4,true,true,true,false,true
+religious discrimination,4,true,false,true,false,true
+reservoirs,4,true,false,false,false,true
+shoes,4,true,true,false,false,true
+somalia,4,false,true,true,false,false
+sudan,4,false,true,true,false,false
+syria,4,false,true,true,false,false
+technical assistance,4,true,false,true,false,true
+telegraph,4,true,false,true,false,true
+toys,4,true,true,false,false,true
+turkey,4,false,true,true,false,false
+ukraine,4,false,true,true,false,false
+vegetable juices,4,true,true,false,false,true
+venezuela,4,false,true,true,false,false
+waterways,4,true,false,false,false,true
+wine,4,true,true,true,false,true
+yogurt,4,true,true,false,false,true
+zimbabwe,4,false,true,true,false,false
+accountants,3,true,false,false,false,true
+air pollution control,3,true,false,false,false,true
+alaska,3,false,true,false,false,true
+american samoa,3,false,true,true,false,true
+apples,3,true,false,false,false,false
+asparagus,3,true,false,true,false,false
+aviation safety,3,true,false,true,false,true
+batteries,3,true,false,false,false,true
+bilingual education,3,true,false,false,false,true
+biologics,3,true,true,false,false,true
+blood diseases,3,false,true,false,false,true
+bonds,3,true,false,false,false,true
+boycotts,3,true,false,false,false,true
+broadband,3,false,false,true,false,false
+burma,3,false,true,true,false,false
+campaign funds,3,true,false,false,false,true
+carpools,3,true,false,false,false,true
+cemeteries,3,true,true,false,false,true
+child labor,3,true,true,false,false,true
+christmas trees,3,true,false,false,false,false
+citrus fruits,3,true,false,false,false,false
+clemency,3,true,false,false,false,true
+coastal zone,3,false,false,true,false,true
+commodity futures,3,true,false,false,false,true
+credit unions,3,true,false,false,false,true
+day care,3,false,true,false,false,true
+disaster assistance,3,true,false,false,false,true
+economic statistics,3,true,false,true,false,true
+emergency medical services,3,true,true,false,false,true
+equal employment opportunity,3,true,false,false,false,true
+eritrea,3,false,true,true,false,false
+fiduciaries,3,true,false,false,false,true
+filberts,3,true,true,false,false,false
+flood plains,3,true,false,false,false,true
+food assistance programs,3,true,true,false,false,true
+food packaging,3,false,true,false,false,true
+food stamps,3,true,true,false,false,true
+foreign service,3,true,false,false,false,true
+furniture industry,3,false,false,true,true,false
+government contracts,3,true,false,false,false,true
+hazelnuts,3,true,true,false,false,false
+health facilities,3,true,true,false,false,true
+health statistics,3,true,false,true,false,true
+historic preservation,3,true,false,false,false,true
+home improvement,3,true,false,false,false,true
+indians,3,true,false,false,false,true
+insurance companies,3,true,false,false,false,true
+kiwifruit,3,true,false,true,false,false
+labeling,3,true,false,false,true,true
+legal services,3,true,true,false,false,true
+libya,3,false,true,true,false,false
+meat inspection,3,true,false,false,false,true
+medical devices,3,true,true,false,false,true
+melons,3,true,true,false,false,false
+methadone,3,false,true,false,false,false
+minimum wages,3,true,false,false,false,true
+motor carriers,3,true,false,false,false,true
+motor vehicle pollution,3,false,false,true,true,true
+national defense,3,false,false,false,false,true
+national forests,3,true,false,false,false,true
+nursery stock,3,true,false,false,false,true
+oilseeds,3,true,false,false,false,true
+pewter,3,true,false,false,false,false
+range management,3,true,false,false,false,true
+revenue sharing,3,true,false,false,false,false
+russian federation,3,false,false,true,false,false
+seamen,3,true,false,false,false,true
+search warrants,3,true,false,false,false,true
+security measures,3,true,true,false,false,true
+south sudan,3,false,true,true,false,false
+soybeans,3,false,true,false,false,false
+spearmint oil,3,true,false,false,false,true
+stills,3,true,false,false,false,true
+stocks,3,true,false,false,false,true
+trade adjustment assistance,3,true,false,false,false,true
+unemployment compensation,3,true,false,false,false,true
+utilities,3,false,false,false,false,true
+vinegar,3,true,true,false,false,false
+virgin islands,3,true,false,false,false,false
+wake island,3,true,true,false,false,false
+workers' compensation,3,true,true,false,false,true
+yugoslavia,3,false,true,true,false,false
+acreage allotments,2,true,false,false,false,true
+advisory committees,2,false,true,false,false,true
+agricultural commodities,2,true,false,false,false,true
+air carriers,2,true,false,false,false,true
+air taxis,2,true,false,false,false,true
+air traffic controllers,2,true,false,false,false,true
+airmen,2,true,false,false,false,true
+alien property,2,true,false,false,false,false
+alternative fuel,2,false,false,false,true,false
+antidumping,2,true,false,false,false,true
+apricots,2,false,true,false,false,false
+bakery products,2,true,false,false,false,false
+bank deposit insurance,2,true,false,false,false,true
+blind,2,true,false,false,false,true
+brokers,2,true,false,false,false,true
+census data,2,false,false,false,false,true
+cervids,2,true,false,false,false,true
+charitable contributions,2,true,false,false,false,true
+cigarette lighters,2,true,false,false,false,false
+claims,2,true,false,false,false,true
+common carriers,2,true,false,false,false,true
+concessions,2,true,false,false,false,true
+condominiums,2,true,false,false,false,true
+confidential business information,2,true,false,false,false,true
+conscientious objectors,2,true,false,false,false,true
+countervailing duties,2,true,false,false,false,true
+cultural exchange programs,2,true,false,false,false,true
+dates,2,false,true,false,false,false
+dental health,2,false,false,false,false,true
+district of columbia,2,false,true,false,false,false
+drug traffic control,2,true,false,false,false,true
+dry cleaners,2,true,false,false,false,false
+electric power plants,2,false,true,false,false,true
+electronic funds transfers,2,true,false,false,false,true
+emergency powers,2,true,false,false,false,true
+equal educational opportunity,2,true,false,false,false,true
+fair housing,2,true,false,false,false,true
+federal home loan banks,2,true,false,false,false,true
+fishing vessels,2,true,false,false,false,true
+flammable materials,2,true,false,false,false,true
+flood insurance,2,true,false,false,false,true
+foods,2,true,false,false,false,true
+foreign trade zones,2,true,false,false,false,true
+freight,2,false,false,false,false,true
+freight forwarders,2,true,false,false,false,true
+government property,2,true,false,false,false,true
+government publications,2,true,false,false,false,true
+government-sponsored enterprises,2,true,false,false,false,true
+grains,2,true,false,false,false,true
+health records,2,true,false,false,false,true
+highway safety,2,true,false,false,false,true
+hogs,2,true,false,false,false,true
+holding companies,2,true,false,false,false,true
+individuals with disabilities,2,true,false,false,false,true
+industrial facilities,2,false,true,false,false,true
+intermodal transportation,2,true,false,false,false,true
+investigations,2,true,false,false,false,true
+investment companies,2,true,false,false,false,true
+jukeboxes,2,true,false,false,false,false
+liquors,2,true,false,false,false,true
+lung diseases,2,false,true,false,false,true
+manpower training programs,2,true,false,false,false,true
+manufactured homes,2,true,false,false,false,true
+marine safety,2,true,false,false,false,true
+methyl chloroform,2,true,false,false,false,false
+micrographics,2,true,false,false,false,true
+money orders,2,true,false,false,false,false
+mortgage insurance,2,true,false,false,false,true
+northern mariana islands,2,false,true,true,false,false
+oils and fats,2,true,false,false,false,true
+olives,2,false,true,false,false,false
+parking,2,true,false,true,false,true
+peaches,2,false,true,false,false,false
+plums,2,false,true,false,false,false
+political candidates,2,true,false,false,false,true
+popcorn,2,true,false,false,false,false
+pummelos,2,false,false,false,false,false
+railroad employees,2,true,false,false,false,true
+reclamation,2,false,false,false,false,true
+rent subsidies,2,true,false,false,false,true
+seashores,2,true,false,false,false,true
+services,2,false,false,false,true,false
+signs and symbols,2,true,false,false,false,true
+stockyards,2,true,false,false,false,true
+student aid,2,true,false,false,false,true
+supplemental nutrition assistance program,2,false,true,false,false,true
+surety bonds,2,true,false,false,false,true
+surplus agricultural commodities,2,true,false,false,false,true
+surplus government property,2,true,false,false,false,true
+trade agreements,2,false,false,false,false,true
+trade names,2,true,false,false,false,true
+travel restrictions,2,true,false,false,false,true
+trusts and trustees,2,true,false,false,false,true
+usury,2,true,false,false,false,true
+victim compensation,2,false,false,true,false,false
+vietnam,2,false,true,false,false,false
+war risk insurance,2,true,false,false,false,true
+warehouses,2,true,false,false,false,true
+water pollution control,2,false,false,false,false,true
+watermelons,2,true,false,false,false,false
+wilderness areas,2,true,false,false,false,true
+wildlife refuges,2,true,false,false,false,true
+adoption and foster care,1,false,false,false,false,true
+aid to families with dependent children,1,false,true,false,false,true
+airspace,1,false,false,false,false,true
+almonds,1,false,true,false,false,false
+avocados,1,false,false,false,false,false
+biobased products,1,false,false,false,false,true
+carbon oxides,1,false,false,false,false,false
+cherries,1,false,false,false,false,false
+citizenship and naturalization,1,false,false,false,false,true
+communications equipment,1,false,false,false,false,true
+community facilities,1,false,false,true,false,true
+disability benefits,1,false,false,false,false,true
+elementary and secondary education,1,false,false,false,false,true
+employment taxes,1,false,false,false,false,true
+endangered and threatened species,1,false,false,false,false,true
+federal home loan mortgage corporation,1,false,false,false,false,false
+federal national mortgage association,1,false,false,false,false,false
+federal open market committee,1,false,false,false,false,false
+fluoride,1,false,true,false,false,false
+food labeling,1,false,true,false,false,true
+fuel additives,1,false,false,false,false,true
+fuel economy,1,false,false,false,false,true
+furs,1,false,false,true,false,false
+grazing lands,1,false,false,false,false,true
+heaters,1,false,false,false,false,false
+income taxes,1,false,true,false,false,true
+insulation,1,false,false,false,false,true
+intergovernmental relations,1,false,false,false,false,true
+land sales,1,false,false,false,false,true
+mines,1,false,false,false,false,true
+monuments and memorials,1,false,false,false,false,true
+nuclear materials,1,false,false,true,false,true
+oil imports,1,false,false,false,false,true
+penalties,1,false,false,false,false,true
+people's republic of china,1,false,true,false,false,false
+personally identifiable information,1,false,true,false,false,true
+public assistance programs,1,false,false,false,false,true
+rights-of-way,1,false,false,false,false,true
+science and technology,1,false,false,false,false,true
+swaps,1,false,false,false,false,true
+tangelos,1,false,false,false,false,false
+underground mining,1,false,false,false,false,true
+warranties,1,false,false,false,false,true
+western balkans,1,false,false,true,false,false
+youth organizations,1,false,false,false,false,true
+administrative practice and procedure,0,false,false,false,false,true
+air rates and fares,0,false,false,false,false,true
+alcohol and alcoholic beverages,0,false,false,false,false,true
+alternative fueled vehicle,0,false,false,false,false,false
+ammonium sulfate plants,0,false,false,false,false,false
+anchorage grounds,0,false,false,false,false,true
+animal biologics,0,false,false,false,false,true
+animal drugs,0,false,false,false,false,true
+antitrust,0,false,false,false,false,true
+aquatic plant control,0,false,false,false,false,false
+archives and records,0,false,false,false,false,true
+armed forces reserves,0,false,false,false,false,true
+arms and munitions,0,false,false,false,false,true
+arts and crafts,0,false,false,false,false,true
+authority delegations (government agencies),0,false,false,false,false,true
+"banks, banking",0,false,false,false,false,true
+black lung benefits,0,false,false,false,false,true
+blocking of assets,0,false,false,false,false,true
+buildings and facilities,0,false,false,false,false,true
+business and industry,0,false,false,false,false,true
+cacao products,0,false,false,false,false,false
+cargo vessels,0,false,false,false,false,true
+caribbean basin initiative,0,false,false,false,false,false
+carpets and rugs,0,false,false,false,false,true
+charter flights,0,false,false,false,false,true
+cigars and cigarettes,0,false,false,false,false,true
+code of federal regulations,0,false,false,false,false,true
+colleges and universities,0,false,false,false,false,true
+color additives,0,false,false,false,false,true
+communications common carriers,0,false,false,false,false,true
+community action programs,0,false,false,false,false,true
+community development block grants,0,false,false,false,false,true
+compilation of presidential documents,0,false,false,false,false,true
+computer technology,0,false,false,false,false,true
+conduct standards,0,false,false,false,false,true
+cottonseeds,0,false,false,false,false,true
+critical infrastructure,0,false,false,false,false,true
+customs duties and inspection,0,false,false,false,false,false
+"decorations, medals, awards",0,false,false,false,false,true
+defense communications,0,false,false,false,false,true
+dietary foods,0,false,false,false,false,true
+early learning and development,0,false,false,false,false,false
+education of disadvantaged,0,false,false,false,false,true
+education of individuals with disabilities,0,false,false,false,false,true
+educational study programs,0,false,false,false,false,true
+eggs and egg products,0,false,false,false,false,true
+electric power rates,0,false,false,false,false,true
+electronic filing,0,false,false,false,false,true
+electronic products,0,false,false,false,false,true
+employee benefit plans,0,false,false,false,false,true
+equal access to justice,0,false,false,false,false,true
+estate taxes,0,false,false,false,false,true
+estates,0,false,false,false,false,true
+excise taxes,0,false,false,false,false,true
+federal buildings and facilities,0,false,false,false,false,true
+federal register,0,false,false,false,false,true
+federally affected areas,0,false,false,false,false,true
+feed grains,0,false,false,false,false,true
+food grades and standards,0,false,false,false,false,true
+foreign banking,0,false,false,false,false,true
+foreign claims,0,false,false,false,false,true
+foreign currencies,0,false,false,false,false,true
+foreign investments in u.s.,0,false,false,false,false,true
+foreign investments in united states,0,false,false,false,false,false
+foreign officials,0,false,false,false,false,true
+forests and forest products,0,false,false,false,false,true
+gift taxes,0,false,false,false,false,true
+glass and glass products,0,false,false,false,false,true
+government property management,0,false,false,false,false,true
+grant programs,0,false,false,false,false,true
+grant programs-agriculture,0,false,false,false,false,true
+grant programs-business,0,false,false,false,false,true
+grant programs-communications,0,false,false,false,false,true
+grant programs-education,0,false,false,false,false,true
+grant programs-energy,0,false,false,false,false,true
+grant programs-environmental protection,0,false,false,false,false,true
+grant programs-foreign relations,0,false,false,false,false,true
+grant programs-health,0,false,false,false,false,true
+grant programs-housing and community development,0,false,false,false,false,true
+grant programs-indians,0,false,false,false,false,true
+grant programs-labor,0,false,false,false,false,true
+grant programs-law,0,false,false,false,false,true
+grant programs-natural resources,0,false,false,false,false,true
+grant programs-recreation,0,false,false,false,false,true
+grant programs-science and technology,0,false,false,false,false,true
+grant programs-social programs,0,false,false,false,false,true
+grant programs-transportation,0,false,false,false,false,true
+grant programs-veterans,0,false,false,false,false,true
+graphic arts industry,0,false,false,false,false,false
+hawaiian natives,0,false,false,false,false,true
+hazardous materials transportation,0,false,false,false,false,true
+health maintenance organizations (hmo),0,false,false,false,false,true
+highways and roads,0,false,false,false,false,true
+historical records,0,false,false,false,false,true
+homeless,0,false,false,false,false,true
+homesteads,0,false,false,false,false,true
+housing standards,0,false,false,false,false,true
+human cells and tissue-based products,0,false,false,false,false,true
+human research subjects,0,false,false,false,false,true
+incorporation by reference,0,false,false,false,false,false
+indemnity payments,0,false,false,false,false,true
+indians-arts and crafts,0,false,false,false,false,true
+indians-business and finance,0,false,false,false,false,true
+indians-claims,0,false,false,false,false,true
+indians-education,0,false,false,false,false,true
+indians-lands,0,false,false,false,false,true
+indians-law,0,false,false,false,false,true
+indians-tribal government,0,false,false,false,false,true
+infants and children,0,false,false,false,false,true
+inventions and patents,0,false,false,false,false,true
+job corps,0,false,false,false,false,true
+"korea, democratic peoples republic of",0,false,false,false,false,false
+labor management relations,0,false,false,false,false,true
+leather and leather products industry,0,false,false,false,false,false
+licensing and registration,0,false,false,false,false,true
+lie detector tests,0,false,false,false,false,true
+literary works,0,false,false,false,false,false
+loan programs,0,false,false,false,false,true
+loan programs-agriculture,0,false,false,false,false,true
+loan programs-business,0,false,false,false,false,true
+loan programs-communications,0,false,false,false,false,true
+loan programs-education,0,false,false,false,false,true
+loan programs-energy,0,false,false,false,false,true
+loan programs-foreign relations,0,false,false,false,false,true
+loan programs-health,0,false,false,false,false,true
+loan programs-housing and community development,0,false,false,false,false,true
+loan programs-indians,0,false,false,false,false,true
+loan programs-natural resources,0,false,false,false,false,true
+loan programs-social programs,0,false,false,false,false,true
+loan programs-transportation,0,false,false,false,false,true
+loan programs-veterans,0,false,false,false,false,true
+longshore and harbor workers,0,false,false,false,false,true
+low and moderate income housing,0,false,false,false,false,true
+marital status discrimination,0,false,false,false,false,true
+maritime carriers,0,false,false,false,false,true
+maritime security,0,false,false,false,false,true
+marketing agreements,0,false,false,false,false,true
+marketing quotas,0,false,false,false,false,true
+mass transportation,0,false,false,false,false,true
+maternal and child health,0,false,false,false,false,true
+mattresses and mattress pads,0,false,false,false,false,false
+measurement standards,0,false,false,false,false,true
+meat and meat products,0,false,false,false,false,true
+medical and dental schools,0,false,false,false,false,true
+mental health programs,0,false,false,false,false,true
+metallic and nonmetallic mineral processing plants,0,false,false,false,false,false
+military academies,0,false,false,false,false,true
+military air transportation,0,false,false,false,false,true
+milk marketing orders,0,false,false,false,false,true
+mine safety and health,0,false,false,false,false,true
+mineral royalties,0,false,false,false,false,true
+minority businesses,0,false,false,false,false,true
+motor vehicle safety,0,false,false,false,false,true
+moving of household goods,0,false,false,false,false,true
+national arboretum,0,false,false,false,false,false
+national wild and scenic rivers system,0,false,false,false,false,true
+navigation (air),0,false,false,false,false,true
+navigation (water),0,false,false,false,false,true
+nectarines,0,false,false,false,false,false
+new investment,0,false,false,false,false,false
+newspapers and magazines,0,false,false,false,false,true
+nitric acid plants,0,false,false,false,false,false
+nuclear power plants and reactors,0,false,false,false,false,true
+nuclear vessels,0,false,false,false,false,true
+oil and gas exploration,0,false,false,false,false,true
+oil and gas reserves,0,false,false,false,false,true
+"old-age, survivors and disability insurance",0,false,false,false,false,true
+ophthalmic goods and services,0,false,false,false,false,true
+organically produced products,0,false,false,false,false,true
+organization and functions (government agencies),0,false,false,false,false,true
+pacific islands trust territory,0,false,false,false,false,true
+packaging and containers,0,false,false,false,false,true
+paper and paper products industry,0,false,false,false,false,false
+passenger vessels,0,false,false,false,false,true
+passports and visas,0,false,false,false,false,true
+paving and roofing materials,0,false,false,false,false,true
+pension insurance,0,false,false,false,false,true
+pesticides and pests,0,false,false,false,false,true
+pipeline safety,0,false,false,false,false,true
+pistachios,0,false,false,false,false,false
+plant diseases and pests,0,false,false,false,false,true
+plastics materials and synthetics,0,false,false,false,false,true
+poison prevention,0,false,false,false,false,true
+political activities (government employees),0,false,false,false,false,true
+political affiliation discrimination,0,false,false,false,false,true
+political committees and parties,0,false,false,false,false,true
+polychlorinated biphenyls (pcb's),0,false,false,false,false,true
+poultry and poultry products,0,false,false,false,false,true
+price support programs,0,false,false,false,false,true
+probation and parole,0,false,false,false,false,true
+prunes,0,false,false,false,false,false
+public papers of presidents of u.s.,0,false,false,false,false,false
+qualified financial contracts,0,false,false,false,false,true
+railroad retirement,0,false,false,false,false,true
+railroad safety,0,false,false,false,false,true
+railroad unemployment insurance,0,false,false,false,false,true
+real property acquisition,0,false,false,false,false,true
+recordings,0,false,false,false,false,true
+recreation and recreation areas,0,false,false,false,false,true
+relocation assistance,0,false,false,false,false,true
+reporting and recordkeeping requirements,0,false,false,false,false,true
+rubber and rubber products,0,false,false,false,false,true
+savings associations,0,false,false,false,false,true
+scholarships and fellowships,0,false,false,false,false,true
+school breakfast and lunch programs,0,false,false,false,false,true
+school construction,0,false,false,false,false,true
+scientific equipment,0,false,false,false,false,true
+seals and insignia,0,false,false,false,false,true
+seismic safety,0,false,false,false,false,true
+seizures and forfeitures,0,false,false,false,false,true
+semiconductor chip products,0,false,false,false,false,true
+space transportation and exploration,0,false,false,false,false,true
+specially designated nationals,0,false,false,false,false,false
+spices and flavorings,0,false,false,false,false,true
+state and local governments,0,false,false,false,false,true
+strategic and critical materials,0,false,false,false,false,true
+sulfuric acid plants,0,false,false,false,false,false
+sunshine act,0,false,false,false,false,true
+superfund,0,false,false,false,false,true
+supplemental security income (ssi),0,false,false,false,false,true
+tangerines,0,false,false,false,false,false
+trade practices,0,false,false,false,false,true
+travel and transportation expenses,0,false,false,false,false,true
+u.s. investments abroad,0,false,false,false,false,true
+uniform system of accounts,0,false,false,false,false,true
+uniformed services,0,false,false,false,false,false
+united service organizations (uso),0,false,false,false,false,true
+united states investments abroad,0,false,false,false,false,false
+vessels,0,false,false,false,false,true
+vinyl,0,false,false,false,false,true
+voluntary standards,0,false,false,false,false,true
+waivers,0,false,false,false,false,true
+walnuts,0,false,false,false,false,false
+waste treatment and disposal,0,false,false,false,false,true
+watches and jewelry,0,false,false,false,false,true
+weekly compilation of presidential documents,0,false,false,false,false,false
+wiretapping and electronic surveillance,0,false,false,false,false,true
