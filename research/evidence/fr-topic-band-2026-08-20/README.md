@@ -167,6 +167,27 @@ Moving any of these changes the band share by well under a percentage point, so
 the routing decision is not sensitive to them — but the list is a published
 vocabulary artifact and should say what it means.
 
+## Consumer contract
+
+A downstream harness re-derives the band from the `agencies` and
+`top_agency_share_pct` columns rather than reading `proposed_band`, and raises
+if the column disagrees with the rule. That is deliberate on both sides: it
+makes **the rule the contract and the file merely its rendering**, so a later
+hand edit to the CSV cannot silently reroute traffic.
+
+The consequence, which is a real obligation on this artifact rather than a
+courtesy: **if the rule constants change, they must change here AND consumers
+must be told.** A revised threshold shipped as an edited `proposed_band`
+column with the rule unchanged would make every downstream run raise — the
+correct failure, but an opaque one for anyone not expecting it.
+
+Current constants, load-bearing for consumers: `agencies >= 30` and
+`top_agency_share_pct <= 70.0`.
+
+Unbanded topics default to **substantive**: a topic is a subject until
+dispersion evidence says otherwise. Defaulting the other way would route
+unknowns to the agency prior, which is the band where text cannot reach them.
+
 ## Files
 
 - `topic-bands.csv` — all 900 used topics with `assignments`, `agencies`,
