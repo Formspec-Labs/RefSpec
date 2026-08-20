@@ -297,7 +297,20 @@
     return { ...payload, relations };
   }
 
-  async function resource({ id, status = "active" }) {
+  // REF-042 derived rows are non-authoritative and opt-in, so they are dropped
+  // unless the caller asks for them. They travel in the same `relations` array
+  // as asserted statements (that is what the local explorer's API does for
+  // relations="all"), distinguished only by statement_type, so filtering here
+  // is what keeps the default view to publisher-asserted facts alone.
+  function applyRelationsFilter(payload, relations) {
+    if (relations === "all") return payload;
+    return {
+      ...payload,
+      relations: payload.relations.filter((r) => r.statement_type !== "DerivedRelation"),
+    };
+  }
+
+  async function resource({ id, status = "active", relations = "asserted" }) {
     const { conn } = await ensureDuckDB();
     const indexRows = rowsOf(
       await conn.query(`
@@ -321,7 +334,8 @@
     }
     const text = await response.text();
     const payload = JSON.parse(text);
-    return status === "all" ? payload : applyActiveFilter(payload);
+    const scoped = applyRelationsFilter(payload, relations);
+    return status === "all" ? scoped : applyActiveFilter(scoped);
   }
 
   // ---- /api/agency-projection -----------------------------------------------
@@ -381,7 +395,11 @@
           offset: Number(q.get("offset") || 0),
         });
       case "/api/resource":
-        return resource({ id: q.get("id") || "", status: q.get("status") || "active" });
+        return resource({
+          id: q.get("id") || "",
+          status: q.get("status") || "active",
+          relations: q.get("relations") || "asserted",
+        });
       case "/api/agency-projection":
         return agencyProjection(q.get("q") || "");
       default:

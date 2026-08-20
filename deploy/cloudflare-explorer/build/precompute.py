@@ -443,6 +443,43 @@ def main() -> int:
         if row["object"] != row["subject"]:
             adjacency.setdefault(row["object"], []).append(row)
 
+    # REF-042 derived relations. Non-authoritative and opt-in: they ride in the
+    # same per-resource `relations` array as asserted statements -- which is what
+    # the local explorer's API does for relations="all" -- but carry
+    # statement_type "DerivedRelation", so the client can filter them out and
+    # does by default. They are NOT evidence-bound: no publisher asserted them,
+    # so `evidence` stays empty and `derivation_rule` / `derived_from_assertions`
+    # name the rule and the asserted rows it read instead.
+    #
+    # Read straight from the Parquet rather than through the view's lazily
+    # registered atlas_derived_relations, and tolerate its absence: every view
+    # sealed before the derived graph existed, and every build whose rules
+    # emitted nothing, ships without this table. Missing table => no derived
+    # rows => the client's toggle stays hidden, exactly as
+    # DuckDBAtlasView.derived_relations_available() intends.
+    derived_adjacency: dict[str, list[dict]] = {}
+    derived_path = root / "tables" / "derived-relations.parquet"
+    if derived_path.is_file():
+        print("  loading derived relations (REF-042, non-authoritative) ...")
+        for row in view.query_rows(
+            f"""
+            SELECT id, subject, predicate, object, semantic_ring,
+                   derivation_rule, engine, engine_version, derived_from_assertions
+            FROM read_parquet('{derived_path.as_posix()}')
+            ORDER BY id
+            """
+        ):
+            row["statement_type"] = "DerivedRelation"
+            derived_adjacency.setdefault(row["subject"], []).append(row)
+            if row["object"] != row["subject"]:
+                derived_adjacency.setdefault(row["object"], []).append(row)
+        print(
+            f"    {sum(len(v) for v in derived_adjacency.values()):,} endpoint attachments"
+            f" over {len(derived_adjacency):,} resources"
+        )
+    else:
+        print("  no derived-relations.parquet in this view -- skipping (expected pre-REF-042)")
+
     print("  loading evidence bindings (joined to source records) ...")
     evidence_by_statement: dict[str, list[dict]] = {}
     for row in view.query_rows(
@@ -484,6 +521,22 @@ def main() -> int:
             evidence = evidence_by_statement.get(relation["id"], [])
             relation["evidence"] = evidence
             relation["evidence_count"] = len(evidence)
+            for side in ("subject", "object"):
+                endpoint = resources_by_id.get(relation[side], {})
+                relation[f"{side}_label"] = endpoint.get("label") or _short(relation[side])
+                relation[f"{side}_release"] = endpoint.get("release")
+                relation[f"{side}_ring"] = endpoint.get("ring")
+                relation[f"{side}_profile"] = endpoint.get("profile")
+                relation[f"{side}_status"] = endpoint.get("status")
+            relations.append(relation)
+        for derived in derived_adjacency.get(resource_id, ()):
+            relation = dict(derived)
+            # Deliberately empty: a derived row is not evidence-bound, and
+            # showing an evidence affordance for one would imply a publisher
+            # stood behind it. derivation_rule / derived_from_assertions carry
+            # the provenance instead.
+            relation["evidence"] = []
+            relation["evidence_count"] = 0
             for side in ("subject", "object"):
                 endpoint = resources_by_id.get(relation[side], {})
                 relation[f"{side}_label"] = endpoint.get("label") or _short(relation[side])
