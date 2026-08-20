@@ -7881,6 +7881,12 @@ def _replay_fr_thesaurus_api_topic(
     either scheme, or a many-to-one collapse across them, is a finding about
     the two publisher lists rather than an edge to ship, and fails here
     rather than being silently narrowed.
+
+    The bijection assertion below is defensive in the same way the
+    producer's is: `_index` already raises on a repeated folded key inside
+    either scheme, so intersecting two such indexes cannot repeat a subject
+    or object. It guards a future change to `_index`, not a state reachable
+    today.
     """
 
     thesaurus = _fr_alignment_labels(asserted, FR_COMPOUND_HEADING_SCHEME)

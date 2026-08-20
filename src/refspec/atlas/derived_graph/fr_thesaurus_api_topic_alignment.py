@@ -43,12 +43,13 @@ cautionary case: OCLC asserts ``schema:sameAs`` over 259,401 strictly 1:1
 links and the Library of Congress reciprocates with ``closeMatch`` and
 nothing meaning exact. 1:1 cardinality is topology, not semantics.
 
-**The population is a strict bijection, and that is checked rather than
-assumed.** 698 thesaurus terms match 698 API topics across 698 pairs -- no
-term reaches two topics and no topic is reached by two terms. The rule
-refuses to emit if that fails, because a many-to-one collapse would mean the
-label sets disagree about concept granularity, which is a finding about the
-vocabularies rather than an edge to derive.
+**The population is a strict bijection.** 698 thesaurus terms match 698 API
+topics across 698 pairs -- no term reaches two topics and no topic is reached
+by two terms. That falls out of per-scheme label uniqueness, which IS checked
+and fails closed: two terms folding to one key inside either list is a finding
+about that publisher's vocabulary rather than an edge to derive. The explicit
+bijection assertion after the intersection is therefore defensive rather than
+reachable, and is documented as such where it lives.
 
 **Scheme-scoped in both directions.** Like the EuroVoc microthesaurus rule
 and unlike the MeSH tree-number rule as first shipped, subject and object
@@ -242,9 +243,17 @@ def resolve_fr_thesaurus_api_topic_edges(
 
     Returns ``((thesaurus_resource, api_topic_resource), ...)`` sorted by
     subject IRI, with the counters that reconcile it. Raises when a folded
-    label is not unique inside its own scheme, or when the cross-scheme match
-    is not a bijection -- both are findings about the two publisher lists
-    rather than edges to emit.
+    label is not unique inside its own scheme -- a finding about that
+    publisher list rather than an edge to emit.
+
+    The bijection assertion below is **defensive, not a live check**:
+    :func:`_index_by_fold` already admits one resource per folded key per
+    scheme, so intersecting two such indexes cannot produce a repeated
+    subject or object. It is kept so that a future change to the index --
+    admitting a first-wins winner, say, instead of raising -- cannot silently
+    drop the bijection guarantee this rule's row and replay checks both
+    assume. `test_bijection_guard_is_defensive_the_index_fires_first` pins
+    that ordering so the claim stays true.
     """
 
     thesaurus = _scheme_labels(facts, preferred_labels, FR_THESAURUS_SCHEME_IRI)
