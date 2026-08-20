@@ -109,6 +109,40 @@ what the part *covers*, which is a superset of what any one document is about.
 A source can be entirely correct about a regulation and still lose a benchmark
 that asks what a filer wrote about one action under it.
 
+### How much of the loss is structural, quantified
+
+Scoring the publisher index directly against the 94,747 single-part documents
+it covers:
+
+| | |
+|---|---:|
+| terms the index proposes per document | 5.62 |
+| terms the document actually carries | 4.63 |
+| **precision ceiling from granularity alone** | **82.5%** |
+| precision actually achieved | **70.8%** |
+| recall achieved | 85.9% |
+
+The ceiling is what precision would be **if the index were perfectly correct and
+recall were total** — it is 4.63/5.62, purely the cost of a part-level source
+proposing a part's coverage to a document that is about one action.
+
+So of the 29.2 points of precision the index gives up:
+
+- **17.5 points (60%) are structural** — unavoidable for *any* part-level source,
+  no matter how authoritative;
+- 11.7 points (40%) are genuine disagreement between the publisher's index and
+  what filers wrote.
+
+The index reaches **86% of its own structural ceiling.** That is the number that
+settles it: this artifact is not substantially wrong about the CFR. It is
+answering a question one level coarser than the one being asked, and most of
+what looks like error is that mismatch.
+
+Any part-level prior inherits this ceiling. On a part whose index lists twelve
+terms, proposing the list can be at best about 4/12 precise however correct the
+list is — which is why a rate threshold that prunes toward *typical* terms
+matters so much, and why a flat publisher list has no equivalent lever.
+
 The episode is worth keeping for its own sake. A satisfying mechanism was
 inferred from a 10.7-point gap that was mostly artifact, and it went
 uninterrogated *because* it was satisfying.
