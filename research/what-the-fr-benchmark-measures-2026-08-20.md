@@ -74,8 +74,40 @@ not. Uniformity means it is **not** accumulated house style on heavily-filed
 parts. It is something else: different granularity of assignment, or filers
 tagging the *document* rather than the *part*. Neither has evidence.
 
-**Where the divergence comes from is an open question, and this note should not
-be read as answering it.**
+### The mechanism, measured afterwards
+
+The open question above was then closed by measuring granularity directly. For
+parts cited by exactly one document, compare terms per *document*, terms in the
+accumulated *union* of all its documents, and terms in the *publisher's index*:
+
+| part cited | terms per document | witnessed union | publisher index |
+|---|---:|---:|---:|
+| <5 times | 3.65 | 4.07 | 4.12 |
+| 5–19 | 4.00 | 5.68 | 5.17 |
+| 20–99 | 4.11 | 7.24 | 5.81 |
+| **100+** | **4.85** | **12.21** | **7.37** |
+
+**A document carries about four terms no matter what.** It barely moves across
+the range — 3.65 to 4.85 — while the part's accumulated vocabulary triples. So
+filers are tagging *the document*, not *the part*: each filing names what that
+action is about, and a heavily-amended part accrues a wide vocabulary that no
+single document ever carries.
+
+That is the second of the two candidates, and it is now measured rather than
+guessed.
+
+It also explains why the publisher index scores *uniformly* rather than worse on
+high-churn parts. The index grows 1.8× across the range where the raw union
+grows 3.0×: the OFR curates a part's subject list toward what the part covers,
+which stays much closer to document granularity than an accumulation of every
+term any filer ever used.
+
+So the 13.6-point gap is **not drift and not error. It is granularity.** The
+witnessed table with a rate threshold learns which terms are *typical of a
+part's documents* — precisely what the benchmark asks for. The index records
+what the part *covers*, which is a superset of what any one document is about.
+A source can be entirely correct about a regulation and still lose a benchmark
+that asks what a filer wrote about one action under it.
 
 The episode is worth keeping for its own sake. A satisfying mechanism was
 inferred from a 10.7-point gap that was mostly artifact, and it went
