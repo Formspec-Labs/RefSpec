@@ -117,6 +117,46 @@ that raises on every unmatched entry means the pattern covers the data.
 
 ## How far agencies stray from the controlled vocabulary
 
+**State the folding, because three readings are defensible and they disagree by
+3 points.** The numerator moves with the denominator, so each row below is
+internally consistent — but a ratio quoted without naming its folding is
+under-specified:
+
+| folding | resolve | of | rate |
+|---|---:|---:|---:|
+| verbatim | 943 | 1,068 | 88.3% |
+| **lowercased (used here)** | **953** | **1,043** | **91.4%** |
+
+Mixing them — 953 lowercased resolutions over a 1,068 verbatim denominator —
+gives 89.2% and means nothing. That is the same mixed-denominator error this
+project's tagging survey already records against its own coverage table,
+recurring in a different file.
+
+### The spread is itself a finding about the publisher
+
+The 1,068 → 1,043 collapse is not a modelling choice; it is transcription
+drift in a controlled vocabulary. **24 keys carry case variants across 49
+distinct strings:**
+
+```
+Government Procurement | government procurement | Government procurement
+Authority delegations (Government agencies) | ... (government agencies)
+Aid to Families with Dependent Children | Aid to families with dependent children
+Grant programs-Education | Grant programs-education
+Flood Plains | Flood plains
+```
+
+Separator drift compounds it — em-dash against hyphen, underscore against
+hyphen, doubled hyphens — so one concept can appear three ways.
+
+A consumer keying on verbatim strings therefore sees roughly **2.4% more
+"terms" than there are concepts**, entirely from spelling. That is a fact about
+how the OFR maintains the list, not about the data being wrong, and it is worth
+reporting rather than silently folding away.
+
+*(The mixed-ratio risk was raised by a parallel session and checked here; the
+case-variant count is its finding, verified independently.)*
+
 **Denominator correction, 2026-08-20.** This table first reported 88.7%. The
 numerator (953) was right and the denominator was stale: it was computed over
 1,075 terms, *before* the mistyped-`<dd>` fix removed 32 part headings that had
