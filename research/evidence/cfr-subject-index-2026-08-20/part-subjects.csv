@@ -24516,13 +24516,13 @@ cfr_title,cfr_part,part_heading,term
 42,57,"Grants for construction of teaching facilities, educational improvements, scholarships and student loans",Reporting and recordkeeping requirements
 42,57,"Grants for construction of teaching facilities, educational improvements, scholarships and student loans",Scholarships and fellowships
 42,57,"Grants for construction of teaching facilities, educational improvements, scholarships and student loans",Student aid
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Family planning
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Grant programs-health
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Grant programs-social programs
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Health
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Health professions
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Reporting and recordkeeping requirements
-42,58,Grants for training of public health and allied health personnel. [Reserved] 42 CFR Part 59_Grants for family planning services,Youth
+42,59,Grants for family planning services,Family planning
+42,59,Grants for family planning services,Grant programs-health
+42,59,Grants for family planning services,Grant programs-social programs
+42,59,Grants for family planning services,Health
+42,59,Grants for family planning services,Health professions
+42,59,Grants for family planning services,Reporting and recordkeeping requirements
+42,59,Grants for family planning services,Youth
 42,59a,National Library of Medicine grants,Grant programs-health
 42,59a,National Library of Medicine grants,Libraries
 42,59a,National Library of Medicine grants,Medical research
@@ -27525,8 +27525,8 @@ cfr_title,cfr_part,part_heading,term
 45,2525,National Service Trust,Grant programs-social programs
 45,2525,National Service Trust,Student aid
 45,2525,National Service Trust,Volunteers
-45,2531,Purposes and availability of grants for investment for quality and innovation activities. Grant programs-social programs Volunteers 45 CFR Part 2532_Innovative and special demonstration programs,Grant programs-social programs
-45,2531,Purposes and availability of grants for investment for quality and innovation activities. Grant programs-social programs Volunteers 45 CFR Part 2532_Innovative and special demonstration programs,Volunteers
+45,2532,Innovative and special demonstration programs,Grant programs-social programs
+45,2532,Innovative and special demonstration programs,Volunteers
 45,2533,"Technical assistance, training, and other service infrastructure-building activities",Technical assistance
 45,2533,"Technical assistance, training, and other service infrastructure-building activities",Volunteers
 45,2534,Special activities,Decorations

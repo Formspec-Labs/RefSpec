@@ -730,7 +730,16 @@ class CfrPartSubjects:
 #: joining a permissive catch-all. Measured over the 2026-08-20 capture of all
 #: fifty pages: 13 missing keyword, 1 "Oart" typo, 1 non-underscore separator,
 #: 1 leaked tag, 0 rejects.
-_SUBJECT_DT_DD = re.compile(r"<dt>(?P<dt>.*?)</dt>\s*(?P<dds>(?:\s*<dd>.*?</dd>)+)", re.S | re.I)
+# The ``dt`` group must not be allowed to span a ``</dt>``. A part with no
+# terms -- a [Reserved] part, or the publisher's stray ``<dt>&nbsp;</dt>``
+# separators -- has no ``<dd>`` after its own close tag, so a plain ``.*?``
+# runs forward to the NEXT part's close tag and swallows its heading,
+# stealing its terms. That silently lost 42 CFR 59 and 45 CFR 2532 and
+# misattributed their terms to the parts above them; an independent
+# event-driven reader caught it after the mistyped-<dd> fix did not reach it.
+_SUBJECT_DT_DD = re.compile(
+    r"<dt>(?P<dt>(?:(?!</dt>).)*?)</dt>\s*(?P<dds>(?:\s*<dd>.*?</dd>)+)", re.S | re.I
+)
 _SUBJECT_DD = re.compile(r"<dd>(.*?)</dd>", re.S | re.I)
 _SUBJECT_TAGS = re.compile(r"<[^>]*>")
 _SUBJECT_HEAD = re.compile(

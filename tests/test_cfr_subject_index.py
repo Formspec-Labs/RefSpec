@@ -281,3 +281,30 @@ def test_a_mutated_capture_page_fails_its_pin() -> None:
 
     with pytest.raises(CFRSourceDriftError, match="does not match the pinned"):
         parse_cfr_subject_index(mutated, pin=pin)
+
+
+def test_a_part_with_no_terms_does_not_swallow_the_next_part() -> None:
+    """A [Reserved] part has no <dd>, which a non-greedy <dt> group will span.
+
+    Found by an independent event-driven reader after the mistyped-<dd> fix
+    had already shipped: 42 CFR 59 and 45 CFR 2532 were vanishing entirely
+    and their terms were being attributed to the [Reserved] parts above them.
+    The publisher also emits bare `<dt>&nbsp;</dt>` separators, which have the
+    same effect.
+    """
+
+    payload = _page(
+        "<dt><strong>42 CFR Part 58_Grants for training. [Reserved]</strong></dt>"
+        "<dt>&nbsp;</dt>"
+        "<dt><strong>42 CFR Part 59_Grants for family planning services. </strong></dt>"
+        "<dd>Family planning</dd><dd>Grant programs-health</dd>"
+    )
+    parts = {p.cfr_part: p for p in parse_cfr_subject_index(payload, pin=_pin(payload, title=42))}
+
+    # 59 is present, with its own terms and its own heading.
+    assert set(parts) == {"59"}
+    assert parts["59"].part_heading == "Grants for family planning services"
+    assert parts["59"].terms == ("Family planning", "Grant programs-health")
+    # 58 carries no terms, so it yields no assignments -- and critically it does
+    # not appear holding 59's.
+    assert "58" not in parts
