@@ -23,6 +23,7 @@ Three kinds of test earn that claim:
 from __future__ import annotations
 
 import csv
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -296,18 +297,21 @@ def test_reading_the_unedited_tree_through_the_pin_path_still_passes(spec: Sourc
 
 # --- frozen divergences from the shipped release ---------------------------
 #
-# The release under audit was produced by the regex reader. Where this reading
-# and that one disagree, the disagreement is named here rather than smoothed
-# over. Both entries are the same defect: an irregular element between two
-# headings, which the regex reader spans, swallowing the second heading into the
-# first one's text and losing the part.
-LOST_PARTS = (
-    # <dt>&nbsp;</dt> sits between 42 CFR 58 and 42 CFR 59.
-    (42, "59", "Grants for family planning services"),
-    # <ddgrant programs="" programs-social=""> sits between 45 CFR 2531 and 2532.
-    (45, "2532", "Innovative and special demonstration programs"),
-)
-RELEASE_COUNTS = {"partEntries": 8_426, "distinctParts": 8_423, "termAssignments": 32_200}
+# This list was written when the release was produced by a regex reader that
+# spanned irregular elements between two headings, swallowing the second
+# heading into the first and losing the part. Both entries -- 42 CFR 59 and
+# 45 CFR 2532 -- were real defects, this reader was right about both, and the
+# producer has since been fixed. What remains is not a defect but a
+# definitional difference, named here for the same reason.
+#
+# 42 CFR 58 is [Reserved] and the publisher lists no terms under it. This
+# reader emits it as a concept carrying zero terms; the producer omits a part
+# with no assignments, because the artifact records part->term assignments and
+# a part with none contributes nothing to it. Neither reading is wrong about
+# the bytes. If the roster ever needs [Reserved] parts as concepts in their own
+# right, this is the line to change.
+TERMLESS_PARTS = ((42, "58"),)
+RELEASE_COUNTS = {"partEntries": 8_427, "distinctParts": 8_424, "termAssignments": 32_202}
 
 
 @pytest.mark.skipif(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
@@ -323,39 +327,46 @@ def test_divergence_from_the_shipped_release_is_exactly_the_frozen_list(view: Pu
         for payload in view.expected_native_payloads.values()
         for term in payload["publisherIndexTerms"]
     }
-    lost_keys = {(cfr_title, part) for cfr_title, part, _heading in LOST_PARTS}
-    swallowing_parts = {(42, "58"), (45, "2531")}
-    unexpected = {key for key in (read - released) if key[:2] not in lost_keys}
-    assert not unexpected, (
-        f"this reading claims assignments the release does not, outside the frozen list: {unexpected}"
-    )
-    misplaced = {key for key in (released - read) if key[:2] not in swallowing_parts}
-    assert not misplaced, f"the release claims assignments this reading does not, outside the frozen list: {misplaced}"
-    # The seven assignments the release puts on 42 CFR 58 are exactly the ones
-    # this reading puts on the part the release lost.
-    assert {term for cfr_title, part, term in released - read if (cfr_title, part) == (42, "58")} == {
-        term for cfr_title, part, term in read - released if (cfr_title, part) == (42, "59")
-    }
+    assert not (read - released), f"this reading claims assignments the release does not: {read - released}"
+    assert not (released - read), f"the release claims assignments this reading does not: {released - read}"
 
     released_parts = {(int(row["cfr_title"]), row["cfr_part"]) for row in rows}
     read_parts = {(payload["cfrTitle"], payload["cfrPart"]) for payload in view.expected_native_payloads.values()}
-    assert read_parts - released_parts == lost_keys
+    # The only parts this reader has and the release does not are term-less.
+    assert read_parts - released_parts == set(TERMLESS_PARTS)
     assert released_parts - read_parts == set()
     assert len(released_parts) == RELEASE_COUNTS["distinctParts"]
-
-    for cfr_title, part, heading in LOST_PARTS:
+    for cfr_title, part in TERMLESS_PARTS:
         payload = view.expected_native_payloads[f"urn:ref:cfr-part:{cfr_title}:{part}"]
-        assert payload["partHeading"] == heading
-        released_headings = {
-            row["part_heading"] for row in rows if (int(row["cfr_title"]), row["cfr_part"]) == (cfr_title, part)
-        }
-        assert released_headings == set(), f"{cfr_title} CFR {part} is in the release after all"
+        assert payload["publisherIndexTerms"] == []
 
 
-def test_the_release_swallowed_the_lost_headings_into_the_part_above() -> None:
-    """Name the defect precisely, so a fix to the producer fails this test."""
+@pytest.mark.skipif(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
+def test_the_release_no_longer_swallows_a_heading_into_the_part_above() -> None:
+    """The defect this file was written to name, asserted as fixed.
+
+    A term-less part has no ``<dd>`` after its own close tag, and a malformed
+    element can sit between a heading and its first term. Either one used to
+    let the producer run forward to the next part's terms. Both parts below
+    were lost entirely and their terms attributed to the part above; both are
+    now present, with their own headings and their own terms.
+    """
     with EVIDENCE_CSV.open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     headings = {(int(row["cfr_title"]), row["cfr_part"]): row["part_heading"] for row in rows}
-    assert "42 CFR Part 59_Grants for family planning services" in headings[(42, "58")]
-    assert "45 CFR Part 2532_Innovative and special demonstration programs" in headings[(45, "2531")]
+    terms: dict[tuple[int, str], set[str]] = {}
+    for row in rows:
+        terms.setdefault((int(row["cfr_title"]), row["cfr_part"]), set()).add(row["term"])
+
+    assert headings[(42, "59")] == "Grants for family planning services"
+    assert headings[(45, "2532")] == "Innovative and special demonstration programs"
+    # 45 CFR 2531 is preceded by a malformed ``<ddgrant ...>`` open tag, which
+    # is not a heading defect but drops the part unless the gap is skipped.
+    assert terms[(45, "2531")] == {"Grant programs-social programs", "Volunteers"}
+    # No heading text ever contains another part's heading. The publisher
+    # separates a part number from its title with "_", so that -- not the bare
+    # phrase "CFR Part" -- is the swallow signature: 15 CFR 2007 ends with
+    # "[GSP (15 CFR Part 2007)]" and 40 CFR 194 cites "40 CFR Part 191", both
+    # legitimately and both parsed correctly.
+    swallowed = [key for key, heading in headings.items() if re.search(r"CFR Part \S+_", heading)]
+    assert not swallowed, f"a heading still contains another part's heading: {swallowed}"

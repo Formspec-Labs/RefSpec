@@ -103,10 +103,10 @@ FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS = 85_462
 # split is the governed number: 863 of 1,068 publisher terms resolve to a held
 # `federal-register-api-topics` concept and 205 do not, and an unresolved term
 # is skipped and counted rather than minted.
-CFR_SUBJECT_INDEX_EXPECTED_DISTINCT_ASSIGNMENTS = 32_186
+CFR_SUBJECT_INDEX_EXPECTED_DISTINCT_ASSIGNMENTS = 32_188
 CFR_SUBJECT_INDEX_EXPECTED_RESOLVED_TERMS = 863
 CFR_SUBJECT_INDEX_EXPECTED_UNRESOLVED_TERMS = 205
-CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS = 31_683
+CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS = 31_685
 
 _FR_FIXTURES = "tests/fixtures/federal_register_native_controls"
 _FCC_FIXTURES = "tests/fixtures/fcc_bureaus_offices"

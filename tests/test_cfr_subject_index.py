@@ -308,3 +308,27 @@ def test_a_part_with_no_terms_does_not_swallow_the_next_part() -> None:
     # 58 carries no terms, so it yields no assignments -- and critically it does
     # not appear holding 59's.
     assert "58" not in parts
+
+
+def test_a_malformed_element_between_heading_and_terms_does_not_drop_the_part() -> None:
+    """45 CFR 2531 is preceded by an unclosed <dd> whose term ate the tag name.
+
+    Requiring a <dd> immediately after </dt> dropped the part outright, which
+    is a quieter failure than swallowing: no wrong data, just a part missing.
+    The independent source-fidelity reader had it and the release did not.
+    """
+
+    payload = _page(
+        "<dt><strong>45 CFR Part 2531_Purposes and availability of grants. </strong></dt>"
+        '<ddgrant programs="" programs-social="">'
+        "<dd>Grant programs-social programs</dd><dd>Volunteers</dd>"
+        "<dt><strong>45 CFR Part 2532_Innovative and special demonstration programs. </strong></dt>"
+        "<dd>Grant programs-social programs</dd><dd>Volunteers</dd>"
+    )
+    parts = {p.cfr_part: p for p in parse_cfr_subject_index(payload, pin=_pin(payload, title=45))}
+
+    assert set(parts) == {"2531", "2532"}
+    assert parts["2531"].terms == ("Grant programs-social programs", "Volunteers")
+    assert parts["2531"].part_heading == "Purposes and availability of grants"
+    # The gap must not reach across a heading: 2532 keeps its own terms.
+    assert parts["2532"].terms == ("Grant programs-social programs", "Volunteers")

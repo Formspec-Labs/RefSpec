@@ -1082,13 +1082,13 @@ def test_prebuild_accepts_the_cfr_part_to_subject_crossing_without_a_build() -> 
 
     assert time.perf_counter() - started_at < 60
     counts = validation.compiled_rows.expected_counts
-    assert counts["crossRingRelationAssertions"] == 31_683
+    assert counts["crossRingRelationAssertions"] == 31_685
     assert counts["mappingAssertions"] == 0
-    assert counts["resources"] == 9_467
-    # 8,423 CFR parts + 1,044 Federal Register topics; the topics release owns
+    assert counts["resources"] == 9_468
+    # 8,424 CFR parts + 1,044 Federal Register topics; the topics release owns
     # its own 1,428 native relations and the crossing owns none.
     assert counts["nativeRelationAssertions"] == 1_428
-    assert counts["relationAssertions"] == counts["evidenceBindings"] == 33_111
+    assert counts["relationAssertions"] == counts["evidenceBindings"] == 33_113
 
 
 def test_prebuild_refuses_a_cfr_part_subject_link_that_leaves_the_admitted_cell() -> None:

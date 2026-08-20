@@ -29,8 +29,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:0aeebbb48fecd3f838531e2a22419ed474290f3ce3b9f267a5e48fdfd3ef46f4",
-  "indexId": "urn:ref:atlas-index:0aeebbb48fecd3f838531e2a22419ed474290f3ce3b9f267a5e48fdfd3ef46f4",
+  "indexDigest": "sha256:f96a7b2d8dcc488389b88a6a82135632a7b5b69841bfdab42c6d9e42ed757554",
+  "indexId": "urn:ref:atlas-index:f96a7b2d8dcc488389b88a6a82135632a7b5b69841bfdab42c6d9e42ed757554",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
@@ -333,13 +333,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cfr_list_of_subjects.py",
-          "sha256": "sha256:ebfb67003e348c82e32a83f6b59a7489ecd14dcd89cfb1c6a3bb525005a06a42"
+          "sha256": "sha256:1a282aca24d00ee273679419ba634d3433d718f18d8577b3f398e92a196d8c39"
         }
       ],
       "release": null,
       "resourceId": "cfr-list-of-subjects",
-      "rowDigest": "sha256:66101bc7dcb5a1060b9be995bef94019d306eabec3c5f1733227f9f5d8d3b9dc",
-      "rowId": "urn:ref:atlas-index-row:66101bc7dcb5a1060b9be995bef94019d306eabec3c5f1733227f9f5d8d3b9dc",
+      "rowDigest": "sha256:81488a57c443ec2fb30c82f3eb2322ee0f4d12a9efc98f617f17ff0f79a873cc",
+      "rowId": "urn:ref:atlas-index-row:81488a57c443ec2fb30c82f3eb2322ee0f4d12a9efc98f617f17ff0f79a873cc",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -358,28 +358,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:2b66707011ab8f5bfdf428d02877f263ac101e483492e85a3f324f8e7f5f2f85"
+          "sha256": "sha256:e383dcf3e61f68e6f34f1d0ca4f5a3a0ab42b33a136bf338bbca78b2ba039457"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_cfr_subject_index.py",
-          "sha256": "sha256:f37360b6638bf86d12f035651aaf8689649ab420cc6c7d455fd858bca4279a65"
+          "sha256": "sha256:9afa8028fbb2333f07cecece15c4823f7dd58f2202e15f034c20a40eb65e0c0a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:421095fa9f1415f508bf706cc72f2514f6fea3a52568a0ad86faa2d8d8a19459"
+          "sha256": "sha256:2f5de4b8eed50cde6cf3c1343919341067f391aabdc0d26bd547213af98362bf"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cfr_list_of_subjects.py",
-          "sha256": "sha256:ebfb67003e348c82e32a83f6b59a7489ecd14dcd89cfb1c6a3bb525005a06a42"
+          "sha256": "sha256:1a282aca24d00ee273679419ba634d3433d718f18d8577b3f398e92a196d8c39"
         }
       ],
       "release": null,
       "resourceId": "cfr-subject-index",
-      "rowDigest": "sha256:4663ceb019a077295a0dba91de78e7d1c7426025ac536ee4b2ead96c681ff950",
-      "rowId": "urn:ref:atlas-index-row:4663ceb019a077295a0dba91de78e7d1c7426025ac536ee4b2ead96c681ff950",
+      "rowDigest": "sha256:5132d8da3b4a112bbed292743e83a806d769231c0e261185c1ed064a03c424ec",
+      "rowId": "urn:ref:atlas-index-row:5132d8da3b4a112bbed292743e83a806d769231c0e261185c1ed064a03c424ec",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -397,7 +397,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:2b66707011ab8f5bfdf428d02877f263ac101e483492e85a3f324f8e7f5f2f85"
+          "sha256": "sha256:e383dcf3e61f68e6f34f1d0ca4f5a3a0ab42b33a136bf338bbca78b2ba039457"
         },
         {
           "kind": "parserTest",
@@ -407,18 +407,18 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:421095fa9f1415f508bf706cc72f2514f6fea3a52568a0ad86faa2d8d8a19459"
+          "sha256": "sha256:2f5de4b8eed50cde6cf3c1343919341067f391aabdc0d26bd547213af98362bf"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cfr_list_of_subjects.py",
-          "sha256": "sha256:ebfb67003e348c82e32a83f6b59a7489ecd14dcd89cfb1c6a3bb525005a06a42"
+          "sha256": "sha256:1a282aca24d00ee273679419ba634d3433d718f18d8577b3f398e92a196d8c39"
         }
       ],
       "release": null,
       "resourceId": "ecfr-agencies",
-      "rowDigest": "sha256:1c626682e8af634320460a072e599b566af231d85ff5e85601642660b5a0b60e",
-      "rowId": "urn:ref:atlas-index-row:1c626682e8af634320460a072e599b566af231d85ff5e85601642660b5a0b60e",
+      "rowDigest": "sha256:1716448da9e1b973b4a7c1ac400d82efbf1931d4d0747ca2ab00dfeb51079303",
+      "rowId": "urn:ref:atlas-index-row:1716448da9e1b973b4a7c1ac400d82efbf1931d4d0747ca2ab00dfeb51079303",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -3132,7 +3132,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:2b66707011ab8f5bfdf428d02877f263ac101e483492e85a3f324f8e7f5f2f85"
+          "sha256": "sha256:e383dcf3e61f68e6f34f1d0ca4f5a3a0ab42b33a136bf338bbca78b2ba039457"
         },
         {
           "kind": "parserTest",
@@ -3142,7 +3142,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:421095fa9f1415f508bf706cc72f2514f6fea3a52568a0ad86faa2d8d8a19459"
+          "sha256": "sha256:2f5de4b8eed50cde6cf3c1343919341067f391aabdc0d26bd547213af98362bf"
         },
         {
           "kind": "sourceImplementation",
@@ -3152,8 +3152,8 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-native-controls",
-      "rowDigest": "sha256:33c3e55beeadda78c9bfeb33200bab346289b1dd9b8034490d883562460e6de0",
-      "rowId": "urn:ref:atlas-index-row:33c3e55beeadda78c9bfeb33200bab346289b1dd9b8034490d883562460e6de0",
+      "rowDigest": "sha256:012c8715556fa5129318a0483a7d4e5adf6b356c96f5a3b9f8b21a3a6785030e",
+      "rowId": "urn:ref:atlas-index-row:012c8715556fa5129318a0483a7d4e5adf6b356c96f5a3b9f8b21a3a6785030e",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },

@@ -738,7 +738,15 @@ class CfrPartSubjects:
 # misattributed their terms to the parts above them; an independent
 # event-driven reader caught it after the mistyped-<dd> fix did not reach it.
 _SUBJECT_DT_DD = re.compile(
-    r"<dt>(?P<dt>(?:(?!</dt>).)*?)</dt>\s*(?P<dds>(?:\s*<dd>.*?</dd>)+)", re.S | re.I
+    r"<dt>(?P<dt>(?:(?!</dt>).)*?)</dt>"
+    # Between a heading and its first term the publisher may emit a malformed
+    # element -- 45 CFR 2531 is preceded by ``<ddgrant programs="" ...>``, an
+    # unclosed ``<dd>`` whose term was swallowed into the tag name. Skipping
+    # any run that reaches neither a ``<dt`` nor a ``<dd>`` keeps that part's
+    # real terms; requiring ``<dd>`` immediately dropped the part outright.
+    r"(?P<gap>(?:(?!<dt[\s>])(?!<dd>).)*)"
+    r"(?P<dds>(?:\s*<dd>.*?</dd>)+)",
+    re.S | re.I,
 )
 _SUBJECT_DD = re.compile(r"<dd>(.*?)</dd>", re.S | re.I)
 _SUBJECT_TAGS = re.compile(r"<[^>]*>")
@@ -815,7 +823,7 @@ _CFR_SUBJECT_INDEX_CAPTURE_2026_08_20: tuple[tuple[int, str, int, int], ...] = (
     (42, "sha256:a028422449822b535f36e8d013db2b77aee43ca01d4e7bd01a29cbcdc4187052", 85_906, 150),
     (43, "sha256:5ab6c46df1bbf2c028560d6f7bd663b277c301974757cdab98f2303a6c21d562", 84_903, 179),
     (44, "sha256:087ab7819357f0bc834485a5d44ff27b5c4cc00ff969705d45a5c2e7c2b0338c", 58_825, 64),
-    (45, "sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3", 122_694, 321),
+    (45, "sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3", 122_694, 322),
     (46, "sha256:b7e84a5a238590aac27b297e67d20960c7832ed91f62837427314e8bfe2615cf", 89_104, 226),
     (47, "sha256:58b8ebb67028b6f853a11092bf9172076b6c722aa274dfb31f21a980727ef6d1", 62_958, 68),
     (48, "sha256:f9ddd39f2ff30312a326ab367dbc45aed7a30488955ac9ac6c59dad28fc236a6", 162_521, 836),
@@ -848,10 +856,25 @@ CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE: Mapping[int, int] = {
 #: and is recorded where it is consumed.
 CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT = 50
 CFR_SUBJECT_INDEX_EXPECTED_TITLE_COUNT = 49
-CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT = 8_426
-CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT = 8_423
-CFR_SUBJECT_INDEX_EXPECTED_ASSIGNMENT_COUNT = 32_200
+CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT = 8_427
+CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT = 8_424
+CFR_SUBJECT_INDEX_EXPECTED_ASSIGNMENT_COUNT = 32_202
 CFR_SUBJECT_INDEX_EXPECTED_TERM_COUNT = 1_068
+#: Terms the publisher's own HTML destroys, which no reader can recover.
+#: Both are a subject term written into a tag rather than between tags, so the
+#: text never exists as text. 45 CFR 2533's is guessable from the mangled
+#: attribute names -- ``<grant programs="" programs-social="">`` was almost
+#: certainly ``Grant programs-social programs`` -- but attribute order is not
+#: the source's word order, so nothing here guesses it. 16 CFR 463's is a bare
+#: ``&nbsp;`` with four real terms beside it and costs nothing.
+#:
+#: This is recorded rather than repaired because the loss is upstream. A future
+#: capture of these pages may fix it; a diff against this tuple will say so.
+CFR_SUBJECT_INDEX_PUBLISHER_DESTROYED_TERMS: tuple[tuple[int, str, str], ...] = (
+    (16, "463", "&nbsp;"),
+    (45, "2533", '<grant programs="" programs-social=""></grant>'),
+)
+
 CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS: tuple[tuple[int, str], ...] = (
     (7, "1000"),
     (29, "4231"),

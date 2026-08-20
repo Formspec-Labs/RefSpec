@@ -28,7 +28,7 @@ def test_complete_roster_adapter_set_emits_native_relations_and_two_cross_ring_c
         "regulations-gov-agencies-roster-2026-08-16",
         "gao-published-topics-index-2026-08-15",
     ]
-    assert sum(len(release.resources) for release in releases) == 10_509
+    assert sum(len(release.resources) for release in releases) == 10_510
     assert sum(len(release.relations) for release in releases) == 86_748
     assert all(release.scope == "completeCapture" for release in releases)
     # Two carriers now, one per admitted cross-ring cell that a publisher
