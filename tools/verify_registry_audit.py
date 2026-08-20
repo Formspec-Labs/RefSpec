@@ -252,6 +252,15 @@ def direct_test_paths(repository_root: Path, rows: Sequence[Mapping[str, Any]]) 
         module = str(row["module"])
         test_name = module.rsplit("/", 1)[-1].removesuffix(".py")
         relative_paths = {
+            # The OFR subject-index parser is a second publisher source in the
+            # same reader module, and its tests were given the source's name
+            # rather than the module's. Both files exercise this module
+            # directly over its pinned publisher bytes, so the receipt run
+            # needs both or the fifty subject-index pins look unconsumed.
+            "cfr_list_of_subjects.py": (
+                "tests/test_cfr_list_of_subjects.py",
+                "tests/test_cfr_subject_index.py",
+            ),
             "claim_release_exports.py": ("tests/test_registry_claim_exports.py",),
             "infrastructure/pinned_acquisition.py": ("tests/test_elsst_acquisition.py",),
             "infrastructure/rdf_claim_export.py": ("tests/test_registry_claim_exports.py",),

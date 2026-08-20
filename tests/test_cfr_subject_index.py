@@ -17,11 +17,21 @@ pattern covers the data.
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 
 import pytest
 
 from refspec.registry.cfr_list_of_subjects import (
     CFR_RESERVED_TITLES,
+    CFR_SUBJECT_INDEX_2026_08_20,
+    CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS,
+    CFR_SUBJECT_INDEX_EXPECTED_ASSIGNMENT_COUNT,
+    CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT,
+    CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT,
+    CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT,
+    CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE,
+    CFR_SUBJECT_INDEX_EXPECTED_TERM_COUNT,
+    CFR_SUBJECT_INDEX_EXPECTED_TITLE_COUNT,
     CFR_SUBJECT_INDEX_URL_TEMPLATE,
     CFRListOfSubjectsError,
     CFRSourceDriftError,
@@ -200,3 +210,74 @@ def test_a_nested_citation_from_another_title_stays_a_term() -> None:
     (part,) = parse_cfr_subject_index(payload, pin=_pin(payload))
     assert part.cfr_part == "52"
     assert part.terms == ("Air pollution control", "12 CFR Part 3_Something else")
+
+
+# ---------------------------------------------------------------------------
+# The tracked capture. Everything above is synthetic and proves the parser's
+# posture. These prove that the fifty pages this repository actually carries
+# still say what the pins say they say -- which is the only reason the Atlas
+# release built from them is reproducible.
+# ---------------------------------------------------------------------------
+
+CAPTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "cfr_list_of_subjects" / "subject-index"
+
+
+def _capture_pages() -> tuple[tuple[CfrSubjectIndexPin, bytes], ...]:
+    return tuple(
+        (pin, (CAPTURE_ROOT / f"subject-title-{pin.cfr_title:02d}.html").read_bytes())
+        for pin in CFR_SUBJECT_INDEX_2026_08_20
+    )
+
+
+def test_the_capture_carries_one_pinned_page_for_every_cfr_title() -> None:
+    assert len(CFR_SUBJECT_INDEX_2026_08_20) == CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT
+    assert [pin.cfr_title for pin in CFR_SUBJECT_INDEX_2026_08_20] == list(range(1, 51))
+    for pin, payload in _capture_pages():
+        assert "sha256:" + hashlib.sha256(payload).hexdigest() == pin.expected_sha256
+        assert len(payload) == pin.expected_byte_length
+
+
+def test_every_pinned_page_parses_to_its_pinned_part_count() -> None:
+    for pin, payload in _capture_pages():
+        parts = parse_cfr_subject_index(payload, pin=pin)
+        assert len(parts) == CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE[pin.cfr_title]
+        assert all(part.cfr_title == pin.cfr_title for part in parts)
+    assert CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE[35] == 0
+
+
+def test_the_capture_census_is_exactly_what_the_reader_pins() -> None:
+    """The whole-capture totals, stated as failures rather than as prose.
+
+    The part-entry count and the part count differ by three because the
+    publisher lists three parts twice. Both numbers are pinned: collapsing
+    them would hide either the duplication or its repair.
+    """
+
+    entries = [part for pin, payload in _capture_pages() for part in parse_cfr_subject_index(payload, pin=pin)]
+    keys = [(part.cfr_title, part.cfr_part) for part in entries]
+    duplicates = sorted({key for key in keys if keys.count(key) > 1})
+
+    assert len(entries) == CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT
+    assert len(set(keys)) == CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT
+    assert tuple(duplicates) == CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS
+    assert sum(len(part.terms) for part in entries) == CFR_SUBJECT_INDEX_EXPECTED_ASSIGNMENT_COUNT
+    assert len({term for part in entries for term in part.terms}) == CFR_SUBJECT_INDEX_EXPECTED_TERM_COUNT
+    assert len({part.cfr_title for part in entries}) == CFR_SUBJECT_INDEX_EXPECTED_TITLE_COUNT
+    assert CFR_RESERVED_TITLES.isdisjoint({part.cfr_title for part in entries})
+
+
+def test_a_mutated_capture_page_fails_its_pin() -> None:
+    """The pins are load-bearing, not decorative.
+
+    A byte changed anywhere in a captured page must fail the digest before the
+    parser reads a single entry -- otherwise the release built from these
+    pages would silently describe different bytes than it names.
+    """
+
+    pin = CFR_SUBJECT_INDEX_2026_08_20[0]
+    payload = (CAPTURE_ROOT / f"subject-title-{pin.cfr_title:02d}.html").read_bytes()
+    mutated = payload.replace(b"Definitions", b"Defin1tions", 1)
+    assert mutated != payload
+
+    with pytest.raises(CFRSourceDriftError, match="does not match the pinned"):
+        parse_cfr_subject_index(mutated, pin=pin)

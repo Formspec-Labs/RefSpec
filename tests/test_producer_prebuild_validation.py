@@ -1058,6 +1058,76 @@ def test_deep_prebuild_runs_compiled_output_validation(complete_prebuild) -> Non
     assert validation.deep_compiled_output["status"] == "passed"
 
 
+def test_prebuild_accepts_the_cfr_part_to_subject_crossing_without_a_build() -> None:
+    """REF-047's cross-ring carrier, proved admissible in seconds.
+
+    A full build takes hours, so nothing else in the suite would catch a
+    cross-ring assertion the producer refuses until a release run failed on
+    it. This loads the two real releases the crossing spans and runs the whole
+    prebuild: endpoint ring agreement, the closed cross-ring predicate matrix,
+    release ownership of every assertion, and the compiled row counts.
+    """
+
+    releases = generator.load_releases(
+        frozenset(
+            {
+                "cfr-subject-index-parts-2026-08-20",
+                "federal-register-api-topics-2026-08-03",
+            }
+        )
+    )
+    started_at = time.perf_counter()
+
+    validation = generator.validate_prebuild_loaded_releases(releases)
+
+    assert time.perf_counter() - started_at < 60
+    counts = validation.compiled_rows.expected_counts
+    assert counts["crossRingRelationAssertions"] == 31_683
+    assert counts["mappingAssertions"] == 0
+    assert counts["resources"] == 9_467
+    # 8,423 CFR parts + 1,044 Federal Register topics; the topics release owns
+    # its own 1,428 native relations and the crossing owns none.
+    assert counts["nativeRelationAssertions"] == 1_428
+    assert counts["relationAssertions"] == counts["evidenceBindings"] == 33_111
+
+
+def test_prebuild_refuses_a_cfr_part_subject_link_that_leaves_the_admitted_cell() -> None:
+    """The cross-ring predicate gate is what admits this crossing, not prose.
+
+    `atlas:hasIndexedSubject` is the only predicate Atlas 3.1's closed matrix
+    allows from legalIdentity to subject. Swapping in the entity-ring
+    predicate that carries REF-037's other crossing must fail before anything
+    is written.
+    """
+
+    releases = generator.load_releases(
+        frozenset(
+            {
+                "cfr-subject-index-parts-2026-08-20",
+                "federal-register-api-topics-2026-08-03",
+            }
+        )
+    )
+    carrier = next(
+        release for release in releases if release.spec.key == "cfr-subject-index-parts-2026-08-20"
+    )
+    first, *rest = carrier.cross_ring_relations
+    dirty = dataclasses.replace(
+        carrier,
+        cross_ring_relations=(
+            dataclasses.replace(
+                first,
+                predicate="https://refspec.org/ns/atlas/v3#referencesLegalIdentity",
+            ),
+            *rest,
+        ),
+    )
+    mutated = tuple(dirty if release is carrier else release for release in releases)
+
+    with pytest.raises(ValueError, match="cross-ring"):
+        generator.validate_prebuild_loaded_releases(mutated)
+
+
 @pytest.mark.skipif(
     os.environ.get("REFSPEC_PRODUCER_PREBUILD_REAL_EQUIVALENCE") != "1",
     reason=(

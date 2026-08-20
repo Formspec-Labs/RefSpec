@@ -707,10 +707,10 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:8d2d80654c0e2fafacbab6b3c9a938f2314c8094eaaef5cf28ca8c2f8e18b685"
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:170afb958d999b157527c92b664dae137c8cae408cbf71aad6ab6d735ee867f0"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:79fd0b972c6bd1097db582cc5fa4fc4aaafb77c726ce18027f46853747865122"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:12a54ba7cfd85abd91b00a04dad19070de0bbd5d34ba09de5f6d60c638d0a014"
 
 
 def _load_validator() -> Any:
@@ -9487,9 +9487,10 @@ def verify_inputs(
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
     descriptors = set(registry.subjects(RDF.type, ATLAS.ResourceScheme))
     # REF-037 adds the acquisition-wave endpoint schemes while its ten
-    # mapping-only sources remain descriptor records without schemes.
-    if len(descriptors) != 104:
-        raise ValueError(f"expected 104 registry descriptors; found {len(descriptors)}")
+    # mapping-only sources remain descriptor records without schemes. The OFR
+    # CFR List of Subjects part index adds the 105th.
+    if len(descriptors) != 105:
+        raise ValueError(f"expected 105 registry descriptors; found {len(descriptors)}")
 
     return {
         "expectedResources": sum(source.expected_resources for source in sources),

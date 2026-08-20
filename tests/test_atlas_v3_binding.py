@@ -100,8 +100,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     assert json.loads(completed.stdout) == {
         "caseCount": 159,
         "invalidCount": 141,
-        "registryDescriptorCount": 104,
-        "registryDescriptorQuadCount": 1230,
+        "registryDescriptorCount": 105,
+        "registryDescriptorQuadCount": 1241,
         "schemaCount": 10,
     }
 
@@ -116,8 +116,8 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     assert json.loads(completed.stdout) == {
         "caseCount": 159,
         "invalidCount": 141,
-        "registryDescriptorCount": 104,
-        "registryDescriptorQuadCount": 1230,
+        "registryDescriptorCount": 105,
+        "registryDescriptorQuadCount": 1241,
         "schemaCount": 10,
     }
 

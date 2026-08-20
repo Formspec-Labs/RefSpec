@@ -747,6 +747,109 @@ _SUBJECT_LEAKED_TAG = "strong>"
 CFR_RESERVED_TITLES: frozenset[int] = frozenset({35})
 
 
+#: The publisher's own revision statement, carried on every page: the index is
+#: revised annually and these fifty pages are the April 1, 2025 revision,
+#: captured 2026-08-20. Revalidation follows the publisher's annual cycle, and
+#: a re-fetch that changes a byte fails :func:`parse_cfr_subject_index` rather
+#: than silently re-indexing the CFR.
+CFR_SUBJECT_INDEX_PUBLISHER = "Office of the Federal Register, National Archives and Records Administration"
+CFR_SUBJECT_INDEX_RETRIEVED_AT = "2026-08-20T00:00:00Z"
+CFR_SUBJECT_INDEX_REVISION_NOTE = "publisher pages current as of April 1, 2025"
+CFR_SUBJECT_INDEX_LICENSE_RIGHTS_STATEMENT = "US federal public domain (17 USC 105) with no explicit CC license"
+
+#: ``(CFR title, sha256, byte length, part entries)`` for each captured page.
+#: The part count is pinned per page rather than only in aggregate, so a
+#: publisher edit that adds parts to one title and drops the same number from
+#: another cannot pass as unchanged.
+_CFR_SUBJECT_INDEX_CAPTURE_2026_08_20: tuple[tuple[int, str, int, int], ...] = (
+    (1, "sha256:ca142b0353700443034183b3843b12662d9fae04263c0255d8dae4ea79a283a4", 48_819, 28),
+    (2, "sha256:41e7e65685771813ac0a2e0178b77dae537a6f6442006b8d880a4829cbd8a94b", 73_358, 104),
+    (3, "sha256:6766fc8439d225c4caa69165126d929522a4b15bd4e47d063ee480a7c7ec01ae", 44_301, 3),
+    (4, "sha256:4cd5ab085be506c2a784e51153127ff12cd2a9606a928169502638254627d8e3", 46_490, 18),
+    (5, "sha256:2351e21701bede06a4d48078920c8a0f70e586bdb63a82d5172bc4979e49c03d", 99_358, 283),
+    (6, "sha256:99af4c96e6edffcb5fafb7f001fa524bfbcc24e27944a4389564070f7b4ff5a0", 48_801, 22),
+    (7, "sha256:a617e770552103f7a0457fae26e74a501ddab518307f6f489472f31aaec5fd63", 164_244, 467),
+    (8, "sha256:ad9ed40d041775a7c4bad8a77a59706c5f923b8cd66bf741c6c9edacb2c3eb0d", 68_689, 125),
+    (9, "sha256:1d010b14c7b2692b5081dcfbe9d614effa76f6f39db1dbff2fea3dadbe73fa91", 73_319, 145),
+    (10, "sha256:a229552584bf963223e4f31a52297d0c77d275e03b9ab054d598771eee185302", 93_742, 181),
+    (11, "sha256:897820b37b916c08dea346e7d4befac773c6bdffbb5d360150ea0f9c36d2f6f3", 52_730, 53),
+    (12, "sha256:1251cd6b88a191a39fd19d7d08cd67a76f6274f5f25c5bc8b7b2d533258f6ac5", 135_821, 398),
+    (13, "sha256:f2674fbf336d9ea60a098722efc88fcf131831888cf73fd896adef4b706537a9", 55_954, 47),
+    (14, "sha256:1d5f5a64ec265035243daf67085a41e104bd3cf845d096124fe00edb8a332b41", 85_013, 196),
+    (15, "sha256:e3449cf820d586d6eb9de638b9a1263de4df524e41c48fc8d4601716ef1e0a8e", 77_751, 153),
+    (16, "sha256:42ca1113ace56b3c8e26f78eca52b396318427a1ebf155f8b71c5a179aebbd4d", 92_067, 221),
+    (17, "sha256:ffcacd92f2e6fb8256293f3124cc090def752509c7adbe430158826030681dbd", 68_849, 120),
+    (18, "sha256:2b7f130184fe980bf28b8c56d20ddff6b929722ebf8df674cfc12fcae28a16a5", 68_632, 121),
+    (19, "sha256:ac1bf6d70081b32b42d7de39efec78d7e4cfd383b8a315b609fa932703a05c65", 61_596, 76),
+    (20, "sha256:c0b214f23cbbcb42c750d15253102f7a47bfc00331c23ce390ccf57c836bbf38", 77_071, 160),
+    (21, "sha256:7c98df4468a0f0f3cd3341e4479e893aaebccb31070f6a4eb01cd2cbd278a343", 91_081, 259),
+    (22, "sha256:2e942085731643fb55b5ad0298ba4b5c4ce698c3762821f56b2d0036bdcbe610", 88_137, 215),
+    (23, "sha256:aa06fb5cb15a9cc8fff5b0dac8417940d33e2ddf2c7c4728487f03328448613b", 59_575, 71),
+    (24, "sha256:55bee75a0e477fc2c6bd4acf8150d8dfc332afbe39a0ceda14dc345b1ffa3e92", 88_972, 156),
+    (25, "sha256:b65560d06c55b6c59a11a6f60c29f3e3b0eacbee058604696f7af7b93ccf92d3", 73_779, 153),
+    (26, "sha256:1c8ff3d7b2b02d094da405ea35b70c21bda6fb829be919ec31f9942f329f74cc", 58_249, 71),
+    (27, "sha256:d4d2f41edbd32d428e317950c502ff234ba7ea7e6e4dd6b79ec1d0408aadf8d3", 57_878, 42),
+    (28, "sha256:85174c2697fb0a64584b048551e90e2dd1c6cdef7ccf933f758273530d4d74bd", 73_408, 145),
+    (29, "sha256:d66bcf0f2bd02d49cb83289e03426bf385feefe988d13bc664c4baa4081ef784", 117_895, 293),
+    (30, "sha256:60c3f40c550af1d8a7113288975750abc1d69297c4e960df77a46edd27aa0d51", 93_295, 205),
+    (31, "sha256:c81105e9985acd0fee40107884824677199658c0f0f3ddbefe2a69079d1c4412", 94_875, 186),
+    (32, "sha256:c015a1335bbc7676f6dbcd5d422f46c26b5895e4f677ef6e61c4ec809d5d6ba6", 92_267, 234),
+    (33, "sha256:5594b47d044da778100bcda088d4ffdbae4f1ccd9dfafc50638242039949cea2", 71_768, 139),
+    (34, "sha256:348bc17e7c9d642cb5e2eb3c8acda08f995f90974fb28434554c60d27204ee87", 72_018, 108),
+    (35, "sha256:2ca3a9f45fea58a8a4e9d90e2aa9b285df343487d6d194255dbc9a390fdc782e", 42_654, 0),
+    (36, "sha256:a5260e38f186484dba952f38ed14d8ca3103ac2001e53e4adcb097fc864d7bf3", 77_044, 166),
+    (37, "sha256:17e0972baeff8e3d5af9d6ad0366f438cd774a986c550cb194b6820a20c5a254", 54_533, 62),
+    (38, "sha256:61e99960af89607ced15817148d9417c3e77595a58e5141c314077881adbf56d", 62_645, 55),
+    (39, "sha256:8df830ed9e33d2d07fa61f22beef43e18f6ed035cac8fced20b88cf8a0b3aea6", 60_797, 98),
+    (40, "sha256:f56a17f997053ca3489764b32bd904538b3821f48d8a97d79f06d6932571afc4", 139_078, 351),
+    (41, "sha256:f704711f42e1051e85083f72b2d03ec1f2426bfba5477f70882f6042302252ce", 82_530, 190),
+    (42, "sha256:a028422449822b535f36e8d013db2b77aee43ca01d4e7bd01a29cbcdc4187052", 85_906, 150),
+    (43, "sha256:5ab6c46df1bbf2c028560d6f7bd663b277c301974757cdab98f2303a6c21d562", 84_903, 179),
+    (44, "sha256:087ab7819357f0bc834485a5d44ff27b5c4cc00ff969705d45a5c2e7c2b0338c", 58_825, 64),
+    (45, "sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3", 122_694, 321),
+    (46, "sha256:b7e84a5a238590aac27b297e67d20960c7832ed91f62837427314e8bfe2615cf", 89_104, 226),
+    (47, "sha256:58b8ebb67028b6f853a11092bf9172076b6c722aa274dfb31f21a980727ef6d1", 62_958, 68),
+    (48, "sha256:f9ddd39f2ff30312a326ab367dbc45aed7a30488955ac9ac6c59dad28fc236a6", 162_521, 836),
+    (49, "sha256:49d523ac6b3c0a414c818a62dc28bb083b3b5b8420d466a317edb524ef702644", 125_496, 374),
+    (50, "sha256:94261baa606319564d4f87d72efb1df433be461f8e24796be54fa4c804b1aea6", 65_227, 88),
+)
+
+CFR_SUBJECT_INDEX_2026_08_20: tuple[CfrSubjectIndexPin, ...] = tuple(
+    CfrSubjectIndexPin(
+        source_url=CFR_SUBJECT_INDEX_URL_TEMPLATE.format(title=cfr_title),
+        retrieved_at=CFR_SUBJECT_INDEX_RETRIEVED_AT,
+        expected_sha256=expected_sha256,
+        expected_byte_length=expected_byte_length,
+        cfr_title=cfr_title,
+        revision_note=CFR_SUBJECT_INDEX_REVISION_NOTE,
+    )
+    for cfr_title, expected_sha256, expected_byte_length, _parts in _CFR_SUBJECT_INDEX_CAPTURE_2026_08_20
+)
+
+#: Part entries the 2026-08-20 capture yields for each title. Title 35 is
+#: reserved and legitimately empty; every other title must be non-empty.
+CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE: Mapping[int, int] = {
+    cfr_title: parts for cfr_title, _digest, _length, parts in _CFR_SUBJECT_INDEX_CAPTURE_2026_08_20
+}
+
+#: Aggregate totals over all fifty pages. ``PART_ENTRY`` counts ``<dt>``
+#: entries; ``PART`` counts distinct ``(title, part)`` keys. They differ by
+#: three because the publisher lists 7 CFR 1000, 29 CFR 4231, and 48 CFR 642
+#: twice each. Nothing here repairs that: the duplication is the publisher's
+#: and is recorded where it is consumed.
+CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT = 50
+CFR_SUBJECT_INDEX_EXPECTED_TITLE_COUNT = 49
+CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT = 8_426
+CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT = 8_423
+CFR_SUBJECT_INDEX_EXPECTED_ASSIGNMENT_COUNT = 32_200
+CFR_SUBJECT_INDEX_EXPECTED_TERM_COUNT = 1_068
+CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS: tuple[tuple[int, str], ...] = (
+    (7, "1000"),
+    (29, "4231"),
+    (48, "642"),
+)
+
+
 def _subject_text(fragment: str) -> str:
     return " ".join(unescape(_SUBJECT_TAGS.sub(" ", fragment)).split())
 

@@ -24,6 +24,15 @@ land here, each captured from the publisher's own documented list:
   relations. This is the first current entity -> legalIdentity cross-ring
   carrier after REF-032; it uses only eCFR's own references and performs no
   agency-name reconciliation;
+* the Office of the Federal Register's complete CFR List of Subjects — the
+  per-part subject index the OFR publishes as fifty static pages and revises
+  annually. Its 8,423 CFR parts are the first CFR parts the Atlas holds, in
+  the legal-identity ring beside the CFR titles, and its publisher-asserted
+  index terms are carried as legalIdentity -> subject cross-ring relations
+  against already-held Federal Register topic concepts. No concept identity
+  is minted: a term that does not resolve to a held concept by exact
+  case-folded preferred label is skipped, counted, and left on its part as
+  the publisher's own string (REF-047);
 * the complete regulations.gov agency roster — 331 publisher-authored agency
   records whose acronyms are docket-ID prefixes, with 160 publisher ``parent``
   relations. The rolling endpoint requires a project-owned API key and is not
@@ -53,6 +62,7 @@ from typing import Any, cast
 from urllib.parse import quote
 
 from refspec.atlas import v3_registry_codes as registry_codes
+from refspec.atlas import v3_registry_large as registry_large
 from refspec.atlas.v3_registry_selection import (
     normalize_only_keys,
     select_declared_group,
@@ -72,6 +82,7 @@ from refspec.registry import cfr_list_of_subjects as cfr
 from refspec.registry import fcc_bureaus_offices as fcc
 from refspec.registry import federal_hierarchy_complete as fh
 from refspec.registry import federal_register_native_controls as fr
+from refspec.registry import federal_register_topics_api as federal_register_topics
 from refspec.registry import gao_published_topics as gao
 from refspec.registry import govinfo_collections as govinfo
 from refspec.registry import regulations_gov_agencies as regulations_gov
@@ -80,17 +91,30 @@ from refspec.registry import treasury_tas_fast_book as treasury
 ATLAS_PARENT_ENTITY = "https://refspec.org/ns/atlas/v3#parentEntity"
 ATLAS_RELATED_ENTITY = "https://refspec.org/ns/atlas/v3#relatedEntity"
 ATLAS_REFERENCES_LEGAL_IDENTITY = "https://refspec.org/ns/atlas/v3#referencesLegalIdentity"
+ATLAS_HAS_INDEXED_SUBJECT = "https://refspec.org/ns/atlas/v3#hasIndexedSubject"
 
 FH_TREASURY_EXPECTED_SHARED_CGAC_CODES = 130
 FH_TREASURY_EXPECTED_ACCOUNT_ROWS = 3_544
 FH_TREASURY_EXPECTED_DISTINCT_TAS = 3_543
 FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS = 85_462
 
+# The CFR List of Subjects accounting, pinned so a re-capture that moves any
+# of it fails the adapter instead of quietly re-indexing the CFR. The term
+# split is the governed number: 863 of 1,068 publisher terms resolve to a held
+# `federal-register-api-topics` concept and 205 do not, and an unresolved term
+# is skipped and counted rather than minted.
+CFR_SUBJECT_INDEX_EXPECTED_DISTINCT_ASSIGNMENTS = 32_186
+CFR_SUBJECT_INDEX_EXPECTED_RESOLVED_TERMS = 863
+CFR_SUBJECT_INDEX_EXPECTED_UNRESOLVED_TERMS = 205
+CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS = 31_683
+
 _FR_FIXTURES = "tests/fixtures/federal_register_native_controls"
 _FCC_FIXTURES = "tests/fixtures/fcc_bureaus_offices"
 _FH_FIXTURES = "tests/fixtures/federal_hierarchy_complete"
 _GAO_FIXTURES = "tests/fixtures/gao_published_topics"
 _CFR_FIXTURES = "tests/fixtures/cfr_list_of_subjects"
+_CFR_SUBJECT_INDEX_FIXTURES = "tests/fixtures/cfr_list_of_subjects/subject-index"
+_FR_TOPICS_FIXTURES = "tests/fixtures/federal_register_topics_api"
 _REGULATIONS_GOV_AGENCIES_FIXTURES = "tests/fixtures/regulations_gov_agencies"
 _TREASURY_FIXTURES = "tests/fixtures/treasury_tas_fast_book"
 _GOVINFO_FIXTURES = "tests/fixtures/govinfo_collections"
@@ -889,6 +913,290 @@ def _ecfr_agency_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
+def _cfr_part_resource_iri(cfr_title: int, cfr_part: str) -> str:
+    """Identity for one CFR part, keyed by the publisher's own citation."""
+
+    return f"urn:ref:cfr-part:{cfr_title}:{quote(cfr_part, safe='')}"
+
+
+def _cfr_subject_index_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    """Adapt the OFR's CFR List of Subjects into parts and subject links.
+
+    Two things become Atlas members here. The CFR parts are legal identities,
+    the same kind of structural identity the held ``ecfr-cfr-structure`` titles
+    already are, one ring level down. The publisher's index terms are *not*
+    minted: each term is resolved against the held
+    ``federal-register-api-topics`` concepts by exact case-folded preferred
+    label, and a term that does not resolve is skipped and counted. Nothing
+    invents a concept, and no part is dropped for having only unresolved
+    terms -- it stays a legal identity carrying the publisher's term strings.
+    """
+
+    page_pins: list[RegistryInputPin] = []
+    entries: list[cfr.CfrPartSubjects] = []
+    for pin_spec in cfr.CFR_SUBJECT_INDEX_2026_08_20:
+        page_pin = _pin(
+            root,
+            f"{_CFR_SUBJECT_INDEX_FIXTURES}/subject-title-{pin_spec.cfr_title:02d}.html",
+            sha256=pin_spec.expected_sha256,
+            byte_length=pin_spec.expected_byte_length,
+            source_iri=pin_spec.source_url,
+            role="publisherSubjectIndexPage",
+        )
+        parsed = cfr.parse_cfr_subject_index(page_pin.path.read_bytes(), pin=pin_spec)
+        expected_parts = cfr.CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE[pin_spec.cfr_title]
+        if len(parsed) != expected_parts:
+            raise ValueError(
+                f"CFR subject index title {pin_spec.cfr_title} part count drifted: "
+                f"expected {expected_parts}, got {len(parsed)}"
+            )
+        page_pins.append(page_pin)
+        entries.extend(parsed)
+    if len(page_pins) != cfr.CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT:
+        raise ValueError("CFR subject index capture does not carry all fifty title pages")
+    if len(entries) != cfr.CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT:
+        raise ValueError(
+            "CFR subject index part-entry count drifted: "
+            f"expected {cfr.CFR_SUBJECT_INDEX_EXPECTED_PART_ENTRY_COUNT}, got {len(entries)}"
+        )
+
+    # The publisher lists three parts twice. Merging their terms in publisher
+    # order is the only reading that loses nothing; the duplication itself is
+    # recorded on the resource rather than repaired away.
+    part_order: list[tuple[int, str]] = []
+    part_headings: dict[tuple[int, str], str] = {}
+    part_terms: dict[tuple[int, str], list[str]] = {}
+    part_sources: dict[tuple[int, str], str] = {}
+    duplicate_keys: list[tuple[int, str]] = []
+    for entry in entries:
+        key = (entry.cfr_title, entry.cfr_part)
+        if key not in part_terms:
+            part_order.append(key)
+            part_headings[key] = entry.part_heading
+            part_terms[key] = []
+            part_sources[key] = cfr.CFR_SUBJECT_INDEX_URL_TEMPLATE.format(title=entry.cfr_title)
+        else:
+            duplicate_keys.append(key)
+            if part_headings[key] != entry.part_heading:
+                raise ValueError(f"CFR subject index repeats {key!r} under two headings")
+        for term in entry.terms:
+            if term not in part_terms[key]:
+                part_terms[key].append(term)
+    if tuple(sorted(duplicate_keys)) != cfr.CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS:
+        raise ValueError(f"CFR subject index duplicate part keys drifted: {sorted(duplicate_keys)!r}")
+    if len(part_order) != cfr.CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT:
+        raise ValueError(
+            "CFR part count drifted: "
+            f"expected {cfr.CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT}, got {len(part_order)}"
+        )
+
+    # The target vocabulary, read from the same exact bytes the held
+    # `federal-register-api-topics` release reads. This is a witness, not a
+    # second emission: the concepts stay owned by that release and this
+    # adapter only needs their identities.
+    topics_pin = _pin(
+        root,
+        f"{_FR_TOPICS_FIXTURES}/federal-register-topics-2026-08-03.json",
+        sha256=registry_large.FEDERAL_REGISTER_TOPICS_SHA256,
+        byte_length=registry_large.FEDERAL_REGISTER_TOPICS_BYTE_LENGTH,
+        source_iri=federal_register_topics.FEDERAL_REGISTER_TOPICS_API_URL,
+        role="targetVocabularyWitness",
+    )
+    topics = registry_large.load_federal_register_topics_release(source_path=topics_pin.path)
+    concept_by_label: dict[str, tuple[str, str]] = {}
+    for concept in topics.resources:
+        for label in concept.labels:
+            if label.role != "preferred":
+                continue
+            folded = label.value.casefold()
+            if folded in concept_by_label:
+                raise ValueError(f"Federal Register topic preferred label is ambiguous when case-folded: {folded!r}")
+            concept_by_label[folded] = (concept.iri, label.value)
+
+    resources: list[RegistryResource] = []
+    cross_ring_relations: list[RegistryCrossRingRelation] = []
+    resolved_terms: set[str] = set()
+    unresolved_terms: set[str] = set()
+    resolved_assignments = 0
+    for cfr_title, cfr_part in part_order:
+        key = (cfr_title, cfr_part)
+        terms = part_terms[key]
+        heading = part_headings[key]
+        citation = f"{cfr_title} CFR Part {cfr_part}"
+        subject_iri = _cfr_part_resource_iri(cfr_title, cfr_part)
+        source_locator = part_sources[key] + f"#{quote(citation, safe='')}"
+        unresolved_here = [term for term in terms if term.casefold() not in concept_by_label]
+        native_payload: dict[str, Any] = {
+            "cfrTitle": cfr_title,
+            "cfrPart": cfr_part,
+            "cfrCitation": citation,
+            "partHeading": heading,
+            "publisherIndexTerms": list(terms),
+            "publisherIndexTermCount": len(terms),
+            "sourceArtifact": part_sources[key],
+        }
+        if unresolved_here:
+            native_payload["unresolvedIndexTerms"] = unresolved_here
+            native_payload["unresolvedIndexTermCount"] = len(unresolved_here)
+        if key in duplicate_keys:
+            native_payload["publisherListedPartTwice"] = True
+        resources.append(
+            RegistryResource(
+                iri=subject_iri,
+                labels=(_label(heading, source_locator),),
+                native_payload=_frozen(native_payload),
+                source_locator=source_locator,
+                source_digest=canonical_digest(
+                    {
+                        "cfrPart": cfr_part,
+                        "cfrTitle": cfr_title,
+                        "partHeading": heading,
+                        "terms": list(terms),
+                    }
+                ),
+                notations=(citation,),
+            )
+        )
+        for term in terms:
+            resolution = concept_by_label.get(term.casefold())
+            if resolution is None:
+                unresolved_terms.add(term)
+                continue
+            resolved_terms.add(term)
+            resolved_assignments += 1
+            concept_iri, concept_label = resolution
+            cross_ring_relations.append(
+                RegistryCrossRingRelation(
+                    subject=subject_iri,
+                    predicate=ATLAS_HAS_INDEXED_SUBJECT,
+                    object=concept_iri,
+                    source_ring="legalIdentity",
+                    target_ring="subject",
+                    source_payload=_frozen(
+                        {
+                            "sourceProperty": "cfrSubjectIndexTerm",
+                            "cfrTitle": cfr_title,
+                            "cfrPart": cfr_part,
+                            "cfrCitation": citation,
+                            "publisherTerm": term,
+                            "targetPreferredLabel": concept_label,
+                            "termResolution": "exactCaseFoldedPreferredLabel",
+                            "relationMeaning": (
+                                "the Office of the Federal Register's CFR List of "
+                                "Subjects assigns this index term to this CFR part"
+                            ),
+                        }
+                    ),
+                )
+            )
+
+    distinct_terms = resolved_terms | unresolved_terms
+    distinct_assignments = sum(len(terms) for terms in part_terms.values())
+    publisher_assignments = sum(len(entry.terms) for entry in entries)
+    expected = {
+        "assignments": cfr.CFR_SUBJECT_INDEX_EXPECTED_ASSIGNMENT_COUNT,
+        "crossRingRelations": CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS,
+        "distinctAssignments": CFR_SUBJECT_INDEX_EXPECTED_DISTINCT_ASSIGNMENTS,
+        "resolvedTerms": CFR_SUBJECT_INDEX_EXPECTED_RESOLVED_TERMS,
+        "terms": cfr.CFR_SUBJECT_INDEX_EXPECTED_TERM_COUNT,
+        "unresolvedTerms": CFR_SUBJECT_INDEX_EXPECTED_UNRESOLVED_TERMS,
+    }
+    observed = {
+        "assignments": publisher_assignments,
+        "crossRingRelations": len(cross_ring_relations),
+        "distinctAssignments": distinct_assignments,
+        "resolvedTerms": len(resolved_terms),
+        "terms": len(distinct_terms),
+        "unresolvedTerms": len(unresolved_terms),
+    }
+    if observed != expected:
+        raise ValueError(f"CFR subject index accounting drifted: expected {expected}, got {observed}")
+
+    linked_parts = len({relation.subject for relation in cross_ring_relations})
+    return (
+        _release(
+            key="cfr-subject-index-parts-2026-08-20",
+            resource_id="cfr-subject-index",
+            source_module="refspec.registry.cfr_list_of_subjects",
+            profile="structureScheme",
+            ring="legalIdentity",
+            scope="completeCapture",
+            issued=cfr.CFR_SUBJECT_INDEX_RETRIEVED_AT[:10],
+            inputs=(*page_pins, topics_pin),
+            resources=resources,
+            cross_ring_relations=cross_ring_relations,
+            metadata={
+                "publisher": cfr.CFR_SUBJECT_INDEX_PUBLISHER,
+                "pageCount": len(page_pins),
+                "cfrTitleCount": len({cfr_title for cfr_title, _part in part_order}),
+                "reservedCfrTitles": sorted(cfr.CFR_RESERVED_TITLES),
+                "publisherPartEntryCount": len(entries),
+                "partCount": len(resources),
+                "duplicatePublisherPartEntries": [
+                    {"cfrPart": cfr_part, "cfrTitle": cfr_title}
+                    for cfr_title, cfr_part in cfr.CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS
+                ],
+                "duplicatePublisherPartEntryNote": (
+                    "The publisher lists these three parts twice. Their term lists "
+                    "are merged in publisher order; no term is dropped and no "
+                    "second resource is minted."
+                ),
+                "publisherAssignmentCount": publisher_assignments,
+                "distinctAssignmentCount": distinct_assignments,
+                "distinctTermCount": len(distinct_terms),
+                "crossRingRelationCount": len(cross_ring_relations),
+                "crossRingDirection": "legalIdentity CFR part -> subject index term",
+                "crossRingPredicate": ATLAS_HAS_INDEXED_SUBJECT,
+                "linkedPartCount": linked_parts,
+                "unlinkedPartCount": len(resources) - linked_parts,
+                "termResolution": {
+                    "rule": (
+                        "exact case-folded match of the publisher's term to a "
+                        "federal-register-api-topics preferred label"
+                    ),
+                    "targetScheme": topics.scheme_iri,
+                    "targetRelease": topics.key,
+                    "resolvedTermCount": len(resolved_terms),
+                    "unresolvedTermCount": len(unresolved_terms),
+                    "resolvedAssignmentCount": resolved_assignments,
+                    "unresolvedAssignmentCount": distinct_assignments - resolved_assignments,
+                    "conceptIdentityMinted": False,
+                    "note": (
+                        "1 CFR 18.20 requires index terms drawn from the Federal "
+                        "Register Thesaurus but permits agency-added terms, so this "
+                        "residue is expected. An unresolved term is skipped and "
+                        "counted; it is never minted as a concept, and it stays "
+                        "verbatim on its part's unresolvedIndexTerms."
+                    ),
+                    "unresolvedTerms": sorted(unresolved_terms),
+                },
+                "thresholdingUnavailable": (
+                    "The index is a flat per-part list: no counts, dates, or weights. "
+                    "A consumer that finds an assignment wrong has no threshold to turn."
+                ),
+                "licenseRightsStatement": cfr.CFR_SUBJECT_INDEX_LICENSE_RIGHTS_STATEMENT,
+                "sourceCaptures": [
+                    _source_capture_metadata(
+                        page_pin,
+                        retrieved_at=cfr.CFR_SUBJECT_INDEX_RETRIEVED_AT,
+                        source_version_note=cfr.CFR_SUBJECT_INDEX_REVISION_NOTE,
+                    )
+                    for page_pin in page_pins
+                ],
+                "targetVocabularyCapture": _source_capture_metadata(
+                    topics_pin,
+                    retrieved_at="2026-08-03T00:00:00Z",
+                    source_version_note=(
+                        "The Federal Register topics endpoint is rolling and "
+                        "unversioned; this is the exact capture the held "
+                        "federal-register-api-topics release reads."
+                    ),
+                ),
+            },
+        ),
+    )
+
+
 def _regulations_gov_agency_releases(root: Path) -> tuple[RegistryRelease, ...]:
     pin_spec = regulations_gov.REGULATIONS_GOV_AGENCIES_2026_08_16
     roster_pin = _pin(
@@ -1113,6 +1421,7 @@ REGISTRY_ROSTER_RELEASE_GROUPS = (
         frozenset({"federal-hierarchy-orgs-complete-2026-08-15"}),
     ),
     ("ecfr-agencies", frozenset({"ecfr-agencies-roster-2026-08-15"})),
+    ("cfr-subject-index", frozenset({"cfr-subject-index-parts-2026-08-20"})),
     (
         "regulations-gov-agencies",
         frozenset({"regulations-gov-agencies-roster-2026-08-16"}),
@@ -1144,6 +1453,7 @@ def load_registry_roster_releases(
         "fcc": _fcc_releases,
         "federal-hierarchy": _federal_hierarchy_releases,
         "ecfr-agencies": _ecfr_agency_releases,
+        "cfr-subject-index": _cfr_subject_index_releases,
         "regulations-gov-agencies": _regulations_gov_agency_releases,
         "gao": _gao_releases,
     }
@@ -1166,9 +1476,14 @@ def load_registry_roster_releases(
 
 
 __all__ = [
+    "ATLAS_HAS_INDEXED_SUBJECT",
     "ATLAS_PARENT_ENTITY",
     "ATLAS_REFERENCES_LEGAL_IDENTITY",
     "ATLAS_RELATED_ENTITY",
+    "CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS",
+    "CFR_SUBJECT_INDEX_EXPECTED_DISTINCT_ASSIGNMENTS",
+    "CFR_SUBJECT_INDEX_EXPECTED_RESOLVED_TERMS",
+    "CFR_SUBJECT_INDEX_EXPECTED_UNRESOLVED_TERMS",
     "FH_TREASURY_EXPECTED_ACCOUNT_ROWS",
     "FH_TREASURY_EXPECTED_DISTINCT_TAS",
     "FH_TREASURY_EXPECTED_RELATED_ENTITY_RELATIONS",

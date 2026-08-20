@@ -9,11 +9,11 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1297,
-    "seconds": 781.61,
+    "passed": 1327,
+    "seconds": 335.585,
     "skipped": 2,
-    "testFiles": 83,
-    "tests": 1299
+    "testFiles": 84,
+    "tests": 1329
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
@@ -8868,6 +8868,3087 @@
           },
           {
             "counts": {
+              "items": 64
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 44,
+                "part_heading": "Rulemaking; policy and procedures",
+                "terms": [
+                  "Administrative practice and procedure"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 44,
+                "part_heading": "OMB control numbers",
+                "terms": [
+                  "Authority delegations (Government agencies)",
+                  "Organization and functions (Government agencies)"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 64,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                58825
+              ],
+              "digests": [
+                "sha256:087ab7819357f0bc834485a5d44ff27b5c4cc00ff969705d45a5c2e7c2b0338c"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-44.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 398
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 12,
+                "part_heading": "Investment securities",
+                "terms": [
+                  "Banks, banking",
+                  "National banks"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 12,
+                "part_heading": "Sales of credit life insurance",
+                "terms": [
+                  "Credit",
+                  "Life insurance"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 398,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 4,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                135821
+              ],
+              "digests": [
+                "sha256:1251cd6b88a191a39fd19d7d08cd67a76f6274f5f25c5bc8b7b2d533258f6ac5"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-12.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 2
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1031",
+                "cfr_title": 40,
+                "part_heading": "Control of air pollution from aircraft engines",
+                "terms": [
+                  "Air pollution control",
+                  "Aircraft"
+                ]
+              },
+              {
+                "cfr_part": "1033",
+                "cfr_title": 40,
+                "part_heading": "Control of emissions from locomotives",
+                "terms": [
+                  "Administrative practice and procedure"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 2,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                300
+              ],
+              "digests": [
+                "sha256:1574933778f205e64fead3a576b936684168286f9348664ce688cbd2c7016dc3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-40.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 321
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "2",
+                "cfr_title": 45,
+                "part_heading": "Testimony by employees and production of documents in proceedings where the United States is not a party",
+                "terms": [
+                  "Courts",
+                  "Government employees"
+                ]
+              },
+              {
+                "cfr_part": "3",
+                "cfr_title": 45,
+                "part_heading": "Conduct of persons and traffic on the National Institutes of Health Federal enclave",
+                "terms": [
+                  "Federal buildings and facilities",
+                  "Penalties"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 321,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                122694
+              ],
+              "digests": [
+                "sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-45.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 62
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 37,
+                "part_heading": "Rules of practice in patent cases",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Biologics"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 37,
+                "part_heading": "Rules of practice in trademark cases",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Courts"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 62,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 7,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                54533
+              ],
+              "digests": [
+                "sha256:17e0972baeff8e3d5af9d6ad0366f438cd774a986c550cb194b6820a20c5a254"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-37.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 71
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 26,
+                "part_heading": "Income taxes",
+                "terms": [
+                  "Income taxes",
+                  "Reporting and recordkeeping requirements"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 26,
+                "part_heading": "Maritime construction reserve fund",
+                "terms": [
+                  "Income taxes",
+                  "Maritime carriers"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 71,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                58249
+              ],
+              "digests": [
+                "sha256:1c8ff3d7b2b02d094da405ea35b70c21bda6fb829be919ec31f9942f329f74cc"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-26.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 145
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 9,
+                "part_heading": "Definition of terms",
+                "terms": [
+                  "Animal welfare",
+                  "Pets"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 9,
+                "part_heading": "Regulations",
+                "terms": [
+                  "Animal welfare",
+                  "Pets"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 145,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 4,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                73319
+              ],
+              "digests": [
+                "sha256:1d010b14c7b2692b5081dcfbe9d614effa76f6f39db1dbff2fea3dadbe73fa91"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-09.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 196
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 14,
+                "part_heading": "Definitions and abbreviations",
+                "terms": [
+                  "Air transportation"
+                ]
+              },
+              {
+                "cfr_part": "3",
+                "cfr_title": 14,
+                "part_heading": "General requirements",
+                "terms": [
+                  "Aircraft",
+                  "Aviation safety"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 196,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                85013
+              ],
+              "digests": [
+                "sha256:1d5f5a64ec265035243daf67085a41e104bd3cf845d096124fe00edb8a332b41"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-14.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 283
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 5,
+                "part_heading": "Coverage and definitions (Rule I)",
+                "terms": [
+                  "Government employees"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 5,
+                "part_heading": "Appointment through the competitive service; related matters (Rule II)",
+                "terms": [
+                  "Government employees"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 283,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                99358
+              ],
+              "digests": [
+                "sha256:2351e21701bede06a4d48078920c8a0f70e586bdb63a82d5172bc4979e49c03d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-05.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 121
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 18,
+                "part_heading": "Rules of general applicability",
+                "terms": [
+                  "Administrative practice and procedure"
+                ]
+              },
+              {
+                "cfr_part": "1b",
+                "cfr_title": 18,
+                "part_heading": "Rules relating to investigations",
+                "terms": [
+                  "Investigations"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 121,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                68632
+              ],
+              "digests": [
+                "sha256:2b7f130184fe980bf28b8c56d20ddff6b929722ebf8df674cfc12fcae28a16a5"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-18.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 0
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [],
+            "shape": {
+              "count": 0,
+              "itemShape": null,
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                42654
+              ],
+              "digests": [
+                "sha256:2ca3a9f45fea58a8a4e9d90e2aa9b285df343487d6d194255dbc9a390fdc782e"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-35.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 215
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 22,
+                "part_heading": "Insignia of rank",
+                "terms": [
+                  "Flags",
+                  "Seals and insignia"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 22,
+                "part_heading": "Protection of foreign dignitaries and other official personnel",
+                "terms": [
+                  "Foreign officials",
+                  "Security measures"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 215,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                88137
+              ],
+              "digests": [
+                "sha256:2e942085731643fb55b5ad0298ba4b5c4ce698c3762821f56b2d0036bdcbe610"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-22.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 108
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "3",
+                "cfr_title": 34,
+                "part_heading": "Official Seal",
+                "terms": [
+                  "Seals and insignia"
+                ]
+              },
+              {
+                "cfr_part": "4",
+                "cfr_title": 34,
+                "part_heading": "Service of process",
+                "terms": [
+                  "Courts"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 108,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                72018
+              ],
+              "digests": [
+                "sha256:348bc17e7c9d642cb5e2eb3c8acda08f995f90974fb28434554c60d27204ee87"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-34.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 104
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 2,
+                "part_heading": "About Title 2 of the Code of Federal Regulations and subtitle A",
+                "terms": [
+                  "Grant programs",
+                  "Grants administration"
+                ]
+              },
+              {
+                "cfr_part": "25",
+                "cfr_title": 2,
+                "part_heading": "Universal identifier and system for award management",
+                "terms": [
+                  "Accounting",
+                  "Administrative practice and procedure"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 104,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                73358
+              ],
+              "digests": [
+                "sha256:41e7e65685771813ac0a2e0178b77dae537a6f6442006b8d880a4829cbd8a94b"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-02.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 221
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 16,
+                "part_heading": "Organization",
+                "terms": [
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 16,
+                "part_heading": "General procedures",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Animal drugs"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 221,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                92067
+              ],
+              "digests": [
+                "sha256:42ca1113ace56b3c8e26f78eca52b396318427a1ebf155f8b71c5a179aebbd4d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-16.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 374
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 49,
+                "part_heading": "Organization and delegation of powers and duties",
+                "terms": [
+                  "Authority delegations (Government agencies)",
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "3",
+                "cfr_title": 49,
+                "part_heading": "Official Seal",
+                "terms": [
+                  "Seals and insignia"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 374,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                125496
+              ],
+              "digests": [
+                "sha256:49d523ac6b3c0a414c818a62dc28bb083b3b5b8420d466a317edb524ef702644"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-49.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 18
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "2",
+                "cfr_title": 4,
+                "part_heading": "Purpose and general provision",
+                "terms": [
+                  "Government employees"
+                ]
+              },
+              {
+                "cfr_part": "3",
+                "cfr_title": 4,
+                "part_heading": "Employment",
+                "terms": [
+                  "Government employees"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 18,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                46490
+              ],
+              "digests": [
+                "sha256:4cd5ab085be506c2a784e51153127ff12cd2a9606a928169502638254627d8e3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-04.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 139
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 33,
+                "part_heading": "General provisions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Authority delegations (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 33,
+                "part_heading": "Jurisdiction",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Law enforcement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 139,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 4,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                71768
+              ],
+              "digests": [
+                "sha256:5594b47d044da778100bcda088d4ffdbae4f1ccd9dfafc50638242039949cea2"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-33.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 156
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 24,
+                "part_heading": "Standards of conduct",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Conflict of interest"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 24,
+                "part_heading": "Nondiscrimination in federally assisted programs of the Department of Housing and Urban Development_effectuation of Title VI of the Civil Rights Act of 1964",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Civil rights"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 156,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                88972
+              ],
+              "digests": [
+                "sha256:55bee75a0e477fc2c6bd4acf8150d8dfc332afbe39a0ceda14dc345b1ffa3e92"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-24.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 68
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 47,
+                "part_heading": "Commission organization",
+                "terms": [
+                  "Authority delegations (Government agencies)",
+                  "Classified information"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 47,
+                "part_heading": "Practice and procedure",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Civil rights"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 68,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 16,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                62958
+              ],
+              "digests": [
+                "sha256:58b8ebb67028b6f853a11092bf9172076b6c722aa274dfb31f21a980727ef6d1"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-47.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 179
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 43,
+                "part_heading": "Practices before the Department of the Interior",
+                "terms": [
+                  "Administrative practice and procedure"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 43,
+                "part_heading": "Freedom of Information Act; records and testimony",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Classified information"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 179,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                84903
+              ],
+              "digests": [
+                "sha256:5ab6c46df1bbf2c028560d6f7bd663b277c301974757cdab98f2303a6c21d562"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-43.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 205
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 30,
+                "part_heading": "Mine Safety and Health Administration; establishment and use of official emblem",
+                "terms": [
+                  "Seals and insignia"
+                ]
+              },
+              {
+                "cfr_part": "3",
+                "cfr_title": 30,
+                "part_heading": "OMB control numbers under the Paperwork Reduction Act",
+                "terms": [
+                  "Reporting and recordkeeping requirements"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 205,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                93295
+              ],
+              "digests": [
+                "sha256:60c3f40c550af1d8a7113288975750abc1d69297c4e960df77a46edd27aa0d51"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-30.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 55
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 38,
+                "part_heading": "Values, standards of ethical conduct, and related responsibilities",
+                "terms": [
+                  "Conflict of interests",
+                  "Government employees"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 38,
+                "part_heading": "General provisions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Archives and records"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 55,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                62645
+              ],
+              "digests": [
+                "sha256:61e99960af89607ced15817148d9417c3e77595a58e5141c314077881adbf56d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-38.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 3
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "100",
+                "cfr_title": 3,
+                "part_heading": "Standards of conduct",
+                "terms": [
+                  "Conflict of interest"
+                ]
+              },
+              {
+                "cfr_part": "101",
+                "cfr_title": 3,
+                "part_heading": "Public information provisions of the Administrative Procedures Act",
+                "terms": [
+                  "Freedom of information"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 3,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                44301
+              ],
+              "digests": [
+                "sha256:6766fc8439d225c4caa69165126d929522a4b15bd4e47d063ee480a7c7ec01ae"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-03.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "739",
+                "cfr_title": 48,
+                "part_heading": "Information technology",
+                "terms": [
+                  "Government procurement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                132
+              ],
+              "digests": [
+                "sha256:7621af433845d681957c08727a99e0555b7e767ab079ade77bff121c30617445"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-48.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "52",
+                "cfr_title": 40,
+                "part_heading": "Approval and promulgation of implementation plans",
+                "terms": [
+                  "Air pollution control",
+                  "Environmental protection"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                190
+              ],
+              "digests": [
+                "sha256:779c529fd9f0f2192c2b4c465a235c9113f671791d3eee5f72ee4ea7974ef912"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-40.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 259
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 21,
+                "part_heading": "General enforcement regulations",
+                "terms": [
+                  "Cosmetics",
+                  "Drugs"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 21,
+                "part_heading": "General administrative rulings and decisions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Cosmetics"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 259,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 7,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                91081
+              ],
+              "digests": [
+                "sha256:7c98df4468a0f0f3cd3341e4479e893aaebccb31070f6a4eb01cd2cbd278a343"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-21.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 145
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 28,
+                "part_heading": "Organization of the Department of Justice",
+                "terms": [
+                  "Authority delegations (Government agencies)",
+                  "Government employees"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 28,
+                "part_heading": "Executive clemency",
+                "terms": [
+                  "Clemency"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 145,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 7,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                73408
+              ],
+              "digests": [
+                "sha256:85174c2697fb0a64584b048551e90e2dd1c6cdef7ccf933f758273530d4d74bd"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-28.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 0
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [],
+            "shape": {
+              "count": 0,
+              "itemShape": null,
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                35
+              ],
+              "digests": [
+                "sha256:87567269ce1889262ededc1291e853a7f9c3444aa1e882b9f86c0b9d10a1f0a3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-35.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 53
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 11,
+                "part_heading": "Privacy Act",
+                "terms": [
+                  "Privacy"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 11,
+                "part_heading": "Sunshine regulations; meetings",
+                "terms": [
+                  "Sunshine Act"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 53,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                52730
+              ],
+              "digests": [
+                "sha256:897820b37b916c08dea346e7d4befac773c6bdffbb5d360150ea0f9c36d2f6f3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-11.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 98
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 39,
+                "part_heading": "Postal policy (Article I)",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 39,
+                "part_heading": "General and technical provisions (Article II)",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Organization and functions (Government agencies)"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 98,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 3,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                60797
+              ],
+              "digests": [
+                "sha256:8df830ed9e33d2d07fa61f22beef43e18f6ed035cac8fced20b88cf8a0b3aea6"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-39.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 88
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 50,
+                "part_heading": "Definitions",
+                "terms": [
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 50,
+                "part_heading": "Agency organization and locations",
+                "terms": [
+                  "Organization and functions (Government agencies)"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 88,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                65227
+              ],
+              "digests": [
+                "sha256:94261baa606319564d4f87d72efb1df433be461f8e24796be54fa4c804b1aea6"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-50.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "2952",
+                "cfr_title": 48,
+                "part_heading": "Solicitation provisions",
+                "terms": [
+                  "Government procurement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                134
+              ],
+              "digests": [
+                "sha256:94708612125a42977174bfb038ae8adf1e5bd1c217110900d4df43d7c5b6cbba"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-48.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 22
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "3",
+                "cfr_title": 6,
+                "part_heading": "Petitions for rulemaking",
+                "terms": [
+                  "Classified information"
+                ]
+              },
+              {
+                "cfr_part": "5",
+                "cfr_title": 6,
+                "part_heading": "Disclosure of records and information",
+                "terms": [
+                  "Classified information",
+                  "Courts"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 22,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                48801
+              ],
+              "digests": [
+                "sha256:99af4c96e6edffcb5fafb7f001fa524bfbcc24e27944a4389564070f7b4ff5a0"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-06.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 150
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "2",
+                "cfr_title": 42,
+                "part_heading": "Confidentiality of substance use disorder patient records",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Alcohol abuse"
+                ]
+              },
+              {
+                "cfr_part": "2a",
+                "cfr_title": 42,
+                "part_heading": "Protection of identity_research subjects",
+                "terms": [
+                  "Alcohol abuse",
+                  "Alcoholism"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 150,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 19,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                85906
+              ],
+              "digests": [
+                "sha256:a028422449822b535f36e8d013db2b77aee43ca01d4e7bd01a29cbcdc4187052"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-42.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 181
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 10,
+                "part_heading": "Statement of organization and general information",
+                "terms": [
+                  "Flags",
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 10,
+                "part_heading": "Agency rules of practice and procedure",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Classified information"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 181,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 3,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                93742
+              ],
+              "digests": [
+                "sha256:a229552584bf963223e4f31a52297d0c77d275e03b9ab054d598771eee185302"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-10.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 166
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 36,
+                "part_heading": "General provisions",
+                "terms": [
+                  "National parks",
+                  "Penalties"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 36,
+                "part_heading": "Resource protection, public use and recreation",
+                "terms": [
+                  "Environmental protection",
+                  "National parks"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 166,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 4,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                77044
+              ],
+              "digests": [
+                "sha256:a5260e38f186484dba952f38ed14d8ca3103ac2001e53e4adcb097fc864d7bf3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-36.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 467
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 7,
+                "part_heading": "Administrative regulations",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Agriculture"
+                ]
+              },
+              {
+                "cfr_part": "1a",
+                "cfr_title": 7,
+                "part_heading": "Law enforcement authorities",
+                "terms": [
+                  "Law enforcement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 467,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 16,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                164244
+              ],
+              "digests": [
+                "sha256:a617e770552103f7a0457fae26e74a501ddab518307f6f489472f31aaec5fd63"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-07.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 71
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 23,
+                "part_heading": "General",
+                "terms": [
+                  "Grant programs-transportation",
+                  "Highways and roads"
+                ]
+              },
+              {
+                "cfr_part": "140",
+                "cfr_title": 23,
+                "part_heading": "Reimbursement",
+                "terms": [
+                  "Accounting",
+                  "Bonds"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 71,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                59575
+              ],
+              "digests": [
+                "sha256:aa06fb5cb15a9cc8fff5b0dac8417940d33e2ddf2c7c4728487f03328448613b"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-23.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 76
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 19,
+                "part_heading": "Transferred or delegated authority",
+                "terms": [
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "4",
+                "cfr_title": 19,
+                "part_heading": "Vessels in foreign and domestic trades",
+                "terms": [
+                  "Exports",
+                  "Freight"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 76,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                61596
+              ],
+              "digests": [
+                "sha256:ac1bf6d70081b32b42d7de39efec78d7e4cfd383b8a315b609fa932703a05c65"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-19.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 125
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 8,
+                "part_heading": "Definitions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Immigration"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 8,
+                "part_heading": "Authority of the Secretary of Homeland Security",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Authority delegations (Government agencies)"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 125,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                68689
+              ],
+              "digests": [
+                "sha256:ad9ed40d041775a7c4bad8a77a59706c5f923b8cd66bf741c6c9edacb2c3eb0d"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-08.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "401",
+                "cfr_title": 2,
+                "part_heading": "Requirements",
+                "terms": [
+                  "Government procurement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                116
+              ],
+              "digests": [
+                "sha256:b3b2fc5c2f576244ca817b2c89a1d9f5dbcd9250c5fcca76d3d1ad7aae0e49f8"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-02.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 153
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "2",
+                "cfr_title": 25,
+                "part_heading": "Appeals from administrative decisions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Indians-tribal government"
+                ]
+              },
+              {
+                "cfr_part": "5",
+                "cfr_title": 25,
+                "part_heading": "Preference in employment",
+                "terms": [
+                  "Employment",
+                  "Government employees"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 153,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                73779
+              ],
+              "digests": [
+                "sha256:b65560d06c55b6c59a11a6f60c29f3e3b0eacbee058604696f7af7b93ccf92d3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-25.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 226
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 46,
+                "part_heading": "Organization, general course and methods governing marine safety functions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 46,
+                "part_heading": "Vessel inspections",
+                "terms": [
+                  "Marine safety",
+                  "Reporting and recordkeeping requirements"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 226,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 3,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                89104
+              ],
+              "digests": [
+                "sha256:b7e84a5a238590aac27b297e67d20960c7832ed91f62837427314e8bfe2615cf"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-46.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 234
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "2",
+                "cfr_title": 32,
+                "part_heading": "Pilot program policy",
+                "terms": [
+                  "Government procurement"
+                ]
+              },
+              {
+                "cfr_part": "3",
+                "cfr_title": 32,
+                "part_heading": "Transactions other than contracts, grants, or cooperative agreements for prototype projects",
+                "terms": [
+                  "Government procurement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 234,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                92267
+              ],
+              "digests": [
+                "sha256:c015a1335bbc7676f6dbcd5d422f46c26b5895e4f677ef6e61c4ec809d5d6ba6"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-32.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 160
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 20,
+                "part_heading": "Performance of functions",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Claims"
+                ]
+              },
+              {
+                "cfr_part": "10",
+                "cfr_title": 20,
+                "part_heading": "Claims for compensation under the Federal Employees' Compensation Act, as amended",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Claims"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 160,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 6,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                77071
+              ],
+              "digests": [
+                "sha256:c0b214f23cbbcb42c750d15253102f7a47bfc00331c23ce390ccf57c836bbf38"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-20.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "52",
+                "cfr_title": 40,
+                "part_heading": "Implementation plans",
+                "terms": [
+                  "Air pollution control",
+                  "12 CFR Part 3_Something else"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                165
+              ],
+              "digests": [
+                "sha256:c42fe008674bc3428139035f3806de5ff0d5994261520299251000862a23aff1"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-40.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 186
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 31,
+                "part_heading": "Department of the Treasury employee rules of conduct",
+                "terms": [
+                  "Conflict of interests",
+                  "Government employees"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 31,
+                "part_heading": "Disclosure of records",
+                "terms": [
+                  "Privacy"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 186,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                94875
+              ],
+              "digests": [
+                "sha256:c81105e9985acd0fee40107884824677199658c0f0f3ddbefe2a69079d1c4412"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-31.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 28
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 1,
+                "part_heading": "Definitions",
+                "terms": [
+                  "Administrative practice and procedure"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 1,
+                "part_heading": "General information",
+                "terms": [
+                  "Federal Register",
+                  "Government publications"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 28,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                48819
+              ],
+              "digests": [
+                "sha256:ca142b0353700443034183b3843b12662d9fae04263c0255d8dae4ea79a283a4"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-01.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 42
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 27,
+                "part_heading": "Basic permit requirements under the Federal Alcohol Administration Act, nonindustrial use of distilled spirits and wine, bulk sales and bottling of distilled spirits",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Alcohol and alcoholic beverages"
+                ]
+              },
+              {
+                "cfr_part": "4",
+                "cfr_title": 27,
+                "part_heading": "Labeling and advertising of wine",
+                "terms": [
+                  "Advertising",
+                  "Alcohol and alcoholic beverages"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 42,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 7,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                57878
+              ],
+              "digests": [
+                "sha256:d4d2f41edbd32d428e317950c502ff234ba7ea7e6e4dd6b79ec1d0408aadf8d3"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-27.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 293
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 29,
+                "part_heading": "Ethics and conduct of Department of Labor employees",
+                "terms": [
+                  "Conflict of interests"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 29,
+                "part_heading": "Procedures for predetermination of wage rates",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Business and industry"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 293,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                117895
+              ],
+              "digests": [
+                "sha256:d66bcf0f2bd02d49cb83289e03426bf385feefe988d13bc664c4baa4081ef784"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-29.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "60",
+                "cfr_title": 40,
+                "part_heading": "Standards of performance",
+                "terms": [
+                  "Government procurement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                135
+              ],
+              "digests": [
+                "sha256:da7a16181ee3b967784a932a190ec9900ba6de9dc9aeefca93e6ae8f79d00609"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-40.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 1
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "52",
+                "cfr_title": 40,
+                "part_heading": "Implementation plans",
+                "terms": [
+                  "Air pollution control"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 1,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 1,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                190
+              ],
+              "digests": [
+                "sha256:de143bc194b9056bba600b6eaf6e55a3dc4408bd7e1eb550952b8911752c634c"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-40.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 153
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "0",
+                "cfr_title": 15,
+                "part_heading": "Employee responsibilities and conduct",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Conflicts of interests"
+                ]
+              },
+              {
+                "cfr_part": "1",
+                "cfr_title": 15,
+                "part_heading": "The Seal of the Department of Commerce",
+                "terms": [
+                  "Seals and insignia"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 153,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                77751
+              ],
+              "digests": [
+                "sha256:e3449cf820d586d6eb9de638b9a1263de4df524e41c48fc8d4601716ef1e0a8e"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-15.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 47
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "101",
+                "cfr_title": 13,
+                "part_heading": "Administration",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Authority delegations (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "102",
+                "cfr_title": 13,
+                "part_heading": "Record disclosure and privacy",
+                "terms": [
+                  "Freedom of information",
+                  "Privacy"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 47,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 5,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                55954
+              ],
+              "digests": [
+                "sha256:f2674fbf336d9ea60a098722efc88fcf131831888cf73fd896adef4b706537a9"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-13.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 351
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 40,
+                "part_heading": "Statement of organization and general information",
+                "terms": [
+                  "Environmental protection",
+                  "Organization and functions (Government agencies)"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 40,
+                "part_heading": "Public information",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Confidential business information"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 351,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                139078
+              ],
+              "digests": [
+                "sha256:f56a17f997053ca3489764b32bd904538b3821f48d8a97d79f06d6932571afc4"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-40.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 190
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "50-201",
+                "cfr_title": 41,
+                "part_heading": "General regulations",
+                "terms": [
+                  "Child labor",
+                  "Government procurement"
+                ]
+              },
+              {
+                "cfr_part": "50-202",
+                "cfr_title": 41,
+                "part_heading": "Minimum wage determinations",
+                "terms": [
+                  "Government procurement",
+                  "Minimum wages"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 190,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 5,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                82530
+              ],
+              "digests": [
+                "sha256:f704711f42e1051e85083f72b2d03ec1f2426bfba5477f70882f6042302252ce"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-41.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 836
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 48,
+                "part_heading": "Federal Acquisition System",
+                "terms": [
+                  "Government procurement",
+                  "Reporting and recordkeeping requirements"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 48,
+                "part_heading": "Definitions of words and terms",
+                "terms": [
+                  "Government procurement"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 836,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 2,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                162521
+              ],
+              "digests": [
+                "sha256:f9ddd39f2ff30312a326ab367dbc45aed7a30488955ac9ac6c59dad28fc236a6"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-48.html"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "items": 120
+            },
+            "function": "parse_cfr_subject_index",
+            "sample": [
+              {
+                "cfr_part": "1",
+                "cfr_title": 17,
+                "part_heading": "General regulations under the Commodity Exchange Act",
+                "terms": [
+                  "Administrative practice and procedure",
+                  "Agricultural commodity"
+                ]
+              },
+              {
+                "cfr_part": "2",
+                "cfr_title": 17,
+                "part_heading": "Official seal",
+                "terms": [
+                  "Seals and insignia"
+                ]
+              }
+            ],
+            "shape": {
+              "count": 120,
+              "itemShape": {
+                "fields": {
+                  "cfr_part": "str",
+                  "cfr_title": "int",
+                  "part_heading": "str",
+                  "terms": {
+                    "count": 11,
+                    "itemShape": "str",
+                    "type": "tuple"
+                  }
+                },
+                "type": "refspec.registry.cfr_list_of_subjects.CfrPartSubjects"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                68849
+              ],
+              "digests": [
+                "sha256:ffcacd92f2e6fb8256293f3124cc090def752509c7adbe430158826030681dbd"
+              ],
+              "paths": [],
+              "urls": [
+                "https://www.archives.gov/federal-register/cfr/subject-title-17.html"
+              ]
+            }
+          },
+          {
+            "counts": {
               "cfr_references.items": 1,
               "readiness.blockers.items": 2,
               "terms": 12,
@@ -12191,8 +15272,8 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-7a40-9c7f-1ffea6f61850",
-                "retrieved_at": "2026-07-30T12:33:34Z",
+                "fetch_id": "019fca11-ec00-7a84-a80b-4a364ac9775b",
+                "retrieved_at": "2026-08-04T00:00:00Z",
                 "source": {
                   "category_label": "Subjects",
                   "expected_heading": "Legislative Subject Terms",
@@ -22342,19 +25423,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:988296b8c9bc594d307c43b8c8db6bb62fdfb6e2f6495b53a094719b151ae8ff"
+                  "sha256": "sha256:1b2fe4de33d43889dc876d017ef29f10d04c8681a87da2a86ca12197b7fb0e60"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:7827e905ce4d174d54ef0592f09a435dc8af53b5ce5cf1b4c455201602e42d8b"
+                  "sha256": "sha256:421752942c7417ddca330fbe7d52810d655eaa976329815fee67a74a0a256483"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:e954faeff3326a69075d1bb237a26a0d241411bfa65dab8418cd2cb066c5fe82"
+                  "sha256": "sha256:2455d4a5f8b8d6138e228274a3297e31487e3c6a0c87724b689824b03c4cd7a0"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:a254406a1014cb121c7d2b4fae22a87785f0593ced0bf73b4deb7dd6d088de84"
+                  "sha256": "sha256:7339f056f02481b108a63f20822ac60d4cc06b8654efc2783938ca6ce3156404"
                 }
               },
               "manifest": {
@@ -22365,7 +25446,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:f266a54f53ba5bf9e2ea012b9d4ff55a8f20ee4584fcbb82873f283c8653582c",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:3711005628abb513a091eac74ce1837334e3681cb0740b95bf3483317b6b8ebb",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -22421,7 +25502,7 @@
               "byteLengths": [
                 0,
                 566,
-                584,
+                599,
                 1080,
                 1315,
                 1504,
@@ -22433,19 +25514,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:1a6bba7abb127e5c14af54533a90766caaa6e0705d7430a4fdfab6270a7119f9",
+                "sha256:1b2fe4de33d43889dc876d017ef29f10d04c8681a87da2a86ca12197b7fb0e60",
+                "sha256:2455d4a5f8b8d6138e228274a3297e31487e3c6a0c87724b689824b03c4cd7a0",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:7827e905ce4d174d54ef0592f09a435dc8af53b5ce5cf1b4c455201602e42d8b",
+                "sha256:421752942c7417ddca330fbe7d52810d655eaa976329815fee67a74a0a256483",
+                "sha256:7339f056f02481b108a63f20822ac60d4cc06b8654efc2783938ca6ce3156404",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:79ceb19cfc52e1dee459b3cc4c42423b964cbd2c16e6fe475dd516c75eb9ea5b",
-                "sha256:988296b8c9bc594d307c43b8c8db6bb62fdfb6e2f6495b53a094719b151ae8ff",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a254406a1014cb121c7d2b4fae22a87785f0593ced0bf73b4deb7dd6d088de84",
-                "sha256:ab36f6a5a86b79a7dd2aba7fd86e5e81da1a632cb630e82292f90a6efd669bc5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3809ba234f35a54bdb1206e19876623bad3e9ab80bebdccfc1019e0edb64ea9",
+                "sha256:de2050e39a5b7fc01c1b1618fccc29dd45fe6750731a3cb03a09de57ffaad865",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:e954faeff3326a69075d1bb237a26a0d241411bfa65dab8418cd2cb066c5fe82"
+                "sha256:e4b0430cad4dc4e447471d2afa76e323d2438db127033d46d2250d09c058464f"
               ],
               "paths": [],
               "urls": [
@@ -22469,7 +25550,7 @@
               "byteLengths": [
                 0,
                 566,
-                584,
+                599,
                 1080,
                 1315,
                 1504,
@@ -22481,19 +25562,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:1a6bba7abb127e5c14af54533a90766caaa6e0705d7430a4fdfab6270a7119f9",
+                "sha256:1b2fe4de33d43889dc876d017ef29f10d04c8681a87da2a86ca12197b7fb0e60",
+                "sha256:2455d4a5f8b8d6138e228274a3297e31487e3c6a0c87724b689824b03c4cd7a0",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:7827e905ce4d174d54ef0592f09a435dc8af53b5ce5cf1b4c455201602e42d8b",
+                "sha256:421752942c7417ddca330fbe7d52810d655eaa976329815fee67a74a0a256483",
+                "sha256:7339f056f02481b108a63f20822ac60d4cc06b8654efc2783938ca6ce3156404",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:79ceb19cfc52e1dee459b3cc4c42423b964cbd2c16e6fe475dd516c75eb9ea5b",
-                "sha256:988296b8c9bc594d307c43b8c8db6bb62fdfb6e2f6495b53a094719b151ae8ff",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a254406a1014cb121c7d2b4fae22a87785f0593ced0bf73b4deb7dd6d088de84",
-                "sha256:ab36f6a5a86b79a7dd2aba7fd86e5e81da1a632cb630e82292f90a6efd669bc5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3809ba234f35a54bdb1206e19876623bad3e9ab80bebdccfc1019e0edb64ea9",
+                "sha256:de2050e39a5b7fc01c1b1618fccc29dd45fe6750731a3cb03a09de57ffaad865",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:e954faeff3326a69075d1bb237a26a0d241411bfa65dab8418cd2cb066c5fe82"
+                "sha256:e4b0430cad4dc4e447471d2afa76e323d2438db127033d46d2250d09c058464f"
               ],
               "paths": [],
               "urls": [
@@ -22513,7 +25594,7 @@
               "byteLengths": [
                 0,
                 566,
-                584,
+                599,
                 1080,
                 1315,
                 1504,
@@ -22525,19 +25606,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:1a6bba7abb127e5c14af54533a90766caaa6e0705d7430a4fdfab6270a7119f9",
+                "sha256:1b2fe4de33d43889dc876d017ef29f10d04c8681a87da2a86ca12197b7fb0e60",
+                "sha256:2455d4a5f8b8d6138e228274a3297e31487e3c6a0c87724b689824b03c4cd7a0",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:7827e905ce4d174d54ef0592f09a435dc8af53b5ce5cf1b4c455201602e42d8b",
+                "sha256:421752942c7417ddca330fbe7d52810d655eaa976329815fee67a74a0a256483",
+                "sha256:7339f056f02481b108a63f20822ac60d4cc06b8654efc2783938ca6ce3156404",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:79ceb19cfc52e1dee459b3cc4c42423b964cbd2c16e6fe475dd516c75eb9ea5b",
-                "sha256:988296b8c9bc594d307c43b8c8db6bb62fdfb6e2f6495b53a094719b151ae8ff",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:a254406a1014cb121c7d2b4fae22a87785f0593ced0bf73b4deb7dd6d088de84",
-                "sha256:ab36f6a5a86b79a7dd2aba7fd86e5e81da1a632cb630e82292f90a6efd669bc5",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3809ba234f35a54bdb1206e19876623bad3e9ab80bebdccfc1019e0edb64ea9",
+                "sha256:de2050e39a5b7fc01c1b1618fccc29dd45fe6750731a3cb03a09de57ffaad865",
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:e954faeff3326a69075d1bb237a26a0d241411bfa65dab8418cd2cb066c5fe82"
+                "sha256:e4b0430cad4dc4e447471d2afa76e323d2438db127033d46d2250d09c058464f"
               ],
               "paths": [],
               "urls": [
@@ -22558,9 +25639,100 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 801,
+              "archive_byte_length": 805,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7",
+              "archive_sha256": "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
+              "byte_length": 2908,
+              "cache_hit": false,
+              "local_source_path": "<pathlib.PosixPath>",
+              "metadata": null,
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "Publications Office of the European Union, EuroVoc",
+                "concept_scheme_iri": "urn:example:thesaurus",
+                "expected_byte_length": 805,
+                "expected_member_byte_length": 2908,
+                "expected_member_sha256": "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
+                "expected_sha256": "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
+                "filename": "eurovoc.zip",
+                "issued": "2026-07-08",
+                "landing_page_url": "https://example.test/eurovoc",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "member_filename": "eurovoc.rdf",
+                "metadata_source": null,
+                "publisher": "Publications Office of the European Union",
+                "release_id": "fixture-9.9",
+                "source_url": "https://example.test/eurovoc.zip",
+                "version": "9.9"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
+              "source_url": "https://example.test/eurovoc.zip"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "archive_byte_length": "int",
+                "archive_path": "pathlib.PosixPath",
+                "archive_sha256": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "local_source_path": "pathlib.PosixPath",
+                "metadata": "NoneType",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_member_byte_length": "int",
+                    "expected_member_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "issued": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "member_filename": "str",
+                    "metadata_source": "NoneType",
+                    "publisher": "str",
+                    "release_id": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                2908
+              ],
+              "digests": [
+                "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
+                "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0"
+              ],
+              "paths": [],
+              "urls": [
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/eurovoc",
+                "https://example.test/eurovoc.zip"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_eurovoc_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "archive_byte_length": 805,
+              "archive_path": "<pathlib.PosixPath>",
+              "archive_sha256": "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -22578,10 +25750,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 801,
+                "expected_byte_length": 805,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
-                "expected_sha256": "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7",
+                "expected_member_sha256": "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
+                "expected_sha256": "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -22600,7 +25772,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
+              "sha256": "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -22668,106 +25840,15 @@
                 2908
               ],
               "digests": [
-                "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
-                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
-                "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7"
+                "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
+                "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
+                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
               ],
               "paths": [],
               "urls": [
                 "https://creativecommons.org/licenses/by/4.0/",
                 "https://example.test/eurovoc",
                 "https://example.test/eurovoc-metadata.ttl",
-                "https://example.test/eurovoc.zip"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_eurovoc_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "archive_byte_length": 801,
-              "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7",
-              "byte_length": 2908,
-              "cache_hit": false,
-              "local_source_path": "<pathlib.PosixPath>",
-              "metadata": null,
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "Publications Office of the European Union, EuroVoc",
-                "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 801,
-                "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
-                "expected_sha256": "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7",
-                "filename": "eurovoc.zip",
-                "issued": "2026-07-08",
-                "landing_page_url": "https://example.test/eurovoc",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "member_filename": "eurovoc.rdf",
-                "metadata_source": null,
-                "publisher": "Publications Office of the European Union",
-                "release_id": "fixture-9.9",
-                "source_url": "https://example.test/eurovoc.zip",
-                "version": "9.9"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
-              "source_url": "https://example.test/eurovoc.zip"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "archive_byte_length": "int",
-                "archive_path": "pathlib.PosixPath",
-                "archive_sha256": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "local_source_path": "pathlib.PosixPath",
-                "metadata": "NoneType",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_member_byte_length": "int",
-                    "expected_member_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "issued": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "member_filename": "str",
-                    "metadata_source": "NoneType",
-                    "publisher": "str",
-                    "release_id": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                2908
-              ],
-              "digests": [
-                "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
-                "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7"
-              ],
-              "paths": [],
-              "urls": [
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/eurovoc",
                 "https://example.test/eurovoc.zip"
               ]
             }
@@ -22892,7 +25973,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
+              "source_sha256": "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -23082,8 +26163,8 @@
                 2908
               ],
               "digests": [
-                "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
-                "sha256:efb5d81456a4d884a18b6ce64ef707898f5a10e41864d042163737f4c3d290a7"
+                "sha256:33fbdcc04b6b27374b71ffc28ed554cbc55f27b4d32aae6c91b89b9d271ca25f",
+                "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0"
               ],
               "paths": [],
               "urls": [
@@ -23633,7 +26714,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff",
+              "source_sha256": "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -23823,7 +26904,7 @@
                 2908
               ],
               "digests": [
-                "sha256:c64f5db6f63eb2327edb6aed901f0ca1ce7d779c0879a470acff80b522e7c0ff"
+                "sha256:73ef66a7c3f5eb32af98f0903e72e543a41958e967160bfefc915461cd1a29d0"
               ],
               "paths": [],
               "urls": [
@@ -36915,7 +39996,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7d57-8a2b-a719ccc69ed6",
+                "fetch_id": "019fb2e5-4e00-76f7-ba60-250ff44f29ea",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -41427,7 +44508,7 @@
               "byte_length": 16000,
               "cache_hit": false,
               "compressed_byte_length": 3627,
-              "compressed_sha256": "sha256:f2420eaa8d6f4da9ecd91b3afc5282ec455785f24be5d3b99d9d91b19f4a0d66",
+              "compressed_sha256": "sha256:6c74bf8e2ea38fbc77e521ece933390146c422503e251b6360e1221ac47f31da",
               "local_source_path": "<pathlib.PosixPath>",
               "path": "<pathlib.PosixPath>",
               "release": {
@@ -41435,7 +44516,7 @@
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
                 "expected_byte_length": 16000,
                 "expected_compressed_byte_length": 3627,
-                "expected_compressed_sha256": "sha256:f2420eaa8d6f4da9ecd91b3afc5282ec455785f24be5d3b99d9d91b19f4a0d66",
+                "expected_compressed_sha256": "sha256:6c74bf8e2ea38fbc77e521ece933390146c422503e251b6360e1221ac47f31da",
                 "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
@@ -41488,7 +44569,7 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:f2420eaa8d6f4da9ecd91b3afc5282ec455785f24be5d3b99d9d91b19f4a0d66"
+                "sha256:6c74bf8e2ea38fbc77e521ece933390146c422503e251b6360e1221ac47f31da"
               ],
               "paths": [],
               "urls": [
@@ -42400,7 +45481,7 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:f2420eaa8d6f4da9ecd91b3afc5282ec455785f24be5d3b99d9d91b19f4a0d66"
+                "sha256:6c74bf8e2ea38fbc77e521ece933390146c422503e251b6360e1221ac47f31da"
               ],
               "paths": [],
               "urls": [
@@ -75502,8 +78583,8 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-79e9-874e-d33ce944cc63",
-              "fetched_at": "2026-07-30T12:00:00Z"
+              "fetch_id": "019fc4eb-9000-779d-98dc-1d48afdc24b1",
+              "fetched_at": "2026-08-03T00:00:00Z"
             },
             "shape": {
               "fields": {
@@ -75559,7 +78640,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7094-bf39-e8ed1eb67068"
+              "registration_id": "019fb80b-aa00-7256-9203-182f4b9ae60d"
             },
             "shape": {
               "fields": {
@@ -111627,14 +114708,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:119ee1377ae5f4e334f0eadd24e27b6fbcc763e6748231f6f2897c0e1294d3c4",
+            "sample": "sha256:4042d974203fc5ba59f431b9fe8ad548754b8b2b1086eeb8763a8423d188cd3f",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                364728
+                364729
               ],
               "digests": [
-                "sha256:119ee1377ae5f4e334f0eadd24e27b6fbcc763e6748231f6f2897c0e1294d3c4"
+                "sha256:4042d974203fc5ba59f431b9fe8ad548754b8b2b1086eeb8763a8423d188cd3f"
               ],
               "paths": [],
               "urls": []
@@ -116326,6 +119407,58 @@
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
+        "https://www.archives.gov/federal-register/cfr/subject-title-01.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-02.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-03.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-04.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-05.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-06.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-07.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-08.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-09.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-10.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-11.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-12.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-13.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-14.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-15.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-16.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-17.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-18.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-19.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-20.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-21.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-22.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-23.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-24.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-25.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-26.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-27.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-28.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-29.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-30.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-31.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-32.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-33.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-34.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-35.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-36.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-37.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-38.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-39.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-40.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-41.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-42.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-43.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-44.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-45.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-46.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-47.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-48.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-49.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-50.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-NN.html",
+        "https://www.archives.gov/federal-register/cfr/subject-title-{title:02d}.html",
         "https://www.ecfr.gov/api/admin/v1/agencies.json",
         "https://www.ecfr.gov/api/versioner/v1/full/2026-07-31/title-1.xml?part=18",
         "https://www.ecfr.gov/api/versioner/v1/structure/2026-07-31/title-1.json",
@@ -116391,6 +119524,467 @@
           "provenance": "publisherApiResponse",
           "publisherUrl": "https://www.federalregister.gov/api/v1/documents/96-32865.json",
           "sha256": "sha256:da1d4e6af2e7e5680c382400034c900630048dc9f980b8b24de86c2cb88364e8"
+        },
+        {
+          "kind": "sourceCollection",
+          "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index",
+          "memberCount": 49,
+          "members": [
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 48819,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-01.html",
+              "name": "subjectTitle01",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-01.html",
+              "sha256": "sha256:ca142b0353700443034183b3843b12662d9fae04263c0255d8dae4ea79a283a4"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 73358,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-02.html",
+              "name": "subjectTitle02",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-02.html",
+              "sha256": "sha256:41e7e65685771813ac0a2e0178b77dae537a6f6442006b8d880a4829cbd8a94b"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 44301,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-03.html",
+              "name": "subjectTitle03",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-03.html",
+              "sha256": "sha256:6766fc8439d225c4caa69165126d929522a4b15bd4e47d063ee480a7c7ec01ae"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 46490,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-04.html",
+              "name": "subjectTitle04",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-04.html",
+              "sha256": "sha256:4cd5ab085be506c2a784e51153127ff12cd2a9606a928169502638254627d8e3"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 99358,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-05.html",
+              "name": "subjectTitle05",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-05.html",
+              "sha256": "sha256:2351e21701bede06a4d48078920c8a0f70e586bdb63a82d5172bc4979e49c03d"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 48801,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-06.html",
+              "name": "subjectTitle06",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-06.html",
+              "sha256": "sha256:99af4c96e6edffcb5fafb7f001fa524bfbcc24e27944a4389564070f7b4ff5a0"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 164244,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-07.html",
+              "name": "subjectTitle07",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-07.html",
+              "sha256": "sha256:a617e770552103f7a0457fae26e74a501ddab518307f6f489472f31aaec5fd63"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 68689,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-08.html",
+              "name": "subjectTitle08",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-08.html",
+              "sha256": "sha256:ad9ed40d041775a7c4bad8a77a59706c5f923b8cd66bf741c6c9edacb2c3eb0d"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 73319,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-09.html",
+              "name": "subjectTitle09",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-09.html",
+              "sha256": "sha256:1d010b14c7b2692b5081dcfbe9d614effa76f6f39db1dbff2fea3dadbe73fa91"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 93742,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-10.html",
+              "name": "subjectTitle10",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-10.html",
+              "sha256": "sha256:a229552584bf963223e4f31a52297d0c77d275e03b9ab054d598771eee185302"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 52730,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-11.html",
+              "name": "subjectTitle11",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-11.html",
+              "sha256": "sha256:897820b37b916c08dea346e7d4befac773c6bdffbb5d360150ea0f9c36d2f6f3"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 135821,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-12.html",
+              "name": "subjectTitle12",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-12.html",
+              "sha256": "sha256:1251cd6b88a191a39fd19d7d08cd67a76f6274f5f25c5bc8b7b2d533258f6ac5"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 55954,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-13.html",
+              "name": "subjectTitle13",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-13.html",
+              "sha256": "sha256:f2674fbf336d9ea60a098722efc88fcf131831888cf73fd896adef4b706537a9"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 85013,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-14.html",
+              "name": "subjectTitle14",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-14.html",
+              "sha256": "sha256:1d5f5a64ec265035243daf67085a41e104bd3cf845d096124fe00edb8a332b41"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 77751,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-15.html",
+              "name": "subjectTitle15",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-15.html",
+              "sha256": "sha256:e3449cf820d586d6eb9de638b9a1263de4df524e41c48fc8d4601716ef1e0a8e"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 92067,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-16.html",
+              "name": "subjectTitle16",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-16.html",
+              "sha256": "sha256:42ca1113ace56b3c8e26f78eca52b396318427a1ebf155f8b71c5a179aebbd4d"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 68849,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-17.html",
+              "name": "subjectTitle17",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-17.html",
+              "sha256": "sha256:ffcacd92f2e6fb8256293f3124cc090def752509c7adbe430158826030681dbd"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 68632,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-18.html",
+              "name": "subjectTitle18",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-18.html",
+              "sha256": "sha256:2b7f130184fe980bf28b8c56d20ddff6b929722ebf8df674cfc12fcae28a16a5"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 61596,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-19.html",
+              "name": "subjectTitle19",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-19.html",
+              "sha256": "sha256:ac1bf6d70081b32b42d7de39efec78d7e4cfd383b8a315b609fa932703a05c65"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 77071,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-20.html",
+              "name": "subjectTitle20",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-20.html",
+              "sha256": "sha256:c0b214f23cbbcb42c750d15253102f7a47bfc00331c23ce390ccf57c836bbf38"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 91081,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-21.html",
+              "name": "subjectTitle21",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-21.html",
+              "sha256": "sha256:7c98df4468a0f0f3cd3341e4479e893aaebccb31070f6a4eb01cd2cbd278a343"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 88137,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-22.html",
+              "name": "subjectTitle22",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-22.html",
+              "sha256": "sha256:2e942085731643fb55b5ad0298ba4b5c4ce698c3762821f56b2d0036bdcbe610"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 59575,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-23.html",
+              "name": "subjectTitle23",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-23.html",
+              "sha256": "sha256:aa06fb5cb15a9cc8fff5b0dac8417940d33e2ddf2c7c4728487f03328448613b"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 88972,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-24.html",
+              "name": "subjectTitle24",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-24.html",
+              "sha256": "sha256:55bee75a0e477fc2c6bd4acf8150d8dfc332afbe39a0ceda14dc345b1ffa3e92"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 73779,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-25.html",
+              "name": "subjectTitle25",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-25.html",
+              "sha256": "sha256:b65560d06c55b6c59a11a6f60c29f3e3b0eacbee058604696f7af7b93ccf92d3"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 58249,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-26.html",
+              "name": "subjectTitle26",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-26.html",
+              "sha256": "sha256:1c8ff3d7b2b02d094da405ea35b70c21bda6fb829be919ec31f9942f329f74cc"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 57878,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-27.html",
+              "name": "subjectTitle27",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-27.html",
+              "sha256": "sha256:d4d2f41edbd32d428e317950c502ff234ba7ea7e6e4dd6b79ec1d0408aadf8d3"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 73408,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-28.html",
+              "name": "subjectTitle28",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-28.html",
+              "sha256": "sha256:85174c2697fb0a64584b048551e90e2dd1c6cdef7ccf933f758273530d4d74bd"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 117895,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-29.html",
+              "name": "subjectTitle29",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-29.html",
+              "sha256": "sha256:d66bcf0f2bd02d49cb83289e03426bf385feefe988d13bc664c4baa4081ef784"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 93295,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-30.html",
+              "name": "subjectTitle30",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-30.html",
+              "sha256": "sha256:60c3f40c550af1d8a7113288975750abc1d69297c4e960df77a46edd27aa0d51"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 94875,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-31.html",
+              "name": "subjectTitle31",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-31.html",
+              "sha256": "sha256:c81105e9985acd0fee40107884824677199658c0f0f3ddbefe2a69079d1c4412"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 92267,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-32.html",
+              "name": "subjectTitle32",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-32.html",
+              "sha256": "sha256:c015a1335bbc7676f6dbcd5d422f46c26b5895e4f677ef6e61c4ec809d5d6ba6"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 71768,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-33.html",
+              "name": "subjectTitle33",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-33.html",
+              "sha256": "sha256:5594b47d044da778100bcda088d4ffdbae4f1ccd9dfafc50638242039949cea2"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 72018,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-34.html",
+              "name": "subjectTitle34",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-34.html",
+              "sha256": "sha256:348bc17e7c9d642cb5e2eb3c8acda08f995f90974fb28434554c60d27204ee87"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 77044,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-36.html",
+              "name": "subjectTitle36",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-36.html",
+              "sha256": "sha256:a5260e38f186484dba952f38ed14d8ca3103ac2001e53e4adcb097fc864d7bf3"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 54533,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-37.html",
+              "name": "subjectTitle37",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-37.html",
+              "sha256": "sha256:17e0972baeff8e3d5af9d6ad0366f438cd774a986c550cb194b6820a20c5a254"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 62645,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-38.html",
+              "name": "subjectTitle38",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-38.html",
+              "sha256": "sha256:61e99960af89607ced15817148d9417c3e77595a58e5141c314077881adbf56d"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 60797,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-39.html",
+              "name": "subjectTitle39",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-39.html",
+              "sha256": "sha256:8df830ed9e33d2d07fa61f22beef43e18f6ed035cac8fced20b88cf8a0b3aea6"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 139078,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-40.html",
+              "name": "subjectTitle40",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-40.html",
+              "sha256": "sha256:f56a17f997053ca3489764b32bd904538b3821f48d8a97d79f06d6932571afc4"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 82530,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-41.html",
+              "name": "subjectTitle41",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-41.html",
+              "sha256": "sha256:f704711f42e1051e85083f72b2d03ec1f2426bfba5477f70882f6042302252ce"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 85906,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-42.html",
+              "name": "subjectTitle42",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-42.html",
+              "sha256": "sha256:a028422449822b535f36e8d013db2b77aee43ca01d4e7bd01a29cbcdc4187052"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 84903,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-43.html",
+              "name": "subjectTitle43",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-43.html",
+              "sha256": "sha256:5ab6c46df1bbf2c028560d6f7bd663b277c301974757cdab98f2303a6c21d562"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 58825,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-44.html",
+              "name": "subjectTitle44",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-44.html",
+              "sha256": "sha256:087ab7819357f0bc834485a5d44ff27b5c4cc00ff969705d45a5c2e7c2b0338c"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 122694,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-45.html",
+              "name": "subjectTitle45",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-45.html",
+              "sha256": "sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 89104,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-46.html",
+              "name": "subjectTitle46",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-46.html",
+              "sha256": "sha256:b7e84a5a238590aac27b297e67d20960c7832ed91f62837427314e8bfe2615cf"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 62958,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-47.html",
+              "name": "subjectTitle47",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-47.html",
+              "sha256": "sha256:58b8ebb67028b6f853a11092bf9172076b6c722aa274dfb31f21a980727ef6d1"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 162521,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-48.html",
+              "name": "subjectTitle48",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-48.html",
+              "sha256": "sha256:f9ddd39f2ff30312a326ab367dbc45aed7a30488955ac9ac6c59dad28fc236a6"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 125496,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-49.html",
+              "name": "subjectTitle49",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-49.html",
+              "sha256": "sha256:49d523ac6b3c0a414c818a62dc28bb083b3b5b8420d466a317edb524ef702644"
+            },
+            {
+              "acquisition": "directPublisherDownload",
+              "byteLength": 65227,
+              "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-50.html",
+              "name": "subjectTitle50",
+              "provenance": "publisherPageResponse",
+              "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-50.html",
+              "sha256": "sha256:94261baa606319564d4f87d72efb1df433be461f8e24796be54fa4c804b1aea6"
+            }
+          ],
+          "name": "cfrSubjectIndexCapture20260820",
+          "provenance": "publisherCaptureCollection"
+        },
+        {
+          "acquisition": "directPublisherDownload",
+          "byteLength": 42654,
+          "localPath": "tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-35.html",
+          "name": "subjectTitle35",
+          "provenance": "publisherPageResponse",
+          "publisherUrl": "https://www.archives.gov/federal-register/cfr/subject-title-35.html",
+          "receiptRequired": false,
+          "scope": "reserved CFR title; a correct parse of this page yields zero parts",
+          "sha256": "sha256:2ca3a9f45fea58a8a4e9d90e2aa9b285df343487d6d194255dbc9a390fdc782e"
         }
       ]
     },

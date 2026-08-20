@@ -9,11 +9,12 @@ from typing import Any
 import pytest
 
 from refspec.atlas import v3_registry_rosters as adapters
+from refspec.registry import cfr_list_of_subjects as cfr
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_complete_roster_adapter_set_emits_native_relations_and_one_cross_ring_carrier() -> None:
+def test_complete_roster_adapter_set_emits_native_relations_and_two_cross_ring_carriers() -> None:
     releases = adapters.load_registry_roster_releases(ROOT)
 
     assert [release.key for release in releases] == [
@@ -23,14 +24,19 @@ def test_complete_roster_adapter_set_emits_native_relations_and_one_cross_ring_c
         "fcc-bureaus-offices-roster-2026-08-15",
         "federal-hierarchy-orgs-complete-2026-08-15",
         "ecfr-agencies-roster-2026-08-15",
+        "cfr-subject-index-parts-2026-08-20",
         "regulations-gov-agencies-roster-2026-08-16",
         "gao-published-topics-index-2026-08-15",
     ]
-    assert sum(len(release.resources) for release in releases) == 2_086
+    assert sum(len(release.resources) for release in releases) == 10_509
     assert sum(len(release.relations) for release in releases) == 86_748
     assert all(release.scope == "completeCapture" for release in releases)
+    # Two carriers now, one per admitted cross-ring cell that a publisher
+    # actually writes down: eCFR's agency -> CFR title references, and the
+    # OFR's CFR part -> subject index terms.
     assert {release.key: len(release.cross_ring_relations) for release in releases if release.cross_ring_relations} == {
-        "ecfr-agencies-roster-2026-08-15": 446
+        "ecfr-agencies-roster-2026-08-15": 446,
+        "cfr-subject-index-parts-2026-08-20": adapters.CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS,
     }
 
 
@@ -265,6 +271,160 @@ def test_ecfr_agencies_are_an_entity_roster_with_directed_cfr_title_relations(
     assert "zero-cross-ring tripwire must be retired" in release.metadata["ref032CrossRingTripwireRetirement"]
     assert "unversioned" in release.metadata["sourceCaptures"][0]["sourceVersionNote"]
     assert release.metadata["nameMatchingRefused"].startswith("No eCFR agency was matched by name")
+
+
+def test_cfr_subject_index_release_is_a_legal_identity_structure_release() -> None:
+    """CFR parts are legal identities, one structural level below CFR titles.
+
+    The held `ecfr-cfr-structure` release carries the fifty CFR titles. Until
+    now the Atlas held no CFR part at all: the OFR's per-part index existed
+    only as a research CSV. These 8,423 parts are the same kind of thing the
+    titles are, sourced from the publisher that writes the index.
+    """
+
+    (release,) = adapters._cfr_subject_index_releases(ROOT)
+
+    assert release.key == "cfr-subject-index-parts-2026-08-20"
+    assert release.resource_id == "cfr-subject-index"
+    assert (release.profile, release.ring) == ("structureScheme", "legalIdentity")
+    assert release.scope == "completeCapture"
+    assert release.scheme_iri == "urn:ref:atlas-resource-scheme:cfr-subject-index"
+    assert len(release.resources) == cfr.CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT
+    assert release.relations == ()
+
+    by_iri = {resource.iri: resource for resource in release.resources}
+    part = by_iri["urn:ref:cfr-part:40:52"]
+    assert part.labels[0].value == "Approval and promulgation of implementation plans"
+    assert part.notations == ("40 CFR Part 52",)
+    assert part.native_payload["cfrTitle"] == 40
+    assert part.native_payload["cfrPart"] == "52"
+    assert "Air pollution control" in part.native_payload["publisherIndexTerms"]
+
+
+def test_cfr_subject_index_pins_every_page_it_reads() -> None:
+    """Fifty publisher pages plus the target-vocabulary witness, all pinned."""
+
+    (release,) = adapters._cfr_subject_index_releases(ROOT)
+
+    roles = [pin.role for pin in release.inputs]
+    assert roles.count("publisherSubjectIndexPage") == cfr.CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT
+    assert roles.count("targetVocabularyWitness") == 1
+    assert all(pin.sha256.startswith("sha256:") and pin.byte_length > 0 for pin in release.inputs)
+    assert {pin.source_iri for pin in release.inputs if pin.role == "publisherSubjectIndexPage"} == {
+        cfr.CFR_SUBJECT_INDEX_URL_TEMPLATE.format(title=title) for title in range(1, 51)
+    }
+    for pin in release.inputs:
+        pin.verify()
+
+
+def test_cfr_part_subject_links_are_the_legal_identity_to_subject_crossing() -> None:
+    """The second admitted cross-ring cell gets its first real carrier.
+
+    REF-032 refused the cross-ring instance it found because it was "one
+    document's own page metadata read twice". This is the opposite shape: an
+    authority publishes subject assignments against a structural identity it
+    does not own the vocabulary of, revised annually, for every CFR part.
+    """
+
+    (release,) = adapters._cfr_subject_index_releases(ROOT)
+    relations = release.cross_ring_relations
+
+    assert len(relations) == adapters.CFR_SUBJECT_INDEX_EXPECTED_CROSS_RING_RELATIONS
+    assert {relation.predicate for relation in relations} == {adapters.ATLAS_HAS_INDEXED_SUBJECT}
+    assert {(relation.source_ring, relation.target_ring) for relation in relations} == {
+        ("legalIdentity", "subject")
+    }
+    assert all(relation.subject.startswith("urn:ref:cfr-part:") for relation in relations)
+    assert all(
+        relation.object.startswith("urn:ref:source-concept:v2:federal-register-api:") for relation in relations
+    )
+    assert len({(relation.subject, relation.object) for relation in relations}) == len(relations)
+
+
+def test_cfr_subject_index_terms_resolve_to_held_concepts_and_never_mint_one() -> None:
+    """The governed number: 863 terms resolve, 205 are skipped and counted.
+
+    1 CFR 18.20 requires index terms drawn from the Federal Register Thesaurus
+    but permits agency-added terms, so a residue is expected. Every unresolved
+    term stays a publisher string on its part and produces no relation; none
+    of them becomes a concept.
+    """
+
+    (release,) = adapters._cfr_subject_index_releases(ROOT)
+    resolution = release.metadata["termResolution"]
+
+    assert resolution["targetRelease"] == "federal-register-api-topics-2026-08-03"
+    assert resolution["targetScheme"] == "urn:ref:atlas-resource-scheme:federal-register-api-topics"
+    assert resolution["conceptIdentityMinted"] is False
+    assert resolution["resolvedTermCount"] == adapters.CFR_SUBJECT_INDEX_EXPECTED_RESOLVED_TERMS
+    assert resolution["unresolvedTermCount"] == adapters.CFR_SUBJECT_INDEX_EXPECTED_UNRESOLVED_TERMS
+    assert len(resolution["unresolvedTerms"]) == adapters.CFR_SUBJECT_INDEX_EXPECTED_UNRESOLVED_TERMS
+    assert (
+        resolution["resolvedAssignmentCount"] + resolution["unresolvedAssignmentCount"]
+        == adapters.CFR_SUBJECT_INDEX_EXPECTED_DISTINCT_ASSIGNMENTS
+    )
+    assert resolution["resolvedAssignmentCount"] == len(release.cross_ring_relations)
+
+    unresolved = set(resolution["unresolvedTerms"])
+    linked_terms = {relation.source_payload["publisherTerm"] for relation in release.cross_ring_relations}
+    assert unresolved.isdisjoint(linked_terms)
+    # A skipped term is not a dropped term: it stays on the part verbatim.
+    carried = {
+        term
+        for resource in release.resources
+        for term in resource.native_payload.get("unresolvedIndexTerms", ())
+    }
+    assert carried == unresolved
+
+
+def test_agency_departure_from_the_controlled_vocabulary_is_measured_not_asserted() -> None:
+    """1 CFR 18.20's compliance rate, as a check rather than as prose.
+
+    The regulation requires index terms drawn from the Federal Register
+    Thesaurus and permits agency-added ones, so the residue measures how far
+    agencies actually depart. `research/evidence/cfr-subject-index-2026-08-20/`
+    states these shares; this is what makes them fail when they move.
+    """
+
+    import json
+
+    (release,) = adapters._cfr_subject_index_releases(ROOT)
+    terms = {term for resource in release.resources for term in resource.native_payload["publisherIndexTerms"]}
+    extract = json.loads(
+        (ROOT / "src/refspec/resources/federal_register_thesaurus/2025-04-01/source-extract.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    thesaurus = {row["label"].casefold() for row in extract["officialTerms"]}
+    api_resolved = set(terms) - set(release.metadata["termResolution"]["unresolvedTerms"])
+    thesaurus_resolved = {term for term in terms if term.casefold() in thesaurus}
+
+    assert len(terms) == cfr.CFR_SUBJECT_INDEX_EXPECTED_TERM_COUNT == 1_068
+    assert len(api_resolved) == 863
+    assert len(thesaurus_resolved) == 713
+    assert len(api_resolved | thesaurus_resolved) == 869
+    assert len(terms - (api_resolved | thesaurus_resolved)) == 199
+
+
+def test_cfr_parts_the_publisher_lists_twice_become_one_merged_resource() -> None:
+    """Three parts appear twice in the publisher's own pages.
+
+    Minting a second resource would split one legal identity in two; dropping
+    the second entry would lose terms. The adapter merges the term lists in
+    publisher order and records the duplication on the resource.
+    """
+
+    (release,) = adapters._cfr_subject_index_releases(ROOT)
+    by_iri = {resource.iri: resource for resource in release.resources}
+
+    merged = by_iri["urn:ref:cfr-part:7:1000"]
+    assert merged.native_payload["publisherListedPartTwice"] is True
+    assert merged.native_payload["publisherIndexTerms"] == (
+        "Milk marketing orders",
+        "Reporting and recordkeeping requirements",
+    )
+    assert [row["cfrTitle"] for row in release.metadata["duplicatePublisherPartEntries"]] == [7, 29, 48]
+    assert release.metadata["publisherPartEntryCount"] - len(release.resources) == 3
 
 
 def test_regulations_gov_agencies_are_an_entity_roster_with_pinned_parents() -> None:

@@ -3817,3 +3817,109 @@ is always built from the raw pinned RDF. `bindings/atlas/3.1/README.md`'s
 derived-graph section, stale since REF-044's rule shipped without a
 documentation update, is corrected here for both the fourth rule (FR) and
 this entry's fifth.
+
+### REF-047: The CFR's own subject index becomes the second cross-ring carrier, and the Atlas holds CFR parts for the first time
+
+- **Date:** 2026-08-20
+- **Status:** Accepted; the construction unit, the portfolio chain, and the
+  generated coverage/descriptor artifacts are in. Not yet built or sealed;
+  the open item below names what a full build still needs.
+
+**The gap.** The Atlas held fifty CFR *titles* in the legal-identity ring
+(`ecfr-cfr-structure`) and 316 agencies in the entity ring, and no CFR part
+at all. The Office of the Federal Register publishes the per-part index
+directly — fifty static pages under
+`https://www.archives.gov/federal-register/cfr/subject-title-NN.html`, "a
+list of Code of Federal Regulations (CFR) Subjects arranged by CFR Title and
+Part", revised annually. `parse_cfr_subject_index` has read them fail-closed
+since 2026-08-20, but the result lived only in
+`research/evidence/cfr-subject-index-2026-08-20/` as a CSV.
+
+**What lands.** `cfr-subject-index-parts-2026-08-20`, a `structureScheme`
+release in the `legalIdentity` ring under the new `cfr-subject-index`
+resource, carrying 8,423 CFR parts and 31,683
+`atlas:hasIndexedSubject` cross-ring relations into the subject ring. The
+parts are the same kind of thing the titles already are, one structural
+level down, and they come from the publisher that writes the index.
+
+**Which decision licenses the crossing.** REF-032 retired one cross-ring
+instance and stated the bar in the same breath: the tripwire it installed
+"directs whoever trips it to the intended carrier: a genuine
+institutional-roster → subject edge, once the Federal Hierarchy roster is
+completed **and an authority publishes subject assignments against it**. The
+single instance that existed was never that — it was one document's own page
+metadata read twice, a report pointing at a label observed on the report."
+REF-037 then retired the tripwire itself against the entity → legalIdentity
+cell and fixed that carrier at 446, ending REF-032's "no current cross-ring
+carrier" state while leaving REF-032 the authority on what a crossing has to
+be. REF-032 named an institutional-roster → subject edge as the shape it
+expected; this is the legal-identity → subject cell instead, and it clears
+the same stated bar rather than the same example. An authority publishes
+subject assignments against a structural identity, annually, for every CFR
+part, in a vocabulary it does not read back off the same page. It is not one
+document's metadata read twice, and the roster edge REF-032 named remains
+open.
+
+**The predicate was already there.** Atlas 3.1's closed cross-ring matrix
+has three cells, and `legalIdentity → subject` has carried
+`atlas:hasIndexedSubject` since the binding was written — admitted, shaped,
+and until now empty. Nothing in the binding, the shapes, the ontology, or
+`registry-resource-profiles.json` changes: the second cell simply gets its
+first publisher. A crossing that needed a new predicate would have been the
+signal to stop.
+
+**No concept identity is minted, and the residue is counted.** The publisher
+writes term *strings*. Each is resolved against the held
+`federal-register-api-topics` concepts by exact case-folded preferred-label
+match, and an unresolved term is skipped, counted, and left verbatim on its
+part's `unresolvedIndexTerms`. Of 1,068 distinct terms, 863 resolve and 205
+do not; of 32,186 distinct part/term assignments, 31,683 become relations and
+503 do not. 1 CFR 18.20 requires terms drawn from the Federal Register
+Thesaurus but permits agency-added ones, so a residue was expected; measured
+against both Federal Register vocabularies, 869 of 1,068 terms resolve and
+the 199 that do not account for 412 of 32,200 publisher assignment rows.
+Most of those are transcription drift, not local invention
+("administrative practice and procedures" for the singular; "reporting and
+recordkeeping" truncated). That is a vocabulary-governance finding, and it is
+now a test rather than a paragraph.
+
+**Publisher facts kept, not repaired.** The publisher lists 7 CFR 1000,
+29 CFR 4231, and 48 CFR 642 twice each. Minting two resources would split one
+legal identity; dropping the second entry would lose terms. The adapter
+merges the term lists in publisher order and records
+`publisherListedPartTwice` on the resource. 8,426 part entries, 8,423 parts,
+both pinned — collapsing them would hide either the duplication or its
+repair. Twenty parts carry no resolvable term and stay legal identities
+anyway; a part is not a subject assignment.
+
+**The bytes are tracked.** All fifty pages are pinned by sha256 and byte
+length in `CFR_SUBJECT_INDEX_2026_08_20` and tracked under
+`tests/fixtures/cfr_list_of_subjects/subject-index/` (4.0 MB), with per-title
+part counts pinned separately so a publisher edit that adds parts to one
+title and removes as many from another cannot pass as unchanged. The source
+manifest describes them as one `sourceCollection`, the ICPSR precedent. The
+`federal-register-api-topics` capture the resolution reads is tracked
+byte-identically beside them for the same reason the ICPSR builder tracks
+its two: the capture location stays named in the manifest, but the crossing
+must be reproducible from a clean clone.
+
+**Two audit accommodations, both stated rather than hidden.** The real-data
+receipt gate resolves a registry module's direct tests by the module's own
+name, so `tests/test_cfr_subject_index.py` -- named for the source rather than
+the reader -- was invisible to it and all fifty pins read as unconsumed;
+`direct_test_paths` now names both files for this module. And reserved CFR
+title 35 parses correctly to zero parts, so it can never produce the
+substantive counts the gate asks of a publisher input. It leaves the
+collection for its own `receiptRequired: False` descriptor with the reason
+attached, rather than the whole collection being exempted. The other
+forty-nine pins are consumed with real parsed counts in the same execution,
+and `make audit-registry-real-data` reports the gate passed.
+
+**Open, and named.** `tools/verify_atlas_source_fidelity.py` has no
+`SourceSpec` for this unit. A full-distribution
+`make audit-atlas-v3-source-fidelity` will therefore fail it with "no
+independent publisher comparison was performed", and that is the honest
+state: the independent reader REF-037 requires has not been written, and
+writing one that cannot be exercised without a release-tier build would be
+worse than recording its absence. That reader, a full build, and a reseal are
+what this unit still needs before it appears in a sealed distribution.

@@ -45,12 +45,12 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 111,
+        "atlasIndexRowCount": 112,
         "catalogOnlyDescriptorCount": 18,
-        "catalogResourceCount": 115,
+        "catalogResourceCount": 116,
         "implementationModuleCount": 26,
-        "indexedResourceCount": 97,
-        "indexedWithoutExactReleaseCount": 92,
+        "indexedResourceCount": 98,
+        "indexedWithoutExactReleaseCount": 93,
         "registryModuleCount": 86,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
@@ -64,6 +64,8 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # REF-035 restores the mapping-reference count to 12 with the two
         # independently checked mapping-only sources.
         # REF-038 adds the regulations.gov entity-identity mapping release.
+        # The OFR CFR List of Subjects part index is publisher-written CFR
+        # structure, so it lands as a structural schema (10 -> 11).
         "resourceKindCounts": {
             "classification": 6,
             "codeList": 26,
@@ -72,7 +74,7 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
             "mappingReference": 37,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
-            "structuralSchema": 10,
+            "structuralSchema": 11,
             "subjectVocabulary": 6,
         },
         "sourceModuleCount": 60,

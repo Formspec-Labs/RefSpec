@@ -1379,6 +1379,77 @@ def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> 
     return resolved
 
 
+def _cfr_subject_index_test_inputs(repository_root: Path) -> list[dict[str, Any]]:
+    """Describe the fifty pinned CFR List of Subjects pages as one collection.
+
+    The Office of the Federal Register publishes the per-part index as fifty
+    static pages, so the capture is one publisher artifact in fifty files
+    rather than fifty unrelated sources. Each page's digest and byte length
+    come from the reader's own pin tuple and are re-verified here against the
+    tracked bytes, so a fixture edit fails generation instead of being
+    described.
+    """
+
+    from refspec.registry import cfr_list_of_subjects as cfr
+
+    fixture_root = Path("tests/fixtures/cfr_list_of_subjects/subject-index")
+    members: list[dict[str, Any]] = []
+    reserved: list[dict[str, Any]] = []
+    for pin in cfr.CFR_SUBJECT_INDEX_2026_08_20:
+        relative_path = fixture_root / f"subject-title-{pin.cfr_title:02d}.html"
+        payload = (repository_root / relative_path).read_bytes()
+        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if digest != pin.expected_sha256 or len(payload) != pin.expected_byte_length:
+            raise ValueError(
+                f"{relative_path.as_posix()} does not match its immutable source pin: "
+                f"expected {pin.expected_sha256}/{pin.expected_byte_length}, got {digest}/{len(payload)}"
+            )
+        descriptor: dict[str, Any] = {
+            "name": f"subjectTitle{pin.cfr_title:02d}",
+            "localPath": relative_path.as_posix(),
+            "publisherUrl": pin.source_url,
+            "sha256": pin.expected_sha256,
+            "byteLength": pin.expected_byte_length,
+            "acquisition": "directPublisherDownload",
+            "provenance": "publisherPageResponse",
+        }
+        # CFR title 35 is reserved, so its page legitimately parses to zero
+        # parts and can never produce the substantive counts the real-data
+        # receipt gate asks of a publisher input. It stays pinned, tracked and
+        # parsed -- `parse_cfr_subject_index` raises if it is ever non-empty --
+        # but it is stated separately rather than sitting in the collection as
+        # a member that looks unconsumed.
+        if pin.cfr_title in cfr.CFR_RESERVED_TITLES:
+            reserved.append(
+                {
+                    **descriptor,
+                    "receiptRequired": False,
+                    "scope": "reserved CFR title; a correct parse of this page yields zero parts",
+                }
+            )
+            continue
+        members.append(descriptor)
+    if len(members) + len(reserved) != cfr.CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT:
+        raise ValueError("CFR subject index capture does not carry all fifty title pages")
+    if len(reserved) != len(cfr.CFR_RESERVED_TITLES):
+        raise ValueError("CFR subject index capture does not carry every reserved title page")
+    # No captureDigest: the collection has no publisher-written manifest, and a
+    # digest RefSpec computed over its own member list could never appear in an
+    # execution receipt. The fifty member digests are what the real-data gate
+    # checks, and each of them is a byte the parser actually reads.
+    return [
+        {
+            "name": "cfrSubjectIndexCapture20260820",
+            "kind": "sourceCollection",
+            "localPath": fixture_root.as_posix(),
+            "memberCount": len(members),
+            "members": members,
+            "provenance": "publisherCaptureCollection",
+        },
+        *reserved,
+    ]
+
+
 def _icpsr_managed_release_test_inputs(
     repository_root: Path,
 ) -> list[dict[str, Any]]:
@@ -1480,6 +1551,8 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
     for module, _path in zip(module_ids, paths, strict=True):
         inputs = [dict(configured) for configured in TEST_INPUTS.get(module, ())]
         inputs.extend(_pinned_fixture_test_inputs(module, repository_root))
+        if module == "cfr_list_of_subjects.py":
+            inputs.extend(_cfr_subject_index_test_inputs(repository_root))
         if module == "managed_releases/icpsr_managed_release.py":
             inputs.extend(_icpsr_managed_release_test_inputs(repository_root))
         if module == "adapters/icpsr_zyte.py":

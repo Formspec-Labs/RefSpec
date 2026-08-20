@@ -126,8 +126,8 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
     # sources without treating mapping-only rows as verified distributions.
     assert catalog["summary"] == {
         "evidenceOnlyCount": 7,
-        "inventoryOnlyCount": 105,
-        "resourceCount": 115,
+        "inventoryOnlyCount": 106,
+        "resourceCount": 116,
         "verifiedDistributionCount": 5,
         "verifiedResourceCount": 3,
     }
