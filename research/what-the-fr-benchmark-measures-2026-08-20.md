@@ -239,3 +239,79 @@ from the vocabulary. The per-band, per-population and top-383/tail splits are
 the other session's; the vocabulary reach, band boundary and publisher-index
 figures are this one's. Where the two disagreed, the disagreements are recorded
 in the artifacts rather than reconciled away.
+
+## The route is not source-independent yet, and the gap is a missing component
+
+Both sessions have been quoting a property of this result more confidently than
+the evidence supports: that because a CFR part is a source-independent key, a
+court opinion or GAO report citing a part inherits its subjects the same way a
+Federal Register document does.
+
+**The key is source-independent. The pipeline is not.** The 89.4 arm reads
+`cfr_references_json` — the Federal Register API's own *structured* citation
+field, publisher-supplied and already parsed into `{title, part}`. No citation
+was ever extracted from prose, because the publisher had done it. A court
+opinion has no such field, and neither does a GAO or CRS report.
+
+So what is demonstrated is narrower than what was claimed: *when a publisher
+hands you structured CFR citations, part-subject propagation scores 89.4.* The
+step between that and "works on a court opinion" is citation extraction, and
+nobody has built it.
+
+Relatedly: the top-383/tail split (90.3 vs 86.4) shows the arm generalises
+across **parts**. It says nothing about generalising across **sources**, and
+the first has been allowed to stand in for the second.
+
+### No non-FR corpus with body text exists locally
+
+Every `.parquet` under `spicy-regs/output/*` and `corpora/*` was swept for a
+populated `text_content` / `body` / `full_text` / `content` column:
+
+| rows | file |
+|---:|---|
+| 357 | `mixed-real-data-corpus-v1/comments.parquet` |
+| 4 | `segmented-real-data-evaluation-v*/gao_reports.parquet` |
+| 2 | `segmented-real-data-evaluation-v2/documents.parquet` |
+
+`mixed-real-data-corpus-v1/documents.parquet` has 102,078 rows **and** a
+`text_content` column that is 100% null — the column exists, the extraction
+never ran. Checking schemas rather than counts would have reported a corpus
+that is not there.
+
+### What the 357 comments show about the missing component
+
+Small, but they exercise exactly the step in question. 27 of 357 (7.6%) contain
+a CFR citation; 42 distinct `(title, part)` pairs come out. Two findings:
+
+**Citations are section-level, the index is part-level.** Observed forms:
+`45 CFR § 302.32(b)`, `45 CFR §§1302.90(e)`, `2 C.F.R. § 200.334 through`,
+`45   CFR   Part   1370.`, `45  CFR  410`. A section→part truncation step
+(`302.32` → part `302`) is required and does not exist.
+
+**Text extraction corrupts the citation boundary.** A first-pass extractor
+returned titles 1345, 1545, 1645, 1745, 1945 and 2045. These are footnote
+markers fused to the citation by whatever produced the text:
+
+```
+...specific, codified    1345 CFR 1370.31(a) (2024).  14See Family Violen...
+...wielded against  2045 C.F.R. § 1355.22(b)(1)(i). 21See Mirabelli...
+```
+
+Footnote 13 + `45 CFR` → `1345 CFR`. All six bogus titles are title 45 with a
+footnote number welded to the front.
+
+This is the part worth keeping. The extraction problem is not only surface-form
+variation in well-formed prose, which is how both sessions had been describing
+it. The source text is itself damaged, and the damage is invisible until a
+parse yields a title that cannot exist. A CFR title validator (1–50, minus
+reserved 35) catches all six; no improvement to citation regexes would.
+
+### What would settle it
+
+1. Any non-FR corpus with body text. Closed for now — none exists locally.
+2. A citation extractor measured on FR documents, where `cfr_references_json`
+   is free ground truth. Preferred, and now the only open path. Measure it on
+   body text (`body_html_url`) rather than title+abstract: the footnote-fusion
+   class above appears only in extracted bodies, so title+abstract will flatter
+   it. Have it emit the span and surface form alongside `(title, part)`, so
+   failures of this kind are diagnosable rather than merely wrong.
