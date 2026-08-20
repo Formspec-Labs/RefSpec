@@ -269,6 +269,30 @@ EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE = URIRef("https://refspec.org/code/atlas-v3
 EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION = "1"
 EUROVOC_MICROTHESAURI_SCHEME = URIRef("urn:ref:atlas-resource-scheme:eurovoc:microthesauri")
 EUROVOC_DOMAINS_SCHEME = URIRef("urn:ref:atlas-resource-scheme:eurovoc:domains")
+# The sixth entry in `_DERIVED_RULE_ADMISSIONS`. Atlas carries two Office of
+# the Federal Register vocabularies and asserts nothing between them: the
+# 705-concept curated thesaurus and the 1,044-term list documents are indexed
+# with, each with entirely internal relations and zero statements crossing.
+# 698 of their preferred labels are equal once case-folded (695 verbatim; the
+# three extra are one publisher spelling its own term two ways). Reading that
+# equality as a link is RefSpec's projection, not OFR's assertion -- and
+# RefSpec owns neither endpoint, so under REF-035 an assertion would be E4 on
+# evidence that is actually mechanical. It lives only in the derived graph.
+# The predicate is `skos:closeMatch`, never `skos:exactMatch`: S45 makes
+# exactMatch transitive, so one wrong edge contaminates every chain, and the
+# binding already runs a corpus-wide S46 preflight for that reason. S43 makes
+# closeMatch symmetric but not transitive, which is exactly what label
+# equality licenses. Scheme-scoped in BOTH directions, like the EuroVoc rule.
+# `src/refspec/atlas/derived_graph/fr_thesaurus_api_topic_alignment.py`
+# carries the identical constants on the producer side; the two modules do
+# not import each other, so `tests/test_fr_thesaurus_api_topic_alignment.py`
+# proves they still agree.
+FR_THESAURUS_API_TOPIC_RULE = URIRef("urn:ref:rule:fr-thesaurus-api-topic-label-equality")
+FR_THESAURUS_API_TOPIC_ENGINE = URIRef(
+    "https://refspec.org/code/atlas-v3-derived-fr-thesaurus-api-topic-alignment"
+)
+FR_THESAURUS_API_TOPIC_ENGINE_VERSION = "1"
+FR_API_TOPICS_SCHEME = URIRef("urn:ref:atlas-resource-scheme:federal-register-api-topics")
 
 SCHEMAS = {
     "manifest": "atlas-manifest.schema.json",
@@ -7742,6 +7766,168 @@ def _replay_eurovoc_microthesaurus_domain(
         )
 
 
+def _fr_label_fold(text: str) -> str:
+    """The one normalization the Federal Register alignment rule applies.
+
+    Strip, then casefold. Deliberately not NFKC, not punctuation-stripping,
+    not stemming: every additional transform widens the population on
+    evidence the label texts do not carry. The producer module carries the
+    identical function; the two do not import each other, so a test proves
+    they agree.
+    """
+
+    return text.strip().casefold()
+
+
+def _fr_alignment_labels(asserted: Graph, scheme: URIRef) -> dict[URIRef, str]:
+    """Every preferred-label text in one Federal Register scheme, proved unambiguous."""
+
+    label_links: dict[URIRef, list[URIRef]] = defaultdict(list)
+    for resource, label in asserted.subject_objects(SKOSXL.prefLabel):
+        if not isinstance(resource, URIRef):
+            continue
+        if (resource, ATLAS.inScheme, scheme) not in asserted:
+            continue
+        label_links[resource].append(label)
+    labels: dict[URIRef, str] = {}
+    for resource, links in label_links.items():
+        if len(links) != 1:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register resource {resource} does not carry exactly one preferred label",
+            )
+        forms = {str(form) for form in asserted.objects(links[0], SKOSXL.literalForm)}
+        if len(forms) != 1:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label of {resource} does not carry exactly one literal form",
+            )
+        (text,) = forms
+        if not text or text != text.strip():
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label of {resource} is not non-empty trimmed text: {text!r}",
+            )
+        labels[resource] = text
+    return labels
+
+
+def _validate_fr_thesaurus_api_topic_row(context: _DerivedRowContext) -> None:
+    """The Federal Register thesaurus/API-topic rule's row shape.
+
+    Proved locally, from only this row's own cited evidence and the two
+    endpoints' own asserted preferred labels. Subject and object are checked
+    against two DIFFERENT schemes in a fixed direction -- thesaurus term to
+    API topic -- so a matching label on a resource in any other scheme can
+    never admit an edge. The whole-of-rule proof that the shipped edge set is
+    COMPLETE and a strict bijection lives in
+    `_replay_fr_thesaurus_api_topic`.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    if (subject, ATLAS.inScheme, FR_COMPOUND_HEADING_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} subject {subject} is not in the Federal Register thesaurus scheme",
+        )
+    if (obj, ATLAS.inScheme, FR_API_TOPICS_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} object {obj} is not in the Federal Register API topics scheme",
+        )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} thesaurus/API-topic edge is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    represented = {
+        _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule") for evidence in inputs
+    }
+    if represented != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    subject_labels = _fr_alignment_labels(asserted, FR_COMPOUND_HEADING_SCHEME)
+    object_labels = _fr_alignment_labels(asserted, FR_API_TOPICS_SCHEME)
+    subject_text = subject_labels.get(subject)
+    object_text = object_labels.get(obj)
+    if subject_text is None or object_text is None:
+        _fail("dataset.derived-rule", f"{node} endpoint carries no preferred label")
+    if _fr_label_fold(subject_text) != _fr_label_fold(object_text):
+        _fail(
+            "dataset.derived-rule",
+            f"{node} endpoints do not share a folded preferred label: "
+            f"{subject_text!r} vs {object_text!r}",
+        )
+
+
+def _replay_fr_thesaurus_api_topic(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE thesaurus/API-topic edge set from the asserted
+    graph's own preferred labels and require it to equal exactly what this
+    rule's derived nodes ship.
+
+    Whole-of-rule scope, like the other structural rules: a closed,
+    two-release projection with a definite total edge count. The match must
+    be a strict bijection -- a folded label reaching two resources inside
+    either scheme, or a many-to-one collapse across them, is a finding about
+    the two publisher lists rather than an edge to ship, and fails here
+    rather than being silently narrowed.
+    """
+
+    thesaurus = _fr_alignment_labels(asserted, FR_COMPOUND_HEADING_SCHEME)
+    api_topics = _fr_alignment_labels(asserted, FR_API_TOPICS_SCHEME)
+
+    def _index(labels: dict[URIRef, str], scheme_name: str) -> dict[str, URIRef]:
+        index: dict[str, URIRef] = {}
+        for resource, text in labels.items():
+            key = _fr_label_fold(text)
+            previous = index.setdefault(key, resource)
+            if previous != resource:
+                _fail(
+                    "reasoning.authority",
+                    f"{scheme_name} preferred label is ambiguous between two resources: {key!r}",
+                )
+        return index
+
+    thesaurus_index = _index(thesaurus, "federal-register-thesaurus-2025")
+    api_index = _index(api_topics, "federal-register-api-topics")
+    expected = {
+        (thesaurus_index[key], api_index[key]) for key in set(thesaurus_index) & set(api_index)
+    }
+    subjects = {subject for subject, _ in expected}
+    objects = {obj for _, obj in expected}
+    if len(subjects) != len(expected) or len(objects) != len(expected):
+        _fail(
+            "reasoning.authority",
+            "Federal Register thesaurus/API-topic label match is not a bijection: "
+            f"{len(expected)} pairs over {len(subjects)} terms and {len(objects)} topics",
+        )
+    actual = {
+        (
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+        )
+        for node in nodes
+    }
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "Federal Register thesaurus/API-topic closeMatch edges do not regenerate the identical "
+            f"set from the asserted graph (missing={missing}, extra={extra})",
+        )
+
+
 _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {
     (EXACT_MATCH_TRANSITIVITY_RULE, DERIVATION_ENGINE, DERIVATION_ENGINE_VERSION): _DerivedRuleAdmission(
         rule=EXACT_MATCH_TRANSITIVITY_RULE,
@@ -7813,6 +7999,24 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         mirror_predicate=SKOS.narrower,
         validate_row=_validate_eurovoc_microthesaurus_domain_row,
         replay=_replay_eurovoc_microthesaurus_domain,
+    ),
+    (
+        FR_THESAURUS_API_TOPIC_RULE,
+        FR_THESAURUS_API_TOPIC_ENGINE,
+        FR_THESAURUS_API_TOPIC_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=FR_THESAURUS_API_TOPIC_RULE,
+        engine=FR_THESAURUS_API_TOPIC_ENGINE,
+        engine_version=FR_THESAURUS_API_TOPIC_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.closeMatch}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        # closeMatch is symmetric under SKOS S43, so the mirror of an
+        # admitted edge is the same predicate rather than an inverse one --
+        # unlike every prior rule here, whose broader mirrors to narrower.
+        mirror_predicate=SKOS.closeMatch,
+        validate_row=_validate_fr_thesaurus_api_topic_row,
+        replay=_replay_fr_thesaurus_api_topic,
     ),
 }
 
