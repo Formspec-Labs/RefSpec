@@ -88,18 +88,69 @@ def test_the_citation_parse_is_looser_than_a_literal_cfr_match(con) -> None:
     assert only_loose == 71
 
 
+def test_the_table_carries_the_corrected_parse(con) -> None:
+    """Scale of the three defects a peer session found by re-deriving from it."""
+
+    assert _one(con, "select count(*) from '{d}/unified_agenda_cfr_references.parquet' where cfr_part is not null") == 414_537
+    # Fused-dot damage: reported and flagged, never silently kept as real.
+    assert _one(con, "select count(*) from '{d}/unified_agenda_cfr_references.parquet' where cfr_part_is_plausible = false") == 42
+    # List references: 3,016 parts that head-only parsing discarded.
+    assert _one(con, "select sum(len(cfr_additional_parts)) from '{d}/unified_agenda_cfr_references.parquet'") == 3_016
+    assert _one(con, "select count(*) from '{d}/unified_agenda_cfr_references.parquet' where len(cfr_additional_parts) > 0") == 1_402
+
+
 def test_a_section_citation_resolves_to_its_part() -> None:
     """The subject index is keyed by part; prose cites sections."""
 
-    assert parse_cfr_reference("42 CFR 416") == (42, "416", True)
-    assert parse_cfr_reference("45 C.F.R. § 302.32(b)") == (45, "302", True)
-    assert parse_cfr_reference("40 CFR Part 194") == (40, "194", True)
-    assert parse_cfr_reference("49 cfr part 192") == (49, "192", True)
+    assert parse_cfr_reference("42 CFR 416").cfr_part == "416"
+    assert parse_cfr_reference("45 C.F.R. § 302.32(b)").cfr_part == "302"
+    assert parse_cfr_reference("40 CFR Part 194").cfr_part == "194"
+    assert parse_cfr_reference("49 cfr part 192").cfr_part == "192"
+    assert parse_cfr_reference("21 CFR186.1").cfr_part == "186"
     # Reserved and out-of-range titles parse, and are marked impossible.
-    assert parse_cfr_reference("35 CFR 1") == (35, "1", False)
-    assert parse_cfr_reference("420 CFR 3") == (420, "3", False)
+    assert parse_cfr_reference("35 CFR 1").cfr_title_is_possible is False
+    assert parse_cfr_reference("420 CFR 3").cfr_title_is_possible is False
     # Not a citation at all; the caller still has reference_text.
-    assert parse_cfr_reference("(app B)") == (None, None, None)
+    assert parse_cfr_reference("(app B)").cfr_title is None
+
+
+def test_a_rule_number_is_not_mistaken_for_a_part() -> None:
+    """17 CFR 15c3-3 is rule 15c3-3 under part 240; "15c" is not a part.
+
+    But 7 CFR 15a and 42 CFR 59a ARE real parts, so the tell is the digit that
+    follows the letter, never the letter itself: 2,116 references carry a real
+    letter suffix against 864 carrying a rule number.
+    """
+
+    assert parse_cfr_reference("17 CFR 15c3-3").cfr_part is None
+    assert parse_cfr_reference("17 CFR 12d1-1").cfr_part is None
+    assert parse_cfr_reference("7 CFR 15a").cfr_part == "15a"
+    assert parse_cfr_reference("42 CFR 59a").cfr_part == "59a"
+    # A title with no readable part still reports its title.
+    assert parse_cfr_reference("35 CFR ch. II").cfr_title == 35
+
+
+def test_fused_dot_damage_is_flagged_not_accepted() -> None:
+    """"40 CFR 60758" is 40 CFR 60.758 with the separator lost.
+
+    Titles were validated against a roster and parts against nothing, so the
+    same damage class sailed through one field to the right.
+    """
+
+    parsed = parse_cfr_reference("40 CFR 60758")
+    assert parsed.cfr_part == "60758" and parsed.cfr_part_is_plausible is False
+    assert parse_cfr_reference("42 CFR 412106").cfr_part_is_plausible is False
+    assert parse_cfr_reference("48 CFR 9904").cfr_part_is_plausible is True
+
+
+def test_a_list_reference_keeps_every_part_it_names() -> None:
+    """Head-only silently discarded two thirds of "parts 37, 38, 39"."""
+
+    parsed = parse_cfr_reference("17 CFR parts 37, 38, 39")
+    assert parsed.cfr_part == "37"
+    assert parsed.cfr_additional_parts == ("38", "39")
+    # The plural was unhandled entirely, so every "Parts" reference was NULL.
+    assert parse_cfr_reference("48 CFR Parts 719").cfr_part == "719"
 
 
 def test_the_schemas_name_the_publishers_text_alongside_the_parse() -> None:

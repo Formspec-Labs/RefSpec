@@ -50,6 +50,7 @@ __all__ = [
     "LEGAL_AUTHORITIES_SCHEMA",
     "UnifiedAgendaParquetReceipt",
     "build_unified_agenda_parquet",
+    "ParsedCfrReference",
     "parse_cfr_reference",
 ]
 
@@ -60,17 +61,31 @@ _MAX_CFR_TITLE = 50
 # "40 CFR 194", "40 CFR Part 194", "40 C.F.R. 194.5", "5 CFR part 2635 App B".
 # The part is taken up to the first dot: a section cite (302.32) names part 302,
 # which is the granularity the CFR subject index is keyed at.
+#: The largest real CFR part is four digits (48 CFR 9904). A longer run is the
+#: publisher's own fused-dot damage -- "40 CFR 60758" is 40 CFR 60.758 with the
+#: separator lost -- so the part is reported and flagged, never silently kept as
+#: though it were real.
+_MAX_PLAUSIBLE_PART_DIGITS = 4
+
 _CFR_REFERENCE = re.compile(
     r"^\s*(?P<title>\d+)\s*C\.?\s?F\.?\s?R\.?\s*"
-    # "part", "pt.", one or more section signs, or any mixture, in any order:
-    # the field carries "45 CFR part 302", "45 CFR § 302.32(b)" and
-    # "45 CFR §§ 1302.90(e)". Omitting the section sign silently returned a
-    # NULL part for every section-level citation, which is the commonest
-    # shape in prose and the one this table exists to resolve.
-    r"(?:(?:part|pt\.?|§)+\s*)*"
-    r"(?P<part>\d+[A-Za-z]?)?",
+    # "part(s)", "pt.", one or more section signs, or any mixture, in any
+    # order: the field carries "45 CFR part 302", "48 CFR Parts 719",
+    # "45 CFR § 302.32(b)" and "45 CFR §§ 1302.90(e)". Omitting the section
+    # sign returned a NULL part for every section-level citation; omitting the
+    # plural did the same for every "Parts" reference.
+    r"(?:(?:parts?|pts?\.?|§)+\s*)*"
+    # A letter suffix is only part of the part when nothing alphanumeric
+    # follows it. "7 CFR 15a" and "42 CFR 59a" are real parts; "17 CFR 15c3-3"
+    # is rule 15c3-3 under part 240, and taking "15c" invented a part that does
+    # not exist. 2,116 references carry a real letter suffix and 864 carry a
+    # rule number, so the tell has to be the digit that follows, not the letter.
+    r"(?P<part>\d+[A-Za-z]?)(?![0-9A-Za-z])",
     re.IGNORECASE,
 )
+
+#: Every additional part in a list reference: "17 CFR parts 37, 38, 39".
+_ADDITIONAL_PARTS = re.compile(r",\s*(\d+[A-Za-z]?)(?![0-9A-Za-z])")
 
 ACTIONS_SCHEMA = pa.schema(
     [
@@ -90,6 +105,8 @@ CFR_REFERENCES_SCHEMA = pa.schema(
         pa.field("cfr_title", pa.int32(), nullable=True),
         pa.field("cfr_part", pa.string(), nullable=True),
         pa.field("cfr_title_is_possible", pa.bool_(), nullable=True),
+        pa.field("cfr_part_is_plausible", pa.bool_(), nullable=True),
+        pa.field("cfr_additional_parts", pa.list_(pa.string()), nullable=False),
     ]
 )
 
@@ -116,21 +133,56 @@ class UnifiedAgendaParquetReceipt:
     schema_digests: dict[str, str]
 
 
-def parse_cfr_reference(text: str) -> tuple[int | None, str | None, bool | None]:
-    """Split one publisher CFR reference into (title, part, title_is_possible).
+@dataclass(frozen=True)
+class ParsedCfrReference:
+    """One publisher CFR reference, split and judged but never discarded."""
 
-    Returns ``(None, None, None)`` when the string does not begin with a title
-    number -- roughly 15% of the field, which carries values like ``(app B)``,
-    ``(new)`` and bare ``...``. Those are not parse failures to repair; they are
-    what the publisher wrote, and the caller still has ``reference_text``.
+    cfr_title: int | None
+    cfr_part: str | None
+    cfr_title_is_possible: bool | None
+    cfr_part_is_plausible: bool | None
+    cfr_additional_parts: tuple[str, ...]
+
+
+def parse_cfr_reference(text: str) -> ParsedCfrReference:
+    """Split one publisher CFR reference without repairing or dropping it.
+
+    Every field is nullable and every verdict is separate from every value, so
+    a consumer can filter on a judgement while still seeing what was judged.
+
+    ``cfr_title`` is null when the string does not begin with a title number --
+    about 5% of the field, carrying ``(app B)``, ``(new)`` and bare ``...``.
+    ``cfr_part`` is null when no part can be read without inventing one, which
+    now includes rule numbers like ``15c3-3``. ``cfr_part_is_plausible`` is
+    false for parts longer than four digits, the publisher's fused-dot damage.
+    ``cfr_additional_parts`` carries the tail of a list reference, so
+    ``17 CFR parts 37, 38, 39`` does not silently become part 37 alone.
     """
 
     match = _CFR_REFERENCE.match(text)
     if match is None:
-        return None, None, None
+        # A title with no readable part still tells a consumer the title.
+        title_only = re.match(r"^\s*(?P<title>\d+)\s*C\.?\s?F\.?\s?R\.?", text, re.IGNORECASE)
+        if title_only is None:
+            return ParsedCfrReference(None, None, None, None, ())
+        title = int(title_only.group("title"))
+        return ParsedCfrReference(
+            title,
+            None,
+            1 <= title <= _MAX_CFR_TITLE and title not in CFR_RESERVED_TITLES,
+            None,
+            (),
+        )
     title = int(match.group("title"))
-    possible = 1 <= title <= _MAX_CFR_TITLE and title not in CFR_RESERVED_TITLES
-    return title, match.group("part"), possible
+    part = match.group("part")
+    digits = "".join(character for character in part if character.isdigit())
+    return ParsedCfrReference(
+        cfr_title=title,
+        cfr_part=part,
+        cfr_title_is_possible=1 <= title <= _MAX_CFR_TITLE and title not in CFR_RESERVED_TITLES,
+        cfr_part_is_plausible=len(digits) <= _MAX_PLAUSIBLE_PART_DIGITS,
+        cfr_additional_parts=tuple(_ADDITIONAL_PARTS.findall(text[match.end() :])),
+    )
 
 
 def _edition_payload(pin: UnifiedAgendaEditionPin, source_root: Path) -> bytes:
@@ -168,16 +220,18 @@ def build_unified_agenda_parquet(
                 }
             )
             for ordinal, text in enumerate(record.cfr_references):
-                title, part, possible = parse_cfr_reference(text)
+                parsed = parse_cfr_reference(text)
                 references.append(
                     {
                         "rin": record.rin,
                         "publication_id": record.publication_id,
                         "ordinal": ordinal,
                         "reference_text": text,
-                        "cfr_title": title,
-                        "cfr_part": part,
-                        "cfr_title_is_possible": possible,
+                        "cfr_title": parsed.cfr_title,
+                        "cfr_part": parsed.cfr_part,
+                        "cfr_title_is_possible": parsed.cfr_title_is_possible,
+                        "cfr_part_is_plausible": parsed.cfr_part_is_plausible,
+                        "cfr_additional_parts": list(parsed.cfr_additional_parts),
                     }
                 )
             for ordinal, text in enumerate(record.legal_authorities):
