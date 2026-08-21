@@ -105,3 +105,43 @@ def test_a_pin_must_describe_a_real_edition() -> None:
             expected_record_count=good.expected_record_count,
             run_date=good.run_date,
         )
+
+
+@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+def test_the_structured_cfr_field_carries_impossible_titles() -> None:
+    """A title validator catches what no citation regex would.
+
+    The Agenda's CFR_LIST is a structured, publisher-parsed field -- the very
+    thing whose absence blocks the court-opinion route -- and it is still
+    wrong 158 times in 416,749 title-prefixed references. 115 of those name
+    title 35, which is Reserved and has no parts at all.
+
+    Recorded, not repaired: the damage is the publisher's. What matters is
+    that it is detectable by a rule about the CFR (titles run 1-50, 35 is
+    Reserved) rather than by anything about citation syntax, which is why a
+    validity check that cannot fail proves nothing about an extractor.
+    """
+
+    import re
+    from collections import Counter
+
+    from refspec.registry.cfr_list_of_subjects import CFR_RESERVED_TITLES
+
+    leading_title = re.compile(r"^\s*(\d+)\s*CFR")
+    impossible: Counter[int] = Counter()
+    total = 0
+    for pin in UNIFIED_AGENDA_EDITION_PINS:
+        for record in parse_unified_agenda_edition(_payload(pin), pin=pin):
+            for reference in record.cfr_references:
+                match = leading_title.match(reference)
+                if match is None:
+                    continue
+                total += 1
+                title = int(match.group(1))
+                if not 1 <= title <= 50 or title in CFR_RESERVED_TITLES:
+                    impossible[title] += 1
+
+    assert total == 416_749
+    assert sum(impossible.values()) == 158
+    assert impossible[35] == 115, "title 35 is Reserved; the publisher cites it anyway"
+    assert set(impossible) == {0, 35, 59, 60, 234, 420}
