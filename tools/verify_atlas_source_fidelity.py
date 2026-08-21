@@ -1337,7 +1337,7 @@ _ENGLISH_LANGUAGE_EXCLUSION = DeclaredLanguageExclusion(
         "publisher literals outside that family are deliberately not represented"
     ),
     payload_json=_ENGLISH_LANGUAGE_EXCLUSION_PAYLOAD,
-    payload_sha256=("sha256:8c7ffd458cef9b182d86b1b3e9626cc0d38d5db6eb0d8ba1ef59e63e024082bb"),
+    payload_sha256=("sha256:d805dc31ab0989021709b695677158ba84ac31cca8ecf43f991973e17202dd9b"),
 )
 _ENGLISH_LANGUAGE_EXCLUSION_SOURCE_NAMES = frozenset(
     _ENGLISH_LANGUAGE_EXCLUSION.payload().get("countsBySourceAndLanguage", {})
@@ -2131,17 +2131,40 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
     """Apply one narrow, source-declared partition selector to publisher claims."""
     if subset == "all":
         return view
-    if subset not in {"eurovoc-main", "eurovoc-domains"}:
+    if subset not in {"eurovoc-main", "eurovoc-domains", "eurovoc-microthesauri"}:
         raise ValueError(f"unsupported publisher subset selector: {subset}")
 
-    domain_scheme = "http://eurovoc.europa.eu/domains"
-    domain_concepts = frozenset(subject for subject, target in view.memberships if target == domain_scheme)
-    concepts = view.concepts - domain_concepts if subset == "eurovoc-main" else domain_concepts
-    schemes = view.schemes - {domain_scheme} if subset == "eurovoc-main" else frozenset({domain_scheme})
-    relations = frozenset(row for row in view.relations if row[0] in concepts)
-    memberships = frozenset(row for row in view.memberships if row[0] in concepts)
-    top_concept_of = frozenset(row for row in view.top_concept_of if row[0] in concepts)
-    has_top_concept = frozenset(row for row in view.has_top_concept if row[1] in concepts)
+    if subset == "eurovoc-microthesauri":
+        # A microthesaurus is a concept scheme carrying a four-digit numeric
+        # publisher notation -- stated here from the publisher's own notations
+        # rather than read from the producer. The main thesaurus scheme and
+        # the domains grouping scheme carry none and fall out by construction.
+        #
+        # This partition is the inverse shape of the two below: the unit's
+        # resources are the SCHEMES, and the concepts they contain belong to
+        # `eurovoc-4.24`. So memberships are kept by the scheme they point at,
+        # not by their subject.
+        microthesauri = frozenset(
+            scheme
+            for scheme in view.schemes
+            for notation in view.notations.get(scheme, ())
+            if len(notation.value) == 4 and notation.value.isdigit()
+        )
+        concepts = microthesauri
+        schemes = microthesauri
+        relations = frozenset()
+        memberships = frozenset(row for row in view.memberships if row[1] in microthesauri)
+        top_concept_of = frozenset()
+        has_top_concept = frozenset()
+    else:
+        domain_scheme = "http://eurovoc.europa.eu/domains"
+        domain_concepts = frozenset(subject for subject, target in view.memberships if target == domain_scheme)
+        concepts = view.concepts - domain_concepts if subset == "eurovoc-main" else domain_concepts
+        schemes = view.schemes - {domain_scheme} if subset == "eurovoc-main" else frozenset({domain_scheme})
+        relations = frozenset(row for row in view.relations if row[0] in concepts)
+        memberships = frozenset(row for row in view.memberships if row[0] in concepts)
+        top_concept_of = frozenset(row for row in view.top_concept_of if row[0] in concepts)
+        has_top_concept = frozenset(row for row in view.has_top_concept if row[1] in concepts)
     source_scheme_references = {
         *(scheme for _, scheme in memberships),
         *(scheme for _, scheme in top_concept_of),
@@ -19751,6 +19774,34 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         subset="eurovoc-domains",
+        declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
+        rdf_source=_rdf_source_policy(
+            _GENERIC_SKOS_NATIVE_FIELDS,
+            record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
+        ),
+    ),
+    SourceSpec(
+        name="eurovoc-microthesauri-4.24",
+        kind="vocabulary",
+        release_keys=("eurovoc-microthesauri-4.24",),
+        inputs=(
+            _registry_source_pin(
+                "eurovoc-4.24-metadata.ttl",
+                "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+                36_011,
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl",
+            ),
+            _registry_source_pin(
+                "eurovoc-4.24-skos-core.zip",
+                "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+                8_567_290,
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip",
+                fmt="xml",
+                zip_member="eurovoc_in_skos_core_concepts.rdf",
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        subset="eurovoc-microthesauri",
         declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,

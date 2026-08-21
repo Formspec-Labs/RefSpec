@@ -169,7 +169,7 @@ EXPECTED_LABEL_COUNTS = {
     "elsst-r6": 6_234,
     "eurovoc-4.24": 17_431,
     "eurovoc-domains-4.24": 21,
-    "eurovoc-microthesauri-4.24": 3_430,
+    "eurovoc-microthesauri-4.24": 127,
     "federal-register-thesaurus-2025": 1_138,
     "gcmd-science-keywords-24-4": 3_774,
     "gemet-4.2.3": 5_993,
@@ -955,28 +955,21 @@ def _normalize_eurovoc_microthesauri(
     are already built from. REF-045 (docs/decisions.md) found both are real
     publisher facts, promoted here for the first time.
 
-    Multilingual labels are carried verbatim, unlike every other
-    EuroVoc-derived release in this module: no language's label text is
-    dropped, because every EuroVoc label already carries an explicit
-    language tag (the parser refuses an untagged one --
-    ``eurovoc_thesaurus._label_expressions``), so RefSpec never determines
-    one here. Every membership is emitted, including the 142+121+1
-    concepts that belong to two, three, or four microthesauri at once --
-    multi-membership is a real publisher fact and is never collapsed.
+    English labels only, as every other EuroVoc-derived release in this
+    module already does. This one previously carried all ~24 publisher
+    languages and demoted each non-English ``skos:prefLabel`` to
+    ``alternate``, because `atlas.shacl.ttl`'s `SkosXlPrefLabelShape` fixes
+    ``skosxl:prefLabel`` to exactly one value per resource. That made it
+    the only multilingual release here, and the only one whose Atlas role
+    for a label differed from the publisher's -- a transformation no
+    independent reader could reproduce without being told about it, and
+    which nothing downstream asked for. Dropping the other languages
+    removes both the anomaly and the transformation: every label the Atlas
+    carries now has the publisher's own role.
 
-    Carrying every language does not mean carrying every language's own
-    ``skos:prefLabel`` role: `atlas.shacl.ttl`'s `SkosXlPrefLabelShape`
-    fixes ``skosxl:prefLabel`` to exactly one value per resource (Atlas has
-    no notion of "the preferred label in French" alongside "the preferred
-    label in English" -- one resource, one preferred label), so only the
-    publisher's own English ``skos:prefLabel`` -- present for all 127
-    microthesauri -- keeps the ``preferred`` role. Every other language's
-    preferred term is retained in full, text and language tag unchanged,
-    demoted to ``alternate`` (unbounded cardinality, no shape conflict);
-    the publisher's own existing alternate and hidden labels keep their
-    own roles unchanged. RefSpec never invents an English label here: this
-    demotion only ever fires because the pinned release already carries
-    one, checked below rather than assumed.
+    Every membership is still emitted, including the 142+121+1 concepts
+    that belong to two, three, or four microthesauri at once --
+    multi-membership is a real publisher fact and is never collapsed.
     """
 
     microthesauri = _eurovoc_microthesauri(parsed)
@@ -986,13 +979,12 @@ def _normalize_eurovoc_microthesauri(
     for row in parsed.labels:
         if row.subject_iri not in microthesauri:
             continue
-        role = row.role
-        if role == "preferred" and row.value.language_tag.casefold() != "en":
-            role = "alternate"
+        if not is_english_language_tag(row.value.language_tag):
+            continue
         labels_by_iri[row.subject_iri].append(
             RegistryLabel(
                 value=row.value.lexical_form,
-                role=role,
+                role=row.role,
                 source_path=f"{row.subject_iri}::{row.property_iri}::{row.value.language_tag}",
                 language=row.value.language_tag.casefold(),
             )
