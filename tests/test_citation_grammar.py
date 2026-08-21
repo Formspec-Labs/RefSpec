@@ -9,6 +9,8 @@ import pytest
 
 from refspec.registry.citation_grammar import (
     CFR_LETTERED_PART_SHARE,
+    find_act_relative_citations,
+    normalize_popular_name,
     parse_authority_citation,
     parse_cfr_citations,
     parse_eo_compilation_locators,
@@ -307,3 +309,103 @@ def test_the_recovered_authority_classes_from_the_malformed_census() -> None:
     assert (case.authority_type, case.case_volume, case.case_page) == ("case_citation", 123, 1460)
     # "U.S.C." never reads as the U.S. reporter — the C intervenes.
     assert parse_authority_citation("5 U.S.C. 301")[0].authority_type == "usc"
+
+
+# --------------------------------------------------------------------------- #
+# Authority families added by the residue clustering of 2026-08-21, each
+# licensed by a verified source (see research/authority-families-2026-08-21.md).
+
+
+def test_proclamations_are_numbered_and_memoranda_are_not() -> None:
+    """The proclamation series ran past 11037 by mid-2026; memoranda and
+    continuation notices are date-identified, so they carry a kind alone."""
+
+    proc = parse_authority_citation("Presidential Proclamation No. 7383 (December 1, 2000)")[0]
+    assert (proc.authority_type, proc.presidential_doc_kind, proc.proclamation) == (
+        "presidential_document",
+        "proclamation",
+        "7383",
+    )
+    assert parse_authority_citation("Proc 10414, 87 FR 35067")[0].proclamation == "10414"
+    memo = parse_authority_citation("Presidential Memorandum of January 31, 2014")[0]
+    assert (memo.presidential_doc_kind, memo.proclamation) == ("memorandum", None)
+    notice = parse_authority_citation("Notice of August 3, 2000 (65 FR 48347)")[0]
+    assert notice.presidential_doc_kind == "notice"
+    # Lowercase "proc" and a bare "notice of default" are prose, not documents.
+    assert parse_authority_citation("proc of default")[0].authority_type == "other"
+
+
+def test_administrative_orders_are_a_department_heads_own_instrument() -> None:
+    """DHS Delegation 0170.1 is cited as legal authority in Federal Register
+    rulemakings, which licenses the family; the number shapes are the
+    observed set — dotted, dashed, parenthesized revision."""
+
+    order = parse_authority_citation("Secretary's Order No. 3-2007, 72 FR 15907")[0]
+    assert (order.authority_type, order.admin_order_number) == ("administrative_order", "3-2007")
+    delegation = parse_authority_citation("DHS Delegation No. 0170.1(75)")[0]
+    assert delegation.admin_order_number == "0170.1(75)"
+    doo = parse_authority_citation("Department of Commerce Department Organization Order 10-4")[0]
+    assert doo.admin_order_number == "10-4"
+    # "delegation of authority at 49 CFR 1.95" carries no order number and
+    # reads as the CFR citation it contains, never as an instrument.
+    kinds = {c.authority_type for c in parse_authority_citation("delegation of authority at 49 CFR 1.95")}
+    assert "administrative_order" not in kinds
+
+
+def test_treaty_series_follow_the_bluebook_preference_list() -> None:
+    ust = parse_authority_citation("27 UST 1087")[0]
+    assert (ust.authority_type, ust.treaty_series, ust.treaty_volume, ust.treaty_page) == (
+        "treaty",
+        "UST",
+        27,
+        1087,
+    )
+    combo = parse_authority_citation("S Treaty Doc 105-51 (1998), 1870 UNTS 167")
+    assert {(c.treaty_series, c.treaty_number or c.treaty_volume) for c in combo} == {
+        ("S. Treaty Doc.", "105-51"),
+        ("UNTS", 1870),
+    }
+
+
+def test_the_constitution_family_reads_articles_and_refuses_typos() -> None:
+    clause = parse_authority_citation("U.S. Const., Art. II, Sec. 2")[0]
+    assert (clause.authority_type, clause.constitution_article, clause.constitution_section) == (
+        "constitution",
+        "II",
+        "2",
+    )
+    # "US Cost, Art II, sec 2" is a real damaged row; reading it would be a
+    # guess about which word was meant.
+    assert parse_authority_citation("US Cost, Art II, sec 2")[0].authority_type == "other"
+
+
+def test_a_compilation_locator_cited_as_authority_is_typed_not_failed() -> None:
+    row = parse_authority_citation("3 CFR, 1949 to 1953 Comp, p 1002")[0]
+    assert (row.authority_type, row.eo_compilation_start, row.eo_compilation_page) == (
+        "eo_compilation",
+        "1949",
+        "1002",
+    )
+
+
+def test_a_statutory_note_is_a_place_the_way_an_appendix_is() -> None:
+    """LLSDC, "The Authority of Statutes Placed in Section Notes": the note
+    under a section is law. "1252 note" is covered and flagged, not left as
+    an uncovered tail."""
+
+    note = parse_authority_citation("8 U.S.C. 1252 note")[0]
+    assert (note.usc_section, note.usc_note, note.parse_status) == ("1252", True, "ok")
+    plain = parse_authority_citation("8 U.S.C. 1252")[0]
+    assert plain.usc_note is False
+
+
+def test_a_subsection_no_longer_severs_an_act_from_its_name() -> None:
+    """"Sec 1886(d) of the Social Security Act" failed because the
+    parenthetical sat between the section and "of the"."""
+
+    names = {normalize_popular_name("Social Security Act")}
+    found = find_act_relative_citations("Sec 1886(d) of the Social Security Act", act_names=names)
+    assert [(c.act_key, c.section) for c in found] == [("social security act", "1886")]
+    # Chained subsections skip too.
+    chained = find_act_relative_citations("sec 8a(5)(B) of the Social Security Act", act_names=names)
+    assert chained and chained[0].section == "8a"

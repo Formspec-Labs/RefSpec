@@ -283,6 +283,68 @@ _REORGANIZATION_PLAN = re.compile(
     r"[Rr]eorg(?:anization)?\.?\s*Plan\s*(?:No\.?\s*)?(?P<number>\d+)\s*of\s*(?P<year>(?:1[89]|20)\d{2})"
 )
 
+#: Presidential proclamations: "Proclamation 10908", "Presidential
+#: Proclamation No. 7383", "Proc 10414". The numbered series ran past 11037
+#: by mid-2026 (Federal Register proclamations collection; Proclamation 10998
+#: is the 2026 travel restriction), so the bound is generous. Capital P
+#: required — "proc" is a prose fragment.
+_PROCLAMATION = re.compile(
+    rf"{_LEFT}(?:Pres(?:idential|\.)?\s+)?Proc(?:lamation)?\.?\s*(?:No\.?\s*)?(?P<number>[1-9]\d{{0,4}}){_RIGHT}"
+)
+
+#: Presidential memoranda and notices are date-identified, not numbered:
+#: "Presidential Memorandum of January 31, 2014", "Notice of August 3, 2000
+#: (65 FR 48347)" — the latter is the continuation-of-national-emergency
+#: form that appears bare in the Agenda's authority field. The full
+#: Month-day-year shape is required so prose "notice of default" reads
+#: nothing.
+_PRESIDENTIAL_MEMORANDUM = re.compile(
+    r"Presidential\s+Memorandum\b|Memorandum\s+for\s+the\s+(?:Attorney\s+General|Secretary)"
+)
+_PRESIDENTIAL_NOTICE = re.compile(
+    r"Notice\s+of\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+    r"\s+\d{1,2},?\s+(?:1[89]|20)\d{2}"
+)
+
+#: Administrative orders: a department head's own instruments, cited as
+#: authority. "Secretary's Order 3-2007", "DHS Delegation No. 0170.1",
+#: "Department of Commerce Department Organization Order 10-4". DHS
+#: Delegation 0170.1 is cited as legal authority in Federal Register
+#: rulemaking documents, which is what licenses the family. The number
+#: shapes are the observed set: dotted ("0170.1"), dashed ("3-2007",
+#: "4-75"), optionally with a parenthesized revision ("0170.1(75)").
+_ADMINISTRATIVE_ORDER = re.compile(
+    r"(?P<kind>Secretar(?:y's|ial)\s+Orders?|Delegation|(?:Department(?:al)?\s+)?Organization\s+Orders?|Administrative\s+Orders?)"
+    r"\s*(?:,\s*)?(?:Nos?\.?\s*)?"
+    r"(?P<number>\d+(?:[-.]\d+)*(?:\(\d+\))?)"
+)
+
+#: Treaty series, per Bluebook rule 21.4.5's own preference list: U.S.T.
+#: (United States Treaties, 1950-1984, volume-page), T.I.A.S. (numbered),
+#: U.N.T.S. (volume-page), Senate Treaty Documents (congress-number). The
+#: series tokens are uppercase in every citation manual; lowercase is prose.
+_TREATY_UST = re.compile(rf"{_LEFT}(?P<volume>[1-9]\d{{0,2}})\s+U\.?\s?S\.?\s?T\.?\s+(?P<page>[1-9]\d{{0,4}}){_RIGHT}")
+_TREATY_TIAS = re.compile(rf"{_LEFT}T\.?\s?I\.?\s?A\.?\s?S\.?\s*(?:No\.?\s*)?(?P<number>[1-9]\d{{0,5}}){_RIGHT}")
+_TREATY_UNTS = re.compile(rf"{_LEFT}(?P<volume>[1-9]\d{{0,3}})\s+U\.?\s?N\.?\s?T\.?\s?S\.?\s+(?P<page>[1-9]\d{{0,4}}){_RIGHT}")
+_TREATY_SENATE_DOC = re.compile(
+    rf"{_LEFT}S\.?\s*Treaty\s+Doc(?:ument)?\.?\s*(?:No\.?\s*)?(?P<congress>\d{{2,3}})-(?P<number>\d{{1,3}}){_RIGHT}"
+)
+
+#: "U.S. Const., Art. II, Sec. 2" — the appointments-clause citation the
+#: Agenda's authority field carries 21 times. Article numbers are Roman in
+#: every observed form; the damaged "US Cost" spelling stays unread rather
+#: than guessed.
+_CONSTITUTION = re.compile(
+    r"U\.?\s?S\.?\s+Const(?:itution)?\.?,?\s*[Aa]rt(?:icle)?\.?\s*(?P<article>[IVX]+|\d+)"
+    r"(?:,?\s*[Ss]ec(?:tion)?\.?\s*(?P<section>\d+[A-Za-z]?))?"
+)
+
+#: A statutory note is LAW, printed under a section rather than as one —
+#: the LLSDC sourcebook "The Authority of Statutes Placed in Section Notes
+#: of the United States Code" is the license — so "8 U.S.C. 1252 note" is a
+#: real place distinct from 8 U.S.C. 1252, the same way an appendix is.
+_USC_NOTE_TAIL = re.compile(r"\s+notes?\b")
+
 #: A code that names itself instead of its title number. The Internal Revenue
 #: Code IS title 26, so "I.R.C. 337(d)" and "26 U.S.C. 337(d)" must reach one
 #: identifier. The title comes from the expression that recognized the code —
@@ -416,6 +478,28 @@ class AuthorityCitation:
     case_reporter: str | None = None
     case_volume: int | None = None
     case_page: int | None = None
+    #: True when the citation names the statutory NOTE under a section — law
+    #: printed below the section rather than as it, a different place the
+    #: way an appendix is.
+    usc_note: bool = False
+    #: Presidential documents: proclamations are numbered; memoranda and
+    #: notices are date-identified and carry a kind alone.
+    presidential_doc_kind: str | None = None
+    proclamation: str | None = None
+    #: A department head's own instrument cited as authority.
+    admin_order_kind: str | None = None
+    admin_order_number: str | None = None
+    #: Treaty series citations, Bluebook 21.4.5 order.
+    treaty_series: str | None = None
+    treaty_volume: int | None = None
+    treaty_number: str | None = None
+    treaty_page: int | None = None
+    constitution_article: str | None = None
+    constitution_section: str | None = None
+    #: A Title 3 compilation locator used as authority: the page an EO was
+    #: printed on, no identifier mintable.
+    eo_compilation_start: str | None = None
+    eo_compilation_page: str | None = None
     public_law: str | None = None
     executive_order: str | None = None
     statute_volume: int | None = None
@@ -715,6 +799,12 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                 if match.groupdict().get("range_end") is not None and section_end is None
                 else match.end()
             )
+            # "8 U.S.C. 1252 note": the statutory note is law printed under
+            # the section — a different place, covered rather than left as
+            # uncovered tail, and flagged the way an appendix is.
+            note = _USC_NOTE_TAIL.match(normalized, covered_end)
+            if note is not None:
+                covered_end = note.end()
             title = match.groupdict().get("title")
             _add(
                 AuthorityCitation(
@@ -723,6 +813,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                     usc_title=int(title) if title else named_title,
                     usc_section=section,
                     usc_section_end=section_end,
+                    usc_note=note is not None,
                 )
             )
 
@@ -811,6 +902,81 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                 case_reporter=reporter,
                 case_volume=int(match.group("volume")),
                 case_page=int(match.group("page")),
+            )
+        )
+
+    for match in _PROCLAMATION.finditer(normalized):
+        _add(
+            AuthorityCitation(
+                authority_type="presidential_document",
+                parse_status=_status_for_span(normalized, match.start(), match.end()),
+                presidential_doc_kind="proclamation",
+                proclamation=str(int(match.group("number"))),
+            )
+        )
+    for pattern, kind in ((_PRESIDENTIAL_MEMORANDUM, "memorandum"), (_PRESIDENTIAL_NOTICE, "notice")):
+        for match in pattern.finditer(normalized):
+            _add(
+                AuthorityCitation(
+                    authority_type="presidential_document",
+                    parse_status="partial",
+                    presidential_doc_kind=kind,
+                )
+            )
+
+    for match in _ADMINISTRATIVE_ORDER.finditer(normalized):
+        kind = re.sub(r"\s+", " ", match.group("kind")).rstrip("s")
+        _add(
+            AuthorityCitation(
+                authority_type="administrative_order",
+                parse_status=_status_for_span(normalized, match.start(), match.end()),
+                admin_order_kind=kind,
+                admin_order_number=match.group("number"),
+            )
+        )
+
+    for pattern, series in (
+        (_TREATY_UST, "UST"),
+        (_TREATY_UNTS, "UNTS"),
+        (_TREATY_TIAS, "TIAS"),
+        (_TREATY_SENATE_DOC, "S. Treaty Doc."),
+    ):
+        for match in pattern.finditer(normalized):
+            groups = match.groupdict()
+            _add(
+                AuthorityCitation(
+                    authority_type="treaty",
+                    parse_status=_status_for_span(normalized, match.start(), match.end()),
+                    treaty_series=series,
+                    treaty_volume=int(groups["volume"]) if groups.get("volume") else None,
+                    treaty_number=(
+                        f"{groups['congress']}-{groups['number']}"
+                        if groups.get("congress")
+                        else groups.get("number")
+                    ),
+                    treaty_page=int(groups["page"]) if groups.get("page") else None,
+                )
+            )
+
+    for match in _CONSTITUTION.finditer(normalized):
+        _add(
+            AuthorityCitation(
+                authority_type="constitution",
+                parse_status=_status_for_span(normalized, match.start(), match.end()),
+                constitution_article=match.group("article"),
+                constitution_section=match.group("section"),
+            )
+        )
+
+    # A Title 3 compilation locator cited AS the authority — the grammar for
+    # it predates this loop and was simply never wired here.
+    for locator in parse_eo_compilation_locators(normalized):
+        _add(
+            AuthorityCitation(
+                authority_type="eo_compilation",
+                parse_status="partial",
+                eo_compilation_start=locator.compilation_start,
+                eo_compilation_page=locator.page,
             )
         )
 
@@ -927,6 +1093,12 @@ def _longest_name_before(before: str, act_names: Container[str]) -> str | None:
 
 
 def _longest_name_after(after: str, act_names: Container[str]) -> str | None:
+    # "Sec 1886(d) of the Social Security Act": the subsection parenthetical
+    # sits between the section number and "of the", and requiring adjacency
+    # silently failed every such citation — 25 of the commonest single form
+    # alone. Parentheticals are skipped, bounded so a sentence in parentheses
+    # is not.
+    after = re.sub(r"^(?:\s*\([^()]{1,12}\))+", "", after)
     opening = _ACT_SECTION_OF_THE.match(after)
     if opening is None:
         return None
