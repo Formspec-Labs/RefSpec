@@ -1,0 +1,246 @@
+{
+ "schema": "REGINFO_XML_Ver10262011.xsd",
+ "schemaDeclaredByEveryEdition": true,
+ "editions": 60,
+ "records": 241726,
+ "fields": [
+  {
+   "field": "energyAffected",
+   "element": "ENERGY_AFFECTED",
+   "declared": [
+    "Yes",
+    "No",
+    "Undetermined"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "eo13771Designation",
+   "element": "EO_13771_DESIGNATION",
+   "declared": [
+    "Deregulatory",
+    "Regulatory",
+    "Fully or Partially Exempt",
+    "Not subject to, not significant",
+    "Other",
+    "Independent agency"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "federalism",
+   "element": "FEDERALISM",
+   "declared": [
+    "Yes",
+    "No",
+    "Undetermined"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "govtLevel",
+   "element": "GOVT_LEVEL",
+   "declared": [
+    "State",
+    "Local",
+    "Tribal",
+    "Federal",
+    "None",
+    "Undetermined"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "internationalInterest",
+   "element": "INTERNATIONAL_INTEREST",
+   "declared": [
+    "Yes",
+    "No",
+    "Not Collected"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "major",
+   "element": "MAJOR",
+   "declared": [
+    "Yes",
+    "No",
+    "Undetermined"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "printPaper",
+   "element": "PRINT_PAPER",
+   "declared": [
+    "Yes",
+    "No",
+    "NA"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "priorityCategory",
+   "element": "PRIORITY_CATEGORY",
+   "declared": [
+    "Economically Significant",
+    "Other Significant",
+    "Substantive, Nonsignificant",
+    "Routine and Frequent",
+    "Info./Admin./Other",
+    "Not Major"
+   ],
+   "undeclared_observed": {
+    "Section 3(f)(1) Significant": {
+     "records": 833,
+     "firstEdition": "202304"
+    }
+   },
+   "declared_never_observed": [
+    "Not Major"
+   ]
+  },
+  {
+   "field": "rfaRequired",
+   "element": "RFA_REQUIRED",
+   "declared": [
+    "Yes",
+    "No",
+    "Undetermined"
+   ],
+   "undeclared_observed": {
+    "YES": {
+     "records": 1318,
+     "firstEdition": "202404"
+    }
+   },
+   "declared_never_observed": []
+  },
+  {
+   "field": "rfaSection610Review",
+   "element": "RFA_SECTION_610_REVIEW",
+   "declared": [
+    "Completion of a Section 610 Review",
+    "Rulemaking Resulting From a Section 610 Review",
+    "Section 610 Review",
+    "No"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": [
+    "No"
+   ]
+  },
+  {
+   "field": "rinRelation",
+   "element": "RIN_RELATION",
+   "declared": [
+    "Merge with",
+    "Split from",
+    "Previously reported as",
+    "Duplicate of",
+    "Related to"
+   ],
+   "undeclared_observed": {
+    "Merged with": {
+     "records": 2283,
+     "firstEdition": "199510"
+    },
+    "Previously report": {
+     "records": 1,
+     "firstEdition": "200310"
+    },
+    "Related t": {
+     "records": 3,
+     "firstEdition": "202004"
+    }
+   },
+   "declared_never_observed": [
+    "Merge with"
+   ]
+  },
+  {
+   "field": "rinStatus",
+   "element": "RIN_STATUS",
+   "declared": [
+    "First time published in the Unified Agenda",
+    "Previously published in the Unified Agenda"
+   ],
+   "undeclared_observed": {
+    "First Time Published in The Unified Agenda": {
+     "records": 42161,
+     "firstEdition": "199510"
+    },
+    "Previously Published in The Unified Agenda": {
+     "records": 199563,
+     "firstEdition": "199510"
+    }
+   },
+   "declared_never_observed": [
+    "First time published in the Unified Agenda",
+    "Previously published in the Unified Agenda"
+   ]
+  },
+  {
+   "field": "rplanEntry",
+   "element": "RPLAN_ENTRY",
+   "declared": [
+    "Yes",
+    "No"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  },
+  {
+   "field": "ruleStage",
+   "element": "RULE_STAGE",
+   "declared": [
+    "Prerule Stage",
+    "Proposed Rule Stage",
+    "Final Rule Stage",
+    "Long-Term Actions",
+    "Completed Actions",
+    "No Stage"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": [
+    "No Stage"
+   ]
+  },
+  {
+   "field": "smallEntity",
+   "element": "SMALL_ENTITY",
+   "declared": [
+    "Businesses",
+    "Governmental Jurisdictions",
+    "Tribal",
+    "Organizations",
+    "No",
+    "Undetermined"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": [
+    "Tribal"
+   ]
+  },
+  {
+   "field": "unfundedMandate",
+   "element": "UNFUNDED_MANDATE",
+   "declared": [
+    "State, local, or tribal governments",
+    "Private Sector",
+    "No",
+    "Undetermined"
+   ],
+   "undeclared_observed": {},
+   "declared_never_observed": []
+  }
+ ]
+}
