@@ -260,6 +260,23 @@ def resolve_fr_thesaurus_api_topic_edges(
 
     thesaurus = _scheme_labels(facts, preferred_labels, FR_THESAURUS_SCHEME_IRI)
     api_topics = _scheme_labels(facts, preferred_labels, FR_API_TOPICS_SCHEME_IRI)
+    return resolve_fr_thesaurus_api_topic_edges_from_scheme_labels(thesaurus, api_topics)
+
+
+def resolve_fr_thesaurus_api_topic_edges_from_scheme_labels(
+    thesaurus: Mapping[str, str],
+    api_topics: Mapping[str, str],
+) -> tuple[tuple[tuple[str, str], ...], FrThesaurusApiTopicCounts]:
+    """The matching core, over two already-scheme-scoped label maps.
+
+    Split out so the producer's prebuild count and the streamed derivation
+    share ONE implementation of the match. The streamed pass arrives here
+    with labels read from asserted N-Quads; the prebuild arrives with the
+    same labels read from in-memory release resources. Only the way the two
+    maps are obtained differs -- the fold, the per-scheme index, the
+    bijection guard and the counters are computed once, here, so the
+    expected count and the emitted rows cannot drift apart.
+    """
 
     thesaurus_by_fold = _index_by_fold(thesaurus, "federal-register-thesaurus-2025")
     api_by_fold = _index_by_fold(api_topics, "federal-register-api-topics")

@@ -1836,21 +1836,16 @@ def _normalize_mesh(parsed: MeshDescriptorSnapshot, source: RegistryInputPin) ->
             source_locator=descriptor.concept_iri,
             source_digest=source.sha256,
             notations=descriptor.tree_numbers,
-            # The DescriptorUI is NLM's own stable identifier for the concept.
-            # `mesh_descriptors.py` already builds it as a ControlledIdentifier
-            # and it was being dropped here, so no MeSH row reached the Atlas
-            # identifiers table. It survives in the IRI and in native_payload,
-            # but only as text a consumer has to parse; this makes it a typed,
-            # queryable row alongside the Treasury account symbols that were
-            # previously the table's only occupant.
-            identifiers=tuple(
-                RegistryIdentifier(
-                    value=identifier.value,
-                    scheme_iri=MESH_DESCRIPTORS_SCHEME_IRI,
-                    source_path=f"xml:DescriptorRecord[{descriptor.descriptor_ui}]/DescriptorUI",
-                )
-                for identifier in descriptor.identifiers
-            ),
+            # The DescriptorUI is deliberately NOT emitted into `identifiers`.
+            # It was, briefly, pointed at MESH_DESCRIPTORS_SCHEME_IRI -- and the
+            # producer refused the build, correctly. That IRI is MeSH's concept
+            # scheme, not an identifier authority, and no amount of registering
+            # would fix the modelling: an Atlas identifier names something the
+            # scheme does not itself define, the way a CCN names a provider or
+            # a GEOID names a geography. D000001 is the concept's own accession
+            # number and is already the last segment of its own IRI, so a row
+            # here would restate the subject's identity as a property of
+            # itself. It stays in the IRI and in native_payload.
             status="active",
         )
         for descriptor in parsed.descriptors

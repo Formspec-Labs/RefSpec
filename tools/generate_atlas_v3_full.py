@@ -74,6 +74,7 @@ from refspec.atlas.derived_graph.eurovoc_microthesaurus_domain import (
 from refspec.atlas.derived_graph.fr_thesaurus_api_topic_alignment import (
     collect_fr_alignment_preferred_labels,
     derive_fr_thesaurus_api_topic_rows,
+    resolve_fr_thesaurus_api_topic_edges_from_scheme_labels,
     fr_thesaurus_api_topic_evidence_nodes,
 )
 from refspec.atlas.derived_graph.fr_compound_headings import (
@@ -4187,6 +4188,27 @@ def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
         edges, _counts = resolve_microthesaurus_domain_edges(
             microthesaurus_notations_by_resource,
             domain_notation_by_resource,
+        )
+        expected += len(edges)
+    # The sixth rule, like the EuroVoc one, fires only when BOTH of its
+    # releases are loaded -- and like the compound-heading rule it matches on
+    # preferred label TEXT. Its scheme scoping is already implied here, since
+    # each release contributes only its own resources, so the two maps go
+    # straight to the shared matching core.
+    thesaurus_release = releases_by_key.get(FR_THESAURUS_RELEASE_KEY)
+    api_topics_release = releases_by_key.get(FR_API_TOPICS_RELEASE_KEY)
+    if thesaurus_release is not None and api_topics_release is not None:
+        def _preferred(release: LoadedRelease) -> dict[str, str]:
+            return {
+                resource.iri: label.value
+                for resource in release.resources
+                for label in resource.labels
+                if label.role == "preferred"
+            }
+
+        edges, _counts = resolve_fr_thesaurus_api_topic_edges_from_scheme_labels(
+            _preferred(thesaurus_release),
+            _preferred(api_topics_release),
         )
         expected += len(edges)
     return expected
