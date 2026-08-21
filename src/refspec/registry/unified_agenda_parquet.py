@@ -37,7 +37,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from refspec.atlas.parquet_artifact import arrow_schema_sha256, file_sha256
-from refspec.registry.cfr_list_of_subjects import CFR_RESERVED_TITLES
+from refspec.registry.citation_grammar import parse_authority_citation, parse_cfr_citations
 from refspec.registry.unified_agenda_editions import (
     UNIFIED_AGENDA_EDITION_PINS,
     UnifiedAgendaEditionPin,
@@ -50,42 +50,7 @@ __all__ = [
     "LEGAL_AUTHORITIES_SCHEMA",
     "UnifiedAgendaParquetReceipt",
     "build_unified_agenda_parquet",
-    "ParsedCfrReference",
-    "parse_cfr_reference",
 ]
-
-#: The CFR is titles 1-50. Anything else cannot be a CFR citation, whatever the
-#: publisher wrote. Reserved titles are real numbers with no content.
-_MAX_CFR_TITLE = 50
-
-# "40 CFR 194", "40 CFR Part 194", "40 C.F.R. 194.5", "5 CFR part 2635 App B".
-# The part is taken up to the first dot: a section cite (302.32) names part 302,
-# which is the granularity the CFR subject index is keyed at.
-#: The largest real CFR part is four digits (48 CFR 9904). A longer run is the
-#: publisher's own fused-dot damage -- "40 CFR 60758" is 40 CFR 60.758 with the
-#: separator lost -- so the part is reported and flagged, never silently kept as
-#: though it were real.
-_MAX_PLAUSIBLE_PART_DIGITS = 4
-
-_CFR_REFERENCE = re.compile(
-    r"^\s*(?P<title>\d+)\s*C\.?\s?F\.?\s?R\.?\s*"
-    # "part(s)", "pt.", one or more section signs, or any mixture, in any
-    # order: the field carries "45 CFR part 302", "48 CFR Parts 719",
-    # "45 CFR § 302.32(b)" and "45 CFR §§ 1302.90(e)". Omitting the section
-    # sign returned a NULL part for every section-level citation; omitting the
-    # plural did the same for every "Parts" reference.
-    r"(?:(?:parts?|pts?\.?|§)+\s*)*"
-    # A letter suffix is only part of the part when nothing alphanumeric
-    # follows it. "7 CFR 15a" and "42 CFR 59a" are real parts; "17 CFR 15c3-3"
-    # is rule 15c3-3 under part 240, and taking "15c" invented a part that does
-    # not exist. 2,116 references carry a real letter suffix and 864 carry a
-    # rule number, so the tell has to be the digit that follows, not the letter.
-    r"(?P<part>\d+[A-Za-z]?)(?![0-9A-Za-z])",
-    re.IGNORECASE,
-)
-
-#: Every additional part in a list reference: "17 CFR parts 37, 38, 39".
-_ADDITIONAL_PARTS = re.compile(r",\s*(\d+[A-Za-z]?)(?![0-9A-Za-z])")
 
 ACTIONS_SCHEMA = pa.schema(
     [
@@ -105,8 +70,9 @@ CFR_REFERENCES_SCHEMA = pa.schema(
         pa.field("cfr_title", pa.int32(), nullable=True),
         pa.field("cfr_part", pa.string(), nullable=True),
         pa.field("cfr_title_is_possible", pa.bool_(), nullable=True),
+        pa.field("cfr_section", pa.string(), nullable=True),
         pa.field("cfr_part_is_plausible", pa.bool_(), nullable=True),
-        pa.field("cfr_additional_parts", pa.list_(pa.string()), nullable=False),
+        pa.field("citation_ordinal", pa.int32(), nullable=False),
     ]
 )
 
@@ -116,6 +82,11 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         pa.field("publication_id", pa.string(), nullable=False),
         pa.field("ordinal", pa.int32(), nullable=False),
         pa.field("authority_text", pa.string(), nullable=False),
+        pa.field("authority_type", pa.string(), nullable=True),
+        pa.field("usc_title", pa.int32(), nullable=True),
+        pa.field("usc_section", pa.string(), nullable=True),
+        pa.field("public_law", pa.string(), nullable=True),
+        pa.field("executive_order", pa.string(), nullable=True),
     ]
 )
 
@@ -220,29 +191,56 @@ def build_unified_agenda_parquet(
                 }
             )
             for ordinal, text in enumerate(record.cfr_references):
-                parsed = parse_cfr_reference(text)
-                references.append(
-                    {
-                        "rin": record.rin,
-                        "publication_id": record.publication_id,
-                        "ordinal": ordinal,
-                        "reference_text": text,
-                        "cfr_title": parsed.cfr_title,
-                        "cfr_part": parsed.cfr_part,
-                        "cfr_title_is_possible": parsed.cfr_title_is_possible,
-                        "cfr_part_is_plausible": parsed.cfr_part_is_plausible,
-                        "cfr_additional_parts": list(parsed.cfr_additional_parts),
-                    }
-                )
+                # A structured field is entirely a citation, so a comma-list
+                # continues it whatever label it carries -- 953 references in
+                # this field list parts with no label at all.
+                parsed = parse_cfr_citations(text, list_expansion="always")
+                if not parsed:
+                    references.append(
+                        {
+                            "rin": record.rin,
+                            "publication_id": record.publication_id,
+                            "ordinal": ordinal,
+                            "reference_text": text,
+                            "cfr_title": None,
+                            "cfr_part": None,
+                            "cfr_title_is_possible": None,
+                            "cfr_section": None,
+                            "cfr_part_is_plausible": None,
+                            "citation_ordinal": 0,
+                        }
+                    )
+                for citation_ordinal, citation in enumerate(parsed):
+                    references.append(
+                        {
+                            "rin": record.rin,
+                            "publication_id": record.publication_id,
+                            "ordinal": ordinal,
+                            "reference_text": text,
+                            "cfr_title": citation.cfr_title,
+                            "cfr_part": citation.cfr_part,
+                            "cfr_title_is_possible": citation.title_is_possible,
+                            "cfr_section": citation.cfr_section,
+                            "cfr_part_is_plausible": citation.part_is_plausible,
+                            "citation_ordinal": citation_ordinal,
+                        }
+                    )
             for ordinal, text in enumerate(record.legal_authorities):
-                authorities.append(
-                    {
-                        "rin": record.rin,
-                        "publication_id": record.publication_id,
-                        "ordinal": ordinal,
-                        "authority_text": text,
-                    }
-                )
+                base = {
+                    "rin": record.rin,
+                    "publication_id": record.publication_id,
+                    "ordinal": ordinal,
+                    "authority_text": text,
+                }
+                parsed_authorities = parse_authority_citation(text)
+                if not parsed_authorities:
+                    authorities.append({**base, "authority_type": None, "usc_title": None,
+                                        "usc_section": None, "public_law": None, "executive_order": None})
+                for authority in parsed_authorities:
+                    authorities.append({**base, "authority_type": authority.authority_type,
+                                        "usc_title": authority.usc_title, "usc_section": authority.usc_section,
+                                        "public_law": authority.public_law,
+                                        "executive_order": authority.executive_order})
 
     outputs: dict[str, str] = {}
     schema_digests: dict[str, str] = {}
