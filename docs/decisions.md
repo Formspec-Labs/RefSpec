@@ -1104,15 +1104,17 @@ the cited paths are sufficient.
 
 The platform has five products and six ownership rows, extending
 [REF-008](#ref-008-count-four-products-and-five-ownership-rows)'s counting rule
-with DocSpec. Rulespec Core owns portable schemas, generated types, identity
-functions, validators, diagnostics, and conformance fixtures. SpicyRegs
-discovers and selects regulatory sources, then publishes `SourceCatalogRelease`.
-DocSpec independently consumes that release, captures files, extracts
-representations, creates structural segments and evidence coordinates, and
-publishes `DocumentRelease`. RefSpec owns vocabularies and publishes Atlas
-releases and search views. Rulespec Extrapolator performs Rulespec-based logical
-structuring only. SpicySearch joins documents with RefSpec topics, creates
-snapshot-specific topic tags, builds disposable indexes, and serves search.
+with DocSpec. Rulespec Core owns the shared platform artifact specification,
+generated types, identity functions, structural verifier, diagnostics, and
+common fixtures. SpicyRegs discovers and selects regulatory sources, then
+publishes a `source-catalog` artifact. DocSpec consumes that artifact, captures
+files, extracts representations, creates structural segments and evidence
+coordinates, runs the sealed work locally or on an injected distributed
+executor, and publishes a `derivation` artifact. RefSpec owns vocabularies and
+publishes Atlas releases and search views. Rulespec Extrapolator performs
+Rulespec-based logical structuring only. SpicySearch joins documents with
+RefSpec topics, creates snapshot-specific topic tags, builds disposable indexes,
+and serves search.
 
 Products exchange immutable releases and installed packages. They never import
 sibling source trees or read sibling databases. Nothing shipped to an unowned

@@ -525,7 +525,7 @@ requires-dist = [
     { name = "pypdf", specifier = ">=6,<7" },
     { name = "rdflib", specifier = ">=7.1,<8" },
     { name = "referencing", specifier = ">=0.37,<1" },
-    { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc13-py3-none-any.whl" },
+    { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc15-py3-none-any.whl" },
     { name = "typing-extensions", specifier = ">=4.12,<5" },
 ]
 
@@ -664,21 +664,19 @@ wheels = [
 
 [[package]]
 name = "rulespec-conformance"
-version = "0.2.0rc13"
-source = { path = "vendor/rulespec_conformance-0.2.0rc13-py3-none-any.whl" }
+version = "0.2.0rc15"
+source = { path = "vendor/rulespec_conformance-0.2.0rc15-py3-none-any.whl" }
 dependencies = [
-    { name = "jsonschema" },
     { name = "pyshacl" },
     { name = "rdfcanon" },
     { name = "rdflib" },
 ]
 wheels = [
-    { filename = "rulespec_conformance-0.2.0rc13-py3-none-any.whl", hash = "sha256:38674800fc9f374dc27885b5ad4217268bb57b36f4de78a586ee0125b27c49dc" },
+    { filename = "rulespec_conformance-0.2.0rc15-py3-none-any.whl", hash = "sha256:37cf3f866bd4fe429137eccf876693193eb8ca3de62bf335101d992661c68681" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "jsonschema", specifier = ">=4.23.0" },
     { name = "pyshacl", specifier = ">=0.31.0" },
     { name = "rdfcanon", specifier = "==1.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
