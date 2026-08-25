@@ -71,17 +71,17 @@ from refspec.atlas.derived_graph.eurovoc_microthesaurus_domain import (
     eurovoc_microthesaurus_domain_evidence_nodes,
     resolve_microthesaurus_domain_edges,
 )
-from refspec.atlas.derived_graph.fr_thesaurus_api_topic_alignment import (
-    collect_fr_alignment_preferred_labels,
-    derive_fr_thesaurus_api_topic_rows,
-    resolve_fr_thesaurus_api_topic_edges_from_scheme_labels,
-    fr_thesaurus_api_topic_evidence_nodes,
-)
 from refspec.atlas.derived_graph.fr_compound_headings import (
     collect_fr_preferred_labels,
     derive_fr_compound_heading_broader_rows,
     fr_compound_heading_evidence_nodes,
     resolve_compound_heading_edges_from_labels,
+)
+from refspec.atlas.derived_graph.fr_thesaurus_api_topic_alignment import (
+    collect_fr_alignment_preferred_labels,
+    derive_fr_thesaurus_api_topic_rows,
+    fr_thesaurus_api_topic_evidence_nodes,
+    resolve_fr_thesaurus_api_topic_edges_from_scheme_labels,
 )
 from refspec.atlas.derived_graph.gcmd_column_nesting import (
     derive_gcmd_column_nesting_rows,

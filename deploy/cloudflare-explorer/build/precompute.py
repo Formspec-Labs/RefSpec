@@ -79,11 +79,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-import pyarrow as pa  # noqa: E402
-import pyarrow.parquet as pq  # noqa: E402
+import pyarrow as pa
+import pyarrow.parquet as pq
 
-from refspec.atlas.duckdb_view import open_atlas_duckdb_view  # noqa: E402
-from refspec.registry.infrastructure.artifact_serialization import (  # noqa: E402
+from refspec.atlas.duckdb_view import open_atlas_duckdb_view
+from refspec.registry.infrastructure.artifact_serialization import (
     sha256_digest,
 )
 
@@ -254,7 +254,7 @@ def main() -> int:
     digest = args.manifest_digest or sha256_digest(manifest_path.read_bytes())
     print(f"opening verified view at {root} (manifest {digest[:23]}...)")
     view = open_atlas_duckdb_view(root, trusted_manifest_digest=digest)
-    con = view._connection  # noqa: SLF001 -- this build script is part of the
+    con = view._connection
     # deploy project, not the library; it needs raw SQL/COPY access to the
     # same session AtlasDuckDBView already verified and wired up, rather than
     # re-deriving the connection (and re-verifying the artifact) itself.

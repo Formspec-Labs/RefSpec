@@ -31,7 +31,6 @@ from refspec.atlas.v3_registry_selection import (
 from refspec.atlas.v3_source_data import (
     LabelRole,
     RegistryInputPin,
-    RegistryIdentifier,
     RegistryLabel,
     RegistryRelation,
     RegistryRelease,

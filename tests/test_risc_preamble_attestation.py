@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from refspec.registry.unified_agenda_codes import (
     UA_LEGAL_AUTHORITY_CITATION_TYPE_DEFINITIONS as DEFINITIONS,
+)
+from refspec.registry.unified_agenda_codes import (
     UA_LEGAL_AUTHORITY_CITATION_TYPES as CITATION_TYPES,
 )
 

@@ -29,7 +29,6 @@ rather than lost.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -102,58 +101,6 @@ class UnifiedAgendaParquetReceipt:
     source_sha256_by_edition: dict[str, str]
     outputs: dict[str, str]
     schema_digests: dict[str, str]
-
-
-@dataclass(frozen=True)
-class ParsedCfrReference:
-    """One publisher CFR reference, split and judged but never discarded."""
-
-    cfr_title: int | None
-    cfr_part: str | None
-    cfr_title_is_possible: bool | None
-    cfr_part_is_plausible: bool | None
-    cfr_additional_parts: tuple[str, ...]
-
-
-def parse_cfr_reference(text: str) -> ParsedCfrReference:
-    """Split one publisher CFR reference without repairing or dropping it.
-
-    Every field is nullable and every verdict is separate from every value, so
-    a consumer can filter on a judgement while still seeing what was judged.
-
-    ``cfr_title`` is null when the string does not begin with a title number --
-    about 5% of the field, carrying ``(app B)``, ``(new)`` and bare ``...``.
-    ``cfr_part`` is null when no part can be read without inventing one, which
-    now includes rule numbers like ``15c3-3``. ``cfr_part_is_plausible`` is
-    false for parts longer than four digits, the publisher's fused-dot damage.
-    ``cfr_additional_parts`` carries the tail of a list reference, so
-    ``17 CFR parts 37, 38, 39`` does not silently become part 37 alone.
-    """
-
-    match = _CFR_REFERENCE.match(text)
-    if match is None:
-        # A title with no readable part still tells a consumer the title.
-        title_only = re.match(r"^\s*(?P<title>\d+)\s*C\.?\s?F\.?\s?R\.?", text, re.IGNORECASE)
-        if title_only is None:
-            return ParsedCfrReference(None, None, None, None, ())
-        title = int(title_only.group("title"))
-        return ParsedCfrReference(
-            title,
-            None,
-            1 <= title <= _MAX_CFR_TITLE and title not in CFR_RESERVED_TITLES,
-            None,
-            (),
-        )
-    title = int(match.group("title"))
-    part = match.group("part")
-    digits = "".join(character for character in part if character.isdigit())
-    return ParsedCfrReference(
-        cfr_title=title,
-        cfr_part=part,
-        cfr_title_is_possible=1 <= title <= _MAX_CFR_TITLE and title not in CFR_RESERVED_TITLES,
-        cfr_part_is_plausible=len(digits) <= _MAX_PLAUSIBLE_PART_DIGITS,
-        cfr_additional_parts=tuple(_ADDITIONAL_PARTS.findall(text[match.end() :])),
-    )
 
 
 def _edition_payload(pin: UnifiedAgendaEditionPin, source_root: Path) -> bytes:

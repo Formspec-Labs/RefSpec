@@ -85,12 +85,12 @@ from refspec.atlas.derived_graph import (
     ATLAS_IN_SCHEME_TERM,
     ATLAS_REPRESENTS_RESOURCE_TERM,
     ATLAS_SEMANTIC_RING_TERM,
+    EVIDENCE_INPUT_SOURCE_RECORD,
     AssertedFactView,
     DerivationContext,
     DerivationRule,
     DerivedRelationRow,
     DerivedRuleOutcome,
-    EVIDENCE_INPUT_SOURCE_RECORD,
     build_derived_row,
     iter_nquads_terms,
 )

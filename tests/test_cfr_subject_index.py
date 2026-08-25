@@ -43,7 +43,7 @@ REVISION = "publisher page current as of April 1, 2025"
 
 
 def _page(body: str) -> bytes:
-    return f"<html><body><dl>{body}</dl></body></html>".encode("utf-8")
+    return f"<html><body><dl>{body}</dl></body></html>".encode()
 
 
 def _pin(payload: bytes, *, title: int = 40, **overrides: object) -> CfrSubjectIndexPin:
@@ -170,7 +170,7 @@ def test_parser_performs_no_network_access() -> None:
 
     source = module.__file__
     assert source is not None
-    text = open(source, encoding="utf-8").read()
+    text = Path(source).read_text(encoding="utf-8")
     for forbidden in ("import requests", "urlopen", "httpx", "socket."):
         assert forbidden not in text
 

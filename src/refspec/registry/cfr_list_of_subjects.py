@@ -40,9 +40,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from html import unescape
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from html import unescape
 from typing import Any, Literal
 from urllib.parse import quote, urlsplit
 from xml.etree import ElementTree
@@ -746,14 +746,14 @@ _SUBJECT_DT_DD = re.compile(
     # real terms; requiring ``<dd>`` immediately dropped the part outright.
     r"(?P<gap>(?:(?!<dt[\s>])(?!<dd>).)*)"
     r"(?P<dds>(?:\s*<dd>.*?</dd>)+)",
-    re.S | re.I,
+    re.DOTALL | re.IGNORECASE,
 )
-_SUBJECT_DD = re.compile(r"<dd>(.*?)</dd>", re.S | re.I)
+_SUBJECT_DD = re.compile(r"<dd>(.*?)</dd>", re.DOTALL | re.IGNORECASE)
 _SUBJECT_TAGS = re.compile(r"<[^>]*>")
 _SUBJECT_HEAD = re.compile(
     r"(?P<title>\d{1,2})\s*CFR\s*(?:(?P<kw>Parts?|Oart|Chapter)\s*)?"
     r"(?P<part>[0-9][0-9A-Za-z.\-]*)\s*[_\u2014\u2013-]\s*(?P<heading>.*)",
-    re.I | re.S,
+    re.IGNORECASE | re.DOTALL,
 )
 _SUBJECT_LEAKED_TAG = "strong>"
 

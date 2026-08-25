@@ -31,7 +31,7 @@ ancestors, which drop an impossible title on the floor.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 __all__ = [
     "CFR_LETTERED_PART_SHARE",

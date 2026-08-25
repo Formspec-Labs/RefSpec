@@ -72,7 +72,7 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     assert total == 763_218
     assert parsed == 718_606
     kinds = con.execute(
-        "select distinct authority_type from '{d}/unified_agenda_legal_authorities.parquet' "
-        "where authority_type is not null".format(d=ARTIFACT.as_posix())
+        f"select distinct authority_type from '{ARTIFACT.as_posix()}/unified_agenda_legal_authorities.parquet' "
+        "where authority_type is not null"
     ).fetchall()
     assert {row[0] for row in kinds} == {"usc", "public_law", "executive_order", "statute_at_large"}
