@@ -1,6 +1,6 @@
 # Vendored dependency: rulespec-conformance
 
-`rulespec_conformance-0.2.0rc9-py3-none-any.whl` is vendored into this repo
+`rulespec_conformance-0.2.0rc12-py3-none-any.whl` is vendored into this repo
 because CI runners have no `~/Work/rulespec` checkout and `ci.yml` runs
 `uv sync --frozen`: a path source outside the repository cannot resolve
 there. Vendoring the wheel keeps `uv lock`/`uv sync` hermetic and lets
@@ -12,11 +12,11 @@ at which point the vendored file and the `[tool.uv.sources]` entry in
 `pyproject.toml` should be deleted in favor of a normal version constraint.
 
 **Source of truth**: the wheel is built from the rulespec repository's
-`feat/rulespec-conformance-package` branch, commit range `0710dcd..c584a1d`
-(HEAD `c584a1d`, "docs: record that the contract ships as an import"). It
-carries `rulespec_conformance.contract`: `USAGE_ELIGIBILITY` (the ordered
-7-value usage-eligibility tuple), 78 enums, and the 859-term rkaf registry
-(`terms.TERMS`, unknown-attribute access raises `ImportError`).
+`feat/rulespec-conformance-package` branch at `454afec`. In addition to the
+existing Rulespec bindings, it carries the shared platform artifact protocol
+and source-catalog schema used by SpicyRegs, DocSpec, and SpicySearch. Its
+SHA-256 digest is
+`211608dafd34b27d6b1b1adf8c5e82734545f132c704332b542826f301fc12d8`.
 
 **Bumping the contract**: when rulespec ships a new contract revision,
 replace this wheel file with the new build, update the version in this

@@ -15,7 +15,7 @@ dependencies = [
     "referencing>=0.37,<1",
     "typing-extensions>=4.12,<5",
     "pymarc>=5.1,<6",
-    "rulespec-conformance==0.2.0rc9",
+    "rulespec-conformance==0.2.0rc12",
 ]
 
 [project.scripts]
@@ -31,7 +31,7 @@ refspec-release-graph-gate = "refspec.release_graph:main"
 # vendor/README.md for why, and for the bump procedure. The path is
 # relative so `uv lock`/`uv sync --frozen` are hermetic on CI runners,
 # which have no ~/Work/rulespec checkout.
-rulespec-conformance = { path = "vendor/rulespec_conformance-0.2.0rc9-py3-none-any.whl" }
+rulespec-conformance = { path = "vendor/rulespec_conformance-0.2.0rc12-py3-none-any.whl" }
 
 [dependency-groups]
 dev = [
