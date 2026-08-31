@@ -94,14 +94,28 @@ this section reads shorter than it did.
   the count is written down so a future floor decision has it, the way the
   1,370 ``\\d{2}-\\d{1,2}`` values are written down at
   :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
-- **STILL OPEN: 394,128 (39.2%) are the bare-legacy form** and no
-  letter-opening space reaches them either. See
-  :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
-- **STILL OPEN: the letter-opening family has the identical short-tail
-  hole.** **5,829** letter-opening values are refused for exactly the tail
-  width the widening just fixed for the modern family. One of two identical
-  holes closed; this one cannot close here, because it is
-  ``identifier_shapes``'s to close and that module is receipt-pinned.
+- **STILL OPEN as a gap in rkaf, CLOSED as an identity gap: 394,128 (39.2%)
+  are the bare-legacy form.** No rulespec space reaches them — that has not
+  changed — but as of this cycle (REF-052) the shape moved home to
+  ``identifier_shapes.BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`` and
+  reads through that module's own ``column_licensed`` flag rather than a
+  local copy here. Every one of these documents still identifies, through
+  the partner hatch; only ``rkaf:us-frdoc`` itself is the gap.
+- **CLOSED: the letter-opening family's identical short-tail hole, and three
+  siblings with it.** REF-052/REF-054 named four letter-opening families
+  with a verified live example and 10,340 unread values between them;
+  ``identifier_shapes``'s column reader now reads **10,231** of them —
+  **5,829** three-digit-and-shorter tails (the short-tail hole this bullet
+  used to leave open), **4,195** two-digit prefixes, **206** six-digit tails,
+  and the single legacy-prefix-over-modern-body hybrid. The remaining 109
+  stay refused, deliberately: 99 short-tail corrections (96 of them naming an
+  original document the widening above just made first-class), 9
+  colophon-fused values, and 1 non-identifier extraction artifact — see
+  ``identifier_shapes._FR_COLUMN_LETTER_FORMS`` for the measurement and the
+  publisher pages each family was read against. None of this is a gap in
+  rkaf: every value here was always outside ``rkaf:us-frdoc``'s space and
+  stays outside it, identified through the partner hatch rather than
+  first-class.
 - **CLOSED for letters, REFUSED for hyphens: the CFR part.** ``rkaf:us-cfr``
   now writes the part as ``[0-9]+([a-z]|-[0-9]+)?``, covering all 272 of the
   8,424 parts in the OFR's published subject index that are not plain digits
@@ -129,11 +143,15 @@ this section reads shorter than it did.
 
 The whole ``document_number`` column, sorted by what it can carry and pinned
 by ``test_the_document_number_column_is_accounted_for_exactly``: **480,566**
-first-class, **511,420** under the partner hatch (394,128 bare-legacy +
-117,292 letter-opening), **12,247** refused. 98.8% identified, against 47.9%
+first-class, **521,651** under the partner hatch (394,128 bare-legacy +
+127,523 letter-opening), **2,016** refused. 99.8% identified, against 47.9%
 if only rkaf's own spaces are minted into and 0% before this module existed.
 The census had a fifth bucket for the 28,862 modern short tails; the widening
-emptied it, so it is gone rather than pinned at zero.
+emptied it, so it is gone rather than pinned at zero. This cycle (REF-052)
+moved **10,231** values from refused into the letter-opening bucket
+(117,292 → 127,523) without moving a single value into or out of first-class
+— the four families it admits are column-licensed, not rulespec-widened, so
+the split between first-class and partner-hatch is untouched.
 
 Anything the space cannot spell is still identified, never dropped: it takes
 rulespec's own ``rkaf:partner-defined`` escape hatch under
@@ -151,6 +169,8 @@ from urllib.parse import quote
 
 from refspec.registry.citation_grammar import CFR_TITLE_COUNT, states_nothing
 from refspec.registry.identifier_shapes import (
+    _DASHES,  # the shape layer's own table, shared deliberately -- see its docstring
+    BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER,
     IdentifierKind,
     detect_identifier_shapes,
     is_federal_register_document_number,
@@ -251,60 +271,17 @@ _RKAF_IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:[^\s]+$")
 
 # --------------------------------------------------------------------------- #
 # The Federal Register's bare-legacy document number.
-
-#: The pre-modern Federal Register document number: a two-digit year, a
-#: hyphen, and the sequence. "09-19806" is one; so is every document the
-#: Register published from 1994-01-03 through 2009-08-19 that did not carry a
-#: letter prefix.
-#:
-#: **394,128 of the 1,004,233** distinct values in the pinned
-#: ``document_number`` column take this shape — 39.2%, measured 2026-08-31 —
-#: and today not one of them has any identity at all:
-#: ``detect_identifier_shapes("09-19806")`` returns ``[]``,
-#: ``is_federal_register_document_number`` refuses it, and unlike the
-#: letter-opening forms this class appears nowhere in that module's
-#: exclusion accounting.
-#:
-#: **The column is the license.** This shape is unusable in running text —
-#: unlabeled, "94-12345" is indistinguishable from "MM Docket No. 98-213" and
-#: from a release number, which is why the prose reader refuses it and stays
-#: refusing it. A value arriving from a ``document_number`` field needs no
-#: such inference: the field already said what it holds. So this constant is
-#: read only behind :func:`mint_federal_register_document_iri`'s
-#: ``column_licensed`` flag.
-#:
-#: The tail runs three to SIX digits. Three to five is the modern shape's own
-#: floor and ceiling (``FEDERAL_REGISTER_DOCUMENT_NUMBER``) and covers 394,121
-#: of the values; the six-digit tail adds exactly 7, and all 7 are real
-#: published documents rather than damage — 94-120124, 94-126624, 95-170007,
-#: 95-229994, 95-295759, 96-244797 and 97-339151, each carrying its own
-#: ``federalregister.gov/documents/...`` URL, volume and page in the pinned
-#: corpus. A six-digit tail is a form the publisher really issued, which the
-#: letter-opening family already witnessed (X09-101207).
-#:
-#: NAMED REFUSAL: 1,370 further values are ``\d{2}-\d{1,2}`` — "00-10" and
-#: "00-11" are real airworthiness directives of 2000-01-04 — and stay unminted
-#: here, because widening a floor is a recall decision with its own budget and
-#: not a side effect of this one. That is the same posture
-#: :mod:`identifier_shapes` takes with its 10,340 unread letter-opening
-#: numbers, and the count is written down so the decision can be made with it.
-#:
-#: LONG-TERM HOME: this constant belongs beside
-#: ``identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER``, read by that
-#: module's column reader, so the Register's document-number space is spelled
-#: in one file rather than two. It is here instead because
-#: ``identifier_shapes.py`` is content-hashed into a build receipt and editing
-#: it forces an artifact rebuild; the move is batched with the next rebuild
-#: unit that touches that module.
-BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER = r"\d{2}-\d{3,6}"
-_BARE_LEGACY = re.compile(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER)
-
-#: Every dash spelling collapses to "-" before matching, one character for one
-#: character. Mirrors ``identifier_shapes._DASHES`` rather than importing it,
-#: and ``test_the_dash_fold_is_the_shape_layers_own`` asserts the two tables
-#: are identical — the two spellings drifting apart is the defect that module
-#: says it keeps producing, so the copy carries a check.
-_DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−", "-"))
+#
+# MOVED HOME 2026-08-31 (REF-052): the shape, its evidence, and the dash-fold
+# table this module used to mirror all now live in
+# ``identifier_shapes.BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`` and
+# ``identifier_shapes._DASHES``, imported above rather than restated. That
+# module is content-hashed into a build receipt, which is why the shape lived
+# here instead until this cycle's rebuild unit. Nothing about what this
+# module MINTS changes: ``mint_federal_register_document_iri``'s
+# ``column_licensed`` flag reads the identical shape it read before, now
+# through :func:`~identifier_shapes.is_federal_register_document_number`
+# rather than a local pattern.
 
 
 # --------------------------------------------------------------------------- #
@@ -627,22 +604,29 @@ def mint_federal_register_document_iri(
       ``[0-9]{4}-[0-9]{3,5}``, which is **480,566 of the 1,004,233** distinct
       values in the pinned column (47.9%);
     - ``rkaf:partner-defined`` when the shape layer recognises the value and
-      rulespec cannot spell it. Two populations arrive here: the
-      letter-opening correction, republication and legacy forms the prose
-      reader reads, and — behind ``column_licensed`` — the **394,128**
-      bare-legacy numbers. A third used to: the 28,862 modern-form numbers
-      with a three- or four-digit tail (2010-5997, 2011-237, 2012-00019 among
-      them) took the hatch until rulespec 0.2.0rc16 widened the space, and
-      they are first-class now;
+      rulespec cannot spell it. Two populations arrive here unconditionally,
+      through the prose reader: the correction, republication and legacy
+      forms, and — behind ``column_licensed`` — three more REF-052/REF-054
+      admit: the **394,128** bare-legacy numbers and, as of this cycle, the
+      four letter-opening families
+      (:data:`~identifier_shapes._FR_COLUMN_LETTER_FORMS`) totalling **10,231**
+      more. A sixth used to arrive here: the 28,862 modern-form numbers with a
+      three- or four-digit tail (2010-5997, 2011-237, 2012-00019 among them)
+      took the hatch until rulespec 0.2.0rc16 widened the space, and they are
+      first-class now;
     - ``None`` otherwise, which is a refusal and never a repair.
 
     ``column_licensed`` is the whole of the two-readers doctrine in this
-    module. Unlabeled in running text "94-12345" is indistinguishable from a
-    docket or a release number and stays unread; arriving from a
-    ``document_number`` field it needs no inference, because the field is the
-    license. Nothing about prose detection changes either way — the flag
-    admits one shape and admits it nowhere else. See
-    :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
+    module, delegated whole to
+    :func:`~identifier_shapes.is_federal_register_document_number`'s own
+    ``column_licensed`` flag — this function adds no second opinion about
+    what the column licenses. Unlabeled in running text "94-12345" is
+    indistinguishable from a docket or a release number and stays unread;
+    arriving from a ``document_number`` field it needs no inference, because
+    the field is the license. Nothing about prose detection changes either
+    way — the flag admits shapes and admits them nowhere else. See
+    :data:`~identifier_shapes.BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`
+    and :data:`~identifier_shapes._FR_COLUMN_LETTER_FORMS`.
 
     The padding is never normalized, and after the widening that rule is the
     only thing standing between a document and a second identifier. The Office
@@ -654,11 +638,11 @@ def mint_federal_register_document_iri(
     """
 
     text = _stated(document_number).translate(_DASHES)
-    if is_federal_register_document_number(text) or _states_a_federal_register_document(text):
+    if is_federal_register_document_number(
+        text, column_licensed=column_licensed
+    ) or _states_a_federal_register_document(text):
         minted = _mint("rkaf:us-frdoc", f"urn:rkaf:us:frdoc:{text}")
         return minted if minted is not None else mint_partner_iri("frdoc", text)
-    if column_licensed and _BARE_LEGACY.fullmatch(text):
-        return mint_partner_iri("frdoc", text)
     return None
 
 

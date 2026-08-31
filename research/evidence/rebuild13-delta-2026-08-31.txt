@@ -1,0 +1,16 @@
+### RECEIPT DELTA, rebuild #12 (units-grammar, committed) -> rebuild #13 (REF-052 letter-opening cycle, 2026-08-31)
+  /producer/modules/identifier_shapes
+      'sha256:0aa1396da33a5e8ad04383e35a7d982231ea8a2e929d6f6ca53e1526da51a195'  ->  'sha256:ea289089f252743152a9185b794629fc5a238207df869350de7e2795e183047b'
+
+Nothing else moved: all 478 receipt keys are byte-identical, including every
+count and all four output parquet digests, which stand exactly where
+rebuild #12 left them (unified_agenda_cfr_references sha256:7528e572...,
+unified_agenda_legal_authorities sha256:b01ca480...). REF-052/REF-054 changed
+where letter-opening document numbers are ADMITTED -- the column-licensed
+census read by the test tier -- not what the parquet build extracts, so a nil
+data delta is the expected result, verified here rather than assumed.
+
+Two rebuilds produced this one committed step: the REF-052 production edits
+(module at sha256:d8342877...) and a comment-only pass landing the semi-formal
+review's wording conditions (F5/F6). The receipt diff between those two is the
+identifier_shapes hash alone; between #12 and the final state, likewise.

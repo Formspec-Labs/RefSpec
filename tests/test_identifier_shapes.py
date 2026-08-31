@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry.identifier_shapes import (
+    BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER,
     FEDERAL_REGISTER_DOCUMENT_NUMBER,
     IdentifierCandidate,
     IdentifierKind,
@@ -716,6 +717,125 @@ def test_a_two_digit_year_document_number_stays_undetected() -> None:
 
 
 # --------------------------------------------------------------------------- #
+# The column license: REF-052/REF-054. Bare-legacy and four letter-opening
+# families the prose reader above refuses -- and keeps refusing -- become
+# readable when ``column_licensed=True`` states the value arrived from a
+# ``document_number`` field. Every positive specimen below is read against
+# the publisher's own printed page in ``docs/decisions.md``'s REF-052 record;
+# every negative is a shape the pinned column does not carry.
+
+
+def test_prose_detection_is_unwidened_by_the_column_license() -> None:
+    """The column license is a second question, never a softer version of the
+    first one. Every specimen the prose reader already refuses above is
+    refused identically here -- ``detect_identifier_shapes`` takes no
+    argument to loosen, and ``is_federal_register_document_number`` without
+    the flag answers exactly as it did before this cycle."""
+
+    for value in ("Z9-802", "E9-654", "E9-23", "Z9-9", "X10-11220", "X09-101207", "E3-2013-2261", "09-19806"):
+        assert detect_identifier_shapes(value) == [], value
+        assert not is_federal_register_document_number(value), value
+        assert not is_federal_register_document_number(value, column_licensed=False), value
+
+
+def test_the_bare_legacy_shape_is_licensed_by_the_column() -> None:
+    """§1.2, now read from this module rather than ``iri_minting``.
+
+    "09-19806" is the Federal Trade Commission's "CSE, Inc., et al." consent
+    notice, Federal Register Vol. 74 No. 159 p.41908 (2009-08-19); its own
+    printed colophon reads "[FR Doc. 09-19806 Filed 8-18-09; 1:15 pm]"
+    verbatim. "00-10" is a real airworthiness directive of 2000-01-04 that
+    the named refusal at :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`
+    leaves below the floor -- widening a floor is a recall decision with its
+    own budget, not a side effect of the column moving home.
+    """
+
+    assert re.fullmatch(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER, "09-19806")
+    assert is_federal_register_document_number("09-19806", column_licensed=True)
+    assert not is_federal_register_document_number("00-10", column_licensed=True)
+
+
+def test_the_three_digit_and_shorter_tail_family_is_column_licensed() -> None:
+    """The legacy form's own shape with the tail widened down to one to three
+    digits -- exactly the axis rc16 widened the modern form along.
+
+    E9-654 is real: Federal Register Vol. 74 No. 21 p.5921 (2009-02-03),
+    printed colophon "[FR Doc. E9-654 Filed 2-2-09; 8:45 am]", on the same
+    page as "[FR Doc. E9-2239 Filed 2-2-09; 8:45 am]" -- an ordinary
+    four-digit sibling in the identical numbering series, published the same
+    day. The short tail is the low end of an ordinary sequence, and 5,829
+    values in the pinned column take this shape.
+
+    "Z99-9" -- a two-digit prefix with a one-digit tail -- is the negative:
+    zero values of that shape exist in the pinned column, so it stays
+    refused rather than admitted on the strength of a name alone.
+    """
+
+    assert is_federal_register_document_number("E9-654", column_licensed=True)
+    assert is_federal_register_document_number("Z9-9", column_licensed=True)
+    assert not is_federal_register_document_number("Z99-9", column_licensed=True)
+
+
+def test_the_two_digit_prefix_family_is_column_licensed() -> None:
+    """A letter, two digits, then the legacy form's own five-digit tail.
+
+    X10-11220 is real (Vol. 75 No. 243 p.79449, 2010-12-20), read end to end
+    against the publisher's PDF as "Introduction to The Regulatory Plan and
+    the Unified Agenda of Federal Regulatory and Deregulatory Actions" -- the
+    composite front-matter section opening that fall's whole special
+    supplement, not a per-document filing with its own colophon. It is still
+    the publisher's own ``document_number`` for the section. 4,195 values in
+    the pinned column take this shape, all with a five-digit tail.
+
+    "X10-654" -- the same two-digit prefix with a three-digit tail -- is the
+    negative: no two-digit-prefix value in the pinned column carries a
+    three- or four-digit tail.
+    """
+
+    assert is_federal_register_document_number("X10-11220", column_licensed=True)
+    assert not is_federal_register_document_number("X10-654", column_licensed=True)
+
+
+def test_the_six_digit_tail_family_is_column_licensed() -> None:
+    """A letter, exactly two digits, then a six-digit tail.
+
+    X09-101207 is real (Vol. 74 No. 233 p.64213, 2009-12-07), read end to end
+    against the publisher's PDF as the Fall 2009 Regulatory Plan itself -- 33
+    pages closing with FEMA's "Special Community Disaster Loans Program"
+    entry at p.64245, no colophon on either bounding page, still the
+    publisher's own id. 206 values in the pinned column take this shape.
+
+    "E9-654321" -- a one-digit prefix with a six-digit tail -- is the
+    negative: zero values of that shape exist in the pinned column, so the
+    family stays exactly as wide as what was measured.
+    """
+
+    assert is_federal_register_document_number("X09-101207", column_licensed=True)
+    assert not is_federal_register_document_number("E9-654321", column_licensed=True)
+
+
+def test_the_legacy_over_modern_body_hybrid_is_column_licensed() -> None:
+    """A letter and one digit, then the modern form's own body whole.
+
+    E3-2013-2261 is real (Vol. 78 No. 22 p.7443, 2013-02-01, "Request for
+    Comment on the Redesign of the American Housing Survey"); its own printed
+    colophon -- "[FR Doc. E3-2013-2261 Filed 1-31-13; 8:45 am]" -- sits in
+    the same place and style as every ordinary document's on the same page.
+    It is the only value in the pinned column that takes this shape.
+
+    "C1-2012-19" is the negative: it is one of the 99 short-tail corrections
+    REF-054 names and keeps refused (its own ``correction_of`` is
+    2012-00019), not a member of this family -- the hybrid excludes C and R
+    prefixes by construction, because a C-prefixed value here is that
+    deferred population and an R-prefixed one is already read by the
+    republication form.
+    """
+
+    assert is_federal_register_document_number("E3-2013-2261", column_licensed=True)
+    assert not is_federal_register_document_number("C1-2012-19", column_licensed=True)
+
+
+# --------------------------------------------------------------------------- #
 # Arbitration between grammars that claim the same characters.
 
 
@@ -1059,16 +1179,13 @@ def test_a_correction_only_ever_answers_with_a_roster_member(text: str) -> None:
 
 #: The two pinned columns the corrector is measured against, read where they
 #: are built rather than rebuilt here. The Unified Agenda roster is RefSpec's
-#: own artifact; the Federal Register corpus belongs to the sibling
+#: own artifact; the Federal Register corpus originated in the sibling
 #: ``spicy-regs`` repository, which is why the corrector takes a roster
-#: argument instead of reading a column. RefSpec lived inside spicy-regs
-#: until 2026-08-21, so both layouts are resolved.
+#: argument instead of reading a column. It came home to RefSpec's own
+#: ``output/`` on 2026-08-31, so this reads it directly rather than through
+#: the ``../spicy-regs`` fallback the two repos' 2026-08-21 split had left
+#: behind.
 _ROOT = Path(__file__).resolve().parents[1]
-_SPICY_REGS = (
-    _ROOT.parent
-    if (_ROOT.parent / "output" / "rulespec-stabilization-candidate-final").is_dir()
-    else _ROOT.parent / "spicy-regs"
-)
 AGENDA_RIN_PARQUET = (
     _ROOT
     / "output"
@@ -1077,7 +1194,11 @@ AGENDA_RIN_PARQUET = (
     / "unified_agenda_legal_authorities.parquet"
 )
 FEDERAL_REGISTER_PARQUET = (
-    _SPICY_REGS / "output" / "rulespec-stabilization-candidate-final" / "federal_register.parquet"
+    _ROOT
+    / "output"
+    / "registry-real-data-sources"
+    / "rulespec-stabilization-candidate-final"
+    / "federal_register.parquet"
 )
 
 

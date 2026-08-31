@@ -31,7 +31,6 @@ from refspec.registry.citation_grammar import (
     EO_HIGHEST_KNOWN,
     parse_cfr_citations,
 )
-from refspec.registry.iri_minting import _DASHES as MINTING_DASHES
 from refspec.registry.iri_minting import (
     BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER,
     IDENTIFIER_SPACES,
@@ -48,15 +47,17 @@ from refspec.registry.iri_minting import (
 
 # --------------------------------------------------------------------------- #
 # The pinned columns, resolved the way ``test_identifier_shapes`` resolves them.
+# The Federal Register corpus came home to RefSpec's own ``output/`` on
+# 2026-08-31; this reads it directly rather than through the ``../spicy-regs``
+# fallback the two repos' 2026-08-21 split had left behind.
 
 _ROOT = Path(__file__).resolve().parents[1]
-_SPICY_REGS = (
-    _ROOT.parent
-    if (_ROOT.parent / "output" / "rulespec-stabilization-candidate-final").is_dir()
-    else _ROOT.parent / "spicy-regs"
-)
 FEDERAL_REGISTER_PARQUET = (
-    _SPICY_REGS / "output" / "rulespec-stabilization-candidate-final" / "federal_register.parquet"
+    _ROOT
+    / "output"
+    / "registry-real-data-sources"
+    / "rulespec-stabilization-candidate-final"
+    / "federal_register.parquet"
 )
 AGENDA_RIN_PARQUET = (
     _ROOT
@@ -145,18 +146,6 @@ def test_every_scheme_minted_is_one_rulespec_declares() -> None:
     }
     assert set(IDENTIFIER_SPACES) <= declared
     assert set(enums.US_REGULATORY_IDENTIFIER_SCHEME) - {"rkaf:us-usc"} <= set(IDENTIFIER_SPACES)
-
-
-def test_the_dash_fold_is_the_shape_layers_own() -> None:
-    """The copy of the dash table carries a check, because the copy is the risk.
-
-    ``identifier_shapes`` names "the two spellings drifting apart" as the
-    defect it keeps producing. This module folds dashes too and mirrors the
-    table rather than importing a private name; the mirror is only safe while
-    something breaks when it stops mirroring.
-    """
-
-    assert MINTING_DASHES == identifier_shapes._DASHES
 
 
 # --------------------------------------------------------------------------- #
@@ -636,6 +625,32 @@ def test_the_letter_opening_forms_keep_the_identity_the_shape_layer_reads() -> N
     assert mint_federal_register_document_iri("FR Doc. 2026-13078") is None
 
 
+def test_the_four_letter_opening_families_need_the_column_license_too() -> None:
+    """REF-052/REF-054's four families, at the mint layer rather than the
+    shape layer's own unit tests (``test_identifier_shapes.py`` pins the
+    positive and negative fixture per family).
+
+    Unlicensed, every specimen below is exactly as unread as
+    ``test_the_letter_opening_forms_keep_the_identity_the_shape_layer_reads``
+    already proved for two of them; licensed, all four mint through the
+    partner hatch, the same escape hatch the pre-existing correction,
+    republication and legacy forms already use.
+    """
+
+    for value in ("E9-654", "Z9-9", "X10-11220", "X09-101207", "E3-2013-2261"):
+        assert mint_federal_register_document_iri(value) is None, value
+        licensed = mint_federal_register_document_iri(value, column_licensed=True)
+        assert licensed is not None, value
+        assert licensed.scheme == "rkaf:partner-defined", value
+        assert licensed.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:{value}", value
+
+    # The 99 short-tail corrections and the fused-colophon values REF-054
+    # keeps refused stay refused, licensed or not -- the four families do not
+    # reach for a second unmeasured population.
+    for still_refused in ("C1-2012-19", "C1-2012-2091"):
+        assert mint_federal_register_document_iri(still_refused, column_licensed=True) is None, still_refused
+
+
 def test_the_bare_legacy_form_needs_the_column_license_and_only_that() -> None:
     """§1.2 in one assertion: refused as prose, minted as a column.
 
@@ -764,12 +779,27 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
 
     The specimens above state the rules; this states what the rules are worth
     on the population they were written for, so widening or narrowing one has
-    a number to move. Measured 2026-08-31 over the same pinned file
-    ``test_identifier_shapes`` reads.
+    a number to move. Re-measured 2026-08-31 (REF-052) over the same pinned
+    file ``test_identifier_shapes`` reads, after ``identifier_shapes`` took
+    the bare-legacy shape and the four letter-opening families home as
+    column-licensed reads.
 
-    The headline is the 39.2%: without the column license, 394,128 real
-    documents have no identity of any kind, and the ingest lane that reads
-    their bodies has nothing to join them on.
+    The headline is still the 39.2%: without the column license, 394,128
+    real documents have no identity of any kind, and the ingest lane that
+    reads their bodies has nothing to join them on. What moved this cycle is
+    the letter-opening bucket: 10,231 values that used to land in ``refused``
+    now land here, because a shape being column-licensed (this cycle) is not
+    the same event as a lexical space being widened (rc16) -- neither
+    ``first-class`` nor ``bare-legacy`` moved by one value.
+
+    The bucket a value falls into is now read from its own shape rather than
+    inferred from whether the prose reader agreed: before this cycle
+    "the prose reader refused it" and "it is bare-legacy" were the same fact,
+    because nothing else reached the partner hatch through the column alone.
+    They are not the same fact any more -- the four new families are also
+    prose-refused and also column-only -- so the letter-opening bucket is
+    now everything the bare-legacy shape does not fullmatch, whether the
+    prose reader agrees (117,292 of it, unchanged) or not (10,231 more).
 
     There used to be a fifth bucket here, ``modern-short-tail``, counting the
     28,862 modern numbers the five-digit-wide ``rkaf:us-frdoc`` space refused.
@@ -781,6 +811,8 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     """
 
     import pyarrow.parquet as pq
+
+    bare_legacy_shape = re.compile(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER)
 
     values: set[str] = set()
     for batch in pq.ParquetFile(FEDERAL_REGISTER_PARQUET).iter_batches(
@@ -798,35 +830,49 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
             census["refused"] += 1
         elif column.scheme == "rkaf:us-frdoc":
             census["first-class"] += 1
-        elif prose is None:
+        elif bare_legacy_shape.fullmatch(value.strip().translate(identifier_shapes._DASHES)):
             census["bare-legacy"] += 1
         else:
             # The dead bucket, as an assertion. Every modern-form number the
             # shape layer reads is now inside the space, so nothing that
-            # reaches the partner hatch through the PROSE reader can be one.
+            # reaches the partner hatch -- through the prose reader or through
+            # the four new column-only families alike -- can be one.
             assert not identifier_shapes.is_federal_register_document_number(value), value
             census["letter-opening"] += 1
 
     assert census == {
         # What rulespec can spell: 47.9% of the column, up from 45.0% before
         # the rc16 widening moved 28,862 documents in from the partner hatch.
+        # Untouched by this cycle -- column licensing moves values between
+        # the partner hatch and refused, never into or out of first-class.
         "first-class": 480_566,
-        # §1.2: identity-less today, and the whole reason for the column license.
+        # §1.2: identity-less today, and the whole reason for the column
+        # license. Unchanged: this cycle only moved the shape's HOME, not its
+        # membership.
         "bare-legacy": 394_128,
-        # Corrections, republications and legacy prefixes the prose reader reads.
-        # 5,829 of these are refused below for the SAME short tail the widening
-        # just fixed for the modern family; that hole is in receipt-pinned
-        # `identifier_shapes` and stays open. See REF-054.
-        "letter-opening": 117_292,
-        # Damage and the shapes nobody has decided about: 1.2% of the column.
-        # 286 are modern numbers with a one- or two-digit tail, deliberately
-        # left below the widened floor so the space stays co-extensive with
-        # `identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER`.
-        "refused": 12_247,
+        # Corrections, republications and legacy prefixes the prose reader
+        # reads (117,292, unchanged) plus the four families REF-052/REF-054
+        # admit this cycle (10,231 more): 5,829 three-digit-and-shorter
+        # tails, 4,195 two-digit prefixes, 206 six-digit tails, and the
+        # single legacy-prefix-over-modern-body hybrid. See
+        # `identifier_shapes._FR_COLUMN_LETTER_FORMS`.
+        "letter-opening": 127_523,
+        # Damage and the shapes nobody has decided about: 0.2% of the column,
+        # down from 1.2% before this cycle moved 10,231 letter-opening values
+        # out. All 2,016 are named: 1,370 bare-legacy values with a one- to
+        # three-digit tail (REF-052 licensed the short-tail widening for the
+        # letter-opening family only; bare-legacy's own tail is a separate,
+        # unmade ruling); 286 modern numbers with a one- or two-digit tail,
+        # deliberately left below the widened floor; 228 `-2`-suffixed
+        # collision values; 99 short-tail corrections REF-054 keeps refused;
+        # 32 colophon-fused values (9 letter-opening + 23 bare-legacy); and
+        # `granule293`, the one non-identifier extraction artifact. None is
+        # an oversight: 1,370 + 286 + 228 + 99 + 32 + 1 = 2,016.
+        "refused": 2_016,
     }
     assert sum(census.values()) == len(values)
     # The partner hatch, derived rather than pinned separately.
-    assert census["bare-legacy"] + census["letter-opening"] == 511_420
+    assert census["bare-legacy"] + census["letter-opening"] == 521_651
 
 
 @pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")

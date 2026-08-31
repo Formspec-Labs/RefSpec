@@ -83,6 +83,7 @@ from enum import StrEnum
 from typing import Any
 
 __all__ = [
+    "BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER",
     "FEDERAL_REGISTER_DOCUMENT_NUMBER",
     "IdentifierCandidate",
     "IdentifierKind",
@@ -108,6 +109,15 @@ _RIGHT = r"(?![A-Za-z0-9_-])"
 
 #: Every dash spelling collapses to "-" before matching, one character for one
 #: character, so spans on the normalized text still index the original.
+#:
+#: Deliberately shared, not module-private in spirit: :mod:`iri_minting` folds
+#: dashes on the same values before minting them and imports this table
+#: directly rather than keeping its own copy, because the two spellings
+#: drifting apart is the defect this module's docstring names as its
+#: recurring one. A leading underscore stays on the name -- nothing else in
+#: this module's public surface carries one -- but the name is meant to be
+#: reached from outside, and REF-052 is the ruling that retired the mirror
+#: this comment used to warn a test to keep true.
 _DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−", "-"))
 
 
@@ -425,6 +435,173 @@ _FR_DOCUMENT_FORMS: tuple[tuple[str, str], ...] = (
 )
 _FR_DOCUMENT = re.compile(rf"{_LEFT}(?P<value>{'|'.join(form for _, form in _FR_DOCUMENT_FORMS)}){_RIGHT}")
 
+# --------------------------------------------------------------------------- #
+# The column-licensed Federal Register forms: REF-052/REF-054.
+#
+# Everything above this line is the PROSE reader's grammar and REF-052 leaves
+# it untouched -- not one character wider than it was. What follows is what
+# only a ``document_number`` field may license: the bare-legacy shape and the
+# four letter-opening families the module docstring's exclusion accounting
+# named above but refused to read. The prose reader still returns ``[]`` for
+# every specimen below; only :func:`is_federal_register_document_number`'s
+# ``column_licensed`` flag reaches them.
+#
+# The 10,340 letter-opening values named above split three ways, measured
+# 2026-08-31 against the same pinned ``document_number`` column
+# (1,004,233 distinct) this module's docstring reads: 10,231 take one of the
+# four families below, each with a verified live example; 109 do not and stay
+# refused, deferred rather than fixed, because REF-054 already named their
+# disposition and none of it changes here:
+#
+# - 99 are short-tail corrections -- ``[Cc]\d-\d{4}-\d{2,4}`` -- one short of
+#   the correction form's fixed five-digit tail; C1-2012-19 is the specimen
+#   :data:`_FR_DOCUMENT_FORMS` already carries. Of the 99, 96 name an
+#   original document the rc16 widening just made first-class (REF-054's own
+#   count), 2 name one still below the widened floor, and 1 names no document
+#   in the pinned column at all -- measured 2026-08-31 by resolving each
+#   ``correction_of`` target against the same column. REF-054 keeps these
+#   refused explicitly: widening the correction form's tail is a decision
+#   about the correction form, not about the four families below, and this
+#   ruling does not make it.
+# - 9 are colophon-fused values carrying a trailing letter after the digits
+#   ("E5-2394Filed"-shaped, with a letter-opening prefix) -- the same
+#   printed-page composition defect the module's research notes attest for
+#   the bare-legacy family, not a shape decision.
+# - 1 is not an identifier at all: it is ``granule293`` itself, the
+#   body-text extraction artifact this module's research notes attest -- it
+#   opens with a letter, so the letter-opening census is where it lands.
+#
+# Four families, each verified against the publisher's own pages on
+# 2026-08-31 (PDFs read end to end, not just the ``document_number`` cell) --
+# not four guesses at what "letter-opening" might mean:
+#
+# **Three-digit-and-shorter tails.** The legacy form's own shape
+# (``[A-Za-z]\d-\d{4,5}``) with the tail widened down to one to three digits
+# -- exactly the axis rc16 widened the modern form along, and REF-054 names
+# the 5,829 result as "the letter-opening family['s]... identical short-tail
+# hole." E9-654 (three digits), E9-23 (two) and Z9-9 (one) are real: read
+# against Federal Register Vol. 74 No. 21 (2009-02-03), E9-654's own printed
+# colophon is "[FR Doc. E9-654 Filed 2-2-09; 8:45 am]" on the same page (5921)
+# as "[FR Doc. E9-2239 Filed 2-2-09; 8:45 am]" and "[FR Doc. E9-2266 Filed
+# 2-2-09; 8:45 am]" -- ordinary four-digit siblings in the identical numbering
+# series, published the same day. The short tail is the low end of an
+# ordinary sequence, not a different kind of document. 5,829 values in the
+# pinned column take this shape.
+_FR_LETTER_SHORT_TAIL = re.compile(r"[A-Za-z]\d-\d{1,3}")
+
+#: **Two-digit prefixes.** A letter, TWO digits rather than the legacy form's
+#: one, then its own five-digit tail -- and, measured, always exactly five:
+#: no two-digit-prefix value in the pinned column carries a three- or
+#: four-digit tail. X10-11220 is real (Vol. 75 No. 243, p.79449, 2010-12-20).
+#: Read end to end against the publisher's PDF, it is not an ordinary
+#: per-document filing: it is "Introduction to The Regulatory Plan and the
+#: Unified Agenda of Federal Regulatory and Deregulatory Actions," the
+#: composite front-matter section opening that fall's whole special
+#: supplement, six pages long, and no "[FR Doc. ...]" colophon appears
+#: anywhere in it -- unlike E9-654 above. The "X" prefix is still the
+#: publisher's own ``document_number`` for the section: navigable at exactly
+#: that id on both federalregister.gov and govinfo.gov. Read against the
+#: whole family (4,195 values), roughly 43% (1,811 of 4,195, doc_type
+#: "Uncategorized Document") are this kind of front-matter placeholder --
+#: CONTENTS, Reader Aids, Subscriptions boilerplate, Regulatory Plan
+#: introductions, "[No title available]" -- rather than a substantive rule or
+#: notice; the remaining 57% (2,384 of 4,195: 1,570 Corrections, 566 Notices,
+#: 164 Rules, 49 Proposed Rules, 17 Presidential Documents, 15 Sunshine Act
+#: Documents) are ordinary filings that do carry their own colophon. Both
+#: populations are real values the publisher's own API puts in
+#: ``document_number``, and the column doctrine reads shape, not editorial
+#: content -- the same posture this module's research notes already take for
+#: ``granule293``, the Reader Aids placeholder that "even it is the
+#: publisher's."
+_FR_TWO_DIGIT_PREFIX = re.compile(r"[A-Za-z]\d{2}-\d{5}")
+
+#: **Six-digit tails.** A letter, exactly two digits, then a SIX-digit tail --
+#: measured exactly, because zero one-digit-prefix, six-digit-tail values
+#: exist in the pinned column; that unobserved shape stays refused rather
+#: than admitted on the strength of the family's name alone. X09-101207 is
+#: real (Vol. 74 No. 233, p.64213, 2009-12-07) and reads the same way as its
+#: two-digit-prefix sibling above: the Fall 2009 Regulatory Plan itself, 33
+#: pages closing with FEMA's "Special Community Disaster Loans Program" entry
+#: at p.64245, no colophon on either bounding page, still the publisher's own
+#: id. 206 values in the pinned column take this shape.
+_FR_SIX_DIGIT_TAIL = re.compile(r"[A-Za-z]\d{2}-\d{6}")
+
+#: **Legacy-prefix-over-modern-body hybrids.** A letter and one digit, then
+#: the modern form's own body whole: a second dash, a four-digit year, a
+#: three-to-five-digit tail. Exactly one value in the pinned column takes
+#: this shape: E3-2013-2261, read against Vol. 78 No. 22 p.7443 (2013-02-01,
+#: "Request for Comment on the Redesign of the American Housing Survey"),
+#: whose own printed colophon -- "[FR Doc. E3-2013-2261 Filed 1-31-13; 8:45
+#: am]" -- sits in the same place and style as every ordinary document's on
+#: the same page. C and R are excluded by construction, not by absence in the
+#: data alone: a C-prefixed value in this exact shape is one of the 99
+#: short-tail corrections named above and stays in that deferred population,
+#: and an R-prefixed value in this shape is already read by the
+#: republication form, whose own year segment is optional
+#: (``r"[Rr]\d-(?:\d{4}-)?\d{3,5}"``). Neither is this family.
+_FR_LEGACY_OVER_MODERN_BODY = re.compile(r"(?![CcRr])[A-Za-z]\d-\d{4}-\d{3,5}")
+
+#: The four families above, tried in no particular order -- safe because
+#: they are disjoint BY CONSTRUCTION, not by census: under ``fullmatch`` the
+#: legacy-over-modern form is the only one with two dashes; among the
+#: one-dash forms the short tail requires exactly one digit before the dash
+#: where the other two require exactly two; and those two demand five-
+#: versus six-digit tails. No string can satisfy two of them at once, so
+#: order cannot matter.
+_FR_COLUMN_LETTER_FORMS: tuple[re.Pattern[str], ...] = (
+    _FR_LETTER_SHORT_TAIL,
+    _FR_TWO_DIGIT_PREFIX,
+    _FR_SIX_DIGIT_TAIL,
+    _FR_LEGACY_OVER_MODERN_BODY,
+)
+
+#: The pre-modern Federal Register document number: a two-digit year, a
+#: hyphen, and the sequence. "09-19806" is one; so is every document the
+#: Register published from 1994-01-03 through 2009-08-19 that did not carry a
+#: letter prefix.
+#:
+#: **394,128 of the 1,004,233** distinct values in the pinned
+#: ``document_number`` column take this shape -- 39.2%, measured 2026-08-31 --
+#: and it is now a licensed column family rather than the class appearing
+#: nowhere in this module's accounting: ``detect_identifier_shapes("09-19806")``
+#: still returns ``[]`` (the prose reader is unchanged), but
+#: ``is_federal_register_document_number("09-19806", column_licensed=True)``
+#: is ``True``. Read against Vol. 74 No. 159 p.41908 (2009-08-19), its own
+#: printed colophon is "[FR Doc. 09-19806 Filed 8-18-09; 1:15 pm]" -- the
+#: Federal Trade Commission's "CSE, Inc., et al." consent-order notice.
+#:
+#: **The column is the license.** This shape is unusable in running text --
+#: unlabeled, "94-12345" is indistinguishable from "MM Docket No. 98-213" and
+#: from a release number, which is why the prose reader refuses it and stays
+#: refusing it. A value arriving from a ``document_number`` field needs no
+#: such inference: the field already said what it holds.
+#:
+#: The tail runs three to SIX digits. Three to five is the modern shape's own
+#: floor and ceiling (``FEDERAL_REGISTER_DOCUMENT_NUMBER``) and covers 394,121
+#: of the values; the six-digit tail adds exactly 7, and all 7 are real
+#: published documents rather than damage -- 94-120124, 94-126624, 95-170007,
+#: 95-229994, 95-295759, 96-244797 and 97-339151, each carrying its own
+#: ``federalregister.gov/documents/...`` URL, volume and page in the pinned
+#: corpus. A six-digit tail is a form the publisher really issued, which the
+#: letter-opening family already witnesses (X09-101207, above).
+#:
+#: NAMED REFUSAL: 1,370 further values are ``\d{2}-\d{1,2}`` -- "00-10" and
+#: "00-11" are real airworthiness directives of 2000-01-04 -- and stay
+#: unlicensed here, because widening a floor is a recall decision with its
+#: own budget and not a side effect of this one. That is the same posture
+#: this module takes with the 109 letter-opening values above that stay
+#: refused, and the count is written down so the decision can be made with
+#: it.
+#:
+#: Moved home 2026-08-31 (REF-052): this constant lived in ``iri_minting.py``
+#: behind a "long-term home" note because this module is content-hashed into
+#: a build receipt and editing it forces an artifact rebuild. The bare-legacy
+#: mint itself does not change -- ``mint_federal_register_document_iri``'s
+#: ``column_licensed`` flag reads exactly the shape it read before, now from
+#: here.
+BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER = r"\d{2}-\d{3,6}"
+_FR_BARE_LEGACY = re.compile(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER)
+
 #: The leading token of a docket is an agency code, capped at two to six
 #: letters ("EPA", "FSIS", "USCIS"). Without the cap, "letter then anything"
 #: reads a hyphenated English word as an agency and
@@ -598,15 +775,38 @@ def normalize_rin(value: object) -> str | None:
     return text if _RIN.fullmatch(text) else None
 
 
-def is_federal_register_document_number(value: object) -> bool:
-    """Whether a value is a modern-form Federal Register document number.
+def is_federal_register_document_number(value: object, *, column_licensed: bool = False) -> bool:
+    """Whether a value is a Federal Register document number.
 
-    Legacy, correction and republication numbers are official and
-    deliberately ``False`` — they are outside the mintable lexical space, not
-    outside the corpus, and :func:`detect_identifier_shapes` reads all four.
+    Prose-narrow by default (``column_licensed=False``, unchanged): only the
+    modern form is ``True``. Legacy, correction and republication numbers are
+    official and deliberately ``False`` here — they are outside the mintable
+    lexical space, not outside the corpus, and :func:`detect_identifier_shapes`
+    reads all four regardless of this flag, because prose detection is not
+    conditioned on the column license at all.
+
+    ``column_licensed=True`` is REF-052/REF-054's ruling in one parameter: a
+    value arriving from a trusted ``document_number`` field is additionally
+    recognised as the bare-legacy shape
+    (:data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`) or one of the four
+    letter-opening families named at :data:`_FR_COLUMN_LETTER_FORMS`, each
+    verified against the publisher's own pages. It does NOT additionally
+    admit the correction, republication or legacy forms
+    :data:`_FR_DOCUMENT_FORMS` already carries — those are read by the prose
+    grammar unconditionally, via :func:`detect_identifier_shapes`, so
+    restating them here would be a second, driftable copy of the same rule.
+    Nothing about prose detection changes either way: the flag only ever adds
+    to what THIS function answers.
     """
 
-    return _FR_MODERN.fullmatch(_folded_text(value)) is not None
+    text = _folded_text(value)
+    if _FR_MODERN.fullmatch(text):
+        return True
+    if not column_licensed:
+        return False
+    if _FR_BARE_LEGACY.fullmatch(text):
+        return True
+    return any(pattern.fullmatch(text) for pattern in _FR_COLUMN_LETTER_FORMS)
 
 
 #: Damage operators for a Regulation Identifier Number, each named and each
