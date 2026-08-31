@@ -68,7 +68,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import json
 import re
 import sys
 import xml.etree.ElementTree as ElementTree
@@ -83,6 +82,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from refspec.registry.infrastructure.artifact_serialization import file_sha256
+from refspec.storage import canonical_json
 
 #: The whole Code for one release point, one zip. There is no per-section
 #: endpoint worth 51,548 requests.
@@ -90,14 +94,15 @@ USLM_RELEASE_URL_TEMPLATE = (
     "https://uscode.house.gov/download/releasepoints/us/pl/{congress}/{law}/xml_uscAll@{congress}-{law}.zip"
 )
 
-#: The salvaged archive this build reads, and the release point it is. It sits
-#: beside the USC *annual* editions in the same salvage directory, and is not
-#: one of them: the annual archives are XHTML historical editions with no USLM
-#: in them at all, so they cannot feed this parser. 108 MB of the directory's
-#: 2.1 GB is the input; the rest is a different corpus.
-DEFAULT_ARCHIVE = Path(
-    "~/Work/corpora/_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24/xml_uscAll_119-102.zip"
-).expanduser()
+#: The archive this build reads, and the release point it is. It sits beside
+#: the USC *annual* editions in the same directory, and is not one of them: the
+#: annual archives are XHTML historical editions with no USLM in them at all,
+#: so they cannot feed this parser. 108 MB of the directory's 2.1 GB is the
+#: input; the rest is a different corpus. Came home from the corpora salvage
+#: (``~/Work/corpora/_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24/``)
+#: to ``output/usc-annual-2026-08-24/`` -- same bytes, verified by digest --
+#: so a rebuild no longer reaches outside the repository.
+DEFAULT_ARCHIVE = REPO_ROOT / "output" / "usc-annual-2026-08-24" / "xml_uscAll_119-102.zip"
 DEFAULT_RELEASE_POINT = "119-102"
 
 ARTIFACT_SCHEMA_VERSION = "usc-source-credit-artifact-v1"
@@ -425,18 +430,6 @@ def credit_rows(credits: tuple[SourceCredit, ...]) -> list[dict[str, Any]]:
             }
         )
     return rows
-
-
-def canonical_json(value: object) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(block)
-    return f"sha256:{digest.hexdigest()}"
 
 
 def canonical_key(row: dict[str, Any], columns: tuple[str, ...] = CREDIT_COLUMNS) -> tuple[str, ...]:

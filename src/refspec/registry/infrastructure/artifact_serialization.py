@@ -50,11 +50,11 @@ def sha256_digest(payload: bytes) -> str:
 def file_sha256(path: Path) -> str:
     """Hash one file's bytes without loading the whole file into memory.
 
-    Restated identically (not imported) in three publisher-facing build
-    scripts this module may not depend on --
-    ``tools/build_usc_popular_names.py``, ``tools/build_usc_source_credits.py``,
-    and ``bindings/atlas/3.1/tools/validate.py`` -- which is why this
-    function exists here rather than only inline at its two call sites.
+    Imported by ``tools/build_usc_popular_names.py`` and
+    ``tools/build_usc_source_credits.py`` since 2026-08-31 (the tools live in
+    the repo and may depend on src/). Still restated identically -- not
+    imported -- in ``bindings/atlas/3.1/tools/validate.py``, whose bytes are
+    pinned by the fixtures receipt and which must run without this package.
     """
 
     digest = hashlib.sha256()

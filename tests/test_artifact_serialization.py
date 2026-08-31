@@ -48,6 +48,14 @@ def test_source_artifact_path_styles_remain_distinct() -> None:
 # imported, since importing the thing under replacement would make the
 # comparison circular -- and this test proves verdict agreement over a
 # mutation battery before trusting the shared function in their place.
+#
+# tools/build_usc_popular_names.py and tools/build_usc_source_credits.py
+# carried a third and fourth copy, retired the same day. Both were, line for
+# line, the same `for block in iter(lambda: handle.read(1 << 20), b"")`
+# implementation already covered by `_usc_act_index_file_sha256_oracle`
+# below -- not a near-match but the identical source text -- so no third
+# oracle function is added here; that existing oracle's mutation battery
+# already speaks for them.
 
 
 def _usc_act_index_file_sha256_oracle(path: Path) -> str:

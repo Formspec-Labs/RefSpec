@@ -73,6 +73,7 @@ from pathlib import Path
 from typing import Any, BinaryIO
 
 from refspec.registry.infrastructure.artifact_serialization import file_sha256
+from refspec.storage import canonical_json
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -319,10 +320,6 @@ def iter_bulk_acts(zip_path: Path, *, member: str = BULK_MEMBER) -> Iterator[Bul
     with zipfile.ZipFile(zip_path) as archive, archive.open(member) as handle:
         for fragment in iter_act_fragments(handle):
             yield parse_act(fragment)
-
-
-def canonical_json(value: object) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _write_parquet(path: Path, columns: tuple[str, ...], rows: list[dict[str, Any]]) -> None:

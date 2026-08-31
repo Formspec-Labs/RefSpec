@@ -55,7 +55,6 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
-import json
 import re
 import sys
 from collections import Counter, defaultdict
@@ -72,6 +71,8 @@ if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from refspec.registry.citation_grammar import normalize_popular_name
+from refspec.registry.infrastructure.artifact_serialization import file_sha256
+from refspec.storage import canonical_json
 
 #: The document this reads. Recorded in the receipt; never fetched by a build,
 #: which reads the pinned bytes below so a rebuild is offline and repeatable.
@@ -369,18 +370,6 @@ def table_rows(records: tuple[PopularNameRecord, ...]) -> list[dict[str, Any]]:
         }
         for record in records
     ]
-
-
-def canonical_json(value: object) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(block)
-    return f"sha256:{digest.hexdigest()}"
 
 
 def read_pinned_html(path: Path = PINNED_HTML) -> str:

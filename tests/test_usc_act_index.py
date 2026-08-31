@@ -42,6 +42,7 @@ from refspec.registry.usc_act_index import (
     BulkFormatError,
     BulkRecord,
     build,
+    canonical_json,
     iter_act_fragments,
     parse_act,
     table3_key_from_search_key,
@@ -619,3 +620,29 @@ def test_verify_passes_the_sealed_artifact_and_names_every_drift() -> None:
     receipt = json.loads((NEW_DIR / "receipt.json").read_text(encoding="utf-8"))
     assert receipt["schema_version"] == ARTIFACT_SCHEMA_VERSION
     assert receipt["parser_version"] == "uscode-olrc-table3-bulk-xml-v1"
+
+
+@artifact
+def test_canonical_json_is_the_shared_strict_serializer_not_a_local_copy() -> None:
+    """``usc_act_index.canonical_json`` used to be its own copy of
+    ``json.dumps(..., sort_keys=True, separators=(",", ":"), ensure_ascii=False)``
+    with no ``allow_nan`` argument at all -- meaning it defaulted to
+    ``allow_nan=True``, unlike :func:`refspec.storage.canonical_json`, which sets
+    ``allow_nan=False``. Nothing this module ever serializes is a float: every
+    receipt value is a string, an int, or a container of those (grep the module
+    for ``float(`` — there is none), so the two functions were behaviorally
+    identical on every input this build produces, and the stricter one is kept.
+
+    Proved directly rather than merely asserted: the sealed 08-22 receipt,
+    loaded from JSON and reserialized under the imported (now-strict)
+    ``canonical_json``, reproduces the exact bytes this module sealed it with.
+    """
+
+    from refspec.storage import canonical_json as strict_canonical_json
+
+    assert canonical_json is strict_canonical_json
+
+    sealed_bytes = (NEW_DIR / "receipt.json").read_bytes()
+    receipt = json.loads(sealed_bytes)
+
+    assert canonical_json(receipt).encode("utf-8") == sealed_bytes
