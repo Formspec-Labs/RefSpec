@@ -1308,18 +1308,20 @@ SOURCE_BLOCKERS: dict[str, list[str]] = {
         "unified_agenda_editions.py"
     )],
     # The crosswalk carries the sealed 2026-08-02 build's mapping as curated
-    # in-module rows; the sealed artifact, receipt and input parquets live in
-    # the corpora register (docs/regeneration-inputs.md), not here, and one
-    # input has already been overwritten since sealing, so the gap is
-    # permanent unless the pinned bytes resurface.
+    # in-module rows. The sealed receipt and the three still-intact input
+    # parquets came home 2026-08-31 to the repo's own output/
+    # (docs/regeneration-inputs.md records the move); the fourth input was
+    # overwritten in place before the salvage and its sealed bytes survive
+    # nowhere, so the gap on it is permanent unless they resurface.
     "agency_crosswalk.py": [(
         "publisher bytes are not retained here: the module embeds the sealed "
         "agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose "
-        "artifact, receipt and four input parquets live under ~/Work/corpora/_preserved-2026-08-27/ "
-        "with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet at "
-        "that path was overwritten after sealing (893,766 rows vs the pinned 715,080), so the "
-        "sealed tier histogram can be verified against the embedded rows but no longer exactly "
-        "re-derived from the inputs"
+        "receipt and three intact input parquets live at "
+        "output/registry-real-data-sources/rin-ontology-revision-candidate/ (came home "
+        "2026-08-31) with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; "
+        "fr_docket_links.parquet was overwritten after sealing (893,766 rows vs the pinned "
+        "715,080) and the sealed bytes survive nowhere, so the sealed tier histogram can be "
+        "verified against the embedded rows but no longer exactly re-derived from the inputs"
     )],
     # Act resolution reads sha256-pinned artifacts built from the OLRC pages
     # elsewhere; this repository does not retain the publisher bytes. Named,

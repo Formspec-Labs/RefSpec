@@ -9,11 +9,11 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 2699,
-    "seconds": 1176.804,
+    "passed": 2717,
+    "seconds": 1162.246,
     "skipped": 2,
     "testFiles": 95,
-    "tests": 2701
+    "tests": 2719
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
@@ -5218,7 +5218,7 @@
           {
             "counts": {},
             "function": "normalize_docket_id",
-            "sample": "FAA20263485",
+            "sample": "NOS-2020-0001",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
@@ -27561,19 +27561,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:8ac5f631eaf8a129dad34a5ba430c9fb7a367ea17b9b6d55846216b5796fe90d"
+                  "sha256": "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:aa503ffd848f47b92976be0d97921acee843e04fb5283821975d8c0fa9263ac8"
+                  "sha256": "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:7438544f26ec6f261d1ca2128c4580247eea6f400aeb6d993f88613f4c438b7f"
+                  "sha256": "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:bd0b59657438ca25c532915523fa4699b8fa9cca3dc64b2ed7802b1fe94a2ff4"
+                  "sha256": "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
                 }
               },
               "manifest": {
@@ -27584,7 +27584,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:8046b9cdd19d3096a9ba4b7681876b45dcda26c069d4867d3793f3eae158ebe8",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:dc137cc953329807e038a246e60f7431285dc3270a5a1ea9082b1f9e558fbec2",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -27640,7 +27640,7 @@
               "byteLengths": [
                 0,
                 566,
-                594,
+                591,
                 1080,
                 1315,
                 1504,
@@ -27653,18 +27653,18 @@
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3f2debc5e8f7f65e582f2d276a4cd9a634b6e0f3a0dde1b437e01e489d9d0141",
-                "sha256:7438544f26ec6f261d1ca2128c4580247eea6f400aeb6d993f88613f4c438b7f",
-                "sha256:790dd9d7c8ebee3365892807b5399095281562c207dfc57d78112c2121127b47",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:8ac5f631eaf8a129dad34a5ba430c9fb7a367ea17b9b6d55846216b5796fe90d",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:aa503ffd848f47b92976be0d97921acee843e04fb5283821975d8c0fa9263ac8",
+                "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68",
+                "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:bd0b59657438ca25c532915523fa4699b8fa9cca3dc64b2ed7802b1fe94a2ff4",
-                "sha256:cac720f3423aad56b00aa8ded8d8ee0674c84443c03b1548b73aec99455d7e6a",
+                "sha256:c7ce027da37d540c7d3bd720d81308a7e15e8d7aff95c36979b96d2d9f75ca7e",
+                "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e",
+                "sha256:d1136d5b659f0fcf652a7e3e31d1d5e4bcf24ea75c3839e5920c0bfdfe4f3eb9",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:e9207cf0c03d4bf31ae2386df0bcb5805831e0d59873bd8ed602204c7801e4a4",
+                "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
               ],
               "paths": [],
               "urls": [
@@ -27688,7 +27688,7 @@
               "byteLengths": [
                 0,
                 566,
-                594,
+                591,
                 1080,
                 1315,
                 1504,
@@ -27701,18 +27701,18 @@
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3f2debc5e8f7f65e582f2d276a4cd9a634b6e0f3a0dde1b437e01e489d9d0141",
-                "sha256:7438544f26ec6f261d1ca2128c4580247eea6f400aeb6d993f88613f4c438b7f",
-                "sha256:790dd9d7c8ebee3365892807b5399095281562c207dfc57d78112c2121127b47",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:8ac5f631eaf8a129dad34a5ba430c9fb7a367ea17b9b6d55846216b5796fe90d",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:aa503ffd848f47b92976be0d97921acee843e04fb5283821975d8c0fa9263ac8",
+                "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68",
+                "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:bd0b59657438ca25c532915523fa4699b8fa9cca3dc64b2ed7802b1fe94a2ff4",
-                "sha256:cac720f3423aad56b00aa8ded8d8ee0674c84443c03b1548b73aec99455d7e6a",
+                "sha256:c7ce027da37d540c7d3bd720d81308a7e15e8d7aff95c36979b96d2d9f75ca7e",
+                "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e",
+                "sha256:d1136d5b659f0fcf652a7e3e31d1d5e4bcf24ea75c3839e5920c0bfdfe4f3eb9",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:e9207cf0c03d4bf31ae2386df0bcb5805831e0d59873bd8ed602204c7801e4a4",
+                "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
               ],
               "paths": [],
               "urls": [
@@ -27732,7 +27732,7 @@
               "byteLengths": [
                 0,
                 566,
-                594,
+                591,
                 1080,
                 1315,
                 1504,
@@ -27745,18 +27745,18 @@
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3f2debc5e8f7f65e582f2d276a4cd9a634b6e0f3a0dde1b437e01e489d9d0141",
-                "sha256:7438544f26ec6f261d1ca2128c4580247eea6f400aeb6d993f88613f4c438b7f",
-                "sha256:790dd9d7c8ebee3365892807b5399095281562c207dfc57d78112c2121127b47",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:8ac5f631eaf8a129dad34a5ba430c9fb7a367ea17b9b6d55846216b5796fe90d",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:aa503ffd848f47b92976be0d97921acee843e04fb5283821975d8c0fa9263ac8",
+                "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68",
+                "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:bd0b59657438ca25c532915523fa4699b8fa9cca3dc64b2ed7802b1fe94a2ff4",
-                "sha256:cac720f3423aad56b00aa8ded8d8ee0674c84443c03b1548b73aec99455d7e6a",
+                "sha256:c7ce027da37d540c7d3bd720d81308a7e15e8d7aff95c36979b96d2d9f75ca7e",
+                "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e",
+                "sha256:d1136d5b659f0fcf652a7e3e31d1d5e4bcf24ea75c3839e5920c0bfdfe4f3eb9",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "sha256:e9207cf0c03d4bf31ae2386df0bcb5805831e0d59873bd8ed602204c7801e4a4",
+                "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
               ],
               "paths": [],
               "urls": [
@@ -27777,9 +27777,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 795,
+              "archive_byte_length": 797,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2",
+              "archive_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -27797,10 +27797,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 795,
+                "expected_byte_length": 797,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
-                "expected_sha256": "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2",
+                "expected_member_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
+                "expected_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -27819,7 +27819,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
+              "sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -27887,9 +27887,9 @@
                 2908
               ],
               "digests": [
+                "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
                 "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
-                "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
-                "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2"
+                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
               ],
               "paths": [],
               "urls": [
@@ -27905,9 +27905,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 795,
+              "archive_byte_length": 797,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2",
+              "archive_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -27916,10 +27916,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 795,
+                "expected_byte_length": 797,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
-                "expected_sha256": "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2",
+                "expected_member_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
+                "expected_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -27933,7 +27933,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
+              "sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -27980,8 +27980,8 @@
                 2908
               ],
               "digests": [
-                "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
-                "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2"
+                "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
+                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
               ],
               "paths": [],
               "urls": [
@@ -28111,7 +28111,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
+              "source_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -28301,8 +28301,8 @@
                 2908
               ],
               "digests": [
-                "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
-                "sha256:f5a1ab5e743f3a099dbd76c9a390d75b1e1a6cfa97eaadc77d876dc5ab5fddc2"
+                "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
+                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
               ],
               "paths": [],
               "urls": [
@@ -28852,7 +28852,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0",
+              "source_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -29042,7 +29042,7 @@
                 2908
               ],
               "digests": [
-                "sha256:e9d6ceb61a18206fa1afe2362ac0df502c0af5c5a4b0d7a1719119653ff832c0"
+                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
               ],
               "paths": [],
               "urls": [
@@ -42134,7 +42134,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7482-a185-6d883c43e815",
+                "fetch_id": "019fb2e5-4e00-7c18-88a9-513ab68a0009",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -46646,7 +46646,7 @@
               "byte_length": 16000,
               "cache_hit": false,
               "compressed_byte_length": 3627,
-              "compressed_sha256": "sha256:6f9c377f4a5b4f40c76cbd5a79b0b3fefb32361703242194701084835f17511a",
+              "compressed_sha256": "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d",
               "local_source_path": "<pathlib.PosixPath>",
               "path": "<pathlib.PosixPath>",
               "release": {
@@ -46654,7 +46654,7 @@
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
                 "expected_byte_length": 16000,
                 "expected_compressed_byte_length": 3627,
-                "expected_compressed_sha256": "sha256:6f9c377f4a5b4f40c76cbd5a79b0b3fefb32361703242194701084835f17511a",
+                "expected_compressed_sha256": "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d",
                 "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
@@ -46707,7 +46707,7 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:6f9c377f4a5b4f40c76cbd5a79b0b3fefb32361703242194701084835f17511a"
+                "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d"
               ],
               "paths": [],
               "urls": [
@@ -47619,7 +47619,7 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:6f9c377f4a5b4f40c76cbd5a79b0b3fefb32361703242194701084835f17511a"
+                "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d"
               ],
               "paths": [],
               "urls": [
@@ -54820,6 +54820,160 @@
               ],
               "digests": [
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:04cc855922a7db50ebbcf1e99f4d820b9cb8530ec548221863683e6e244db0af",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:04cc855922a7db50ebbcf1e99f4d820b9cb8530ec548221863683e6e244db0af"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:125c8ea79b0a288eacc1a29ed6432677278549c8cd9f552f083f59145c14343c",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:125c8ea79b0a288eacc1a29ed6432677278549c8cd9f552f083f59145c14343c"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:4f9eee5bebedc906bbb8755c5b647e4bf11f140d8ee1ee65b9bbf0d7ffdde09c",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:4f9eee5bebedc906bbb8755c5b647e4bf11f140d8ee1ee65b9bbf0d7ffdde09c"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:961407fff043c8560f80fab2143d98616041a0e2095df4015d6bec4147c668e9",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:961407fff043c8560f80fab2143d98616041a0e2095df4015d6bec4147c668e9"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:a83eaea5bc437246fe63e506957b8eb89e8a1e1b3a930cee9f52f6538999790a",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:a83eaea5bc437246fe63e506957b8eb89e8a1e1b3a930cee9f52f6538999790a"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:ab61ba11a38b007ff98baa3ab20e2a584e15269fd428db3c857e2a2d568b5725",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:ab61ba11a38b007ff98baa3ab20e2a584e15269fd428db3c857e2a2d568b5725"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:bc48887a84a31b6dc8dbb344ceee1d562b8de50911f9541c99ca6238aae19819",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:bc48887a84a31b6dc8dbb344ceee1d562b8de50911f9541c99ca6238aae19819"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:cae390fb2f7eb3a27c67f92dbd33389fe29c88e3a9f47fe745a33b26ee9ff20f",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:cae390fb2f7eb3a27c67f92dbd33389fe29c88e3a9f47fe745a33b26ee9ff20f"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:cfd72e499b2a880ee56c0afab1c73de7bd549ef3f86da88d8702ed3fc18630d9",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:cfd72e499b2a880ee56c0afab1c73de7bd549ef3f86da88d8702ed3fc18630d9"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:fdd37fe25bdcb16a348aa1ce3abdf1f751b18c1b187969c61ff53763cb6f7f5d",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:fdd37fe25bdcb16a348aa1ce3abdf1f751b18c1b187969c61ff53763cb6f7f5d"
               ],
               "paths": [],
               "urls": []
@@ -80967,7 +81121,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fc4eb-9000-7e41-afac-a8a53ad52a07",
+              "fetch_id": "019fc4eb-9000-7062-a0a8-fe4262409e63",
               "fetched_at": "2026-08-03T00:00:00Z"
             },
             "shape": {
@@ -81024,7 +81178,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7b28-b21b-4279d547eb31"
+              "registration_id": "019fb80b-aa00-7723-923e-951bacff3268"
             },
             "shape": {
               "fields": {
@@ -117244,22 +117398,6 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:2d0c4b0165cadeb62dc47459c4f391e9f91b2bfa0504942cd15278537eb6dd87",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                364729
-              ],
-              "digests": [
-                "sha256:2d0c4b0165cadeb62dc47459c4f391e9f91b2bfa0504942cd15278537eb6dd87"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
             "sample": "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3",
             "shape": "str",
             "sourceEvidence": {
@@ -117300,6 +117438,22 @@
               ],
               "digests": [
                 "sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
+            "sample": "sha256:a439c5dd05a78ced6648aca944acbc5908f97dc6559bb1001df56d8adfc55f6a",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                364729
+              ],
+              "digests": [
+                "sha256:a439c5dd05a78ced6648aca944acbc5908f97dc6559bb1001df56d8adfc55f6a"
               ],
               "paths": [],
               "urls": []
@@ -126702,7 +126856,7 @@
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip",
                 "/Users/mikewolfd/Work/RefSpec/output/usc-act-index-2026-08-02",
-                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpaezy4rar/artifact"
+                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpz17vpu9r/artifact"
               ],
               "urls": [
                 "https://uscode.house.gov/popularnames/popularnames.htm"
@@ -139544,7 +139698,7 @@
               "byteLengths": [],
               "digests": [],
               "paths": [
-                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpom1tbzjh/artifact"
+                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpqq76qyy6/artifact"
               ],
               "urls": []
             }
@@ -141161,7 +141315,7 @@
     {
       "auditRole": "dataReader",
       "blockers": [
-        "publisher bytes are not retained here: the module embeds the sealed agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose artifact, receipt and four input parquets live under ~/Work/corpora/_preserved-2026-08-27/ with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet at that path was overwritten after sealing (893,766 rows vs the pinned 715,080), so the sealed tier histogram can be verified against the embedded rows but no longer exactly re-derived from the inputs"
+        "publisher bytes are not retained here: the module embeds the sealed agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose receipt and three intact input parquets live at output/registry-real-data-sources/rin-ontology-revision-candidate/ (came home 2026-08-31) with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet was overwritten after sealing (893,766 rows vs the pinned 715,080) and the sealed bytes survive nowhere, so the sealed tier histogram can be verified against the embedded rows but no longer exactly re-derived from the inputs"
       ],
       "classification": "data-registry",
       "coveredBy": [],
@@ -144855,7 +145009,7 @@
   "realDataGate": {
     "failures": [
       "act_resolution.py: publisher bytes are not retained here: act resolution reads sha256-pinned artifacts (output/usc-act-index-2026-08-02, output/usc-source-credit-index-2026-08-02) whose receipt records https://uscode.house.gov/popularnames/popularnames.htm at sha256:50687ac0116114b1d16ce59460f6092539cb00977c0c428e574a874b81e018b4",
-      "agency_crosswalk.py: publisher bytes are not retained here: the module embeds the sealed agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose artifact, receipt and four input parquets live under ~/Work/corpora/_preserved-2026-08-27/ with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet at that path was overwritten after sealing (893,766 rows vs the pinned 715,080), so the sealed tier histogram can be verified against the embedded rows but no longer exactly re-derived from the inputs",
+      "agency_crosswalk.py: publisher bytes are not retained here: the module embeds the sealed agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose receipt and three intact input parquets live at output/registry-real-data-sources/rin-ontology-revision-candidate/ (came home 2026-08-31) with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet was overwritten after sealing (893,766 rows vs the pinned 715,080) and the sealed bytes survive nowhere, so the sealed tier histogram can be verified against the embedded rows but no longer exactly re-derived from the inputs",
       "unified_agenda_parquet.py: tests verify the built Parquet artifact against its receipt, not the publisher editions it was built from; those bytes are covered by unified_agenda_editions.py",
       "usc_act_index.py: the publisher bytes ARE retained and digest-pinned (output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip, 14966992 bytes, sha256:93e1f233e081e47fc3680c4b699151c6d66329988fe21add3b6e9e62746aeea7), but their acquisition URL was never recorded and OLRC no longer serves release point 119-73 at any probed path, so no publisherUrl can be stated without inventing one",
       "usc_section_oracle.py: the acquisition IS recorded and re-verified -- https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching byte length and a row-for-row reproduction check in research/evidence/usc-section-oracle-2026-08-22/README.md -- but the ~2.3 GB of publisher zips were deleted after extraction and are not retained here; this reader holds only the six DERIVED oracle tables, digest-pinned in the module and re-checked on every load",
