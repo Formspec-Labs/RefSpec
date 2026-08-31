@@ -12,6 +12,13 @@
 The platform has four products. Each durable record has one owner even when a
 different product publishes a conforming projection.
 
+> **Ownership update (2026-08-25):** REF-048 adds DocSpec as the catalog and
+> document-processing owner and narrows SpicyRegs to source-native acquisition
+> and publication. The early count and tables below remain design lineage; use
+> REF-048 for the current platform boundary.
+
+<!-- -->
+
 > **Superseded by [REF-008](#ref-008-count-four-products-and-five-ownership-rows):**
 > the four-row table below merges Rulespec Core and Rulespec Extrapolator into a
 > single Rulespec row. Ownership tables carry five rows, one per release unit;
@@ -108,6 +115,11 @@ machine-qualified mapping as publisher or editorial truth.
 - **Date:** 2026-08-01
 - **Status:** Accepted
 
+> **Repository-location update (2026-08-25):** RefSpec now lives in the
+> standalone local work-directory repository. The former SpicyRegs submodule is
+> retired. This decision's implementation-line and archived-history choice
+> remains; its submodule-location sentence is historical.
+
 Two RefSpec checkouts diverged after commit `714866d`. This repository — the RefSpec
 submodule inside `spicy-regs` — is the surviving line. It keeps the mature managed-release
 implementation, adopts the standalone line's product boundary, decision ledger, managed
@@ -128,6 +140,10 @@ prepared commands for publishing them.
 
 - **Date:** 2026-08-01
 - **Status:** Accepted
+
+> **Ownership update (2026-08-25):** REF-048 supersedes the SpicyRegs row below
+> and introduces DocSpec as the separate `SourceCatalog`, capture, passage, and
+> `DocumentRelease` owner. Its count describes the earlier topology.
 
 This ledger's product-ownership table said "four products" over four rows, while the
 authority map in [`product-boundary-and-api-disposition.md`](product-boundary-and-api-disposition.md)
@@ -3960,6 +3976,78 @@ Consumers were never exposed — the search-view asset chain pins
 `manifestSha256`, and the one live consumer had already ruled the id a label
 rather than a key. Distributions built before this carry the old shape and
 must be rebuilt to validate.
+
+### REF-048: DocSpec owns the platform source catalog
+
+- **Date:** 2026-08-25
+- **Status:** Accepted; implementation and package consolidation remain open.
+- **Supersedes:** REF-024 only where it assigns source selection and
+  `SourceCatalogRelease` publication to SpicyRegs and catalog consumption to
+  DocSpec. All other REF-024 ownership rows remain in force.
+
+The greenfield platform has one generic artifact container and one owner for
+document-catalog meaning.
+
+- Rulespec owns only generic container mechanics: canonical bytes, identity,
+  manifests, membership, bounded structural verification, diagnostics, and
+  injected member access. It also owns the optional product-neutral
+  `DerivationRelation` and `CompositionRelation` helpers and their validation
+  after structural admission. Product `kind` and canonical `spec` values remain
+  identity-bearing, but Rulespec does not validate document-domain meaning or
+  run either helper unless the product semantic verifier opts into it.
+- SpicyRegs owns source-specific acquisition and faithful source-native records.
+  It publishes those records as immutable, versioned, digest-pinned inputs
+  through the generic container using product kind
+  `spicyregs-source-native-release`. It does not select a DocSpec universe,
+  publish or verify `SourceCatalog`, process documents, or depend on DocSpec.
+- DocSpec owns the normative `SourceCatalog` and `SourceItem` specification,
+  schema, catalog policy, bounded builder, reader, semantic verifier, and
+  publication. It preserves source-native facts and records normalization,
+  joins, sampling, rendition preference, and selection as explicit
+  identity-bound interpretations.
+- RefSpec has no platform catalog task, required catalog pin, or DocSpec edge.
+  Its governed reference resources and Atlas search views remain independent
+  optional SpicySearch inputs. RefSpec owns the asserted agency identities,
+  preferred labels, aliases, warrants, and published agency projection.
+  SpicySearch owns any catalog-specific coverage and collision qualification
+  before it uses that optional projection for labels or suggestions. An
+  unresolved or colliding catalog value stays a bare source ID; neither product
+  may convert a consumer qualification into a new RefSpec identity claim.
+- SpicySearch consumes the installed DocSpec catalog surface. It owns search
+  derivation, composition, ranking, evidence, coverage, exports, and serving;
+  it does not construct catalogs or implement catalog validation. At admission
+  it runs the installed Rulespec structural reader followed by the installed
+  DocSpec bounded reader and semantic verifier, and it checks the producer's
+  semantic-build receipt. Expensive semantic recomputation remains at DocSpec's
+  producer gate rather than running again in SpicySearch.
+- SpicySearch also owns the offline, read-only historical derivation trace over
+  the finite cross-product inventory because it is the only product that joins
+  these artifact families. Owner-supplied adapters verify legacy sealed roots;
+  new roots use their installed readers. This operator tool has no publication,
+  promotion, or serving authority. Rulespec owns no global registry, and
+  discovery cannot block a product pointer. Predecessor measurement M6 must
+  authorize any later durable index through a separate accepted decision.
+
+The DocSpec specification at
+`../DocSpec/docs/superpowers/specs/2026-08-05-docspec-standalone-platform-implementation-spec.md`
+is the singular catalog and document-processing specification. The Rulespec
+platform-artifact specification is the singular generic container
+specification. The SpicyRegs specification at
+`../spicy-regs/docs/superpowers/specs/2026-08-25-source-native-release-spec.md`
+is the singular source-native acquisition and publication specification. No
+compatibility format or dual writer is required. No
+general-purpose migration reader belongs on the greenfield runtime path. A
+finite owner-supplied read-only adapter remains required only when a named
+transition gate needs it, including DocSpec §9.10 and the historical trace
+above; it retires with that gate and cannot write a legacy format.
+
+Existing implementations are evidence and migration inputs, not authority.
+Before deletion, DocSpec must reproduce the accepted landing catalog semantics
+from Git-pinned executable fixtures and one independently verified migration
+result. `spicy-regs-landing`, both SpicyRegs catalog implementations, duplicate
+SpicyRegs document pipelines, Rulespec document-domain schemas, and duplicate
+consumer validators may then be removed only after their supported behavior is
+covered by owner tests.
 
 ### REF-049: Retain and publish the Federal Register alignment as the sixth derived rule
 

@@ -40,14 +40,15 @@ emission use.
 
 ## Authority map
 
-Rows are release units, not products. Rulespec is one product shipping two of
-them, so five rows describe four products — see
-[REF-008](decisions.md#ref-008-count-four-products-and-five-ownership-rows).
+Rows are release units, not products. REF-048 adds DocSpec to REF-008's earlier
+topology, so six rows now describe five products; Rulespec remains one product
+with two release units.
 
 | Owner | Durable authority |
 | --- | --- |
 | RefSpec | Controlled-vocabulary sources, imports, releases, coverage, crosswalk evidence, and static atlas assets |
-| SpicyRegs | Regulatory source capture, document identity, source observations, and evidence addresses |
+| SpicyRegs | Source-specific acquisition, faithful source-native records, rendition candidates, source observations, and acquisition evidence |
+| DocSpec | `SourceCatalog`, document-body capture and processing, exact representations and passages, and `DocumentRelease` |
 | Rulespec Core | Shared semantic record definitions and portable validation |
 | Rulespec Extrapolator | Derived assertions, evidence chains, and accepted-output decisions |
 | SpicySearch | Query processing, indexes, ranking, retrieval, and serving |
@@ -73,7 +74,7 @@ boundary and source of truth.
 | `refspec-build-vocabulary-atlas` | Retire | Keep the Atlas 2.0 command retired; Atlas 3 construction uses its own pinned inputs and binding-specific generator |
 | Standalone `VocabularyRelease` and duplicate canonical JSON helpers | Retire | Do not add them to this implementation |
 | Five-concept Federal Register release builder | Retire | Use the complete managed Federal Register package |
-| Document observations and capture records | Exclude | SpicyRegs owns regulatory document capture; RefSpec accepts only published evidence files at this boundary |
+| Document observations and capture records | Exclude | DocSpec owns document-body capture and processing; SpicyRegs owns source-native acquisition and publication; RefSpec accepts only published evidence files at this boundary |
 | Enrichment evaluation and deployment records | Move | Product-local evaluation workflow; RefSpec retains vocabulary release proof |
 | `authorize_accepted_assignment` | Move | Rulespec Extrapolator |
 | `ReferenceRuntimeStore`, query products, ranking, and serving | Move | SpicySearch |

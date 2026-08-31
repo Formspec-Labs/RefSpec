@@ -20,10 +20,10 @@
 Written 2026-08-11. This file is the owning plan for RefSpec work.
 
 Boundaries are stated once in [the decision ledger](docs/decisions.md).
-REF-024 carries the cross-product ownership rows, the artifact-and-package
-exchange rule, and the payload rule for unowned upstreams. REF-025 carries
-canonical `Label.id` in the next search view. Cite them by identifier; this
-file does not restate them.
+REF-024 carries the cross-product rows except for catalog ownership; REF-048
+supersedes that row and gives DocSpec the platform `SourceCatalog`. REF-025
+carries canonical `Label.id` in the next search view. Cite them by identifier;
+this file does not restate them.
 
 The cut test, applied to every item below:
 
@@ -37,8 +37,29 @@ and retains the membership, schema, relative-path, containment, and
 symlink-safety rules. What goes is ambient receipts and redundant re-hashing,
 not the checks.
 
-The DocSpec seam is `SourceCatalogRelease -> DocumentRelease`. An internal
-port implements that boundary; it does not replace it.
+RefSpec has no DocSpec catalog seam. DocSpec owns its SourceCatalog-to-document
+processing path. RefSpec Atlas releases and search views remain independently
+governed optional SpicySearch inputs.
+
+The current local REF-049 derived-rule work has one DRY blocker before it can
+land. `bindings/atlas/3.1/admitted-derived-rules.json` is the sole semantic
+registry. Remove the parallel `_DERIVED_RULE_ADMISSIONS` Python roster and load
+the closed JSON rows through one typed parser. Python may retain only a map from
+rule ID to replay callable; it must not repeat endpoint families, predicates,
+sources, selection policy, replay profile, or row-shape policy. The fixture
+builder and validator consume the same parsed registry, while an independent
+mutation corpus changes every policy field and proves the named replay or
+refusal follows. A static gate rejects copied registry literals in Python.
+Until that passes, the local six-rule implementation is migration debt, not a
+DRY accepted binding. This correction is RefSpec-owned and does not put RefSpec
+on the DocSpec catalog path.
+
+The platform predecessor value ledger also assigns reference/ontology
+materialized generations to RefSpec. Preserve the existing immutable-generation
+and mutable-latest-pointer user outcome while external MCP and browser readers
+move to a RefSpec-owned Atlas distribution or search view. The pointer is not a
+sealed artifact or an artifact pin. This publication edge does not create a
+DocSpec catalog dependency.
 
 Owners and exit gates are recorded for the two blocking artifact items below.
 Small repository edits carry neither.
