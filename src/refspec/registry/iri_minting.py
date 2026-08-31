@@ -68,38 +68,72 @@ columns :mod:`identifier_shapes` and its tests read — the Federal Register
 corpus's ``document_number`` (1,004,233 distinct, in
 ``spicy-regs/output/rulespec-stabilization-candidate-final/
 federal_register.parquet``) and the Unified Agenda's ``rin`` (46,547
-distinct). They are recorded here because a lexical space that cannot spell a
-real thing is **a gap in rkaf, ours to fix**, never a fact about the thing —
-the posture ``act_resolution`` takes with statutory notes and section ranges.
+distinct). Mostly they are recorded here because a lexical space that cannot
+spell a real thing is **a gap in rkaf, ours to fix**, never a fact about the
+thing — the posture ``act_resolution`` takes with statutory notes and section
+ranges. The RIN entry is the exception that proves the rule has a direction,
+and it is the last one below.
 
-- **The Federal Register document space is five digits wide and the series
-  is not.** ``rkaf:us-frdoc`` is ``[0-9]{4}-[0-9]{5}``. Only **451,704 of the
-  1,004,233** distinct document numbers (45.0%) can carry a first-class
-  identifier under it. **28,862** modern-form numbers are refused for a
-  three- or four-digit tail alone — the same 28,862 the module docstring of
-  :mod:`identifier_shapes` records the old five-digit-only shape refusing, and
-  2010-5997, 2011-237 and 2012-00019 are three of them, each confirmed
-  against the publisher's own API on 2026-08-22.
-- **394,128 (39.2%) are the bare-legacy form** and no letter-opening space
-  reaches them either. See
+Two of these gaps closed in rulespec ``0.2.0rc16`` (REF-054), which is why
+this section reads shorter than it did.
+
+- **CLOSED: the Federal Register document space was five digits wide and the
+  series is not.** ``rkaf:us-frdoc`` is now ``[0-9]{4}-[0-9]{3,5}``, and the
+  **28,862** modern-form numbers refused for a three- or four-digit tail —
+  2,599 with three, 26,263 with four, all of them published 2010-2013 — are
+  first-class. 2010-5997, 2011-237 and 2012-00019 are three of them, each
+  confirmed against the publisher's own API on 2026-08-22. First-class
+  coverage went **451,704 → 480,566** of 1,004,233, 45.0% → **47.9%**.
+- **STILL OPEN, and deliberately: 286 modern numbers below the floor.**
+  ``2010-99`` and ``2010-100`` are consecutive documents of one unpadded
+  series, and the space admits the second and refuses the first. The floor
+  holds at three digits because that makes ``rkaf:us-frdoc`` exactly
+  co-extensive with ``identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER``
+  (``\\d{4}-\\d{3,5}``), so the space caught up to the shape layer rather than
+  overtaking it. That is a **consistency** argument, not an evidential one;
+  the count is written down so a future floor decision has it, the way the
+  1,370 ``\\d{2}-\\d{1,2}`` values are written down at
   :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
-- **A lettered CFR part is unspellable.** ``rkaf:us-cfr`` writes the part as
-  ``[0-9]+``, and 272 of the 8,424 parts in the OFR's published subject index
-  carry a letter suffix (``citation_grammar.CFR_LETTERED_PART_SHARE``).
-  "7 CFR 15" and "7 CFR 15a" are separate parts, so the space names 96.8% of
-  them; :func:`mint_cfr_iri` refuses the rest rather than merging them.
-- **The RIN space is narrower than the shape and it costs nothing today.**
-  ``rkaf:us-rin`` closes on ``[0-9]{2}`` where ``identifier_shapes._RIN``
-  allows ``[A-Za-z0-9]{2}``. Zero of the Unified Agenda's 46,547 RINs take
-  the divergent form, so the gap is theoretical — recorded, not hidden, and
-  pinned by a negative fixture so it stops being theoretical loudly.
+- **STILL OPEN: 394,128 (39.2%) are the bare-legacy form** and no
+  letter-opening space reaches them either. See
+  :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
+- **STILL OPEN: the letter-opening family has the identical short-tail
+  hole.** **5,829** letter-opening values are refused for exactly the tail
+  width the widening just fixed for the modern family. One of two identical
+  holes closed; this one cannot close here, because it is
+  ``identifier_shapes``'s to close and that module is receipt-pinned.
+- **CLOSED for letters, REFUSED for hyphens: the CFR part.** ``rkaf:us-cfr``
+  now writes the part as ``[0-9]+([a-z]|-[0-9]+)?``, covering all 272 of the
+  8,424 parts in the OFR's published subject index that are not plain digits
+  (``citation_grammar.CFR_LETTERED_PART_SHARE``, which stays ``(272, 8424)``
+  — only its consequence changed). :func:`mint_cfr_iri` mints the **83**
+  single-letter parts and refuses the **189** hyphen-numbered ones, a
+  narrowing against the space that :func:`_cfr_part` states and justifies.
+  It spells **8,226 of the 8,424** pairs end to end (97.65%) — the 189 plus
+  nine index rows whose part is literally ``0``, which there is no part 0 to
+  name.
+- **The RIN space is narrower than the shape, and here the direction is the
+  other way round.** ``rkaf:us-rin`` closes on ``[0-9]{2}`` where
+  ``identifier_shapes._RIN`` allows ``[A-Za-z0-9]{2}``, and zero of the
+  46,547 RINs take the divergent form. This one is **not a gap in rkaf**:
+  the only published RIN format statement anywhere — the Fish and Wildlife
+  Service handbook's "two letters followed by two numbers", recorded at
+  ``identifier_shapes.py:344-352``, which says in the same breath that its
+  own shape is *"a chosen lexical space, not the publisher's
+  specification"* — **is** ``[A-Z]{2}[0-9]{2}``. rkaf matches the publisher
+  and RefSpec's column shape is the loose one; this module's own prose
+  reader (``citation_grammar._RIN_TOKEN``) agrees with rkaf, not with the
+  column shape. So the divergence was re-examined in rc16 and rkaf was left
+  alone. It stays pinned by a refusal test, which is the alarm for the day a
+  roster carries one — not a defect waiting to be fixed.
 
 The whole ``document_number`` column, sorted by what it can carry and pinned
-by ``test_the_document_number_column_is_accounted_for_exactly``: **451,704**
-first-class, **540,282** under the partner hatch (394,128 bare-legacy +
-117,292 letter-opening + 28,862 modern short tails), **12,247** refused. 98.8%
-identified, against 45.0% if only rkaf's own spaces are minted into and 0%
-before this module existed.
+by ``test_the_document_number_column_is_accounted_for_exactly``: **480,566**
+first-class, **511,420** under the partner hatch (394,128 bare-legacy +
+117,292 letter-opening), **12,247** refused. 98.8% identified, against 47.9%
+if only rkaf's own spaces are minted into and 0% before this module existed.
+The census had a fifth bucket for the 28,862 modern short tails; the widening
+emptied it, so it is gone rather than pinned at zero.
 
 Anything the space cannot spell is still identified, never dropped: it takes
 rulespec's own ``rkaf:partner-defined`` escape hatch under
@@ -155,9 +189,9 @@ __all__ = [
 #: verbatim test undoes before comparing. ``rkaf:partner-defined`` is the
 #: exception and says so at :data:`_PARTNER_IRI`: rulespec states no lexical
 #: space for it, because the point of the escape hatch is that it has none.
-_US_CFR = re.compile(r"^urn:rkaf:us:cfr:[1-9][0-9]*:[0-9]+(?:\.[0-9]+[a-z]{0,3}(?:-[0-9a-z]+)*)?$")
+_US_CFR = re.compile(r"^urn:rkaf:us:cfr:[1-9][0-9]*:[0-9]+(?:[a-z]|-[0-9]+)?(?:\.[0-9]+[a-z]{0,3}(?:-[0-9a-z]+)*)?$")
 _US_EO = re.compile(r"^urn:rkaf:us:eo:[1-9][0-9]*$")
-_US_FRDOC = re.compile(r"^urn:rkaf:us:frdoc:[0-9]{4}-[0-9]{5}$")
+_US_FRDOC = re.compile(r"^urn:rkaf:us:frdoc:[0-9]{4}-[0-9]{3,5}$")
 _US_PL = re.compile(r"^urn:rkaf:us:pl:[1-9][0-9]*-[1-9][0-9]*$")
 _US_REGSGOV = re.compile(r"^urn:rkaf:us:regsgov:[A-Z0-9]+(?:[-_][A-Z0-9]+)*$")
 _US_RIN = re.compile(r"^urn:rkaf:us:rin:[0-9]{4}-[A-Z]{2}[0-9]{2}$")
@@ -190,9 +224,12 @@ _PARTNER_KIND = re.compile(r"[a-z][a-z0-9-]*")
 _PARTNER_IRI = re.compile(rf"^urn:rkaf:partner:{PARTNER_NAMESPACE}:[a-z][a-z0-9-]*:[A-Za-z0-9._~%-]+$")
 
 #: Scheme -> the space an identifier in it must live in. The scheme names are
-#: rulespec's ``#USRegulatoryIdentifierScheme`` / ``#RinIdentifierScheme`` /
-#: ``#ArtifactIdentifierScheme`` enum members; a :class:`MintedIdentifier`
-#: outside this table cannot be constructed at all.
+#: rulespec's ``#USRegulatoryIdentifierScheme`` / ``#AgendaItemIdentifierScheme``
+#: / ``#ArtifactIdentifierScheme`` enum members; a :class:`MintedIdentifier`
+#: outside this table cannot be constructed at all. (The RIN enum is
+#: ``#AgendaItemIdentifierScheme``, defined at ``rulemaking.cue:11``. This
+#: comment used to say ``#RinIdentifierScheme``, which rulespec has never
+#: defined.)
 IDENTIFIER_SPACES: Mapping[str, re.Pattern[str]] = {
     "rkaf:us-cfr": _US_CFR,
     "rkaf:us-eo": _US_EO,
@@ -353,6 +390,57 @@ def _positive_integer(value: object) -> str | None:
     return text.lstrip("0") or None
 
 
+def _cfr_part(value: object) -> str | None:
+    """A CFR part: the canonical decimal, optionally one lowercased letter.
+
+    ``rkaf:us-cfr`` writes the part as ``[0-9]+([a-z]|-[0-9]+)?``, and this
+    helper is deliberately narrower than that: it mints the numeric and
+    single-letter forms and REFUSES the hyphen-number form. The narrowing is
+    the same kind :func:`mint_cfr_iri` already makes against the title, and it
+    is named here rather than left to be discovered.
+
+    **The letter branch.** ``[a-z]`` was 83 of the OFR index's 272 non-numeric
+    parts, and it has a live producer: ``parse_cfr_citations("7 CFR 15a")``
+    returns part ``15a`` today. Four parts are published UPPERCASE — 26 CFR
+    16A, 29 CFR 4022B, 29 CFR 4041A, 46 CFR 147A — and the prose reader emits
+    the uppercase spelling verbatim, so folding here is the only thing that
+    makes them mintable. The fold is lossless: no part collides with another
+    under it anywhere in the index, and each of those four titles also has the
+    bare numeric part (26 CFR 16, 29 CFR 4022, ...), which is why the rule is
+    to fold and never to truncate.
+
+    **The hyphen branch, refused.** The other 189 non-numeric parts are
+    hyphen-numbered (41 CFR 101-1), and every single one is in title 41. This
+    layer cannot produce one and must not pretend to:
+    ``citation_grammar._CFR_PART_CAPTURE`` stops at the hyphen, which is the
+    RIGHT answer in 48 of the 49 titles, because a hyphen after a part number
+    usually means a range (40 CFR 60-63), a section written loosely (28 CFR
+    23-4 for §23.4) or a numbered standard (49 CFR 571-108) — none of them a
+    part. Title 41 is the sole exception, and separating it from the other
+    three readings needs a title-conditional rule that does not exist.
+
+    DEFERRED, not fixed: because the capture stops at the hyphen,
+    ``parse_cfr_citations("41 CFR 101-1")`` yields part ``101`` and this
+    function mints ``urn:rkaf:us:cfr:41:101`` — a first-class identifier for a
+    part that does not exist, since none of title 41's 16 hyphen heads is a
+    part in its own right. Minting the hyphen form here would replace that
+    named, tested gap with a silent wrong answer, so the space carries the
+    form and the minter does not. The fix belongs in ``_CFR_PART_CAPTURE``,
+    inside receipt-pinned ``citation_grammar``; see REF-054 for the trigger
+    that reopens it.
+
+    Refuses part 0, and leading zeros are spelling: see
+    :func:`_positive_integer`, whose join-key rule this reuses unchanged.
+    """
+
+    text = _stated(value).lower()
+    match = re.fullmatch(r"([0-9]+)([a-z]?)", text)
+    if match is None:
+        return None
+    number = _positive_integer(match[1])
+    return None if number is None else f"{number}{match[2]}"
+
+
 def _cfr_section(value: object) -> str | None:
     """A CFR section suffix, lowercased, with subsection detail dropped.
 
@@ -401,12 +489,11 @@ def mint_cfr_iri(title: object, part: object, section: object = None) -> MintedI
     consumer needs the row, while minting an identifier for a title that does
     not exist would publish the claim rather than the doubt.
 
-    Refuses a LETTERED part, and the refusal is a gap in rkaf rather than a
-    fact about the part: ``rkaf:us-cfr`` writes the part as ``[0-9]+`` and 272
-    of the OFR's 8,424 parts carry a letter suffix
-    (``citation_grammar.CFR_LETTERED_PART_SHARE``). "7 CFR 15" and "7 CFR 15a"
-    are separate parts; minting them as one identifier would be worse than
-    refusing both.
+    Mints a LETTERED part, folding its suffix to lowercase, and refuses a
+    hyphen-number part — both decided in :func:`_cfr_part`, which carries the
+    measurements and the reason the second is a deliberate narrowing against
+    the space rather than an oversight. "7 CFR 15" and "7 CFR 15a" stay
+    separate identifiers, as they are separate parts.
 
     Refuses part 0 as it refuses title 0, which rulespec's own title
     production already refuses — there is no part 0 to name.
@@ -421,7 +508,7 @@ def mint_cfr_iri(title: object, part: object, section: object = None) -> MintedI
     title_text = _positive_integer(title)
     if title_text is None or not 1 <= int(title_text) <= CFR_TITLE_COUNT:
         return None
-    part_text = _positive_integer(part)
+    part_text = _cfr_part(part)
     if part_text is None:
         return None
     body = f"{title_text}:{part_text}"
@@ -461,6 +548,16 @@ def mint_rin_iri(value: object) -> MintedIdentifier | None:
     that form (measured 2026-08-31), so the divergence costs nothing today;
     ``test_a_rin_the_shape_admits_and_rkaf_cannot_spell_is_refused`` is there
     so it stops costing nothing loudly.
+
+    The narrow one here is the SHAPE's counterpart, not this space. rulespec
+    was asked to widen the tail alongside frdoc and CFR in ``0.2.0rc16`` and
+    was deliberately left alone: ``[A-Z]{2}[0-9]{2}`` is the only published
+    format statement anyone has found, the five known out-of-space RINs
+    (0648-XD990, 0648-XC705, 3090-00XX, 1115-09AE, 2070-78AB) are unreachable
+    by widening the last two characters anyway — two need a five-character
+    tail, three run digit-digit-letter-letter — and widening would have
+    deleted the refusal test for a coverage gain of provably zero. See
+    REF-054.
     """
 
     rin = normalize_rin(value)
@@ -527,14 +624,16 @@ def mint_federal_register_document_iri(
     Three outcomes, and which one a value gets is the news:
 
     - ``rkaf:us-frdoc`` when rulespec's space can spell it —
-      ``[0-9]{4}-[0-9]{5}``, which is **451,704 of the 1,004,233** distinct
-      values in the pinned column (45.0%);
+      ``[0-9]{4}-[0-9]{3,5}``, which is **480,566 of the 1,004,233** distinct
+      values in the pinned column (47.9%);
     - ``rkaf:partner-defined`` when the shape layer recognises the value and
-      rulespec cannot spell it. Three populations arrive here: the **28,862**
-      modern-form numbers with a three- or four-digit tail (2010-5997,
-      2011-237, 2012-00019 among them), the letter-opening correction,
-      republication and legacy forms the prose reader reads, and — behind
-      ``column_licensed`` — the **394,128** bare-legacy numbers;
+      rulespec cannot spell it. Two populations arrive here: the
+      letter-opening correction, republication and legacy forms the prose
+      reader reads, and — behind ``column_licensed`` — the **394,128**
+      bare-legacy numbers. A third used to: the 28,862 modern-form numbers
+      with a three- or four-digit tail (2010-5997, 2011-237, 2012-00019 among
+      them) took the hatch until rulespec 0.2.0rc16 widened the space, and
+      they are first-class now;
     - ``None`` otherwise, which is a refusal and never a repair.
 
     ``column_licensed`` is the whole of the two-readers doctrine in this
@@ -545,10 +644,13 @@ def mint_federal_register_document_iri(
     admits one shape and admits it nowhere else. See
     :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
 
-    The padding is never normalized. The Office of the Federal Register pads
-    some years and not others, and across the 480,566 modern-form values not
-    one padded number has an unpadded twin, so 2012-00019 is the identifier
-    and "2012-19" would be a spelling no publisher issued.
+    The padding is never normalized, and after the widening that rule is the
+    only thing standing between a document and a second identifier. The Office
+    of the Federal Register pads some years and not others; across all 480,566
+    modern-form values now inside the space, not one padded number has an
+    unpadded twin — measured, and the load-bearing safety proof for widening
+    the space at all. So 2012-00019 is the identifier and "2012-19" would be a
+    spelling no publisher issued.
     """
 
     text = _stated(document_number).translate(_DASHES)
@@ -581,9 +683,17 @@ def mint_partner_iri(kind: str, value: object) -> MintedIdentifier | None:
     and refuses a ``kind`` outside ``[a-z][a-z0-9-]*`` so the five-segment
     layout always parses back unambiguously. Reusing a real family's word as
     the kind is deliberate, not a shadow: the FR minter itself hands the
-    28,862 short-tail and 394,128 bare-legacy documents here as kind
+    394,128 bare-legacy and 117,292 letter-opening documents here as kind
     ``frdoc``, and the ``urn:rkaf:partner:refspec:`` prefix is what keeps
     them lexically apart from every ``urn:rkaf:us:...`` identifier.
+
+    The hatch is a WAITING ROOM, not a parallel vocabulary. When rulespec
+    widens a space, whatever it now admits leaves through the same door it
+    came in: ``urn:rkaf:partner:refspec:frdoc:2011-237`` became
+    ``urn:rkaf:us:frdoc:2011-237`` in 0.2.0rc16 with no lookup, because the
+    value is percent-encoded here losslessly and is recoverable from the
+    partner IRI itself. See REF-054 for what that obliges a future widening
+    to check.
     """
 
     text = _stated(value)

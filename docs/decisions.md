@@ -4186,8 +4186,12 @@ land on someone's dirty tree. The measurement that makes the eventual repoint
 low-risk is recorded: nothing in spicysearch's test suite imports the
 `refspec` package at all (its references are filesystem paths via
 `REFSPEC_CHECKOUT` plus one lazy import in a standalone script), so the pin
-move is nearly inert there. It waits for a clean worktree, not for a
-decision.
+move is nearly inert there. It waited only for a clean worktree — and
+executed the same day, once that worktree's owner landed their milestone:
+spicysearch commit `5ee3d34` moves the pin `141fd671 → 99167ca1`, flips the
+submodule URL from the local file path to the GitHub URL (resolvable now
+that this line is pushed), and its full fast tier passed against the new
+pin, 1,319 tests green. The measurement held exactly.
 
 ### REF-052: The column is the license — the Federal Register document-number recall ruling
 
@@ -4246,3 +4250,107 @@ lessons live. Reopen when — and only when — a consumer arrives that needs
 open-vocabulary minting; it brings its own ownership question and its own
 breaking check, and that future decision should weigh the quota and
 single-facet merge rules the archived implementation already paid for.
+
+### REF-054: rkaf's frdoc and CFR spaces widen upstream — 28,862 documents come in from the partner hatch, and one gap is deliberately left open
+
+Successor to REF-052, which ruled that the Federal Register `document_number`
+column is its own license and recorded what rkaf could not spell. That ruling
+stands; this one narrows its scope, because rulespec `0.2.0rc16` moved two of
+the three lexical spaces REF-052 argued from.
+
+**What changed upstream.** `rkaf:us-frdoc` becomes
+`^urn:rkaf:us:frdoc:[0-9]{4}-[0-9]{3,5}$`, and a `rkaf:us-cfr` part becomes
+`[0-9]+([a-z]|-[0-9]+)?`. `rkaf:us-rin` is unchanged. Both widenings are
+strict supersets — verified by exhaustive and 4M-sample search — so no
+previously valid identifier changed meaning, and this repository's vendored
+wheel moved rc15 → rc16 to carry them.
+
+**Why frdoc, measured.** 28,862 real documents (2,599 three-digit tails,
+26,263 four-digit, all published 2010–2013) were refused for sequence width
+alone. First-class coverage of the pinned 1,004,233-value column goes
+451,704 → **480,566**, 45.0% → 47.9%; the partner hatch drops 540,282 →
+**511,420**; refusals hold at **12,247**; identified coverage is unchanged at
+98.8%, because the widening moves values between schemes and identifies
+nothing new. The load-bearing safety proof is that it splits no identity:
+across all 480,566 admitted values, no document has both a padded and an
+unpadded spelling, so nothing gained a second first-class identifier. The
+ceiling stays at five because zero modern values reach six digits and the
+largest sequence ever issued is 33,861 (2011). The floor stays at three so
+the space is exactly co-extensive with
+`identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER` — a **consistency**
+argument, not an evidential one, and worth naming as such: `2010-99` and
+`2010-100` are consecutive documents of one unpadded series, and the floor
+admits the second and refuses the first. The 286 values below it are recorded
+here so a future floor decision has the number.
+
+**Why CFR, and why the minter is narrower than the space.** 272 of the OFR's
+8,424 parts are not plain digits: 83 carry a single letter, 189 carry a
+hyphen-number suffix, and every one of those 189 is in title 41. rulespec's
+vocabulary describes the real CFR, so the space carries both branches.
+`mint_cfr_iri` carries only the letter branch, folding the suffix to
+lowercase — lossless, with zero case-fold collisions across the index, and
+necessary because `parse_cfr_citations` emits the publisher's uppercase for
+the four parts published that way (26 CFR 16A, 29 CFR 4022B, 29 CFR 4041A,
+46 CFR 147A). It refuses the hyphen branch because nothing here can produce
+one: no pinned column carries a hyphen part (852 distinct `cfr_part` values,
+100% numeric), and the prose reader stops at the hyphen — correctly in 48 of
+the 49 titles, where a hyphen means a range (`40 CFR 60-63`), a loosely
+written section (`28 CFR 23-4`), or a numbered standard (`49 CFR 571-108`).
+
+**The defect this surfaced, deferred not fixed.** Because that capture stops
+at the hyphen, `parse_cfr_citations("41 CFR 101-1")` returns part `101` and
+minting it yields `urn:rkaf:us:cfr:41:101` — a first-class identifier for a
+part that does not exist, since not one of title 41's 16 hyphen heads is a
+part in its own right. Minting the hyphen form would have replaced a named,
+tested gap with a silent wrong answer, which is the same argument that kept
+RIN unchanged. The fix requires a title-conditional rule in
+`citation_grammar._CFR_PART_CAPTURE`, which is receipt-pinned. **Reopen
+trigger**: a receipt-authorized `citation_grammar` rebuild that captures the
+complete hyphenated part. The phantom is pinned as current behaviour by
+`test_a_hyphen_numbered_cfr_part_is_in_the_space_and_out_of_the_minter`, so
+fixing it upstream turns that test red on purpose.
+
+**Why RIN was left alone.** It was examined in the same pass and deliberately
+not widened. The authoritative roster is 46,547 RINs with **zero** outside
+`[0-9]{4}-[A-Z]{2}[0-9]{2}`; the only published format statement anywhere —
+the Fish and Wildlife Service handbook's "two letters followed by two
+numbers" — *is* that production; the five known out-of-space RINs are
+unreachable by relaxing the last two characters anyway; and this repository's
+own prose reader already agrees with rkaf. Here the direction of REF-052's
+framing inverts: the gap is in RefSpec's column shape, not in rkaf, and
+`iri_minting`'s prose was corrected to say so. Widening would have deleted a
+working tripwire for a coverage gain of provably zero.
+
+**Reconciliation and migration.** A lexical-space widening moves values from
+the partner hatch to first-class deterministically and without a lookup:
+`urn:rkaf:partner:refspec:frdoc:X` becomes `urn:rkaf:us:frdoc:X` exactly when
+`X` enters the widened space, because `mint_partner_iri` percent-encodes the
+source value losslessly, so the partner IRI carries everything the rewrite
+needs. The migration is **one-directional**: a first-class identifier never
+demotes, and a future *narrowing* would strand values already published as
+first-class — a breaking change requiring its own decision, not a bump. At
+this widening the migration is a **no-op**, measured: the minting layer has
+no production consumer at all (only its own test module imports it), and no
+built artifact under `output/`, `bindings/`, `portfolio/`, or `deploy/`
+carries a minted IRI. Any FUTURE widening must repeat that measurement first
+and, if persisted partner IRIs exist by then, ship the rewrite alongside the
+contract bump rather than after it.
+
+**What stays open, named rather than implied.** Three refusals survive and
+two of them are new asymmetries this change made visible. 394,128 bare-legacy
+numbers still have no first-class space. **5,829** letter-opening values are
+still refused for exactly the short tail this change fixed for the modern
+family — one of two identical holes closed. And **96** official corrections of
+documents that just became first-class stay refused, because
+`identifier_shapes` hard-codes the correction form to a five-digit tail: after
+this change `2010-1863` is first-class while its own correction
+`C1-2010-1863` is not. All three live in receipt-pinned `identifier_shapes`,
+so none could be fixed in this unit; they are deferred decisions, not
+oversights.
+
+The running check is the census test, which re-derives all four buckets
+against the real column rather than pinning arithmetic, plus the
+contract-verbatim gates that hold this repository's copies of the spaces true
+against the vendored wheel. The census lost its `modern-short-tail` bucket
+rather than pinning it at zero: a bucket naming an empty population is
+structure that stopped earning its keep.

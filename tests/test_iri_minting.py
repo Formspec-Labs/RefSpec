@@ -73,12 +73,18 @@ AGENDA_RIN_PARQUET = (
 EVERY_FAMILY: tuple[tuple[str, MintedIdentifier | None], ...] = (
     ("cfr", mint_cfr_iri(7, "273", "9")),
     ("cfr-part-only", mint_cfr_iri(40, "60")),
+    ("cfr-lettered-part", mint_cfr_iri(7, "15a")),
     ("eo", mint_executive_order_iri(12_866)),
     ("rin", mint_rin_iri("2060-AV16")),
     ("regsgov", mint_regulations_gov_docket_iri("EPA-HQ-OAR-2021-0317")),
     ("pl", mint_public_law_iri("119-101")),
     ("frdoc", mint_federal_register_document_iri("2024-00366")),
-    ("frdoc-partner", mint_federal_register_document_iri("2011-237")),
+    # 2011-237 was the "frdoc-partner" specimen until rulespec 0.2.0rc16
+    # widened the space; it is first-class now, which is the whole delivery of
+    # that widening. The partner specimen moved to a letter-opening value,
+    # which is a population the hatch still holds (117,292 of them).
+    ("frdoc-short-tail", mint_federal_register_document_iri("2011-237")),
+    ("frdoc-partner", mint_federal_register_document_iri("E8-24348")),
     ("frdoc-bare-legacy", mint_federal_register_document_iri("09-19806", column_licensed=True)),
     ("partner", mint_partner_iri("proceeding", "EPA-HQ-OAR-2021-0317")),
 )
@@ -252,22 +258,76 @@ def test_a_cfr_subsection_resolves_to_its_section() -> None:
     assert mint_cfr_iri(40, "60", "18(a)") == mint_cfr_iri(40, "60", "18")
 
 
-def test_a_lettered_cfr_part_is_a_gap_in_rkaf_and_is_refused() -> None:
-    """272 of the OFR's 8,424 parts carry a letter suffix, and ``rkaf:us-cfr``
-    writes the part as ``[0-9]+``.
+def test_a_lettered_cfr_part_mints_and_its_case_is_folded() -> None:
+    """The gap this test used to pin, closed. 83 of the OFR's 272 non-numeric
+    parts carry a single letter, and ``rkaf:us-cfr`` writes the part as
+    ``[0-9]+([a-z]|-[0-9]+)?`` from rulespec 0.2.0rc16.
 
     "7 CFR 15" and "7 CFR 15a" are separate parts; every ancestor of the
     grammar merged them, and minting them as one identifier would put that
-    defect back on the wire. The refusal is a gap in rkaf, ours to fix -- not
-    a fact about part 15a, which the grammar reads perfectly well.
+    defect back on the wire. So the check did not disappear when the gap
+    closed -- it changed sign, and the two parts must still be two
+    identifiers.
+
+    The fold is the half that could not be tested before. ``parse_cfr_citations``
+    emits the publisher's own uppercase spelling for the four parts published
+    that way (26 CFR 16A, 29 CFR 4022B, 29 CFR 4041A, 46 CFR 147A), so
+    lowercasing here is the only thing that makes them mintable -- and it is
+    lossless, because no part collides with another under the fold anywhere in
+    the index, and each of those four titles also has the bare numeric part.
     """
 
     lettered, total = CFR_LETTERED_PART_SHARE
-    assert 0 < lettered < total  # the population the refusal costs
+    assert 0 < lettered < total  # the population the widening reaches
 
     assert parse_cfr_citations("7 CFR 15a")[0].cfr_part == "15a"
-    assert mint_cfr_iri(7, "15a") is None
+    assert mint_cfr_iri(7, "15a").iri == "urn:rkaf:us:cfr:7:15a"
     assert mint_cfr_iri(7, "15").iri == "urn:rkaf:us:cfr:7:15"
+    assert mint_cfr_iri(7, "15a") != mint_cfr_iri(7, "15")
+
+    # The uppercase fold, on the only path that produces uppercase.
+    assert parse_cfr_citations("26 CFR 16A")[0].cfr_part == "16A"
+    assert mint_cfr_iri(26, "16A").iri == "urn:rkaf:us:cfr:26:16a"
+    assert mint_cfr_iri(26, "16A") == mint_cfr_iri(26, "16a")
+    assert mint_cfr_iri(26, "16").iri == "urn:rkaf:us:cfr:26:16"  # folding, never truncating
+
+    # Still refused: no multi-letter part suffix exists anywhere in the index.
+    assert mint_cfr_iri(7, "15ab") is None
+
+
+def test_a_hyphen_numbered_cfr_part_is_in_the_space_and_out_of_the_minter() -> None:
+    """The contract spells ``41 CFR 101-1``; this minter deliberately will not.
+
+    189 of the 272 non-numeric parts are hyphen-numbered and every one is in
+    title 41, so rulespec's vocabulary describes the real CFR and the space
+    accepts the form. RefSpec is narrower on purpose, the way
+    :func:`mint_cfr_iri` is already narrower than the grammar on the title:
+    nothing here can PRODUCE a hyphen part. No pinned column carries one (852
+    distinct ``cfr_part`` values, all numeric), and the prose reader stops at
+    the hyphen -- which is the right answer in 48 of the 49 titles, because a
+    hyphen after a part number usually means a range (40 CFR 60-63), a section
+    written loosely (28 CFR 23-4) or a numbered standard (49 CFR 571-108).
+
+    DEFERRED, and this is the point of the test: because the capture stops at
+    the hyphen, ``41 CFR 101-1`` reads as part ``101`` and mints
+    ``urn:rkaf:us:cfr:41:101`` -- a first-class identifier for a part that
+    does not exist. Minting the hyphen form here would swap a named, tested
+    gap for a silent wrong answer, so the space carries the form and the
+    minter refuses it. The fix belongs in
+    ``citation_grammar._CFR_PART_CAPTURE``, which is receipt-pinned; REF-054
+    records the trigger that reopens it. This test asserts the phantom as
+    CURRENT BEHAVIOUR so that fixing it upstream turns this red on purpose.
+    """
+
+    # The contract accepts it: the space is rulespec's, and it is right.
+    assert IDENTIFIER_SPACES["rkaf:us-cfr"].fullmatch("urn:rkaf:us:cfr:41:101-1")
+    # The minter does not.
+    assert mint_cfr_iri(41, "101-1") is None
+    assert mint_cfr_iri(41, "101-1", "20") is None
+
+    # The deferred phantom, pinned as it behaves today rather than as it should.
+    assert parse_cfr_citations("41 CFR 101-1")[0].cfr_part == "101"
+    assert mint_cfr_iri(41, "101").iri == "urn:rkaf:us:cfr:41:101"
 
 
 def test_an_impossible_cfr_title_mints_nothing() -> None:
@@ -494,7 +554,7 @@ def test_what_is_not_a_public_law_number_mints_nothing() -> None:
 
 
 def test_a_modern_document_number_rkaf_can_spell_mints_first_class() -> None:
-    """451,704 of the 1,004,233 distinct values, measured 2026-08-31.
+    """480,566 of the 1,004,233 distinct values, measured 2026-08-31.
 
     2024-00366 is rulespec's own positive fixture for the scheme
     (``artifact-us-frdoc-positive.jsonld``); 2026-13078 is the specimen
@@ -506,24 +566,55 @@ def test_a_modern_document_number_rkaf_can_spell_mints_first_class() -> None:
         assert minted == MintedIdentifier(scheme="rkaf:us-frdoc", iri=f"urn:rkaf:us:frdoc:{value}"), value
 
 
-def test_a_short_tail_is_real_and_takes_the_escape_hatch() -> None:
-    """``rkaf:us-frdoc`` is five digits wide and the series is not.
+def test_a_short_tail_is_real_and_is_now_first_class() -> None:
+    """The inverse of what this test used to assert, and the point of rc16.
 
     2010-5997 (published 2010-03-19) and 2011-237 (2011-01-11) are real,
     confirmed against the publisher's own API on 2026-08-22, and 28,862
     modern-form numbers in the pinned column carry a three- or four-digit
-    tail. rulespec's own negative fixture for the scheme is
-    ``urn:rkaf:us:frdoc:2024-366`` -- exactly this shape -- so the space
-    refuses them deliberately rather than by omission. They keep their
-    identity under the partner-defined hatch instead of losing it.
+    tail. ``rkaf:us-frdoc`` was five digits wide and the series is not; from
+    rulespec 0.2.0rc16 the space is ``[0-9]{4}-[0-9]{3,5}`` and all 28,862 are
+    first-class. rulespec replaced its own negative fixture accordingly --
+    ``urn:rkaf:us:frdoc:2024-366`` was the negative and is now valid, so the
+    fixture moved to 2024-36, below the new floor.
+
+    The widening is safe because it splits no identity: across all 480,566
+    admitted values, no document has both a padded and an unpadded spelling,
+    so nothing here gained a second first-class identifier.
     """
 
-    assert not IDENTIFIER_SPACES["rkaf:us-frdoc"].fullmatch("urn:rkaf:us:frdoc:2011-237")
-    for value in ("2010-5997", "2011-237"):
+    assert IDENTIFIER_SPACES["rkaf:us-frdoc"].fullmatch("urn:rkaf:us:frdoc:2011-237")
+    for value in ("2010-5997", "2011-237", "2012-999", "2013-1234"):
         minted = mint_federal_register_document_iri(value)
         assert minted is not None, value
-        assert minted.scheme == "rkaf:partner-defined", value
-        assert minted.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:{value}", value
+        assert minted.scheme == "rkaf:us-frdoc", value
+        assert minted.iri == f"urn:rkaf:us:frdoc:{value}", value
+
+
+def test_the_floor_under_the_widened_tail_is_where_the_shape_layer_puts_it() -> None:
+    """Three digits, so ``rkaf:us-frdoc`` is exactly co-extensive with the shape.
+
+    ``identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER`` is
+    ``\\d{4}-\\d{3,5}``, and rc16 moved the space to meet it rather than to
+    overtake it. 286 modern values in the pinned column have a one- or
+    two-digit tail and stay outside -- and they are not a separate form:
+    2010-99 and 2010-100 are consecutive documents of one unpadded series, so
+    the floor cuts a continuous series and is held for consistency with the
+    layer that reads it, not because the evidence puts a boundary there.
+    The count is recorded so a future floor decision has it.
+
+    The ceiling is measured rather than chosen: zero modern values reach a
+    six-digit tail, and the largest sequence ever issued is 33,861 (2011), so
+    refusing six leaves 3x headroom.
+    """
+
+    for below in ("2010-99", "2024-36", "2011-7"):
+        assert mint_federal_register_document_iri(below) is None, below
+        assert mint_federal_register_document_iri(below, column_licensed=True) is None, below
+    for above in ("2024-003661", "2010-1234567"):
+        assert mint_federal_register_document_iri(above) is None, above
+
+    assert mint_federal_register_document_iri("2010-100").iri == "urn:rkaf:us:frdoc:2010-100"
 
 
 def test_the_letter_opening_forms_keep_the_identity_the_shape_layer_reads() -> None:
@@ -597,12 +688,24 @@ def test_document_number_padding_is_never_normalized_away() -> None:
     """The publisher pads some years and not others, and across the 480,566
     modern-form values not one padded number has an unpadded twin. Stripping
     the pad would invent a spelling no publisher issued, so the two are
-    different identifiers and stay different."""
+    different identifiers and stay different.
+
+    This carried no weight while the space was five digits wide -- "2012-19"
+    was outside it for its length. After rc16 widened the tail to three, the
+    FLOOR is the only thing still refusing it, so the sentence below is now
+    load-bearing rather than incidental: a two-digit tail states nothing the
+    shape reads, and the padded spelling is the identifier because it is the
+    one the publisher issued. Were the floor ever lowered, this test is where
+    the identity question surfaces first."""
 
     padded = mint_federal_register_document_iri("2012-00019")
     unpadded = mint_federal_register_document_iri("2012-19")
     assert padded is not None and padded.iri == "urn:rkaf:us:frdoc:2012-00019"
     assert unpadded is None  # a two-digit tail states nothing the shape reads
+    # Three digits and up, the pad is preserved rather than stripped: both of
+    # these are inside the widened space, and they are not the same identifier.
+    assert mint_federal_register_document_iri("2012-019").iri == "urn:rkaf:us:frdoc:2012-019"
+    assert mint_federal_register_document_iri("2012-019") != mint_federal_register_document_iri("2012-19")
 
 
 # --------------------------------------------------------------------------- #
@@ -638,6 +741,13 @@ def test_the_partner_hatch_is_lossless_and_fenced() -> None:
     # the FR minter itself mints kind "frdoc" beside rkaf:us-frdoc, and the
     # partner prefix is what keeps the namespaces apart. Pinned positively so
     # a future blocklist cannot land without noticing the module relies on it.
+    #
+    # The hatch is a waiting room, and rc16 emptied part of it: the 28,862
+    # short-tail documents that used to be minted here as kind "frdoc" are
+    # first-class now. That migration needed no lookup precisely because the
+    # encoding below is lossless -- the partner IRI carries the source value,
+    # so `partner:refspec:frdoc:2011-237` maps to `us:frdoc:2011-237` by
+    # inspection. See REF-054.
     assert mint_partner_iri("usc", "note-only-citation").iri == (
         f"urn:rkaf:partner:{PARTNER_NAMESPACE}:usc:note-only-citation"
     )
@@ -660,6 +770,14 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     The headline is the 39.2%: without the column license, 394,128 real
     documents have no identity of any kind, and the ingest lane that reads
     their bodies has nothing to join them on.
+
+    There used to be a fifth bucket here, ``modern-short-tail``, counting the
+    28,862 modern numbers the five-digit-wide ``rkaf:us-frdoc`` space refused.
+    rulespec 0.2.0rc16 widened the space to ``[0-9]{4}-[0-9]{3,5}`` and that
+    population is now first-class, so the bucket names nobody and is gone
+    rather than pinned at zero. The loop below still proves it emptied: a
+    partner-hatch value the prose reader reads can no longer be a modern-form
+    document number, and the assertion says so where the branch used to be.
     """
 
     import pyarrow.parquet as pq
@@ -671,7 +789,7 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         values.update(value for value in batch.column(0).to_pylist() if value is not None)
     assert len(values) == 1_004_233
 
-    census = dict.fromkeys(("first-class", "bare-legacy", "modern-short-tail", "letter-opening", "refused"), 0)
+    census = dict.fromkeys(("first-class", "bare-legacy", "letter-opening", "refused"), 0)
     for value in values:
         prose = mint_federal_register_document_iri(value)
         column = mint_federal_register_document_iri(value, column_licensed=True)
@@ -682,24 +800,33 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
             census["first-class"] += 1
         elif prose is None:
             census["bare-legacy"] += 1
-        elif identifier_shapes.is_federal_register_document_number(value):
-            census["modern-short-tail"] += 1
         else:
+            # The dead bucket, as an assertion. Every modern-form number the
+            # shape layer reads is now inside the space, so nothing that
+            # reaches the partner hatch through the PROSE reader can be one.
+            assert not identifier_shapes.is_federal_register_document_number(value), value
             census["letter-opening"] += 1
 
     assert census == {
-        # What rulespec can spell: 45.0% of the column.
-        "first-class": 451_704,
+        # What rulespec can spell: 47.9% of the column, up from 45.0% before
+        # the rc16 widening moved 28,862 documents in from the partner hatch.
+        "first-class": 480_566,
         # §1.2: identity-less today, and the whole reason for the column license.
         "bare-legacy": 394_128,
-        # The five-digit-wide frdoc space refusing real modern numbers.
-        "modern-short-tail": 28_862,
         # Corrections, republications and legacy prefixes the prose reader reads.
+        # 5,829 of these are refused below for the SAME short tail the widening
+        # just fixed for the modern family; that hole is in receipt-pinned
+        # `identifier_shapes` and stays open. See REF-054.
         "letter-opening": 117_292,
         # Damage and the shapes nobody has decided about: 1.2% of the column.
+        # 286 are modern numbers with a one- or two-digit tail, deliberately
+        # left below the widened floor so the space stays co-extensive with
+        # `identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER`.
         "refused": 12_247,
     }
     assert sum(census.values()) == len(values)
+    # The partner hatch, derived rather than pinned separately.
+    assert census["bare-legacy"] + census["letter-opening"] == 511_420
 
 
 @pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
