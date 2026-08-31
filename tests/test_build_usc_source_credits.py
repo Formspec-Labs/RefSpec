@@ -17,6 +17,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import pyarrow.parquet as pq
 import pytest
 
 from tools import build_usc_source_credits as builder
@@ -282,3 +283,36 @@ def test_bounding_the_page_search_changes_no_retained_answer_on_this_release_poi
     assert scan.credits_scanned == 51548
     assert scan.pages_the_bound_changed == builder.BOUND_CHANGES_NO_ANSWER_ON_119_102 == 0
     assert sum(1 for c in scan.credits if c.statutes_at_large_page is None) == 0
+
+
+@frozen_required
+def test_the_known_wrong_page_row_is_pinned_not_repaired() -> None:
+    """22 U.S.C. 283z-11 publishes a page belonging to a law the bound cannot
+    see: its credit's intervening ``Pub. L. 110-5, § 2`` states no division,
+    ENACTMENT requires one, so 121 Stat. 25 (the 2007 volume) is attributed
+    to the 109-289 enactment (2006, 120 Stat. era). The frozen artifact
+    carries the identical row, so this builder reproduces the wrong value
+    rather than silently diverging from what act_resolution consumes -- and
+    this pin makes the eventual fix a deliberate reseal that moves
+    KNOWN_WRONG_PAGE_ROWS_ON_119_102, the equivalence digests and this test
+    together (xhigh review catch, 2026-08-31)."""
+
+    table = pq.read_table(FROZEN_TABLE).to_pylist()
+    rows = [r for r in table if r["usc_section"] == "283z-11"]
+    assert [
+        (
+            r["public_law"],
+            r["division"],
+            r["act_section"],
+            r["usc_title"],
+            r["usc_section"],
+            r["statutes_at_large_volume"],
+            r["statutes_at_large_page"],
+        )
+        for r in rows
+    ] == list(builder.KNOWN_WRONG_PAGE_ROWS_ON_119_102)
+    # The wrongness itself, stated so the pin cannot be misread as an
+    # endorsement: Pub. L. 109-289 is a 2006 law and its pages live in
+    # volume 120; volume 121 belongs to the 2007 session that enacted
+    # Pub. L. 110-5.
+    assert rows[0]["statutes_at_large_volume"] == "121"

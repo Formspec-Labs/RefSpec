@@ -309,3 +309,25 @@ def test_the_receipt_states_the_measurements_the_rules_were_derived_from(tmp_pat
     assert receipt["inputs"]["popular_names_digest"] == (
         "sha256:65c5185e8e9508c8a22d8c2bf49d563808a45d053872af79d2bc95b7c2566a12"
     )
+
+
+def test_the_receipt_survives_a_repo_relative_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The usage block's own ``--output output/...`` spelling sealed both
+    tables and then crashed before the receipt existed: the outputs block
+    guarded on the RESOLVED path but called ``relative_to`` on the UNRESOLVED
+    one (xhigh review catch, 2026-08-31). Reproduced by making the repo root
+    the working directory and sealing into a relative path beneath it -- the
+    receipt must exist and key its outputs repo-relative."""
+
+    html = tmp_path / "popularnames.htm"
+    html.write_text(ENTRIES["statviewer_and_stated_citation_agree"], encoding="utf-8")
+    monkeypatch.setattr(builder, "REPO_ROOT", tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    receipt = builder.build(Path("sealed-relative"), html_path=html)
+
+    assert (tmp_path / "sealed-relative" / "receipt.json").is_file()
+    assert set(receipt["outputs"]) == {
+        "sealed-relative/usc-popular-names.parquet",
+        "sealed-relative/quarantine.parquet",
+    }

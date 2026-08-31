@@ -118,6 +118,25 @@ BOUNDED_PAGE_RULE = "statutes-at-large-page-searched-only-until-the-next-citatio
 #: starts to matter fails the suite instead of arriving as a changed value.
 BOUND_CHANGES_NO_ANSWER_ON_119_102 = 0
 
+#: KNOWN WRONG ROW, carried faithfully (xhigh review catch, 2026-08-31). The
+#: bound ends a page search at the next ENACTMENT match, and ENACTMENT makes
+#: ``div.`` mandatory -- so an intervening division-LESS citation is invisible
+#: to it. Exactly one published row on 119-102 is wrong this way:
+#: 22 U.S.C. 283z-11's credit chains "as added Pub. L. 109-289, div. B ...
+#: as added Pub. L. 110-5, § 2, ... 121 Stat. 25", and because Pub. L. 110-5
+#: states no division, its 121 Stat. 25 (a 2007 volume) is attributed to the
+#: 109-289 enactment (a 2006 law, 120 Stat. era). The zero pinned above is
+#: structurally blind to this class: bounded and unbounded searches return
+#: the SAME wrong match. The frozen 2026-08-02 artifact publishes the same
+#: row -- verified byte-for-byte -- so this builder reproduces it rather than
+#: silently diverging from the artifact act_resolution consumes; the fix
+#: (an intervening-citation pattern that does not require ``div.``) is an
+#: artifact-changing unit that lands with the next reseal and moves this pin
+#: and the equivalence digests together.
+KNOWN_WRONG_PAGE_ROWS_ON_119_102 = (
+    ("109-289", "B", "20410", "22", "283z-11", "121", "25"),
+)
+
 #: USLM spells a section suffix with an EN DASH (``/us/usc/t16/s824s–1``); Table
 #: III, the citation grammar and ``rkaf:us-usc`` all spell it with a hyphen.
 #: Straightening it is what lets the two OLRC surfaces join at all; the verbatim

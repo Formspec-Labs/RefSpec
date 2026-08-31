@@ -557,11 +557,16 @@ def build(output_dir: Path, *, html_path: Path) -> dict:
             "quarantine_reasons": list(QUARANTINE_REASONS),
         },
         "outputs": {
-            str(path.relative_to(REPO_ROOT)) if path.resolve().is_relative_to(REPO_ROOT) else path.name: {
-                "digest": file_sha256(path),
-                "rows": pq.ParquetFile(path).metadata.num_rows,
+            # Resolve ONCE and key from the resolved path: guarding on
+            # path.resolve() while calling relative_to on the unresolved path
+            # raised ValueError for the relative --output the usage block
+            # itself shows, after both tables were written and before the
+            # receipt existed (xhigh review catch, 2026-08-31).
+            str(resolved.relative_to(REPO_ROOT)) if resolved.is_relative_to(REPO_ROOT) else resolved.name: {
+                "digest": file_sha256(resolved),
+                "rows": pq.ParquetFile(resolved).metadata.num_rows,
             }
-            for path in (names_path, quarantine_path)
+            for resolved in (names_path.resolve(), quarantine_path.resolve())
         },
     }
     (output_dir / "receipt.json").write_text(canonical_json(receipt), encoding="utf-8")

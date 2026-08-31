@@ -194,6 +194,20 @@ def test_rule3_margin_is_exclusive_at_the_boundary() -> None:
         ("DOCKET NO. FAA-2026-3485", "FAA-2026-3485"),
         ("Doc. No. FAA-2026-3485", "FAA-2026-3485"),
         ("  FAA 2026 3485  ", "FAA20263485"),
+        # The two forms the sealed spelling half-stripped (xhigh review catch,
+        # 2026-08-31): the plural counter word, and the counter word's period
+        # abutting the identifier. Each used to leave the counter glued on
+        # ("NOS.FDA-...", "NO.CDC-...") and resolve not_found.
+        ("Docket Nos. FDA-2025-E-0162", "FDA-2025-E-0162"),
+        ("Docket No.CDC-2018-0075", "CDC-2018-0075"),
+        ("Docket Number: EPA-HQ-OW-2020-0530", "EPA-HQ-OW-2020-0530"),
+        # The guards the wider spelling must not break: a real identifier
+        # opening on DOC or DOCKET, and an organization that really is NOS
+        # (National Ocean Service) -- the zero-space strip is licensed only
+        # by the counter word's own period, never by the bare word.
+        ("DOC-2005-0010", "DOC-2005-0010"),
+        ("DOCKET-2020-0001", "DOCKET-2020-0001"),
+        ("Docket NOS-2020-0001", "NOS-2020-0001"),
         ("", ""),
         (None, ""),
     ],

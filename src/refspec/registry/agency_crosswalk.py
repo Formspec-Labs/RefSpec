@@ -157,9 +157,28 @@ AGENCY_CROSSWALK_REGENERATION_STATUS = (
 # Rule 2: docket-id normalization, refused when ambiguous.
 # --------------------------------------------------------------------------
 
-#: Decoration must be followed by whitespace or a colon, so a real identifier
-#: like ``DOC-2005-0010`` cannot be truncated into a false match.
-DOCKET_DECORATION_PATTERN = r"^\s*(?:docket\s*(?:no|number)?|doc\.?\s*no)\.?[\s:]+"
+#: Decoration must be followed by whitespace, a colon, or the counter word's
+#: own period, so a real identifier like ``DOC-2005-0010`` cannot be
+#: truncated into a false match -- and neither can ``Docket NOS-2020-0001``,
+#: whose organization really is the National Ocean Service: the zero-space
+#: form is licensed only when the counter word states its period.
+#:
+#: DELIBERATE DIVERGENCE from the sealed spelling (xhigh review catch,
+#: 2026-08-31). The 2026-08-02 build's pattern required whitespace/colon
+#: after an optional period and knew no plural, so ``Docket Nos. FDA-...``
+#: half-stripped to ``NOS.FDA-...`` and ``Docket No.CDC-2018-0075`` to
+#: ``NO.CDC-...`` -- both then resolved not_found against dockets that are
+#: in the table. The correction is strictly additive (two more decoration
+#: forms strip; every previously stripped form normalizes identically), its
+#: only failure mode was silent recall loss, and the one sealed claim that
+#: can still be re-verified -- zero normalized-key collisions over the
+#: byte-identical 276,326 dockets -- holds under this spelling too. The
+#: sealed recall figure (88,073 of 715,080) remains the sealed rule's own
+#: measurement; the links input needed to re-measure it is lost
+#: (AGENCY_CROSSWALK_REGENERATION_STATUS).
+DOCKET_DECORATION_PATTERN = (
+    r"^\s*(?:(?:docket|doc\.?)\s*(?:no(?:s)?|number(?:s)?)(?:\.[\s:]*|[\s:]+)|docket\.?[\s:]+)"
+)
 DOCKET_NORMALIZATION_RULES = (
     "strip_leading_docket_decorations",
     "remove_internal_whitespace",
