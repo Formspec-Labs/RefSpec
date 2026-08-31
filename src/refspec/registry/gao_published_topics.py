@@ -39,10 +39,22 @@ GAO_PUBLISHER = "U.S. Government Accountability Office"
 GAO_TOPICS_URL = "https://www.gao.gov/topics"
 GAO_PAGE_HOST = "https://www.gao.gov"
 
-# The publisher's own listing title and the topic count observed in the
-# pinned capture. A different title or count is drift.
+# The publisher's own listing title, and how many topics that LISTING holds
+# in the pinned capture. A different title or count is drift in the listing.
+#
+# It is not GAO's vocabulary. The browse page shows 30 slugs, but
+# /topics/science-and-technology is a live taxonomy term of the same shape
+# that the listing does not name (verified 2026-08-22; a consumer joining
+# GAO's own Topic Area assignments hit it on 2 of 47 reports). So this count
+# bounds a page, never the world: read as completeness it would license the
+# claim that a report's topic outside these 30 does not exist, which is
+# false, and the refusal below would reject a capture in which GAO published
+# a 31st topic -- the one case where drift is the news rather than the error.
 GAO_TOPICS_LISTING_TITLE = "Browse Topics Alphabetically"
-GAO_TOPICS_EXPECTED_COUNT = 30
+#: How many topics the browse LISTING names, not how many topics GAO has.
+GAO_TOPICS_LISTED_COUNT = 30
+#: Retained under its former name: this module's consumers pin it.
+GAO_TOPICS_EXPECTED_COUNT = GAO_TOPICS_LISTED_COUNT
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _TOPIC_HREF = re.compile(r"^/topics/[a-z0-9-]+$")
@@ -241,9 +253,11 @@ def parse_gao_published_topics(
             f"GAO topics listing title drifted: expected [{GAO_TOPICS_LISTING_TITLE!r}], "
             f"observed {parser.listing_titles!r}"
         )
-    if len(parser.entries) != GAO_TOPICS_EXPECTED_COUNT:
+    if len(parser.entries) != GAO_TOPICS_LISTED_COUNT:
         raise GaoSourceDriftError(
-            f"GAO topic count drifted: expected {GAO_TOPICS_EXPECTED_COUNT}, observed {len(parser.entries)}"
+            f"GAO browse listing drifted: it named {GAO_TOPICS_LISTED_COUNT} topics when pinned "
+            f"and names {len(parser.entries)} now. This bounds the listing, not GAO's "
+            "vocabulary -- /topics/science-and-technology is a live term the listing omits."
         )
 
     topics: list[GaoPublishedTopic] = []
@@ -307,6 +321,7 @@ __all__ = [
     "GAO_PUBLISHER",
     "GAO_TOPICS_2026_08_15",
     "GAO_TOPICS_EXPECTED_COUNT",
+    "GAO_TOPICS_LISTED_COUNT",
     "GAO_TOPICS_LISTING_TITLE",
     "GAO_TOPICS_URL",
     "GaoPagePin",

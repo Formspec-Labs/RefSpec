@@ -42,7 +42,11 @@ from refspec.registry.infrastructure.controlled_identifier import (
     identifier_values,
 )
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
-from refspec.registry.infrastructure.source_identity import SourceCaptureEvent, SourceIdentityError
+from refspec.registry.infrastructure.source_identity import (
+    SourceCaptureEvent,
+    SourceIdentityError,
+    derive_uuid7,
+)
 
 CRS_PUBLISHER = "Congressional Research Service"
 CONGRESS_GOV_PUBLISHER = "Library of Congress"
@@ -647,19 +651,39 @@ def capture_initial_crs_page_snapshot(
         raise CRSAcquisitionError("timeout_seconds must be positive")
     if not retrieved_at.strip():
         raise CRSAcquisitionError("retrieved_at must not be empty")
-    event = SourceCaptureEvent.generate(fetched_at=retrieved_at) if fetch_event is None else fetch_event
-    if event.fetched_at != retrieved_at:
+    if fetch_event is not None and fetch_event.fetched_at != retrieved_at:
         raise CRSAcquisitionError("CRS page fetch event time must equal retrieved_at")
     fetched = fetcher.fetch(
         source.source_url,
         timeout_seconds=timeout_seconds,
     )
     _validate_fetched_page(fetched, source_url=source.source_url)
+    body_digest = sha256_digest(fetched.body)
+    # A caller that already recorded a capture event supplies it, per the
+    # contract on ``generate_uuid7``: "the caller records the returned value
+    # once; rebuilds receive that recorded value as input instead of calling
+    # this function again."
+    #
+    # When no event is supplied, DERIVE the identifier from the acquisition
+    # itself rather than minting a fresh one. ``generate_uuid7`` embeds the
+    # recorded timestamp and draws 74 fresh random bits, so replaying the same
+    # capture produced an identifier of identical length and different value --
+    # a constant-width digest change that is indistinguishable from real
+    # upstream drift in any artifact recording it. Seeding from
+    # ``retrieved_at`` and the body digest makes the same acquisition replay to
+    # the same identifier, which is precisely what ``derive_uuid7`` documents
+    # itself for: "a repeatable UUIDv7 within one already-recorded
+    # acquisition".
+    fetch_id = (
+        fetch_event.fetch_id
+        if fetch_event is not None
+        else derive_uuid7(retrieved_at, seed=f"{retrieved_at}|{body_digest}|{source.source_url}".encode())
+    )
     pin = CRSPageSnapshotPin(
         source=source,
         retrieved_at=retrieved_at,
-        fetch_id=event.fetch_id,
-        expected_sha256=sha256_digest(fetched.body),
+        fetch_id=fetch_id,
+        expected_sha256=body_digest,
         expected_byte_length=len(fetched.body),
     )
     digest_hex = pin.expected_sha256.removeprefix("sha256:")

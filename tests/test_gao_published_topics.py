@@ -88,7 +88,10 @@ def test_structural_drift_is_refused_not_repaired() -> None:
         'id="taxonomy-term-296" class="small taxonomy-term vocabulary-topic"',
         'id="taxonomy-term-296" class="small taxonomy-term vocabulary-other"',
     ).encode("utf-8")
-    with pytest.raises(gao.GaoSourceDriftError, match="topic count drifted"):
+    # The message says what the count bounds: the browse listing, not GAO's
+    # vocabulary. /topics/science-and-technology is a live term the listing
+    # omits, so a capture naming 31 topics would be news rather than an error.
+    with pytest.raises(gao.GaoSourceDriftError, match="browse listing drifted"):
         gao.parse_gao_published_topics(shrunk, pin=_repinned(shrunk))
 
     misordered = text.replace(

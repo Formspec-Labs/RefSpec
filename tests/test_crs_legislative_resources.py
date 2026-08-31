@@ -545,3 +545,95 @@ def test_fixture_digest_is_derived_from_exact_bytes() -> None:
     payload = _payload("crs-bill-subjects-117-hr-3076.json")
 
     assert crs.sha256_digest(payload) == "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def test_replaying_one_capture_yields_the_same_fetch_id(tmp_path: Path) -> None:
+    """A replayed capture must not mint a fresh identifier.
+
+    ``generate_uuid7`` embeds the recorded timestamp and draws 74 fresh random
+    bits, so re-running a capture produced an identifier of IDENTICAL LENGTH
+    and different value. Anything digesting that identifier then shows a
+    constant-width hash change, which is indistinguishable from real upstream
+    drift -- exactly the failure a seal exists to prevent. This was observed in
+    `research/evidence/registry-real-data-audit-2026-08-03/summary.json`, where
+    four members changed digest at unchanged byte length across a rebuild.
+    """
+
+    payload = _payload("crs-legislative-subjects-mini.html")
+    source = replace(crs.CRS_LEGISLATIVE_SUBJECTS_PAGE, expected_term_count=3)
+
+    class Fetcher:
+        def fetch(self, source_url: str, *, timeout_seconds: float) -> crs.FetchedCRSPage:
+            return crs.FetchedCRSPage(
+                body=payload,
+                status_code=200,
+                content_type="text/html; charset=UTF-8",
+                resolved_url=source_url,
+            )
+
+    def capture(directory: Path) -> crs.AcquiredCRSPage:
+        return crs.capture_initial_crs_page_snapshot(
+            source,
+            directory,
+            retrieved_at="2026-08-03T00:00:00Z",
+            fetcher=Fetcher(),
+        )
+
+    first = capture(tmp_path / "a")
+    second = capture(tmp_path / "b")
+
+    assert first.pin.fetch_id == second.pin.fetch_id
+    assert first.pin.expected_sha256 == second.pin.expected_sha256
+
+
+def test_a_different_acquisition_still_gets_a_different_fetch_id(tmp_path: Path) -> None:
+    """Determinism must not collapse distinct acquisitions onto one identity."""
+
+    payload = _payload("crs-legislative-subjects-mini.html")
+    source = replace(crs.CRS_LEGISLATIVE_SUBJECTS_PAGE, expected_term_count=3)
+
+    class Fetcher:
+        def fetch(self, source_url: str, *, timeout_seconds: float) -> crs.FetchedCRSPage:
+            return crs.FetchedCRSPage(
+                body=payload,
+                status_code=200,
+                content_type="text/html; charset=UTF-8",
+                resolved_url=source_url,
+            )
+
+    earlier = crs.capture_initial_crs_page_snapshot(
+        source, tmp_path / "x", retrieved_at="2026-08-03T00:00:00Z", fetcher=Fetcher()
+    )
+    later = crs.capture_initial_crs_page_snapshot(
+        source, tmp_path / "y", retrieved_at="2026-08-04T00:00:00Z", fetcher=Fetcher()
+    )
+
+    assert earlier.pin.fetch_id != later.pin.fetch_id
+
+
+def test_a_recorded_capture_event_still_wins(tmp_path: Path) -> None:
+    """Supplying a recorded event remains the documented path and overrides derivation."""
+
+    payload = _payload("crs-legislative-subjects-mini.html")
+    source = replace(crs.CRS_LEGISLATIVE_SUBJECTS_PAGE, expected_term_count=3)
+
+    class Fetcher:
+        def fetch(self, source_url: str, *, timeout_seconds: float) -> crs.FetchedCRSPage:
+            return crs.FetchedCRSPage(
+                body=payload,
+                status_code=200,
+                content_type="text/html; charset=UTF-8",
+                resolved_url=source_url,
+            )
+
+    # The event validates that its UUID embeds its own timestamp, so the id
+    # cannot be an arbitrary literal.
+    recorded = crs.SourceCaptureEvent.generate(fetched_at="2026-08-03T00:00:00Z")
+    acquired = crs.capture_initial_crs_page_snapshot(
+        source,
+        tmp_path,
+        retrieved_at="2026-08-03T00:00:00Z",
+        fetcher=Fetcher(),
+        fetch_event=recorded,
+    )
+    assert acquired.pin.fetch_id == recorded.fetch_id
