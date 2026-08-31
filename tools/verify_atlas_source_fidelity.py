@@ -828,9 +828,42 @@ class RdfSourcePolicy:
     #: scheme to its publisher and a concept of the Atlas's own microthesauri
     #: scheme. Declared per spec so the reversal is executable, never assumed.
     member_type_inverse: tuple[tuple[str, str], ...] = ()
+    #: Publisher ``rdf:type`` IRIs whose subjects Atlas legitimately traces as
+    #: concept identities even though the publisher never types them
+    #: ``skos:Concept`` -- GEMET's Group/SuperGroup/Theme organization layer is
+    #: the first user (see the gemet-4.2.3 spec). Membership is read from the
+    #: publisher's own asserted ``rdf:type`` triples, never assumed from an
+    #: Atlas-side IRI alone, so a fabricated Atlas resource with no matching
+    #: publisher type still fails concept-traceability.
+    additional_traced_publisher_types: frozenset[str] = frozenset()
+    #: The per-record native-payload contract for a source record whose target
+    #: reached the comparison through ``additional_traced_publisher_types``
+    #: rather than through the publisher's own ``skos:Concept`` typing. Those
+    #: records legitimately carry different fields: a GEMET Group record states
+    #: ``publisherResourceIri``/``typeIris`` where a concept record states
+    #: ``publisherConceptIri``, because the publisher never types the Group a
+    #: concept and its rdf:type set is the fact worth reversing. Validating one
+    #: against the other's contract false-fails every faithful organization
+    #: record, and exempting it from both would waive the contract entirely --
+    #: so each field named here is reversed against the publisher's own bytes
+    #: (``publisherResourceIri`` against the represented resource IRI,
+    #: ``typeIris`` against the subject's asserted ``rdf:type`` triples) and a
+    #: record carrying neither contract's fields still fails.
+    organization_record_payload_fields: frozenset[str] = frozenset()
     relation_scope: str = "member-subject"
     source_wide_literal_predicates: tuple[str, ...] = ()
     record_digest_input_paths: tuple[str, ...] = ()
+    #: When true, this spec's own ``atlas:sourceDigest`` is defined as sha256
+    #: over the record's own canonical ``nativePayload`` -- a FORMAT
+    #: self-consistency check, not an independent fidelity proof, because RDF
+    #: sources carry no natural per-resource byte range to hash independently
+    #: of what Atlas already stored. The binding's own validator
+    #: (``bindings/atlas/3.1/tools/validate.py:_check_native_payloads``)
+    #: already enforces this invariant at build time for every SourceRecord;
+    #: this check only reconfirms it did not regress. Independent fidelity for
+    #: these records comes from the field-level inverses below
+    #: (schemeIris/topConceptOfIris/etc.) and the release-level input-file
+    #: digest pin, never from this flag.
     record_digest_is_native_payload_digest: bool = False
     record_locator: str | None = None
     record_input_path_by_resource: tuple[tuple[str, str], ...] = ()
@@ -1316,6 +1349,13 @@ class SourceSpec:
     policies: frozenset[str] = frozenset()
     subset: str = "all"
     included_concept_iris: frozenset[str] = frozenset()
+    #: Real, named publisher concept identities the producer has an
+    #: independently-verified reason never to emit (e.g. a CFR part heading
+    #: with zero index terms under it). This is never a blanket waiver: each
+    #: name is checked both ways -- it must be a genuine publisher concept
+    #: identity, and it must actually be absent from the Atlas release, or
+    #: concept-traceability fails loudly on the stale declaration itself.
+    expected_absent_concepts: frozenset[str] = frozenset()
     excluded_resource_predicates: frozenset[str] = frozenset()
     declared_claim_exclusions: tuple[DeclaredClaimExclusion, ...] = ()
     declared_language_exclusion: DeclaredLanguageExclusion | None = None
@@ -8789,6 +8829,8 @@ def _rdf_source_policy(
     reification_weight_value: LiteralValue | None = None,
     relation_predicate_inverse: tuple[tuple[str, str], ...] = (),
     member_type_inverse: tuple[tuple[str, str], ...] = (),
+    additional_traced_publisher_types: frozenset[str] = frozenset(),
+    organization_record_payload_fields: frozenset[str] = frozenset(),
     relation_scope: str = "member-subject",
     source_wide_literal_predicates: tuple[str, ...] = (),
     record_digest_input_paths: tuple[str, ...] = (),
@@ -8812,6 +8854,8 @@ def _rdf_source_policy(
         reification_weight_value=reification_weight_value,
         relation_predicate_inverse=relation_predicate_inverse,
         member_type_inverse=member_type_inverse,
+        additional_traced_publisher_types=additional_traced_publisher_types,
+        organization_record_payload_fields=organization_record_payload_fields,
         relation_scope=relation_scope,
         source_wide_literal_predicates=source_wide_literal_predicates,
         record_digest_input_paths=record_digest_input_paths,
@@ -18819,6 +18863,21 @@ SOURCES: tuple[SourceSpec, ...] = (
         # publisher's own citation; traceability proves the two sets are equal.
         identity_policy="source-key-derived",
         policies=DIRECT_SKOS_POLICIES,
+        # 42 CFR Part 58 is "[Reserved]": the publisher's own <dt> heading has
+        # no <dd> terms under it (subject-title-42.html, between "42 CFR Part
+        # 58" and "42 CFR Part 59"). The reader still reports it -- the census
+        # honestly counts every distinct citation the raw HTML contains
+        # (distinctParts=8_425 stays exact) -- but
+        # refspec.registry.cfr_list_of_subjects deliberately never mints a
+        # concept for a part with zero collected terms
+        # (CFR_SUBJECT_INDEX_EXPECTED_PART_COUNT=8_424), because the artifact
+        # records part->term assignments and a term-less part contributes
+        # nothing to it. Named here rather than silently lowering the census,
+        # per tests/test_verify_cfr_subject_index_reader.py's own frozen
+        # divergence list (TERMLESS_PARTS). An unlisted term-less part, or a
+        # listed one that is not actually absent from Atlas, still fails
+        # concept-traceability.
+        expected_absent_concepts=frozenset({"urn:ref:cfr-part:42:58"}),
         rdf_source=_rdf_source_policy(
             frozenset(
                 {
@@ -19923,35 +19982,101 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
         policies=DIRECT_SKOS_POLICIES,
         declared_claim_exclusions=(
+            # GEMET's bibliographic Source register (87 subjects) reuses SKOS
+            # predicates in ways GEMET does not use them on concepts -- most
+            # plainly an untagged skos:notation on every record -- which is
+            # why the reader's catalog scope stops at the concept IRIs, their
+            # scheme membership, and the Group/SuperGroup/Theme organization
+            # layer below, and never models this register (see
+            # refspec.registry.gemet_thesaurus). Atlas asserts nothing at all
+            # about these 87 subjects.
             DeclaredClaimExclusion(
-                name="publisherCollectionAndSourceRegister",
+                name="publisherSourceRegister",
                 reason=(
-                    "GEMET ships two entity kinds beside its concepts: the "
-                    "Group/Theme/SuperGroup collections that arrange concepts for "
-                    "browsing, and a bibliographic Source register naming the "
-                    "dictionaries its definitions came from. Both reuse SKOS "
-                    "predicates in ways GEMET does not use them on concepts -- "
-                    "skos:prefLabel on a Group, an untagged skos:notation on every "
-                    "Source -- which is why the reader declares its catalog scope "
-                    "as the concept IRIs and their scheme membership and models "
-                    "neither layer (see refspec.registry.gemet_thesaurus). Atlas "
-                    "therefore asserts nothing at all about these 165 subjects, "
-                    "which is what the paired Atlas-side count proves"
+                    "GEMET's bibliographic Source register names the dictionaries "
+                    "its definitions came from. It reuses SKOS predicates in ways "
+                    "GEMET does not use them on concepts -- most plainly an "
+                    "untagged skos:notation on every record -- which is why the "
+                    "reader declares its catalog scope as the concept IRIs, their "
+                    "scheme membership, and the Group/SuperGroup/Theme "
+                    "organization layer, and never models this register (see "
+                    "refspec.registry.gemet_thesaurus). Atlas therefore asserts "
+                    "nothing at all about these 87 subjects"
                 ),
-                subject_types=frozenset(
-                    {
-                        f"{SKOS}Collection",
-                        f"{GEMET_SCHEMA}Group",
-                        f"{GEMET_SCHEMA}Source",
-                        f"{GEMET_SCHEMA}SuperGroup",
-                        f"{GEMET_SCHEMA}Theme",
-                    }
+                subject_types=frozenset({f"{GEMET_SCHEMA}Source"}),
+            ),
+            # The two named meta-collections that enumerate the Groups and
+            # SuperGroups (groupCollection, superGroupCollection) are also
+            # typed skos:Collection, like every Group/SuperGroup/Theme -- but
+            # unlike those 76, GEMET gives them no gemet-schema:Group/
+            # SuperGroup/Theme type, so they are named here by their fixed,
+            # publisher-given IRI rather than by subject_types (which would
+            # otherwise also catch the 76 organization resources below that
+            # Atlas *does* model). See "organizationMetaCollectionsObservedNotEmitted"
+            # in refspec.atlas.v3_registry_vocabularies for why: their closure
+            # is already fully recoverable from the emitted Group/SuperGroup
+            # resources and their superGroup->group atlas:hasSchemeMember
+            # relations.
+            DeclaredClaimExclusion(
+                name="publisherOrganizationMetaCollections",
+                reason=(
+                    "groupCollection and superGroupCollection carry only an "
+                    "enumeration rdfs:label and skos:member listing every "
+                    "Group/SuperGroup; that closure is already fully "
+                    "recoverable from the emitted Group/SuperGroup resources "
+                    "and their superGroup->group atlas:hasSchemeMember "
+                    "relations, so Atlas does not promote either meta-"
+                    "collection to a resource and asserts nothing at all "
+                    "about these 2 subjects"
+                ),
+                subject_iri_prefixes=(
+                    "http://www.eionet.europa.eu/gemet/groupCollection",
+                    "http://www.eionet.europa.eu/gemet/superGroupCollection",
                 ),
             ),
         ),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS | {"labelRoleNormalization", "metadata"},
+            # The 76 Group/SuperGroup/Theme organization resources (see
+            # refspec.atlas.v3_registry_vocabularies._normalize_gemet) are
+            # never rdf:type skos:Concept in the publisher's own bytes -- they
+            # are skos:Collection plus their own gemet-schema:Group/
+            # SuperGroup/Theme type -- so they are traced against that real,
+            # publisher-asserted type instead of being silently exempted. A
+            # fabricated Atlas subject with no matching publisher type stays
+            # caught as "unknown" by concept-traceability.
+            atlas_only_native_payload_fields=frozenset(
+                {
+                    # Atlas's own classification label for an organization
+                    # resource, fully computable from typeIris but not
+                    # independently re-derived here.
+                    "organizationKind",
+                    # Theme-only: which predicate feeds which label role.
+                    "labelPredicates",
+                }
+            ),
             additional_annotation_predicates=(f"{GEMET_SCHEMA}source",),
+            additional_traced_publisher_types=frozenset(
+                {
+                    f"{GEMET_SCHEMA}Group",
+                    f"{GEMET_SCHEMA}SuperGroup",
+                    f"{GEMET_SCHEMA}Theme",
+                }
+            ),
+            # The 76 organization records state their own identity and their own
+            # publisher typing instead of publisherConceptIri: the publisher
+            # never types them skos:Concept, so publisherConceptIri would be a
+            # claim its bytes do not support. Both fields are reversed against
+            # those bytes here -- publisherResourceIri against the represented
+            # resource, typeIris against the subject's asserted rdf:type triples
+            # -- so they are a real contract, not the exemption they used to be
+            # under atlas_only_native_payload_fields.
+            organization_record_payload_fields=frozenset(
+                {
+                    "publisherResourceIri",
+                    "typeIris",
+                }
+            ),
             record_digest_input_paths=("gemet.rdf",),
             record_digest_is_native_payload_digest=True,
         ),
@@ -20357,10 +20482,18 @@ def build_context(
                 else:
                     publisher = selected_publisher
 
+        # Widened by the declared additional traced types (never narrowed by
+        # expected_absent_concepts): this set gates which Atlas raw claims the
+        # reader retains as source-shaped. Leaving a traced organization
+        # subject out here would hide the Atlas side of every comparison that
+        # now reads it, and dropping an expected-absent concept would hide a
+        # manufactured Atlas claim about the one identity Atlas promised never
+        # to assert.
         source_claim_subjects = (
             frozenset(
                 {
                     *publisher.concepts,
+                    *_publisher_traced_subjects_for(publisher, spec.rdf_source),
                     *_publisher_source_scheme_subjects(publisher),
                     *publisher.resource_annotation_target_claim_counts,
                     *(subject for subject, _, _ in publisher.relations),
@@ -20655,6 +20788,25 @@ def check_configuration(ctx: Context) -> CheckResult:
             failures.append(f"{spec.name}: RDF comparison has no independent source-record policy")
         elif spec.rdf_source.evaluated_native_payload_fields & spec.rdf_source.atlas_only_native_payload_fields:
             failures.append(f"{spec.name}: native payload fields cannot be both source-evaluated and Atlas-only")
+        elif spec.rdf_source.organization_record_payload_fields - _ORGANIZATION_RECORD_INVERSES:
+            failures.append(
+                f"{spec.name}: organization record payload fields have no independent inverse: "
+                f"{sorted(spec.rdf_source.organization_record_payload_fields - _ORGANIZATION_RECORD_INVERSES)}"
+            )
+        elif spec.rdf_source.organization_record_payload_fields and not (
+            spec.rdf_source.additional_traced_publisher_types
+        ):
+            failures.append(
+                f"{spec.name}: an organization record contract is declared but no "
+                "additional traced publisher type selects any record to hold it"
+            )
+        elif spec.rdf_source.organization_record_payload_fields & (
+            spec.rdf_source.evaluated_native_payload_fields | spec.rdf_source.atlas_only_native_payload_fields
+        ):
+            failures.append(
+                f"{spec.name}: a field cannot be both an organization record contract "
+                "field and a source-evaluated or Atlas-only field"
+            )
         elif spec.rdf_source.relation_scope not in {
             "all",
             "member-endpoints",
@@ -20896,6 +21048,18 @@ def _payload_relation(
     return row  # type: ignore[return-value]
 
 
+#: Per-record native-payload fields that only mean something for a target the
+#: publisher itself types a concept. An organization record replaces these with
+#: ``RdfSourcePolicy.organization_record_payload_fields``.
+_CONCEPT_ONLY_RECORD_FIELDS = frozenset({"publisherConceptIri"})
+
+#: The organization-contract fields this verifier knows how to reverse against
+#: publisher bytes. A spec may only declare fields from this set, so an
+#: organization contract can never become a place to park a field nothing
+#: checks -- the failure mode ``atlas_only_native_payload_fields`` already has.
+_ORGANIZATION_RECORD_INVERSES = frozenset({"publisherResourceIri", "typeIris"})
+
+
 def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     """Reverse source-record evidence and compare it with authenticated bytes."""
     source = pair.spec.name
@@ -20904,6 +21068,21 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         return [f"{source}: RDF comparison has no independent provenance policy"]
 
     failures: list[str] = []
+
+    # Widened and narrowed the same way concept-traceability is: a publisher
+    # subject a declared additional-traced-type covers (GEMET's Group/
+    # SuperGroup/Theme) is a real source record target here too, not just an
+    # "unknown" concept -- and a source record representing a concept the spec
+    # declared expected-absent contradicts that declaration, so it must fail
+    # here rather than pass because the raw census still lists the identity.
+    traced_concepts = _traced_publisher_concepts(pair)
+    # Publisher subjects that reach a source record through a declared
+    # additional traced type rather than the publisher's own skos:Concept
+    # typing. Their records are validated against the organization contract
+    # below instead of the concept contract.
+    organization_subjects = _additional_traced_publisher_subjects(pair) - pair.publisher.concepts
+    organization_fields = policy.organization_record_payload_fields
+    publisher_subject_types = _publisher_subject_types(pair.publisher) if organization_fields else {}
 
     default_digests = {
         pair.publisher.input_content_digests[path]
@@ -21094,7 +21273,7 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                 "resource nor an independently reversible publisher relation"
             )
             continue
-        if pair.spec.kind == "vocabulary" and target not in pair.publisher.concepts:
+        if pair.spec.kind == "vocabulary" and target not in traced_concepts:
             failures.append(
                 f"{source}: source record <{record}> represents <{target}>, which is not "
                 "a publisher concept in the selected pinned bytes"
@@ -21113,17 +21292,26 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
         resource_input_path = input_path_by_resource.get(target)
         compact_resource_digest = pair.publisher.resource_input_digest_values.get(target)
         if policy.record_digest_is_native_payload_digest and payload is not None:
-            # The producer's stated record contract: sourceDigest is the
-            # sha256 over the record's own canonical nativePayload bytes,
-            # never the caller-supplied file digest. This makes the check
-            # self-consistency; the independent tie to publisher bytes lives
-            # in the field-level inverses and the release-level pin.
+            # This spec's stated record contract: sourceDigest is the sha256
+            # over the record's own canonical nativePayload bytes, never a
+            # digest tied to the pinned publisher file. RDF sources carry no
+            # natural per-resource byte range to hash independently of what
+            # Atlas already stored, so -- honestly -- this is a FORMAT
+            # self-consistency check, not an independent publisher-fidelity
+            # proof: it can only ever confirm the same invariant the
+            # binding's own validator already enforces at build time
+            # (bindings/atlas/3.1/tools/validate.py:_check_native_payloads).
+            # The independent tie to publisher bytes for these records lives
+            # in the field-level inverses below (schemeIris/topConceptOfIris/
+            # etc.) and the release-level input-file digest pin.
             expected_payload_digest = _canonical_json_digest(payload)
             observed_digest = pair.atlas.record_source_digests.get(record)
             if observed_digest != expected_payload_digest:
                 failures.append(
-                    f"{source}: source record <{record}> digest differs -- expected "
-                    f"{expected_payload_digest} over its own native payload, observed {observed_digest!r}"
+                    f"{source}: source record <{record}> sourceDigest fails its own nativePayload "
+                    f"format self-consistency check (not an independent publisher-fidelity proof; "
+                    f"see record_digest_is_native_payload_digest) -- expected {expected_payload_digest} "
+                    f"over its own native payload, observed {observed_digest!r}"
                 )
         elif resource_input_path in pair.publisher.input_content_digests:
             expected_digests = {pair.publisher.input_content_digests[resource_input_path]}
@@ -21169,26 +21357,86 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                     f"evaluated fields {list(missing_fields)}"
                 )
             continue
-        for field_name in sorted(set(payload) - expected_payload_fields - policy.atlas_only_native_payload_fields):
+        # Which per-record contract this record answers to is decided by the
+        # publisher's own bytes, never by what the record happens to carry: a
+        # target the publisher types skos:Concept owes the concept contract, a
+        # target reached through a declared additional traced type owes the
+        # organization contract. A record that satisfies neither still fails,
+        # because the contract it owes is picked before its payload is read.
+        is_organization_record = bool(organization_fields) and target in organization_subjects
+        record_contract_fields = organization_fields if is_organization_record else frozenset()
+        for field_name in sorted(
+            set(payload) - expected_payload_fields - policy.atlas_only_native_payload_fields - record_contract_fields
+        ):
             unexpected_payload_fields[field_name].append(record)
         reader_expected_payload = pair.publisher.expected_native_payloads.get(
             target,
             {},
         )
-        expected_per_record_fields = per_record_resource_fields | frozenset(reader_expected_payload)
+        expected_top_concepts = sorted(source_top_concepts.get(target, set()))
+        if is_organization_record:
+            # The concept-shaped half of the contract (publisherConceptIri) is
+            # replaced by the organization fields; the target-keyed inverses the
+            # two contracts share (schemeIris) stay required exactly as they are.
+            # topConceptOfIris is required only when the publisher actually
+            # states one for this subject: an organization resource is not a top
+            # concept, and demanding an empty list of every one of them is what
+            # false-failed all 76 GEMET records. If GEMET ever does declare a
+            # Group a top concept, the record still has to carry it.
+            shared_fields = per_record_resource_fields - _CONCEPT_ONLY_RECORD_FIELDS
+            if not expected_top_concepts:
+                shared_fields = shared_fields - {"topConceptOfIris"}
+            expected_per_record_fields = shared_fields | frozenset(reader_expected_payload)
+        else:
+            expected_per_record_fields = per_record_resource_fields | frozenset(reader_expected_payload)
+        # expected_digests is None exactly when policy.record_digest_is_native_payload_digest
+        # already forced it above (this spec's own format self-check, not this
+        # reader-level one) -- guarded here so the two flags, which are
+        # independent and may legitimately both be set, never collide into a
+        # len(None) crash.
         if (
-            pair.publisher.source_digest_is_native_payload_digest
+            expected_digests is not None
+            and pair.publisher.source_digest_is_native_payload_digest
             and len(expected_digests) == 1
             and not reader_expected_payload
         ):
             expected_per_record_fields |= expected_payload_fields
-        missing_fields = sorted((expected_payload_fields & expected_per_record_fields) - set(payload))
+        if is_organization_record:
+            # Keep the concept-only half out however it got back in above: an
+            # organization record answers to its own contract, never to this one.
+            expected_per_record_fields -= _CONCEPT_ONLY_RECORD_FIELDS
+        required_fields = expected_payload_fields & expected_per_record_fields
+        if is_organization_record:
+            # organization_record_payload_fields is a contract in its own right,
+            # not a subset of evaluated_native_payload_fields (which the concept
+            # records answer to), so it is required directly.
+            required_fields = required_fields | organization_fields
+        missing_fields = sorted(required_fields - set(payload))
         if missing_fields:
             failures.append(
                 f"{source}: source record <{record}> native payload omits independently "
                 f"evaluated fields {missing_fields}"
             )
-        if "publisherConceptIri" in expected_payload_fields and payload.get("publisherConceptIri") != target:
+        if is_organization_record:
+            if "publisherResourceIri" in organization_fields and payload.get("publisherResourceIri") != target:
+                failures.append(
+                    f"{source}: organization source record <{record}> publisherResourceIri does not equal <{target}>"
+                )
+            if "typeIris" in organization_fields:
+                expected = sorted(publisher_subject_types.get(target, frozenset()))
+                if payload.get("typeIris") != expected:
+                    failures.append(
+                        f"{source}: organization source record <{record}> typeIris differs from the "
+                        f"publisher's own rdf:type triples -- expected {expected!r}, "
+                        f"observed {payload.get('typeIris')!r}"
+                    )
+            if "publisherConceptIri" in payload:
+                failures.append(
+                    f"{source}: organization source record <{record}> states publisherConceptIri "
+                    f"{payload.get('publisherConceptIri')!r}, but the publisher never types <{target}> "
+                    "a concept; the record claims a contract it does not answer to"
+                )
+        elif "publisherConceptIri" in expected_payload_fields and payload.get("publisherConceptIri") != target:
             failures.append(f"{source}: source record <{record}> publisherConceptIri does not equal <{target}>")
         if "schemeIris" in expected_payload_fields:
             expected = sorted(source_memberships.get(target, set()))
@@ -21197,13 +21445,18 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                     f"{source}: source record <{record}> schemeIris differs -- expected "
                     f"{expected!r}, observed {payload.get('schemeIris')!r}"
                 )
-        if "topConceptOfIris" in expected_payload_fields:
-            expected = sorted(source_top_concepts.get(target, set()))
-            if payload.get("topConceptOfIris") != expected:
-                failures.append(
-                    f"{source}: source record <{record}> topConceptOfIris differs -- expected "
-                    f"{expected!r}, observed {payload.get('topConceptOfIris')!r}"
-                )
+        organization_omits_empty_top_concepts = (
+            is_organization_record and not expected_top_concepts and "topConceptOfIris" not in payload
+        )
+        if (
+            "topConceptOfIris" in expected_payload_fields
+            and not organization_omits_empty_top_concepts
+            and payload.get("topConceptOfIris") != expected_top_concepts
+        ):
+            failures.append(
+                f"{source}: source record <{record}> topConceptOfIris differs -- expected "
+                f"{expected_top_concepts!r}, observed {payload.get('topConceptOfIris')!r}"
+            )
         for field_name in sorted(expected_payload_fields & reader_expected_payload.keys()):
             expected = reader_expected_payload[field_name]
             if payload.get(field_name) != expected:
@@ -21211,7 +21464,11 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
                     f"{source}: source record <{record}> native payload {field_name} "
                     f"differs -- expected {expected!r}, observed {payload.get(field_name)!r}"
                 )
-        if pair.publisher.source_digest_is_native_payload_digest and len(expected_digests) == 1:
+        if (
+            expected_digests is not None
+            and pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
             expected_payload_digest = next(iter(expected_digests))
             observed_payload_digest = _canonical_json_digest(payload)
             if observed_payload_digest != expected_payload_digest:
@@ -21753,12 +22010,84 @@ def _scope_requires(ctx: Context, kind: str) -> bool:
     return any(spec.kind == kind for spec in ctx.specs) or not ctx.loaded_specs()
 
 
+def _publisher_traced_subjects_for(
+    view: PublisherView,
+    policy: RdfSourcePolicy | None,
+) -> frozenset[str]:
+    """Resolve declared additional traced types against one publisher view.
+
+    Split out from ``_additional_traced_publisher_subjects`` so ``build_context``
+    can widen the Atlas read scope before a ``SourcePair`` exists.
+    """
+    if policy is None or not policy.additional_traced_publisher_types:
+        return frozenset()
+    types = _publisher_subject_types(view)
+    return frozenset(
+        subject for subject, subject_types in types.items() if subject_types & policy.additional_traced_publisher_types
+    )
+
+
+def _additional_traced_publisher_subjects(pair: SourcePair) -> frozenset[str]:
+    """Publisher subjects Atlas legitimately also traces as concept identities.
+
+    Declared per spec via ``RdfSourcePolicy.additional_traced_publisher_types``:
+    a real publisher subject whose own asserted ``rdf:type`` matches one of the
+    declared types, never a subject assumed from the Atlas side alone. GEMET's
+    Group/SuperGroup/Theme organization resources are the first user -- the
+    publisher never types them ``skos:Concept``, but Atlas does trace them, so
+    a fabricated Atlas-only subject with no matching publisher type still
+    fails as "unknown" below.
+    """
+    return _publisher_traced_subjects_for(pair.publisher, pair.spec.rdf_source)
+
+
+def _declared_publisher_concepts(pair: SourcePair) -> frozenset[str]:
+    """Every publisher identity this spec accounts for, absent ones included.
+
+    ``pair.publisher.concepts`` widened by the declared
+    ``additional_traced_publisher_types`` but deliberately NOT narrowed by
+    ``expected_absent_concepts``. Use this where the question is "does this
+    spec account for the subject at all" rather than "must Atlas assert it":
+    the stale-declaration guard in concept-traceability, the exclusion-overlap
+    guard, the publisher side of the coverage accounting, and the Atlas read
+    scope. An expected-absent concept is accounted for -- concept-traceability
+    proves both ways that it is a real publisher concept and that Atlas emits
+    nothing for it -- so its publisher claims are not "unlooked at". The Atlas
+    side of the same subjects uses ``_traced_publisher_concepts`` instead, so
+    one manufactured Atlas claim about an expected-absent concept still lands
+    in the uncovered residue and fails.
+    """
+    return pair.publisher.concepts | _additional_traced_publisher_subjects(pair)
+
+
+def _traced_publisher_concepts(pair: SourcePair) -> frozenset[str]:
+    """The full set of publisher identities this spec requires Atlas to trace.
+
+    This is ``pair.publisher.concepts`` widened by any declared
+    ``additional_traced_publisher_types`` (GEMET's organization layer) and
+    narrowed by any declared ``expected_absent_concepts`` (a CFR part the
+    producer deliberately never emits). Neither declaration is a blanket
+    waiver: the widening is grounded in the publisher's own asserted
+    ``rdf:type`` triples, and the narrowing only ever removes a name the spec
+    enumerates explicitly.
+
+    This is the set every claim-family comparison selects on, in BOTH
+    directions: a publisher claim about an expected-absent concept must not be
+    reported as missing from Atlas, and an Atlas claim about a traced
+    organization subject must be compared rather than treated as unknown.
+    """
+    concepts = _declared_publisher_concepts(pair)
+    if pair.spec.expected_absent_concepts:
+        concepts = concepts - pair.spec.expected_absent_concepts
+    return concepts
+
+
 def check_concept_traceability(ctx: Context) -> CheckResult:
     """Publisher and Atlas concept identities match exactly in both directions."""
     failures = _incomplete_evaluation_failure(ctx, "concept traceability", "vocabulary")
     traced = 0
     for pair in ctx.vocabularies():
-        publisher_ids = pair.publisher.concepts
+        publisher_ids = _traced_publisher_concepts(pair)
         atlas_concepts = _atlas_publisher_concepts(pair)
         unknown = sorted(atlas_concepts - publisher_ids)
         missing = sorted(publisher_ids - atlas_concepts)
@@ -21770,6 +22099,22 @@ def check_concept_traceability(ctx: Context) -> CheckResult:
             )
         for resource in missing:
             failures.append(f"{pair.spec.name}: publisher concept <{resource}> is missing from the Atlas release")
+        # expected_absent_concepts is checked both ways here, not just
+        # subtracted: a name that is not actually a publisher concept, or
+        # that Atlas actually does emit, means the declaration itself has
+        # gone stale and must fail loud rather than keep silently masking
+        # whatever check would otherwise catch that drift.
+        for resource in sorted(pair.spec.expected_absent_concepts):
+            if resource not in _declared_publisher_concepts(pair):
+                failures.append(
+                    f"{pair.spec.name}: <{resource}> is declared an expected-absent concept but is "
+                    "not a publisher concept in the pinned bytes; the declaration is stale"
+                )
+            elif resource in atlas_concepts:
+                failures.append(
+                    f"{pair.spec.name}: <{resource}> is declared an expected-absent concept but "
+                    "Atlas actually asserts it; the declaration is stale"
+                )
     if not ctx.vocabularies() and _scope_requires(ctx, "vocabulary"):
         failures.append("no vocabulary sources were compared; traceability is unproven")
     return _result(
@@ -21848,6 +22193,7 @@ def check_label_fidelity(ctx: Context) -> CheckResult:
         if not pair.spec.has_policy("english-label-selection"):
             failures.append(f"{pair.spec.name}: no executable label-selection policy is declared")
             continue
+        traced_concepts = _traced_publisher_concepts(pair)
         if (
             pair.spec.rdf_source is not None
             and pair.spec.rdf_source.label_language_inverse == "atlas-en-to-source-untagged"
@@ -21864,7 +22210,7 @@ def check_label_fidelity(ctx: Context) -> CheckResult:
                     ("hiddenLabel", pair.publisher.hidden_labels),
                 )
                 for resource, literals in values.items()
-                if resource in pair.publisher.concepts
+                if resource in traced_concepts
                 for literal in literals
                 if literal.language is not None
             )
@@ -21977,10 +22323,11 @@ def check_notation_fidelity(ctx: Context) -> CheckResult:
     compared = 0
     for pair in ctx.vocabularies():
         source_targets = _atlas_source_targets(pair)
+        traced_concepts = _traced_publisher_concepts(pair)
         publisher_claims = {
             (resource, literal)
             for resource, values in pair.publisher.notations.items()
-            if resource in pair.publisher.concepts
+            if resource in traced_concepts
             for literal in values
         }
         atlas_claims = {
@@ -21992,7 +22339,7 @@ def check_notation_fidelity(ctx: Context) -> CheckResult:
         atlas_claims.update(
             (resource, literal)
             for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-            if resource in pair.publisher.concepts and predicate == SKOS_NOTATION
+            if resource in traced_concepts and predicate == SKOS_NOTATION
         )
         compared += len(atlas_claims)
         for resource, literal in sorted(
@@ -22029,6 +22376,7 @@ def check_annotation_fidelity(ctx: Context) -> CheckResult:
         if not pair.spec.has_policy("skos-note-to-atlas-note"):
             failures.append(f"{pair.spec.name}: no executable SKOS-note representation policy is declared")
             continue
+        traced_concepts = _traced_publisher_concepts(pair)
         if (
             pair.spec.rdf_source is not None
             and pair.spec.rdf_source.label_language_inverse == "atlas-en-to-source-untagged"
@@ -22036,7 +22384,7 @@ def check_annotation_fidelity(ctx: Context) -> CheckResult:
             tagged_source_annotations = sorted(
                 (resource, predicate, literal)
                 for resource, predicate, literal in pair.publisher.annotations
-                if resource in pair.publisher.concepts and literal.language is not None
+                if resource in traced_concepts and literal.language is not None
             )
             if tagged_source_annotations:
                 examples = [
@@ -22052,12 +22400,12 @@ def check_annotation_fidelity(ctx: Context) -> CheckResult:
         publisher_definitions = {
             (resource, literal)
             for resource, predicate, literal in pair.publisher.annotations
-            if resource in pair.publisher.concepts and predicate == SKOS_DEFINITION
+            if resource in traced_concepts and predicate == SKOS_DEFINITION
         }
         note_predicates = _source_note_predicates(pair)
         publisher_note_origins: dict[tuple[str, LiteralValue], set[str]] = defaultdict(set)
         for resource, predicate, literal in pair.publisher.annotations:
-            if resource in pair.publisher.concepts and predicate in note_predicates:
+            if resource in traced_concepts and predicate in note_predicates:
                 publisher_note_origins[(resource, literal)].add(predicate)
         publisher_notes = set(publisher_note_origins)
         publisher_note_claims = {
@@ -22076,7 +22424,7 @@ def check_annotation_fidelity(ctx: Context) -> CheckResult:
         atlas_definitions.update(
             (resource, _reverse_atlas_english_literal(pair, literal))
             for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-            if resource in pair.publisher.concepts and predicate == SKOS_DEFINITION
+            if resource in traced_concepts and predicate == SKOS_DEFINITION
         )
         atlas_notes = {
             (resource, _reverse_atlas_english_literal(pair, literal))
@@ -22087,7 +22435,7 @@ def check_annotation_fidelity(ctx: Context) -> CheckResult:
         atlas_notes.update(
             (resource, _reverse_atlas_english_literal(pair, literal))
             for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-            if resource in pair.publisher.concepts and predicate in note_predicates
+            if resource in traced_concepts and predicate in note_predicates
         )
         compared += len(atlas_definitions) + len(atlas_notes)
         recovered_note_claims = {
@@ -22106,7 +22454,7 @@ def check_annotation_fidelity(ctx: Context) -> CheckResult:
         publisher_resource_annotations = {
             row
             for row in pair.publisher.resource_annotations
-            if row[0] in pair.publisher.concepts and row[1] in resource_annotation_predicates
+            if row[0] in traced_concepts and row[1] in resource_annotation_predicates
         }
         atlas_resource_annotations = {
             row
@@ -22374,18 +22722,19 @@ def check_top_concept_fidelity(ctx: Context) -> CheckResult:
         if not pair.spec.has_policy("top-concept-source-shape-inverse"):
             failures.append(f"{pair.spec.name}: no executable top-concept representation policy is declared")
             continue
-        publisher_claims = {claim for claim in pair.publisher.top_concept_of if claim[0] in pair.publisher.concepts}
+        traced_concepts = _traced_publisher_concepts(pair)
+        publisher_claims = {claim for claim in pair.publisher.top_concept_of if claim[0] in traced_concepts}
         publisher_inverse_claims = {(concept, scheme) for scheme, concept in pair.publisher.has_top_concept}
         atlas_claims = {
             (resource, scheme)
             for resource, schemes in pair.atlas.native_top_concept_of_iris.items()
-            if resource in pair.publisher.concepts
+            if resource in traced_concepts
             for scheme in schemes
         }
         atlas_claims.update(
             (subject, obj)
             for subject, predicate, obj in pair.atlas.raw_source_iri_claims
-            if subject in pair.publisher.concepts and predicate == SKOS_TOP_CONCEPT_OF
+            if subject in traced_concepts and predicate == SKOS_TOP_CONCEPT_OF
         )
         atlas_claims.update(
             (concept, scheme)
@@ -22447,7 +22796,7 @@ def _publisher_source_relations(
     scope = policy.relation_scope if policy is not None else "member-subject"
     if scope == "all" or pair.spec.kind == "mapping":
         return pair.publisher.relations
-    members = pair.publisher.concepts
+    members = _traced_publisher_concepts(pair)
     if scope == "member-subject":
         return frozenset(relation for relation in pair.publisher.relations if relation[0] in members)
     if scope == "member-endpoints":
@@ -22497,10 +22846,11 @@ def _publisher_label_claims(
     values: Mapping[str, frozenset[LiteralValue]],
 ) -> frozenset[tuple[str, LiteralValue]]:
     """Read every publisher label; language is part of the compared value."""
+    traced_concepts = _traced_publisher_concepts(pair)
     return frozenset(
         (resource, literal)
         for resource, literals in values.items()
-        if resource in pair.publisher.concepts
+        if resource in traced_concepts
         for literal in literals
     )
 
@@ -22512,6 +22862,7 @@ def _atlas_label_claims(
 ) -> frozenset[tuple[str, LiteralValue]]:
     """Reverse Atlas label language metadata into the publisher's exact shape."""
     source_targets = _atlas_source_targets(pair)
+    traced_concepts = _traced_publisher_concepts(pair)
     claims: set[tuple[str, LiteralValue]] = set()
     for resource, literals in values.items():
         if resource not in source_targets:
@@ -22521,19 +22872,25 @@ def _atlas_label_claims(
     claims.update(
         (resource, _reverse_atlas_english_literal(pair, literal))
         for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-        if resource in pair.publisher.concepts and predicate == source_predicate
+        if resource in traced_concepts and predicate == source_predicate
     )
     return frozenset(claims)
 
 
 def _publisher_member_metadata_literals(
     pair: SourcePair,
+    subjects: frozenset[str] | None = None,
 ) -> frozenset[tuple[str, str, LiteralValue]]:
-    """Read non-display literals directly from selected publisher concepts."""
+    """Read non-display literals directly from selected publisher concepts.
+
+    ``subjects`` defaults to the traced view (organization subjects included,
+    expected-absent concepts removed). The declared-language-scope census
+    passes the raw concept set instead; see
+    ``_language_semantic_literal_claims`` for why.
+    """
     dedicated = _standard_member_literal_predicates(pair)
-    return frozenset(
-        row for row in pair.publisher.literal_claims if row[0] in pair.publisher.concepts and row[1] not in dedicated
-    )
+    members = _traced_publisher_concepts(pair) if subjects is None else subjects
+    return frozenset(row for row in pair.publisher.literal_claims if row[0] in members and row[1] not in dedicated)
 
 
 def _atlas_member_metadata_literals(
@@ -22541,10 +22898,11 @@ def _atlas_member_metadata_literals(
 ) -> frozenset[tuple[str, str, LiteralValue]]:
     """Reverse non-display literals retained in Atlas native source evidence."""
     dedicated = _standard_member_literal_predicates(pair)
+    members = _traced_publisher_concepts(pair)
     return frozenset(
         row
         for row in (pair.atlas.native_literal_claims | pair.atlas.raw_source_literal_claims)
-        if row[0] in pair.publisher.concepts and row[1] not in dedicated and not row[1].startswith(ATLAS)
+        if row[0] in members and row[1] not in dedicated and not row[1].startswith(ATLAS)
     )
 
 
@@ -22575,9 +22933,38 @@ def _publisher_member_iri_claims(
 ) -> frozenset[tuple[str, str, str]]:
     """Read publisher IRI-object metadata without interpreting its values."""
     dedicated = _standard_member_iri_predicates(pair)
-    return frozenset(
-        row for row in pair.publisher.iri_claims if row[0] in pair.publisher.concepts and row[1] not in dedicated
-    )
+    members = _traced_publisher_concepts(pair)
+    return frozenset(row for row in pair.publisher.iri_claims if row[0] in members and row[1] not in dedicated)
+
+
+def _atlas_organization_type_claims(pair: SourcePair) -> frozenset[tuple[str, str, str]]:
+    """Reverse an organization record's typeIris into publisher rdf:type claims.
+
+    An organization record does not restate the publisher's own typing as an
+    Atlas ``rdf:type`` triple -- Atlas types the resource ``skos:Concept`` --
+    it keeps that typing in ``nativePayload.typeIris``, which the record
+    contract in ``_rdf_provenance_failures`` already compares against the
+    publisher's own asserted triples. Feeding it back here is the same
+    reversal ``schemeIris`` and ``topConceptOfIris`` already get, so the
+    publisher's typing of an organization subject is compared instead of
+    falling out as an uncovered claim.
+    """
+    policy = pair.spec.rdf_source
+    if policy is None or "typeIris" not in policy.organization_record_payload_fields:
+        return frozenset()
+    organization_subjects = _additional_traced_publisher_subjects(pair) - pair.publisher.concepts
+    claims: set[tuple[str, str, str]] = set()
+    for record, target in pair.atlas.record_targets.items():
+        if target not in organization_subjects:
+            continue
+        payload = pair.atlas.native_payloads.get(record)
+        if not isinstance(payload, Mapping):
+            continue
+        values = payload.get("typeIris")
+        if not isinstance(values, list):
+            continue
+        claims.update((target, RDF_TYPE, value) for value in values if isinstance(value, str))
+    return frozenset(claims)
 
 
 def _atlas_member_iri_claims(
@@ -22586,10 +22973,11 @@ def _atlas_member_iri_claims(
     """Read exact or native Atlas evidence for publisher IRI-object metadata."""
     publisher_claims = _publisher_member_iri_claims(pair)
     dedicated = _standard_member_iri_predicates(pair)
+    members = _traced_publisher_concepts(pair)
     raw_claims = {
         row
         for row in pair.atlas.raw_source_iri_claims
-        if row[0] in pair.publisher.concepts and row[1] not in dedicated and not row[1].startswith(ATLAS)
+        if row[0] in members and row[1] not in dedicated and not row[1].startswith(ATLAS)
     }
     # A unit may declare that it types its resources differently than the
     # publisher does. Reverse exactly the declared pair, so the publisher's own
@@ -22604,11 +22992,12 @@ def _atlas_member_iri_claims(
     source_evidence_claims = {
         row
         for row in (pair.atlas.native_relations | pair.atlas.relations)
-        if row[0] in pair.publisher.concepts and row[1] not in dedicated and not row[1].startswith(ATLAS)
+        if row[0] in members and row[1] not in dedicated and not row[1].startswith(ATLAS)
     }
     return frozenset(
         {
             *source_evidence_claims,
+            *_atlas_organization_type_claims(pair),
             *(row for row in raw_claims if not _atlas_only_raw_type_claim(row, publisher_claims)),
         }
     )
@@ -22948,8 +23337,20 @@ def _language_exclusion_payload_parts(
 def _language_semantic_literal_claims(
     pair: SourcePair,
 ) -> frozenset[tuple[str, str, str, LiteralValue]]:
-    """Resolve literal claims to the exact semantic families in the declaration."""
+    """Resolve literal claims to the exact semantic families in the declaration.
+
+    Deliberately keyed on the RAW ``publisher.concepts`` census, not on the
+    traced view every comparison above now uses. This function's output is
+    compared cell for cell against the frozen counts in
+    ``language-scope-exclusions.json``: the numbers ARE the reported fact, and
+    a subject set that silently widened would not "fix" a count, it would
+    invalidate a checked-in declaration and take the whole exclusion --
+    hundreds of thousands of correctly out-of-scope non-English claims -- down
+    with it. Widening this census is a producer-side change: regenerate the
+    declaration first, then widen here in the same commit.
+    """
     publisher = pair.publisher
+    census_subjects = publisher.concepts
     rows: set[tuple[str, str, str, LiteralValue]] = set()
     for family, predicate, values_by_subject in (
         ("preferredLabels", SKOS_PREF_LABEL, publisher.pref_labels),
@@ -22960,7 +23361,7 @@ def _language_semantic_literal_claims(
         rows.update(
             (family, subject, predicate, literal)
             for subject, values in values_by_subject.items()
-            if subject in publisher.concepts
+            if subject in census_subjects
             for literal in values
         )
     note_predicates = _source_note_predicates(pair)
@@ -22972,11 +23373,11 @@ def _language_semantic_literal_claims(
             literal,
         )
         for subject, predicate, literal in publisher.annotations
-        if subject in publisher.concepts and (predicate == SKOS_DEFINITION or predicate in note_predicates)
+        if subject in census_subjects and (predicate == SKOS_DEFINITION or predicate in note_predicates)
     )
     rows.update(
         ("memberMetadataLiterals", subject, predicate, literal)
-        for subject, predicate, literal in _publisher_member_metadata_literals(pair)
+        for subject, predicate, literal in _publisher_member_metadata_literals(pair, census_subjects)
     )
     rows.update(
         ("sourceSchemeLiterals", subject, predicate, literal)
@@ -23432,6 +23833,7 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
     reconciled: list[str] = []
     for pair in ctx.pairs:
         source_targets = _atlas_source_targets(pair)
+        traced_concepts = _traced_publisher_concepts(pair)
         publisher_pref = _publisher_label_claims(pair, pair.publisher.pref_labels)
         publisher_alt = _publisher_label_claims(pair, pair.publisher.alt_labels)
         publisher_hidden = _publisher_label_claims(
@@ -23456,7 +23858,7 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
         publisher_notations = {
             (resource, literal)
             for resource, values in pair.publisher.notations.items()
-            if resource in pair.publisher.concepts
+            if resource in traced_concepts
             for literal in values
         }
         atlas_notations = {
@@ -23468,17 +23870,17 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
         atlas_notations.update(
             (resource, literal)
             for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-            if resource in pair.publisher.concepts and predicate == SKOS_NOTATION
+            if resource in traced_concepts and predicate == SKOS_NOTATION
         )
         publisher_definitions = {
             (resource, literal)
             for resource, predicate, literal in pair.publisher.annotations
-            if resource in pair.publisher.concepts and predicate == SKOS_DEFINITION
+            if resource in traced_concepts and predicate == SKOS_DEFINITION
         }
         publisher_notes = {
             (resource, literal)
             for resource, predicate, literal in pair.publisher.annotations
-            if resource in pair.publisher.concepts and predicate in _source_note_predicates(pair)
+            if resource in traced_concepts and predicate in _source_note_predicates(pair)
         }
         atlas_definitions = {
             (resource, _reverse_atlas_english_literal(pair, literal))
@@ -23489,7 +23891,7 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
         atlas_definitions.update(
             (resource, _reverse_atlas_english_literal(pair, literal))
             for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-            if resource in pair.publisher.concepts and predicate == SKOS_DEFINITION
+            if resource in traced_concepts and predicate == SKOS_DEFINITION
         )
         atlas_notes = {
             (resource, _reverse_atlas_english_literal(pair, literal))
@@ -23500,22 +23902,20 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
         atlas_notes.update(
             (resource, _reverse_atlas_english_literal(pair, literal))
             for resource, predicate, literal in pair.atlas.raw_source_literal_claims
-            if resource in pair.publisher.concepts and predicate in _source_note_predicates(pair)
+            if resource in traced_concepts and predicate in _source_note_predicates(pair)
         )
-        publisher_top_concepts = {
-            claim for claim in pair.publisher.top_concept_of if claim[0] in pair.publisher.concepts
-        }
+        publisher_top_concepts = {claim for claim in pair.publisher.top_concept_of if claim[0] in traced_concepts}
         publisher_has_top_concepts = {(scheme, concept) for scheme, concept in pair.publisher.has_top_concept}
         atlas_top_concepts = {
             (resource, scheme)
             for resource, schemes in pair.atlas.native_top_concept_of_iris.items()
-            if resource in pair.publisher.concepts
+            if resource in traced_concepts
             for scheme in schemes
         }
         atlas_top_concepts.update(
             (subject, obj)
             for subject, predicate, obj in pair.atlas.raw_source_iri_claims
-            if subject in pair.publisher.concepts and predicate == SKOS_TOP_CONCEPT_OF
+            if subject in traced_concepts and predicate == SKOS_TOP_CONCEPT_OF
         )
         atlas_top_concepts.update(
             (concept, scheme)
@@ -23528,7 +23928,7 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
             publisher_resource_annotations = frozenset(
                 row
                 for row in pair.publisher.resource_annotations
-                if row[0] in pair.publisher.concepts and row[1] in resource_annotation_predicates
+                if row[0] in traced_concepts and row[1] in resource_annotation_predicates
             )
             atlas_resource_annotations = frozenset(
                 row
@@ -23537,7 +23937,7 @@ def check_count_reconciliation(ctx: Context) -> CheckResult:
             )
             categories.update(
                 {
-                    "concepts": (pair.publisher.concepts, _atlas_publisher_concepts(pair)),
+                    "concepts": (traced_concepts, _atlas_publisher_concepts(pair)),
                     "prefLabels": (publisher_pref, atlas_pref),
                     "altLabels": (publisher_alt, atlas_alt),
                     "hiddenLabels": (publisher_hidden, atlas_hidden),
@@ -23628,6 +24028,7 @@ def check_scheme_organisation(ctx: Context) -> CheckResult:
     checked = 0
     for pair in ctx.vocabularies():
         checked += 1
+        traced_concepts = _traced_publisher_concepts(pair)
         publisher_scheme_iris = pair.publisher.schemes
         atlas_scheme_iris = _atlas_source_scheme_identities(pair)
         for scheme in sorted(publisher_scheme_iris - atlas_scheme_iris):
@@ -23673,11 +24074,11 @@ def check_scheme_organisation(ctx: Context) -> CheckResult:
         native_memberships = {
             (subject, scheme)
             for subject, schemes in pair.atlas.native_scheme_iris.items()
-            if subject in pair.publisher.concepts
+            if subject in traced_concepts
             for scheme in schemes
         }
         publisher_memberships = {
-            membership for membership in pair.publisher.memberships if membership[0] in pair.publisher.concepts
+            membership for membership in pair.publisher.memberships if membership[0] in traced_concepts
         }
         for subject, scheme in sorted(publisher_memberships - native_memberships):
             failures.append(
@@ -23853,13 +24254,29 @@ def check_source_release_metadata(ctx: Context) -> CheckResult:
     )
 
 
+#: Memo for ``_publisher_subject_types``. Every claim-family comparison now asks
+#: which publisher subjects a declared additional traced type covers, and
+#: rebuilding this index over a 33 MB publisher graph once per question turns a
+#: quarter-hour audit into an hour. The entry holds the view it indexed, so an
+#: ``id()`` key can never alias a later view that reused the same address. Only
+#: a spec that declares a claim exclusion or an additional traced type ever
+#: reaches this function, so the memo holds a handful of indexes, never one per
+#: comparison in the registry.
+_PUBLISHER_SUBJECT_TYPES_CACHE: dict[int, tuple[PublisherView, dict[str, frozenset[str]]]] = {}
+
+
 def _publisher_subject_types(view: PublisherView) -> dict[str, frozenset[str]]:
     """Index the rdf:type values the publisher's own bytes assert per subject."""
+    cached = _PUBLISHER_SUBJECT_TYPES_CACHE.get(id(view))
+    if cached is not None and cached[0] is view:
+        return cached[1]
     types: dict[str, set[str]] = defaultdict(set)
     for subject, predicate, obj in view.iri_claims:
         if predicate == RDF_TYPE:
             types[subject].add(obj)
-    return {subject: frozenset(values) for subject, values in types.items()}
+    resolved = {subject: frozenset(values) for subject, values in types.items()}
+    _PUBLISHER_SUBJECT_TYPES_CACHE[id(view)] = (view, resolved)
+    return resolved
 
 
 def _compared_publisher_subjects(pair: SourcePair) -> frozenset[str]:
@@ -23867,6 +24284,12 @@ def _compared_publisher_subjects(pair: SourcePair) -> frozenset[str]:
 
     A declared exclusion that touches one of these would be hiding a compared
     claim behind a scope declaration, so this is what the overlap guard tests.
+
+    Widened by the declared additional traced types -- an organization subject
+    Atlas represents is compared, so an exclusion claiming Atlas asserts
+    nothing about it must fail -- and deliberately not narrowed by
+    ``expected_absent_concepts``, because concept-traceability compares that
+    identity in both directions and an exclusion may not cover it either.
     """
     endpoints = {
         *(subject for subject, _, _ in pair.publisher.relations),
@@ -23877,7 +24300,7 @@ def _compared_publisher_subjects(pair: SourcePair) -> frozenset[str]:
     return frozenset(
         {
             *endpoints,
-            *pair.publisher.concepts,
+            *_declared_publisher_concepts(pair),
             *_publisher_source_scheme_subjects(pair.publisher),
             *pair.publisher.resource_annotation_target_claim_counts,
         }
@@ -24063,7 +24486,17 @@ def _publisher_claims_outside_comparison(
     frozenset[tuple[str, str, str]],
     frozenset[tuple[str, str, LiteralValue]],
 ]:
-    """Return source triples that no executable inverse currently evaluates."""
+    """Return source triples that no executable inverse currently evaluates.
+
+    The publisher side uses ``_declared_publisher_concepts``: widened by the
+    declared additional traced types, and NOT narrowed by
+    ``expected_absent_concepts``. Narrowing here would report the publisher's
+    own claims about a deliberately-unrepresented identity as "nobody looked",
+    which is false -- concept-traceability looks, both ways, and fails if the
+    declaration goes stale. The paired Atlas accounting in
+    ``_atlas_claims_outside_comparison`` uses the narrowed view instead, so an
+    Atlas claim about an expected-absent concept still lands in the residue.
+    """
     excluded_iri, excluded_literals = _declared_excluded_publisher_claims(pair)
     publisher_iri = set(pair.publisher.iri_claims) - excluded_iri
     publisher_literals = set(pair.publisher.literal_claims) - excluded_literals
@@ -24081,7 +24514,7 @@ def _publisher_claims_outside_comparison(
         supported_iri.update(pair.publisher.relations)
     else:
         primary_subjects = {
-            *pair.publisher.concepts,
+            *_declared_publisher_concepts(pair),
             *_publisher_source_scheme_subjects(pair.publisher),
             *pair.publisher.resource_annotation_target_claim_counts,
         }
@@ -24089,7 +24522,7 @@ def _publisher_claims_outside_comparison(
         supported_literals.update(row for row in publisher_literals if row[0] in primary_subjects)
 
         label_parent_subjects = {
-            *pair.publisher.concepts,
+            *_declared_publisher_concepts(pair),
             *_publisher_source_scheme_subjects(pair.publisher),
         }
         label_nodes = {
@@ -24167,14 +24600,23 @@ def _atlas_claims_outside_comparison(
     Atlas-minted evidence records (rkaf:EvidenceBinding and its rkaf: claims),
     and the complete label closure of Atlas-owned resources are deliberately
     outside the source-data comparison: none of them is a publisher claim.
+
+    The Atlas side uses ``_traced_publisher_concepts``: widened by the declared
+    additional traced types, so Atlas's claims about an organization resource
+    are compared rather than residual, and NARROWED by
+    ``expected_absent_concepts``, so a manufactured Atlas claim about the one
+    identity the spec promised Atlas never emits lands here and fails. That
+    asymmetry with the publisher-side accounting is the point: the declaration
+    only ever accounts for publisher claims, never for Atlas ones.
     """
     publisher = pair.publisher
     atlas = pair.atlas
     source_schemes = _publisher_source_scheme_subjects(publisher)
     annotation_targets = frozenset(publisher.resource_annotation_target_claim_counts)
+    traced_concepts = _traced_publisher_concepts(pair)
     source_primary = frozenset(
         {
-            *publisher.concepts,
+            *traced_concepts,
             *source_schemes,
             *annotation_targets,
         }
@@ -24233,7 +24675,7 @@ def _atlas_claims_outside_comparison(
         relation_predicate_values.update(atlas_predicate for _, atlas_predicate in policy.relation_predicate_inverse)
     relation_predicates = frozenset(relation_predicate_values)
     normalized_source_value_predicates = frozenset({ATLAS_NOTATION, ATLAS_DEFINITION, ATLAS_NOTE})
-    normalized_source_value_subjects = frozenset({*publisher.concepts, *source_schemes})
+    normalized_source_value_subjects = frozenset({*traced_concepts, *source_schemes})
     reification_predicates = frozenset({RDF_TYPE, RDF_SUBJECT, RDF_PREDICATE, RDF_OBJECT})
 
     residual_iri: set[tuple[str, str, str]] = set()
@@ -24570,6 +25012,9 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
     publisher = pair.publisher
     atlas = pair.atlas
     source_targets = _atlas_source_targets(pair)
+    # The receipt describes what each check compared, so it selects on exactly
+    # the view those checks select on.
+    traced_concepts = _traced_publisher_concepts(pair)
     families: list[dict[str, Any]] = []
     if spec.kind == "mapping":
         families.append(
@@ -24632,7 +25077,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         publisher_notations = {
             (resource, literal)
             for resource, values in publisher.notations.items()
-            if resource in publisher.concepts
+            if resource in traced_concepts
             for literal in values
         }
         atlas_notations = {
@@ -24644,7 +25089,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         atlas_notations.update(
             (resource, literal)
             for resource, predicate, literal in atlas.raw_source_literal_claims
-            if resource in publisher.concepts and predicate == SKOS_NOTATION
+            if resource in traced_concepts and predicate == SKOS_NOTATION
         )
         families.append(
             _claim_family(
@@ -24662,7 +25107,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         publisher_definitions = {
             (resource, literal)
             for resource, predicate, literal in publisher.annotations
-            if resource in publisher.concepts and predicate == SKOS_DEFINITION
+            if resource in traced_concepts and predicate == SKOS_DEFINITION
         }
         atlas_definitions = {
             (resource, _reverse_atlas_english_literal(pair, literal))
@@ -24673,7 +25118,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         atlas_definitions.update(
             (resource, _reverse_atlas_english_literal(pair, literal))
             for resource, predicate, literal in atlas.raw_source_literal_claims
-            if resource in publisher.concepts and predicate == SKOS_DEFINITION
+            if resource in traced_concepts and predicate == SKOS_DEFINITION
         )
         families.append(
             _claim_family(
@@ -24692,7 +25137,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         publisher_note_claims = {
             (resource, predicate, literal)
             for resource, predicate, literal in publisher.annotations
-            if resource in publisher.concepts and predicate in note_predicates
+            if resource in traced_concepts and predicate in note_predicates
         }
         publisher_note_values = {(resource, literal) for resource, _, literal in publisher_note_claims}
         atlas_note_values = {
@@ -24704,7 +25149,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         atlas_note_values.update(
             (resource, _reverse_atlas_english_literal(pair, literal))
             for resource, predicate, literal in atlas.raw_source_literal_claims
-            if resource in publisher.concepts and predicate in note_predicates
+            if resource in traced_concepts and predicate in note_predicates
         )
         recovered_note_claim_candidates = set(atlas.native_literal_claims | atlas.raw_source_literal_claims)
         if spec.rdf_source is not None and spec.rdf_source.note_predicate_inverse is not None:
@@ -24740,7 +25185,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
         publisher_resource_annotations = {
             row
             for row in publisher.resource_annotations
-            if row[0] in publisher.concepts and row[1] in resource_annotation_predicates
+            if row[0] in traced_concepts and row[1] in resource_annotation_predicates
         }
         atlas_resource_annotations = {
             row
@@ -24850,31 +25295,29 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
             )
         )
 
-        source_top = {claim for claim in publisher.top_concept_of if claim[0] in publisher.concepts}
+        source_top = {claim for claim in publisher.top_concept_of if claim[0] in traced_concepts}
         source_has_top = {(scheme, concept) for scheme, concept in publisher.has_top_concept}
         atlas_top = {
             (resource, scheme)
             for resource, schemes in atlas.native_top_concept_of_iris.items()
-            if resource in publisher.concepts
+            if resource in traced_concepts
             for scheme in schemes
         }
         atlas_top.update(
             (subject, obj)
             for subject, predicate, obj in atlas.raw_source_iri_claims
-            if subject in publisher.concepts and predicate == SKOS_TOP_CONCEPT_OF
+            if subject in traced_concepts and predicate == SKOS_TOP_CONCEPT_OF
         )
         atlas_top.update(
             (concept, scheme)
             for scheme, predicate, concept in atlas.raw_source_iri_claims
             if predicate == SKOS_HAS_TOP_CONCEPT
         )
-        publisher_memberships = {
-            membership for membership in publisher.memberships if membership[0] in publisher.concepts
-        }
+        publisher_memberships = {membership for membership in publisher.memberships if membership[0] in traced_concepts}
         native_memberships = {
             (resource, scheme)
             for resource, schemes in atlas.native_scheme_iris.items()
-            if resource in publisher.concepts
+            if resource in traced_concepts
             for scheme in schemes
         }
         publisher_scheme_iri_metadata = _publisher_source_scheme_iri_metadata(pair)
@@ -24891,7 +25334,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
                     name="conceptIdentities",
                     source_predicates=(RDF_TYPE,),
                     atlas_predicates=(RDF_TYPE,),
-                    source_claims=set(publisher.concepts),
+                    source_claims=set(traced_concepts),
                     atlas_claims=set(_atlas_publisher_concepts(pair)),
                     checked_by="concept-traceability",
                 ),
@@ -25104,7 +25547,7 @@ def _comparison_claim_scope(spec: SourceSpec, pair: SourcePair | None) -> dict[s
 
     predicate_counts: dict[str, int] = defaultdict(int)
     for (resource, predicate), count in publisher.resource_predicate_counts.items():
-        if resource in (publisher.concepts | _publisher_source_scheme_subjects(publisher)):
+        if resource in (traced_concepts | _publisher_source_scheme_subjects(publisher)):
             predicate_counts[predicate] += count
     unexpected_predicates = sorted(set(predicate_counts) - compared_predicates)
 
@@ -25653,6 +26096,9 @@ def _receipt(ctx: Context, results: Sequence[CheckResult]) -> dict[str, Any]:
                 "policies": sorted(spec.policies),
                 "atlasOnlyNativePayloadFields": sorted(
                     spec.rdf_source.atlas_only_native_payload_fields if spec.rdf_source is not None else ()
+                ),
+                "organizationRecordPayloadFields": sorted(
+                    spec.rdf_source.organization_record_payload_fields if spec.rdf_source is not None else ()
                 ),
                 "nonWaivingPredicateDeclarations": sorted(spec.excluded_resource_predicates),
                 "claimScope": scope_by_spec[spec],

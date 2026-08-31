@@ -3501,6 +3501,72 @@ def test_rdf_provenance_fails_closed_on_an_unevaluated_native_field(
     )
 
 
+def test_record_digest_is_native_payload_digest_is_honestly_a_format_check(suite: Fixture) -> None:
+    """``record_digest_is_native_payload_digest`` verifies Atlas's own
+    internal self-consistency (sourceDigest == sha256(nativePayload)), never
+    an independent tie to the publisher's bytes -- RDF sources carry no
+    natural per-resource byte range to hash independently of what Atlas
+    already stored. A real mismatch is still caught, and the failure text
+    says so honestly rather than reading like a publisher-fidelity claim."""
+    spec = replace(
+        suite.spec,
+        rdf_source=replace(suite.spec.rdf_source, record_digest_is_native_payload_digest=True),
+    )
+    suite.write_pack(source_digest="sha256:" + "a" * 64)
+
+    check = result(suite.run(spec=spec), "rdf-provenance-fidelity")
+
+    assert not check.passed
+    assert any(
+        "format self-consistency check" in text and "not an independent publisher-fidelity proof" in text
+        for text in check.failures
+    )
+
+
+def test_record_digest_is_native_payload_digest_never_crashes_alongside_an_independent_reader_digest(
+    suite: Fixture,
+) -> None:
+    """The latent ``len(None)`` TypeError this combination used to trigger.
+
+    ``RdfSourcePolicy.record_digest_is_native_payload_digest`` (this spec's
+    own format self-check) forces ``expected_digests`` to ``None``.
+    ``PublisherView.source_digest_is_native_payload_digest`` is a separate,
+    reader-level flag some non-RDF readers set independently -- the two are
+    unrelated and may legitimately both be true at once, but before the fix
+    that combination evaluated ``len(None)`` and crashed instead of the RDF
+    spec's format check and the reader's own flag coexisting cleanly.
+    """
+    import tools.verify_atlas_source_fidelity as verifier
+
+    spec = replace(
+        suite.spec,
+        rdf_source=replace(suite.spec.rdf_source, record_digest_is_native_payload_digest=True),
+    )
+    ctx = verifier.build_context(
+        suite.distribution,
+        suite.source_root,
+        Expectations(minimum_label_sample=1),
+        (spec,),
+    )
+    pair = ctx.pairs[0]
+    mutated_pair = replace(
+        pair,
+        publisher=replace(pair.publisher, source_digest_is_native_payload_digest=True),
+    )
+
+    failures = verifier._rdf_provenance_failures(mutated_pair)
+
+    assert isinstance(failures, list)
+    assert all(isinstance(item, str) for item in failures)
+
+    # The same combination through the public check function, which must
+    # also come back as ordinary failures/passes, never an internal error
+    # finding standing in for a crash.
+    checked_ctx = replace(ctx, pairs=(mutated_pair,))
+    check = verifier.check_rdf_provenance_fidelity(checked_ctx)
+    assert not any("internal error" in failure for failure in check.failures)
+
+
 # --------------------------------------------------------------------------------------
 # concept-traceability
 # --------------------------------------------------------------------------------------
@@ -3547,6 +3613,495 @@ def test_traceability_refuses_to_pass_with_no_sources_compared(suite: Fixture) -
     check = result(results, "concept-traceability")
     assert not check.passed
     assert any("traceability is unproven" in text for text in check.failures)
+
+
+# --------------------------------------------------------------------------------------
+# concept-traceability: additional_traced_publisher_types (gemet-4.2.3 fix)
+#
+# GEMET's Group/SuperGroup/Theme organization resources are skos:Collection
+# plus their own gemet-schema:Group/SuperGroup/Theme type in the publisher's
+# own bytes, never skos:Concept -- yet Atlas now traces 76 of them as concept
+# identities. Before the fix: (1) the declared exclusion still listed the
+# Group/SuperGroup/Theme types under "Atlas asserts nothing about these
+# subjects", which stopped holding the moment Atlas started asserting real
+# claims about them, and (2) concept-traceability only ever looked for
+# skos:Concept-typed publisher subjects, so a legitimately traced one was
+# reported as appearing in no publisher rdf:type record. Both are
+# reproduced here with the pre-existing GROUP/GROUP_TYPE/GROUP_TRIPLES
+# fixture (a non-skos:Concept publisher subject with a real type, a label,
+# and member relations -- structurally the same shape as a GEMET Group).
+# --------------------------------------------------------------------------------------
+
+
+def _traced_group_atlas_lines(
+    source_digest: str,
+    *,
+    resource: str = GROUP,
+    record: str = "urn:ref:atlas-source-record:group-1",
+) -> list[str]:
+    """Atlas quads for one non-skos:Concept publisher subject Atlas traces.
+
+    Mirrors the real fix: Atlas types the resource skos:Concept and gives it
+    a SourceRecord even though the publisher's own bytes never assert
+    skos:Concept for it.
+    """
+    label_node = f"{record}-pref-label"
+    return [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", resource),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _quad(
+            record,
+            f"{ATLAS}nativePayload",
+            json.dumps({"schemeIris": []}, separators=(",", ":")),
+            literal=True,
+        ),
+        _quad(resource, f"{SKOSXL}prefLabel", label_node),
+        _quad(label_node, f"{SKOSXL}literalForm", "Browsing group", literal=True),
+    ]
+
+
+def test_additional_traced_publisher_type_stops_a_real_subject_from_looking_unknown(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher(extra_triples=GROUP_TRIPLES)
+    digest = suite.publisher_content_digest()
+    lines = atlas_pack_lines(source_digest=digest)
+    lines.extend(_traced_group_atlas_lines(digest))
+    suite.write_pack_lines(lines)
+    spec = replace(
+        suite.spec,
+        rdf_source=replace(suite.spec.rdf_source, additional_traced_publisher_types=frozenset({GROUP_TYPE})),
+    )
+
+    check = result(suite.run(spec=spec), "concept-traceability")
+
+    assert check.passed, check.failures
+    assert not any(GROUP in failure for failure in check.failures)
+
+
+def test_additional_traced_publisher_type_still_fails_a_fabricated_subject(suite: Fixture) -> None:
+    """Do not blanket-exempt: a fabricated 77th-style subject the publisher
+    never stated must still fail concept-traceability."""
+    suite.write_publisher(extra_triples=GROUP_TRIPLES)
+    digest = suite.publisher_content_digest()
+    lines = atlas_pack_lines(source_digest=digest)
+    lines.extend(_traced_group_atlas_lines(digest))
+    ghost = f"{EX}group/ghost"
+    lines.extend(
+        _traced_group_atlas_lines(
+            digest,
+            resource=ghost,
+            record="urn:ref:atlas-source-record:group-ghost",
+        )
+    )
+    suite.write_pack_lines(lines)
+    spec = replace(
+        suite.spec,
+        rdf_source=replace(suite.spec.rdf_source, additional_traced_publisher_types=frozenset({GROUP_TYPE})),
+    )
+
+    check = result(suite.run(spec=spec), "concept-traceability")
+
+    assert not check.passed
+    assert any("appears in no rdf:type" in failure and ghost in failure for failure in check.failures)
+
+
+def test_a_declared_exclusion_still_fails_closed_for_a_now_traced_type(suite: Fixture) -> None:
+    """Reproduces the historical gemet-4.2.3 bug and proves it still fails.
+
+    Declaring a type's subjects "Atlas asserts nothing about them" while
+    Atlas has started asserting real claims about a matching subject must
+    keep failing claim-scope -- exactly why the real fix removes Group/
+    SuperGroup/Theme from the exclusion's subject_types instead of leaving
+    them declared alongside the truly unmodelled Source register.
+    """
+    suite.write_publisher(extra_triples=GROUP_TRIPLES)
+    digest = suite.publisher_content_digest()
+    lines = atlas_pack_lines(source_digest=digest)
+    lines.extend(_traced_group_atlas_lines(digest))
+    suite.write_pack_lines(lines)
+    spec = replace(suite.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
+
+    scope = result(suite.run(spec=spec), "claim-scope")
+
+    assert not scope.passed
+    assert any("declared exclusion publisherBrowsingGroups does not hold" in failure for failure in scope.failures)
+
+
+# --------------------------------------------------------------------------------------
+# concept-traceability: expected_absent_concepts (cfr-subject-index-parts fix)
+#
+# The real spec's 42 CFR Part 58 is "[Reserved]": the publisher's own <dt>
+# heading has no <dd> terms under it. The reader's own census honestly counts
+# it among the raw HTML's distinct part citations, but
+# refspec.registry.cfr_list_of_subjects deliberately never mints a concept
+# for a part with zero collected terms. Reproduced generically here (no need
+# for the real 50-page HTML fixture) by dropping one of the three synthetic
+# concepts from the Atlas pack and declaring it expected-absent.
+# --------------------------------------------------------------------------------------
+
+
+def test_expected_absent_concept_stops_a_declared_omission_from_looking_missing(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher()
+    digest = suite.publisher_content_digest()
+    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c3", source_digest=digest))
+    spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c3"}))
+
+    results = suite.run(spec=spec)
+
+    traceability = result(results, "concept-traceability")
+    assert traceability.passed, traceability.failures
+    assert not any(f"{EX}c3" in failure for failure in traceability.failures)
+    label_fidelity = result(results, "label-fidelity")
+    assert label_fidelity.passed, label_fidelity.failures
+
+
+def test_expected_absent_concept_still_reports_a_different_missing_concept(
+    suite: Fixture,
+) -> None:
+    """A term-less part OUTSIDE the enumerated set must still report missing."""
+    suite.write_publisher()
+    digest = suite.publisher_content_digest()
+    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c2", source_digest=digest))
+    spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c3"}))
+
+    check = result(suite.run(spec=spec), "concept-traceability")
+
+    assert not check.passed
+    assert any(
+        f"publisher concept <{EX}c2> is missing from the Atlas release" in failure for failure in check.failures
+    )
+
+
+def test_expected_absent_concept_declaration_fails_loud_when_stale(suite: Fixture) -> None:
+    """Never a blanket waiver: a declared-absent concept Atlas actually
+    asserts must fail the check, not pass silently."""
+    spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c1"}))
+
+    check = result(suite.run(spec=spec), "concept-traceability")
+
+    assert not check.passed
+    assert any(
+        f"<{EX}c1> is declared an expected-absent concept but Atlas actually asserts it" in failure
+        for failure in check.failures
+    )
+
+
+def test_cfr_subject_index_spec_declares_the_real_termless_part_absent() -> None:
+    """Ties the generic mechanism above to the real spec: the declared IRI is
+    exactly the one publisher concept
+    tests/test_verify_cfr_subject_index_reader.py's own frozen divergence
+    list (TERMLESS_PARTS) names as term-less."""
+    import tools.verify_atlas_source_fidelity as verifier
+
+    spec = next(candidate for candidate in verifier.SOURCES if candidate.name == "cfr-subject-index-parts-2026-08-20")
+    assert spec.expected_absent_concepts == frozenset({"urn:ref:cfr-part:42:58"})
+
+
+# --------------------------------------------------------------------------------------
+# Both exceptions, end to end: the WHOLE audit, not the one check that reads them
+#
+# The first cut of both exceptions reached concept-traceability, label
+# fidelity, notation fidelity and the provenance record-target guard, and
+# nothing else. Every other comparison kept selecting on the raw
+# ``publisher.concepts`` census, so a real GEMET run passed traceability with
+# 5,649 resources and then failed count reconciliation at 5,573 vs 5,649, and a
+# declared-absent concept passed traceability and then failed count
+# reconciliation, membership, relations and member metadata by one. Asserting
+# on one check's verdict is what let that ship: these tests assert that the
+# COMPLETE set of checks the audit runs over the pair reports zero failures, so
+# partial plumbing cannot pass again -- paired, as always, with the fixtures
+# that must still fail.
+#
+# ORGANIZATION_* mirrors a real GEMET Group: a publisher subject with its own
+# rdf:type, a prefLabel, and scheme membership, which the publisher never types
+# skos:Concept and which Atlas nonetheless represents as a concept carrying a
+# publisherResourceIri/typeIris source record instead of a publisherConceptIri
+# one.
+# --------------------------------------------------------------------------------------
+
+ORGANIZATION = f"{EX}group/1"
+ORGANIZATION_TYPE = f"{EX}Group"
+ORGANIZATION_TRIPLES = (
+    f"<{ORGANIZATION}> a <{ORGANIZATION_TYPE}> ;\n"
+    f"  <{SKOS}inScheme> <{SCHEME}> ;\n"
+    f'  <{SKOS}prefLabel> "Browsing group"@en .'
+)
+ORGANIZATION_RECORD = "urn:ref:atlas-source-record:organization-1"
+ORGANIZATION_CONTRACT = frozenset({"publisherResourceIri", "typeIris"})
+
+
+def _organization_atlas_lines(
+    source_digest: str,
+    *,
+    resource: str = ORGANIZATION,
+    record: str = ORGANIZATION_RECORD,
+    native_payload: dict[str, object] | None = None,
+) -> list[str]:
+    """Atlas quads for one traced organization resource and its source record."""
+    if native_payload is None:
+        native_payload = {
+            "publisherResourceIri": resource,
+            "schemeIris": [SCHEME],
+            "typeIris": [ORGANIZATION_TYPE],
+        }
+    label_node = f"{record}-pref-label"
+    return [
+        _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
+        _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
+        _quad(record, f"{ATLAS}sourceLocator", resource),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _quad(record, f"{ATLAS}representsResource", resource),
+        _quad(record, f"{ATLAS}nativePayload", json.dumps(native_payload, separators=(",", ":")), literal=True),
+        _quad(resource, f"{SKOSXL}prefLabel", label_node),
+        _quad(label_node, f"{SKOSXL}literalForm", "Browsing group", literal=True),
+    ]
+
+
+def _traced_organization_pair(
+    suite: Fixture,
+    *,
+    native_payload: dict[str, object] | None = None,
+    extra_atlas_lines: Callable[[str], Sequence[str]] | None = None,
+    organization_contract: frozenset[str] = ORGANIZATION_CONTRACT,
+) -> SourceSpec:
+    """A faithful traced-organization pair, and the spec that declares it."""
+    suite.write_publisher(extra_triples=ORGANIZATION_TRIPLES)
+    digest = suite.publisher_content_digest()
+    lines = atlas_pack_lines(source_digest=digest)
+    lines.extend(_organization_atlas_lines(digest, native_payload=native_payload))
+    if extra_atlas_lines is not None:
+        lines.extend(extra_atlas_lines(digest))
+    suite.write_pack_lines(lines)
+    return replace(
+        suite.spec,
+        rdf_source=replace(
+            suite.spec.rdf_source,
+            additional_traced_publisher_types=frozenset({ORGANIZATION_TYPE}),
+            organization_record_payload_fields=organization_contract,
+        ),
+    )
+
+
+def test_traced_organization_pair_passes_every_check_not_just_traceability(suite: Fixture) -> None:
+    """The whole audit, zero failures. This is the assertion the first cut of
+    the exception could not have made: traceability passed while count
+    reconciliation, membership, member metadata, claim scope and coverage all
+    still read the raw publisher census."""
+    spec = _traced_organization_pair(suite)
+
+    results = suite.run(spec=spec)
+
+    assert failed(results) == set(), [(item.name, item.failures) for item in results if not item.passed]
+    assert result(results, "count-reconciliation").passed
+    assert result(results, "rdf-provenance-fidelity").passed
+
+
+def test_expected_absent_concept_pair_passes_every_check_not_just_traceability(
+    suite: Fixture,
+) -> None:
+    """Same bar for the declared-absent concept: no check anywhere may report
+    it as missing, and none may report its publisher claims as unlooked-at."""
+    suite.write_publisher()
+    digest = suite.publisher_content_digest()
+    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c3", source_digest=digest))
+    spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c3"}))
+
+    results = suite.run(spec=spec)
+
+    assert failed(results) == set(), [(item.name, item.failures) for item in results if not item.passed]
+
+
+def test_expected_absent_concept_never_excuses_an_atlas_claim_about_it(suite: Fixture) -> None:
+    """The narrowing accounts for PUBLISHER claims only. One manufactured Atlas
+    claim about the identity Atlas promised never to assert still fails."""
+    suite.write_publisher()
+    digest = suite.publisher_content_digest()
+    lines = atlas_pack_lines(drop_concept=f"{EX}c3", source_digest=digest)
+    lines.append(_quad(f"{EX}c3", f"{SKOS}notation", "smuggled", literal=True))
+    suite.write_pack_lines(lines)
+    spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c3"}))
+
+    check = result(suite.run(spec=spec), "source-claim-coverage")
+
+    assert not check.passed
+    assert any(
+        f"{EX}c3" in failure and "outside every executable comparison" in failure for failure in check.failures
+    )
+
+
+def test_fabricated_organization_subject_fails_the_whole_audit(suite: Fixture) -> None:
+    """A fabricated 77th subject the publisher never typed stays caught, and
+    not only by traceability."""
+    ghost = f"{EX}group/ghost"
+    spec = _traced_organization_pair(
+        suite,
+        extra_atlas_lines=lambda digest: _organization_atlas_lines(
+            digest,
+            resource=ghost,
+            record="urn:ref:atlas-source-record:organization-ghost",
+            native_payload={
+                "publisherResourceIri": ghost,
+                "schemeIris": [],
+                "typeIris": [ORGANIZATION_TYPE],
+            },
+        ),
+    )
+
+    results = suite.run(spec=spec)
+
+    traceability = result(results, "concept-traceability")
+    assert not traceability.passed
+    assert any("appears in no rdf:type" in failure and ghost in failure for failure in traceability.failures)
+    provenance = result(results, "rdf-provenance-fidelity")
+    assert not provenance.passed
+    assert any("which is not a publisher concept" in failure and ghost in failure for failure in provenance.failures)
+
+
+def test_organization_record_carrying_neither_contract_still_fails(suite: Fixture) -> None:
+    """No blanket exemption. A record whose target is an organization subject
+    and whose payload answers to neither contract fails, exactly as a concept
+    record with no publisherConceptIri does."""
+    spec = _traced_organization_pair(suite, native_payload={"schemeIris": [SCHEME]})
+
+    check = result(suite.run(spec=spec), "rdf-provenance-fidelity")
+
+    assert not check.passed
+    assert any(
+        "omits independently evaluated fields ['publisherResourceIri', 'typeIris']" in failure
+        for failure in check.failures
+    )
+
+
+def test_organization_record_type_iris_are_reversed_against_publisher_bytes(suite: Fixture) -> None:
+    """typeIris is a contract, not an exemption: a fabricated type fails against
+    the publisher's own rdf:type triples."""
+    spec = _traced_organization_pair(
+        suite,
+        native_payload={
+            "publisherResourceIri": ORGANIZATION,
+            "schemeIris": [SCHEME],
+            "typeIris": [f"{EX}Fabricated"],
+        },
+    )
+
+    results = suite.run(spec=spec)
+
+    provenance = result(results, "rdf-provenance-fidelity")
+    assert not provenance.passed
+    assert any(
+        "typeIris differs from the publisher's own rdf:type triples" in failure for failure in provenance.failures
+    )
+    member_iri = result(results, "member-iri-fidelity")
+    assert not member_iri.passed
+    assert any(f"{EX}Fabricated" in failure for failure in member_iri.failures)
+
+
+def test_organization_record_resource_iri_must_equal_its_target(suite: Fixture) -> None:
+    spec = _traced_organization_pair(
+        suite,
+        native_payload={
+            "publisherResourceIri": f"{EX}group/2",
+            "schemeIris": [SCHEME],
+            "typeIris": [ORGANIZATION_TYPE],
+        },
+    )
+
+    check = result(suite.run(spec=spec), "rdf-provenance-fidelity")
+
+    assert not check.passed
+    assert any("publisherResourceIri does not equal" in failure for failure in check.failures)
+
+
+def test_organization_record_may_not_claim_the_concept_contract(suite: Fixture) -> None:
+    """Which contract a record owes is decided by the publisher's own typing.
+    A record that states publisherConceptIri for a subject the publisher never
+    typed a concept fails, rather than being validated as a concept record."""
+    spec = _traced_organization_pair(
+        suite,
+        native_payload={
+            "publisherConceptIri": ORGANIZATION,
+            "schemeIris": [SCHEME],
+            "topConceptOfIris": [],
+        },
+    )
+
+    check = result(suite.run(spec=spec), "rdf-provenance-fidelity")
+
+    assert not check.passed
+    assert any("the record claims a contract it does not answer to" in failure for failure in check.failures)
+
+
+def test_organization_contract_still_requires_a_real_publisher_top_concept(suite: Fixture) -> None:
+    """topConceptOfIris is optional for an organization record only while the
+    publisher states none. One real publisher top-concept claim brings it back."""
+    suite.write_publisher(
+        extra_triples=ORGANIZATION_TRIPLES + f"\n<{ORGANIZATION}> <{SKOS}topConceptOf> <{SCHEME}> .",
+    )
+    digest = suite.publisher_content_digest()
+    lines = atlas_pack_lines(source_digest=digest)
+    lines.extend(_organization_atlas_lines(digest))
+    suite.write_pack_lines(lines)
+    spec = replace(
+        suite.spec,
+        rdf_source=replace(
+            suite.spec.rdf_source,
+            evaluated_native_payload_fields=frozenset({"schemeIris", "topConceptOfIris"}),
+            additional_traced_publisher_types=frozenset({ORGANIZATION_TYPE}),
+            organization_record_payload_fields=ORGANIZATION_CONTRACT,
+        ),
+    )
+
+    check = result(suite.run(spec=spec), "rdf-provenance-fidelity")
+
+    assert not check.passed
+    assert any("topConceptOfIris" in failure for failure in check.failures)
+
+
+def test_organization_contract_field_without_an_inverse_is_a_failed_configuration(
+    suite: Fixture,
+) -> None:
+    spec = _traced_organization_pair(suite, organization_contract=frozenset({"organizationKind"}))
+
+    check = result(suite.run(spec=spec), "configuration")
+
+    assert not check.passed
+    assert any(
+        "organization record payload fields have no independent inverse" in failure for failure in check.failures
+    )
+
+
+def test_organization_contract_without_a_traced_type_is_a_failed_configuration(
+    suite: Fixture,
+) -> None:
+    suite.write_publisher()
+    suite.write_pack()
+    spec = replace(
+        suite.spec,
+        rdf_source=replace(suite.spec.rdf_source, organization_record_payload_fields=ORGANIZATION_CONTRACT),
+    )
+
+    check = result(suite.run(spec=spec), "configuration")
+
+    assert not check.passed
+    assert any("an organization record contract is declared but no" in failure for failure in check.failures)
+
+
+def test_gemet_spec_declares_the_organization_record_contract() -> None:
+    """Ties the generic mechanism above to the real spec: GEMET's 76
+    organization records answer to publisherResourceIri/typeIris, and neither
+    field is parked in atlas_only_native_payload_fields any more."""
+    import tools.verify_atlas_source_fidelity as verifier
+
+    spec = next(candidate for candidate in verifier.SOURCES if candidate.name == "gemet-4.2.3")
+    assert spec.rdf_source is not None
+    assert spec.rdf_source.organization_record_payload_fields == frozenset({"publisherResourceIri", "typeIris"})
+    assert not (spec.rdf_source.atlas_only_native_payload_fields & {"publisherResourceIri", "typeIris"})
 
 
 # --------------------------------------------------------------------------------------
