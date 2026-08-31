@@ -24,7 +24,17 @@ platform-wide); the archived source is evidence and reference, not a payload.
 
 ## 0. Merge first — the fork (gates everything below)
 
-RefSpec exists as two diverged checkouts:
+> **RESOLVED 2026-08-31 by REF-051** (`docs/decisions.md`): the fork was
+> history, not content — the standalone tree is a strict path superset, the
+> submodule's 579 unique lines are superseded early drafts, and its five build
+> commits are absorbed. **This checkout is canonical; every port lands here.**
+> Nothing deleted: the submodule line survives as
+> `refs/snapshots/pre-consolidation-2026-08-28` (spicysearch side) and
+> `refs/snapshots/submodule-line-2026-08-31` (this repo's object store).
+> The spicysearch submodule repoint is a mechanical follow-up awaiting a clean
+> worktree there. The gate below is kept for the record.
+
+RefSpec existed as two diverged checkouts:
 
 - `~/Work/spicysearch/RefSpec` (submodule) at `141fd671` — **54 commits not in
   the standalone checkout** (protected by snapshot ref
@@ -135,6 +145,10 @@ with the product owner.
 ## 2. Decisions — documented questions awaiting a ruling (no code yet)
 
 ### 2.1 Letter-form FR widening (recall decision)
+
+> **RULED 2026-08-31 by REF-052** ("The column is the license",
+> `docs/decisions.md`): makes the call this section asked for and licenses
+> the bare-legacy mint (§1.2). Kept below for the record.
 
 `identifier_shapes.py` deliberately leaves **10,340 letter-opening FR document
 numbers unread** (three-digit-and-shorter tails, two-digit prefixes, six-digit
