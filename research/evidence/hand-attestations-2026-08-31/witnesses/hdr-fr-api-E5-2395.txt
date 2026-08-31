@@ -1,0 +1,21 @@
+HTTP/2 200 
+date: Mon, 31 Aug 2026 19:08:43 GMT
+content-type: application/json; charset=utf-8
+content-length: 2870
+status: 200 OK
+access-control-allow-origin: *
+referrer-policy: strict-origin-when-cross-origin
+x-permitted-cross-domain-policies: none
+x-xss-protection: 0
+feature-policy: camera 'none'; microphone 'none'; usb 'none'; fullscreen 'self'; payment 'self'
+x-request-id: Root1-6a95d13b-7302b2344dd1bad00ac17c67
+x-frame-options: DENY
+x-content-type-options: nosniff
+content-security-policy: default-src 'self' https:; font-src 'self' https: data:; img-src 'self' https: data: 'report-sample'; object-src 'none'; script-src 'self' https: 'report-sample'; style-src 'self' https: 'report-sample' 'unsafe-inline'
+vary: Accept-Encoding
+age: 0
+accept-ranges: bytes
+cache-control: no-store, no-cache, must-revalidate, private
+pragma: no-cache
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+

@@ -93,12 +93,23 @@ what hand-validation would assert:
   concentrates in 1994–97, a batch-filing collision at GPO that stopped.
 - 100 modern correction short forms (`C1-2010-1863`) — publisher's own
   spelling, verified in its colophon.
-- ~27 fused-colophon values (`E5-2394Filed`, `2014-04654s`) — the space was
-  lost in **GPO's own digitization** (`[FR Doc. E5-2394Filed 5-16-05]` in
-  the publisher's raw text), and the fused string propagated into the
-  official API field. Not aggregator damage; upstream of everyone. An
-  attestation here asserts that the fused and print spellings name one
-  document, witnessed by the colophon and definitively by the print PDF.
+- ~27 fused-colophon values (`E5-2394Filed`, `2014-04654s`) — CORRECTED
+  by the pilot attestation's print witness: the fusion is a **composition
+  defect on the printed page itself** (the 600-dpi read of 70 FR 25814
+  shows `[FR Doc. E5–2394Filed` welded in print, while the same page's
+  column 1 carries a properly spaced control colophon), with the recovery-by-whitespace-splitting an inference consistent with
+  every witness, observed by none. Not digitization, not aggregator damage —
+  the printed page. Only THIS value is attested; the other ~26 family
+  members are per-value pending, and the same page's spaced control proves
+  the defect was not uniform, so nothing generalizes. The unfused `E5-2394` dereferenced
+  nowhere probed on 2026-08-31 (404 at both publishers, headers saved;
+  neighbours 200), so reverse substitution
+  is forbidden: the fused spelling is the only live identifier. The
+  founding attestation row with seven witnesses lives in
+  `research/evidence/hand-attestations-2026-08-31/`. The salvage census
+  found a second specimen of the family resolved the other way:
+  `95-8641` was dead on all four routes (direct, Zyte, Wayback, govinfo) on 2026-08-31 whose content survives under its
+  fused twin `95-8641-Filed`, byte-identical to the live copy.
 - `C0-6263A` — not damage: the publisher filed it with the trailing letter
   (`[FR Doc. C0-6263A Filed 4-5-00]`). A real micro-family no shape admits
   yet.

@@ -164,3 +164,21 @@ this reading — which is the point of doing it.
    pending the original population definition.
 5. Every other queued item proceeds with its premise verified against the
    publisher's own bytes.
+
+
+## Addendum, later the same day: what the raw-review wave changed here
+
+- **The fused-token diagnosis above is corrected.** This note says the
+  `E5-2394Filed` space was "GPO's own lost space" (digitization). The pilot
+  attestation's print witness (70 FR 25814 read at 600 dpi, with a
+  properly-spaced control colophon on the same page) shows the fusion is a
+  **composition defect on the printed page itself**. One value is attested
+  with saved witnesses in
+  `research/evidence/hand-attestations-2026-08-31/`; the other ~26 family
+  members remain per-value pending — the same page proves the defect was
+  not uniform, so nothing generalizes.
+- **MIPPA is closed, not suspended.** The full roster hand-audit derived
+  all three numbers from their own definitions: **29 is correct** under the
+  roster column's first-token-wins census over `other/failed` rows; 26 is
+  the answerable subset (name AND shape); 37 the unfiltered mention count.
+- Full wave verdicts: [`raw-review-wave-2026-08-31.md`](raw-review-wave-2026-08-31.md).

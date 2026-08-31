@@ -1,0 +1,165 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <title>404 Not Found</title>
+  <style type="text/css">
+    body {
+      color: #363636;
+      border-top: 4px solid #fbb829;
+      margin: 0;
+      font-family: arial, sans-serif;
+    }
+
+    .container {
+      max-width: 976px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    div.dialog {
+      width: 25em;
+      padding: 0 4em;
+      margin: 4em auto 0 auto;
+    }
+    #main {
+      margin: 0 auto;
+      width: 960px;
+    }
+    .logo {
+      margin: 20px auto 10px;
+      width: 960px;
+    }
+    .logo .hgroup {
+      text-indent: -9999em;
+      overflow: hidden;
+      text-align: left;
+      background-repeat: no-repeat;
+
+      background-image: url('/nginx/assets/federalregister_masthead.svg');
+      background-position: 0 0;
+      background-clip: content-box;
+      width: 700px;
+      height: 120px;
+      margin-bottom: 10px;
+    }
+    .logo .hgroup a {
+      display: block;
+      height: 100px;
+      width: 463px;
+    }
+    .nara-background-seal {
+      height: 442px;
+      left: 750px;
+      position: absolute;
+      top: -125px;
+      width: 442px;
+      z-index: -1;
+      background-clip: content-box;
+      background-image: url('/nginx/assets/Nara1985Seal.svg');
+      background-position: 0 0;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+    }
+    .nara-background-seal .nara-background-seal-fade {
+      background-image: -moz-linear-gradient(bottom, #fff, rgba(255,255,255,0));
+      background-image: -ms-linear-gradient(bottom, #fff, rgba(255,255,255,0));
+      background-image: -o-linear-gradient(bottom, #fff, rgba(255,255,255,0));
+      background-image: -webkit-linear-gradient(bottom, #fff, rgba(255,255,255,0));
+      background-image: linear-gradient(bottom, #fff, rgba(255,255,255,0));
+      background-repeat: repeat-x;
+      bottom: 0px;
+      filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='rgba(255, 255, 255, 0)', endColorstr='rgba(255, 255, 255, 1)', GradientType=1);
+      height: 351px;
+      position: absolute;
+      width: 442px;
+    }
+    
+    .main-title-bar {
+      clear: both;
+      text-align: right;
+      margin-bottom: 2em;
+    }
+    .main-title-bar .bar {
+      height: 25px;
+      display: inline-block;
+      background: #5797CE url('/nginx/assets/blue_title_bar.png') repeat-x scroll left top;
+    }
+    .main-title-bar .bar.left {
+      margin-left: -1999px;
+      padding-left: 1999px;
+    }
+    .main-title-bar h1 {
+      color: #5797CE;
+      font-size: 25.62890625px;
+      font-weight: 500;
+      font-family: "gesta-1","gesta-2", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      display: inline-block;
+      position: relative;
+      top: -2px;
+      height: 25px;
+      padding: 0 10px;
+      margin: 0 !important;
+    }
+    .main-title-bar .bar.right { width: 25px; }
+
+    h3 { color: #8a3737; }
+
+    div.info_warning {
+      background-color: #fcf8e3;
+      border: 1px solid #c09853;
+      padding: .5em .5em .25em;
+      margin-bottom: 30px;
+      text-align: center;
+      float: none;
+      border-radius: 6px;
+      -moz-border-radius: 6px;
+      -webkit-border-radius: 6px;
+    }
+
+    p.small {
+      font-size: 14px;
+      font-style: italic;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header" id="header_refresh">
+      <div class="header_wrapper">
+        <div class="logo">
+          <div class="hgroup official">
+            <hgroup>
+              <h1><a href="/" title="Federal Register Home">The Federal Register</a></h1>
+              <h2>The Daily Journal of the United States Government</h2>
+            </hgroup>
+          </div>
+          <div class="nara-background-seal" unselectable="on">
+            <div class="nara-background-seal-fade"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="main">
+      <div class="main-title-bar">
+        <div class="bar left"></div>
+          <h1>404 Not Found</h1>
+        <div class="bar right"></div>
+      </div>
+
+      <!-- 404_proxy.html -->
+      <div class="dialog">
+        <h3>Page not found</h3>
+        <p>
+          We're unable to find the requested page. Please check the url and try again or perform a search at 
+          <a href="https://www.federalregister.gov/documents/search">https://www.federalregister.gov/documents/search</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
