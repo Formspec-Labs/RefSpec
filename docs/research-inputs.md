@@ -2,6 +2,10 @@
 
 # Research-input register
 
+This register pins the editor's-draft portfolio baseline. The operational
+register of out-of-repo rebuild inputs is
+[regeneration-inputs.md](regeneration-inputs.md).
+
 RefSpec was designed against a broad source and controlled-resource portfolio.
 The public [research archive](../research/README.md) preserves the inventories,
 proposals, and external research used by the 28 July 2026 editor's draft.

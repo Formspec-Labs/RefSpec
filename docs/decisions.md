@@ -4139,3 +4139,110 @@ still required one evidence binding even though the RDF model and binding
 already allowed several. Statement construction ownership now accepts the full
 evidence set when all bindings resolve to one construction unit and still
 fails closed when ownership is ambiguous.
+
+### REF-051: The fork resolves by supersession — the standalone checkout is canonical
+
+- **Date:** 2026-08-31
+- **Status:** Accepted. Ruled with measurements taken the same day; closes
+  item 8 of the 2026-08-28 path-forward memo
+  (`../spicysearch/docs/history/2026-08-28-path-forward-memo.md`) and the gate
+  in §0 of `plans/2026-08-31-refspec-intake-ledger.md`.
+
+RefSpec existed as two diverged lines: the spicysearch submodule at
+`141fd671` (54 unique commits, authored 2026-08-21 through 2026-08-25) and
+this standalone checkout (14 unique commits at ruling time), with merge-base
+`2a6e61a2`. Neither contained the other, and the intake ledger correctly
+refused to land any port until a side was picked on purpose.
+
+The measurements that decide it, taken 2026-08-31 against `141fd671`:
+
+- **Zero paths exist in the submodule tree that are absent from this tree.**
+  The standalone tree is a strict path superset.
+- Of the 63 code-path files whose content differs, the submodule side holds
+  **579 lines this tree lacks against 40,722 lines this tree adds** — and the
+  579 are the superseded early drafts of modules this line rewrote wholesale:
+  the citation grammar's original docstring and regex layout (its boundary
+  guards, plural-license expansion, lettered-part accounting all survive here
+  in evolved form — `CFR_LETTERED_PART_SHARE = (272, 8_424)` included), and
+  the Unified Agenda producer's first three-table skeleton.
+- The submodule tip's five build commits (the shared artifact protocol,
+  file-state receipts, the singular artifact package, the duckdb range) are
+  **absorbed**: this tree's `pyproject.toml` equals the submodule's plus the
+  slow-marker block added here.
+
+So the fork is history, not content: the 2026-08-28 consolidation copied the
+work faithfully, and the divergence that remained was two commit graphs
+describing one tree lineage. Ruling: **this checkout is the canonical line**
+(consistent with the 2026-08-21 relocation of the canonical checkout to
+`~/Work/RefSpec`), and every intake-ledger port lands here. Nothing is
+deleted to say so: the submodule line survives as
+`refs/snapshots/pre-consolidation-2026-08-28` in the spicysearch checkout and
+as `refs/snapshots/submodule-line-2026-08-31` (→ `141fd671`) in this
+repository's object store, fetched and pinned as part of this ruling. The
+spicysearch-side execution — repointing its submodule to this line — was
+attempted the same day and correctly refused by its own safety gate: that
+worktree held six files of unrelated in-progress work, and a repoint does not
+land on someone's dirty tree. The measurement that makes the eventual repoint
+low-risk is recorded: nothing in spicysearch's test suite imports the
+`refspec` package at all (its references are filesystem paths via
+`REFSPEC_CHECKOUT` plus one lazy import in a standalone script), so the pin
+move is nearly inert there. It waits for a clean worktree, not for a
+decision.
+
+### REF-052: The column is the license — the Federal Register document-number recall ruling
+
+- **Date:** 2026-08-31
+- **Status:** Accepted. Makes the call `identifier_shapes.py` asked for
+  (ledger §2.1) and licenses the bare-legacy mint (ledger §1.2).
+
+`identifier_shapes.py` deliberately leaves 10,340 letter-opening Federal
+Register document numbers unread in prose — three-digit-and-shorter tails,
+two-digit prefixes, six-digit tails, legacy-prefix-over-modern-body hybrids,
+each family with a verified live example — and states that widening is a
+recall decision with its own false-positive budget, not a defect. Separately,
+394,128 of 1,004,233 (39.2%) real `document_number` values are the
+bare-numeric legacy shape (`09-19806`) that no reader in the module admits at
+all. The decision had an evidence base and no owner. It now has both:
+
+- **Prose detection does not widen.** Not for the four letter-form families,
+  not for the bare-legacy shape. Every extra admission is a false positive
+  waiting in an unrelated sentence, and nothing measured since the module's
+  own accounting changes that budget. Refused.
+- **Column-licensed reading admits every family with a verified live
+  example.** A value arriving from a trusted `document_number` field is
+  licensed by the field, per the module's own two-readers doctrine. The
+  bare-legacy shape — 39.2% of the corpus, essentially every pre-2000
+  document, and the identity the freshly landed pre-2000 FR body text dead-ends
+  without — mints immediately through the minting layer's column-licensed
+  path. The four letter-form families (10,340 values, ~1%) are admitted by
+  this ruling and start reading when `identifier_shapes.py`'s column reader
+  takes the bare-legacy shape natively: that module is receipt-pinned, and a
+  shape move alone does not buy an artifact rebuild, so the move is batched
+  with the module's next rebuild unit.
+
+The running check this ruling arrives with: the minting layer's tests prove
+the license boundary in both directions — the bare-legacy shape refused
+without the column license and minted with it.
+
+### REF-053: Open-vocabulary concept lifecycle stays unported — no owner, no consumer, no check
+
+- **Date:** 2026-08-31
+- **Status:** Accepted. Rules ledger §2.2; reopens only on the condition
+  named below.
+
+The archived lifecycle machinery — candidate minting, promotion, deprecation
+with multi-source quotas, and a merge pass bounded to one facet and source
+vocabulary (`~/Work/corpora/_nuggets-2026-08-27/source/src/spicy_regs/`
+`ontology/concepts.py:202-224,395-419,1223`) — has no home on this platform,
+and this ruling declines to invent one. RefSpec is closed-world by design:
+managed vocabulary bundles, curated releases, nothing minted from corpus
+behavior. SpicySearch is strictly closed-vocabulary, one scheme per build, by
+its own design. No product runs open-vocabulary concept promotion today, so a
+port would be machinery with no consumer and no check that breaks — exactly
+the structure this repository's first rule exists to refuse.
+
+The nugget-ledger row is the durable record of where the code and its
+lessons live. Reopen when — and only when — a consumer arrives that needs
+open-vocabulary minting; it brings its own ownership question and its own
+breaking check, and that future decision should weigh the quota and
+single-facet merge rules the archived implementation already paid for.
