@@ -38,6 +38,14 @@ from refspec.atlas.parquet_tables import (
 _SAME_ENTITY_AS = "https://refspec.org/ns/atlas/v3#sameEntityAs"
 _B32 = pa.binary(32)
 
+#: The newest sealed compact search view carrying REF-042's derived-relations
+#: table. ``output/`` is git-ignored, so the one test that reads it skips
+#: when it is absent -- the same posture ``tests/test_atlas_explorer_cli.py``
+#: takes toward its own sealed view.
+_SEALED_SEARCH_VIEW = (
+    Path(__file__).resolve().parents[1] / "output" / "atlas-3.1-parquet-search-view-2026-08-21d"
+)
+
 # The compact search-view schemas duckdb_view.py actually queries against --
 # narrower than refspec.atlas.parquet_tables.TABLE_SCHEMAS, which shapes the
 # pre-compaction full view. Mirrors refspec.atlas.parquet_search_view._SCHEMAS.
@@ -1049,5 +1057,157 @@ def test_overview_folds_derived_relations_into_internal_relations_when_opted_in(
         all_overview = view.overview(relations="all")
         nodes_all = {node["id"]: node for node in all_overview["nodes"]}
         assert nodes_all["urn:r:mesh"]["internalRelations"] == 1
+        # A within-release derived relation is internal volume, never an edge.
+        assert all_overview["edges"] == []
     finally:
         view.close()
+
+
+def test_overview_draws_cross_release_derived_relations_as_edges_when_opted_in(
+    tmp_path: Path,
+) -> None:
+    """Derivation rules cross releases, so ``overview()`` must too.
+
+    Two of the five rules shipped today relate resources in *different*
+    releases (Federal Register thesaurus -> Federal Register API topics,
+    EuroVoc microthesauri -> EuroVoc domains). Folding every derived row
+    into the subject release's ``internalRelations`` -- as this method used
+    to -- drew no connection at all between the two releases on the overview
+    map, while the resource inspector happily showed the same links.
+    """
+
+    _write_derived_relations_fixture(
+        tmp_path,
+        rows=[
+            {
+                # Crosses releases: an edge between the two vocabularies.
+                "id": "urn:ref:atlas-derived-relation:cross-1",
+                "subject": "urn:fr:thesaurus-term",
+                "predicate": _broader(),
+                "object": "urn:fr:api-topic",
+                "semantic_ring": "subject",
+                "content_digest": None,
+                "rule_iri": "urn:ref:rule:fr-thesaurus-api-topic-label-equality",
+                "derived_from_assertions": [],
+            },
+            {
+                # Same pair the other way round: one undirected pair, count 2.
+                "id": "urn:ref:atlas-derived-relation:cross-2",
+                "subject": "urn:fr:api-topic",
+                "predicate": _broader(),
+                "object": "urn:fr:thesaurus-term-2",
+                "semantic_ring": "subject",
+                "content_digest": None,
+                "rule_iri": "urn:ref:rule:fr-thesaurus-api-topic-label-equality",
+                "derived_from_assertions": [],
+            },
+            {
+                # Within one release: internal volume, not an edge.
+                "id": "urn:ref:atlas-derived-relation:internal",
+                "subject": "urn:fr:thesaurus-term",
+                "predicate": _broader(),
+                "object": "urn:fr:thesaurus-term-2",
+                "semantic_ring": "subject",
+                "content_digest": None,
+                "rule_iri": "urn:ref:rule:fr-thesaurus-compound-head-broader",
+                "derived_from_assertions": [],
+            },
+        ],
+        schema=_CANONICAL_DERIVED_SCHEMA,
+    )
+    view = _make_view(
+        tmp_path,
+        releases=[
+            _release_row("urn:r:fr-thesaurus", "federal-register-thesaurus-2025"),
+            _release_row("urn:r:fr-topics", "federal-register-api-topics-2026-08-03"),
+        ],
+        resources=[
+            _resource_row("urn:fr:thesaurus-term", "urn:r:fr-thesaurus", status="active"),
+            _resource_row("urn:fr:thesaurus-term-2", "urn:r:fr-thesaurus", status="active"),
+            _resource_row("urn:fr:api-topic", "urn:r:fr-topics", status="active"),
+        ],
+    )
+    try:
+        default_overview = view.overview()
+        assert default_overview["edges"] == []
+        assert all(node["internalRelations"] == 0 for node in default_overview["nodes"])
+
+        all_overview = view.overview(relations="all")
+        assert all_overview["edges"] == [
+            {
+                "source": "urn:r:fr-thesaurus",
+                "target": "urn:r:fr-topics",
+                "statement_type": "DerivedRelation",
+                "count": 2,
+            }
+        ]
+        nodes_all = {node["id"]: node for node in all_overview["nodes"]}
+        assert nodes_all["urn:r:fr-thesaurus"]["internalRelations"] == 1
+        assert nodes_all["urn:r:fr-topics"]["internalRelations"] == 0
+    finally:
+        view.close()
+
+
+def test_overview_pins_the_sealed_views_cross_release_derived_edge_volume() -> None:
+    """Pin the real cross-release derived volume the sealed view carries.
+
+    Skipped when the (git-ignored) sealed search view is not present locally.
+    Only ``resources`` and ``releases`` are read from it; the other compact
+    tables are registered empty, which keeps the whole check under a second
+    and leaves ``edges`` holding *nothing but* the derived cross-release
+    volume this test is about -- the asserted mapping volume between the same
+    releases is large, churns per build, and is pinned elsewhere.
+    """
+
+    sealed = _SEALED_SEARCH_VIEW
+    if not (sealed / "tables" / DERIVED_RELATION_TABLE_NAME).is_file():
+        pytest.skip(f"the sealed compact search view is not present locally: {sealed}")
+
+    temporary_directory = tempfile.TemporaryDirectory()
+    connection = duckdb.connect(str(Path(temporary_directory.name) / "pin.duckdb"))
+    real_tables = {
+        CompactRecordRole.RESOURCE: "resources.parquet",
+        CompactRecordRole.RELEASE: "releases.parquet",
+    }
+    for role in CompactRecordRole:
+        if role in real_tables:
+            relation = connection.read_parquet(str(sealed / "tables" / real_tables[role]))
+        else:
+            relation = connection.from_arrow(_COMPACT_SCHEMAS[role].empty_table())
+        relation.create_view(ATLAS_DUCKDB_TABLES[role])
+    view = AtlasDuckDBView(
+        root=sealed,
+        manifest_digest="sha256:" + "0" * 64,
+        manifest={"input": {"atlas": {}}, "counts": {}},
+        tables={},
+        temporary_directory=temporary_directory,
+        database_path=Path(temporary_directory.name) / "pin.duckdb",
+        connection=connection,
+    )
+    try:
+        edges = view.overview(relations="all")["edges"]
+        assert view.overview()["edges"] == []
+        by_pair = {
+            (edge["source"], edge["target"]): edge["count"]
+            for edge in edges
+            if edge["statement_type"] == "DerivedRelation"
+        }
+    finally:
+        view.close()
+
+    assert by_pair == {
+        # urn:ref:rule:fr-thesaurus-api-topic-label-equality
+        (
+            "urn:ref:atlas-release:3:federal-register-thesaurus:2025-04-01",
+            (
+                "urn:ref:atlas-release:federal-register-api-topics-2026-08-03:"
+                "9dd93c1e75b710b4f8f0e4e02d70ea34f43a2790dcbbe6b0e734a76f013aaed0"
+            ),
+        ): 698,
+        # urn:ref:rule:eurovoc-microthesaurus-domain-notation-prefix
+        (
+            "urn:ref:atlas-release:3:eurovoc-domains:4.24",
+            "urn:ref:atlas-release:3:eurovoc-microthesauri:4.24",
+        ): 127,
+    }
+    assert sum(by_pair.values()) == 825

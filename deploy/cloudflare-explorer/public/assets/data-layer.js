@@ -173,6 +173,24 @@
     return `(${column} IS NULL OR lower(${column}) NOT LIKE '%deprecated%')`;
   }
 
+  // /api/overview and /api/release-graph are served from precomputed JSON
+  // (build/precompute.py), not queried live, so the ?status=/?relations=
+  // query params select among a fixed set of precomputed file names rather
+  // than feeding a WHERE clause. statusSuffix mirrors the file names that
+  // already existed; relationsSuffix mirrors the REF-042 derived-relations
+  // "-derived" variant precompute.py now also writes (only when the source
+  // view carries a derived-relations table -- see facets.derivedRelations
+  // .available, which is what gates the frontend ever requesting
+  // relations=all in the first place, so a missing "-derived" file is not
+  // expected to be reachable in practice).
+  function statusSuffix(status) {
+    return status === "all" ? "all" : "active";
+  }
+
+  function relationsSuffix(relations) {
+    return relations === "all" ? "-derived" : "";
+  }
+
   // The ported frontend calls this exact shape (no query, no filters, the
   // default page size, first page) once, unconditionally, right after
   // load -- before the visitor has done anything. Answering it from a
@@ -314,7 +332,7 @@
     const { conn } = await ensureDuckDB();
     const indexRows = rowsOf(
       await conn.query(`
-        SELECT shard, offset, length FROM resource_detail_index WHERE id = ${sqlString(id)}
+        SELECT shard, "offset", length FROM resource_detail_index WHERE id = ${sqlString(id)}
       `)
     );
     if (indexRows.length !== 1) {
@@ -374,15 +392,19 @@
         return fetchJson(`${DATA_BASE}/facets.json`);
       case "/api/overview": {
         const status = q.get("status") || "active";
-        return fetchJson(`${DATA_BASE}/overview-${status === "all" ? "all" : "active"}.json`);
+        const relations = q.get("relations") || "asserted";
+        return fetchJson(`${DATA_BASE}/overview-${statusSuffix(status)}${relationsSuffix(relations)}.json`);
       }
       case "/api/release-graph": {
         const id = q.get("id") || "";
         const status = q.get("status") || "active";
+        const relations = q.get("relations") || "asserted";
         const index = await releaseIndex();
         const slug = index[id];
         if (!slug) throw new Error("release is not present in the Parquet view");
-        return fetchJson(`${DATA_BASE}/release-graph/${slug}-${status === "all" ? "all" : "active"}.json`);
+        return fetchJson(
+          `${DATA_BASE}/release-graph/${slug}-${statusSuffix(status)}${relationsSuffix(relations)}.json`
+        );
       }
       case "/api/search":
         return search({

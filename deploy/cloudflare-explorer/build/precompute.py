@@ -19,9 +19,21 @@ Output layout (all under --out):
                                         -- served without loading DuckDB-Wasm
   overview-active.json                 view.overview(status="active")
   overview-all.json                    view.overview(status="all")
+  overview-active-derived.json         view.overview(status="active", relations="all")
+                                        -- only when a REF-042 derived-
+                                        relations table is present; see
+                                        "resource-detail bundles" below
+  overview-all-derived.json            view.overview(status="all", relations="all")
   agencies.json                        view.agency_projection(""), verbatim
   release-graph/<slug>-active.json     view.release_graph(id, status="active")
   release-graph/<slug>-all.json        view.release_graph(id, status="all")
+  release-graph/<slug>-active-derived.json
+                                        view.release_graph(id, status="active",
+                                        relations="all") -- same derived-table
+                                        gate as the overview *-derived.json
+  release-graph/<slug>-all-derived.json
+                                        view.release_graph(id, status="all",
+                                        relations="all")
   release-index.json                   release id -> slug, for the frontend
   tables/resources.parquet             atlas_resources + a denormalized best
                                         English label, sorted by id (point
@@ -79,6 +91,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -188,6 +201,183 @@ def _slug(release_id: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", "-", release_id).strip("-").lower()
 
 
+# The resource-detail assembly below reads derived-relations.parquet by its
+# CANONICAL column names, unlike AtlasDuckDBView, which discovers alternates
+# from the file's own schema at query-open time. That is deliberate, not an
+# oversight:
+#
+#   * A view this script can even open has already passed
+#     verify_atlas_parquet_search_view(), which rejects a derived-relations
+#     member whose Arrow schema is not byte-identical to
+#     refspec.atlas.parquet_tables.DERIVED_RELATION_TABLE_SCHEMA
+#     (parquet_search_view.py's per-member schema/digest check). An alternate
+#     spelling therefore cannot reach this script through a verified view --
+#     duckdb_view.py's discovery only ever fires for hand-built fixtures.
+#   * Two of the columns this script ships -- engine, engine_version -- have
+#     no candidate list in duckdb_view.py at all and are not in its SELECT,
+#     so reusing that reader would silently drop them from the deployed
+#     resource-detail bundle.
+#
+# So the constraint is asserted rather than worked around: if the schema ever
+# does move, this fails on the spot with the names it wanted and the names it
+# found, instead of raising a bare DuckDB "column not found" mid-assembly or,
+# worse, shipping bundles missing derivation provenance.
+_DERIVED_RELATION_COLUMNS = (
+    "id",
+    "subject",
+    "predicate",
+    "object",
+    "semantic_ring",
+    "derivation_rule",
+    "engine",
+    "engine_version",
+    "derived_from_assertions",
+)
+
+
+def _remove_unwritten_map_artifacts(out: Path, written: set[Path]) -> list[Path]:
+    """Delete every overview / release-graph JSON this run did not itself write.
+
+    Same reason -- and the same clear-what-you-did-not-write shape -- as the
+    stale resource-detail shards cleared further down: WHICH files a run
+    writes depends on the source view, and everything left over from a
+    previous view is unreachable but still shipped, because upload.sh walks
+    the tree with `find -type f` rather than reading an index.
+
+    Two ways a file goes unwritten, both of which used to survive:
+
+      * derived went away. Recomputing a pre-REF-042 view into a directory a
+        derived-carrying view already filled leaves ``*-derived.json`` for the
+        data layer to serve on a ``relations=all`` request the freshly written
+        facets.json says is impossible. This case had a fix -- but it ran
+        ONLY on the derived-unavailable branch, so it never covered:
+
+      * a RELEASE went away. On a derived-to-derived rebuild (derived
+        available before and after) nothing was cleaned at all, so a release
+        dropped from the view kept its whole set of map files:
+        ``release-graph/<slug>-{active,all}[-derived].json``. release-index.json
+        is rewritten from this run's releases alone, so the frontend never
+        links them -- and that is exactly what makes them invisible until they
+        show up in R2 as an orphaned copy of a retired release's graph.
+
+    So the cleanup is unconditional and set-based rather than conditional and
+    glob-based: the generation loops know precisely which paths they wrote, and
+    everything else matching the two output shapes is by definition from an
+    older run. It has to run AFTER generation for that reason -- the set of
+    written paths is not knowable before it exists.
+    """
+
+    present = {*out.glob("overview-*.json"), *(out / "release-graph").glob("*.json")}
+    stale = sorted(present - written)
+    for path in stale:
+        path.unlink()
+    return stale
+
+
+def _write_overview_artifacts(view, out: Path, derived_available: bool) -> set[Path]:
+    """Write overview-{active,all}[-derived].json; return the paths written.
+
+    relations="all" folds REF-042's non-authoritative derived relations into
+    BOTH halves of the map: a derived pair whose endpoints share a release
+    raises that release's internalRelations count, and a pair that crosses
+    releases (two of the five shipped rules do) becomes an extra `edges` row
+    tagged statement_type "DerivedRelation". Precomputed as a separate file,
+    exactly like the status variants already are, rather than always shipping
+    the derived-inclusive map: the toggle is opt-in and off by default, so the
+    default page load should not pay for -- or display -- volume the visitor
+    did not ask to see.
+
+    Returning the written set rather than just writing is what lets
+    _remove_unwritten_map_artifacts() work off a complement instead of a glob;
+    it is also the seam the derived-to-derived rebuild harness drives.
+    """
+
+    written: set[Path] = set()
+    for status in ("active", "all"):
+        print(f"overview status={status} ...")
+        path = out / f"overview-{status}.json"
+        path.write_text(json.dumps(view.overview(status=status), ensure_ascii=False))
+        written.add(path)
+        if derived_available:
+            print(f"overview status={status} relations=all (derived) ...")
+            derived_path = out / f"overview-{status}-derived.json"
+            derived_path.write_text(
+                json.dumps(view.overview(status=status, relations="all"), ensure_ascii=False)
+            )
+            written.add(derived_path)
+    return written
+
+
+def _write_release_graph_artifacts(view, out: Path, derived_available: bool) -> set[Path]:
+    """Write release-graph/<slug>-{status}[-derived].json + release-index.json.
+
+    relations="all" adds REF-042 derived edges whose subject AND object are
+    both members of this release, tagged statementType == "DerivedRelation" in
+    the returned `types` table (view.release_graph()'s own docstring).
+    Precomputed as separate files -- four per release instead of two -- the
+    same asymmetric-superset reasoning as the resource-detail bundle does not
+    apply here: unlike a per-resource payload the client cannot cheaply filter
+    client-side (release_graph()'s edge tuples don't carry statement_type per
+    edge, only an index into `types`, and capping/truncation runs over
+    whichever edge set was requested), so each combination is precomputed
+    outright.
+
+    release-index.json is rewritten from THIS run's releases alone, which is
+    why a departed release's own files went unnoticed for so long: the
+    frontend stops linking them the moment this file is rewritten, and the
+    only thing that still reads them is upload.sh's `find -type f`.
+    """
+
+    releases = view.query_rows(
+        "SELECT id, identifier FROM atlas_releases WHERE release_type = 'AtlasRelease' ORDER BY id"
+    )
+    written: set[Path] = set()
+    slugs: dict[str, str] = {}
+    total_bytes = 0
+    for i, release in enumerate(releases):
+        release_id = release["id"]
+        slug = _slug(release_id)
+        slugs[release_id] = slug
+        for status in ("active", "all"):
+            data = _cap_release_graph(view.release_graph(release_id, status=status))
+            payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            path = out / "release-graph" / f"{slug}-{status}.json"
+            path.write_text(payload)
+            written.add(path)
+            total_bytes += len(payload)
+            if derived_available:
+                derived_data = _cap_release_graph(
+                    view.release_graph(release_id, status=status, relations="all")
+                )
+                derived_payload = json.dumps(derived_data, ensure_ascii=False, separators=(",", ":"))
+                derived_path = out / "release-graph" / f"{slug}-{status}-derived.json"
+                derived_path.write_text(derived_payload)
+                written.add(derived_path)
+                total_bytes += len(derived_payload)
+        if (i + 1) % 10 == 0 or i + 1 == len(releases):
+            print(f"  release-graph {i + 1}/{len(releases)} ({total_bytes / 1e6:.1f} MB so far)")
+    (out / "release-index.json").write_text(json.dumps(slugs, ensure_ascii=False))
+    return written
+
+
+def _check_derived_relations_schema(con: duckdb.DuckDBPyConnection, root: Path) -> None:
+    path = root / "tables" / "derived-relations.parquet"
+    described = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{path.as_posix()}')").fetchall()
+    found = {row[0] for row in described}
+    missing = [name for name in _DERIVED_RELATION_COLUMNS if name not in found]
+    if missing:
+        raise SystemExit(
+            f"{path} does not carry the canonical REF-042 derived-relation columns this\n"
+            f"script reads: missing {missing}; found {sorted(found)}.\n"
+            "A verified search view cannot legitimately reach this state -- "
+            "verify_atlas_parquet_search_view() pins that table to\n"
+            "refspec.atlas.parquet_tables.DERIVED_RELATION_TABLE_SCHEMA -- so either the "
+            "writer schema moved (update both this\n"
+            "script and duckdb_view.py's candidate lists together) or this view was not "
+            "produced by the sealed pipeline."
+        )
+
+
 # The local explorer draws these graphs with a canvas that already does
 # level-of-detail rendering (a spatial culling grid, a dot fallback past
 # DOT_LIMIT, edges gated off past EDGE_VISIBLE_LIMIT/zoom) -- it never
@@ -259,17 +449,28 @@ def main() -> int:
     # same session AtlasDuckDBView already verified and wired up, rather than
     # re-deriving the connection (and re-verifying the artifact) itself.
 
+    # REF-042 derived relations: computed once, gates every relations="all"
+    # variant precomputed below (overview, release-graph) the same way it
+    # already gates the resource-detail bundle's derived rows further down.
+    # See duckdb_view.py's derived_relations_available() / the "resource-
+    # detail bundles" section below for why a missing table is not an error.
+    derived_available = view.derived_relations_available()
+    if derived_available:
+        _check_derived_relations_schema(con, root)
+
+    # Every overview / release-graph path this run writes, collected as it is
+    # written; whatever is still on disk under those two shapes afterwards is
+    # a previous run's and gets deleted. See _remove_unwritten_map_artifacts().
+    written_map_artifacts: set[Path] = set()
+
     t0 = time.time()
 
     # ---- facets.json ------------------------------------------------
     print("facets ...")
     (out / "facets.json").write_text(json.dumps(view.facets(), ensure_ascii=False))
 
-    # ---- overview-{active,all}.json ---------------------------------
-    for status in ("active", "all"):
-        print(f"overview status={status} ...")
-        data = view.overview(status=status)
-        (out / f"overview-{status}.json").write_text(json.dumps(data, ensure_ascii=False))
+    # ---- overview-{active,all}[-derived].json ------------------------
+    written_map_artifacts |= _write_overview_artifacts(view, out, derived_available)
 
     # ---- browse-first-page.json ----------------------------------------
     # The ported frontend JS (unmodified from explorer_frontend.py) calls
@@ -310,25 +511,19 @@ def main() -> int:
     print("agency projection ...")
     (out / "agencies.json").write_text(json.dumps(view.agency_projection(""), ensure_ascii=False))
 
-    # ---- release-graph/<slug>-{status}.json + release-index.json -----
-    releases = view.query_rows(
-        "SELECT id, identifier FROM atlas_releases WHERE release_type = 'AtlasRelease' ORDER BY id"
-    )
-    slugs: dict[str, str] = {}
-    total_bytes = 0
-    for i, release in enumerate(releases):
-        release_id = release["id"]
-        slug = _slug(release_id)
-        slugs[release_id] = slug
-        for status in ("active", "all"):
-            data = _cap_release_graph(view.release_graph(release_id, status=status))
-            payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-            path = out / "release-graph" / f"{slug}-{status}.json"
-            path.write_text(payload)
-            total_bytes += len(payload)
-        if (i + 1) % 10 == 0 or i + 1 == len(releases):
-            print(f"  release-graph {i + 1}/{len(releases)} ({total_bytes / 1e6:.1f} MB so far)")
-    (out / "release-index.json").write_text(json.dumps(slugs, ensure_ascii=False))
+    # ---- release-graph/<slug>-{status}[-derived].json + release-index.json --
+    written_map_artifacts |= _write_release_graph_artifacts(view, out, derived_available)
+
+    # Every overview/release-graph file is now written, so the complement is
+    # exactly the previous run's leftovers -- releases this view no longer
+    # carries, and derived variants a view without a derived table no longer
+    # produces. Unconditional: the derived-to-derived rebuild is the case the
+    # old, conditional cleanup could not see. See the function's docstring.
+    stale_maps = _remove_unwritten_map_artifacts(out, written_map_artifacts)
+    if stale_maps:
+        print(f"removed {len(stale_maps)} map artifact(s) this run did not write:")
+        for path in stale_maps:
+            print(f"  {path.relative_to(out)}")
 
     # ---- tables/resources.parquet (id-sorted, denormalized label) ----
     print("resources (id-sorted, with denormalized label) ...")
@@ -456,15 +651,17 @@ def main() -> int:
     # sealed before the derived graph existed, and every build whose rules
     # emitted nothing, ships without this table. Missing table => no derived
     # rows => the client's toggle stays hidden, exactly as
-    # DuckDBAtlasView.derived_relations_available() intends.
+    # DuckDBAtlasView.derived_relations_available() intends. The columns come
+    # from _DERIVED_RELATION_COLUMNS, whose comment explains why this reads
+    # canonical names where duckdb_view.py discovers alternates -- and which
+    # main() has already asserted against this file's real schema.
     derived_adjacency: dict[str, list[dict]] = {}
     derived_path = root / "tables" / "derived-relations.parquet"
-    if derived_path.is_file():
+    if derived_available:
         print("  loading derived relations (REF-042, non-authoritative) ...")
         for row in view.query_rows(
             f"""
-            SELECT id, subject, predicate, object, semantic_ring,
-                   derivation_rule, engine, engine_version, derived_from_assertions
+            SELECT {", ".join(_DERIVED_RELATION_COLUMNS)}
             FROM read_parquet('{derived_path.as_posix()}')
             ORDER BY id
             """
@@ -544,6 +741,15 @@ def main() -> int:
                 relation[f"{side}_ring"] = endpoint.get("ring")
                 relation[f"{side}_profile"] = endpoint.get("profile")
                 relation[f"{side}_status"] = endpoint.get("status")
+            # The derived-relations table carries no source_release/
+            # target_release of its own (see _DerivedRelationsColumns);
+            # mirror duckdb_view.py's resource() backfill (~line 766-772)
+            # and reuse what the endpoint lookup just resolved above --
+            # otherwise the inspector's "Source" fact, which reads
+            # relation.source_release for every relation, comes back blank
+            # for every derived connection.
+            relation["source_release"] = relation["subject_release"]
+            relation["target_release"] = relation["object_release"]
             relations.append(relation)
         relations.sort(key=lambda r: r["id"])
         return {

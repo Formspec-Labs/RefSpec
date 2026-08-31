@@ -1592,6 +1592,13 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     assert 'id="show-derived-wrap" hidden' in rendered
     assert 'function relationsParam(){return showDerived.checked?"all":"asserted"}' in rendered
     assert 'DerivedRelation:"#c596e5"' in rendered
+    # Cross-release derived volume is a real overview edge (698 Federal
+    # Register thesaurus -> API-topic + 127 EuroVoc microthesaurus -> domain
+    # links in the current view), so the map's own aggregation must let a
+    # DerivedRelation pair past the asserted-only "Relation sources" filter
+    # and give it its own dash, exactly as GraphView already does.
+    assert 'if(type!=="DerivedRelation"&&!types.has(type))continue' in rendered
+    assert 'edge.dominant==="DerivedRelation"?[1,3]' in rendered
     assert "const count=graphs.size+(overview?1:0)" in rendered
     assert "overview?.refresh(fit)" in rendered
     # A selected vocabulary links to its full map, and the map links back into
@@ -1703,6 +1710,13 @@ def test_release_map_page_draws_every_concept_and_links_back() -> None:
     assert 'id="inspector"' in rendered
     assert "if(state.drag&&!state.drag.moved)selectNode(hitNode(x,y))" in rendered
     assert "/api/resource?id=" in rendered
+    # The concept request carries the same relations= the graph was drawn
+    # with: without it a derived edge shows on the map but vanishes from both
+    # endpoints' inspectors, which asked for asserted-only data.
+    assert (
+        "await get(`/api/resource?id=${encodeURIComponent(id)}"
+        "&status=${statusParam()}&relations=${relationsParam()}`)"
+    ) in rendered
     assert "function connectionGroups(resource)" in rendered
     assert "function showEdgeDetail(index,group)" in rendered
     assert "equivalent assertions" in rendered

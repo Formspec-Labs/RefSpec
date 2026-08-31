@@ -345,13 +345,17 @@ class AtlasDuckDBView:
         ``MappingAssertion`` volume with -- so the frontend can draw them as
         small satellites near that partner instead of as full peers.
 
-        Non-authoritative derived relations (REF-042) are excluded from
-        ``internalRelations`` by default, the same opt-in-hidden posture as
-        ``resource()``/``release_graph()``; pass ``relations="all"`` to fold
-        them in. Every derivation rule shipped today only relates resources
-        within one release, so this only ever changes a node's own
-        ``internalRelations`` count -- cross-release derived edges, if a
-        future rule ever produced one, would not appear in ``edges`` here.
+        Non-authoritative derived relations (REF-042) are excluded by
+        default, the same opt-in-hidden posture as ``resource()``/
+        ``release_graph()``; pass ``relations="all"`` to fold them in.
+        Derivation rules *do* cross releases -- two of the five rules shipped
+        today are cross-release (Federal Register thesaurus -> Federal
+        Register API topics, EuroVoc microthesauri -> EuroVoc domains) -- so
+        a derived pair lands in that release's ``internalRelations`` when
+        both endpoints share a release and in ``edges`` when they do not,
+        aggregated exactly like an asserted pair and tagged
+        ``statement_type`` == ``"DerivedRelation"`` so the frontend can draw
+        it apart from asserted volume.
         """
 
         _validate_status(status)
@@ -405,6 +409,14 @@ class AtlasDuckDBView:
             """,
             (status, status),
         )
+        if relations == "all":
+            # Derived pairs are shaped like the asserted rows above and merged
+            # into the same list -- re-sorted on the same key the SQL ordered
+            # by -- so one fold decides internal-vs-cross for both kinds.
+            pairs = sorted(
+                [*pairs, *self._derived_relations_release_pairs(status=status)],
+                key=lambda row: (row["source"], row["target"], row["statement_type"]),
+            )
         internal: dict[str, int] = {}
         edges: list[dict[str, Any]] = []
         for row in pairs:
@@ -412,9 +424,6 @@ class AtlasDuckDBView:
                 internal[row["source"]] = internal.get(row["source"], 0) + row["count"]
             else:
                 edges.append(row)
-        if relations == "all":
-            for release_id, count in self._derived_relations_internal_counts(status=status).items():
-                internal[release_id] = internal.get(release_id, 0) + count
         for node in nodes:
             node["internalRelations"] = internal.get(node["id"], 0)
         _mark_satellites(nodes, edges)
@@ -1124,28 +1133,55 @@ class AtlasDuckDBView:
         )
         return [_normalize_derived_row(row) for row in rows]
 
-    def _derived_relations_internal_counts(self, *, status: str) -> dict[str, int]:
-        """Count derived relations per release, for releases whose subject and
-        object share that one release (see ``overview()``)."""
+    def _derived_relations_release_pairs(self, *, status: str) -> list[dict[str, Any]]:
+        """Aggregate derived relations into ``overview()``'s release-pair rows.
+
+        Returns rows shaped exactly like the asserted pairs ``overview()``
+        builds from ``atlas_statements``: ``source``/``target`` normalized
+        with ``least``/``greatest`` so an undirected pair is counted once,
+        plus ``statement_type`` and ``count``. A pair whose two sides are the
+        same release is that release's own internal volume; anything else is
+        a cross-release edge. The derived-relations table carries no
+        source/target-release columns of its own, so each endpoint's release
+        comes from its resource row -- the same way ``release_graph()``
+        decides derived membership from a release's own resources.
+
+        Grouping by the release pair, rather than filtering to same-release
+        rows with a ``subject.release = object.release`` predicate, also
+        keeps this to two id equijoins: DuckDB reads that cross-table
+        equality as a join condition and plans a resources-by-release
+        self-join, which on a real 1.5M-resource view does not finish.
+        """
 
         if not self._prepare_derived_relations():
-            return {}
+            return []
         columns = self._derived_relations_columns
         assert columns is not None  # only set by _prepare_derived_relations(), called just above
         rows = self.query_rows(
             f"""
-            SELECT subject_resource.release AS release, count(*) AS count
+            SELECT
+                least(subject_resource.release, object_resource.release) AS source,
+                greatest(subject_resource.release, object_resource.release) AS target,
+                count(*) AS count
             FROM {_DERIVED_RELATIONS_VIEW} AS derived
             JOIN atlas_resources AS subject_resource ON subject_resource.id = derived.{columns.subject}
             JOIN atlas_resources AS object_resource ON object_resource.id = derived.{columns.object}
-            WHERE subject_resource.release = object_resource.release
-              AND {_status_predicate("subject_resource.record_status")}
+            WHERE {_status_predicate("subject_resource.record_status")}
               AND {_status_predicate("object_resource.record_status")}
-            GROUP BY subject_resource.release
+            GROUP BY 1, 2
+            ORDER BY 1, 2
             """,
             (status, status),
         )
-        return {row["release"]: row["count"] for row in rows}
+        return [
+            {
+                "source": row["source"],
+                "target": row["target"],
+                "statement_type": _DERIVED_RELATION_STATEMENT_TYPE,
+                "count": row["count"],
+            }
+            for row in rows
+        ]
 
     def _derived_relations_count(self) -> int:
         if not self._prepare_derived_relations():
