@@ -1,0 +1,44 @@
+{
+  "methodology": {
+    "baseline_parquet": "/Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/old-rebuild7-c99177b8/out/unified_agenda_legal_authorities.parquet",
+    "baseline_rows": 797193,
+    "roster_reconstruction": "act_keys_by_rin/act_keys_by_agency rebuilt from rows where corroboration_rule IS NULL AND act_key IS NOT NULL -- faithful to the builder's own 'oracles built before corroboration runs' rule",
+    "act_index": "output/usc-act-index-2026-08-22 via ActIndex.from_artifact + output/usc-source-credit-index-2026-08-02 via SourceCreditIndex.from_artifact",
+    "abstract_extraction": "read directly from pinned edition XML (ABSTRACT element), same digest/byte-length pins as unified_agenda_editions.py; not exposed by the reader today"
+  },
+  "population_A": {
+    "definition": "earlier box names an act (act_key already resolved, OR stated_act_name, OR an initialism matched against the RIN/agency roster) and a later box -- anywhere after it, not just ordinal+-1 -- is a bare section/section-list with NO scheme, still authority_type=other/parse_status=failed",
+    "candidate_boxes": 62,
+    "candidate_rows": 62,
+    "distinct_records": 48,
+    "distinct_rins": 15,
+    "resolution_outcome_tally": {
+      "RESOLVED": 20,
+      "act_section_not_classified": 13,
+      "PARTIALLY_RESOLVED_LIST": 3,
+      "classification_not_current": 1,
+      "usc_section_not_expressible": 16,
+      "act_not_in_index": 9
+    },
+    "anchor_signal_tally_corpus_wide": {
+      "stated_act_name": 11799,
+      "act_key": 8412,
+      "abstract_initialism": 250,
+      "roster_initialism": 6329,
+      "roster_initialism_ambiguous": 29
+    }
+  },
+  "population_B": {
+    "definition": "rows typed other/failed (or act_relative/failed carrying stated_section) whose text contains a 2-6-capital initialism token",
+    "pop_b_rows": 2937,
+    "rows_with_token": 752,
+    "distinct_tokens": 118,
+    "row_category_counts": {
+      "no_token": 2185,
+      "abstract_alone": 56,
+      "neither": 571,
+      "roster": 125
+    },
+    "abstract_alone_rows_that_also_resolve_in_act_index": 46
+  }
+}

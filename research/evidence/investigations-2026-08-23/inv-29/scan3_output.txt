@@ -1,0 +1,102 @@
+Total (record, marker-hit) rows: 67
+Distinct RINs: 17
+Distinct editions: 16
+
+Records whose LAST legal-authority box IS the '...' placeholder: 8
+Records whose last box is NOT '...' (no declared-incomplete flag): 59
+Records with NO legal-authority boxes at all: 0
+
+Distinct (RIN, continuation-text) authorial events: 30
+
+====================================================================================================
+RIN 0910-AA94  editions=['199810', '199904', '199910', '200004']
+  continuation: '42 USC 216; 42 USC 241; 42 USC 262; 42 USC 264'
+
+RIN 0938-AG59  editions=['199610', '199704', '199710']
+  continuation: '42 USC 1395f(b) 42 USC 1395l 42 USC 1395ww'
+
+RIN 0938-AG59  editions=['199604']
+  continuation: '42 USC 1395f(b) 42 USC 1395l 42 USC 1395x(v) 42 USC 1395cc 42 USC 1395ww'
+
+RIN 1090-AA67  editions=['199810', '199904', '199910']
+  continuation: 'OMB Circular A-110; OMB Circular A-133'
+
+RIN 1105-AA23  editions=['199510', '199604', '199610', '199704']
+  continuation: '18 USC 2513; 19 USC 1613; 19 USC 1618; 21 USC 853; 21 USC 881; 22 USC 401.'
+
+RIN 1105-AA60  editions=['199904', '199910']
+  continuation: 'from the President, April 14, 1997, Delegation of Responsibilities Concerning FBI Employees Under the Civil Service Reform Act of 1978.'
+
+RIN 1115-AE47  editions=['200104', '200110', '200204', '200210', '200304']
+  continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2. \n\nINS Rule No. 1920-98 makes a correction to the services regulations that govern the documentary requirements for immigrants and corresponding waivers.  This rule relates to changes promulgated by INS 1169-94 and INS No. 1788-96.\n\nINS Rule No. 1865-97, AG Order No. 2340-2000, Final Rule, Asylum Procedures published on December 6, 2000, at 65 FR 76121, amended portions of the title III IIRIRA governing cases in which an applicant has established past persecution or in which an applicant may be able to avoid persecution in a particular country by relocating to another area of that country.'
+
+RIN 1115-AE47  editions=['200010']
+  continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2. \n\nINS Rule No. 1920-98 makes a technical correction to the services regulations that govern the documentary requirements for immigrants and corresponding waivers.'
+
+RIN 1115-AE47  editions=['199904', '199910', '200004']
+  continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp., p. 166; 8 CFR part 2. \n\nINS Rule No. 1920-98 makes a technical correction to the services regulations that govern the documentary requirements for immigrants and corresponding waivers.'
+
+RIN 1115-AF13  editions=['199904']
+  continuation: '8 USC 1362; 8 USC 1430; 8 USC 1443; 8 USC 1447; 8 USC 9701; 5 USC 552 and 552A; 8 USC 1182; and 8 CFR 2.'
+
+RIN 1210-AA62  editions=['200210']
+  continuation: 'Secs. 107, 209, 505, 701-703, 711, 712'
+
+RIN 1210-AA62  editions=['199810', '199904', '199910', '200004', '200010', '200104', '200110', '200204']
+  continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+RIN 1210-AA62  editions=['199710', '199804']
+  continuation: "Secs. 107, 209, 505, 701-703, 711, 712, 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181, 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+RIN 1210-AA62  editions=['200304']
+  continuation: 'secs 107, 209, 505, 701 to 703, 711, 712.'
+
+RIN 1210-AA63  editions=['199810', '199904']
+  continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), and amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+RIN 1210-AA63  editions=['199910', '200004', '200010', '200104', '200110', '200204']
+  continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+RIN 1210-AA63  editions=['199710', '199804']
+  continuation: "Secs. 107, 209, 505, 701-703, 711, 712, 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181, 1182, 1191-1194), and amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+RIN 3235-AF54  editions=['199704']
+  continuation: '15 USC 78w(a); 15 USC 78dd-1; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37'
+
+RIN 3235-AG25  editions=['199604', '199610']
+  continuation: '... 15 USC 78n; 15 USC 78o; 15 USC 78o-4; 15 USC 78o-5; 15 USC 78p; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78l(d); 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+RIN 3235-AG65  editions=['199510']
+  continuation: '15 USC 77(g); 15 USC 77(j); 15 USC 77 (eee); 15 USC 77(ggg); 15 USC 77(nnn); 15 USC 77(sss); 15 USC 78(d); 15 USC 78(ff); 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-11'
+
+RIN 3235-AG65  editions=['199604']
+  continuation: '15 USC 77g; 15 USC 77j; 15 USC 77 eee; 15 USC 77ggg; 15 USC 77nnn; 15 USC 77sss; 15 USC 78d; 15 USC 78ff; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-11; 15 USC 78ll(d)'
+
+RIN 3235-AG68  editions=['199604']
+  continuation: '15 USC 77g; 15 USC 77j; 15 USC 77 eee; 15 USC 77ggg; 15 USC 77nnn; 15 USC 77sss; 15 USC 78d; 15 USC 78ff; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-1; 15 USC 78ll(d)'
+
+RIN 3235-AG69  editions=['199610', '199704', '199710']
+  continuation: '........ 15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11;'
+
+RIN 3235-AG69  editions=['199910']
+  continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78u-5; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 78mm; 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+RIN 3235-AG69  editions=['199804', '199810', '199904']
+  continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+RIN 3235-AG78  editions=['199704']
+  continuation: '15 USC 78k; 15 USC 78k-1; 15 USC 78l; 15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+RIN 3235-AH12  editions=['199704']
+  continuation: '15 USC 80a-8, 15 USC 80a-29, 15 USC 80a-30, 15 USC 80a-37, 15 USC 80a-1 et seq, 15 USC 80a-34(b), 15 USC 80a-39, 15 USC 77g, 15 USC 80a-24'
+
+RIN 3235-AH12  editions=['199710']
+  continuation: '15 USC 80a-8; 15 USC 80a-29; 15 USC 80a-30; 15 USC 80a-37; 15 USC 80a-1 et seq; 15 USC 80a-34(b); 15 USC 80a-39; 15 USC 77g; 15 USC 80a-24'
+
+RIN 3235-AH12  editions=['199804']
+  continuation: '15 USC 80a-8; 15 USC 80a-29; 15 USC 80a-30; 15 USC 80a-37; 15 USC 80a-1 et seq; 15 USC 80a-34(b); 15 USC 80a-39; 15 USC 77g; 15 USC 80a-24. The proposed and final rules were mistakenly published in the Federal Register under the RIN of a related rulemaking, 3235-AE17.'
+
+RIN 3235-AH16  editions=['199904']
+  continuation: '15 USC 78i; 15 USC 78o; 15 USC 78q; 15 USC 78w; 15 USC 78mm \n\nCFR CITATION CONT: 17 CFR 249.617 (Revision); 17 CFR 15c2-5 (Revision) 17 CFR 240.17a-5 (Revision); 17 CFR 240.15b9-2; 17 CFR 240.15c3-1f; 17 CFR 240.15c3-4; 17 CFR 240.17a-12; 17 CFR 240.36a1-1; 17 CFR 240.36a1-2'
+
+Wrote 67 rows to /Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-29/rows_with_continuation.json

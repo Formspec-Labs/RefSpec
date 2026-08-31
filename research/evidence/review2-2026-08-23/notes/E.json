@@ -1,0 +1,162 @@
+[
+  {
+    "key": "2132-AB42|202304|1",
+    "verdict": "missed-witness",
+    "donor_if_any": "Record's own ABSTRACT glosses IIJA as the act; no sibling/abstract donor for the exact USC location",
+    "decisive_quote": "the proposed rulemaking will incorporate the new requirement for State safety oversight agency authority to conduct inspections, as established in the Bipartisan Infrastructure Law, enacted as the Infrastructure Investment and Jobs Act.",
+    "why": "The abstract itself expands IIJA to its full name, so the row is provably an act-relative citation (not merely uninterpretable text) even though no box or abstract sentence pins sec. 30012 to a specific U.S.C. location; box is excluded from both carry rules by shape (leading 'IIJA' prefix defeats _BARE_SECTION_BOX/_TITLELESS_SECTION_BOX) and from stated_act_name() because the box never spells the literal word 'Act'.",
+    "anything_systemic": "Class-wide shape exclusion: any box with a leading abbreviation before 'sec' is invisible to both carry rules by construction, verified by running the live regexes."
+  },
+  {
+    "key": "0938-AK14|200104|0",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 1 in the SAME record: '42 USC 1395w-4' (usc, title 42, section 1395w-4)",
+    "decisive_quote": "42 USC 1395w-4",
+    "why": "BBRA sec. 212 (Medicare physician-fee-schedule practice-expense provision) and 42 U.S.C. 1395w-4 are the same authority cited twice in the filer's own two-box list; rule title 'Practice Expense Data Collection' and the abstract's 'payments under the physician fee schedule' both match 1395w-4 exactly. Box shape ('Sec 212 of BBRA of 1999') fails both carry regexes (trailing 'of BBRA of 1999' breaks the end anchor) and stated_act_name() returns None (no literal 'Act').",
+    "anything_systemic": "Same shape-exclusion pattern; redundant box pairs (act-form + USC-form of the identical authority) recur across this sample and are a reliable donor source no rule currently reads."
+  },
+  {
+    "key": "1210-AB46|201304|1",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 0: '29 USC 218A'; RULE_TITLE and ABSTRACT narrate the same chain",
+    "decisive_quote": "This rulemaking implements section 1511 of the Patient Protection and Affordable Care Act of 2010, which added section 18A to the Fair Labor Standards Act to require employers...",
+    "why": "Ordinal 0 already states the exact codification (29 U.S.C. 218a) of 'FLSA sec 18A', the rule title says 'FLSA Section 18A' outright, and the abstract narrates the full ACA sec.1511 -> FLSA sec.18A -> 29 USC 218a chain. Triple in-record corroboration; box excluded from carry rules only because it opens with the abbreviation 'FLSA' before 'sec'.",
+    "anything_systemic": "Confirms the leading-abbreviation shape exclusion is the operative cause, not any semantic ambiguity -- the correct answer is stated three separate ways in the same record."
+  },
+  {
+    "key": "0648-AR87|200504|2",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 0: '33 USC 892(a) to 892(b)' (states U.S.C. title 33); sibling ordinal 1 has the identical unresolved shape",
+    "decisive_quote": "33 USC 892(a) to 892(b)",
+    "why": "The record's own first box states U.S.C. title 33 for the Hydrographic Services Improvement Act family that 'HSIA 2002' abbreviates, satisfying the review's 'sibling box stating a U.S.C. title' bar even though no box pins the exact subsection for sec. 304 specifically. Box excluded from carry rules by its leading 'HSIA 2002,' prefix.",
+    "anything_systemic": "Weaker/partial donor case (title-level, not section-exact) -- flagged as such rather than treated identically to the exact-pinpoint rows."
+  },
+  {
+    "key": "1215-AA82|199710|4",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 5: 'PL 93-259 88 Stat 76' (93rd Congress => 1973-74, i.e. the Fair Labor Standards Amendments of 1974); ordinal 0 shows the pipeline resolves plain 'FLSA' via agency-roster-initialism elsewhere in this very record",
+    "decisive_quote": "PL 93-259 88 Stat 76",
+    "why": "'FLSA of 1974' most plausibly names the 1974 FLSA Amendments (Pub. L. 93-259, the act that extended coverage to domestic service workers -- exactly this rule's subject), whose PL number the very next box supplies; the Congress-number (93rd = 1973-74) independently corroborates the year. Weaker than the exact-pinpoint rows since no box spells the amending act's full name and sec.29(b) of an amending act is plausibly an uncodified effective-date provision.",
+    "anything_systemic": "Illustrates that 'agency-roster-initialism' successfully resolves bare 'FLSA' one box earlier (ordinal 1) in this same record, but the box under review never reaches that reader because it isn't shape-eligible."
+  },
+  {
+    "key": "2577-AC94|201604|0",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 1: '42 U.S.C. 1437a(a)(2)(B)' -- identical pinpoint (a)(2)(B)",
+    "decisive_quote": "42 U.S.C. 1437a(a)(2)(B)",
+    "why": "The subsection lettering '(a)(2)(B)' is reproduced verbatim in both the act-form box and the very next USC-form box, an exact match beyond reasonable doubt (USHA sec.3 is long-codified as 42 U.S.C. 1437a). Excluded from carry rules purely by the leading 'Section 3(a)(2)(B) of the' / trailing 'of the USHA of 1937' text, and from stated_act_name() because 'USHA' never spells 'Act'.",
+    "anything_systemic": "Cleanest exact-pinpoint sibling match in the sample."
+  },
+  {
+    "key": "1120-AB66|201410|3",
+    "verdict": "missed-witness",
+    "donor_if_any": "RULE_TITLE names '18 U.S.C. Sections 3582(c)(1)(A) and 4205(g)' directly; sibling ordinal 1 ('18 USC sec 3565') and ordinal 2 (resolved to 18 U.S.C. 3568/3569) bracket it in Title 18",
+    "decisive_quote": "Compassionate Release (Procedures for the Implementation of 18 U.S.C. Sections 3582(c)(1)(A) and 4205(g)): Technical Changes",
+    "why": "The record's own title spells out '18 U.S.C. Sections 3582' verbatim, and 3582/3621/3622/3624/4001/4042 are the Bureau of Prisons' standard Title 18 Part III boilerplate authority list (confirmed by the immediately-adjacent already-resolved Title-18 boxes). The box is shape-excluded from title-carry because it repeats the word 'sec' before every list member; the shape grammar (_CARRY_SEPARATED) only tolerates ONE leading marker, not one per item.",
+    "anything_systemic": "A distinct, second shape gap from the leading/trailing-text one: repeated-marker lists ('sec A, sec B, sec C...') are invisible to title-carry even though this specific list is genuinely bare Title-18 U.S.C. numbers, verified live against the shipped regex."
+  },
+  {
+    "key": "0938-AL50|200404|1",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 0: 'PL 106-113' (=BBRA); sibling ordinal 2 'Sec 1886 of the Social Security Act' resolved to 42 U.S.C. 1395ww, the same statutory neighborhood",
+    "decisive_quote": "PL 106-113",
+    "why": "PL 106-113 is the Balanced Budget Refinement Act of 1999 (BBRA); the immediately preceding box gives its exact Public Law number, and the record concerns the FY2004 Inpatient Psychiatric Facility PPS -- BBRA sec.124 established that PPS mandate, adjacent to Social Security Act sec.1886 (42 U.S.C. 1395ww), which the record's own resolver already reached. Box excluded from carry by its trailing 'of the BBRA' text.",
+    "anything_systemic": "Same pattern as row 19 (BBRA/BBA/BIPA trio) -- act-identity donor via a bare-PL sibling rather than a spelled-out name."
+  },
+  {
+    "key": "2060-AP37|200904|0",
+    "verdict": "filer-error-confirmed",
+    "donor_if_any": "The record's OWN abstract (twice) plus the next Unified Agenda edition's corrected box",
+    "decisive_quote": "as required by section 107 of the Clean Air Act... The schedule and process for designations is contained in section 107.",
+    "why": "This box's own abstract names section 107, not 106, as the controlling CAA provision, and the RIN's Fall 2010 edition (201010) changed the identical first box from 'sec 106(d)' to 'sec 107(d)'. This is a filer typo (106 for 107), confirmed twice over -- not a missed donor, since no rule should invent a section number the filer's own box got wrong. Box is shape-eligible for act-carry ('sec 106(d)' matches _BARE_SECTION_BOX) and the rule DID run and refuse it (act_key 'clean air act amendments of 1990' has no section 106) -- a refusal that happens to be moot because the underlying value is simply wrong.",
+    "anything_systemic": "One of only two rows in the sample (with sec.181(a) below, same RIN) that were genuinely shape-eligible and mechanically evaluated by the act-carry rule, rather than shape-excluded."
+  },
+  {
+    "key": "0570-AA94|201410|0",
+    "verdict": "filer-error-confirmed",
+    "donor_if_any": "The record's own ABSTRACT names a different, identifiable act than the cited PL number would suggest",
+    "decisive_quote": "This interim rule implements section 6025 Strategic Economic and Community Development under the Agricultural Act of 2014 (2014 Farm Bill).",
+    "why": "The abstract explicitly names the authorizing act as the 'Agricultural Act of 2014 (2014 Farm Bill)', which is Public Law 113-79 -- not the '113-076' the box states (Pub. L. 113-76 is the January 2014 Consolidated Appropriations Act, an unrelated omnibus spending bill). Section 6025 'Strategic Economic and Community Development' is a real, well-known Farm Bill rural-development set-aside provision matching the rule title exactly. This reads as a digit-transposition typo (076 for 079) in the box, independently confirmed by the record's own abstract naming a different, correctly-identified act.",
+    "anything_systemic": "Only legal-authority box in this record (single-box list), so the abstract is the sole possible in-record witness -- and it directly contradicts the box's PL number."
+  },
+  {
+    "key": "3206-AL62|200810|0",
+    "verdict": "missed-witness",
+    "donor_if_any": "The record's OWN abstract states the exact U.S.C. section",
+    "decisive_quote": "OPM and DOD are amending 5 CFR 9901 to correspond with recent changes to 5 U.S.C. 9901 contained in the 2008 National Defense Authorization Act (H.R. 1585 sec. 1106)",
+    "why": "The abstract is essentially a full gloss of the citation: it names the act (2008 NDAA), the bill number and section (H.R. 1585 sec. 1106) restated from the box, AND the exact resulting U.S.C. location (5 U.S.C. 9901). This is the only legal-authority box in the record, so no sibling box could ever help, but the abstract alone fully resolves it.",
+    "anything_systemic": "No corroboration rule in the current pipeline reads free-text ABSTRACT content at all; this row shows the abstract can be dispositive even for single-box records where every box-based mechanism is structurally unavailable."
+  },
+  {
+    "key": "2126-AB11|200910|0",
+    "verdict": "correct-as-labeled",
+    "donor_if_any": "None found in-record",
+    "decisive_quote": "Section 4009 of TEA-21",
+    "why": "Single-box record; the abstract discusses CSA 2010 and compliance reviews but never expands 'TEA-21' or names a U.S.C. section, and there is no sibling box. TEA-21 (Transportation Equity Act for the 21st Century) is identifiable from general subject-matter knowledge, but nothing in the record itself corroborates a specific U.S.C. location, so the 'other/failed' holding pattern is the honest label given only the record's own text.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1218-AC15|200504|5",
+    "verdict": "correct-as-labeled",
+    "donor_if_any": "None that recovers the missing text; register is CFR-shaped, not USC/act",
+    "decisive_quote": "sec 1926.1002 and 19",
+    "why": "The box ends abruptly mid-number ('and 19'); 29 CFR 1926.1002 is a real OSHA standard (Rollover Protective Structures) and the record's own CFR_LIST/sibling boxes already cover both 29 CFR 1926 and 29 CFR 1928, so the intended citation is almost certainly a CFR part/section, not a U.S.C. or act-internal section at all -- 'stated_section' captured a CFR decimal fragment because the general grammar's marker-based extractor does not distinguish the two. No box supplies the missing continuation, so 'other/failed' does not overclaim anything recoverable.",
+    "anything_systemic": "The neighboring box (ordinal 2, a Secretary's Order/FR list) ALSO ends abruptly mid-citation ('sec 1928.51, 192'), so damaged/incomplete LEGAL_AUTHORITY box text recurs within this one record; cause (filer incompleteness vs. a publisher-side field cap) could not be established from the record alone. Separately, both this box's '1926.1002' and row 15's '4.2' contain a literal period, which neither carry regex's number-shape (_CARRY_SECTION/_BARE_SECTION_BOX) accommodates at all -- confirmed by direct regex testing -- so decimal-shaped numbers (CFR-style AND Farm-Credit-Act-style) are structurally invisible to both carry rules regardless of prefix/suffix text."
+  },
+  {
+    "key": "0420-AA10|199904|3",
+    "verdict": "missed-witness",
+    "donor_if_any": "The box's OWN text -- the act name is written in full, just abbreviated with a period ('Coop.')",
+    "decisive_quote": "International Security & Development Coop. Act of 1981, sec 601",
+    "why": "stated_act_name() walks backward from the literal word 'Act' over capitalized tokens, but the token immediately before 'Act' here is 'Coop.' (trailing period); the extractor's word-boundary regex cannot include a trailing '.', so the backward walk captures zero tokens and returns None even though 'International Security and Development Cooperation Act of 1981' (Pub. L. 97-113) is written out in full and unambiguously identifiable. Verified directly: stated_act_name('International Security & Development Coop. Act of 1981, sec 601') returns None.",
+    "anything_systemic": "A second, narrower stated_act_name() defect distinct from the 'no literal Act word' pattern that explains most of this class: even a FULLY SPELLED OUT act name is lost when a filer abbreviates one word in it with a trailing period immediately before 'Act'."
+  },
+  {
+    "key": "3052-AD48|202304|0",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 1 (immediately next box): '5.58, 5.61 of the Farm Credit Act'; ordinals 2-4 already resolved to 12 U.S.C. 2183/2243/2244/2252/2277a-7/2277a-10",
+    "decisive_quote": "5.58, 5.61 of the Farm Credit Act",
+    "why": "Ordinals 0-4 are one continuous filer citation ('secs. 4.2, 5.9, 5.10, 5.17, 5.51, 5.58, 5.61 of the Farm Credit Act (12 U.S.C. 2183, 2243, 2244, 2252, 2277a-7, 2277a-10)') split across the Unified Agenda's box boundaries; the act name is stated once, at ordinal 1, governing the whole list, and the USC parenthetical is already correctly read for ordinals 2-4 via 'rin-history-section-list'. The target box (ordinal 0) is excluded from the act-carry rule because it is a multi-item list (not a single bare section) and because ordinal 1's own act_relative typing never sets act_key (only act_resolution_reason='act_not_in_index'), so even a hypothetical retry would find nothing to carry; separately, '4.2' contains a period the carry grammar's number-shape does not accept.",
+    "anything_systemic": "Demonstrates the carry rules only look at IMMEDIATE ordinal neighbours and only accept single bare sections -- a list-initial box with its act name stated at the list's END (a common filer habit) is invisible to the mechanism no matter how adjacent or well-evidenced."
+  },
+  {
+    "key": "0938-AQ16|201010|3",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 2 (immediately preceding): 'MMA, sec 629', resolved via agency-gloss-narrowed-initialism to act_key 'medicare prescription drug, improvement, and modernization act of 2003'",
+    "decisive_quote": "MMA, sec 629",
+    "why": "The target box is the identical initialism 'mma' one box later, only lowercase; its immediate predecessor cites the same initialism (properly cased) and resolves successfully through an agency-specific gloss reader. Excluded from carry by its own leading 'mma,' prefix, and separately invisible to that gloss reader for this occurrence (plausibly a case-sensitivity gap, since the two boxes are otherwise textually identical in form).",
+    "anything_systemic": "A case-sensitivity gap in whatever matches 'MMA' against the agency-gloss/roster: the resolved sibling is capitalized, the unresolved target is not."
+  },
+  {
+    "key": "2060-AP37|201010|2",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 1: 'sec 172(a)' (act_relative, act_key 'clean air act amendments of 1990'); record's abstract discusses the same CAA Part D ozone-nonattainment scheme",
+    "decisive_quote": "The schedule and process for designations is contained in CAA section 107.",
+    "why": "The target box IS shape-eligible for act-carry ('sec 181(a)' matches _BARE_SECTION_BOX) and the rule DID run, offering the one neighbouring act ('clean air act amendments of 1990') and then refusing because section 181 does not classify under that specific amending-act key. CAA sec.181 (42 U.S.C. 7511, ozone nonattainment classifications) is a real, well-known provision of the BASE Clean Air Act in the same Part D Subpart 2 scheme as sec.107 and sec.172, which the record's own abstract is entirely about -- so the refusal looks like an artifact of the sibling's act_key being keyed to 'Amendments of 1990' specifically (which may not itself carry an independent sec.181) rather than a genuinely absent authority.",
+    "anything_systemic": "The second (with sec.106(d)/sec.107(d) above, same RIN) of only two rows in the sample where a carry rule actually evaluated and declined the citation rather than being shape-excluded; suggests the sibling's own act_key classification ('...Amendments of 1990' vs. the base 'Clean Air Act') may be the deeper issue upstream of this specific refusal."
+  },
+  {
+    "key": "2132-AB42|202310|1",
+    "verdict": "missed-witness",
+    "donor_if_any": "Same as the 202304 edition of this RIN -- record's own ABSTRACT glosses IIJA as the act",
+    "decisive_quote": "the proposed rulemaking will incorporate the new requirement for State safety oversight agency authority to conduct inspections, as established in the Bipartisan Infrastructure Law, enacted as the Infrastructure Investment and Jobs Act.",
+    "why": "Identical two-box authority list and identical abstract to the Spring 2023 edition of the same RIN (see 2132-AB42|202304|1); same reasoning applies unchanged one edition later.",
+    "anything_systemic": "Confirms the same case is stable/reproduced across consecutive editions of the same RIN, not a one-off."
+  },
+  {
+    "key": "0938-AK69|200104|1",
+    "verdict": "missed-witness",
+    "donor_if_any": "Both siblings: ordinal 0 'BBA, sec 4422(a)(1)' resolved via agency-roster-initialism; ordinal 2 'BIPA, sec 307' typed act_relative via the same family of CMS-era budget acts",
+    "decisive_quote": "BBA, sec 4422(a)(1)",
+    "why": "BBA (1997), BBRA (1999, the target box), and BIPA (2000) are a well-known trio of consecutive CMS Medicare budget acts routinely cited together, exactly as here; both neighbours resolve via an agency-specific initialism roster/gloss mechanism, strongly suggesting BBRA is simply the one entry missing from whatever roster covers its two immediate siblings.",
+    "anything_systemic": "Second instance (with row 8) of the BBA/BBRA/BIPA family; the roster gap around 'BBRA' specifically recurs."
+  },
+  {
+    "key": "2130-AC28|201404|4",
+    "verdict": "missed-witness",
+    "donor_if_any": "Sibling ordinal 5: 'PL 110-432, 122 Stat 4885'; record's own ABSTRACT names the act and the exact section",
+    "decisive_quote": "Section 403(c) of the Rail Safety Improvement Act of 2008 mandates that FRA promulgate regulations addressing rail flaw detection inspections.",
+    "why": "The abstract states, in full, both the act's popular name (Rail Safety Improvement Act of 2008) and the precise section (403(c)) matching the box's 'sec 403, div. A'; the immediately following sibling box independently supplies the same act's Public Law number (110-432) and Statutes-at-Large citation (122 Stat. 4885, Division A of that omnibus rail-safety act). Three independent in-record donors agree; likely still an act/PL-relative (not USC) resolution since sec.403 reads as an FRA rulemaking directive rather than a codified Code section.",
+    "anything_systemic": "One of the strongest donor cases in the sample -- exact section AND act name AND PL number AND Stat citation all present in-record, yet the box is excluded from every existing mechanism by its trailing ', div. A' text."
+  }
+]

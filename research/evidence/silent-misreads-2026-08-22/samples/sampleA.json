@@ -1,0 +1,3690 @@
+[
+ {
+  "text": "47 USC 157(a)",
+  "rows": 184,
+  "rin_prefixes": [
+   "3060"
+  ],
+  "editions": [
+   "199704",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 47,
+    "usc_section": "157",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 USC 7384g",
+  "rows": 5,
+  "rin_prefixes": [
+   "0920"
+  ],
+  "editions": [
+   "200204",
+   "200404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 42,
+    "usc_section": "7384g",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 USC 307",
+  "rows": 16,
+  "rin_prefixes": [
+   "2125",
+   "2126"
+  ],
+  "editions": [
+   "199510",
+   "200204"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "307",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 11-24, 123 Stat 1734",
+  "rows": 14,
+  "rin_prefixes": [
+   "3084"
+  ],
+  "editions": [
+   "200910",
+   "201304"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "11-24",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "statute_at_large",
+    "status": "partial",
+    "stat_vol": 123,
+    "stat_page": 1734,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 U.S.C 2011 et seq.",
+  "rows": 2,
+  "rin_prefixes": [
+   "1992"
+  ],
+  "editions": [
+   "201610",
+   "201704"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 42,
+    "usc_section": "2011",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "sec. 532 of Pub. L. 109-364",
+  "rows": 2,
+  "rin_prefixes": [
+   "1625"
+  ],
+  "editions": [
+   "201910",
+   "202004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "109-364",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Public Law 111-216, 124 Stat. 2348 (49 U.S.C. 44701 note)",
+  "rows": 3,
+  "rin_prefixes": [
+   "2120"
+  ],
+  "editions": [
+   "201804",
+   "201804"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 49,
+    "usc_section": "44701",
+    "usc_app": false,
+    "usc_note": true
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "111-216",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "statute_at_large",
+    "status": "partial",
+    "stat_vol": 124,
+    "stat_page": 2348,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "15 USC 2607(c)",
+  "rows": 1,
+  "rin_prefixes": [
+   "2070"
+  ],
+  "editions": [
+   "199510",
+   "199510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 15,
+    "usc_section": "2607",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 1.104-1(c)",
+  "rows": 1,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "200610",
+   "200610"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 26,
+    "usc_section": "1",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "15 U.S.C. 636(j), 644(e)(4) and (q)",
+  "rows": 4,
+  "rin_prefixes": [
+   "3245"
+  ],
+  "editions": [
+   "202504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 15,
+    "usc_section": "636",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 15,
+    "usc_section": "644",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C.. 504",
+  "rows": 1,
+  "rin_prefixes": [
+   "7100"
+  ],
+  "editions": [
+   "202104",
+   "202104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "504",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC 1212",
+  "rows": 4,
+  "rin_prefixes": [
+   "3255"
+  ],
+  "editions": [
+   "199910",
+   "200104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "1212",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "16 U.S.C. 4601-6a",
+  "rows": 12,
+  "rin_prefixes": [
+   "1004",
+   "0710"
+  ],
+  "editions": [
+   "201810",
+   "202410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 16,
+    "usc_section": "4601-6a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "38 USC 1965 to 1977",
+  "rows": 3,
+  "rin_prefixes": [
+   "2900"
+  ],
+  "editions": [
+   "199510",
+   "199610"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 38,
+    "usc_section": "1965",
+    "usc_section_end": "1977",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 U.S.C. 44701 to 44704",
+  "rows": 36,
+  "rin_prefixes": [
+   "2120"
+  ],
+  "editions": [
+   "201504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "44701",
+    "usc_section_end": "44704",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 105-58, 30 November 1995",
+  "rows": 1,
+  "rin_prefixes": [
+   "0694"
+  ],
+  "editions": [
+   "199610",
+   "199610"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "105-58",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 846(e)",
+  "rows": 4,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "200710",
+   "200904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 26,
+    "usc_section": "846",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 U.S.C. 7430",
+  "rows": 3,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "201504",
+   "201604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "7430",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "29 USC 2006",
+  "rows": 1,
+  "rin_prefixes": [
+   "1215"
+  ],
+  "editions": [
+   "199510",
+   "199510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 29,
+    "usc_section": "2006",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "10 U.S.C. 2574",
+  "rows": 4,
+  "rin_prefixes": [
+   "0702"
+  ],
+  "editions": [
+   "201810",
+   "202004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 10,
+    "usc_section": "2574",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C. 4303",
+  "rows": 3,
+  "rin_prefixes": [
+   "3206"
+  ],
+  "editions": [
+   "201804",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "4303",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "30505",
+  "rows": 1,
+  "rin_prefixes": [
+   "2127"
+  ],
+  "editions": [
+   "200410",
+   "200410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "corroborated",
+    "usc_title": 49,
+    "usc_section": "30505",
+    "usc_app": false,
+    "usc_note": false,
+    "corrob": "rin-history-section-list"
+   }
+  ]
+ },
+ {
+  "text": "40 U.S.C. 101 et seq, Federal and Property Administrative Services Act,",
+  "rows": 2,
+  "rin_prefixes": [
+   "1250"
+  ],
+  "editions": [
+   "201504",
+   "201510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 40,
+    "usc_section": "101",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 U.S.C. 0989(c)",
+  "rows": 17,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "201504",
+   "201910"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 26,
+    "usc_section": "0989",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "16 USC 590y et seq",
+  "rows": 4,
+  "rin_prefixes": [
+   "1006"
+  ],
+  "editions": [
+   "199510",
+   "199704"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 16,
+    "usc_section": "590y",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 U.S.C. 44701 and 44702",
+  "rows": 30,
+  "rin_prefixes": [
+   "2120"
+  ],
+  "editions": [
+   "201804",
+   "201910"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 49,
+    "usc_section": "44701",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 49,
+    "usc_section": "44702",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "38 USC 3761",
+  "rows": 7,
+  "rin_prefixes": [
+   "2900"
+  ],
+  "editions": [
+   "200204",
+   "200504"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 38,
+    "usc_section": "3761",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "3 CFR 1966--1970 p 939",
+  "rows": 1,
+  "rin_prefixes": [
+   "0348"
+  ],
+  "editions": [
+   "200904",
+   "200904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "eo_compilation",
+    "status": "partial",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C 552",
+  "rows": 5,
+  "rin_prefixes": [
+   "7100",
+   "3014"
+  ],
+  "editions": [
+   "201910",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "552",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "39 USC 2011(h)(2)",
+  "rows": 3,
+  "rin_prefixes": [
+   "3211"
+  ],
+  "editions": [
+   "200804",
+   "200904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 39,
+    "usc_section": "2011",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "31 USC 3812",
+  "rows": 1,
+  "rin_prefixes": [
+   "3245"
+  ],
+  "editions": [
+   "199510",
+   "199510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 31,
+    "usc_section": "3812",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "7 USC 241",
+  "rows": 7,
+  "rin_prefixes": [
+   "0560"
+  ],
+  "editions": [
+   "199610",
+   "199910"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 7,
+    "usc_section": "241",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 3111",
+  "rows": 11,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "200204",
+   "201404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "3111",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC app 3, the Inspector General Act of 1978, as amended",
+  "rows": 3,
+  "rin_prefixes": [
+   "0348"
+  ],
+  "editions": [
+   "199510",
+   "199604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_section": "3",
+    "usc_app": true,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "20 U.S.C. 1070g",
+  "rows": 3,
+  "rin_prefixes": [
+   "1840"
+  ],
+  "editions": [
+   "202210",
+   "202310"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 20,
+    "usc_section": "1070g",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "38 USC 1152",
+  "rows": 20,
+  "rin_prefixes": [
+   "2900"
+  ],
+  "editions": [
+   "200010",
+   "201110"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 38,
+    "usc_section": "1152",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC 5701",
+  "rows": 4,
+  "rin_prefixes": [
+   "3090"
+  ],
+  "editions": [
+   "199810",
+   "200004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "5701",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "22 USC 6701 et seq",
+  "rows": 8,
+  "rin_prefixes": [
+   "0694"
+  ],
+  "editions": [
+   "199910",
+   "201404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 22,
+    "usc_section": "6701",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 109-59, sec 3023(d)",
+  "rows": 4,
+  "rin_prefixes": [
+   "2132"
+  ],
+  "editions": [
+   "200610",
+   "200804"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "109-59",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C. 1104",
+  "rows": 18,
+  "rin_prefixes": [
+   "3206",
+   "1903"
+  ],
+  "editions": [
+   "201610",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "1104",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "60 CFR 15845",
+  "rows": 10,
+  "rin_prefixes": [
+   "2700"
+  ],
+  "editions": [
+   "201110",
+   "201610"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "federal_register",
+    "status": "partial",
+    "fr_vol": 60,
+    "fr_page": 15845,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "20 USC 1098a",
+  "rows": 3,
+  "rin_prefixes": [
+   "1840"
+  ],
+  "editions": [
+   "200710",
+   "200904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 20,
+    "usc_section": "1098a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 101-649, Miscellaneous and Technical Immigration and Naturalization Amendments of 1991",
+  "rows": 5,
+  "rin_prefixes": [
+   "1615"
+  ],
+  "editions": [
+   "200310",
+   "200510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "101-649",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 U.S.C. 5551",
+  "rows": 10,
+  "rin_prefixes": [
+   "1513"
+  ],
+  "editions": [
+   "201604",
+   "202010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "5551",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "44 U.S.C. 3101",
+  "rows": 54,
+  "rin_prefixes": [
+   "1076",
+   "1212",
+   "0605",
+   "0651",
+   "0355"
+  ],
+  "editions": [
+   "201510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 44,
+    "usc_section": "3101",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 USC 2512",
+  "rows": 1,
+  "rin_prefixes": [
+   "2125"
+  ],
+  "editions": [
+   "199804",
+   "199804"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "2512",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "10 U.S.C. 1061-1064",
+  "rows": 2,
+  "rin_prefixes": [
+   "0790"
+  ],
+  "editions": [
+   "202504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 10,
+    "usc_section": "1061",
+    "usc_section_end": "1064",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 1440a",
+  "rows": 5,
+  "rin_prefixes": [
+   "2590"
+  ],
+  "editions": [
+   "201110",
+   "201404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "1440a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "22 U.S.C. 2151 et seq.",
+  "rows": 1,
+  "rin_prefixes": [
+   "1400"
+  ],
+  "editions": [
+   "202510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 22,
+    "usc_section": "2151",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "19 U.S.C. 1516a",
+  "rows": 7,
+  "rin_prefixes": [
+   "0625"
+  ],
+  "editions": [
+   "202104",
+   "202404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 19,
+    "usc_section": "1516a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Outer Continental Lands Shelf Act (OCSLA), codified at 43 U.S.C. sections 1331-1356a",
+  "rows": 1,
+  "rin_prefixes": [
+   "1014"
+  ],
+  "editions": [
+   "202510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 43,
+    "usc_section": "1331",
+    "usc_section_end": "1356a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "35 USC 171",
+  "rows": 2,
+  "rin_prefixes": [
+   "0651"
+  ],
+  "editions": [
+   "200004",
+   "200010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 35,
+    "usc_section": "171",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 110-389, sec 402",
+  "rows": 2,
+  "rin_prefixes": [
+   "2900"
+  ],
+  "editions": [
+   "200910",
+   "201004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "110-389",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 USC 247d to 6d, 247d to 6e",
+  "rows": 3,
+  "rin_prefixes": [
+   "0906"
+  ],
+  "editions": [
+   "201004",
+   "201104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 42,
+    "usc_section": "247d",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 U.S.C. 301126",
+  "rows": 6,
+  "rin_prefixes": [
+   "2127"
+  ],
+  "editions": [
+   "202304",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "301126",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "7 USC 5602",
+  "rows": 25,
+  "rin_prefixes": [
+   "0551"
+  ],
+  "editions": [
+   "199510",
+   "200504"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 7,
+    "usc_section": "5602",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "33 U.S.C. 701c",
+  "rows": 6,
+  "rin_prefixes": [
+   "0710"
+  ],
+  "editions": [
+   "201810",
+   "202104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 33,
+    "usc_section": "701c",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 78u-2",
+  "rows": 2,
+  "rin_prefixes": [
+   "1557"
+  ],
+  "editions": [
+   "200510",
+   "200604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "78u-2",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "33 USC 1314(m)",
+  "rows": 5,
+  "rin_prefixes": [
+   "2040"
+  ],
+  "editions": [
+   "200610",
+   "200810"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 33,
+    "usc_section": "1314",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 111-203, sec 712, Dodd-Frank Wall Street Reform and Consumer Protection Act",
+  "rows": 2,
+  "rin_prefixes": [
+   "3038"
+  ],
+  "editions": [
+   "201010",
+   "201104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "111-203",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 U.S.C.1396r-8",
+  "rows": 1,
+  "rin_prefixes": [
+   "0938"
+  ],
+  "editions": [
+   "202004",
+   "202004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 42,
+    "usc_section": "1396r-8",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "41 U.S.C. 418b",
+  "rows": 14,
+  "rin_prefixes": [
+   "2030",
+   "1505",
+   "1991"
+  ],
+  "editions": [
+   "201504",
+   "202010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 41,
+    "usc_section": "418b",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "54 U.S.C. 1000751(a)",
+  "rows": 4,
+  "rin_prefixes": [
+   "1024"
+  ],
+  "editions": [
+   "201510",
+   "201704"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 54,
+    "usc_section": "1000751",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 4517(a)(2) through (3)",
+  "rows": 1,
+  "rin_prefixes": [
+   "2550"
+  ],
+  "editions": [
+   "200810",
+   "200810"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 12,
+    "usc_section": "4517",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C. 3133(e)(2)",
+  "rows": 1,
+  "rin_prefixes": [
+   "3206"
+  ],
+  "editions": [
+   "202510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_section": "3133",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "35 USC 1123",
+  "rows": 9,
+  "rin_prefixes": [
+   "0651"
+  ],
+  "editions": [
+   "199510",
+   "199910"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 35,
+    "usc_section": "1123",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 U.S.C. 1861-67 (FDIC)",
+  "rows": 4,
+  "rin_prefixes": [
+   "3064"
+  ],
+  "editions": [
+   "202310",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 12,
+    "usc_section": "1861-67",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C. 552 (2016)",
+  "rows": 5,
+  "rin_prefixes": [
+   "0412"
+  ],
+  "editions": [
+   "202104",
+   "202304"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_section": "552",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 USC 102",
+  "rows": 81,
+  "rin_prefixes": [
+   "2126",
+   "2105"
+  ],
+  "editions": [
+   "199510",
+   "201110"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "102",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 U.S.C. 5519",
+  "rows": 7,
+  "rin_prefixes": [
+   "7100"
+  ],
+  "editions": [
+   "201604",
+   "202410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "5519",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "8 USC 1101(a)(15)(h)(ii)(a)",
+  "rows": 3,
+  "rin_prefixes": [
+   "1205"
+  ],
+  "editions": [
+   "200110",
+   "200210"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 8,
+    "usc_section": "1101",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 109-347",
+  "rows": 2,
+  "rin_prefixes": [
+   "2126"
+  ],
+  "editions": [
+   "201210",
+   "201404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "ok",
+    "public_law": "109-347",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "31 USC 9701 et seq",
+  "rows": 59,
+  "rin_prefixes": [
+   "1012",
+   "1010",
+   "0648"
+  ],
+  "editions": [
+   "199710",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 31,
+    "usc_section": "9701",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 6324",
+  "rows": 1,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "199510",
+   "199510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "6324",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 1818 and 1828(n)",
+  "rows": 6,
+  "rin_prefixes": [
+   "1557"
+  ],
+  "editions": [
+   "201010",
+   "201110"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 12,
+    "usc_section": "1818",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 12,
+    "usc_section": "1828",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "38 USC 1114(j)",
+  "rows": 2,
+  "rin_prefixes": [
+   "2900"
+  ],
+  "editions": [
+   "200104",
+   "200110"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 38,
+    "usc_section": "1114",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "16 USC 7783",
+  "rows": 1,
+  "rin_prefixes": [
+   "0648"
+  ],
+  "editions": [
+   "202510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 16,
+    "usc_section": "7783",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "1818",
+  "rows": 2,
+  "rin_prefixes": [
+   "1557"
+  ],
+  "editions": [
+   "202504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "corroborated",
+    "usc_title": 12,
+    "usc_section": "1818",
+    "usc_app": false,
+    "usc_note": false,
+    "corrob": "rin-history-section-list"
+   }
+  ]
+ },
+ {
+  "text": "12 USC 161",
+  "rows": 239,
+  "rin_prefixes": [
+   "7100",
+   "1557"
+  ],
+  "editions": [
+   "199510",
+   "201510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "161",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "47 U.S.C. 154(o)",
+  "rows": 44,
+  "rin_prefixes": [
+   "3060"
+  ],
+  "editions": [
+   "201504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 47,
+    "usc_section": "154",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "43 USC 1348",
+  "rows": 8,
+  "rin_prefixes": [
+   "2115",
+   "1625"
+  ],
+  "editions": [
+   "200104",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 43,
+    "usc_section": "1348",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "29 U.S.C. 628",
+  "rows": 7,
+  "rin_prefixes": [
+   "3046"
+  ],
+  "editions": [
+   "201704",
+   "202010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 29,
+    "usc_section": "628",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 U.S.C. 6045A(a)",
+  "rows": 4,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "201504",
+   "201604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 26,
+    "usc_section": "6045a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "43 U.S.C. section 421",
+  "rows": 3,
+  "rin_prefixes": [
+   "1093"
+  ],
+  "editions": [
+   "202410",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 43,
+    "usc_section": "421",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "E.O. 12234",
+  "rows": 4,
+  "rin_prefixes": [
+   "1625"
+  ],
+  "editions": [
+   "201504",
+   "201704"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "executive_order",
+    "status": "ok",
+    "executive_order": "12234",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 USC 1395i to 2a(d)(2)",
+  "rows": 2,
+  "rin_prefixes": [
+   "0938"
+  ],
+  "editions": [
+   "199904",
+   "199904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 42,
+    "usc_section": "1395i",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Indian Health Care Improvement Act (25 U.S.C. 1601 et seq.)",
+  "rows": 18,
+  "rin_prefixes": [
+   "0917"
+  ],
+  "editions": [
+   "201710",
+   "202504"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 25,
+    "usc_section": "1601",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 U.S.C.1462a",
+  "rows": 2,
+  "rin_prefixes": [
+   "1557"
+  ],
+  "editions": [
+   "202504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "1462a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 110-181, sec 890(a)",
+  "rows": 5,
+  "rin_prefixes": [
+   "0750"
+  ],
+  "editions": [
+   "200810",
+   "201010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "110-181",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Memorandum for the Attorney General (cont. in Additional Info.)",
+  "rows": 2,
+  "rin_prefixes": [
+   "1105"
+  ],
+  "editions": [
+   "199904",
+   "199910"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "presidential_document",
+    "status": "partial",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "332 USC 234 (1947)",
+  "rows": 6,
+  "rin_prefixes": [
+   "1510"
+  ],
+  "editions": [
+   "200910",
+   "201210"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 332,
+    "usc_section": "234",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "2277a-7,2277a-10",
+  "rows": 2,
+  "rin_prefixes": [
+   "3052"
+  ],
+  "editions": [
+   "202104",
+   "202104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "corroborated",
+    "usc_title": 12,
+    "usc_section": "2277a-7",
+    "usc_app": false,
+    "usc_note": false,
+    "corrob": "rin-history-section-list"
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "corroborated",
+    "usc_title": 12,
+    "usc_section": "2277a-10",
+    "usc_app": false,
+    "usc_note": false,
+    "corrob": "rin-history-section-list"
+   }
+  ]
+ },
+ {
+  "text": "21 USC 134a to 134h",
+  "rows": 12,
+  "rin_prefixes": [
+   "0579"
+  ],
+  "editions": [
+   "199804",
+   "200204"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 21,
+    "usc_section": "134a",
+    "usc_section_end": "134h",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "20 U.S.C. 241",
+  "rows": 1,
+  "rin_prefixes": [
+   "0790"
+  ],
+  "editions": [
+   "201710",
+   "201710"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 20,
+    "usc_section": "241",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Reorganization Plan No 7 of 1961, 26 FR 7315, August 12, 1961: PL 89-56, 70 Stat 195",
+  "rows": 4,
+  "rin_prefixes": [
+   "3072"
+  ],
+  "editions": [
+   "201104",
+   "201104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "89-56",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "statute_at_large",
+    "status": "partial",
+    "stat_vol": 70,
+    "stat_page": 195,
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "reorganization_plan",
+    "status": "partial",
+    "reorg": "7-of-1961",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 3,
+    "type": "federal_register",
+    "status": "partial",
+    "fr_vol": 26,
+    "fr_page": 7315,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "15 USC 80a 37(a)",
+  "rows": 9,
+  "rin_prefixes": [
+   "3235"
+  ],
+  "editions": [
+   "200110",
+   "200404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 15,
+    "usc_section": "80a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "21 USC 601 to 605",
+  "rows": 7,
+  "rin_prefixes": [
+   "0583"
+  ],
+  "editions": [
+   "200710",
+   "201010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 21,
+    "usc_section": "601",
+    "usc_section_end": "605",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC 6304(f)",
+  "rows": 1,
+  "rin_prefixes": [
+   "3206"
+  ],
+  "editions": [
+   "199510",
+   "199510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_section": "6304",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "23 USC 201, 23 USC 205",
+  "rows": 2,
+  "rin_prefixes": [
+   "0596"
+  ],
+  "editions": [
+   "201210",
+   "201210"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 23,
+    "usc_section": "201",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 23,
+    "usc_section": "205",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "33 U.S.C. 577",
+  "rows": 5,
+  "rin_prefixes": [
+   "0710"
+  ],
+  "editions": [
+   "201904",
+   "202104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 33,
+    "usc_section": "577",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "47 FR 14874",
+  "rows": 1,
+  "rin_prefixes": [
+   "1125"
+  ],
+  "editions": [
+   "200304",
+   "200304"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "federal_register",
+    "status": "partial",
+    "fr_vol": 47,
+    "fr_page": 14874,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Executive Order 11988",
+  "rows": 7,
+  "rin_prefixes": [
+   "2501"
+  ],
+  "editions": [
+   "200704",
+   "201004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "executive_order",
+    "status": "ok",
+    "executive_order": "11988",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC 4302",
+  "rows": 2,
+  "rin_prefixes": [
+   "3206"
+  ],
+  "editions": [
+   "200610",
+   "200704"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "4302",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "18 U.S.C. 3568 (repealed November 1, 1987, as to offenses committed on or after that date)",
+  "rows": 4,
+  "rin_prefixes": [
+   "1120"
+  ],
+  "editions": [
+   "201804",
+   "201810"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3568",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "1987",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 U.S.C. 2244",
+  "rows": 6,
+  "rin_prefixes": [
+   "3052"
+  ],
+  "editions": [
+   "201504",
+   "201904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "2244",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 USC 5403",
+  "rows": 43,
+  "rin_prefixes": [
+   "2125",
+   "2502"
+  ],
+  "editions": [
+   "199510",
+   "201304"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 42,
+    "usc_section": "5403",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 6041",
+  "rows": 50,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "200010",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "6041",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 U.S.C. 46507",
+  "rows": 161,
+  "rin_prefixes": [
+   "2120"
+  ],
+  "editions": [
+   "201504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "46507",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Articles 12 and 29 (61 Stat 1180)",
+  "rows": 1,
+  "rin_prefixes": [
+   "2120"
+  ],
+  "editions": [
+   "200804",
+   "200804"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "statute_at_large",
+    "status": "partial",
+    "stat_vol": 61,
+    "stat_page": 1180,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC 301)",
+  "rows": 14,
+  "rin_prefixes": [
+   "1205"
+  ],
+  "editions": [
+   "200704",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_section": "301",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "47 U.S.C. 151",
+  "rows": 919,
+  "rin_prefixes": [
+   "3060"
+  ],
+  "editions": [
+   "201504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 47,
+    "usc_section": "151",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "EO 12851, 58 FR 33181, 3 CFR, 1993 Comp, p. 608",
+  "rows": 3,
+  "rin_prefixes": [
+   "0694"
+  ],
+  "editions": [
+   "200710",
+   "200710"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "executive_order",
+    "status": "partial",
+    "executive_order": "12851",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "eo_compilation",
+    "status": "partial",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "federal_register",
+    "status": "partial",
+    "fr_vol": 58,
+    "fr_page": 33181,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "8 U.S.C. 1184(g)",
+  "rows": 13,
+  "rin_prefixes": [
+   "1615"
+  ],
+  "editions": [
+   "201504",
+   "201904"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 8,
+    "usc_section": "1184",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "secs. 501, 510, 513, 515, 520, 522, and 701 of the FD&C Act (21 U.S.C. 351, 360, 360c, 360e, 360j, 360l, and 371)",
+  "rows": 70,
+  "rin_prefixes": [
+   "0910"
+  ],
+  "editions": [
+   "202010",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "351",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "360",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "360c",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 3,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "360e",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 4,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "360j",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 5,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "360l",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 6,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 21,
+    "usc_section": "371",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 USC 5307(d)",
+  "rows": 13,
+  "rin_prefixes": [
+   "3206"
+  ],
+  "editions": [
+   "200710",
+   "201404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_section": "5307",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C. 5520a",
+  "rows": 3,
+  "rin_prefixes": [
+   "3206"
+  ],
+  "editions": [
+   "202204",
+   "202304"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 5,
+    "usc_section": "5520a",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "30 U.S.C 22",
+  "rows": 2,
+  "rin_prefixes": [
+   "1004"
+  ],
+  "editions": [
+   "202510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 30,
+    "usc_section": "22",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 112-34",
+  "rows": 5,
+  "rin_prefixes": [
+   "0970"
+  ],
+  "editions": [
+   "201210",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "ok",
+    "public_law": "112-34",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "22 USC 2752, 2778, 2780, 2791, and 2797",
+  "rows": 40,
+  "rin_prefixes": [
+   "1400"
+  ],
+  "editions": [
+   "201210",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 22,
+    "usc_section": "2752",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 22,
+    "usc_section": "2778",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 22,
+    "usc_section": "2780",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 3,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 22,
+    "usc_section": "2791",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 4,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 22,
+    "usc_section": "2797",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 2013 to 2015",
+  "rows": 34,
+  "rin_prefixes": [
+   "3052"
+  ],
+  "editions": [
+   "200110",
+   "201210"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "2013",
+    "usc_section_end": "2015",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "18 USC 3621, 3622, 3624, 4001, 4042, 4081, 4082 (Repealed in part as to offenses committed on or after November 1, 1987), 5006-5024 (Repealed October 12, 1984 as to offenses committed)",
+  "rows": 60,
+  "rin_prefixes": [
+   "1120"
+  ],
+  "editions": [
+   "201110",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3621",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3622",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3624",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 3,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4001",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 4,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4042",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 5,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4081",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 6,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4082",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 7,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "1987",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 8,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "5006",
+    "usc_section_end": "5024",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 9,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "1984",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "40 USC 506(a)",
+  "rows": 13,
+  "rin_prefixes": [
+   "3090"
+  ],
+  "editions": [
+   "200410",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 40,
+    "usc_section": "506",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "15 U.S.C. 3301 TO 3432",
+  "rows": 1,
+  "rin_prefixes": [
+   "1902"
+  ],
+  "editions": [
+   "201504",
+   "201504"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 15,
+    "usc_section": "3301",
+    "usc_section_end": "3432",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "15 USC 78bb(i)(2)",
+  "rows": 1,
+  "rin_prefixes": [
+   "3235"
+  ],
+  "editions": [
+   "200404",
+   "200404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 15,
+    "usc_section": "78bb",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 1805",
+  "rows": 1,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "199704",
+   "199704"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "1805",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 USC 44916-44918",
+  "rows": 1,
+  "rin_prefixes": [
+   "1652"
+  ],
+  "editions": [
+   "200504",
+   "200504"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 49,
+    "usc_section": "44916",
+    "usc_section_end": "44918",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "PL 105-33, sec 4321 of the BBA",
+  "rows": 5,
+  "rin_prefixes": [
+   "0938"
+  ],
+  "editions": [
+   "200310",
+   "200510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "105-33",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "22 U.S.C. 287c",
+  "rows": 369,
+  "rin_prefixes": [
+   "1400",
+   "0694"
+  ],
+  "editions": [
+   "201504",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 22,
+    "usc_section": "287c",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "50 USC app sec 2061 et seq",
+  "rows": 2,
+  "rin_prefixes": [
+   "2105"
+  ],
+  "editions": [
+   "201010",
+   "201104"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 50,
+    "usc_app": true,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "47 USC 219",
+  "rows": 22,
+  "rin_prefixes": [
+   "3060"
+  ],
+  "editions": [
+   "199510",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 47,
+    "usc_section": "219",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "332 US 234 (1947)",
+  "rows": 8,
+  "rin_prefixes": [
+   "1510"
+  ],
+  "editions": [
+   "200010",
+   "200404"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "case_citation",
+    "status": "ok",
+    "case_reporter": "U. S.",
+    "case_vol": 332,
+    "case_page": 234,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 1443",
+  "rows": 4,
+  "rin_prefixes": [
+   "3069",
+   "2590"
+  ],
+  "editions": [
+   "200104",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "1443",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 U.S.C. 996",
+  "rows": 19,
+  "rin_prefixes": [
+   "1545"
+  ],
+  "editions": [
+   "201610",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "996",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "CAA sec 211(h)",
+  "rows": 1,
+  "rin_prefixes": [
+   "2060"
+  ],
+  "editions": [
+   "201004",
+   "201004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "act_relative",
+    "status": "corroborated",
+    "act_key": "clean air act",
+    "act_section": "211",
+    "usc_app": false,
+    "usc_note": false,
+    "corrob": "agency-roster-initialism"
+   }
+  ]
+ },
+ {
+  "text": "5 U.S.C. ch. 10 and E.O. 12024 (42 FR 61445",
+  "rows": 3,
+  "rin_prefixes": [
+   "3090"
+  ],
+  "editions": [
+   "202510",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc_chapter",
+    "status": "partial",
+    "usc_title": 5,
+    "usc_chapter": "10",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "executive_order",
+    "status": "partial",
+    "executive_order": "12024",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "federal_register",
+    "status": "partial",
+    "fr_vol": 42,
+    "fr_page": 61445,
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 USC 2101",
+  "rows": 10,
+  "rin_prefixes": [
+   "1991"
+  ],
+  "editions": [
+   "201010",
+   "201304"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 42,
+    "usc_section": "2101",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "sec. 305 of the NASA Transition Authorization Act of 2017 (Pub. L. 115-10)",
+  "rows": 4,
+  "rin_prefixes": [
+   "2700"
+  ],
+  "editions": [
+   "201704",
+   "201810"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "115-10",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 481-482",
+  "rows": 2,
+  "rin_prefixes": [
+   "1557"
+  ],
+  "editions": [
+   "200510",
+   "200604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "481",
+    "usc_section_end": "482",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "46 U.S.C. 3308",
+  "rows": 4,
+  "rin_prefixes": [
+   "1625"
+  ],
+  "editions": [
+   "201504",
+   "201610"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 46,
+    "usc_section": "3308",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "23 U.S.C. 125",
+  "rows": 10,
+  "rin_prefixes": [
+   "2125"
+  ],
+  "editions": [
+   "202104",
+   "202510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 23,
+    "usc_section": "125",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 1141j(a)",
+  "rows": 14,
+  "rin_prefixes": [
+   "3072"
+  ],
+  "editions": [
+   "199904",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 12,
+    "usc_section": "1141j",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "22 U.S.C. 1750",
+  "rows": 2,
+  "rin_prefixes": [
+   "0703"
+  ],
+  "editions": [
+   "202110",
+   "202204"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 22,
+    "usc_section": "1750",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "26 USC 5706",
+  "rows": 1,
+  "rin_prefixes": [
+   "1513"
+  ],
+  "editions": [
+   "201410",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 26,
+    "usc_section": "5706",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "18 USC 3565, 3568 to 3569, 3582, 3621 to 3622, 3624, 4001, 4042, 4081 to 4082",
+  "rows": 56,
+  "rin_prefixes": [
+   "1120"
+  ],
+  "editions": [
+   "200210",
+   "200510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3565",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 1,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3568",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 2,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3582",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 3,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3621",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 4,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "3624",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 5,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4001",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 6,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4042",
+    "usc_app": false,
+    "usc_note": false
+   },
+   {
+    "citation_ordinal": 7,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 18,
+    "usc_section": "4081",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "49 USC 1341(c)",
+  "rows": 1,
+  "rin_prefixes": [
+   "2120"
+  ],
+  "editions": [
+   "199510",
+   "199510"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 49,
+    "usc_section": "1341",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 USC 6508",
+  "rows": 6,
+  "rin_prefixes": [
+   "1004"
+  ],
+  "editions": [
+   "199510",
+   "201410"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 42,
+    "usc_section": "6508",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "12 USC 1701z to 1712",
+  "rows": 2,
+  "rin_prefixes": [
+   "2502"
+  ],
+  "editions": [
+   "199510",
+   "199604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 12,
+    "usc_section": "1701z",
+    "usc_section_end": "1712",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "42 U.S.C. 405(d) to 506 (h)",
+  "rows": 1,
+  "rin_prefixes": [
+   "0960"
+  ],
+  "editions": [
+   "202004",
+   "202004"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "partial",
+    "usc_title": 42,
+    "usc_section": "405",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "Sec 901-911, PL 106-387",
+  "rows": 4,
+  "rin_prefixes": [
+   "0694"
+  ],
+  "editions": [
+   "200510",
+   "200604"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "public_law",
+    "status": "partial",
+    "public_law": "106-387",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ },
+ {
+  "text": "7 USC 7411 to 7424",
+  "rows": 2,
+  "rin_prefixes": [
+   "0581"
+  ],
+  "editions": [
+   "200004",
+   "200010"
+  ],
+  "citations": [
+   {
+    "citation_ordinal": 0,
+    "type": "usc",
+    "status": "ok",
+    "usc_title": 7,
+    "usc_section": "7411",
+    "usc_section_end": "7424",
+    "usc_app": false,
+    "usc_note": false
+   }
+  ]
+ }
+]

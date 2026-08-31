@@ -32,6 +32,112 @@ ADDITIONAL_URLS = {
     "opm_workforce_codes.py": ("https://data.opm.gov/data-standards/ehri-data-standards",),
 }
 
+def _cfr_authority_note_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
+    """Describe the eCFR part authority notes as ONE response collection.
+
+    The capture is the 49 non-reserved CFR titles' full XML reduced to the
+    elements this reader consults -- the same shape ``umthes_content.py``'s
+    endpoint archive has, and it takes the same
+    ``publisherApiResponseCollection`` provenance. The pins are read from the
+    reader's own constants rather than restated here, so a drifted cache fails
+    the reader and generation together instead of being described by one and
+    refused by the other.
+
+    **One fetch day, 49 issue dates.** Each title was requested at its OWN
+    ``latest_issue_date``, so the endpoint the reader states has a placeholder
+    the module cannot fill in; the collection's scope says so rather than
+    printing one date as if it were all of them.
+
+    What the collection does NOT hold is the 810 MB of raw XML. Each record
+    carries its own request URL and the ``raw_sha256`` and ``raw_bytes`` of the
+    title document it was cut from, so a re-fetch is checkable byte-for-byte --
+    stated in ``scope`` rather than left for a reader to discover, because a
+    testInput that claims publisher bytes has to say which bytes it has.
+    """
+
+    from refspec.registry import cfr_authority_notes as notes
+
+    return {
+        "cfr_authority_notes.py": (
+            {
+                "name": "ecfrPartAuthorityNotes20260824",
+                "localPath": notes.CFR_AUTHORITY_NOTES_ARTIFACT,
+                "publisherUrl": "https://www.ecfr.gov/api/versioner/v1/",
+                "sha256": notes.NOTES_SHA256,
+                "byteLength": notes.NOTES_BYTE_LENGTH,
+                "acquisition": "directPublisherDownload",
+                "provenance": "publisherApiResponseCollection",
+                "scope": (
+                    f"{notes.NOTES_EXPECTED_RECORDS} authority notes -- every one the register "
+                    f"publishes -- cut from 49 responses to {notes.NOTES_ENDPOINT}, fetched "
+                    f"{notes.NOTES_FETCHED}, one per non-reserved CFR title at THAT TITLE's own "
+                    "latest issue date (2024-05-17 to 2026-08-20, which is why the endpoint states "
+                    "a date it cannot fill in); the publisher's authority-note and source-note text "
+                    "with each record's own request URL, sha256 and byte length. The raw XML is not "
+                    "retained (810 MB, re-fetchable and checkable against those per-record digests)"
+                ),
+            },
+        ),
+    }
+
+
+def _usc_disposition_table_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
+    """Describe the printed volume each pinned recodification table was cut from.
+
+    Unlike its two neighbours -- ``usc_act_index.py``, whose acquisition URL was
+    never recorded, and ``usc_section_oracle.py``, whose 2.3 GB of publisher
+    zips were deleted after extraction -- this reader's publisher bytes ARE
+    retained here and reachable: govinfo's 1994 Title 49 volume is committed
+    beside the derived table, 5,165,242 bytes, and the extractor re-checks the
+    digest AND the byte length before it reads a page. So this is a testInput
+    and not a blocker.
+
+    One descriptor per row of ``RECODIFICATIONS``, with the pins and the URL
+    read from that row rather than restated here: a second table is a directory
+    and a row, and its descriptor should arrive with it rather than waiting for
+    someone to remember. The local path is the artifact directory plus the
+    URL's own basename, for the same reason -- the module states the URL, and
+    the file is the file it names.
+    """
+
+    from refspec.registry import usc_disposition_tables as tables
+
+    def named(recodification: Any) -> str:
+        """``USCODE-1994-title49`` -> ``uscode1994Title49PrintedVolume``.
+
+        The govinfo package id is what the volume IS, so the name is derived
+        from it rather than invented; every other name in this manifest is
+        camelCase alphanumerics, so the hyphens are folded rather than kept.
+        """
+
+        head, *tail = re.split(r"[^0-9A-Za-z]+", Path(urlsplit(recodification.source_url).path).stem)
+        return head.lower() + "".join(part[:1].upper() + part[1:] for part in tail) + "PrintedVolume"
+
+    return {
+        "usc_disposition_tables.py": tuple(
+            {
+                "name": named(recodification),
+                "localPath": (
+                    f"{tables.USC_DISPOSITION_TABLES_ARTIFACT}/"
+                    f"{Path(urlsplit(recodification.source_url).path).name}"
+                ),
+                "publisherUrl": recodification.source_url,
+                "sha256": recodification.source_digest,
+                "byteLength": recodification.source_bytes,
+                "acquisition": "directPublisherDownload",
+                "provenance": "publisherDistribution",
+                "scope": (
+                    f"the printed volume carrying the disposition table for the {recodification.name} "
+                    f"recodification ({recodification.enacted_by}), fetched 2026-08-23; the committed "
+                    f"extractor beside it re-checks this sha256 and byte length before reading a page, "
+                    f"and writes {recodification.table} at {recodification.digest}"
+                ),
+            }
+            for recodification in tables.RECODIFICATIONS
+        ),
+    }
+
+
 def _acquisition_wave_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
     """Describe the large publisher captures added by REF-037."""
 
@@ -120,6 +226,20 @@ def _acquisition_wave_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
 
 TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
     **_acquisition_wave_test_inputs(),
+    **_cfr_authority_note_test_inputs(),
+    **_usc_disposition_table_test_inputs(),
+    "unified_agenda_editions.py": (
+        {
+            "name": "unifiedAgendaEdition202510",
+            "localPath": (
+                "output/registry-real-data-sources/unified-agenda-editions/REGINFO_RIN_DATA_202510.xml"
+            ),
+            "publisherUrl": ("https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_202510.xml"),
+            "sha256": ("sha256:4dc85fe08251eed1499dee5f2a2f7e3fcf4717baf468409c1f884dd68782b75f"),
+            "byteLength": 17_624_465,
+            "provenance": "publisherDistribution",
+        },
+    ),
     "courtlistener_codes.py": (
         {
             "name": "courtlistenerJurisdictions",
@@ -818,6 +938,36 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherDistribution",
         },
     ),
+    # REF-046 closed the gap the old SOURCE_BLOCKERS entry recorded: the
+    # organization experiment's 127 microthesauri and 7,902 memberships
+    # now ship as a real Atlas release (eurovoc-microthesauri-4.24) and the
+    # microthesaurus-to-domain notation-prefix link now ships as the
+    # derived graph's fifth registered rule, and the module is exercised
+    # through a real-data test over the same pinned publisher artifact
+    # `claim_release_exports.py` already pins -- one shared pin for one
+    # shared artifact, not a second capture.
+    "eurovoc_organization_experiment.py": (
+        {
+            "name": "eurovocSkosCore",
+            "localPath": "output/registry-real-data-sources/eurovoc-4.24-skos-core.zip",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip"
+            ),
+            "sha256": "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+            "byteLength": 8_567_290,
+            "provenance": "publisherDistribution",
+        },
+        {
+            "name": "eurovocMetadata",
+            "localPath": "output/registry-real-data-sources/eurovoc-4.24-metadata.ttl",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl"
+            ),
+            "sha256": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+            "byteLength": 36_011,
+            "provenance": "publisherDistribution",
+        },
+    ),
     "nasa_thesaurus.py": (
         {
             "name": "nasaThesaurusSkos",
@@ -1124,11 +1274,91 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
 }
 
 
+# REF-046 closed the last entry (eurovoc_organization_experiment.py): its
+# 127 microthesauri and 7,902 memberships now ship as a real Atlas release
+# and its notation-prefix link now ships as the derived graph's fifth
+# registered rule, exercised through a real-data test over the pinned
+# publisher artifact declared in TEST_INPUTS above.
+#: Top-level modules that read strings, never publisher bytes. The nested
+#: auto-support rule reasons that a module naming no publisher cannot be
+#: reading one; these are the top-level modules that rule would cover, listed
+#: by name rather than by broadening a heuristic, because a reader that stops
+#: naming its publisher must still fail loudly.
+STRING_GRAMMAR_MODULES: frozenset[str] = frozenset(
+    {
+        "citation_grammar.py",
+        "identifier_shapes.py",
+    }
+)
+
 SOURCE_BLOCKERS: dict[str, list[str]] = {
-    "eurovoc_organization_experiment.py": [
+    # The builder does read the pinned editions, but its tests read the built
+    # artifact instead: parsing sixty publisher XML editions per test run buys
+    # nothing the artifact digests do not already pin. The gap is real, so it
+    # is named rather than claimed away -- the publisher-byte coverage for
+    # these editions lives in unified_agenda_editions.py, which reads them.
+    "unified_agenda_parquet.py": [(
+        "tests verify the built Parquet artifact against its receipt, not the "
+        "publisher editions it was built from; those bytes are covered by "
+        "unified_agenda_editions.py"
+    )],
+    # Act resolution reads sha256-pinned artifacts built from the OLRC pages
+    # elsewhere; this repository does not retain the publisher bytes. Named,
+    # rather than dressed up as a publisher capture it does not hold.
+    "act_resolution.py": [(
+        "publisher bytes are not retained here: act resolution reads sha256-pinned "
+        "artifacts (output/usc-act-index-2026-08-02, output/usc-source-credit-index-2026-08-02) "
+        "whose receipt records https://uscode.house.gov/popularnames/popularnames.htm at "
+        "sha256:50687ac0116114b1d16ce59460f6092539cb00977c0c428e574a874b81e018b4"
+    )],
+    # This reader DOES hold the publisher bytes -- OLRC's whole-of-Table-III
+    # release, output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip,
+    # 14,966,992 bytes at sha256:93e1f233e081e47fc3680c4b699151c6d66329988fe21
+    # add3b6e9e62746aeea7, carrying fulldump@119-73.xml at 126,260,704 bytes --
+    # and the module pins all four numbers and re-checks them on every build and
+    # every --verify. What it cannot state is the URL those bytes arrived from:
+    # the 2026-08-05 acquisition pass recorded "fetched by plain curl" and no
+    # address (research/vocabulary-atlas-spine-and-rings-takeaways-2026-08-06.md),
+    # and OLRC has since moved to release point 119-102 -- probed 2026-08-22,
+    # /table3/, /download/releasepoints/us/pl/119/73/ and /classification/ all
+    # answer the site's soft-404 page for fulldump@119-73 in either extension,
+    # and neither download.shtml nor classification/tables.shtml links a bulk
+    # Table III file at all. A testInput must carry a publisherUrl, so naming
+    # the gap is the only honest entry: guessing a plausible OLRC path would
+    # pin a digest to an address nobody verified.
+    "usc_act_index.py": [
         (
-            "Experiment reads injected archive and metadata paths; its tests exercise "
-            "synthetic fixtures only, so no pinned publisher capture is consumed."
+            "the publisher bytes ARE retained and digest-pinned "
+            "(output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip, 14966992 bytes, "
+            "sha256:93e1f233e081e47fc3680c4b699151c6d66329988fe21add3b6e9e62746aeea7), but their "
+            "acquisition URL was never recorded and OLRC no longer serves release point 119-73 at "
+            "any probed path, so no publisherUrl can be stated without inventing one"
+        )
+    ],
+    # The exact mirror of the entry above, and the reason it is a blocker
+    # rather than a testInput. Here the ACQUISITION IS RECORDED -- release
+    # point 119-102 and the 31 annual XHTML archives, both URLs stated in the
+    # module docstring and therefore in declaredUrls, with a re-fetch sha256
+    # and byte length for all 32 zips in
+    # research/evidence/usc-section-oracle-2026-08-22/README.md, plus a
+    # row-for-row reproduction check of all six derived tables from those
+    # bytes. What is missing is the BYTES: ~2.3 GB of publisher zips were
+    # deleted after extraction and are not retained in this repository, so
+    # there is no localPath to pin them at. The six DERIVED tables are pinned
+    # (_ORACLE_PINS, re-checked on every read, and asserted against the
+    # README's Files table by test_every_oracle_table_is_the_one_the_artifact_readme_states),
+    # but a derived Parquet is not a publisher byte and calling it one would
+    # claim coverage this reader does not have.
+    "usc_section_oracle.py": [
+        (
+            "the acquisition IS recorded and re-verified -- "
+            "https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip "
+            "and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching "
+            "byte length and a row-for-row reproduction check in "
+            "research/evidence/usc-section-oracle-2026-08-22/README.md -- but the ~2.3 GB of "
+            "publisher zips were deleted after extraction and are not retained here; this reader "
+            "holds only the six DERIVED oracle tables, digest-pinned in the module and re-checked "
+            "on every load"
         )
     ],
 }
@@ -1351,6 +1581,77 @@ def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> 
     return resolved
 
 
+def _cfr_subject_index_test_inputs(repository_root: Path) -> list[dict[str, Any]]:
+    """Describe the fifty pinned CFR List of Subjects pages as one collection.
+
+    The Office of the Federal Register publishes the per-part index as fifty
+    static pages, so the capture is one publisher artifact in fifty files
+    rather than fifty unrelated sources. Each page's digest and byte length
+    come from the reader's own pin tuple and are re-verified here against the
+    tracked bytes, so a fixture edit fails generation instead of being
+    described.
+    """
+
+    from refspec.registry import cfr_list_of_subjects as cfr
+
+    fixture_root = Path("tests/fixtures/cfr_list_of_subjects/subject-index")
+    members: list[dict[str, Any]] = []
+    reserved: list[dict[str, Any]] = []
+    for pin in cfr.CFR_SUBJECT_INDEX_2026_08_20:
+        relative_path = fixture_root / f"subject-title-{pin.cfr_title:02d}.html"
+        payload = (repository_root / relative_path).read_bytes()
+        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if digest != pin.expected_sha256 or len(payload) != pin.expected_byte_length:
+            raise ValueError(
+                f"{relative_path.as_posix()} does not match its immutable source pin: "
+                f"expected {pin.expected_sha256}/{pin.expected_byte_length}, got {digest}/{len(payload)}"
+            )
+        descriptor: dict[str, Any] = {
+            "name": f"subjectTitle{pin.cfr_title:02d}",
+            "localPath": relative_path.as_posix(),
+            "publisherUrl": pin.source_url,
+            "sha256": pin.expected_sha256,
+            "byteLength": pin.expected_byte_length,
+            "acquisition": "directPublisherDownload",
+            "provenance": "publisherPageResponse",
+        }
+        # CFR title 35 is reserved, so its page legitimately parses to zero
+        # parts and can never produce the substantive counts the real-data
+        # receipt gate asks of a publisher input. It stays pinned, tracked and
+        # parsed -- `parse_cfr_subject_index` raises if it is ever non-empty --
+        # but it is stated separately rather than sitting in the collection as
+        # a member that looks unconsumed.
+        if pin.cfr_title in cfr.CFR_RESERVED_TITLES:
+            reserved.append(
+                {
+                    **descriptor,
+                    "receiptRequired": False,
+                    "scope": "reserved CFR title; a correct parse of this page yields zero parts",
+                }
+            )
+            continue
+        members.append(descriptor)
+    if len(members) + len(reserved) != cfr.CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT:
+        raise ValueError("CFR subject index capture does not carry all fifty title pages")
+    if len(reserved) != len(cfr.CFR_RESERVED_TITLES):
+        raise ValueError("CFR subject index capture does not carry every reserved title page")
+    # No captureDigest: the collection has no publisher-written manifest, and a
+    # digest RefSpec computed over its own member list could never appear in an
+    # execution receipt. The fifty member digests are what the real-data gate
+    # checks, and each of them is a byte the parser actually reads.
+    return [
+        {
+            "name": "cfrSubjectIndexCapture20260820",
+            "kind": "sourceCollection",
+            "localPath": fixture_root.as_posix(),
+            "memberCount": len(members),
+            "members": members,
+            "provenance": "publisherCaptureCollection",
+        },
+        *reserved,
+    ]
+
+
 def _icpsr_managed_release_test_inputs(
     repository_root: Path,
 ) -> list[dict[str, Any]]:
@@ -1452,6 +1753,8 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
     for module, _path in zip(module_ids, paths, strict=True):
         inputs = [dict(configured) for configured in TEST_INPUTS.get(module, ())]
         inputs.extend(_pinned_fixture_test_inputs(module, repository_root))
+        if module == "cfr_list_of_subjects.py":
+            inputs.extend(_cfr_subject_index_test_inputs(repository_root))
         if module == "managed_releases/icpsr_managed_release.py":
             inputs.extend(_icpsr_managed_release_test_inputs(repository_root))
         if module == "adapters/icpsr_zyte.py":
@@ -1463,7 +1766,7 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
         declared_urls = set(_literal_urls(path))
         declared_urls.update(ADDITIONAL_URLS.get(module, ()))
         classification = _classification(module)
-        default_role = "support" if module in auto_support else "dataReader"
+        default_role = "support" if module in auto_support or module in STRING_GRAMMAR_MODULES else "dataReader"
         config = NESTED_MODULE_AUDIT.get(
             module,
             {"auditRole": default_role, "coveredBy": [], "inputRefs": []},

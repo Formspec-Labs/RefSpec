@@ -1,0 +1,50 @@
+[
+ {
+  "rin": "0938-AR55",
+  "pub": "201304",
+  "first_ordinal": 0,
+  "boxes": [
+   "MIPPA sec 153 (b",
+   "PL 111-148 sec 3401(h)"
+  ],
+  "silent": [
+   true,
+   false
+  ],
+  "signals": [
+   "L3-unbalanced-paren"
+  ],
+  "old": [
+   {
+    "authority_type": "other",
+    "stated_section": "153"
+   },
+   {
+    "authority_type": "public_law",
+    "public_law": "111-148",
+    "stated_section": "3401(h)"
+   }
+  ],
+  "new": [
+   {
+    "authority_type": "public_law",
+    "public_law": "111-148"
+   }
+  ],
+  "kind": "LOSS",
+  "new_with_stated": [
+   {
+    "authority_type": "public_law",
+    "public_law": "111-148",
+    "stated_section": "153"
+   }
+  ],
+  "lost": [
+   {
+    "authority_type": "public_law",
+    "public_law": "111-148",
+    "stated_section": "3401(h)"
+   }
+  ]
+ }
+]

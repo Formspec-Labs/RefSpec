@@ -1,0 +1,302 @@
+[
+ {
+  "rin": "0790-AJ04",
+  "publication_id": "201610",
+  "ordinal": 18,
+  "citation_ordinal": 0,
+  "title": 42,
+  "stem": "2000",
+  "text": "42 U.S.C. 2000(d)-4",
+  "candidates": [
+   "2000d"
+  ],
+  "tails": {
+   "2000d": "-4"
+  }
+ },
+ {
+  "rin": "1291-AA31",
+  "publication_id": "200010",
+  "ordinal": 0,
+  "citation_ordinal": 0,
+  "title": 42,
+  "stem": "2000",
+  "text": "42 USC 2000(d)",
+  "candidates": [
+   "2000d"
+  ],
+  "tails": {
+   "2000d": null
+  }
+ },
+ {
+  "rin": "1550-AC23",
+  "publication_id": "200910",
+  "ordinal": 11,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(l)",
+  "candidates": [
+   "78l"
+  ],
+  "tails": {
+   "78l": null
+  }
+ },
+ {
+  "rin": "1557-AB57",
+  "publication_id": "199704",
+  "ordinal": 13,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(h)",
+  "candidates": [
+   "78h"
+  ],
+  "tails": {
+   "78h": null
+  }
+ },
+ {
+  "rin": "3045-AA24",
+  "publication_id": "201304",
+  "ordinal": 2,
+  "citation_ordinal": 0,
+  "title": 42,
+  "stem": "2000",
+  "text": "42 USC 2000 (d)",
+  "candidates": [
+   "2000d"
+  ],
+  "tails": {
+   "2000d": null
+  }
+ },
+ {
+  "rin": "3045-AA24",
+  "publication_id": "201604",
+  "ordinal": 2,
+  "citation_ordinal": 0,
+  "title": 42,
+  "stem": "2000",
+  "text": "42 U.S.C. 2000 (d)",
+  "candidates": [
+   "2000d"
+  ],
+  "tails": {
+   "2000d": null
+  }
+ },
+ {
+  "rin": "3045-AA24",
+  "publication_id": "201704",
+  "ordinal": 2,
+  "citation_ordinal": 0,
+  "title": 42,
+  "stem": "2000",
+  "text": "42 U.S.C. 2000 (d)",
+  "candidates": [
+   "2000d"
+  ],
+  "tails": {
+   "2000d": null
+  }
+ },
+ {
+  "rin": "3064-AC88",
+  "publication_id": "200504",
+  "ordinal": 3,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(n)",
+  "candidates": [
+   "78n"
+  ],
+  "tails": {
+   "78n": null
+  }
+ },
+ {
+  "rin": "3235-AG65",
+  "publication_id": "199510",
+  "ordinal": 9,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(x)",
+  "candidates": [
+   "78x"
+  ],
+  "tails": {
+   "78x": null
+  }
+ },
+ {
+  "rin": "3235-AI17",
+  "publication_id": "200404",
+  "ordinal": 2,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(a), 78bbb(e)(2)",
+  "candidates": [
+   "78a"
+  ],
+  "tails": {
+   "78a": null
+  }
+ },
+ {
+  "rin": "3235-AI17",
+  "publication_id": "200510",
+  "ordinal": 4,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(s)-37(a)",
+  "candidates": [
+   "78s"
+  ],
+  "tails": {
+   "78s": "-37"
+  }
+ },
+ {
+  "rin": "3235-AI53",
+  "publication_id": "200210",
+  "ordinal": 2,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(a)",
+  "candidates": [
+   "78a"
+  ],
+  "tails": {
+   "78a": null
+  }
+ },
+ {
+  "rin": "3235-AJ37",
+  "publication_id": "200610",
+  "ordinal": 13,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(o)(c)",
+  "candidates": [
+   "78o"
+  ],
+  "tails": {
+   "78o": "(c)"
+  }
+ },
+ {
+  "rin": "3235-AJ37",
+  "publication_id": "200704",
+  "ordinal": 13,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(o)(c)",
+  "candidates": [
+   "78o"
+  ],
+  "tails": {
+   "78o": "(c)"
+  }
+ },
+ {
+  "rin": "3235-AJ37",
+  "publication_id": "200904",
+  "ordinal": 13,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(o)(c)",
+  "candidates": [
+   "78o"
+  ],
+  "tails": {
+   "78o": "(c)"
+  }
+ },
+ {
+  "rin": "3235-AJ37",
+  "publication_id": "201210",
+  "ordinal": 13,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(g)",
+  "candidates": [
+   "78g"
+  ],
+  "tails": {
+   "78g": null
+  }
+ },
+ {
+  "rin": "3235-AJ57",
+  "publication_id": "200710",
+  "ordinal": 0,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 78(a)",
+  "candidates": [
+   "78a"
+  ],
+  "tails": {
+   "78a": null
+  }
+ },
+ {
+  "rin": "3235-AM63",
+  "publication_id": "202004",
+  "ordinal": 17,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 U.S.C. 78(q)",
+  "candidates": [
+   "78q"
+  ],
+  "tails": {
+   "78q": null
+  }
+ },
+ {
+  "rin": "3235-AM63",
+  "publication_id": "202010",
+  "ordinal": 14,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 U.S.C. 78(m)",
+  "candidates": [
+   "78m"
+  ],
+  "tails": {
+   "78m": null
+  }
+ },
+ {
+  "rin": "3235-AM63",
+  "publication_id": "202010",
+  "ordinal": 19,
+  "citation_ordinal": 0,
+  "title": 15,
+  "stem": "78",
+  "text": "15 U.S.C. 78(w)",
+  "candidates": [
+   "78w"
+  ],
+  "tails": {
+   "78w": null
+  }
+ }
+]

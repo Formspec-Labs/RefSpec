@@ -1,0 +1,163 @@
+### RECEIPT DELTA, baseline (rebuild #11 faithful) -> the three units
+  /cfrReferences
+      444848  ->  444847
+  /contract/declaredClassifications/actRelativeRefusedPairs
+      248  ->  254
+  /contract/declaredClassifications/actRelativeResolvedPairs
+      360  ->  372
+  /contract/declaredClassifications/actRelativeResolvedRowsByEvidence/table3-classification
+      5644  ->  6755
+  /contract/declaredClassifications/actRelativeResolvedRowsByPriorStatus/corroborated
+      2148  ->  3259
+  /contract/declaredClassifications/actRelativeRowsByResolutionReason/act_section_not_classified
+      1325  ->  1629
+  /contract/declaredClassifications/actRelativeRowsByResolutionReason/no_section_stated
+      2069  ->  2082
+  /contract/declaredClassifications/actRelativeRowsByStatus/corroborated
+      2985  ->  4413
+  /contract/declaredClassifications/actSectionVerdictActSections/exists
+      360  ->  372
+  /contract/declaredClassifications/actSectionVerdictPairs/exists
+      348  ->  358
+  /contract/declaredClassifications/actSectionVerdictRins/exists
+      979  ->  1051
+  /contract/declaredClassifications/actSectionVerdictRows/exists
+      5657  ->  6768
+  /contract/declaredClassifications/actSectionVerdictRowsByEvidence/table3-classification/exists
+      5644  ->  6755
+  /contract/declaredClassifications/actSectionVerdictRowsByStatus/corroborated/exists
+      2148  ->  3259
+  /contract/declaredClassifications/actSectionVerdictTexts/exists
+      1082  ->  1233
+  /contract/declaredClassifications/authorityContinuationRowsBySource/additional-info:additional-legal-authority
+      405  ->  399
+  /contract/declaredClassifications/authorityContinuationRowsBySource/additional-info:legal-authority-cont
+      920  ->  911
+  /contract/declaredClassifications/authorityContinuationRowsByTypeAndStatus/eo_compilation/partial
+      13  ->  20
+  /contract/declaredClassifications/authorityContinuationRowsByTypeAndStatus/usc/partial
+      1147  ->  1125
+  /contract/declaredClassifications/authorityCorroboratedRows
+      3991  ->  5419
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:agency-gloss-narrowed-initialism
+      None  ->  0
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:agency-roster-initialism
+      None  ->  1352
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:agency-roster-word-prefix
+      None  ->  0
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:index-holds-a-bare-name-and-section
+      None  ->  61
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:index-holds-the-stated-name
+      None  ->  15
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:pinned-roster-initialism:candidate-index-match
+      None  ->  0
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:pinned-roster-initialism:pinned-quote
+      None  ->  0
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:pinned-roster-initialism:reverse-pl-verified
+      None  ->  0
+  /contract/declaredClassifications/authorityCorroboratedRowsByRule/second-authority-behind-a-slash:pinned-roster-initialism:self-glossing
+      None  ->  0
+  /contract/declaredClassifications/authorityPartialRows
+      213773  ->  213003
+  /contract/declaredClassifications/cfrNoteCoverage/rows
+      713547  ->  714909
+  /contract/declaredClassifications/cfrNoteUnjudgedRowsByType/eo_compilation
+      1224  ->  1231
+  /contract/declaredClassifications/cfrNoteVerdictRows/absent
+      123432  ->  124894
+  /contract/declaredClassifications/cfrNoteVerdictRows/near-miss
+      56877  ->  56348
+  /contract/declaredClassifications/cfrNoteVerdictRows/present
+      488759  ->  489181
+  /contract/declaredClassifications/cfrNoteVerdictRowsByAuthorityType/act_relative/absent
+      7012  ->  8120
+  /contract/declaredClassifications/cfrNoteVerdictRowsByAuthorityType/act_relative/present
+      644  ->  873
+  /contract/declaredClassifications/cfrNoteVerdictRowsByAuthorityType/usc/absent
+      88577  ->  88931
+  /contract/declaredClassifications/cfrNoteVerdictRowsByAuthorityType/usc/near-miss
+      56428  ->  55899
+  /contract/declaredClassifications/cfrNoteVerdictRowsByAuthorityType/usc/present
+      475828  ->  476021
+  /contract/declaredClassifications/cfrNoteVerdictTexts/absent
+      13969  ->  14108
+  /contract/declaredClassifications/cfrNoteVerdictTexts/near-miss
+      5885  ->  5812
+  /contract/declaredClassifications/cfrNoteVerdictTexts/present
+      20159  ->  20222
+  /contract/declaredClassifications/initialismRosterRefusalsByReason/the-candidate-tier-is-unfenced-here
+      169  ->  185
+  /contract/declaredClassifications/initialismRosterRefusalsByReason/the-corpus-roster-already-speaks
+      2  ->  24
+  /contract/declaredClassifications/initialismRosterRefusalsByReason/the-roster-does-not-hold-this-token
+      0  ->  84
+  /contract/declaredClassifications/slashRefusalsByReason/no-act-reader-binds-the-tail
+      None  ->  97
+  /contract/declaredClassifications/slashRefusalsByReason/no-slash-that-could-separate-two-authorities
+      None  ->  156
+  /contract/declaredClassifications/slashRefusalsByReason/the-box-already-names-this-act-at-this-section
+      None  ->  1
+  /contract/declaredClassifications/slashRefusalsByReason/the-head-does-not-read-as-a-citation-on-its-own
+      None  ->  15
+  /contract/declaredClassifications/slashRefusalsByReason/the-tail-is-already-read-by-the-grammar
+      None  ->  11
+  /contract/declaredClassifications/spanEndpointRefusalsByReason/a-compound-end-the-code-does-not-print
+      None  ->  39
+  /contract/declaredClassifications/spanEndpointRefusalsByReason/an-inferred-end-the-code-does-not-print
+      None  ->  24
+  /contract/declaredClassifications/titlelessRows
+      22158  ->  22159
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/1
+      544  ->  541
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/17
+      17  ->  18
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/18
+      20  ->  22
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/24
+      17  ->  21
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/36
+      181  ->  176
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/6
+      151  ->  149
+  /contract/declaredClassifications/uscDispositionRowsBySuccessorCount/7
+      139  ->  137
+  /contract/declaredClassifications/uscDispositionSpanRows
+      289  ->  296
+  /contract/declaredClassifications/uscDispositionVerdictRows/exists-as-recodified
+      2238  ->  2233
+  /contract/declaredClassifications/uscSectionAbbreviatedSpanRows
+      264  ->  299
+  /contract/declaredClassifications/uscSectionCorrectionRefusalRowsBySurvivors/A4+parse
+      26297  ->  26299
+  /contract/declaredClassifications/uscSectionExistsNotAtEditionRows
+      8258  ->  8261
+  /contract/declaredClassifications/uscSectionUnknownRowsByReason/title_49_appendix_not_published
+      2548  ->  2543
+  /contract/declaredClassifications/uscSectionVerdictPairs/absent
+      1418  ->  1417
+  /contract/declaredClassifications/uscSectionVerdictPairs/exists
+      9416  ->  9418
+  /contract/declaredClassifications/uscSectionVerdictRins/absent
+      2122  ->  2120
+  /contract/declaredClassifications/uscSectionVerdictRows/absent
+      14191  ->  14173
+  /contract/declaredClassifications/uscSectionVerdictRows/exists
+      670407  ->  670441
+  /contract/declaredClassifications/uscSectionVerdictRows/unknown
+      2551  ->  2546
+  /contract/declaredClassifications/uscSectionVerdictTexts/absent
+      1874  ->  1871
+  /contract/declaredClassifications/uscSectionVerdictTexts/exists
+      28916  ->  28917
+  /legalAuthorities
+      799127  ->  800573
+  /outputs/unified_agenda_cfr_references
+      'sha256:fdba1bd8b621da79de3e9f2fa5a2d1ce33e971aa299b3a87744a0d37c52d44ba'  ->  'sha256:7528e572f6fc815fc48825605335dd90f00534ee98a685464b058125213f7400'
+  /outputs/unified_agenda_legal_authorities
+      'sha256:6d53b50dfb44a52b9542bcf83298cb97155e0901df1b9a47742a884426c554b9'  ->  'sha256:b01ca4805a8b05fa388a317409f6e72eb887ea5995d75f5822951f15fd49374f'
+  /producer/modules/cfr_authority_notes
+      'sha256:be4a2336722bd531eca93c3437fb3afd98e88b8dd6190efc84d2d6decf1e8e0b'  ->  'sha256:42e7a02b9776f9475a9375a4291dee99355bfe8181644b712f3e189ff22888fe'
+  /producer/modules/citation_grammar
+      'sha256:ab7d208f1bbb66bb17257ada9e7c34d0a98cf8f7dbab4c1bf618ce36dacad242'  ->  'sha256:b4a37bf0d6981852dff4850eb5cd2e3b32fe959f2423b43e9892f2abb98c139b'
+  /producer/modules/unified_agenda_parquet
+      'sha256:8c1a4b379c6d0f583e64fc9c719e644deb688c430977f4a19cf8f2475862e775'  ->  'sha256:6c547c60a9ce6a3eb9656b5f8e73c177d3bbef5159f31907e84e91c4435e8106'

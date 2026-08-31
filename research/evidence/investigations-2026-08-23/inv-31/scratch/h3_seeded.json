@@ -1,0 +1,108 @@
+[
+ {
+  "rin": "3052-AD51",
+  "pub": "202310",
+  "ordinal": 4,
+  "text": "secs 514",
+  "stated_act_name": null,
+  "stated_section": "514",
+  "outcome": "no_stated_act_name"
+ },
+ {
+  "rin": "0930-AA15",
+  "pub": "201010",
+  "ordinal": 0,
+  "text": "Protection and Advocacy with Mental Illness Act",
+  "stated_act_name": "Protection and Advocacy with Mental Illness Act",
+  "stated_section": null,
+  "normalized": "protection and advocacy with mental illness act",
+  "act_key": null,
+  "outcome": "act_not_in_index"
+ },
+ {
+  "rin": "1218-AC15",
+  "pub": "200504",
+  "ordinal": 5,
+  "text": "sec 1926.1002 and 19",
+  "stated_act_name": null,
+  "stated_section": "1926.1002",
+  "outcome": "no_stated_act_name"
+ },
+ {
+  "rin": "0648-AS50",
+  "pub": "200504",
+  "ordinal": 2,
+  "text": "HSIA 2002 sec 303",
+  "stated_act_name": null,
+  "stated_section": "303",
+  "outcome": "no_stated_act_name"
+ },
+ {
+  "rin": "1400-AB15",
+  "pub": "200110",
+  "ordinal": 2,
+  "text": "Disclosure Act of 1999",
+  "stated_act_name": "Disclosure Act of 1999",
+  "stated_section": null,
+  "normalized": "disclosure act of 1999",
+  "act_key": null,
+  "outcome": "act_not_in_index"
+ },
+ {
+  "rin": "3225-AA17",
+  "pub": "201810",
+  "ordinal": 0,
+  "text": "Sex Offender Registration Act of 1999",
+  "stated_act_name": "Sex Offender Registration Act of 1999",
+  "stated_section": null,
+  "normalized": "sex offender registration act of 1999",
+  "act_key": null,
+  "outcome": "act_not_in_index"
+ },
+ {
+  "rin": "1120-AB66",
+  "pub": "201410",
+  "ordinal": 10,
+  "text": "sec 24-461, sec 24-465, sec 24-467, and sec 24-468",
+  "stated_act_name": null,
+  "stated_section": "24-461",
+  "outcome": "no_stated_act_name"
+ },
+ {
+  "rin": "0938-AL18",
+  "pub": "200204",
+  "ordinal": 1,
+  "text": "sec 1919(a) to (g) of the Social Security Act",
+  "stated_act_name": "Social Security Act",
+  "stated_section": "1919(a)",
+  "normalized": "social security act",
+  "act_key": "social security act",
+  "outcome": "act_section_not_classified",
+  "usc_title": null,
+  "usc_section": null,
+  "answered_by": null,
+  "iri": null,
+  "table3_reason": "act_section_not_classified",
+  "source_credit_status": "no_key"
+ },
+ {
+  "rin": "2060-AP37",
+  "pub": "201210",
+  "ordinal": 2,
+  "text": "sec 181(a)",
+  "stated_act_name": null,
+  "stated_section": "181(a)",
+  "outcome": "no_stated_act_name"
+ },
+ {
+  "rin": "0551-AA81",
+  "pub": "201704",
+  "ordinal": 1,
+  "text": "amended by the Trade Act of 1990",
+  "stated_act_name": "Trade Act of 1990",
+  "stated_section": null,
+  "normalized": "trade act of 1990",
+  "act_key": null,
+  "outcome": "act_not_in_index"
+ }
+]

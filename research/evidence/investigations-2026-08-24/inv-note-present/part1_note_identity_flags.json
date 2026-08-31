@@ -1,0 +1,1060 @@
+{
+  "5:731": {
+    "5:5": {
+      "classes": [
+        "cross_family_bleed"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "cross_family_bleed": [
+          "5 u"
+        ]
+      }
+    }
+  },
+  "5:831": {
+    "5:11232": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11232(e)"
+        ]
+      }
+    },
+    "5:11246": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11246(b)"
+        ]
+      }
+    },
+    "5:7": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "7(b)",
+          "7(c)"
+        ]
+      }
+    }
+  },
+  "5:842": {
+    "5:7": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "7(c)",
+          "7(b)",
+          "7(e)"
+        ]
+      }
+    },
+    "5:11232": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11232(e)"
+        ]
+      }
+    },
+    "5:11246": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11246(b)"
+        ]
+      }
+    }
+  },
+  "5:870": {
+    "5:11232": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11232(e)"
+        ]
+      }
+    },
+    "5:11246": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11246(b)"
+        ]
+      }
+    }
+  },
+  "5:890": {
+    "5:11232": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11232(e)"
+        ]
+      }
+    },
+    "5:11246": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "11246(b)"
+        ]
+      }
+    }
+  },
+  "8:223": {
+    "8:19": {
+      "classes": [
+        "cross_family_bleed"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "cross_family_bleed": [
+          "19 u"
+        ]
+      }
+    }
+  },
+  "10:580": {
+    "42:7115": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "7115(b)"
+        ]
+      }
+    },
+    "42:7117": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "7117(a)"
+        ]
+      }
+    }
+  },
+  "12:8": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "12:19": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "12:192": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "12:208": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "12:238": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "12:308": {
+    "15:78": {
+      "classes": [
+        "paren",
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "78(h)"
+        ],
+        "spaced": [
+          "78 o",
+          "78 o",
+          "78 o"
+        ]
+      }
+    }
+  },
+  "12:1239": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 oo"
+        ]
+      }
+    }
+  },
+  "13:101": {
+    "5:4": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "4(a)"
+        ]
+      }
+    },
+    "5:6": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "6(a)"
+        ]
+      }
+    },
+    "5:9": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "9(a)"
+        ]
+      }
+    }
+  },
+  "14:16": {
+    "49:1718": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "unknown",
+      "raw": {
+        "paren": [
+          "1718(a)"
+        ]
+      }
+    }
+  },
+  "17:200": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l",
+          "78 o",
+          "78 o",
+          "78 ll"
+        ]
+      }
+    }
+  },
+  "17:211": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "17:229": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 mm"
+        ]
+      }
+    }
+  },
+  "17:230": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l",
+          "78 ll"
+        ]
+      }
+    }
+  },
+  "17:232": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l",
+          "78 ll"
+        ]
+      }
+    }
+  },
+  "17:239": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l",
+          "78 o",
+          "78 o",
+          "78 ll",
+          "78 l",
+          "78 o",
+          "78 l"
+        ]
+      }
+    }
+  },
+  "17:240": {
+    "15:78": {
+      "classes": [
+        "paren",
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "78(f)",
+          "78(l)",
+          "78(w)",
+          "78(c)"
+        ],
+        "spaced": [
+          "78 l",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 ll",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 q",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 o",
+          "78 o"
+        ]
+      }
+    },
+    "15:306": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "306(a)",
+          "306(a)"
+        ]
+      }
+    }
+  },
+  "17:242": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l",
+          "78 o",
+          "78 o",
+          "78 o"
+        ]
+      }
+    }
+  },
+  "17:245": {
+    "15:306": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "306(a)"
+        ]
+      }
+    }
+  },
+  "17:247": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 o"
+        ]
+      }
+    }
+  },
+  "17:248": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 o",
+          "78 o"
+        ]
+      }
+    }
+  },
+  "17:249": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 o"
+        ]
+      }
+    },
+    "18:306": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "306(a)",
+          "306(a)"
+        ]
+      }
+    }
+  },
+  "17:260": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 ll"
+        ]
+      }
+    }
+  },
+  "17:270": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l"
+        ]
+      }
+    }
+  },
+  "17:274": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 l",
+          "78 o"
+        ]
+      }
+    }
+  },
+  "17:400": {
+    "15:78": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "78 o"
+        ]
+      }
+    }
+  },
+  "18:705": {
+    "42:2000": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "2000 d-1"
+        ]
+      }
+    }
+  },
+  "20:362": {
+    "31:241": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "241(b)"
+        ]
+      }
+    }
+  },
+  "22:42": {
+    "8:1870": {
+      "classes": [
+        "cross_family_bleed"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "cross_family_bleed": [
+          "1870 u"
+        ]
+      }
+    }
+  },
+  "22:1002": {
+    "31:483": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "483(a)"
+        ]
+      }
+    }
+  },
+  "26:2": {
+    "46:1161": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1161(b)"
+        ]
+      }
+    }
+  },
+  "26:301": {
+    "26:1005": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1005(c)"
+        ]
+      }
+    },
+    "26:1006": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1006(d)",
+          "1006(j)",
+          "1006(t)"
+        ]
+      }
+    },
+    "26:2004": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "2004(j)",
+          "2004(m)"
+        ]
+      }
+    },
+    "26:5012": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "5012(e)"
+        ]
+      }
+    },
+    "26:6181": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "6181(c)"
+        ]
+      }
+    }
+  },
+  "31:250": {
+    "50:2017": {
+      "classes": [
+        "spaced"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "spaced": [
+          "2017 l"
+        ]
+      }
+    }
+  },
+  "32:634": {
+    "10:30112": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "30112(g)"
+        ]
+      }
+    }
+  },
+  "32:1905": {
+    "50:444": {
+      "classes": [
+        "cross_family_bleed"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "cross_family_bleed": [
+          "444 u"
+        ]
+      }
+    }
+  },
+  "33:13": {
+    "49:1655": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "unknown",
+      "raw": {
+        "paren": [
+          "1655(b)"
+        ]
+      }
+    }
+  },
+  "33:114": {
+    "49:1655": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "unknown",
+      "raw": {
+        "paren": [
+          "1655(g)"
+        ]
+      }
+    }
+  },
+  "41:60-3": {
+    "42:2000": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "2000(e)"
+        ]
+      }
+    }
+  },
+  "42:1001": {
+    "42:1842": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1842(j)",
+          "1842(k)"
+        ]
+      }
+    }
+  },
+  "44:350": {
+    "50:2253": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "2253(g)"
+        ]
+      }
+    }
+  },
+  "45:1623": {
+    "42:509": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "509(c)"
+        ]
+      }
+    }
+  },
+  "46:4": {
+    "49:1903": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "unknown",
+      "raw": {
+        "paren": [
+          "1903(a)"
+        ]
+      }
+    }
+  },
+  "46:201": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:202": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:203": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    },
+    "46:1175": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1175(c)"
+        ]
+      }
+    },
+    "46:1223": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1223(a)"
+        ]
+      }
+    }
+  },
+  "46:232": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:249": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:272": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:349": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:381": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    },
+    "46:1122": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1122(d)"
+        ]
+      }
+    }
+  },
+  "46:382": {
+    "46:1241": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1241(b)"
+        ]
+      }
+    }
+  },
+  "46:385": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "46:388": {
+    "46:1114": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "1114(b)"
+        ]
+      }
+    }
+  },
+  "48:2017": {
+    "41:481": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "absent",
+      "raw": {
+        "paren": [
+          "481(b)"
+        ]
+      }
+    }
+  },
+  "49:663": {
+    "49:1608": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "unknown",
+      "raw": {
+        "paren": [
+          "1608(j)"
+        ]
+      }
+    }
+  },
+  "49:825": {
+    "49:1903": {
+      "classes": [
+        "paren"
+      ],
+      "oracle_verdict": "unknown",
+      "raw": {
+        "paren": [
+          "1903(a)"
+        ]
+      }
+    }
+  }
+}

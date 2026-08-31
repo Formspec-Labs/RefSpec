@@ -1,0 +1,1099 @@
+[
+ {
+  "rin": "2126-AA63",
+  "publication_id": "200010",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "sec.206",
+    "length": 7,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "206"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "206"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "PL 106-159",
+    "length": 10,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "public_law",
+      "parse_status": "ok",
+      "pl_congress_in_series": true,
+      "public_law": "106-159"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "public_law",
+      "parse_status": "ok",
+      "public_law": "106-159"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "sec.206, PL 106-159",
+  "joined_comma_read": [
+   {
+    "authority_type": "public_law",
+    "parse_status": "partial",
+    "public_law": "106-159",
+    "stated_section": "206"
+   }
+  ]
+ },
+ {
+  "rin": "3052-AD44",
+  "publication_id": "202210",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "secs. 1.5,1.7, 1.0, 1.11, 1.12",
+    "length": 30,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "1.5"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "1.5"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "2.2, 2.3, 2.4, 2.5, 2.12, 3.1",
+    "length": 29,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "3.7, 3.11, 3.25, 4.3, 4.3A",
+    "length": 26,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 3,
+    "text": "4.9, 4.14B, 4.25, 5.9, 5.17",
+    "length": 27,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 4,
+    "text": "...",
+    "length": 3,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "unstated",
+      "parse_status": "failed",
+      "unstated_kind": "more-citations-follow"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "unstated",
+      "parse_status": "failed"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "secs. 1.5,1.7, 1.0, 1.11, 1.12, 2.2, 2.3, 2.4, 2.5, 2.12, 3.1, 3.7, 3.11, 3.25, 4.3, 4.3A, 4.9, 4.14B, 4.25, 5.9, 5.17, ...",
+  "joined_comma_read": [
+   {
+    "authority_type": "other",
+    "parse_status": "failed",
+    "stated_section": "1.5"
+   }
+  ]
+ },
+ {
+  "rin": "3052-AD42",
+  "publication_id": "202210",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "secs. 1.5, 1.7, 1.10",
+    "length": 20,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "1.5"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "1.5"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "1.11, 1.12, 2.2, 2.3",
+    "length": 20,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "2.4, 2.5, 2.12, 3.1, 3.7",
+    "length": 24,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 3,
+    "text": "3.11, 3.25, 4.3, 4.3A",
+    "length": 21,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 4,
+    "text": "...",
+    "length": 3,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "unstated",
+      "parse_status": "failed",
+      "unstated_kind": "more-citations-follow"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "unstated",
+      "parse_status": "failed"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "secs. 1.5, 1.7, 1.10, 1.11, 1.12, 2.2, 2.3, 2.4, 2.5, 2.12, 3.1, 3.7, 3.11, 3.25, 4.3, 4.3A, ...",
+  "joined_comma_read": [
+   {
+    "authority_type": "other",
+    "parse_status": "failed",
+    "stated_section": "1.5"
+   }
+  ]
+ },
+ {
+  "rin": "3072-AC96",
+  "publication_id": "202304",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "5 U.S.C. 504, 551, 553, 556(c), 559, 561 to 569, 571 to 584",
+    "length": 59,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "504",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 1,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "551",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 2,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "553",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 3,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "556",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 4,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "559",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 5,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "561",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 6,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "571",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "504"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "551"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "553"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "556"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "559"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "561"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 5,
+      "usc_section": "571"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "591 to 596",
+    "length": 10,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "5 U.S.C. 504, 551, 553, 556(c), 559, 561 to 569, 571 to 584, 591 to 596",
+  "joined_comma_read": [
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "504"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "551"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "553"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "556"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "559"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "561"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "571"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "591"
+   }
+  ]
+ },
+ {
+  "rin": "3072-AC38",
+  "publication_id": "201010",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "46 USC 40103(a)",
+    "length": 15,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 46,
+      "usc_section": "40103",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 46,
+      "usc_section": "40103"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "46 USC 41104(4) and (8)",
+    "length": 23,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 46,
+      "usc_section": "41104",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 46,
+      "usc_section": "41104"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "46 USC 40501(a)-(e) and (g)",
+    "length": 27,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 46,
+      "usc_section": "40501",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 46,
+      "usc_section": "40501"
+     }
+    ]
+   },
+   {
+    "ordinal": 3,
+    "text": "40503",
+    "length": 5,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 4,
+    "text": "41102(2), (4) and (8)",
+    "length": 21,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "46 USC 40103(a), 46 USC 41104(4) and (8), 46 USC 40501(a)-(e) and (g), 40503, 41102(2), (4) and (8)",
+  "joined_comma_read": [
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 46,
+    "usc_section": "40103"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 46,
+    "usc_section": "41104"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 46,
+    "usc_section": "40501"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 46,
+    "usc_section": "40503"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 46,
+    "usc_section": "41102"
+   }
+  ]
+ },
+ {
+  "rin": "0936-AA07",
+  "publication_id": "201710",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "1007: SSA subsection 1902 (a) (61)",
+    "length": 34,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "1903 (a)(6)",
+    "length": 11,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "1903(b)(3)",
+    "length": 10,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 3,
+    "text": "1903(q)",
+    "length": 7,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 4,
+    "text": "1102",
+    "length": 4,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 5,
+    "text": "...",
+    "length": 3,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "unstated",
+      "parse_status": "failed",
+      "unstated_kind": "more-citations-follow"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "unstated",
+      "parse_status": "failed"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "1007: SSA subsection 1902 (a) (61), 1903 (a)(6), 1903(b)(3), 1903(q), 1102, ...",
+  "joined_comma_read": [
+   {
+    "authority_type": "other",
+    "parse_status": "failed"
+   }
+  ]
+ },
+ {
+  "rin": "2060-AP43",
+  "publication_id": "201004",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "42 USC 2022, 2114",
+    "length": 17,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 42,
+      "usc_section": "2022",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     },
+     {
+      "citation_ordinal": 1,
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 42,
+      "usc_section": "2114",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 42,
+      "usc_section": "2022"
+     },
+     {
+      "authority_type": "usc",
+      "parse_status": "partial",
+      "usc_title": 42,
+      "usc_section": "2114"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "Atomic Energy Act sec 275",
+    "length": 25,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "act_relative",
+      "parse_status": "resolved",
+      "usc_title": 42,
+      "usc_section": "2022",
+      "act_key": "atomic energy act of 1954",
+      "act_section": "275",
+      "act_resolution_evidence": "table3-classification"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_act_name": "Atomic Energy Act",
+      "stated_section": "275"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "UMTRCA sec 206(a)",
+    "length": 17,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "206(a)"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed",
+      "stated_section": "206(a)"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "42 USC 2022, 2114, Atomic Energy Act sec 275, UMTRCA sec 206(a)",
+  "joined_comma_read": [
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 42,
+    "usc_section": "2022",
+    "stated_act_name": "Atomic Energy Act",
+    "stated_section": "275"
+   },
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 42,
+    "usc_section": "2114",
+    "stated_act_name": "Atomic Energy Act",
+    "stated_section": "275"
+   }
+  ]
+ },
+ {
+  "rin": "2126-AA64",
+  "publication_id": "200404",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "sec 211, PL 106-159",
+    "length": 19,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "pl_congress_in_series": true,
+      "public_law": "106-159",
+      "stated_section": "211"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "public_law": "106-159",
+      "stated_section": "211"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "113tat. 1754 (1999)",
+    "length": 19,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "sec 350, PL 107-87",
+    "length": 18,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "pl_congress_in_series": true,
+      "public_law": "107-87",
+      "stated_section": "350"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "public_law": "107-87",
+      "stated_section": "350"
+     }
+    ]
+   },
+   {
+    "ordinal": 3,
+    "text": "49 USC 31148",
+    "length": 12,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "ok",
+      "usc_title": 49,
+      "usc_section": "31148",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "ok",
+      "usc_title": 49,
+      "usc_section": "31148"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "sec 211, PL 106-159, 113tat. 1754 (1999), sec 350, PL 107-87, 49 USC 31148",
+  "joined_comma_read": [
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 49,
+    "usc_section": "31148",
+    "stated_section": "211"
+   },
+   {
+    "authority_type": "public_law",
+    "parse_status": "partial",
+    "public_law": "106-159",
+    "stated_section": "211"
+   },
+   {
+    "authority_type": "public_law",
+    "parse_status": "partial",
+    "public_law": "107-87",
+    "stated_section": "211"
+   }
+  ]
+ },
+ {
+  "rin": "2126-AA64",
+  "publication_id": "200410",
+  "boxes": [
+   {
+    "ordinal": 0,
+    "text": "sec 211, PL 106-159",
+    "length": 19,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "pl_congress_in_series": true,
+      "public_law": "106-159",
+      "stated_section": "211"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "public_law": "106-159",
+      "stated_section": "211"
+     }
+    ]
+   },
+   {
+    "ordinal": 1,
+    "text": "113tat. 1754 (1999)",
+    "length": 19,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "other",
+      "parse_status": "failed"
+     }
+    ]
+   },
+   {
+    "ordinal": 2,
+    "text": "sec 350, PL 107-87",
+    "length": 18,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "pl_congress_in_series": true,
+      "public_law": "107-87",
+      "stated_section": "350"
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "public_law",
+      "parse_status": "partial",
+      "public_law": "107-87",
+      "stated_section": "350"
+     }
+    ]
+   },
+   {
+    "ordinal": 3,
+    "text": "49 USC 31148",
+    "length": 12,
+    "baseline_rows": [
+     {
+      "citation_ordinal": 0,
+      "authority_type": "usc",
+      "parse_status": "ok",
+      "usc_title": 49,
+      "usc_section": "31148",
+      "usc_title_is_possible": true,
+      "usc_section_verdict": "exists",
+      "usc_section_attested_at_edition": true,
+      "usc_section_magnitude_is_plausible": true
+     }
+    ],
+    "grammar_read_alone": [
+     {
+      "authority_type": "usc",
+      "parse_status": "ok",
+      "usc_title": 49,
+      "usc_section": "31148"
+     }
+    ]
+   }
+  ],
+  "joined_comma": "sec 211, PL 106-159, 113tat. 1754 (1999), sec 350, PL 107-87, 49 USC 31148",
+  "joined_comma_read": [
+   {
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 49,
+    "usc_section": "31148",
+    "stated_section": "211"
+   },
+   {
+    "authority_type": "public_law",
+    "parse_status": "partial",
+    "public_law": "106-159",
+    "stated_section": "211"
+   },
+   {
+    "authority_type": "public_law",
+    "parse_status": "partial",
+    "public_law": "107-87",
+    "stated_section": "211"
+   }
+  ]
+ }
+]

@@ -1,0 +1,187 @@
+{
+  "class": "D-failed-nothing-stated",
+  "where": "authority_type='other' and parse_status='failed' and stated_act_name is null and stated_section is null",
+  "population": 1658,
+  "sampled": 20,
+  "verdict_counts": {
+    "correct-as-labeled": 10,
+    "missed-witness": 10
+  },
+  "type_counts": {
+    "list fragment whose donor exists": 5,
+    "initialism+section": 3,
+    "damaged citation (should be \"Title V of Pub. L. 109-351\")": 1,
+    "damaged citation (should be \"Title VIII of Pub. L. 99-169\")": 1,
+    "damaged citation (FR issue date continuing the preceding E.O./FR box)": 1,
+    "damaged citation (should be \"Pub. L. 94-588\")": 1,
+    "initialism+section (USC section, title omitted, recoverable from the record's own abstract)": 1,
+    "damaged citation (should be \"PL ##-425\"; congress number missing)": 2,
+    "damaged citation (ambiguous which token is missing)": 1,
+    "delegation/order/directive": 1,
+    "damaged citation (should be \"[vol] Stat. 890, as amended\"; volume missing)": 1,
+    "damaged citation (should be \"Pub. L. 116-260, Division BB, Title II\")": 1,
+    "genuinely nothing": 1
+  },
+  "rows": [
+    {
+      "key": "2900-AR07/202110/6",
+      "verdict": "correct-as-labeled",
+      "type": "list fragment whose donor exists",
+      "decisive_quote": "authority_join_text='41 U.S.C. 1121(c)(3), 1303, 1702, 1707' (ordinal=3, box_run_start=3,length=4); ordinal=6 authority_text='1707', superseded_by_join=True",
+      "why": "Box[6]='1707' is a bare section number already captured whole via the box-run join at ordinal 3 (fragment-right:R4-whole-box-is-a-bare-section), which split cleanly into 41 U.S.C. 1121(c)(3)/1303/1702/1707, all usc_section_verdict='exists'. superseded_by_join=True on this row proves the system already knows it isn't missing anything; 'failed' here is bookkeeping residue of the per-box schema, not lost information.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2060-AP70/201004/2",
+      "verdict": "missed-witness",
+      "type": "initialism+section",
+      "decisive_quote": "sibling ordinal=1 authority_text='CAA 112(d)(6)' -> authority_type='act_relative', corroboration_rule='agency-roster-initialism', act_key='clean air act', act_section='112'; ordinal=2 (sampled) authority_text='CAA 112(d)(2) & (3)' -> authority_type='other', nothing resolved",
+      "why": "Boxes 0 and 1 in this exact record ('CAA sec 112(f)(2)', 'CAA 112(d)(6)') resolve via the initialism roster to Clean Air Act sec. 112 / 42 U.S.C. 7412. Box 2 is the identical CAA-112 pattern, just with a compound paragraph tail '(d)(2) & (3)' instead of a single subsection -- the roster rule is proven live on this RIN and simply does not handle the '& (3)' continuation.",
+      "anything_systemic": "The pinned initialism roster (rule #45) resolves single-subsection CAA cites but not a compound '(d)(N) & (M)' tail; likely a regex-tail gap rather than a missing roster entry."
+    },
+    {
+      "key": "3133-AD54/200904/6",
+      "verdict": "missed-witness",
+      "type": "damaged citation (should be \"Title V of Pub. L. 109-351\")",
+      "decisive_quote": "box[6]='title V', box[7]='PL 109-351' -> authority_type='public_law', parse_status='ok', public_law='109-351', pl_congress_in_series=True; no authority_box_run_start on ordinal 6",
+      "why": "'title V' sits immediately before a fully-resolved 'PL 109-351' box with no join attempted at all. Pub. L. 109-351 (Financial Services Regulatory Relief Act of 2006) has a Title V addressing NCUA/credit-union matters, matching this record's subject (NCUA share insurance) exactly -- a human reads the two adjacent boxes as one citation on sight.",
+      "anything_systemic": "No join rule exists for a bare 'Title N' box immediately followed by a Public-Law box, even though the analogous 'bare number after a scheme-bearing box' join (R4) is proven to work (see 2900-AR07). Recurs at 3206-AK68/200510/0 and 1545-BQ94/202404/4 in this same sample."
+    },
+    {
+      "key": "0938-AL19/200110/2",
+      "verdict": "missed-witness",
+      "type": "initialism+section",
+      "decisive_quote": "sibling ordinal=3 authority_text=\"BIPA' 00\" -> authority_type='act_relative', act_key='bipa'; ordinal=2 (sampled) authority_text=\"BBRA' 99\" -> authority_type='other', no act_key",
+      "why": "In the same 4-box CMS list, 'BIPA' 00' resolves to act_key='bipa' while the neighboring 'BBA'97' and this row's 'BBRA' 99' resolve to nothing at all -- same shape (Medicare-legislation initialism + apostrophe-year), only BIPA is in the roster. Confirmed again, more cleanly, at 0938-AN46/200504/1.",
+      "anything_systemic": "Initialism roster is missing 'bba' and 'bbra' while carrying 'bipa'; see also the BIPA' 00 sibling row's own defect: act_section got set to '00' (the year fragment) via act_resolution_reason='act_section_not_classified' -- a separate wrong-value bug on a non-sampled row."
+    },
+    {
+      "key": "3206-AK68/200510/0",
+      "verdict": "missed-witness",
+      "type": "damaged citation (should be \"Title VIII of Pub. L. 99-169\")",
+      "decisive_quote": "ABSTRACT: '...comply with 5 U.S.C. 9101 (Pub. L. 99-169), as amended.'; box[0]='Title VIII' (failed, no join), box[1]='PL 99-169' (ok), box[2]='5 USC 9101' (ok)",
+      "why": "Same missing-join pattern as 3133-AD54's 'title V', but here the record's own abstract independently states the exact PL/USC pairing the boxes are citing (Title VIII of Pub. L. 99-169, the Intelligence Authorization Act FY1986, is what enacted 5 U.S.C. 9101). Two independent confirmations of the same reading inside one record.",
+      "anything_systemic": "Same class as the 'title V' and 'title II' misses in this sample -- no join rule for bare Title-N boxes next to a Public-Law box."
+    },
+    {
+      "key": "1105-AB50/201804/3",
+      "verdict": "missed-witness",
+      "type": "damaged citation (FR issue date continuing the preceding E.O./FR box)",
+      "decisive_quote": "box[2]='E.O. 12250 (45 FR 72855)' -> split into executive_order='12250' (partial) and federal_register fr_volume=45/fr_page=72855 (partial); box[3]='11/04/1980' (failed, no join)",
+      "why": "A bare date immediately follows a box that already cites 'E.O. 12250 (45 FR 72855)' -- the date is naturally read as the Federal Register issue date completing that citation, not an independent authority. No join rule attaches a trailing bare date to a preceding EO/FR box.",
+      "anything_systemic": "Same underlying gap as the Title-N misses: a bare fragment that CONTINUES (rather than restates) a preceding citation-bearing box is only joined today when it is numeric-and-same-scheme (R4/R5/list-continuation); a trailing date or subdivision name gets no join at all."
+    },
+    {
+      "key": "0596-AD59/202504/0",
+      "verdict": "missed-witness",
+      "type": "damaged citation (should be \"Pub. L. 94-588\")",
+      "decisive_quote": "authority_text='94 Pub. L. 588' -- sole legal-authority box in the record",
+      "why": "All three tokens of a standard Public Law citation are present (congress 94, the 'Pub. L.' marker, law number 588) but in reversed order and without the usual dash, unlike every well-formed 'PL ###-###' box elsewhere in this sample (e.g. 'PL 97-377'). The reading is unambiguous even though no join is involved.",
+      "anything_systemic": "Not covered by any of the three named queued rules (initialism roster / act-name carry / list-tail fences) -- needs its own reordered/no-dash Public-Law repair rule."
+    },
+    {
+      "key": "1117-AA96/200604/3",
+      "verdict": "missed-witness",
+      "type": "initialism+section (USC section, title omitted, recoverable from the record's own abstract)",
+      "decisive_quote": "ABSTRACT: '...as mandated by 21 U.S.C. 822.'; sibling ordinal=4 'USC 886a' -> usc_title=21, corroboration_rule='rin-history-titleless-usc'; ordinal=3 (sampled) 'USC 871(f)' -> nothing",
+      "why": "All 8 legal-authority boxes in this DEA record are titleless 'USC ###' cites. One sibling ('USC 886a') is corroborated to Title 21 via cross-edition RIN history, but the record's OWN abstract already states '21 U.S.C. 822' verbatim -- matching box[1] ('USC 822') exactly -- and that self-corroboration source is not used for any of the other bare boxes, including this one (21 U.S.C. 871(f), the CSA's fee/administrator-delegation section).",
+      "anything_systemic": "'rin-history-titleless-usc' only looks across editions of the same RIN, never at the current record's own ABSTRACT prose, even when the abstract states the exact title+section for a sibling box in the same list. A same-record corroboration source is sitting unused next to a working cross-edition one."
+    },
+    {
+      "key": "2900-AL84/200810/16",
+      "verdict": "correct-as-labeled",
+      "type": "damaged citation (should be \"PL ##-425\"; congress number missing)",
+      "decisive_quote": "box[16]='PL 425' identical (verbatim) in both the 200810 and 200704 editions of this RIN; box[17]='PL 97-377' (ok, well-formed, for contrast); box[18]='...' correctly read as authority_type='unstated', unstated_kind='more-citations-follow'",
+      "why": "No adjacent box, no sibling edition (checked both 200704 and 200810), and no abstract text supplies the missing congress number. legal_authorities_declared_incomplete=True explains the filer's own truncation (box 18 is a literal '...'), but that doesn't help resolve box 16's specific defect. Refusal is honest given what is actually recoverable from the record.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2900-AL84/200704/16",
+      "verdict": "correct-as-labeled",
+      "type": "damaged citation (should be \"PL ##-425\"; congress number missing)",
+      "decisive_quote": "identical LEGAL_AUTHORITY_LIST box sequence and identical 'PL 425' text as the 200810 edition of the same RIN",
+      "why": "Same record content and same defect as 2900-AL84/200810/16 -- two editions, same unrecoverable truncation, same honest refusal.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2105-AD07/200304/4",
+      "verdict": "correct-as-labeled",
+      "type": "damaged citation (ambiguous which token is missing)",
+      "decisive_quote": "authority_text='PL 108'; sibling box[3]='PL 103-355' (ok, well-formed, for contrast)",
+      "why": "Unlike 'PL 425' (clearly a law-number with the congress dropped), 'PL 108' is genuinely ambiguous -- it could be a law number missing its congress, or a bare '108th Congress' with the law number dropped (this edition, Spring 2003, falls inside the 108th Congress). Nothing in the record disambiguates, so refusal is honest.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3090-AJ33/201504/4",
+      "verdict": "missed-witness",
+      "type": "delegation/order/directive",
+      "decisive_quote": "authority_text='OMB Cir No. A-126'; RULE_TITLE='...Management of Government Aircraft'; CFR_LIST=['41 CFR 102-33']",
+      "why": "OMB Circular A-126 ('Management of and Accountability for Federal Government Aircraft') is a real, complete, unambiguous, exactly-on-topic citation -- every other box in this record (40 U.S.C., 31 U.S.C., 'Reorg Plan No. 2 of 1970', 'E.O. 11541') resolved into its own dedicated authority_type, proving the schema already handles diverse non-statutory genres (reorganization_plan, executive_order). There is simply no recognizer for agency/OMB circulars.",
+      "anything_systemic": "authority_type has no slot for administrative circulars/directives even though the schema already carries admin_order_kind/admin_order_number columns that this genre would naturally populate. Worth checking how common 'OMB Cir'/agency-circular citations are across the full 1,658-row population -- this may be a distinct, addressable type-coverage gap separate from the join-rule misses."
+    },
+    {
+      "key": "1029-AC74/201704/3",
+      "verdict": "correct-as-labeled",
+      "type": "damaged citation (should be \"[vol] Stat. 890, as amended\"; volume missing)",
+      "decisive_quote": "authority_text='Stat. 890 as amended'; contrast with 0412-AB01/202110/4 'authority_text=75 Stat. 445' -> authority_type='statute_at_large', parse_status='ok'",
+      "why": "The record has a working 'statute_at_large' type when both volume and page are stated (proven elsewhere in this sample), but here the volume token is simply missing and no sibling box or abstract text supplies one. Refusal is honest.",
+      "anything_systemic": null
+    },
+    {
+      "key": "0938-AN46/200504/1",
+      "verdict": "missed-witness",
+      "type": "initialism+section",
+      "decisive_quote": "box[0]='BBA' -> act_key='balanced budget act of 1997' (corroborated); box[2]='BIPA' -> act_key='bipa' (partial); box[3]='MMA' -> act_key='medicare prescription drug, improvement, and modernization act of 2003' (corroborated); box[1] (sampled)='BBRA' -> authority_type='other', nothing",
+      "why": "The cleanest possible confirmation of the 0938-AL19/200110/2 finding: four bare act-name initialisms in one box list, three resolve (BBA, BIPA, MMA) and only BBRA -- sitting literally between two of them -- fails outright. This is a roster-coverage gap, not a formatting quirk.",
+      "anything_systemic": "Same as 0938-AL19/200110/2: the initialism roster used by 'agency-roster-initialism'/'agency-gloss-narrowed-initialism' is missing 'bbra' specifically, while its constant CMS-filing companions BBA/BIPA/MMA (and CAA, in a different record) are present. Decisive, reproducible, single-entry fix."
+    },
+    {
+      "key": "1545-BQ94/202404/4",
+      "verdict": "missed-witness",
+      "type": "damaged citation (should be \"Pub. L. 116-260, Division BB, Title II\")",
+      "decisive_quote": "ABSTRACT: '...No Surprises Act...established as part of the Consolidated Appropriations Act, 2021 (CAA)...'; box[1]='Pub. L. 116-260' (ok); box[2]='Div. BB' (failed), box[3]='title I' (failed), box[4] (sampled)='title II' (failed) -- none joined",
+      "why": "Three consecutive bare-subdivision boxes (Division BB, Title I, Title II) all continue the same preceding Pub. L. 116-260 citation; the abstract independently names the Consolidated Appropriations Act, 2021 and the No Surprises Act it created. Same join gap as 'title V' and 'Title VIII', now compounding three times in one record.",
+      "anything_systemic": "Reinforces the Title-N/Division-X join gap: no rule attaches bare subdivision-name boxes to a preceding Public-Law box, regardless of how many consecutive such boxes appear."
+    },
+    {
+      "key": "3052-AD44/202410/3",
+      "verdict": "correct-as-labeled",
+      "type": "list fragment whose donor exists",
+      "decisive_quote": "authority_join_rule='list-continuation', authority_join_text='secs. 1.5,1.7, 1.0, 1.11, 1.12, 2.2, 2.3, 2.4, 2.5, 2.12, 3.1, 3.7, 3.11, 3.25, 4.3, 4.3A, 4.9, 4.14B, 4.25, 5.9, 5.17' (all 4 boxes joined); no act/scheme name anywhere in RIN_INFO",
+      "why": "The box-run join already succeeded end-to-end, faithfully reconstructing the full FCA section list across all 4 boxes -- the mechanical fragment-recovery problem is solved. What remains unresolved is which act these 'secs. N.N' numbers belong to (almost certainly the Farm Credit Act of 1971's own title.section numbering), and neither the boxes nor the abstract ever name it. Refusing to assign a scheme is honest.",
+      "anything_systemic": "Compare 3052-AD42/202310/1 (same agency, same numbering convention, same outcome) -- this looks like a stable, recurring FCA filing pattern (bare 'secs. N.N' lists, act never named) rather than a one-off."
+    },
+    {
+      "key": "0412-AB01/202110/2",
+      "verdict": "correct-as-labeled",
+      "type": "genuinely nothing",
+      "decisive_quote": "box[1]='22 U.S.C. 2381' (ok, complete); box[2] (sampled)='(as amended)' -- a bare modifier, not a citation",
+      "why": "'(as amended)' carries no numeric or scheme content of its own; it modifies the already fully-resolved box[1] citation but adds no new identifying information. There is nothing to recover.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2506-AC44/201710/1",
+      "verdict": "correct-as-labeled",
+      "type": "list fragment whose donor exists",
+      "decisive_quote": "authority_join_text='42 U.S.C. 3535(d) 3601-3619, 5301-5315, 11331-11388', superseded_by_join=True on ordinal 1; usc_section='5301'..'5315' and '11331'..'11388' both usc_section_verdict='exists' under ordinal 0",
+      "why": "This row's own text is fully captured via the successful box-run join at ordinal 0 (fragment-right:R5-opens-with-digit-no-scheme).",
+      "anything_systemic": "Boxes 2 ('12701-12711, 12741-12756') and 3 ('and 129012912') in this SAME record are the identical no-scheme-digit-list shape (Title 42 U.S. Housing Act sections) immediately following, but the R5 join stopped after run_length=2 and never absorbed them -- they sit separately unjoined/failed. Contrast with list-continuation (3052-AD44, 3052-AD42 in this sample), which absorbs a full 4-box run. Worth checking whether R5 should keep scanning forward instead of capping at one extra box."
+    },
+    {
+      "key": "3052-AD42/202310/1",
+      "verdict": "correct-as-labeled",
+      "type": "list fragment whose donor exists",
+      "decisive_quote": "authority_join_rule='list-continuation', authority_join_text='secs. 1.5, 1.7, 1.10, 1.11, 1.12, 2.2, 2.3, 2.4, 2.5, 2.12, 3.1, 3.7, 3.11, 3.25, 4.3, 4.3A' (all 4 boxes joined); no act/scheme name anywhere in RIN_INFO",
+      "why": "Same pattern and same honest conclusion as 3052-AD44/202410/3: the join fully reconstructs the section list, but no act is named anywhere in this record to attach it to.",
+      "anything_systemic": "This record's box[0] correctly reads 'secs. 1.5, 1.7, 1.10' (not '1.0'), confirming that 3052-AD44's '1.0' is very likely a filer/OCR typo for '1.10' rather than a distinct value."
+    },
+    {
+      "key": "1880-AA87/201304/2",
+      "verdict": "correct-as-labeled",
+      "type": "list fragment whose donor exists",
+      "decisive_quote": "authority_join_text='20 USC 1001 to 1003, 1070g, 1085'; ordinal=0 citation_ordinal=2 -> usc_section='1085', usc_section_verdict='exists'; superseded_by_join=True on ordinal 2",
+      "why": "Box[2]='1085' is a bare section number already captured whole via the box-run join at ordinal 0 (fragment-right:R4-whole-box-is-a-bare-section). The empty 4th box is correctly excluded (legal_authority_count=3, matching). Same honest pattern as 2900-AR07/202110/6.",
+      "anything_systemic": null
+    }
+  ]
+}

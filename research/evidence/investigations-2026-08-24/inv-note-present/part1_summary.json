@@ -1,0 +1,78 @@
+{
+  "notes_total": 8240,
+  "usc_identities_total_distinct_per_note": 30515,
+  "usc_identities_bare_digit": 26100,
+  "class_raw_occurrences": {
+    "paren_suffix": 4842,
+    "spaced_suffix": 99,
+    "lost_hyphen": 10,
+    "cross_family_bleed": 332
+  },
+  "class_notes_with_any_raw_occurrence": {
+    "paren_suffix": 2201,
+    "spaced_suffix": 57,
+    "lost_hyphen": 5,
+    "cross_family_bleed": 51
+  },
+  "flagged_identities_no_clean_witness": {
+    "paren_suffix": 54,
+    "spaced_suffix": 24,
+    "lost_hyphen": 0,
+    "cross_family_bleed": 4,
+    "any_class": 80
+  },
+  "notes_with_flagged_identity": {
+    "paren_suffix": 37,
+    "spaced_suffix": 24,
+    "lost_hyphen": 0,
+    "cross_family_bleed": 4,
+    "any_class": 62
+  },
+  "comp_year_phantom": {
+    "occurrences": 7,
+    "notes": 4,
+    "examples": [
+      [
+        5,
+        "10000",
+        "3:1987"
+      ],
+      [
+        12,
+        "602",
+        "3:1987"
+      ],
+      [
+        34,
+        "7",
+        "3:1950"
+      ],
+      [
+        34,
+        "7",
+        "3:1961"
+      ],
+      [
+        45,
+        "7",
+        "3:1953"
+      ],
+      [
+        45,
+        "7",
+        "3:1950"
+      ],
+      [
+        45,
+        "7",
+        "3:1961"
+      ]
+    ]
+  },
+  "oracle_absent_usc_identities": {
+    "occurrences": 681,
+    "notes": 422
+  },
+  "oracle_unknown_usc_identities": 138,
+  "oracle_exists_usc_identities": 29696
+}

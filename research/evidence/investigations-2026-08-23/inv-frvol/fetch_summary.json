@@ -1,0 +1,322 @@
+[
+  {
+    "year": 1994,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=1994-12-15&conditions%5Bpublication_date%5D%5Blte%5D=1994-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1562,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:12.187550+00:00",
+    "sha256": "d3f9e1075ca9557742b6fcf808d5750494a3f91c1b1af9a8e806316461f2ef35",
+    "bytes": 137010
+  },
+  {
+    "year": 1995,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=1995-12-15&conditions%5Bpublication_date%5D%5Blte%5D=1995-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 991,
+    "results_fetched": 991,
+    "fetched_at": "2026-08-23T14:29:13.167914+00:00",
+    "sha256": "f485488dd36dbd7828412e981f2cdef10537ab464c58ef8d5d33d9cebaf66ce2",
+    "bytes": 126819
+  },
+  {
+    "year": 1996,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=1996-12-15&conditions%5Bpublication_date%5D%5Blte%5D=1996-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1533,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:14.283988+00:00",
+    "sha256": "f7ed2d184707336a642a339ff4a66a2b04f12fef17b07957bf9bd049bddbdc91",
+    "bytes": 127920
+  },
+  {
+    "year": 1997,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=1997-12-15&conditions%5Bpublication_date%5D%5Blte%5D=1997-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1514,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:15.213061+00:00",
+    "sha256": "db260708e0748f5fd9847195b192ab3a4850f131de66e0794a7cd079213cae9c",
+    "bytes": 127919
+  },
+  {
+    "year": 1998,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=1998-12-15&conditions%5Bpublication_date%5D%5Blte%5D=1998-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1604,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:16.099473+00:00",
+    "sha256": "661cedd7323d0e5edaa95ac2e63b64dee7db718862c5d7b1ef97ca139d96b1d8",
+    "bytes": 127924
+  },
+  {
+    "year": 1999,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=1999-12-15&conditions%5Bpublication_date%5D%5Blte%5D=1999-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1620,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:17.191450+00:00",
+    "sha256": "e46f643f2e0c835f3c5d3542d18f1464ea66f325e4cd372e3d57696726a5ef06",
+    "bytes": 127970
+  },
+  {
+    "year": 2000,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2000-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2000-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1408,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:18.208073+00:00",
+    "sha256": "5280a8b9833b96c7b1a4d0ae164418b2e35a6f77596dd79d0ae7880d3bebaea3",
+    "bytes": 127814
+  },
+  {
+    "year": 2001,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2001-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2001-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1169,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:19.489985+00:00",
+    "sha256": "c4f65c6cc9108e46fb076b5eebcc74154746fe7c3c96888831be0c154b404f59",
+    "bytes": 127977
+  },
+  {
+    "year": 2002,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2002-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2002-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1498,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:20.573357+00:00",
+    "sha256": "022558ff1e062770e993ed5e89a46d4079385e74f019a39f651aea579d9992a4",
+    "bytes": 127804
+  },
+  {
+    "year": 2003,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2003-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2003-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1497,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:21.758656+00:00",
+    "sha256": "98c817f4c25bd5d8e5bf7057d041f5fb240f2a05dd6f2dee8b94e0b7b8be6c9b",
+    "bytes": 127942
+  },
+  {
+    "year": 2004,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2004-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2004-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1484,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:22.814400+00:00",
+    "sha256": "219f2b7d176854632c67765b75b78edde19c4642b39c65255912209c754befba",
+    "bytes": 127855
+  },
+  {
+    "year": 2005,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2005-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2005-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1383,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:24.052875+00:00",
+    "sha256": "b96dbf877230ce03552ad4ee16ab475aa1c017d8d489e2fdfe0d30b1914f9b1d",
+    "bytes": 127267
+  },
+  {
+    "year": 2006,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2006-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2006-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1291,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:25.024786+00:00",
+    "sha256": "e37974ac8353004fce25a303be59b2924e8bf033da63e90753c1dada26d16856",
+    "bytes": 127746
+  },
+  {
+    "year": 2007,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2007-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2007-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1261,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:26.143767+00:00",
+    "sha256": "62cf1cb0d67b9ca57f069df7af72586564940f2daff0c601bd0930dceeb82ef8",
+    "bytes": 127686
+  },
+  {
+    "year": 2008,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2008-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2008-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1611,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:27.224736+00:00",
+    "sha256": "9f5a059b93ce6153fdde14927108b2e8d4458425e5bc1ab544290d7bfb1c9be0",
+    "bytes": 127770
+  },
+  {
+    "year": 2009,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2009-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2009-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1325,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:28.607723+00:00",
+    "sha256": "aaced6538fb05450b66f2a4635823bda1d007b4cb7757d4f0ce7d3d6638bc2e5",
+    "bytes": 127872
+  },
+  {
+    "year": 2010,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2010-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2010-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1570,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:29.573654+00:00",
+    "sha256": "0502d4281ae04906f9a73421b1075bfc3fa22fa631983a14fdce0c0965e9a0d4",
+    "bytes": 130067
+  },
+  {
+    "year": 2011,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2011-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2011-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1482,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:30.716827+00:00",
+    "sha256": "7ee5c58ddaae21484e0904e1817a5d31cdf2b75be33b8808a2c982cc5422f162",
+    "bytes": 129942
+  },
+  {
+    "year": 2012,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2012-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2012-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1149,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:32.028239+00:00",
+    "sha256": "8949530269937f910d39470ef82de0457e911aa8dbee4b2bbfdd515f7ec277f0",
+    "bytes": 129876
+  },
+  {
+    "year": 2013,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2013-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2013-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1515,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:33.420845+00:00",
+    "sha256": "5150f8473647afc979faf5bcc12f7991c523436d06b29e318f3bcdfab3d0cbd5",
+    "bytes": 130004
+  },
+  {
+    "year": 2014,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2014-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2014-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1456,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:34.687860+00:00",
+    "sha256": "adbe92c736dc6f7e52b3e5a11cb2a15c0cc13c993521e3512588e647202afb4d",
+    "bytes": 130035
+  },
+  {
+    "year": 2015,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2015-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2015-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1536,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:35.858135+00:00",
+    "sha256": "778ab5a5e95d114ebc950eab48710673425ac7851ebc5d8240acce05f2651c28",
+    "bytes": 129858
+  },
+  {
+    "year": 2016,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2016-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2016-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1609,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:37.134412+00:00",
+    "sha256": "c8a4792ec04cf65cce77c54bd233f1c2bfb941dcdbfdb4e2c1ef815c50b7d461",
+    "bytes": 130016
+  },
+  {
+    "year": 2017,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2017-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2017-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1161,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:38.490448+00:00",
+    "sha256": "cc21176fe376c0702b0cdf1199fa43e7c665471c10a4edcfae07b678384b1789",
+    "bytes": 129842
+  },
+  {
+    "year": 2018,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2018-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2018-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1191,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:39.605558+00:00",
+    "sha256": "2d2ad5fa09dca1034ab9599a383035e683fa002e6b2a61e6e595ca19fa28eaa0",
+    "bytes": 129883
+  },
+  {
+    "year": 2019,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2019-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2019-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1253,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:40.883956+00:00",
+    "sha256": "f44a0a7d425e9e96190de6a20dba2297b7c83ec14004575c7a4fd99abe6135ed",
+    "bytes": 130137
+  },
+  {
+    "year": 2020,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2020-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2020-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1402,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:42.091057+00:00",
+    "sha256": "ba3260288192cb3ceab6ef604f13bdd9788767eaecd6c2318de1979eab343d35",
+    "bytes": 129742
+  },
+  {
+    "year": 2021,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2021-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2021-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1235,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:43.638640+00:00",
+    "sha256": "6ac47bdc6262bf0b20f77c20aa6568d19d17f6b51936fbef1aa8fb13bc04afda",
+    "bytes": 129965
+  },
+  {
+    "year": 2022,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2022-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2022-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1277,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:45.008234+00:00",
+    "sha256": "6d93fbb1b86d8e77d32b3e4f7e5171cd3f97a2f9ab3e4efdfd3169f441dfaf42",
+    "bytes": 129876
+  },
+  {
+    "year": 2023,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2023-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2023-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1236,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:46.442668+00:00",
+    "sha256": "46779495eafef36b08034688d07f66dd7ec0943695bbc2c19976151f624fff0d",
+    "bytes": 129910
+  },
+  {
+    "year": 2024,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2024-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2024-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1875,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:47.840242+00:00",
+    "sha256": "fb5f0051e7e7807e719dd84efaf4979d7a8400dfbd3f088513e36522c3688a90",
+    "bytes": 131823
+  },
+  {
+    "year": 2025,
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2025-12-15&conditions%5Bpublication_date%5D%5Blte%5D=2025-12-31&order=newest&per_page=1000&fields%5B%5D=end_page&fields%5B%5D=start_page&fields%5B%5D=volume&fields%5B%5D=document_number&fields%5B%5D=publication_date&fields%5B%5D=type",
+    "status": 200,
+    "count": 1393,
+    "results_fetched": 1000,
+    "fetched_at": "2026-08-23T14:29:49.114182+00:00",
+    "sha256": "c3c9e190f8b00bd3afdc4ea45b04f03e38f048f42a2a477c69376e9e8bdbc6dd",
+    "bytes": 129859
+  }
+]

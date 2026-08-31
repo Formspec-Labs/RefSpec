@@ -1,0 +1,3606 @@
+[
+  {
+    "rin": "0583-AC67",
+    "publication_id": "200004",
+    "held_parts": [
+      "9 CFR 391"
+    ],
+    "candidates_A": [
+      "cfr:7:2",
+      "usc:21:2",
+      "usc:21:451",
+      "usc:21:601",
+      "usc:7:138f",
+      "usc:7:1622",
+      "usc:7:1627",
+      "usc:7:2219a"
+    ],
+    "candidates_A_sources": {
+      "usc:21:2": [
+        "9 CFR 391"
+      ],
+      "usc:7:2219a": [
+        "9 CFR 391"
+      ],
+      "cfr:7:2": [
+        "9 CFR 391"
+      ],
+      "usc:7:138f": [
+        "9 CFR 391"
+      ],
+      "usc:21:451": [
+        "9 CFR 391"
+      ],
+      "usc:7:1622": [
+        "9 CFR 391"
+      ],
+      "usc:7:1627": [
+        "9 CFR 391"
+      ],
+      "usc:21:601": [
+        "9 CFR 391"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0583-AC92",
+    "publication_id": "200304",
+    "held_parts": [
+      "9 CFR 381"
+    ],
+    "candidates_A": [
+      "cfr:7:2",
+      "usc:21:2",
+      "usc:21:451",
+      "usc:7:138f",
+      "usc:7:1633"
+    ],
+    "candidates_A_sources": {
+      "usc:21:2": [
+        "9 CFR 381"
+      ],
+      "cfr:7:2": [
+        "9 CFR 381"
+      ],
+      "usc:21:451": [
+        "9 CFR 381"
+      ],
+      "usc:7:1633": [
+        "9 CFR 381"
+      ],
+      "usc:7:138f": [
+        "9 CFR 381"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0583-AD16",
+    "publication_id": "200510",
+    "held_parts": [
+      "9 CFR 327"
+    ],
+    "candidates_A": [
+      "cfr:7:2",
+      "usc:21:2",
+      "usc:21:601"
+    ],
+    "candidates_A_sources": {
+      "usc:21:2": [
+        "9 CFR 327"
+      ],
+      "usc:21:601": [
+        "9 CFR 327"
+      ],
+      "cfr:7:2": [
+        "9 CFR 327"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0583-AD16",
+    "publication_id": "200604",
+    "held_parts": [
+      "9 CFR 327"
+    ],
+    "candidates_A": [
+      "cfr:7:2",
+      "usc:21:2",
+      "usc:21:601"
+    ],
+    "candidates_A_sources": {
+      "usc:21:2": [
+        "9 CFR 327"
+      ],
+      "usc:21:601": [
+        "9 CFR 327"
+      ],
+      "cfr:7:2": [
+        "9 CFR 327"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0584-AD76",
+    "publication_id": "200604",
+    "held_parts": [
+      "7 CFR 250"
+    ],
+    "candidates_A": [
+      "usc:15:713c",
+      "usc:22:1922",
+      "usc:42:1751",
+      "usc:42:1755",
+      "usc:42:1758",
+      "usc:42:1760",
+      "usc:42:1761",
+      "usc:42:1762a",
+      "usc:42:1766",
+      "usc:42:3030a",
+      "usc:42:5179",
+      "usc:42:5180",
+      "usc:5:301",
+      "usc:7:1431",
+      "usc:7:1431b",
+      "usc:7:1431e",
+      "usc:7:1446a-1",
+      "usc:7:1859",
+      "usc:7:2014",
+      "usc:7:2025",
+      "usc:7:612c"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1760": [
+        "7 CFR 250"
+      ],
+      "usc:42:1762a": [
+        "7 CFR 250"
+      ],
+      "usc:42:3030a": [
+        "7 CFR 250"
+      ],
+      "usc:42:5179": [
+        "7 CFR 250"
+      ],
+      "usc:42:1761": [
+        "7 CFR 250"
+      ],
+      "usc:42:1766": [
+        "7 CFR 250"
+      ],
+      "usc:7:2014": [
+        "7 CFR 250"
+      ],
+      "usc:7:1859": [
+        "7 CFR 250"
+      ],
+      "usc:7:1446a-1": [
+        "7 CFR 250"
+      ],
+      "usc:42:1751": [
+        "7 CFR 250"
+      ],
+      "usc:7:1431b": [
+        "7 CFR 250"
+      ],
+      "usc:22:1922": [
+        "7 CFR 250"
+      ],
+      "usc:42:1758": [
+        "7 CFR 250"
+      ],
+      "usc:7:1431e": [
+        "7 CFR 250"
+      ],
+      "usc:5:301": [
+        "7 CFR 250"
+      ],
+      "usc:7:612c": [
+        "7 CFR 250"
+      ],
+      "usc:42:1755": [
+        "7 CFR 250"
+      ],
+      "usc:42:5180": [
+        "7 CFR 250"
+      ],
+      "usc:15:713c": [
+        "7 CFR 250"
+      ],
+      "usc:7:2025": [
+        "7 CFR 250"
+      ],
+      "usc:7:1431": [
+        "7 CFR 250"
+      ]
+    },
+    "candidates_B": [
+      "usc:15:713",
+      "usc:15:713c",
+      "usc:22:1922",
+      "usc:42:1751",
+      "usc:42:1755",
+      "usc:42:1758",
+      "usc:42:1760",
+      "usc:42:1761",
+      "usc:42:1762",
+      "usc:42:1762a",
+      "usc:42:1766",
+      "usc:42:3030",
+      "usc:42:3030a",
+      "usc:42:5179",
+      "usc:42:5180",
+      "usc:5:301",
+      "usc:7:1431",
+      "usc:7:1431b",
+      "usc:7:1431e",
+      "usc:7:1446",
+      "usc:7:1446a-1",
+      "usc:7:1859",
+      "usc:7:2014",
+      "usc:7:2025",
+      "usc:7:612",
+      "usc:7:612c",
+      "usc:7:612d"
+    ],
+    "donors_B": [
+      "200610",
+      "200704",
+      "200710",
+      "200804",
+      "200810",
+      "200904",
+      "200910",
+      "201004",
+      "201010",
+      "201104",
+      "201110"
+    ]
+  },
+  {
+    "rin": "0596-AB65",
+    "publication_id": "199710",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [
+      "usc:16:497"
+    ],
+    "donors_B": [
+      "199904"
+    ]
+  },
+  {
+    "rin": "0596-AB65",
+    "publication_id": "199804",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [
+      "usc:16:497"
+    ],
+    "donors_B": [
+      "199904"
+    ]
+  },
+  {
+    "rin": "0596-AB65",
+    "publication_id": "199810",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [
+      "usc:16:497"
+    ],
+    "donors_B": [
+      "199904"
+    ]
+  },
+  {
+    "rin": "0596-AB66",
+    "publication_id": "199710",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AB66",
+    "publication_id": "199804",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AB67",
+    "publication_id": "199804",
+    "held_parts": [
+      "36 CFR 212"
+    ],
+    "candidates_A": [
+      "usc:16:551",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:23:205": [
+        "36 CFR 212"
+      ],
+      "usc:16:551": [
+        "36 CFR 212"
+      ]
+    },
+    "candidates_B": [
+      "usc:16:551",
+      "usc:23:205"
+    ],
+    "donors_B": [
+      "199904",
+      "199910",
+      "200004",
+      "200010",
+      "200104"
+    ]
+  },
+  {
+    "rin": "0596-AB67",
+    "publication_id": "199810",
+    "held_parts": [
+      "36 CFR 212"
+    ],
+    "candidates_A": [
+      "usc:16:551",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:23:205": [
+        "36 CFR 212"
+      ],
+      "usc:16:551": [
+        "36 CFR 212"
+      ]
+    },
+    "candidates_B": [
+      "usc:16:551",
+      "usc:23:205"
+    ],
+    "donors_B": [
+      "199904",
+      "199910",
+      "200004",
+      "200010",
+      "200104"
+    ]
+  },
+  {
+    "rin": "0596-AC72",
+    "publication_id": "201304",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD11",
+    "publication_id": "201404",
+    "held_parts": [
+      "36 CFR 294"
+    ],
+    "candidates_A": [
+      "usc:16:1131",
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:16:529": [
+        "36 CFR 294"
+      ],
+      "usc:23:201": [
+        "36 CFR 294"
+      ],
+      "usc:16:1131": [
+        "36 CFR 294"
+      ],
+      "usc:16:1608": [
+        "36 CFR 294"
+      ],
+      "usc:16:472": [
+        "36 CFR 294"
+      ],
+      "usc:23:205": [
+        "36 CFR 294"
+      ],
+      "usc:16:1613": [
+        "36 CFR 294"
+      ],
+      "usc:16:551": [
+        "36 CFR 294"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD11",
+    "publication_id": "201410",
+    "held_parts": [
+      "36 CFR 294"
+    ],
+    "candidates_A": [
+      "usc:16:1131",
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:16:529": [
+        "36 CFR 294"
+      ],
+      "usc:23:201": [
+        "36 CFR 294"
+      ],
+      "usc:16:1131": [
+        "36 CFR 294"
+      ],
+      "usc:16:1608": [
+        "36 CFR 294"
+      ],
+      "usc:16:472": [
+        "36 CFR 294"
+      ],
+      "usc:23:205": [
+        "36 CFR 294"
+      ],
+      "usc:16:1613": [
+        "36 CFR 294"
+      ],
+      "usc:16:551": [
+        "36 CFR 294"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD17",
+    "publication_id": "201404",
+    "held_parts": [
+      "36 CFR 212",
+      "36 CFR 261"
+    ],
+    "candidates_A": [
+      "usc:16:1133",
+      "usc:16:1246",
+      "usc:16:460l-6d",
+      "usc:16:472",
+      "usc:16:551",
+      "usc:16:620",
+      "usc:23:205",
+      "usc:7:1011"
+    ],
+    "candidates_A_sources": {
+      "usc:16:472": [
+        "36 CFR 261"
+      ],
+      "usc:16:1246": [
+        "36 CFR 261"
+      ],
+      "usc:7:1011": [
+        "36 CFR 261"
+      ],
+      "usc:23:205": [
+        "36 CFR 212"
+      ],
+      "usc:16:1133": [
+        "36 CFR 261"
+      ],
+      "usc:16:620": [
+        "36 CFR 261"
+      ],
+      "usc:16:460l-6d": [
+        "36 CFR 261"
+      ],
+      "usc:16:551": [
+        "36 CFR 212",
+        "36 CFR 261"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD17",
+    "publication_id": "201410",
+    "held_parts": [
+      "36 CFR 212",
+      "36 CFR 261"
+    ],
+    "candidates_A": [
+      "usc:16:1133",
+      "usc:16:1246",
+      "usc:16:460l-6d",
+      "usc:16:472",
+      "usc:16:551",
+      "usc:16:620",
+      "usc:23:205",
+      "usc:7:1011"
+    ],
+    "candidates_A_sources": {
+      "usc:16:472": [
+        "36 CFR 261"
+      ],
+      "usc:16:1246": [
+        "36 CFR 261"
+      ],
+      "usc:7:1011": [
+        "36 CFR 261"
+      ],
+      "usc:23:205": [
+        "36 CFR 212"
+      ],
+      "usc:16:1133": [
+        "36 CFR 261"
+      ],
+      "usc:16:620": [
+        "36 CFR 261"
+      ],
+      "usc:16:460l-6d": [
+        "36 CFR 261"
+      ],
+      "usc:16:551": [
+        "36 CFR 212",
+        "36 CFR 261"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD17",
+    "publication_id": "201504",
+    "held_parts": [
+      "36 CFR 212",
+      "36 CFR 261"
+    ],
+    "candidates_A": [
+      "usc:16:1133",
+      "usc:16:1246",
+      "usc:16:460l-6d",
+      "usc:16:472",
+      "usc:16:551",
+      "usc:16:620",
+      "usc:23:205",
+      "usc:7:1011"
+    ],
+    "candidates_A_sources": {
+      "usc:16:472": [
+        "36 CFR 261"
+      ],
+      "usc:16:1246": [
+        "36 CFR 261"
+      ],
+      "usc:7:1011": [
+        "36 CFR 261"
+      ],
+      "usc:23:205": [
+        "36 CFR 212"
+      ],
+      "usc:16:1133": [
+        "36 CFR 261"
+      ],
+      "usc:16:620": [
+        "36 CFR 261"
+      ],
+      "usc:16:460l-6d": [
+        "36 CFR 261"
+      ],
+      "usc:16:551": [
+        "36 CFR 212",
+        "36 CFR 261"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD22",
+    "publication_id": "201410",
+    "held_parts": [
+      "36 CFR 294"
+    ],
+    "candidates_A": [
+      "usc:16:1131",
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:16:529": [
+        "36 CFR 294"
+      ],
+      "usc:23:201": [
+        "36 CFR 294"
+      ],
+      "usc:16:1131": [
+        "36 CFR 294"
+      ],
+      "usc:16:1608": [
+        "36 CFR 294"
+      ],
+      "usc:16:472": [
+        "36 CFR 294"
+      ],
+      "usc:23:205": [
+        "36 CFR 294"
+      ],
+      "usc:16:1613": [
+        "36 CFR 294"
+      ],
+      "usc:16:551": [
+        "36 CFR 294"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD22",
+    "publication_id": "201504",
+    "held_parts": [
+      "36 CFR 294"
+    ],
+    "candidates_A": [
+      "usc:16:1131",
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:16:529": [
+        "36 CFR 294"
+      ],
+      "usc:23:201": [
+        "36 CFR 294"
+      ],
+      "usc:16:1131": [
+        "36 CFR 294"
+      ],
+      "usc:16:1608": [
+        "36 CFR 294"
+      ],
+      "usc:16:472": [
+        "36 CFR 294"
+      ],
+      "usc:23:205": [
+        "36 CFR 294"
+      ],
+      "usc:16:1613": [
+        "36 CFR 294"
+      ],
+      "usc:16:551": [
+        "36 CFR 294"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD22",
+    "publication_id": "201510",
+    "held_parts": [
+      "36 CFR 294"
+    ],
+    "candidates_A": [
+      "usc:16:1131",
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:16:529": [
+        "36 CFR 294"
+      ],
+      "usc:23:201": [
+        "36 CFR 294"
+      ],
+      "usc:16:1131": [
+        "36 CFR 294"
+      ],
+      "usc:16:1608": [
+        "36 CFR 294"
+      ],
+      "usc:16:472": [
+        "36 CFR 294"
+      ],
+      "usc:23:205": [
+        "36 CFR 294"
+      ],
+      "usc:16:1613": [
+        "36 CFR 294"
+      ],
+      "usc:16:551": [
+        "36 CFR 294"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0596-AD26",
+    "publication_id": "201510",
+    "held_parts": [
+      "36 CFR 294"
+    ],
+    "candidates_A": [
+      "usc:16:1131",
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "candidates_A_sources": {
+      "usc:16:529": [
+        "36 CFR 294"
+      ],
+      "usc:23:201": [
+        "36 CFR 294"
+      ],
+      "usc:16:1131": [
+        "36 CFR 294"
+      ],
+      "usc:16:1608": [
+        "36 CFR 294"
+      ],
+      "usc:16:472": [
+        "36 CFR 294"
+      ],
+      "usc:23:205": [
+        "36 CFR 294"
+      ],
+      "usc:16:1613": [
+        "36 CFR 294"
+      ],
+      "usc:16:551": [
+        "36 CFR 294"
+      ]
+    },
+    "candidates_B": [
+      "usc:16:1608",
+      "usc:16:1613",
+      "usc:16:472",
+      "usc:16:529",
+      "usc:16:551",
+      "usc:23:201",
+      "usc:23:205"
+    ],
+    "donors_B": [
+      "201604",
+      "201610",
+      "201704"
+    ]
+  },
+  {
+    "rin": "0605-AA61",
+    "publication_id": "202310",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0694-AH03",
+    "publication_id": "202204",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0694-AI86",
+    "publication_id": "202304",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0694-AJ86",
+    "publication_id": "202510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0694-AJ97",
+    "publication_id": "202510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AJ63",
+    "publication_id": "200104",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AJ65",
+    "publication_id": "200004",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AJ83",
+    "publication_id": "200010",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AJ88",
+    "publication_id": "200010",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AJ89",
+    "publication_id": "200010",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AJ98",
+    "publication_id": "200510",
+    "held_parts": [
+      "42 CFR 424"
+    ],
+    "candidates_A": [
+      "usc:42:1302",
+      "usc:42:1395hh"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 424"
+      ],
+      "usc:42:1395hh": [
+        "42 CFR 424"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AK00",
+    "publication_id": "200210",
+    "held_parts": [
+      "45 CFR 146"
+    ],
+    "candidates_A": [
+      "usc:42:300gg-1",
+      "usc:42:300gg-11",
+      "usc:42:300gg-91",
+      "usc:42:300gg-92"
+    ],
+    "candidates_A_sources": {
+      "usc:42:300gg-92": [
+        "45 CFR 146"
+      ],
+      "usc:42:300gg-1": [
+        "45 CFR 146"
+      ],
+      "usc:42:300gg-91": [
+        "45 CFR 146"
+      ],
+      "usc:42:300gg-11": [
+        "45 CFR 146"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AK16",
+    "publication_id": "200010",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AK50",
+    "publication_id": "200210",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AK55",
+    "publication_id": "200104",
+    "held_parts": [
+      "42 CFR 411"
+    ],
+    "candidates_A": [
+      "usc:42:1302",
+      "usc:42:1395hh",
+      "usc:42:1395nn",
+      "usc:42:1395w-101"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1395nn": [
+        "42 CFR 411"
+      ],
+      "usc:42:1395w-101": [
+        "42 CFR 411"
+      ],
+      "usc:42:1302": [
+        "42 CFR 411"
+      ],
+      "usc:42:1395hh": [
+        "42 CFR 411"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AK55",
+    "publication_id": "200110",
+    "held_parts": [
+      "42 CFR 411"
+    ],
+    "candidates_A": [
+      "usc:42:1302",
+      "usc:42:1395hh",
+      "usc:42:1395nn",
+      "usc:42:1395w-101"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1395nn": [
+        "42 CFR 411"
+      ],
+      "usc:42:1395w-101": [
+        "42 CFR 411"
+      ],
+      "usc:42:1302": [
+        "42 CFR 411"
+      ],
+      "usc:42:1395hh": [
+        "42 CFR 411"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AK79",
+    "publication_id": "200404",
+    "held_parts": [
+      "42 CFR 424"
+    ],
+    "candidates_A": [
+      "usc:42:1302",
+      "usc:42:1395hh"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 424"
+      ],
+      "usc:42:1395hh": [
+        "42 CFR 424"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL30",
+    "publication_id": "200210",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL34",
+    "publication_id": "200204",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL39",
+    "publication_id": "200210",
+    "held_parts": [
+      "42 CFR 405"
+    ],
+    "candidates_A": [
+      "usc:42:1302",
+      "usc:42:1320b-12",
+      "usc:42:1395ff",
+      "usc:42:1395hh",
+      "usc:42:1395kk",
+      "usc:42:1395rr",
+      "usc:42:1395ww",
+      "usc:42:1395x",
+      "usc:42:1395y",
+      "usc:42:263a",
+      "usc:42:405"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395rr": [
+        "42 CFR 405"
+      ],
+      "usc:42:405": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395ww": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395hh": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395kk": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395ff": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395x": [
+        "42 CFR 405"
+      ],
+      "usc:42:1320b-12": [
+        "42 CFR 405"
+      ],
+      "usc:42:263a": [
+        "42 CFR 405"
+      ],
+      "usc:42:1395y": [
+        "42 CFR 405"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL47",
+    "publication_id": "200204",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL55",
+    "publication_id": "200204",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL55",
+    "publication_id": "200210",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL64",
+    "publication_id": "200204",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL64",
+    "publication_id": "200210",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL64",
+    "publication_id": "200304",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AL83",
+    "publication_id": "200210",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AM49",
+    "publication_id": "200304",
+    "held_parts": [
+      "42 CFR 442"
+    ],
+    "candidates_A": [
+      "usc:42:1302"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 442"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AM60",
+    "publication_id": "200304",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AM89",
+    "publication_id": "200404",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AM95",
+    "publication_id": "200404",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN22",
+    "publication_id": "200410",
+    "held_parts": [
+      "45 CFR 146"
+    ],
+    "candidates_A": [
+      "usc:42:300gg-1",
+      "usc:42:300gg-11",
+      "usc:42:300gg-91",
+      "usc:42:300gg-92"
+    ],
+    "candidates_A_sources": {
+      "usc:42:300gg-92": [
+        "45 CFR 146"
+      ],
+      "usc:42:300gg-1": [
+        "45 CFR 146"
+      ],
+      "usc:42:300gg-91": [
+        "45 CFR 146"
+      ],
+      "usc:42:300gg-11": [
+        "45 CFR 146"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN23",
+    "publication_id": "200604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN70",
+    "publication_id": "200504",
+    "held_parts": [
+      "42 CFR 493"
+    ],
+    "candidates_A": [
+      "usc:42:1302",
+      "usc:42:1395x",
+      "usc:42:263a"
+    ],
+    "candidates_A_sources": {
+      "usc:42:263a": [
+        "42 CFR 493"
+      ],
+      "usc:42:1395x": [
+        "42 CFR 493"
+      ],
+      "usc:42:1302": [
+        "42 CFR 493"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN87",
+    "publication_id": "200510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN87",
+    "publication_id": "200604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN91",
+    "publication_id": "200510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN91",
+    "publication_id": "200604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN91",
+    "publication_id": "200610",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AN94",
+    "publication_id": "200510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO05",
+    "publication_id": "200604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200610",
+    "held_parts": [
+      "42 CFR 435"
+    ],
+    "candidates_A": [
+      "usc:42:1302"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 435"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200704",
+    "held_parts": [
+      "42 CFR 435"
+    ],
+    "candidates_A": [
+      "usc:42:1302"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 435"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200710",
+    "held_parts": [
+      "42 CFR 435"
+    ],
+    "candidates_A": [
+      "usc:42:1302"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 435"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200804",
+    "held_parts": [
+      "42 CFR 435"
+    ],
+    "candidates_A": [
+      "usc:42:1302"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 435"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200810",
+    "held_parts": [
+      "42 CFR 435"
+    ],
+    "candidates_A": [
+      "usc:42:1302"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1302": [
+        "42 CFR 435"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200904",
+    "held_parts": [
+      "42 CFR 447",
+      "42 CFR 457"
+    ],
+    "candidates_A": [
+      "public_law:111-148",
+      "usc:42:1302",
+      "usc:42:1396r-8"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1396r-8": [
+        "42 CFR 447"
+      ],
+      "usc:42:1302": [
+        "42 CFR 447",
+        "42 CFR 457"
+      ],
+      "public_law:111-148": [
+        "42 CFR 447"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "200910",
+    "held_parts": [
+      "42 CFR 447",
+      "42 CFR 457"
+    ],
+    "candidates_A": [
+      "public_law:111-148",
+      "usc:42:1302",
+      "usc:42:1396r-8"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1396r-8": [
+        "42 CFR 447"
+      ],
+      "usc:42:1302": [
+        "42 CFR 447",
+        "42 CFR 457"
+      ],
+      "public_law:111-148": [
+        "42 CFR 447"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0938-AO07",
+    "publication_id": "201004",
+    "held_parts": [
+      "42 CFR 447",
+      "42 CFR 457"
+    ],
+    "candidates_A": [
+      "public_law:111-148",
+      "usc:42:1302",
+      "usc:42:1396r-8"
+    ],
+    "candidates_A_sources": {
+      "usc:42:1396r-8": [
+        "42 CFR 447"
+      ],
+      "usc:42:1302": [
+        "42 CFR 447",
+        "42 CFR 457"
+      ],
+      "public_law:111-148": [
+        "42 CFR 447"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0960-AH15",
+    "publication_id": "201004",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "0991-AC20",
+    "publication_id": "202104",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "1115-AE28",
+    "publication_id": "199604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "1601-AA36",
+    "publication_id": "200604",
+    "held_parts": [
+      "8 CFR 215",
+      "8 CFR 235"
+    ],
+    "candidates_A": [
+      "cfr:8:2",
+      "public_law:108-458",
+      "public_law:110-229",
+      "public_law:112-54",
+      "usc:48:1806",
+      "usc:48:1807",
+      "usc:48:1808",
+      "usc:6:202",
+      "usc:6:218",
+      "usc:6:236",
+      "usc:8:1101",
+      "usc:8:1103",
+      "usc:8:1104",
+      "usc:8:1182",
+      "usc:8:1183",
+      "usc:8:1184",
+      "usc:8:1185",
+      "usc:8:1201",
+      "usc:8:1224",
+      "usc:8:1225",
+      "usc:8:1226",
+      "usc:8:1228",
+      "usc:8:1357",
+      "usc:8:1365a",
+      "usc:8:1365b",
+      "usc:8:1379",
+      "usc:8:1731",
+      "usc:8:2003"
+    ],
+    "candidates_A_sources": {
+      "usc:8:1182": [
+        "8 CFR 235"
+      ],
+      "usc:48:1807": [
+        "8 CFR 235"
+      ],
+      "usc:6:218": [
+        "8 CFR 235"
+      ],
+      "public_law:112-54": [
+        "8 CFR 235"
+      ],
+      "usc:8:1357": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1101": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "public_law:108-458": [
+        "8 CFR 235"
+      ],
+      "usc:48:1808": [
+        "8 CFR 235"
+      ],
+      "usc:8:2003": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1103": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1226": [
+        "8 CFR 235"
+      ],
+      "usc:8:1104": [
+        "8 CFR 215"
+      ],
+      "usc:8:1224": [
+        "8 CFR 235"
+      ],
+      "public_law:110-229": [
+        "8 CFR 235"
+      ],
+      "usc:8:1184": [
+        "8 CFR 215"
+      ],
+      "usc:8:1225": [
+        "8 CFR 235"
+      ],
+      "cfr:8:2": [
+        "8 CFR 215"
+      ],
+      "usc:8:1185": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1365a": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1365b": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1379": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:6:202": [
+        "8 CFR 215"
+      ],
+      "usc:8:1183": [
+        "8 CFR 235"
+      ],
+      "usc:6:236": [
+        "8 CFR 215"
+      ],
+      "usc:8:1201": [
+        "8 CFR 235"
+      ],
+      "usc:8:1228": [
+        "8 CFR 235"
+      ],
+      "usc:48:1806": [
+        "8 CFR 235"
+      ],
+      "usc:8:1731": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "1650-AA00",
+    "publication_id": "200510",
+    "held_parts": [
+      "8 CFR 215",
+      "8 CFR 235"
+    ],
+    "candidates_A": [
+      "cfr:8:2",
+      "public_law:108-458",
+      "public_law:110-229",
+      "public_law:112-54",
+      "usc:48:1806",
+      "usc:48:1807",
+      "usc:48:1808",
+      "usc:6:202",
+      "usc:6:218",
+      "usc:6:236",
+      "usc:8:1101",
+      "usc:8:1103",
+      "usc:8:1104",
+      "usc:8:1182",
+      "usc:8:1183",
+      "usc:8:1184",
+      "usc:8:1185",
+      "usc:8:1201",
+      "usc:8:1224",
+      "usc:8:1225",
+      "usc:8:1226",
+      "usc:8:1228",
+      "usc:8:1357",
+      "usc:8:1365a",
+      "usc:8:1365b",
+      "usc:8:1379",
+      "usc:8:1731",
+      "usc:8:2003"
+    ],
+    "candidates_A_sources": {
+      "usc:8:1182": [
+        "8 CFR 235"
+      ],
+      "usc:48:1807": [
+        "8 CFR 235"
+      ],
+      "usc:6:218": [
+        "8 CFR 235"
+      ],
+      "public_law:112-54": [
+        "8 CFR 235"
+      ],
+      "usc:8:1357": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1101": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "public_law:108-458": [
+        "8 CFR 235"
+      ],
+      "usc:48:1808": [
+        "8 CFR 235"
+      ],
+      "usc:8:2003": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1103": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1226": [
+        "8 CFR 235"
+      ],
+      "usc:8:1104": [
+        "8 CFR 215"
+      ],
+      "usc:8:1224": [
+        "8 CFR 235"
+      ],
+      "public_law:110-229": [
+        "8 CFR 235"
+      ],
+      "usc:8:1184": [
+        "8 CFR 215"
+      ],
+      "usc:8:1225": [
+        "8 CFR 235"
+      ],
+      "cfr:8:2": [
+        "8 CFR 215"
+      ],
+      "usc:8:1185": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1365a": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1365b": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1379": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:6:202": [
+        "8 CFR 215"
+      ],
+      "usc:8:1183": [
+        "8 CFR 235"
+      ],
+      "usc:6:236": [
+        "8 CFR 215"
+      ],
+      "usc:8:1201": [
+        "8 CFR 235"
+      ],
+      "usc:8:1228": [
+        "8 CFR 235"
+      ],
+      "usc:48:1806": [
+        "8 CFR 235"
+      ],
+      "usc:8:1731": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ]
+    },
+    "candidates_B": [
+      "public_law:106-215",
+      "public_law:106-396",
+      "public_law:107-173",
+      "public_law:107-56",
+      "usc:8:1",
+      "usc:8:1104",
+      "usc:8:1184",
+      "usc:8:1185",
+      "usc:8:1365a",
+      "usc:8:1379",
+      "usc:8:1731",
+      "usc:8:1732"
+    ],
+    "donors_B": [
+      "200504"
+    ]
+  },
+  {
+    "rin": "1650-AA00",
+    "publication_id": "200604",
+    "held_parts": [
+      "8 CFR 215",
+      "8 CFR 235"
+    ],
+    "candidates_A": [
+      "cfr:8:2",
+      "public_law:108-458",
+      "public_law:110-229",
+      "public_law:112-54",
+      "usc:48:1806",
+      "usc:48:1807",
+      "usc:48:1808",
+      "usc:6:202",
+      "usc:6:218",
+      "usc:6:236",
+      "usc:8:1101",
+      "usc:8:1103",
+      "usc:8:1104",
+      "usc:8:1182",
+      "usc:8:1183",
+      "usc:8:1184",
+      "usc:8:1185",
+      "usc:8:1201",
+      "usc:8:1224",
+      "usc:8:1225",
+      "usc:8:1226",
+      "usc:8:1228",
+      "usc:8:1357",
+      "usc:8:1365a",
+      "usc:8:1365b",
+      "usc:8:1379",
+      "usc:8:1731",
+      "usc:8:2003"
+    ],
+    "candidates_A_sources": {
+      "usc:8:1182": [
+        "8 CFR 235"
+      ],
+      "usc:48:1807": [
+        "8 CFR 235"
+      ],
+      "usc:6:218": [
+        "8 CFR 235"
+      ],
+      "public_law:112-54": [
+        "8 CFR 235"
+      ],
+      "usc:8:1357": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1101": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "public_law:108-458": [
+        "8 CFR 235"
+      ],
+      "usc:48:1808": [
+        "8 CFR 235"
+      ],
+      "usc:8:2003": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1103": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1226": [
+        "8 CFR 235"
+      ],
+      "usc:8:1104": [
+        "8 CFR 215"
+      ],
+      "usc:8:1224": [
+        "8 CFR 235"
+      ],
+      "public_law:110-229": [
+        "8 CFR 235"
+      ],
+      "usc:8:1184": [
+        "8 CFR 215"
+      ],
+      "usc:8:1225": [
+        "8 CFR 235"
+      ],
+      "cfr:8:2": [
+        "8 CFR 215"
+      ],
+      "usc:8:1185": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1365a": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1365b": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:8:1379": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ],
+      "usc:6:202": [
+        "8 CFR 215"
+      ],
+      "usc:8:1183": [
+        "8 CFR 235"
+      ],
+      "usc:6:236": [
+        "8 CFR 215"
+      ],
+      "usc:8:1201": [
+        "8 CFR 235"
+      ],
+      "usc:8:1228": [
+        "8 CFR 235"
+      ],
+      "usc:48:1806": [
+        "8 CFR 235"
+      ],
+      "usc:8:1731": [
+        "8 CFR 215",
+        "8 CFR 235"
+      ]
+    },
+    "candidates_B": [
+      "public_law:106-215",
+      "public_law:106-396",
+      "public_law:107-173",
+      "public_law:107-56",
+      "usc:8:1",
+      "usc:8:1104",
+      "usc:8:1184",
+      "usc:8:1185",
+      "usc:8:1365a",
+      "usc:8:1379",
+      "usc:8:1731",
+      "usc:8:1732"
+    ],
+    "donors_B": [
+      "200504"
+    ]
+  },
+  {
+    "rin": "2080-AA05",
+    "publication_id": "199604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA05",
+    "publication_id": "199610",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA05",
+    "publication_id": "199704",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199610",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199704",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199804",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199810",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199904",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "199910",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200004",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200010",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200104",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200110",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200204",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200210",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200304",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200504",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA06",
+    "publication_id": "200604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA07",
+    "publication_id": "199604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA07",
+    "publication_id": "199610",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA07",
+    "publication_id": "199704",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA07",
+    "publication_id": "199804",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA08",
+    "publication_id": "199604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA08",
+    "publication_id": "199610",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA08",
+    "publication_id": "199704",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA08",
+    "publication_id": "199804",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA08",
+    "publication_id": "199810",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2080-AA11",
+    "publication_id": "200510",
+    "held_parts": [
+      "40 CFR 26"
+    ],
+    "candidates_A": [
+      "public_law:109-54",
+      "usc:21:346a",
+      "usc:42:300v-1",
+      "usc:5:301",
+      "usc:7:136a",
+      "usc:7:136w"
+    ],
+    "candidates_A_sources": {
+      "public_law:109-54": [
+        "40 CFR 26"
+      ],
+      "usc:7:136w": [
+        "40 CFR 26"
+      ],
+      "usc:21:346a": [
+        "40 CFR 26"
+      ],
+      "usc:5:301": [
+        "40 CFR 26"
+      ],
+      "usc:42:300v-1": [
+        "40 CFR 26"
+      ],
+      "usc:7:136a": [
+        "40 CFR 26"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2105-AE92",
+    "publication_id": "202104",
+    "held_parts": [
+      "49 CFR 26"
+    ],
+    "candidates_A": [
+      "public_law:114-94",
+      "public_law:115-254",
+      "public_law:117-58",
+      "usc:23:101",
+      "usc:23:304",
+      "usc:23:324",
+      "usc:42:2000d",
+      "usc:49:1324",
+      "usc:49:47113",
+      "usc:49:47123"
+    ],
+    "candidates_A_sources": {
+      "usc:49:1324": [
+        "49 CFR 26"
+      ],
+      "usc:49:47113": [
+        "49 CFR 26"
+      ],
+      "public_law:115-254": [
+        "49 CFR 26"
+      ],
+      "usc:23:324": [
+        "49 CFR 26"
+      ],
+      "usc:23:101": [
+        "49 CFR 26"
+      ],
+      "usc:42:2000d": [
+        "49 CFR 26"
+      ],
+      "usc:23:304": [
+        "49 CFR 26"
+      ],
+      "usc:49:47123": [
+        "49 CFR 26"
+      ],
+      "public_law:114-94": [
+        "49 CFR 26"
+      ],
+      "public_law:117-58": [
+        "49 CFR 26"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2105-AE99",
+    "publication_id": "202204",
+    "held_parts": [
+      "14 CFR 13",
+      "14 CFR 383",
+      "14 CFR 406",
+      "33 CFR 401",
+      "46 CFR 221"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "public_law:101-410",
+      "public_law:104-134",
+      "public_law:108-176",
+      "public_law:114-74",
+      "usc:18:6002",
+      "usc:28:2461",
+      "usc:33:983",
+      "usc:33:984",
+      "usc:49:106",
+      "usc:49:40113",
+      "usc:49:44103",
+      "usc:49:44701",
+      "usc:49:44709",
+      "usc:49:44713",
+      "usc:49:44725",
+      "usc:49:44742",
+      "usc:49:44802",
+      "usc:49:46101",
+      "usc:49:46301",
+      "usc:49:46302",
+      "usc:49:46304",
+      "usc:49:46318",
+      "usc:49:46501",
+      "usc:49:46504",
+      "usc:49:46507",
+      "usc:49:47106",
+      "usc:49:47107",
+      "usc:49:47111",
+      "usc:49:47122",
+      "usc:49:47306",
+      "usc:49:47531",
+      "usc:49:5121",
+      "usc:51:50901"
+    ],
+    "candidates_A_sources": {
+      "usc:49:44802": [
+        "14 CFR 13"
+      ],
+      "usc:49:46302": [
+        "14 CFR 13"
+      ],
+      "usc:49:44725": [
+        "14 CFR 13"
+      ],
+      "usc:51:50901": [
+        "14 CFR 406"
+      ],
+      "public_law:101-410": [
+        "14 CFR 383"
+      ],
+      "usc:49:106": [
+        "14 CFR 13"
+      ],
+      "usc:49:44701": [
+        "14 CFR 13"
+      ],
+      "usc:49:46101": [
+        "14 CFR 13"
+      ],
+      "usc:49:44713": [
+        "14 CFR 13"
+      ],
+      "usc:33:984": [
+        "33 CFR 401"
+      ],
+      "usc:49:40113": [
+        "14 CFR 13"
+      ],
+      "usc:49:46501": [
+        "14 CFR 13"
+      ],
+      "usc:33:983": [
+        "33 CFR 401"
+      ],
+      "usc:49:46318": [
+        "14 CFR 13"
+      ],
+      "usc:49:47306": [
+        "14 CFR 13"
+      ],
+      "usc:49:47106": [
+        "14 CFR 13"
+      ],
+      "public_law:114-74": [
+        "14 CFR 383",
+        "46 CFR 221"
+      ],
+      "usc:49:44742": [
+        "14 CFR 13"
+      ],
+      "usc:49:47107": [
+        "14 CFR 13"
+      ],
+      "usc:49:46301": [
+        "14 CFR 13"
+      ],
+      "usc:49:47122": [
+        "14 CFR 13"
+      ],
+      "public_law:104-134": [
+        "14 CFR 383"
+      ],
+      "usc:49:44103": [
+        "14 CFR 13"
+      ],
+      "usc:49:47111": [
+        "14 CFR 13"
+      ],
+      "usc:49:5121": [
+        "14 CFR 13"
+      ],
+      "usc:49:46304": [
+        "14 CFR 13"
+      ],
+      "cfr:49:1": [
+        "14 CFR 13",
+        "33 CFR 401",
+        "46 CFR 221"
+      ],
+      "public_law:108-176": [
+        "14 CFR 383"
+      ],
+      "usc:49:46507": [
+        "14 CFR 13"
+      ],
+      "usc:49:44709": [
+        "14 CFR 13"
+      ],
+      "usc:49:46504": [
+        "14 CFR 13"
+      ],
+      "usc:18:6002": [
+        "14 CFR 13"
+      ],
+      "usc:28:2461": [
+        "14 CFR 13"
+      ],
+      "usc:49:47531": [
+        "14 CFR 13"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2105-AF06",
+    "publication_id": "202304",
+    "held_parts": [
+      "2 CFR 1201"
+    ],
+    "candidates_A": [
+      "cfr:2:200",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "2 CFR 1201"
+      ],
+      "cfr:2:200": [
+        "2 CFR 1201"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2120-AL53",
+    "publication_id": "202304",
+    "held_parts": [
+      "14 CFR 1",
+      "14 CFR 101",
+      "14 CFR 107",
+      "14 CFR 119",
+      "14 CFR 121",
+      "14 CFR 133",
+      "14 CFR 135",
+      "14 CFR 141",
+      "14 CFR 21",
+      "14 CFR 23",
+      "14 CFR 25",
+      "14 CFR 29",
+      "14 CFR 33",
+      "14 CFR 36",
+      "14 CFR 440",
+      "14 CFR 47",
+      "14 CFR 49",
+      "14 CFR 60",
+      "14 CFR 61",
+      "14 CFR 63",
+      "14 CFR 67",
+      "14 CFR 73",
+      "14 CFR 91",
+      "14 CFR 97"
+    ],
+    "candidates_A": [
+      "public_law:108-297",
+      "public_law:111-216",
+      "public_law:112-95",
+      "public_law:113-53",
+      "public_law:114-190",
+      "public_law:115-254",
+      "public_law:118-63",
+      "public_law:96-193",
+      "usc:42:4321",
+      "usc:42:7572",
+      "usc:49:106",
+      "usc:49:1959",
+      "usc:49:1966",
+      "usc:49:29",
+      "usc:49:40101",
+      "usc:49:40102",
+      "usc:49:40103",
+      "usc:49:40105",
+      "usc:49:40106",
+      "usc:49:40113",
+      "usc:49:40114",
+      "usc:49:40119",
+      "usc:49:40120",
+      "usc:49:41706",
+      "usc:49:42301",
+      "usc:49:44101",
+      "usc:49:44105",
+      "usc:49:44106",
+      "usc:49:44110",
+      "usc:49:44111",
+      "usc:49:44502",
+      "usc:49:44514",
+      "usc:49:44701",
+      "usc:49:44702",
+      "usc:49:44703",
+      "usc:49:44704",
+      "usc:49:44705",
+      "usc:49:44707",
+      "usc:49:44709",
+      "usc:49:44711",
+      "usc:49:44712",
+      "usc:49:44713",
+      "usc:49:44715",
+      "usc:49:44716",
+      "usc:49:44717",
+      "usc:49:44719",
+      "usc:49:44721",
+      "usc:49:44722",
+      "usc:49:44729",
+      "usc:49:44730",
+      "usc:49:44732",
+      "usc:49:44740",
+      "usc:49:44807",
+      "usc:49:44901",
+      "usc:49:44903",
+      "usc:49:44904",
+      "usc:49:44906",
+      "usc:49:44912",
+      "usc:49:44914",
+      "usc:49:44936",
+      "usc:49:44938",
+      "usc:49:45101",
+      "usc:49:45102",
+      "usc:49:45301",
+      "usc:49:45302",
+      "usc:49:45303",
+      "usc:49:46103",
+      "usc:49:46104",
+      "usc:49:46105",
+      "usc:49:46110",
+      "usc:49:46301",
+      "usc:49:46306",
+      "usc:49:46308",
+      "usc:49:46315",
+      "usc:49:46316",
+      "usc:49:46504",
+      "usc:49:46506",
+      "usc:49:47122",
+      "usc:49:47508",
+      "usc:49:47528",
+      "usc:49:47534",
+      "usc:49:57",
+      "usc:51:50901"
+    ],
+    "candidates_A_sources": {
+      "usc:49:44106": [
+        "14 CFR 119"
+      ],
+      "usc:49:57": [
+        "14 CFR 36"
+      ],
+      "usc:49:40106": [
+        "14 CFR 97"
+      ],
+      "usc:49:40114": [
+        "14 CFR 97"
+      ],
+      "usc:49:40102": [
+        "14 CFR 119"
+      ],
+      "usc:49:44702": [
+        "14 CFR 25",
+        "14 CFR 33"
+      ],
+      "usc:42:7572": [
+        "14 CFR 21"
+      ],
+      "usc:49:44901": [
+        "14 CFR 119"
+      ],
+      "usc:49:44105": [
+        "14 CFR 119"
+      ],
+      "usc:49:44715": [
+        "14 CFR 135",
+        "14 CFR 21",
+        "14 CFR 36",
+        "14 CFR 91"
+      ],
+      "usc:49:46306": [
+        "14 CFR 91"
+      ],
+      "usc:49:44936": [
+        "14 CFR 119"
+      ],
+      "usc:49:40103": [
+        "14 CFR 101",
+        "14 CFR 107",
+        "14 CFR 119",
+        "14 CFR 121",
+        "14 CFR 73",
+        "14 CFR 91",
+        "14 CFR 97"
+      ],
+      "usc:49:44713": [
+        "14 CFR 121",
+        "14 CFR 21",
+        "14 CFR 47",
+        "14 CFR 49"
+      ],
+      "public_law:111-216": [
+        "14 CFR 119",
+        "14 CFR 121",
+        "14 CFR 60"
+      ],
+      "usc:49:44740": [
+        "14 CFR 91"
+      ],
+      "usc:49:44712": [
+        "14 CFR 91"
+      ],
+      "usc:49:40113": [
+        "14 CFR 1",
+        "14 CFR 101",
+        "14 CFR 119",
+        "14 CFR 121",
+        "14 CFR 133",
+        "14 CFR 135",
+        "14 CFR 141",
+        "14 CFR 21",
+        "14 CFR 23",
+        "14 CFR 25",
+        "14 CFR 29",
+        "14 CFR 33",
+        "14 CFR 36",
+        "14 CFR 47",
+        "14 CFR 49",
+        "14 CFR 60",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67",
+        "14 CFR 73",
+        "14 CFR 91",
+        "14 CFR 97"
+      ],
+      "usc:49:44716": [
+        "14 CFR 121",
+        "14 CFR 91"
+      ],
+      "usc:49:46315": [
+        "14 CFR 91"
+      ],
+      "usc:49:44906": [
+        "14 CFR 119"
+      ],
+      "usc:49:45303": [
+        "14 CFR 21"
+      ],
+      "usc:49:44732": [
+        "14 CFR 121"
+      ],
+      "usc:49:44904": [
+        "14 CFR 119"
+      ],
+      "usc:49:44514": [
+        "14 CFR 101",
+        "14 CFR 97"
+      ],
+      "usc:49:40101": [
+        "14 CFR 101",
+        "14 CFR 107",
+        "14 CFR 119",
+        "14 CFR 47",
+        "14 CFR 49",
+        "14 CFR 91"
+      ],
+      "public_law:112-95": [
+        "14 CFR 121",
+        "14 CFR 135",
+        "14 CFR 91"
+      ],
+      "usc:49:44703": [
+        "14 CFR 47",
+        "14 CFR 91"
+      ],
+      "usc:49:47534": [
+        "14 CFR 91"
+      ],
+      "usc:49:47528": [
+        "14 CFR 91"
+      ],
+      "usc:49:47122": [
+        "14 CFR 91"
+      ],
+      "usc:49:46301": [
+        "14 CFR 47",
+        "14 CFR 49"
+      ],
+      "usc:49:46110": [
+        "14 CFR 107"
+      ],
+      "usc:49:40120": [
+        "14 CFR 73",
+        "14 CFR 91",
+        "14 CFR 97"
+      ],
+      "usc:49:46104": [
+        "14 CFR 47",
+        "14 CFR 49"
+      ],
+      "usc:49:44719": [
+        "14 CFR 97"
+      ],
+      "usc:49:44502": [
+        "14 CFR 101",
+        "14 CFR 97"
+      ],
+      "usc:49:44912": [
+        "14 CFR 119"
+      ],
+      "usc:49:44707": [
+        "14 CFR 141",
+        "14 CFR 21",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67"
+      ],
+      "usc:49:44709": [
+        "14 CFR 121",
+        "14 CFR 135",
+        "14 CFR 141",
+        "14 CFR 21",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67",
+        "14 CFR 91"
+      ],
+      "usc:49:44721": [
+        "14 CFR 101",
+        "14 CFR 97"
+      ],
+      "usc:49:40119": [
+        "14 CFR 121"
+      ],
+      "usc:49:1959": [
+        "14 CFR 73"
+      ],
+      "usc:49:44111": [
+        "14 CFR 119",
+        "14 CFR 91"
+      ],
+      "usc:49:45301": [
+        "14 CFR 141",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67"
+      ],
+      "usc:49:46316": [
+        "14 CFR 91"
+      ],
+      "usc:49:44717": [
+        "14 CFR 91"
+      ],
+      "usc:49:40105": [
+        "14 CFR 21",
+        "14 CFR 91"
+      ],
+      "usc:49:47508": [
+        "14 CFR 91"
+      ],
+      "usc:49:44938": [
+        "14 CFR 119"
+      ],
+      "usc:49:44101": [
+        "14 CFR 121",
+        "14 CFR 47",
+        "14 CFR 49",
+        "14 CFR 91"
+      ],
+      "usc:49:42301": [
+        "14 CFR 121"
+      ],
+      "usc:49:29": [
+        "14 CFR 91"
+      ],
+      "usc:49:41706": [
+        "14 CFR 121",
+        "14 CFR 135"
+      ],
+      "usc:51:50901": [
+        "14 CFR 440"
+      ],
+      "usc:42:4321": [
+        "14 CFR 36"
+      ],
+      "usc:49:45102": [
+        "14 CFR 141",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67"
+      ],
+      "usc:49:44110": [
+        "14 CFR 47",
+        "14 CFR 49"
+      ],
+      "usc:49:106": [
+        "14 CFR 1",
+        "14 CFR 101",
+        "14 CFR 107",
+        "14 CFR 119",
+        "14 CFR 121",
+        "14 CFR 133",
+        "14 CFR 135",
+        "14 CFR 141",
+        "14 CFR 21",
+        "14 CFR 23",
+        "14 CFR 25",
+        "14 CFR 29",
+        "14 CFR 33",
+        "14 CFR 36",
+        "14 CFR 47",
+        "14 CFR 49",
+        "14 CFR 60",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67",
+        "14 CFR 73",
+        "14 CFR 91",
+        "14 CFR 97"
+      ],
+      "usc:49:44701": [
+        "14 CFR 1",
+        "14 CFR 101",
+        "14 CFR 107",
+        "14 CFR 119",
+        "14 CFR 121",
+        "14 CFR 133",
+        "14 CFR 135",
+        "14 CFR 141",
+        "14 CFR 21",
+        "14 CFR 23",
+        "14 CFR 25",
+        "14 CFR 29",
+        "14 CFR 33",
+        "14 CFR 36",
+        "14 CFR 47",
+        "14 CFR 49",
+        "14 CFR 60",
+        "14 CFR 61",
+        "14 CFR 63",
+        "14 CFR 67",
+        "14 CFR 91",
+        "14 CFR 97"
+      ],
+      "public_law:114-190": [
+        "14 CFR 91"
+      ],
+      "public_law:115-254": [
+        "14 CFR 121",
+        "14 CFR 25",
+        "14 CFR 47"
+      ],
+      "usc:49:46506": [
+        "14 CFR 91"
+      ],
+      "usc:49:46103": [
+        "14 CFR 119"
+      ],
+      "public_law:108-297": [
+        "14 CFR 47",
+        "14 CFR 49"
+      ],
+      "usc:49:44711": [
+        "14 CFR 135",
+        "14 CFR 141",
+        "14 CFR 21",
+        "14 CFR 91"
+      ],
+      "usc:49:45302": [
+        "14 CFR 101",
+        "14 CFR 47",
+        "14 CFR 49"
+      ],
+      "usc:49:44807": [
+        "14 CFR 107"
+      ],
+      "usc:49:44704": [
+        "14 CFR 21",
+        "14 CFR 23",
+        "14 CFR 25",
+        "14 CFR 29",
+        "14 CFR 33",
+        "14 CFR 36",
+        "14 CFR 49",
+        "14 CFR 91"
+      ],
+      "usc:49:46308": [
+        "14 CFR 101"
+      ],
+      "usc:49:1966": [
+        "14 CFR 36"
+      ],
+      "public_law:118-63": [
+        "14 CFR 91"
+      ],
+      "usc:49:44722": [
+        "14 CFR 119",
+        "14 CFR 121",
+        "14 CFR 135",
+        "14 CFR 91"
+      ],
+      "usc:49:45101": [
+        "14 CFR 135"
+      ],
+      "usc:49:44914": [
+        "14 CFR 119"
+      ],
+      "usc:49:44729": [
+        "14 CFR 121",
+        "14 CFR 61"
+      ],
+      "usc:49:44730": [
+        "14 CFR 135"
+      ],
+      "usc:49:46504": [
+        "14 CFR 91"
+      ],
+      "usc:49:44705": [
+        "14 CFR 121",
+        "14 CFR 135"
+      ],
+      "public_law:113-53": [
+        "14 CFR 23"
+      ],
+      "usc:49:44903": [
+        "14 CFR 119",
+        "14 CFR 25",
+        "14 CFR 61"
+      ],
+      "usc:49:46105": [
+        "14 CFR 107",
+        "14 CFR 119",
+        "14 CFR 121"
+      ],
+      "public_law:96-193": [
+        "14 CFR 36"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2126-AC47",
+    "publication_id": "202304",
+    "held_parts": [
+      "49 CFR 393"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "public_law:102-240",
+      "public_law:114-94",
+      "usc:49:1543",
+      "usc:49:1560",
+      "usc:49:1993",
+      "usc:49:31136",
+      "usc:49:31151",
+      "usc:49:31502",
+      "usc:49:5524"
+    ],
+    "candidates_A_sources": {
+      "usc:49:5524": [
+        "49 CFR 393"
+      ],
+      "usc:49:1993": [
+        "49 CFR 393"
+      ],
+      "usc:49:1560": [
+        "49 CFR 393"
+      ],
+      "cfr:49:1": [
+        "49 CFR 393"
+      ],
+      "usc:49:31151": [
+        "49 CFR 393"
+      ],
+      "usc:49:1543": [
+        "49 CFR 393"
+      ],
+      "usc:49:31502": [
+        "49 CFR 393"
+      ],
+      "usc:49:31136": [
+        "49 CFR 393"
+      ],
+      "public_law:102-240": [
+        "49 CFR 393"
+      ],
+      "public_law:114-94": [
+        "49 CFR 393"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2126-AC48",
+    "publication_id": "202304",
+    "held_parts": [
+      "49 CFR 365"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:13101",
+      "usc:49:13301",
+      "usc:49:13901",
+      "usc:49:13908",
+      "usc:49:14708",
+      "usc:49:31133",
+      "usc:49:31138",
+      "usc:49:31144",
+      "usc:5:553",
+      "usc:5:559"
+    ],
+    "candidates_A_sources": {
+      "usc:49:13908": [
+        "49 CFR 365"
+      ],
+      "cfr:49:1": [
+        "49 CFR 365"
+      ],
+      "usc:49:31138": [
+        "49 CFR 365"
+      ],
+      "usc:49:13301": [
+        "49 CFR 365"
+      ],
+      "usc:49:13101": [
+        "49 CFR 365"
+      ],
+      "usc:5:553": [
+        "49 CFR 365"
+      ],
+      "usc:5:559": [
+        "49 CFR 365"
+      ],
+      "usc:49:13901": [
+        "49 CFR 365"
+      ],
+      "usc:49:31133": [
+        "49 CFR 365"
+      ],
+      "usc:49:31144": [
+        "49 CFR 365"
+      ],
+      "usc:49:14708": [
+        "49 CFR 365"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202204",
+    "held_parts": [
+      "49 CFR 1",
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 1",
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202304",
+    "held_parts": [
+      "49 CFR 1",
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 1",
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202310",
+    "held_parts": [
+      "49 CFR 1",
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 1",
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202404",
+    "held_parts": [
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202410",
+    "held_parts": [
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202504",
+    "held_parts": [
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2127-AL99",
+    "publication_id": "202510",
+    "held_parts": [
+      "49 CFR 571"
+    ],
+    "candidates_A": [
+      "cfr:49:1",
+      "usc:49:30111",
+      "usc:49:30115",
+      "usc:49:30117",
+      "usc:49:30166",
+      "usc:49:322"
+    ],
+    "candidates_A_sources": {
+      "usc:49:322": [
+        "49 CFR 571"
+      ],
+      "usc:49:30117": [
+        "49 CFR 571"
+      ],
+      "usc:49:30166": [
+        "49 CFR 571"
+      ],
+      "cfr:49:1": [
+        "49 CFR 571"
+      ],
+      "usc:49:30111": [
+        "49 CFR 571"
+      ],
+      "usc:49:30115": [
+        "49 CFR 571"
+      ]
+    },
+    "candidates_B": [
+      "cfr:49:1"
+    ],
+    "donors_B": [
+      "201804",
+      "201810",
+      "201904",
+      "201910",
+      "202004",
+      "202010",
+      "202104",
+      "202110"
+    ]
+  },
+  {
+    "rin": "2140-AA73",
+    "publication_id": "200404",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "2700-AE76",
+    "publication_id": "202504",
+    "held_parts": [
+      "48 CFR 1827",
+      "48 CFR 1852"
+    ],
+    "candidates_A": [
+      "usc:51:20113"
+    ],
+    "candidates_A_sources": {
+      "usc:51:20113": [
+        "48 CFR 1827",
+        "48 CFR 1852"
+      ]
+    },
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3041-AC06",
+    "publication_id": "200304",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3069-AB28",
+    "publication_id": "200410",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3069-AB28",
+    "publication_id": "200504",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3069-AB28",
+    "publication_id": "200510",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3069-AB28",
+    "publication_id": "200604",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3069-AB28",
+    "publication_id": "200610",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [],
+    "donors_B": []
+  },
+  {
+    "rin": "3235-AJ36",
+    "publication_id": "200410",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [
+      "usc:15:78f",
+      "usc:15:78o-3",
+      "usc:15:78s"
+    ],
+    "donors_B": [
+      "200510",
+      "200604",
+      "200610",
+      "200704",
+      "200710",
+      "200804",
+      "200810",
+      "200904"
+    ]
+  },
+  {
+    "rin": "3235-AJ36",
+    "publication_id": "200504",
+    "held_parts": [],
+    "candidates_A": [],
+    "candidates_A_sources": {},
+    "candidates_B": [
+      "usc:15:78f",
+      "usc:15:78o-3",
+      "usc:15:78s"
+    ],
+    "donors_B": [
+      "200510",
+      "200604",
+      "200610",
+      "200704",
+      "200710",
+      "200804",
+      "200810",
+      "200904"
+    ]
+  }
+]

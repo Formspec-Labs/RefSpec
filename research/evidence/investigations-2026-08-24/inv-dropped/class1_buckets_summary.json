@@ -1,0 +1,1044 @@
+{
+ "trap_not_separator": [
+  [
+   "42 USC 7401/et seq",
+   3
+  ],
+  [
+   "PL 106-554, Treasury/General Government Appropriations Act of 2001",
+   1
+  ],
+  [
+   "PL 110-53, sec 1413, The Implementing Recommendations of the 9/11 Commission Act of 2007",
+   13
+  ],
+  [
+   "PL 110-53, sec 1521, The Implementing Recommendations of the 9/11 Commission Act of 2007",
+   13
+  ],
+  [
+   "PL 110-53, sec 1536, The Implementing Recommendations of the 9/11 Commission Act of 2007",
+   13
+  ],
+  [
+   "PL 110-53, sec 711, 9/11 Act",
+   9
+  ],
+  [
+   "PL 96-354; 5 USC 601. Docket 41683, EDR 468/PSDR-81.",
+   18
+  ],
+  [
+   "Pub. L. 110-53, sec 1413, The Implementing Recommendations of the 9/11 Commission Act of 2007",
+   3
+  ],
+  [
+   "Pub. L. 110-53, sec 1521, The Implementing Recommendations of the 9/11 Commission Act of 2007",
+   3
+  ],
+  [
+   "Pub. L. 110-53, sec 1536, The Implementing Recommendations of the 9/11 Commission Act of 2007",
+   3
+  ],
+  [
+   "Pub. L. 110-53, sec 711, 9/11 Act",
+   2
+  ],
+  [
+   "Pub. L. 117-180, Division G \u2013 Hermit\u2019s Peak/Calf Canyon Fire Assistance Act",
+   2
+  ],
+  [
+   "Pub. L. 117-180, Division G \u2013 Hermit\u2019s Peak/Calf Canyon Fire Assistance Act (Act)",
+   1
+  ],
+  [
+   "S/B Improving Head Start for School Readiness Act of 2007, PL 110-134",
+   3
+  ]
+ ],
+ "strict_spelled_out_drop": [
+  [
+   "33 USC 1321/Clean Water Act",
+   4
+  ],
+  [
+   "33 USC 2601/Shore Protection Act of 1988",
+   1
+  ],
+  [
+   "42 USC 11013/Pollution Prevention Act of 1990",
+   4
+  ],
+  [
+   "42 USC 4111/Clean Air Act Amendments of 1990, section 110(n)(3)",
+   4
+  ],
+  [
+   "42 USC 4111/Clean Air Act Amendments of 1990, section 129",
+   2
+  ],
+  [
+   "42 USC 7414, 7601, 7671 / Clean Air Act section 612",
+   12
+  ],
+  [
+   "42 USC 7671g/Clean Air Act section 608",
+   1
+  ],
+  [
+   "PL 101-549 /Clean Air Act sections 112 and 183",
+   1
+  ]
+ ],
+ "already_captured_not_dropped": [
+  [
+   "33 USC 1251/33 USC 1345",
+   2
+  ],
+  [
+   "33 USC 1361(a)/76 Stat 816",
+   6
+  ],
+  [
+   "33 USC 1361(a)/76 Stat. 816",
+   2
+  ],
+  [
+   "33 USC 2601/Shore Protection Act of 1988 (PL 100-6-88),4103(b)",
+   9
+  ],
+  [
+   "42 USC 2021(h)/AEA 274(h)/Reorganization Plan No. 3 of 1970",
+   8
+  ],
+  [
+   "42 USC 2021(h)/AEA(h)/Reorganization Plan No. 3 of 1970",
+   8
+  ]
+ ],
+ "compact_act_abbrev_drop": [
+  [
+   "/CAA 112 & 103",
+   2
+  ],
+  [
+   "/TSCA 4",
+   1
+  ],
+  [
+   "15 USC 2603/ TSCA 4",
+   1
+  ],
+  [
+   "15 USC 2603/TSCA 2",
+   3
+  ],
+  [
+   "15 USC 2603/TSCA 4",
+   38
+  ],
+  [
+   "15 USC 2604/ TSCA 5",
+   1
+  ],
+  [
+   "15 USC 2604/TSCA 5",
+   26
+  ],
+  [
+   "15 USC 2605(e)(1)(A)/TSCA 6(e)",
+   4
+  ],
+  [
+   "15 USC 2605(e)/TSCA 6(e)",
+   4
+  ],
+  [
+   "15 USC 2605/ TSCA 6",
+   1
+  ],
+  [
+   "15 USC 2605/ TSCA 6(e)",
+   1
+  ],
+  [
+   "15 USC 2605/TSCA 4",
+   6
+  ],
+  [
+   "15 USC 2605/TSCA 6",
+   17
+  ],
+  [
+   "15 USC 2605/TSCA 6(e)",
+   8
+  ],
+  [
+   "15 USC 2607(d)/TSCA 8(d)",
+   5
+  ],
+  [
+   "15 USC 2607(e)/TSCA 8(e)",
+   4
+  ],
+  [
+   "15 USC 2607/TSCA 6",
+   6
+  ],
+  [
+   "15 USC 2607/TSCA 8",
+   17
+  ],
+  [
+   "15 USC 2607a/TSCA 8(a)",
+   4
+  ],
+  [
+   "15 USC 2611/TSCA 12",
+   3
+  ],
+  [
+   "15 USC 2613/TSCA 5",
+   1
+  ],
+  [
+   "15 USC 2646/TSCA 6",
+   4
+  ],
+  [
+   "15 USC 2647/TSCA 7",
+   3
+  ],
+  [
+   "15 USC 2683/ TSCA 403",
+   1
+  ],
+  [
+   "15 USC 2694/TSCA 5",
+   4
+  ],
+  [
+   "21 USC 346/FFDCA 408",
+   5
+  ],
+  [
+   "21 USC 346a/FFDCA 408",
+   5
+  ],
+  [
+   "21 USC 348/FFDCA 409",
+   6
+  ],
+  [
+   "33 USC 1251 to 1387/CWA 101 to 607",
+   4
+  ],
+  [
+   "33 USC 1251/CWA 101",
+   23
+  ],
+  [
+   "33 USC 1251/CWA 101 et seq",
+   1
+  ],
+  [
+   "33 USC 1251/CWA 303",
+   18
+  ],
+  [
+   "33 USC 1268/CWA 118",
+   4
+  ],
+  [
+   "33 USC 1311/CWA 301",
+   73
+  ],
+  [
+   "33 USC 1311/CWA 307",
+   2
+  ],
+  [
+   "33 USC 1312/CWA 302",
+   8
+  ],
+  [
+   "33 USC 1313/CWA 301",
+   2
+  ],
+  [
+   "33 USC 1313/CWA 303",
+   11
+  ],
+  [
+   "33 USC 1313/CWA 303(c)",
+   5
+  ],
+  [
+   "33 USC 1314(b), (c), (e), and (g)/CWA 304",
+   1
+  ],
+  [
+   "33 USC 1314(h)/CWA 304",
+   5
+  ],
+  [
+   "33 USC 1314(h)/CWA 304(h)",
+   11
+  ],
+  [
+   "33 USC 1314/CWA 304",
+   75
+  ],
+  [
+   "33 USC 1314/CWA 304(m)",
+   2
+  ],
+  [
+   "33 USC 1314h/CWA 304(h)",
+   2
+  ],
+  [
+   "33 USC 1316(b) and (c)/CWA 306",
+   1
+  ],
+  [
+   "33 USC 1316(h)/CWA 304(h)",
+   3
+  ],
+  [
+   "33 USC 1316/CWA 304(h)",
+   1
+  ],
+  [
+   "33 USC 1316/CWA 306",
+   62
+  ],
+  [
+   "33 USC 1317(c)/CWA 307",
+   1
+  ],
+  [
+   "33 USC 1317/CWA 307",
+   55
+  ],
+  [
+   "33 USC 1318/CWA 308",
+   12
+  ],
+  [
+   "33 USC 1319/CWA 309",
+   4
+  ],
+  [
+   "33 USC 1321(c)(2)/CERCLA 107",
+   4
+  ],
+  [
+   "33 USC 1321/CERCLA 501",
+   1
+  ],
+  [
+   "33 USC 1321/CWA 311",
+   4
+  ],
+  [
+   "33 USC 1321/CWA 311(j)(l)(C)",
+   4
+  ],
+  [
+   "33 USC 1321/FWPCA 1321",
+   1
+  ],
+  [
+   "33 USC 1321/FWPCA 311",
+   1
+  ],
+  [
+   "33 USC 1321/FWPCA 501",
+   1
+  ],
+  [
+   "33 USC 1322/CWA 312",
+   5
+  ],
+  [
+   "33 USC 1328/CWA 318",
+   4
+  ],
+  [
+   "33 USC 1341/CWA 402",
+   2
+  ],
+  [
+   "33 USC 1342(b)(8)/CWA 402(b)(8)",
+   1
+  ],
+  [
+   "33 USC 1342(b)(8)/CWA402(b)(8)",
+   1
+  ],
+  [
+   "33 USC 1342/CWA 402",
+   23
+  ],
+  [
+   "33 USC 1342/CWA 402(p)",
+   2
+  ],
+  [
+   "33 USC 1344/CWA 404",
+   8
+  ],
+  [
+   "33 USC 1345/CWA 405",
+   16
+  ],
+  [
+   "33 USC 1345/RCRA 4010",
+   2
+  ],
+  [
+   "33 USC 1361(a)/CWA 501",
+   9
+  ],
+  [
+   "33 USC 1361(a)/CWA 501(a)",
+   8
+  ],
+  [
+   "33 USC 1361/CERCLA 311",
+   4
+  ],
+  [
+   "33 USC 1361/CWA 501",
+   65
+  ],
+  [
+   "33 USC 1361/FWPCA 1361",
+   1
+  ],
+  [
+   "33 USC 1362/CWA 502",
+   3
+  ],
+  [
+   "33 USC 1401 et seq /MPRSA 2 et seq",
+   2
+  ],
+  [
+   "33 USC 1401 et seq/MPRSA 2 et seq",
+   4
+  ],
+  [
+   "33 USC 402(b)(8)/CWA 402(b)(8)",
+   2
+  ],
+  [
+   "40 USC 11013/EPCRA 313",
+   4
+  ],
+  [
+   "40 USC 390/EPAAR 205",
+   3
+  ],
+  [
+   "40 USC 486(c)/EPAAR 205(c)",
+   2
+  ],
+  [
+   "42 USC /RCRA 3004(a)(q)",
+   1
+  ],
+  [
+   "42 USC 11013/EPCRA 313",
+   4
+  ],
+  [
+   "42 USC 11045/EPCRA 325",
+   4
+  ],
+  [
+   "42 USC 11076/EPCRA 313",
+   4
+  ],
+  [
+   "42 USC 1857/CAA 112",
+   1
+  ],
+  [
+   "42 USC 2021/AEA 274",
+   5
+  ],
+  [
+   "42 USC 2201/AEA 161",
+   5
+  ],
+  [
+   "42 USC 2201/AEA 274",
+   4
+  ],
+  [
+   "42 USC 300/SDWA 1401",
+   1
+  ],
+  [
+   "42 USC 300/SDWA 1412",
+   45
+  ],
+  [
+   "42 USC 300/SDWA 1413",
+   1
+  ],
+  [
+   "42 USC 300/SDWA 1423",
+   3
+  ],
+  [
+   "42 USC 300/SDWA 1445",
+   1
+  ],
+  [
+   "42 USC 300f/SDWA 1401",
+   3
+  ],
+  [
+   "42 USC 300f/SDWA 1421 to 1425",
+   2
+  ],
+  [
+   "42 USC 300g-1 /SDWA 1412",
+   8
+  ],
+  [
+   "42 USC 300g-1/SDWA 1412",
+   3
+  ],
+  [
+   "42 USC 300h /SDWA 1421",
+   3
+  ],
+  [
+   "42 USC 300h /SDWA 1421 to 1425",
+   3
+  ],
+  [
+   "42 USC 300j-4 /SDWA 1445",
+   3
+  ],
+  [
+   "42 USC 300j-9/SDWA 1450",
+   3
+  ],
+  [
+   "42 USC 6901/RCRA 3001",
+   2
+  ],
+  [
+   "42 USC 6903(5)(b)/RCRA 1004(5)(B)",
+   2
+  ],
+  [
+   "42 USC 6903/RCRA 1004",
+   1
+  ],
+  [
+   "42 USC 6905/RCRA 1004",
+   5
+  ],
+  [
+   "42 USC 6905/RCRA 1005",
+   1
+  ],
+  [
+   "42 USC 6905/RCRA 1006",
+   17
+  ],
+  [
+   "42 USC 6905/RCRA 1006921, 6922, 6924, 6934, and 6938",
+   10
+  ],
+  [
+   "42 USC 6905/RCRA 2002",
+   1
+  ],
+  [
+   "42 USC 6907, 6944 and 6949a/RCRA 1008, 4004, and 4010",
+   5
+  ],
+  [
+   "42 USC 6907, 6944, 6949/RCRA 4010, 1008, 2002, and 4004",
+   6
+  ],
+  [
+   "42 USC 6907/RCRA 1008",
+   9
+  ],
+  [
+   "42 USC 6912(a)/RCRA 2002(a)",
+   27
+  ],
+  [
+   "42 USC 6912(a)/RCRA 3001",
+   2
+  ],
+  [
+   "42 USC 6912(a)/RCRA 6002",
+   2
+  ],
+  [
+   "42 USC 6912(a)/RCRA 6002(a)",
+   1
+  ],
+  [
+   "42 USC 6912(a)/RCRA 6002(e)",
+   4
+  ],
+  [
+   "42 USC 6912/RCRA 2002",
+   20
+  ],
+  [
+   "42 USC 6921 to 6928/RCRA 3001 to 3008",
+   5
+  ],
+  [
+   "42 USC 6921(a) and (b)(3)/RCRA 3001(a) and (b)(3)",
+   1
+  ],
+  [
+   "42 USC 6921(b)(3)(C)/RCRA 3001(b)(3)(C)",
+   4
+  ],
+  [
+   "42 USC 6921(b)(3)/RCRA 3001(b)(3)",
+   1
+  ],
+  [
+   "42 USC 6921/RCRA 3001",
+   46
+  ],
+  [
+   "42 USC 6921/RCRA 3001(b)(3)(A)(iii)",
+   3
+  ],
+  [
+   "42 USC 6922/RCRA 3001",
+   5
+  ],
+  [
+   "42 USC 6922/RCRA 3002",
+   4
+  ],
+  [
+   "42 USC 6922/RCRA 3002(a)(5)",
+   4
+  ],
+  [
+   "42 USC 6923/RCRA 3003(a)(3)",
+   2
+  ],
+  [
+   "42 USC 6924(x)/RCRA 3004(x)",
+   2
+  ],
+  [
+   "42 USC 6924(y)/RCRA 3004(y)",
+   4
+  ],
+  [
+   "42 USC 6924/RCA 3004",
+   3
+  ],
+  [
+   "42 USC 6924/RCRA 3004",
+   33
+  ],
+  [
+   "42 USC 6924/RCRA 3004(a)(2)",
+   2
+  ],
+  [
+   "42 USC 6924/RCRA 3004(u), 3004(v)",
+   8
+  ],
+  [
+   "42 USC 6925/RCRA 3005",
+   24
+  ],
+  [
+   "42 USC 6926/RCRA 3006",
+   19
+  ],
+  [
+   "42 USC 6926/RCRA 3006(g)",
+   2
+  ],
+  [
+   "42 USC 6927/RCRA 3007",
+   6
+  ],
+  [
+   "42 USC 6944/RCRA 4004",
+   9
+  ],
+  [
+   "42 USC 6944/RCRA 4010",
+   1
+  ],
+  [
+   "42 USC 6945/RCRA 4005",
+   4
+  ],
+  [
+   "42 USC 6949(a)/RCRA 4010(a)",
+   3
+  ],
+  [
+   "42 USC 6949a/RCRA 4010",
+   6
+  ],
+  [
+   "42 USC 6974/RCRA 7004(a)",
+   4
+  ],
+  [
+   "42 USC 6991/RCRA 9001",
+   1
+  ],
+  [
+   "42 USC 6991/RCRA 9003",
+   1
+  ],
+  [
+   "42 USC 6991b/RCRA 9003",
+   4
+  ],
+  [
+   "42 USC 7401 to 7671/CAA 176",
+   3
+  ],
+  [
+   "42 USC 7401 to 7671q/CAA 182",
+   1
+  ],
+  [
+   "42 USC 7401/CAA 112",
+   11
+  ],
+  [
+   "42 USC 7402/CAA 112",
+   2
+  ],
+  [
+   "42 USC 7403/ CAA 103",
+   1
+  ],
+  [
+   "42 USC 7403/CAA 103",
+   3
+  ],
+  [
+   "42 USC 7405/CAA 105",
+   4
+  ],
+  [
+   "42 USC 7408/CAA 108",
+   4
+  ],
+  [
+   "42 USC 7409/CAA 109",
+   8
+  ],
+  [
+   "42 USC 7410/CAA",
+   1
+  ],
+  [
+   "42 USC 7410/CAA 110",
+   1
+  ],
+  [
+   "42 USC 7411/CAA 111",
+   10
+  ],
+  [
+   "42 USC 7412(c)(3)/ CAA 112(c)(3)",
+   1
+  ],
+  [
+   "42 USC 7412(c)(6)/CAA 112(c)(6)",
+   1
+  ],
+  [
+   "42 USC 7412(k)/CAA 112(k)",
+   1
+  ],
+  [
+   "42 USC 7412/ CAA 112",
+   1
+  ],
+  [
+   "42 USC 7412/CAA 112",
+   17
+  ],
+  [
+   "42 USC 7413(d)/CAAA 113(d)",
+   5
+  ],
+  [
+   "42 USC 7413/CAA 113",
+   4
+  ],
+  [
+   "42 USC 7414/CAA 114",
+   5
+  ],
+  [
+   "42 USC 7509/CAA 129",
+   3
+  ],
+  [
+   "42 USC 7511/CAA 183",
+   1
+  ],
+  [
+   "42 USC 7521(a)/CAA 176(c)",
+   6
+  ],
+  [
+   "42 USC 7521/CAA 202",
+   3
+  ],
+  [
+   "42 USC 7521/CAA 202(m)",
+   3
+  ],
+  [
+   "42 USC 7522/CAA 203",
+   4
+  ],
+  [
+   "42 USC 7525/CAA 206",
+   4
+  ],
+  [
+   "42 USC 7525/CAA 206(b)",
+   5
+  ],
+  [
+   "42 USC 7541(b)/CAA 207(b)",
+   3
+  ],
+  [
+   "42 USC 7541/CAA 207",
+   2
+  ],
+  [
+   "42 USC 7542/CAA 208",
+   2
+  ],
+  [
+   "42 USC 7545(c)/CAA 211(c)",
+   3
+  ],
+  [
+   "42 USC 7545/CAA 211",
+   13
+  ],
+  [
+   "42 USC 7545/CAAA 211(f)",
+   4
+  ],
+  [
+   "42 USC 7547/CAA 213",
+   6
+  ],
+  [
+   "42 USC 7550/CAA 216",
+   2
+  ],
+  [
+   "42 USC 7601(a)/CAA",
+   1
+  ],
+  [
+   "42 USC 7601(a)/CAA 301(a)",
+   2
+  ],
+  [
+   "42 USC 7601/CAA 301",
+   7
+  ],
+  [
+   "42 USC 7607/CAA 112",
+   3
+  ],
+  [
+   "42 USC 7613/CAA",
+   1
+  ],
+  [
+   "42 USC 7619/CAA",
+   1
+  ],
+  [
+   "42 USC 9601-9675/CERCLA 105",
+   1
+  ],
+  [
+   "42 USC 9602/CERCLA 102",
+   21
+  ],
+  [
+   "42 USC 9602/CERCLA 102(a)",
+   1
+  ],
+  [
+   "42 USC 9602/RCRA 6002",
+   1
+  ],
+  [
+   "42 USC 9604(i)/CERCLA 104(i)",
+   8
+  ],
+  [
+   "42 USC 9605 and 9615 /CERCLA 105 and 115",
+   3
+  ],
+  [
+   "42 USC 9605(a)(8)(b)/CERCLA 105 (a)(8)(B)",
+   1
+  ],
+  [
+   "42 USC 9605/CERCLA 105",
+   6
+  ],
+  [
+   "42 USC 9609/CERCLA 109",
+   4
+  ],
+  [
+   "42 USC 9611(c)/CERCLA 119",
+   2
+  ],
+  [
+   "42 USC 9615/CERCLA 115",
+   2
+  ],
+  [
+   "42 USC 9617(e)/CERCLA 117",
+   3
+  ],
+  [
+   "42 USC 9665 to 9857/CERCLA 115",
+   4
+  ],
+  [
+   "7 USC 136/FIFRA 2",
+   8
+  ],
+  [
+   "7 USC 136/FIFRA 25",
+   8
+  ],
+  [
+   "7 USC 136/FIFRA 3",
+   6
+  ],
+  [
+   "7 USC 136/FIFRA 6",
+   5
+  ],
+  [
+   "7 USC 136a /FIFRA 3",
+   4
+  ],
+  [
+   "7 USC 136a/FIFRA 3",
+   9
+  ],
+  [
+   "7 USC 136d/FIFRA6",
+   4
+  ],
+  [
+   "7 USC 136f/FIFRA 25",
+   4
+  ],
+  [
+   "7 USC 136f/FIFRA 8",
+   5
+  ],
+  [
+   "7 USC 136i/FIFRA 11",
+   2
+  ],
+  [
+   "7 USC 136j/FIFRA 12",
+   1
+  ],
+  [
+   "7 USC 136q/FIFRA 19",
+   4
+  ],
+  [
+   "7 USC 136w /FIFRA 25",
+   4
+  ],
+  [
+   "7 USC 136w(b)/FIFRA 25(b)",
+   1
+  ],
+  [
+   "7 USC 136w/FIFRA 25",
+   11
+  ],
+  [
+   "7 USC 137/FIFRA 3",
+   3
+  ],
+  [
+   "PL 101-549/CAA 112",
+   2
+  ]
+ ],
+ "ambiguous_bare_number": [
+  [
+   "42 USC 6905/1006",
+   3
+  ],
+  [
+   "42 USC 6926(b)/3006(b)",
+   4
+  ],
+  [
+   "42 USC 9609/11045",
+   4
+  ],
+  [
+   "TSCA 402/404",
+   4
+  ]
+ ],
+ "ambiguous_garbled": [
+  [
+   "42 USC 300//-2(a)(1)(3)",
+   1
+  ],
+  [
+   "42 USC 300//-7(c)",
+   1
+  ]
+ ],
+ "ambiguous_other": [
+  [
+   "42 USC 11013/SARA (EPCRA) 313",
+   4
+  ],
+  [
+   "PL 99-499/SARA title III",
+   3
+  ]
+ ]
+}

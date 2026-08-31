@@ -1,0 +1,353 @@
+[
+ {
+  "rin": "3150-AI87",
+  "pub": "201010",
+  "ordinal": 0,
+  "text": "42 US 2201",
+  "tokens": [
+   {
+    "token": "US",
+    "word": "US",
+    "lead": "",
+    "trail": "",
+    "span": [
+     3,
+     5
+    ],
+    "candidates": [
+     "U.S.C.",
+     "USC"
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [
+   {
+    "label": "U.S.C.",
+    "repaired": "42 U.S.C. 2201",
+    "type": "usc",
+    "reading": {
+     "authority_type": "usc",
+     "usc_title": 42,
+     "usc_section": "2201"
+    },
+    "evidence": [
+     "section-oracle(42 U.S.C. 2201)=exists; attested_at_edition=True"
+    ],
+    "corroborated": true
+   },
+   {
+    "label": "USC",
+    "repaired": "42 USC 2201",
+    "type": "usc",
+    "reading": {
+     "authority_type": "usc",
+     "usc_title": 42,
+     "usc_section": "2201"
+    },
+    "evidence": [
+     "section-oracle(42 U.S.C. 2201)=exists; attested_at_edition=True"
+    ],
+    "corroborated": true
+   }
+  ],
+  "corroborated": 2,
+  "distinct_corroborated": 1,
+  "exactly_one": true
+ },
+ {
+  "rin": "2120-AH23",
+  "pub": "200104",
+  "ordinal": 5,
+  "text": "49 SUC 45102 to 45103",
+  "tokens": [
+   {
+    "token": "SUC",
+    "word": "SUC",
+    "lead": "",
+    "trail": "",
+    "span": [
+     3,
+     6
+    ],
+    "candidates": [
+     "sec."
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "distinct_corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "rin": "0938-AR04",
+  "pub": "201304",
+  "ordinal": 1,
+  "text": "secs 1413, 2001, 2002, 2201",
+  "tokens": [
+   {
+    "token": "secs",
+    "word": "secs",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "sec."
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "distinct_corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "rin": "1400-AB18",
+  "pub": "200104",
+  "ordinal": 1,
+  "text": "secs 1243 and 1245 of the Defense Offsets",
+  "tokens": [
+   {
+    "token": "secs",
+    "word": "secs",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "sec."
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "distinct_corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "rin": "0694-AF02",
+  "pub": "201104",
+  "ordinal": 0,
+  "text": "50 US 2401 et seq",
+  "tokens": [
+   {
+    "token": "US",
+    "word": "US",
+    "lead": "",
+    "trail": "",
+    "span": [
+     3,
+     5
+    ],
+    "candidates": [
+     "U.S.C.",
+     "USC"
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [
+   {
+    "label": "U.S.C.",
+    "repaired": "50 U.S.C. 2401 et seq",
+    "type": "usc",
+    "reading": {
+     "authority_type": "usc",
+     "usc_title": 50,
+     "usc_section": "2401"
+    },
+    "evidence": [
+     "section-oracle(50 U.S.C. 2401)=exists; attested_at_edition=True"
+    ],
+    "corroborated": true
+   },
+   {
+    "label": "USC",
+    "repaired": "50 USC 2401 et seq",
+    "type": "usc",
+    "reading": {
+     "authority_type": "usc",
+     "usc_title": 50,
+     "usc_section": "2401"
+    },
+    "evidence": [
+     "section-oracle(50 U.S.C. 2401)=exists; attested_at_edition=True"
+    ],
+    "corroborated": true
+   }
+  ],
+  "corroborated": 2,
+  "distinct_corroborated": 1,
+  "exactly_one": true
+ },
+ {
+  "rin": "1400-AB18",
+  "pub": "200204",
+  "ordinal": 1,
+  "text": "secs 1243 and 1245 of the Defense Offsets",
+  "tokens": [
+   {
+    "token": "secs",
+    "word": "secs",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "sec."
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "distinct_corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "rin": "3133-AD59",
+  "pub": "200904",
+  "ordinal": 1,
+  "text": "title V of HR 3221",
+  "tokens": [
+   {
+    "token": "HR",
+    "word": "HR",
+    "lead": "",
+    "trail": "",
+    "span": [
+     11,
+     13
+    ],
+    "candidates": [
+     "FR"
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "distinct_corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "rin": "3060-AK50",
+  "pub": "201610",
+  "ordinal": 0,
+  "text": "47 U.S,C. 154",
+  "tokens": [
+   {
+    "token": "U.S",
+    "word": "U.S",
+    "lead": "",
+    "trail": "",
+    "span": [
+     3,
+     6
+    ],
+    "candidates": [
+     "U.S.C.",
+     "USC"
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "distinct_corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "rin": "2126-AA64",
+  "pub": "200404",
+  "ordinal": 1,
+  "text": "113tat. 1754 (1999)",
+  "tokens": [
+   {
+    "token": "113tat.",
+    "word": "tat.",
+    "lead": "113",
+    "trail": "",
+    "span": [
+     0,
+     7
+    ],
+    "candidates": [
+     "Stat."
+    ],
+    "shape": "welded"
+   }
+  ],
+  "survivors": [
+   {
+    "label": "Stat.",
+    "repaired": "113 Stat. 1754 (1999)",
+    "type": "statute_at_large",
+    "reading": {
+     "authority_type": "statute_at_large",
+     "statute_volume": 113,
+     "statute_page": 1754
+    },
+    "evidence": [
+     "PL-roster stat_volume_in_series(113)=True"
+    ],
+    "corroborated": true
+   }
+  ],
+  "corroborated": 1,
+  "distinct_corroborated": 1,
+  "exactly_one": true
+ },
+ {
+  "rin": "1210-AA98",
+  "pub": "200604",
+  "ordinal": 2,
+  "text": "Reorganization Plan No. 4 or 1978",
+  "tokens": [
+   {
+    "token": "or",
+    "word": "or",
+    "lead": "",
+    "trail": "",
+    "span": [
+     26,
+     28
+    ],
+    "candidates": [
+     "FR"
+    ],
+    "shape": "beside-a-number"
+   }
+  ],
+  "survivors": [
+   {
+    "label": "FR",
+    "repaired": "Reorganization Plan No. 4 FR 1978",
+    "type": "federal_register",
+    "reading": {
+     "authority_type": "federal_register",
+     "fr_volume": 4,
+     "fr_page": 1978
+    },
+    "evidence": [
+     "fr_volume_in_series(4)=True"
+    ],
+    "corroborated": true
+   }
+  ],
+  "corroborated": 1,
+  "distinct_corroborated": 1,
+  "exactly_one": true
+ }
+]

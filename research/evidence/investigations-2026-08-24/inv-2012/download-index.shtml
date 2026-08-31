@@ -1,0 +1,2290 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=8" />
+        <meta http-equiv="pragma" content="no-cache" /><!-- HTTP 1.0 -->
+        <meta http-equiv="cache-control" content="no-cache,must-revalidate" /><!-- HTTP 1.1 -->
+        <meta http-equiv="expires" content="0" />
+        <link rel="shortcut icon" href="/javax.faces.resource/favicon.ico.xhtml?ln=images" /><link type="text/css" rel="stylesheet" href="/javax.faces.resource/cssLayout.css.xhtml?ln=css" /><script type="text/javascript" src="/javax.faces.resource/jsf.js.xhtml?ln=javax.faces"></script><link type="text/css" rel="stylesheet" href="/javax.faces.resource/static.css.xhtml?ln=css" /></head><body style="display:none;"><script type="text/javascript" src="/javax.faces.resource/browserPreferences.js.xhtml?ln=scripts"></script>
+        <div id="body">
+    <noscript>
+        <div style="font-size: 12px; font-family: Arial; background-color: #F0F0FE;">
+            This page is better viewed with a JavaScript enabled browser.
+        </div>
+    </noscript>
+    <div id="header"><a href="/browse.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/u4.png.xhtml?ln=images" alt="OLRC home" style="border: none;" /></a>
+    </div>
+            <div style="margin-left: 2px; clear: both;  background-color: rgb(201, 173, 109);"><div id="menu_homeLink">
+        <div style="float:right;             width: 55px; height: 18px; font-family: Arial; margin-top: -20px;             text-align: center; cursor: pointer; background-color: rgb(187, 154, 74);             opacity: .9;             -ms-filter:'progid:DXImageTransform.Microsoft.Alpha(Opacity=90)';             filter: alpha(opacity=90);"><a href="/browse.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7" style="text-decoration: none; font-family: 'Calibri'; color: rgb(69, 38, 35); font-size: 15px; font-weight: bold;">
+                    Home</a>
+        </div></div>
+    <div id="menu"><script type="text/javascript" src="/javax.faces.resource/menu.js.xhtml?ln=scripts"></script>
+        <div id="subMenu">
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_SITE_CHANGE_NOTICE" onclick="showHideChildren('item_SITE_CHANGE_NOTICE','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_SITE_CHANGE_NOTICE" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_SITE_CHANGE_NOTICE" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    !!! CHANGE NOTICE !!!
+	                </span>
+	            </div><a href="/currency/sitechange.html;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_SEARCH_BROWSE" onclick="showHideChildren('item_SEARCH_BROWSE','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_SEARCH_BROWSE" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_SEARCH_BROWSE" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Search &amp; Browse
+	                </span>
+	            </div><a href="/browse.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_CURRENCY1" onclick="showHideChildren('item_CURRENCY1','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_CURRENCY1" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_CURRENCY1" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Currency and Updating
+	                </span>
+	            </div><a href="/currency/currency.shtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_CLASSIFICATION_TABLES" onclick="showHideChildren('item_CLASSIFICATION_TABLES','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_CLASSIFICATION_TABLES" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_CLASSIFICATION_TABLES" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Classification Tables
+	                </span>
+	            </div><a href="/classification/tables.shtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_POPULAR_NAME_TOOL" onclick="showHideChildren('item_POPULAR_NAME_TOOL','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_POPULAR_NAME_TOOL" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_POPULAR_NAME_TOOL" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Popular Name Tool
+	                </span>
+	            </div><a href="/popularnames/popularnames.htm;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_OTHER_TABLES_TOOLS" onclick="showHideChildren('item_OTHER_TABLES_TOOLS','true','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_OTHER_TABLES_TOOLS" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_OTHER_TABLES_TOOLS" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Other OLRC Tables and Tools
+	                </span>
+	            </div><a href="#.xhtml"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_OTHER_TABLES_TOOLS" -->
+	        <div id="item_CITE_CHECKER" onclick="showHideChildren('item_CITE_CHECKER','false','OTHER_TABLES_TOOLS');" class="child_item_OTHER_TABLES_TOOLS children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_CITE_CHECKER" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_CITE_CHECKER" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Cite Checker
+	                </span>
+	            </div><a href="/cite.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_OTHER_TABLES_TOOLS" -->
+	        <div id="item_TABLEIII" onclick="showHideChildren('item_TABLEIII','false','OTHER_TABLES_TOOLS');" class="child_item_OTHER_TABLES_TOOLS children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_TABLEIII" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_TABLEIII" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Table III - Statutes at Large
+	                </span>
+	            </div><a href="/table3/table3years.htm;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_OTHER_TABLES_TOOLS" -->
+	        <div id="item_OTHER_TABLES" onclick="showHideChildren('item_OTHER_TABLES','false','OTHER_TABLES_TOOLS');" class="child_item_OTHER_TABLES_TOOLS children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_OTHER_TABLES" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_OTHER_TABLES" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Other Tables
+	                </span>
+	            </div><a href="/tables/usctable1.htm;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_UNDERSTANTING" onclick="showHideChildren('item_UNDERSTANTING','true','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_UNDERSTANTING" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_UNDERSTANTING" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Understanding the Code
+	                </span>
+	            </div><a href="#.xhtml"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_UNDERSTANTING" -->
+	        <div id="item_ABOUT_CODE" onclick="showHideChildren('item_ABOUT_CODE','false','UNDERSTANTING');" class="child_item_UNDERSTANTING children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_ABOUT_CODE" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_ABOUT_CODE" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    About the Code and Website
+	                </span>
+	            </div><a href="/about_code.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_UNDERSTANTING" -->
+	        <div id="item_ABOUT_CLASSIFICATION" onclick="showHideChildren('item_ABOUT_CLASSIFICATION','false','UNDERSTANTING');" class="child_item_UNDERSTANTING children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_ABOUT_CLASSIFICATION" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_ABOUT_CLASSIFICATION" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    About Classification
+	                </span>
+	            </div><a href="/about_classification.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_UNDERSTANTING" -->
+	        <div id="item_DETAILED_GUIDE" onclick="showHideChildren('item_DETAILED_GUIDE','false','UNDERSTANTING');" class="child_item_UNDERSTANTING children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_DETAILED_GUIDE" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_DETAILED_GUIDE" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Detailed Guide to the Code
+	                </span>
+	            </div><a href="/detailed_guide.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_UNDERSTANTING" -->
+	        <div id="item_FAQ" onclick="showHideChildren('item_FAQ','false','UNDERSTANTING');" class="child_item_UNDERSTANTING children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_FAQ" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_FAQ" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    FAQ and Glossary
+	                </span>
+	            </div><a href="/faq.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_POSITIVE_LAW" onclick="showHideChildren('item_POSITIVE_LAW','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_POSITIVE_LAW" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_POSITIVE_LAW" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Positive Law Codification
+	                </span>
+	            </div><a href="/codification/legislation.shtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_EDITORIAL_RECLASSIFICATION" onclick="showHideChildren('item_EDITORIAL_RECLASSIFICATION','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_EDITORIAL_RECLASSIFICATION" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_EDITORIAL_RECLASSIFICATION" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Editorial Reclassification
+	                </span>
+	            </div><a href="/editorialreclassification/reclassification.html;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_DOWNLOADS" onclick="showHideChildren('item_DOWNLOADS','false','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_DOWNLOADS" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u29.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_DOWNLOADS" class="item_text" style="font-family: 'Calibri'; color: rgb(0, 0, 0); font-size: 15px; font-weight: bold;">
+	                    Downloads
+	                </span>
+	            </div><a href="/download/download.shtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="true"> --> <!-- class="children_item_-1" -->
+	        <div id="item_OTHER_RESOURCES" onclick="showHideChildren('item_OTHER_RESOURCES','true','-1');" class="child_item_-1 main_item" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_OTHER_RESOURCES" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_OTHER_RESOURCES" class="item_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    Other Legislative Resources
+	                </span>
+	            </div><a href="#.xhtml"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_OTHER_RESOURCES" -->
+	        <div id="item_CONGRESS_GOV" onclick="showHideChildren('item_CONGRESS_GOV','false','OTHER_RESOURCES');" class="child_item_OTHER_RESOURCES children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_CONGRESS_GOV" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_CONGRESS_GOV" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    CONGRESS.GOV
+	                </span>
+	            </div><a href="https://congress.gov/"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_OTHER_RESOURCES" -->
+	        <div id="item_GOVINFO" onclick="showHideChildren('item_GOVINFO','false','OTHER_RESOURCES');" class="child_item_OTHER_RESOURCES children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_GOVINFO" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_GOVINFO" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    govinfo
+	                </span>
+	            </div><a href="https://www.govinfo.gov"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+		<!-- <c:if test="false"> --> <!-- class="children_item_OTHER_RESOURCES" -->
+	        <div id="item_HOLC_STATUTE_COMPILATIONS" onclick="showHideChildren('item_HOLC_STATUTE_COMPILATIONS','false','OTHER_RESOURCES');" class="child_item_OTHER_RESOURCES children" style="position: relative; top: 0px; left: 0px; width: 100%; height: 31px; overflow: visible;">
+	            <span id="item_HOLC_STATUTE_COMPILATIONS" style="width: 100%; height: 31px;"><img src="/javax.faces.resource/u6.png.xhtml?ln=images" style="width: 100%; height: 31px;" />
+	            </span>
+	            <div style="position: absolute; left: 16px; top: 6px; width: 100%; height: 18px; font-family: Arial; text-align: left; word-wrap: break-word; cursor: pointer;">
+	                <span id="text_HOLC_STATUTE_COMPILATIONS" class="subitem_text" style="font-family: 'Calibri'; color: rgb(49, 28, 26); font-size: 15px; font-weight: bold;">
+	                    HOLC Statutory Compilations
+	                </span>
+	            </div><a href="https://www.govinfo.gov/app/collection/comps/"><img src="/javax.faces.resource/transparent.gif.xhtml?ln=images" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 31px; cursor: pointer; border: none;" /></a>
+	        </div>
+        <!-- </c:if> -->
+        <script type="text/javascript"><!--
+           menu_init('DOWNLOADS');
+        --></script>
+    </div>
+</div>
+                <div id="content" class="page_content">
+                    <div class="page_content_internal"><head><title>DOWNLOAD THE UNITED STATES CODE</title></head>
+
+
+
+<style>
+
+  
+  div.pageframe{
+   border-style:solid;
+   border-width:5px;
+   padding:3px;
+   border-color:rgb(187, 154, 74);
+   width:800px;
+   overflow: auto;
+  }
+
+
+
+  div.uscitemlist{
+   padding: 15px;
+   width:750px;
+  }
+
+ div.uscitem{
+  width: 750px;
+  overflow:hidden;
+ }
+ 
+	 div.uscitemblank{
+  width: 750px;
+  overflow:hidden;
+ }
+	div.uscitem:hover{
+		background-color:rgb(225, 210, 174); 
+	}
+	 
+  div.usctitle{
+   float:left;
+   text-align:left;
+   text-indent: -70px;
+   padding-left: 70px;
+  }
+
+  
+  div.usctitlechanged{
+   float:left;
+   text-align:left;
+   text-indent: -70px;
+   padding-left: 70px;
+   font-weight: bold;
+  }
+  
+  
+    div.usctitleminoreditorialchange{
+   float:left;
+   text-align:left;
+   text-indent: -70px;
+   padding-left: 70px;
+   color: Grey;
+   font-weight: bold;
+  }
+
+
+
+		
+  div.usctitle#alltitles{
+   float:left;
+   text-align:left;
+   text-indent: -70px;
+   padding-left: 70px;
+  }
+
+		
+
+  div.usctitleappendix{
+   float:left;
+   text-align:left;
+   padding-left:70px;
+   font-style:italic;
+  }
+
+
+  div.usctitleappendixchanged{
+   float:left;
+   text-align:left;
+   padding-left:70px;
+   font-style:italic;
+   font-weight: bold;
+  }
+
+  div.itemcurrency{
+   display:none;
+  }
+
+
+  div.usctitleheading{
+   float:left;
+   width:350px;
+   text-align:left;
+   text-indent: -70px;
+   padding-left: 70px;
+   font-size: smaller;
+   text-decoration: underline;
+  }
+
+		
+
+  div.currencyheading{
+   display:none;
+  }
+
+
+
+  div.itemdownloadlinks{
+   float:right;
+   text-align:right;
+   font-size: smaller;
+  }
+
+
+  div.schemacss{
+   padding-left:30px;
+   font-style:italic;
+   font-size: 90%;
+  }
+
+		
+  
+  a{
+   color:rgb(111, 11, 11);
+  }
+
+  a.fn{
+   color:rgb(111, 11, 11);
+   text-decoration: none;
+  }
+
+
+  span.deadlink{
+   color:grey;
+   text-decoration: underline;
+   cursor: default;
+  }
+
+
+
+  h3.releasepointinformation{
+   text-indent: 10px;
+   font-style: italic;
+   font-size: larger;
+   margin-bottom: 0px;
+  }
+
+		
+
+   h3.releasepointinformationline2{
+				text-indent: 10px;
+				font-weight: normal;
+				color: black;
+				margin-top: 0px;
+		}
+
+		
+
+		h4.inpageheader{
+		 text-indent: 10px;
+		 margin-bottom: 0px;
+		 padding-bottom: 0px;
+		}
+
+
+
+		p.uscxmlresources{
+		 padding-top: 0px;
+		 margin-top: 15px;
+		 text-indent: 0px;
+		}
+
+		
+
+		p.releasepointdescription{
+			text-indent: 0px;
+   margin-top: 15px;			
+		}
+
+
+
+		hr.textbreak{
+			width: 400px;
+		}
+
+		
+</style>
+
+		  <div class="pageframe">
+
+
+<h2>Current Release Point</h2>
+<h3 class="releasepointinformation">Public Law 119-102 (07/12/2026)</h3>
+
+<p class="releasepointdescription">
+Each update of the United States Code is a release point. This page provides downloadable files for the current release point. All files are current through Public Law 119-102 (07/12/2026). Titles in <b>bold</b> have been changed since the last release point.
+</p>
+
+
+<p class="uscxmlresources">A <a href="resources/USLM-User-Guide.pdf">User Guide</a> and the <a href="resources/schemaandcss.zip">USLM Schema and stylesheet</a> are provided for the United States Code in XML. A <a href="resources/uscxhtmlcss.zip">stylesheet</a> is provided for the XHTML. PCC files are text files containing <a href="http://www.gpo.gov">GPO</a> <b>p</b>hoto<b>c</b>omposition <b>c</b>odes (i.e., locators).
+</p>
+
+  		
+<p class="releasepointdescription">Information about the currency of United States Code titles is available on the <a href="/currency/currency.shtml">Currency</a> page.  Files for prior release points are available on the <a href="priorreleasepoints.htm">Prior Release Points</a> page. Older materials are available on the <a href="annualhistoricalarchives/annualhistoricalarchives.htm">Annual Historical Archives</a> page.</p>
+
+		
+  
+  
+		<br/>
+		<hr class="textbreak"/>
+
+
+
+
+
+	
+
+						<div class=uscitemlist>
+
+						<div class="uscitem">
+
+        <div class="usctitle" id="alltitles">
+
+          All titles in the format selected compressed into a zip archive.
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          &nbsp;
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_uscAll@119-102.zip" title="All USC Titles in XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_uscAll@119-102.zip" title="All USC Titles in XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_uscAll@119-102.zip" title="All USC Titles in PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_uscAll@119-102.zip" title="All USC Titles in PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+						
+
+						<div class="uscitemblank">
+
+	        <div class="usctitle" id="heading">
+
+             &nbsp;
+
+	        </div>
+
+
+
+	        <div class="currencyheading">
+
+	          &nbsp;
+
+	        </div>
+
+
+
+	        <div class="itemdownloadlinks">
+
+          &nbsp;
+
+	        </div>
+
+	      </div>
+
+						
+
+      <div>
+
+	        <div class="usctitleheading" id="heading">
+
+             Individual Titles 
+
+	        </div>
+
+
+
+	        <div class="currencyheading">
+
+	          Current Through
+
+	        </div>
+
+
+
+	        <div class="itemdownloadlinks">
+
+          &nbsp;
+
+	        </div>
+
+	      </div>
+
+
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t1">
+
+          Title 1 - General Provisions <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc01@119-102.zip" title="Title 1 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc01@119-102.zip" title="Title 1 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc01@119-102.zip" title="Title 1 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc01@119-102.zip" title="Title 1 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t2">
+
+          Title 2 - The Congress
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc02@119-102.zip" title="Title 2 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc02@119-102.zip" title="Title 2 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc02@119-102.zip" title="Title 2 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc02@119-102.zip" title="Title 2 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t3">
+
+          Title 3 - The President <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc03@119-102.zip" title="Title ? XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc03@119-102.zip" title="Title 3 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc03@119-102.zip" title="Title 3 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc03@119-102.zip" title="Title 3 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t4">
+
+          Title 4 - Flag and Seal, Seat of Government, and the States <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc04@119-102.zip" title="Title 4 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc04@119-102.zip" title="Title 4 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc04@119-102.zip" title="Title 4 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc04@119-102.zip" title="Title 4 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t5">
+
+          Title 5 - Government Organization and Employees <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc05@119-102.zip" title="Title 5 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc05@119-102.zip" title="Title 5 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc05@119-102.zip" title="Title 5 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc05@119-102.zip" title="Title 5 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitleappendix" id="us/usc/t5a">
+
+          Appendix
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc05a@119-102.zip" title="Title 5 App. XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc05a@119-102.zip" title="Title 5 App. XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc05a@119-102.zip" title="Title 5 App. PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc05a@119-102.zip" title="Title 5 App. PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t6">
+
+          Title 6 - Domestic Security
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc06@119-102.zip" title="Title 6 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc06@119-102.zip" title="Title 6 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc06@119-102.zip" title="Title 6 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc06@119-102.zip" title="Title 6 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitlechanged" id="us/usc/t7">
+
+          Title 7 - Agriculture
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc07@119-102.zip" title="Title 7 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc07@119-102.zip" title="Title 7 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc07@119-102.zip" title="Title 7 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc07@119-102.zip" title="Title 7 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t8">
+
+          Title 8 - Aliens and Nationality
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc08@119-102.zip" title="Title 8 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc08@119-102.zip" title="Title 8 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc08@119-102.zip" title="Title 8 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc08@119-102.zip" title="Title 8 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t9">
+
+          Title 9 - Arbitration <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc09@119-102.zip" title="Title 9 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc09@119-102.zip" title="Title 9 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc09@119-102.zip" title="Title 9 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc09@119-102.zip" title="Title 9 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t10">
+
+          Title 10 - Armed Forces <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc10@119-102.zip" title="Title 10 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc10@119-102.zip" title="Title 10 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc10@119-102.zip" title="Title 10 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc10@119-102.zip" title="Title 10 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t11">
+
+          Title 11 - Bankruptcy <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc11@119-102.zip" title="Title 11 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc11@119-102.zip" title="Title 11 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc11@119-102.zip" title="Title 11 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc11@119-102.zip" title="Title 11 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitleappendix" id="us/usc/t11a">
+
+          Appendix
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc11a@119-102.zip" title="Title 11 App.  XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc11a@119-102.zip" title="Title 11 App. XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc11a@119-102.zip" title="Title 11 App. PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc11a@119-102.zip" title="Title 11 App. PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitlechanged" id="us/usc/t12">
+
+          Title 12 - Banks and Banking
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc12@119-102.zip" title="Title 12 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc12@119-102.zip" title="Title 12 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc12@119-102.zip" title="Title 12 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc12@119-102.zip" title="Title 12 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t13">
+
+          Title 13 - Census <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc13@119-102.zip" title="Title 13 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc13@119-102.zip" title="Title 13 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc13@119-102.zip" title="Title 13 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc13@119-102.zip" title="Title 13 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t14">
+
+          Title 14 - Coast Guard <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc14@119-102.zip" title="Title 14 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc14@119-102.zip" title="Title 14 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc14@119-102.zip" title="Title 14 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc14@119-102.zip" title="Title 14 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitlechanged" id="us/usc/t15">
+
+          Title 15 - Commerce and Trade
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc15@119-102.zip" title="Title 15 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc15@119-102.zip" title="Title 15 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc15@119-102.zip" title="Title 15 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc15@119-102.zip" title="Title 15 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t16">
+
+          Title 16 - Conservation
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc16@119-102.zip" title="Title 16 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc16@119-102.zip" title="Title 16 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc16@119-102.zip" title="Title 16 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc16@119-102.zip" title="Title 16 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t17">
+
+          Title 17 - Copyrights <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc17@119-102.zip" title="Title 17 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc17@119-102.zip" title="Title 17 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc17@119-102.zip" title="Title 17 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc17@119-102.zip" title="Title 17 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t18">
+
+          Title 18 - Crimes and Criminal Procedure <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc18@119-102.zip" title="Title 18 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc18@119-102.zip" title="Title 18 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc18@119-102.zip" title="Title 18 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc18@119-102.zip" title="Title 18 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitleappendix" id="us/usc/t18a">
+
+          Appendix
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+         <a href="releasepoints/us/pl/119/102/xml_usc18a@119-102.zip" title="Title 18 App. XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc18a@119-102.zip" title="Title 18 App. XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc18a@119-102.zip" title="Title 18 App. PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc18a@119-102.zip" title="Title 18 App. PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t19">
+
+          Title 19 - Customs Duties
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc19@119-102.zip" title="Title 19 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc19@119-102.zip" title="Title 19 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc19@119-102.zip" title="Title 19 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc19@119-102.zip" title="Title 19 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t20">
+
+          Title 20 - Education
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc20@119-102.zip" title="Title 20 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc20@119-102.zip" title="Title 20 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc20@119-102.zip" title="Title 20 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc20@119-102.zip" title="Title 20 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t21">
+
+          Title 21 - Food and Drugs
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc21@119-102.zip" title="Title 21 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc21@119-102.zip" title="Title 21 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc21@119-102.zip" title="Title 21 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc21@119-102.zip" title="Title 21 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t22">
+
+          Title 22 - Foreign Relations and Intercourse
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc22@119-102.zip" title="Title 22 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc22@119-102.zip" title="Title 22 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc22@119-102.zip" title="Title 22 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc22@119-102.zip" title="Title 22 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t23">
+
+          Title 23 - Highways <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc23@119-102.zip" title="Title 23 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc23@119-102.zip" title="Title 23 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc23@119-102.zip" title="Title 23 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc23@119-102.zip" title="Title 23 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t24">
+
+          Title 24 - Hospitals and Asylums
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc24@119-102.zip" title="Title 24 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc24@119-102.zip" title="Title 24 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc24@119-102.zip" title="Title 24 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc24@119-102.zip" title="Title 24 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t25">
+
+          Title 25 - Indians
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc25@119-102.zip" title="Title 25 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc25@119-102.zip" title="Title 25 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc25@119-102.zip" title="Title 25 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc25@119-102.zip" title="Title 25 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t26">
+
+          Title 26 - Internal Revenue Code
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc26@119-102.zip" title="Title 26 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc26@119-102.zip" title="Title 26 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc26@119-102.zip" title="Title 26 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc26@119-102.zip" title="Title 26 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t27">
+
+          Title 27 - Intoxicating Liquors
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc27@119-102.zip" title="Title 27 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc27@119-102.zip" title="Title 27 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc27@119-102.zip" title="Title 27 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc27@119-102.zip" title="Title 27 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t28">
+
+          Title 28 - Judiciary and Judicial Procedure <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc28@119-102.zip" title="Title 28 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc28@119-102.zip" title="Title 28 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc28@119-102.zip" title="Title 28 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc28@119-102.zip" title="Title 28 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitleappendix" id="us/usc/t28a">
+
+          Appendix
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc28a@119-102.zip" title="Title 28 App. XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc28a@119-102.zip" title="Title 28 App. XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc28a@119-102.zip" title="Title 28 App. PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc28a@119-102.zip" title="Title 28 App. PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t29">
+
+          Title 29 - Labor
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc29@119-102.zip" title="Title 29 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc29@119-102.zip" title="Title 29 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc29@119-102.zip" title="Title 29 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc29@119-102.zip" title="Title 29 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t30">
+
+          Title 30 - Mineral Lands and Mining
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc30@119-102.zip" title="Title 30 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc30@119-102.zip" title="Title 30 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc30@119-102.zip" title="Title 30 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc30@119-102.zip" title="Title 30 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t31">
+
+          Title 31 - Money and Finance <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc31@119-102.zip" title="Title 31 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc31@119-102.zip" title="Title 31 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc31@119-102.zip" title="Title 31 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc31@119-102.zip" title="Title 31 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t32">
+
+          Title 32 - National Guard <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc32@119-102.zip" title="Title 32 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc32@119-102.zip" title="Title 32 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc32@119-102.zip" title="Title 32 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc32@119-102.zip" title="Title 32 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t33">
+
+          Title 33 - Navigation and Navigable Waters
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc33@119-102.zip" title="Title 33 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc33@119-102.zip" title="Title 33 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc33@119-102.zip" title="Title 33 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc33@119-102.zip" title="Title 33 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t34">
+
+          Title 34 - Crime Control and Law Enforcement
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc34@119-102.zip" title="Title 34 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc34@119-102.zip" title="Title 34 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc34@119-102.zip" title="Title 34 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc34@119-102.zip" title="Title 34 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t35">
+
+          Title 35 - Patents <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc35@119-102.zip" title="Title 35 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc35@119-102.zip" title="Title 35 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc35@119-102.zip" title="Title 35 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc35@119-102.zip" title="Title 35 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t36">
+
+          Title 36 - Patriotic and National Observances, Ceremonies, and Organizations <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc36@119-102.zip" title="Title 36 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc36@119-102.zip" title="Title 36 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc36@119-102.zip" title="Title 36 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc36@119-102.zip" title="Title 36 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+ 
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t37">
+
+          Title 37 - Pay and Allowances of the Uniformed Services <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc37@119-102.zip" title="Title 37 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc37@119-102.zip" title="Title 37 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc37@119-102.zip" title="Title 37 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc37@119-102.zip" title="Title 37 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t38">
+
+          Title 38 - Veterans' Benefits <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc38@119-102.zip" title="Title 38 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc38@119-102.zip" title="Title 38 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc38@119-102.zip" title="Title 38 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc38@119-102.zip" title="Title 38 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t39">
+
+          Title 39 - Postal Service <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc39@119-102.zip" title="Title 39 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc39@119-102.zip" title="Title 39 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc39@119-102.zip" title="Title 39 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc39@119-102.zip" title="Title 39 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t40">
+
+          Title 40 - Public Buildings, Property, and Works <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc40@119-102.zip" title="Title 40 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc40@119-102.zip" title="Title 40 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc40@119-102.zip" title="Title 40 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc40@119-102.zip" title="Title 40 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t41">
+
+          Title 41 - Public Contracts <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc41@119-102.zip" title="Title 41 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc41@119-102.zip" title="Title 41 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc41@119-102.zip" title="Title 41 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc41@119-102.zip" title="Title 41 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitlechanged" id="us/usc/t42">
+
+          Title 42 - The Public Health and Welfare
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc42@119-102.zip" title="Title 42 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc42@119-102.zip" title="Title 42 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc42@119-102.zip" title="Title 42 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc42@119-102.zip" title="Title 42 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t43">
+
+          Title 43 - Public Lands
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc43@119-102.zip" title="Title 43 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc43@119-102.zip" title="Title 43 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc43@119-102.zip" title="Title 43 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc43@119-102.zip" title="Title 43 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t44">
+
+          Title 44 - Public Printing and Documents <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc44@119-102.zip" title="Title 44 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc44@119-102.zip" title="Title 44 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc44@119-102.zip" title="Title 44 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc44@119-102.zip" title="Title 44 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t45">
+
+          Title 45 - Railroads
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc45@119-102.zip" title="Title 45 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc45@119-102.zip" title="Title 45 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc45@119-102.zip" title="Title 45 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc45@119-102.zip" title="Title 45 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t46">
+
+          Title 46 - Shipping <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc46@119-102.zip" title="Title 46 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc46@119-102.zip" title="Title 46 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc46@119-102.zip" title="Title 46 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc46@119-102.zip" title="Title 46 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t47">
+
+          Title 47 - Telecommunications
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc47@119-102.zip" title="Title 47 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc47@119-102.zip" title="Title 47 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc47@119-102.zip" title="Title 47 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc47@119-102.zip" title="Title 47 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t48">
+
+          Title 48 - Territories and Insular Possessions
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc48@119-102.zip" title="Title 48 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc48@119-102.zip" title="Title 48 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc48@119-102.zip" title="Title 48 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc48@119-102.zip" title="Title 48 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t49">
+
+          Title 49 - Transportation <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc49@119-102.zip" title="Title 49 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc49@119-102.zip" title="Title 49 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc49@119-102.zip" title="Title 49 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc49@119-102.zip" title="Title 49 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t50">
+
+          Title 50 - War and National Defense
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc50@119-102.zip" title="Title 50 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc50@119-102.zip" title="Title 50 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc50@119-102.zip" title="Title 50 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc50@119-102.zip" title="Title 50 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitleappendix" id="us/usc/t50a">
+
+          Appendix
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc50a@119-102.zip" title="Title 50 App. XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc50a@119-102.zip" title="Title 50 App. XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc50a@119-102.zip" title="Title 50 App. PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc50a@119-102.zip" title="Title 50 App. PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t51">
+
+          Title 51 - National and Commercial Space Programs <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc51@119-102.zip" title="Title 51 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc51@119-102.zip" title="Title 51 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc51@119-102.zip" title="Title 51 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc51@119-102.zip" title="Title 51 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+	  
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t52">
+
+          Title 52 - Voting and Elections
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc52@119-102.zip" title="Title 52 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc52@119-102.zip" title="Title 52 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc52@119-102.zip" title="Title 52 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc52@119-102.zip" title="Title 52 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+
+
+	  
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t53">
+
+          Title 53 [Reserved]
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc53@119-102.zip" title="Title 53 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc53@119-102.zip" title="Title 53 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc53@119-102.zip" title="Title 53 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc53@119-102.zip" title="Title 53 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+	  
+	  
+	  
+      <div class="uscitem">
+
+        <div class="usctitle" id="us/usc/t54" style="padding-bottom: 10px;">
+
+          Title 54 - National Park Service and Related Programs <span class="footnote"><a href="#fn" class="fn">&#1645;</a></span>
+
+        </div>
+
+
+
+        <div class="itemcurrency">
+
+          119-102
+
+        </div>
+
+
+
+        <div class="itemdownloadlinks">
+
+          <a href="releasepoints/us/pl/119/102/xml_usc54@119-102.zip" title="Title 54 XML">[XML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/htm_usc54@119-102.zip" title="Title 54 XHTML">[XHTML]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pcc_usc54@119-102.zip" title="Title 54 PCC">[PCC]</a>&nbsp;<a href="releasepoints/us/pl/119/102/pdf_usc54@119-102.zip" title="Title 54 PDF">[PDF]</a>
+
+        </div>
+
+      </div>
+	  
+
+
+</div>    						
+
+ <!--  
+<h4 id="fn"> Test</h4>
+-->		
+		<div  class="notes">
+
+   <p id="fn"><span class="footnote" >&#1645;</span> This title has been enacted as positive law. However, any Appendix to this title has not been enacted as part of the title.</p>
+
+
+      </div>
+
+
+
+
+						
+
+						
+
+						
+
+    </div>
+
+	
+
+
+
+	
+
+ 
+
+
+
+                    </div>
+                </div>
+                <div style="clear: both; width: 0px; height: 0px;">             
+                </div>
+            </div>
+    <div id="footer">
+        <div style="margin-left: 2px; margin-top: 2px; width: 161px; height: 28px; overflow: visible; float: left;">
+            <form target="_blank" action="https://twitter.com/uscode">
+                <input type="image" src="/javax.faces.resource/u35.png.xhtml?ln=images" style="width: 160px; height: 27px;" />
+            </form>
+        </div>
+        <div style="margin-top: 9px; margin-right: 10px; width: 310px; height: 16px; font-family: Arial; float: right; word-wrap: break-word;" id="u34">
+            <div style="text-align: right;">
+                <span class="footer">
+				    5v4      
+                    <a href="/about_office.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7">About the Office</a> 
+                          <a href="/privacy_policy.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7">Privacy Policy</a>
+                </span>
+            </div>
+        </div>
+    </div>
+        </div><span id="resizeWindow" class="debugCode">
+<form id="formPrefs" name="formPrefs" method="post" action="/static.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="formPrefs" value="formPrefs" />
+<input id="winTop" type="hidden" name="winTop" value="0" /><input id="left" type="hidden" name="left" value="0" /><input id="width" type="hidden" name="width" value="0" /><input id="height" type="hidden" name="height" value="0" /><input id="submitBtn" type="submit" name="submitBtn" value="change value" onclick="jsf.ajax.request(this, event, {execute:'@form', render: '@form'}); return false;" /><input id="refreshBtn" type="submit" name="refreshBtn" value="refresh value" onclick="jsf.ajax.request(this, event, {render: '@form'}); return false;" /><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="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" autocomplete="off" />
+</form>
+<form id="formStdRef" name="formStdRef" method="post" action="/static.xhtml;jsessionid=33A807A0C83235DE4CA7E6DE9F5A41D7" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="formStdRef" value="formStdRef" />
+<input id="first" type="hidden" name="first" value="" /><input id="second" type="hidden" name="second" value="" /><input id="type" type="hidden" name="type" value="" /><input id="url" type="hidden" name="url" value="" /><input id="stdRefBtn" type="submit" name="stdRefBtn" value="open std ref value" onclick="jsf.ajax.request(this, event, {execute:'@form', render: '@form'}); return false;" /><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="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" autocomplete="off" />
+</form></span></body><script type="text/javascript" src="/javax.faces.resource/frameCheck.js.xhtml?ln=scripts"></script>
+</html>

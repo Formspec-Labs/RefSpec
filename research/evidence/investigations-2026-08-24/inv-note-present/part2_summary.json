@@ -1,0 +1,37 @@
+{
+  "present_usc_rows_total": 475828,
+  "matched_present_rows_via_flagged_note_token": 223,
+  "rows_by_class": {
+    "paren": 116,
+    "spaced": 138,
+    "lost_hyphen": 0,
+    "cross_family_bleed": 12,
+    "any": 223
+  },
+  "distinct_texts_by_class": {
+    "paren": 36,
+    "spaced": 36,
+    "lost_hyphen": 0,
+    "cross_family_bleed": 3,
+    "any": 54
+  },
+  "distinct_note_parts_by_class": {
+    "paren": 10,
+    "spaced": 11,
+    "lost_hyphen": 0,
+    "cross_family_bleed": 1,
+    "any": 20
+  },
+  "row_own_citation_also_shape_damaged": 144,
+  "row_own_citation_clean_note_only_damaged": 79,
+  "coincidental_stem_candidates_total": 30,
+  "coincidental_stem_candidates_by_decoration": {
+    "reg_tail": 11,
+    "paren_run": 19,
+    "dash_tail": 0
+  },
+  "recommendation_item4": {
+    "rows_that_would_move_present_to_present_by_stem": 143,
+    "rows_that_would_stay_present_verbatim_token_matches": 80
+  }
+}

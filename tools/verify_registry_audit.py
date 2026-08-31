@@ -39,6 +39,8 @@ TEST_INPUT_ENVIRONMENT = {
     "federalRegisterDocument202615493": "REFSPEC_FR_DOCUMENT_2026_15493_PATH",
     "federalRegisterDocument9632865": "REFSPEC_FR_DOCUMENT_96_32865_PATH",
     "elsstR6": "REFSPEC_ELSST_R6_PATH",
+    "eurovocSkosCore": "REFSPEC_EUROVOC_SKOS_CORE_PATH",
+    "eurovocMetadata": "REFSPEC_EUROVOC_METADATA_PATH",
     "federalRegister2025": "REFSPEC_FR_THESAURUS_2025_PATH",
     "gemet": "REFSPEC_GEMET_PATH",
     "meshDescriptors2026Xml": "REFSPEC_MESH_DESCRIPTORS_PATH",
@@ -250,6 +252,15 @@ def direct_test_paths(repository_root: Path, rows: Sequence[Mapping[str, Any]]) 
         module = str(row["module"])
         test_name = module.rsplit("/", 1)[-1].removesuffix(".py")
         relative_paths = {
+            # The OFR subject-index parser is a second publisher source in the
+            # same reader module, and its tests were given the source's name
+            # rather than the module's. Both files exercise this module
+            # directly over its pinned publisher bytes, so the receipt run
+            # needs both or the fifty subject-index pins look unconsumed.
+            "cfr_list_of_subjects.py": (
+                "tests/test_cfr_list_of_subjects.py",
+                "tests/test_cfr_subject_index.py",
+            ),
             "claim_release_exports.py": ("tests/test_registry_claim_exports.py",),
             "infrastructure/pinned_acquisition.py": ("tests/test_elsst_acquisition.py",),
             "infrastructure/rdf_claim_export.py": ("tests/test_registry_claim_exports.py",),

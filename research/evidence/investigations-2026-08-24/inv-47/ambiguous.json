@@ -1,0 +1,19 @@
+[
+ {
+  "rin": "3235-AG65",
+  "publication_id": "199510",
+  "ordinal": 16,
+  "citation_ordinal": 1,
+  "title": 15,
+  "stem": "78",
+  "text": "15 USC 77(g); 15 USC 77(j); 15 USC 77 (eee); 15 USC 77(ggg); 15 USC 77(nnn); 15 USC 77(sss); 15 USC 78(d); 15 USC 78(ff); 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-11",
+  "candidates": [
+   "78d",
+   "78ff"
+  ],
+  "tails": {
+   "78d": null,
+   "78ff": null
+  }
+ }
+]

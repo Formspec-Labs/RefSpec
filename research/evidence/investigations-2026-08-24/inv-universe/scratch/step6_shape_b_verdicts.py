@@ -1,0 +1,15 @@
+import pandas as pd
+df = pd.read_parquet("/Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-universe/scratch/hyphen_usc_rows.parquet")
+print("rows:", len(df), "distinct authority_text:", df.authority_text.nunique(), "distinct RINs:", df.rin.nunique())
+print()
+print(df.groupby(["usc_section_verdict","authority_in_own_cfr_note"], dropna=False).size())
+print()
+print(df["usc_title"].value_counts().head(20))
+print()
+# split stem/leaf
+stem_leaf = df["usc_section"].str.split("-", expand=True)
+df["stem"] = stem_leaf[0].astype(int)
+df["leaf"] = stem_leaf[1].astype(int)
+df["leaf_len"] = stem_leaf[1].str.len()
+print(df[["stem","leaf","leaf_len"]].describe())
+df.to_parquet("/Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-universe/scratch/hyphen_usc_rows2.parquet")

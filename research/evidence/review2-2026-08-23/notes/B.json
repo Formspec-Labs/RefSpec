@@ -1,0 +1,151 @@
+{
+  "class": "B-unstated-not-yet-determined",
+  "population": 5461,
+  "sampled": 20,
+  "verdict_counts": {
+    "missed-witness": 4,
+    "correct-as-labeled": 16
+  },
+  "rows": [
+    {
+      "key": "3235-AM31/201810/0",
+      "verdict": "missed-witness",
+      "decisive_quote": "to implement section 803 of the Small Business Credit Availability Act and section 509 of the Economic Growth, Regulatory Relief, and Consumer Protection Act",
+      "why": "Box and CFR are both genuinely blank at this Proposed Rule Stage edition, but the abstract names the exact enabling sections by common name, and the next edition (201904) fills the box with the matching Pub. L. 115-141 sec. 803(b) / Pub. L. 115-174 sec. 509(a) plus 19 U.S.C. cites, confirming the witness.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3038-AF56/202504/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "Staff is considering recommending that the Commission amend Commission regulation 1.25(d)(2) to include certain additional central counterparties (CCPs) as permitted counterparties",
+      "why": "CFR box is real (17 CFR 1.25(d)(2)) but the abstract only names the CFTC's own regulation, never the Commodity Exchange Act section that would authorize it, and the box is still 'Not Yet Determined' in the very next (most recent) edition 202510 -- a fresh, still-open action with nothing to miss.",
+      "anything_systemic": null
+    },
+    {
+      "key": "0960-AE79/200304/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "based on statutes other than the Social Security Act",
+      "why": "The abstract affirmatively says the relevant statutes are NOT the Social Security Act without naming which ones, so there is no single nameable witness; CFR box has two real 20 CFR 416 cites but LEGAL_AUTHORITY_LIST stays 'Not Yet Determined' through both later editions checked (200310, 200404), up to the record's own projected Final Action.",
+      "anything_systemic": null
+    },
+    {
+      "key": "1545-BA46/200210/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "This regulation would amend the definition of a refunding issue applicable to tax-exempt bonds issued by States and local governments.",
+      "why": "No statute is named in the abstract; the box resolves in the very next edition (200304) to '26 USC 7805', the IRS's generic rulemaking-authority boilerplate that is not inferable from this text.",
+      "anything_systemic": null
+    },
+    {
+      "key": "0596-AD15/201310/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The USDA promulgated a new regulation (DR1350-002, January 18, 2013) on Tribal Consultation, Coordination, and Collaboration, to which the Forest Service (FS) must comply.",
+      "why": "Only an internal departmental regulation is named, not a statute, at this edition; CFR box independently says 'None' (this is a directives action, not a CFR action). The record never states a real U.S. Code authority within the pinned series.",
+      "anything_systemic": "Later editions (201404, 201410) fill LEGAL_AUTHORITY_LIST with 'FSM 1563'/'FSH 1509.13' -- the Forest Service's own manual/handbook numbers, not a U.S. Code cite -- even after the 201410 abstract itself names a real statute ('Culture and Heritage Cooperative Authority ... found at 25 U.S. Code 32A') that never makes it into the authority box. 'Resolved in a later edition' does not always mean 'resolved with a real statute'."
+    },
+    {
+      "key": "1557-AD21/200910/0",
+      "verdict": "missed-witness",
+      "decisive_quote": "implement the accuracy and integrity provisions in section 312 of the Fair and Accurate Credit Transactions Act of 2003 (FACT Act)",
+      "why": "CFR box is real (12 CFR 41) and the abstract names the exact section of a specific named Act, yet the box stays 'Not Yet Determined' through both later editions checked (201004, 201010) all the way to the rule's withdrawal on 10/14/2010 -- the witness was never converted into a citation before the action died.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3235-AL79/201810/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The Division is considering recommending that the Commission propose to revise and update the general instructions and statistical disclosures in Industry Guide 3.",
+      "why": "'Industry Guide 3' is an SEC internal guide, not a statute; both CFR and authority boxes are genuinely blank, and the authority box resolves two editions later (201910) to '15 USC 77a et seq.'/'15 USC 78a et seq.', general catch-alls not named anywhere in this abstract.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3235-AL78/201610/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The Division is considering recommending that the Commission propose rule amendments to modernize certain disclosure requirements in Regulation S-K.",
+      "why": "Regulation S-K is the SEC's own regulation, not the enabling statute; both later editions checked (201704, 201710) still show 'Not Yet Determined' more than a year later with no named witness anywhere.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3060-AJ02/201010/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The Commission tentatively concluded that it must revise its tariff rules so that it can be confident that tariffed rates remain just and reasonable",
+      "why": "A five-sentence abstract describes the FCC's reasoning at length but never names the Communications Act or any U.S.C. section; both CFR and authority stay 'Not Yet Determined' across the two later editions checked (201104, 201110) despite an intervening FNPRM.",
+      "anything_systemic": null
+    },
+    {
+      "key": "1400-AA88/200104/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "Regulations will implement the Hague Convention on Protection of Children and Cooperation in Respect of Intercountry Adoption and its associated legislation.",
+      "why": "The Convention and 'its associated legislation' are described only generically -- no Public Law number or U.S.C. section is given -- and the box remains 'Not Yet Determined' through both later editions checked (200110, 200204) even as the record swings between Final and Proposed Rule Stage.",
+      "anything_systemic": null
+    },
+    {
+      "key": "1557-AB76/200010/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The OCC is proposing changes to remove certain impediments to bank use of technology. These changes also would codify recent OCC opinions relating to electronic banking activities.",
+      "why": "No statute is named; both CFR and authority boxes are genuinely blank at this stage, and resolve together only in the next edition (200104) to real but generic citations ('12 USC 1 et seq.', '12 USC 93a') absent from this abstract.",
+      "anything_systemic": null
+    },
+    {
+      "key": "0960-AH54/201404/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "a child claiming supplemental Security Income payments under title XVI",
+      "why": "'Title XVI' names the SSI program the rule serves, not a specific rulemaking-authority section, so it is not a real witness; CFR and authority both stay 'Not Yet Determined' through both later editions checked (201410, 201504), a year unresolved.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2060-AR50/201210/0",
+      "verdict": "missed-witness",
+      "decisive_quote": "specified in Clean Air Act section 211(o), as amended by EISA -- required by the Energy Independence and Security Act of 2007 (EISA 2007), which amended the Clean Air Act (CAA)",
+      "why": "CFR box is real (40 CFR 80) and the abstract names both the enabling Act and the exact CAA section; the very next edition (201310) fills the authority box with exactly those two names ('Energy Independence and Security Act of 2007', 'Clean Air Act sec 211(o)'), confirming the witness.",
+      "anything_systemic": "Raw box text is literally quote-wrapped -- source XML has <LEGAL_AUTHORITY>&quot;Not Yet Determined&quot;</LEGAL_AUTHORITY> -- and the classifier still correctly read it as the same not-yet-determined token despite the stray quotation marks."
+    },
+    {
+      "key": "0570-AA75/200810/0",
+      "verdict": "missed-witness",
+      "decisive_quote": "Advanced biofuels are defined as fuel derived from renewable biomass other than corn kernel starch in The Food, Conservation, and Energy Act of 2008.",
+      "why": "The abstract names the exact 2008 Farm Bill by title, and the very next edition (200910) fills the authority box with 'PL 110-234' -- the Food, Conservation, and Energy Act of 2008's own public law number -- confirming the abstract was a precise witness. The 200910 RULE_TITLE even spells out 'Section 9005' of that Act.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3235-AK36/201104/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The Commission is withdrawing this rulemaking because the Dodd-Frank Act directed the Commission to evaluate legal or regulatory gaps or overlapping standards",
+      "why": "The Dodd-Frank Act named here explains why the rule is being abandoned, not what would have authorized the (now-withdrawn) harmonization rule itself; there is no later edition of this RIN in the pinned series, and the record ends genuinely blank on both CFR and authority.",
+      "anything_systemic": null
+    },
+    {
+      "key": "9000-AK91/200804/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "This rule is not a major rule under 5 U.S.C. 804.",
+      "why": "The only U.S. Code citation in the abstract (5 U.S.C. 804, the Congressional Review Act 'major rule' test) is unrelated to the FAR's actual rulemaking authority; the next edition (200810) resolves the box to the real, unrelated triad '40 USC 121(c)'/'10 USC ch 137'/'42 USC 2473(c)', none of which the abstract names, even though the CFR box already carried four real, specific parts.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2126-AC69/202504/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "This rulemaking would amend 49 CFR 391.41(b)(8) to update the physical qualification standards for individuals with an established medical history or clinical diagnosis of epilepsy",
+      "why": "The abstract names the specific CFR section being amended but no enabling U.S. Code provision; both boxes stay 'Not Yet Determined' in the only later edition available (202510), consistent with a brand-new RIN.",
+      "anything_systemic": "The abstract already states the precise CFR pinpoint (49 CFR 391.41(b)(8)) that CFR_LIST itself still records as 'Not Yet Determined' -- a same pattern as the legal-authority placeholder, one edition apart from this review's scope."
+    },
+    {
+      "key": "3245-AF55/200610/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The proposed rule sets forth changes to the ownership and control provisions of 13 CFR 121.702 to allow for expanded VCOC ... ownership",
+      "why": "No statute is named; CFR is real (13 CFR 121) but authority resolves only upon withdrawal two editions later (200710) to '15 USC 632', never mentioned in this or the intervening abstract.",
+      "anything_systemic": null
+    },
+    {
+      "key": "1625-AA44/200304/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "We have withdrawn this rulemaking because the updating of passenger facility security plans will be addressed in a separate rulemaking, RIN 1625-AA43",
+      "why": "The record was withdrawn in the same edition it first appears, with both CFR and authority genuinely never determined and the work folded into a different RIN; no later edition of this RIN exists to check, and no statute is named anywhere in the record.",
+      "anything_systemic": null
+    },
+    {
+      "key": "0412-AA91/201804/0",
+      "verdict": "correct-as-labeled",
+      "decisive_quote": "The two remaining USAID programs that legislatively require PVOs to register as a condition of their eligibility have incorporated a simplified registration process",
+      "why": "'Legislatively require' is generic, naming no Act or U.S.C. section; the box stays 'Not Yet Determined' through 201810 while the projected 'Interim Final Rule' dates (05/00/2018, 10/00/2018) never acquire a real Federal Register citation, and only resolves to '22 U.S.C. 2381' in 201904 once an actual NPRM publishes (84 FR 3351).",
+      "anything_systemic": null
+    }
+  ]
+}

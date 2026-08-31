@@ -1,0 +1,94 @@
+changed rows 2323  (62 ADDED, the rest CHANGED)
+
+### SEEDED HOLD-OUT, random.Random(20260823), 30 rows, read by eye
+
+  [ADDED] 2506-AC24 200904 ord=3 cit=1
+     text: 42 USC 11403 to 42 USC 11470(b)
+     (no row) -> rin='2506-AC24'; publication_id='200904'; ordinal=3; authority_text='42 USC 11403 to 42 USC 11470(b)'; authority_type='usc'; parse_status='partial'; usc_title=42; usc_section='11470'; usc_
+  [CHANGED] 0560-AH70 200810 ord=0 cit=3
+     text: 7 USC 1321 to 1359kk, 1501 to 1524, 1921 to 2009dd-7, 7201 to 7333
+     usc_section_end: None -> '7333'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 0690-AA30 200204 ord=1 cit=0
+     text: 42 USC 2000d to 2000d-7
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '2000d-7'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 0790-AJ09 201610 ord=4 cit=0
+     text: 42 U.S.C. 2000e to 2000e-17
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '2000e-17'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 0938-AH75 199910 ord=0 cit=0
+     text: 42 USC 300gg-41 et seq
+     authority_in_own_cfr_note: 'near-miss' -> 'present'
+  [CHANGED] 0938-AI05 199904 ord=0 cit=0
+     text: 42 USC 300gg-5
+     authority_in_own_cfr_note: 'near-miss' -> 'present'
+  [CHANGED] 1004-AE82 202204 ord=2 cit=1
+     text: 43 U.S.C. 315, 315a to 315r
+     usc_section_end: None -> '315r'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1018-AF46 200110 ord=1 cit=1
+     text: 16 USC 3371 to 3378, 4223 to 4244, and 4901 to 4916
+     usc_section_end: None -> '4244'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1018-AW48 200910 ord=1 cit=1
+     text: 16 USC 664, 668dd to 668ee, 715(i)
+     usc_section_end: None -> '668ee'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1018-AY75 201710 ord=9 cit=0
+     text: 16 U.S.C. 460l-4 to 460l-11
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '460l-11'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1018-BH16 202304 ord=1 cit=0
+     text: 16 U.S.C. 470aaa to 470aaa-11
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '470aaa-11'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1120-AB10 201110 ord=2 cit=2
+     text: 18 USC 4161 to 4166, 4201 to 4218, 5006 to 5024, 5039
+     usc_section_end: None -> '5024'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1120-AB11 200504 ord=2 cit=2
+     text: 18 USC 4161 to 4166, 4241 to 4247, 5006 to 5024, 5039
+     usc_section_end: None -> '5024'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1120-AB21 200304 ord=1 cit=3
+     text: 18 USC 3565, 3568 to 3569, 3582, 3621 to 3622, 3624, 4001, 4042, 4081 to 4082
+     usc_section_end: None -> '3622'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1120-AB57 201610 ord=1 cit=8
+     text: 18 U.S.C. 3621, 3622, 3624, 4001, 4042, 4942, 4081, 4082 (Repealed in part as to conduct occurring on or after November 1, 1987), 5006 to 5024 (Repealed October
+     usc_section_end: None -> '5024'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1400-AB17 200204 ord=1 cit=0
+     text: 42 USC 2000d to 2000d-7
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '2000d-7'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1545-BI22 202104 ord=0 cit=1
+     text: 26 U.S.C. 103, 141 to 150, and 7805
+     usc_section_end: None -> '150'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1545-BI22 202110 ord=0 cit=1
+     text: 26 U.S.C. 103, 141 to 150, and 7805
+     usc_section_end: None -> '150'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 1557-AF30 202510 ord=22 cit=0
+     text: 12 U.S.C. 2904
+     authority_in_own_cfr_note: 'near-miss' -> 'present'
+  [CHANGED] 2120-AI91 200810 ord=1 cit=2
+     text: 49 USC 44701 to 44703, 44707, 44709 to 44711, 45102 and 45103, and 45301 and 45302
+     usc_section_end: None -> '44711'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 2120-AK82 202304 ord=0 cit=3
+     text: 49 U.S.C. 106(f), 49 U.S.C. 41703, 44101 to 44106, 44110 to 44113, and 44701
+     usc_section_end: None -> '44113'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 2502-AI11 200404 ord=0 cit=0
+     text: 12 USC 1702 to 1715z-21
+     parse_status: 'partial' -> 'ok'; usc_section_end: '1715z' -> '1715z-21'
+  [CHANGED] 2900-AM25 200510 ord=3 cit=7
+     text: 38 USC 1151 note, 1802, 1804-805, 1811, 1811 note, 1812, 1814, 1816, 1821 to 1824, 5112
+     usc_section_end: None -> '1824'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 3052-AB86 199910 ord=12 cit=0
+     text: 12 USC 2279a to 2279f-1
+     parse_status: 'partial' -> 'ok'; usc_section_end: '2279f' -> '2279f-1'
+  [CHANGED] 3060-AJ44 201304 ord=2 cit=0
+     text: 47 USC 302(a) to 303(c)
+     usc_section_end: None -> '303'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 3060-AL43 202504 ord=11 cit=0
+     text: 47 U.S.C. 615a-1 through 615b
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '615b'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 3064-AC92 200604 ord=28 cit=0
+     text: 15 USC 78u-2 to 78u-3
+     parse_status: 'partial' -> 'ok'; usc_section_end: None -> '78u-3'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 3072-AC41 201104 ord=0 cit=6
+     text: 5 USC 504, 551, 552, 553, 556(c), 559, 561 to 569, 571 to 569, 571 to 596
+     usc_section_end: None -> '569'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 3072-AC83 202104 ord=2 cit=3
+     text: 46 U.S.C. 305, 40101 and 40102
+     usc_section_end: None -> '40503'; usc_section_span_rule: None -> 'stated'
+  [CHANGED] 3072-AC95 202304 ord=0 cit=7
+     text: 5 U.S.C. 504, 551, 553, 556(c), 559, 561 to 569, 571 to 584
+     usc_section_end: None -> '596'; usc_section_span_rule: None -> 'stated'

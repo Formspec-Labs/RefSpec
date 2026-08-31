@@ -1,0 +1,42 @@
+{
+  "FDASIA": {
+    "distance": 8,
+    "n_candidates": 6,
+    "pl": "112-144",
+    "rin": "0910-AG88",
+    "survivors": [
+      "Food and Drug Administration Safety and Innovation Act"
+    ],
+    "text": "secs 506C, 506C-1, 506D, and 506F of the FDA&C Act , as amended by title X (Drug Shortages) of FDASIA, PL 112-144, July 9, 2012"
+  },
+  "HIPAA": {
+    "distance": 7,
+    "n_candidates": 1,
+    "pl": "104-191",
+    "rin": "0938-AR97",
+    "survivors": [
+      "Health Insurance Portability and Accountability Act of 1996"
+    ],
+    "text": "HIPAA, PL 104-191"
+  },
+  "IIJA": {
+    "distance": 8,
+    "n_candidates": 16,
+    "pl": "117-58",
+    "rin": "0348-AB86",
+    "survivors": [
+      "Infrastructure Investment and Jobs Act"
+    ],
+    "text": "Infrastructure Investment and Jobs Act (\u201cIIJA\u201d), Pub. L. No. 117-58, which includes the Build America, Buy America Act. Pub. L. No. 117-58, sec. 70901 et seq."
+  },
+  "PRWORA": {
+    "distance": 90,
+    "n_candidates": 2,
+    "pl": "104-193",
+    "rin": "1205-AC33",
+    "survivors": [
+      "Personal Responsibility and Work Opportunity Reconciliation Act of 1996"
+    ],
+    "text": "8 U.S.C. 1601 et seq., Pub. L. 104-193, Personal Responsibility and Work Opportunity Reconciliation Act of 1996 (PRWORA)"
+  }
+}

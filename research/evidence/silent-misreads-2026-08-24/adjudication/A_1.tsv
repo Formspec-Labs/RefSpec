@@ -1,0 +1,76 @@
+index	text	rows	verdict	loud_or_silent	mechanism	decisive_quote	publisher_check
+0	47 USC 157(a)	184	CORRECT			"47 U.S.C. 157 is real (""New technologies and services""); subsection (a) not carried but that is a normal partial parse, not a wrong identity."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title47-section157&num=0&edition=prelim
+1	42 USC 7384g	5	CORRECT				
+2	49 USC 307	16	CORRECT				
+3	PL 11-24, 123 Stat 1734	14	MISREAD_LAUNDERED	LOUD	A1-like (PL number digit dropped)	"Emitted public_law=""11-24""; govinfo PDF header of 123 Stat. 1734 reads ""PUBLIC LAW 111-24-MAY 22, 2009"" (Credit CARD Act of 2009), not ""PL 11-24"" (which would fall in the 11th Congress, 1809-1811, impossible against a 2009 Stat. volume). pl_congress_in_series=False."	https://www.govinfo.gov/content/pkg/STATUTE-123/pdf/STATUTE-123-Pg1734.pdf
+4	42 U.S.C 2011 et seq.	2	CORRECT				
+5	sec. 532 of Pub. L. 109-364	2	UNKNOWN	LOUD-if-wrong (cfr-note absent)	topic mismatch, unresolved	"PL 109-364 sec. 532 is titled ""REVISION AND CLARIFICATION OF REQUIREMENTS WITH RESPECT TO SURVEYS AND REPORTS CONCERNING SEXUAL HARASSMENT AND SEXUAL VIOLENCE AT THE SERVICE ACADEMIES"" (DoD service academies) per the govinfo PLAW text; RIN 1625-AC59 is Coast Guard (DHS), cfr_note_part 6 CFR 5 (DHS Privacy/records disclosure). The PL and section both exist and pl_congress_in_series=True, but I could not confirm the rule's actual topic without a source outside the allowed publisher list (reginfo.gov is not on the approved list) to know if this is genuinely the cited authority or a different sec. 532-shaped citation."	https://www.govinfo.gov/content/pkg/PLAW-109publ364/pdf/PLAW-109publ364.pdf
+6	Public Law 111-216, 124 Stat. 2348 (49 U.S.C. 44701 note)	3	CORRECT				
+7	15 USC 2607(c)	1	CORRECT				
+8	26 USC 1.104-1(c)	1	MISREAD_LAUNDERED	SILENT	other (Treasury reg read as USC)	"Text ""26 USC 1.104-1(c)"" uses Treasury-regulation numbering (26 CFR 1.104-1(c), the injury-award exclusion regulation); 26 U.S.C. has no decimal-numbered sections. Parser emits usc_title=26, usc_section=""1"" (26 U.S.C. sec. 1, ""Tax imposed"" -- a real but unrelated section). usc_section_verdict=""exists"" and authority_in_own_cfr_note=""present"" (26 CFR 1) both read as healthy, which is exactly the false-positive the near-miss lever is prone to -- nothing here flags the mis-typing."	none (Treasury reg numbering is definitional; 26 U.S.C. 1 vs 26 CFR 1.104-1 confirmed by uscode.house.gov title/section format)
+9	15 U.S.C. 636(j), 644(e)(4) and (q)	4	CORRECT				
+10	42 USC /RCRA 3004(a)(q)	1	CORRECT				
+11	5 U.S.C.. 504	1	CORRECT				
+12	5 USC 1212	4	CORRECT				
+13	16 U.S.C. 4601-6a	12	MISREAD_LAUNDERED	LOUD	B6-like (lookalike substitution, l for 1)	"16 U.S.C. 4601-6a: OLRC returns ""does not exist"". 16 U.S.C. 460l-6a (with a lowercase L, not the digit 1) exists: ""Repealed. Pub. L. 113-287, sec.7, Dec. 19, 2014"" -- the Land and Water Conservation Fund Act recreation-fee section, recodified into Title 54 in 2014. usc_section_verdict=""absent"" (loud); authority_in_own_cfr_note=""present"" against 36 CFR 327 (the corrupted ""4601-6a"" form is apparently repeated in that part's own authority note, so the CFR-note lever alone is fooled -- only the section-existence check catches it)."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title16-section460l-6a&num=0&edition=prelim
+14	38 USC 1965 to 1977	3	CORRECT				
+15	49 U.S.C. 44701 to 44704	36	CORRECT				
+16	PL 105-58, 30 November 1995	1	MISREAD_LAUNDERED	LOUD	A1-like (PL Congress digit substitution)	"Text ""PL 105-58, 30 November 1995"" but PL 105-58 (per govinfo PLAW-105publ58 PDF) is ""PUBLIC LAW 105-58-OCT. 9, 1997"" (Oklahoma City National Memorial Act) -- filed in edition 199610 (Oct 1996), which cannot cite an Oct-1997 law. PL 104-58 (per govinfo PLAW-104publ58 PDF) is ""PUBLIC LAW 104-58-NOV. 28, 1995"", authorizing export of Alaska North Slope crude oil -- matches both the stated date (Nov. 30/28, 1995) and the filing agency (RIN 0694, Commerce/BIS export administration). pl_congress_in_series=False."	https://www.govinfo.gov/content/pkg/PLAW-104publ58/pdf/PLAW-104publ58.pdf
+17	26 USC 846(e)	4	CORRECT				
+18	26 U.S.C. 7430	3	CORRECT				
+19	29 USC 2006	1	CORRECT				
+20	10 U.S.C. 2574	4	CORRECT				
+21	5 U.S.C. 4303	3	CORRECT				
+22	30505	1	CORRECT				
+23	40 U.S.C. 101 et seq, Federal and Property Administrative Services Act,	2	CORRECT				
+24	26 U.S.C. 0989(c)	17	CORRECT				
+25	16 USC 590y et seq	4	CORRECT				
+26	49 U.S.C. 44701 and 44702	30	CORRECT				
+27	38 USC 3761	7	CORRECT				
+28	3 CFR 1966--1970 p 939	1	CORRECT				
+29	5 U.S.C 552	5	CORRECT				
+30	39 USC 2011(h)(2)	3	CORRECT				
+31	31 USC 3812	1	CORRECT				
+32	7 USC 241	7	CORRECT				
+33	26 USC 3111	11	CORRECT				
+34	5 USC app 3, the Inspector General Act of 1978, as amended	3	CORRECT				
+35	20 U.S.C. 1070g	3	CORRECT				
+36	38 USC 1152	20	CORRECT				
+37	5 USC 5701	4	CORRECT				
+38	22 USC 6701 et seq	8	CORRECT				
+39	PL 109-59, sec 3023(d)	4	CORRECT				
+40	5 U.S.C. 1104	18	CORRECT				
+41	60 CFR 15845	10	UNKNOWN	SILENT-if-wrong (no relabel flag)	CFR-title-impossible -> FR relabel, unflagged	"Text literally reads ""60 CFR 15845"" but is emitted as authority_type=federal_register, fr_volume=60, fr_page=15845 (CFR has no title 60, so FR vol. 60 / 1995 is a plausible reinterpretation). fr_volume_in_series=True, fr_page_in_series=True (both bound-checks now pass for this rebuild), but authority_label_corrected is null -- the type change from the text's own ""CFR"" label is not recorded anywhere. I could not independently confirm 60 FR 15845 exists: govinfo's /link/FR/{vol}/{page} resolver returned ""Page Not Found"" for this citation, and I could not identify the underlying rule (RIN 2700-AD98) via an allowed source to check content."	https://www.govinfo.gov/link/FR/60/15845 (404)
+42	20 USC 1098a	3	CORRECT				
+43	PL 101-649, Miscellaneous and Technical Immigration and Naturalization Amendments of 1991	5	CORRECT			"Public Law 101-649 is real and is the Immigration Act of 1990 per Cornell TOPN; the act name in the text (""Miscellaneous and Technical Immigration and Naturalization Amendments of 1991"") actually belongs to PL 102-232. The emitted identity is only the PL number, which matches the text and is real -- the mismatched act name is the source text's own labeling error, not a misread of the numeric identity. Flagged in the original as an inference case for the same reason."	https://www.law.cornell.edu/topn/immigration_act_of_1990
+44	26 U.S.C. 5551	10	CORRECT				
+45	44 U.S.C. 3101	58	CORRECT				
+46	49 USC 2512	1	MISREAD_LAUNDERED	LOUD	produced section does not exist (correction undetermined)	"usc_title=49, usc_section=""2512""; OLRC returns ""does not exist"" for 49 U.S.C. 2512. RIN 2125-AC71 (FHWA motor-carrier office, 1998), cfr_note_part 49 CFR 385 (Safety Fitness Procedures). Modern Title 49 sections in this area run 5 digits (31100s range); I could not pin the exact intended section from the allowed sources within budget -- govinfo's 1998 CFR-title49 annual-edition package name did not resolve, so the part's own authority note could not be read directly."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title49-section2512&num=0&edition=prelim (404)
+47	10 U.S.C. 1061-1064	2	CORRECT				
+48	12 USC 1440a	5	CORRECT				
+49	22 U.S.C. 2151 et seq.	1	CORRECT				
+50	19 U.S.C. 1516a	7	CORRECT				
+51	Outer Continental Lands Shelf Act (OCSLA), codified at 43 U.S.C. sections 1331-1356a	1	CORRECT				
+52	35 USC 171	2	CORRECT				
+53	PL 110-389, sec 402	2	CORRECT				
+54	42 USC 247d to 6d, 247d to 6e	3	MISREAD_LAUNDERED	LOUD	separator damage	"Text ""42 USC 247d to 6d, 247d to 6e"" names two Public Health Service Act sections (247d-6d ""Targeted liability protections for pandemic and epidemic products and security countermeasures"" and 247d-6e ""Covered countermeasure process"", both confirmed real at uscode.house.gov), joined by ""to"" where the source meant a hyphen (""247d-6d""), not a range word. Only one row is emitted (247d-6e is silently dropped entirely), and the emitted section is ""247d"" (""Public health emergencies"" -- a real but different, more general section). usc_section_verdict=""exists"" (247d is real, so this channel is silent), but authority_in_own_cfr_note=""absent"" against 42 CFR 110 (loud). RIN 0906-AA83 is HRSA, whose Countermeasures Injury Compensation Program is administered under 247d-6e -- a strong topical match for the dropped/misread sections."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-section247d-6e&num=0&edition=prelim
+55	49 U.S.C. 301126	6	MISREAD_LAUNDERED	LOUD	produced section does not exist (correction undetermined)	"usc_title=49, usc_section=""301126""; OLRC returns ""does not exist"" for 49 U.S.C. 301126. RIN 2127-AM54 (NHTSA), cfr_note_part 49 CFR 571 (Federal Motor Vehicle Safety Standards). NHTSA's FMVSS authority sections sit in the 30101-30170 range (e.g. 30111, 30112, 30117, 30166); ""301126"" looks like two such tokens run together but I could not recover the original agenda text to confirm which."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title49-section301126&num=0&edition=prelim (404)
+56	7 USC 5602	25	CORRECT				
+57	33 U.S.C. 701c	6	CORRECT				
+58	12 USC 78u-2	2	MISREAD_LAUNDERED	LOUD	A2 (wrong title, right section)	"""12 USC 78u-2"" does not exist (OLRC 404); ""15 USC 78u-2"" is real: ""Civil remedies in administrative proceedings"" (Securities Exchange Act). RIN 1557-AC94 is OCC, cfr_note_part 12 CFR 19 (OCC administrative enforcement proceedings) -- exactly the topic of the Exchange Act civil-remedies section, confirming title 15 was meant. usc_section_verdict=""absent"" for the produced (12, 78u-2) pair."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title15-section78u-2&num=0&edition=prelim
+59	33 USC 1314(m)	5	CORRECT				
+60	PL 111-203, sec 712, Dodd-Frank Wall Street Reform and Consumer Protection Act	2	CORRECT				
+61	42 U.S.C.1396r-8	1	CORRECT				
+62	41 U.S.C. 418b	14	CORRECT			41 U.S.C. 418b is a real, era-correct-but-stale citation (pre-2011 Title 41 recodification) -- the original explicitly scores this exact specimen CORRECT under the same doctrine.	none
+63	54 U.S.C. 1000751(a)	4	MISREAD_LAUNDERED	LOUD	A5-like (extra zero inserted into section)	"""54 U.S.C. 1000751(a)"" does not exist (OLRC 404 for title54/section1000751). 54 U.S.C. 100751 is real: ""Regulations"" -- NPS's general rulemaking-authority section, one digit shorter (an extra ""0"" was inserted: 100751 -> 1000751). RIN 1024-AE28 is NPS, cfr_note_part 36 CFR 13 (Alaska national parks regs) -- ""Regulations"" is exactly the generic authority a park-specific CFR part would cite. usc_section_verdict=""absent""."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title54-section100751&num=0&edition=prelim
+64	12 USC 4517(a)(2) through (3)	1	CORRECT				
+65	5 U.S.C. 3133(e)(2)	1	CORRECT				
+66	35 USC 1123	9	MISREAD_LAUNDERED	LOUD	A2 (wrong title, right section)	"""35 USC 1123"" does not exist (OLRC 404; Title 35 patents runs to ~390). ""15 USC 1123"" is real: ""Rules and regulations for conduct of proceedings in Patent and Trademark Office"" (Lanham Trademark Act). RIN 0651-AA50 is USPTO, cfr_note_part 37 CFR 2 (Trademark Rules of Practice) -- a direct topical match confirming title 15 was meant, not 35. usc_section_verdict=""absent""."	https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title15-section1123&num=0&edition=prelim
+67	12 U.S.C. 1861-67 (FDIC)	4	CORRECT				
+68	5 U.S.C. 552 (2016)	5	CORRECT				
+69	49 USC 102	81	CORRECT				
+70	12 U.S.C. 5519	7	CORRECT				
+71	8 USC 1101(a)(15)(h)(ii)(a)	3	CORRECT				
+72	PL 109-347	2	CORRECT			PL 109-347 is the SAFE Port Act of 2006; RIN 2126 is FMCSA and cfr_note_part is 49 CFR 383 (CDL standards) -- the SAFE Port Act's HAZMAT-endorsement background-check provisions are a topical match.	https://www.govinfo.gov/content/pkg/PLAW-109publ347/pdf/PLAW-109publ347.pdf
+73	31 USC 9701 et seq	59	CORRECT				
+74	26 USC 6324	1	CORRECT				

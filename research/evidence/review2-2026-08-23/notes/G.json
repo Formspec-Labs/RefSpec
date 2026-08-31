@@ -1,0 +1,182 @@
+[
+  {
+    "key": "2060-AG14/199810#0",
+    "stated_act_name": "Energy Policy Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Energy Policy Act of 1992",
+    "decisive_quote": "This rulemaking is in response to section 801 of the Energy Policy Act of 1992 which directs the Administrator to promulgate public health and safety standards for protection of the public from releases from radioactive materials stored or disposed of in the repository at the Yucca Mountain site.",
+    "why": "The box dropped the year; the record's own ABSTRACT and RPLAN_INFO/LEGAL_BASIS both spell it 'Energy Policy Act of 1992,' which is a direct Table III hit.",
+    "anything_systemic": "missing-year, act unambiguous"
+  },
+  {
+    "key": "3225-AA17/202310#0",
+    "stated_act_name": "Sex Offender Registration Act of 1999",
+    "verdict": "correct-as-labeled",
+    "correct_spelling_if_any": null,
+    "decisive_quote": "Under the Sex Offender Registration Act of 1999 (\u201cSORA\u201d or \u201cAct\u201d, D.C. Law 13-137, D.C. Official Code 22-4001 et seq.)... CSOSA is responsible for carrying out\u2026 (federalregister.gov doc 03-9930, CSOSA final rule preamble, confirmed again in docs 2012-29636 and 2013-09471: 'District of Columbia Sex Offender Registration Act of 1999, D.C. Law 13-137')",
+    "why": "This is a District of Columbia Council enactment (D.C. Law 13-137), not an Act of Congress, so it is categorically outside the U.S. Code's Table III, which indexes only federal public laws.",
+    "anything_systemic": "DC local law, categorically out of scope for Table III"
+  },
+  {
+    "key": "1105-AA60/199910#7",
+    "stated_act_name": "Delegation of Responsibilities Concerning FBI Employees Under the Civil Service Reform Act of 1978",
+    "verdict": "label-overstates",
+    "correct_spelling_if_any": "Civil Service Reform Act of 1978 (embedded name resolves, but is not the instrument actually being cited)",
+    "decisive_quote": "LEGAL AUTHORITY CONT: from the President, April 14, 1997, Delegation of Responsibilities Concerning FBI Employees Under the Civil Service Reform Act of 1978. [continuing box ordinal 6: 'Memorandum for the Attorney General (cont. in Additional Info.)', authority_type=presidential_document]",
+    "why": "This row is the tail of the SAME presidential-memorandum citation begun at ordinal 6, not a second independent act citation; stated_act_name swallowed the whole memo subject line. The embedded 'Civil Service Reform Act of 1978' is itself real and indexed (key 95-454), but naming it as the resolution would misidentify the actual authority cited, which is the President's delegation memorandum.",
+    "anything_systemic": "continuation text re-classified as a phantom second act_relative citation instead of being kept part of the presidential_document row it continues"
+  },
+  {
+    "key": "3052-AD45/202104#1",
+    "stated_act_name": "Farm Credit Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Farm Credit Act of 1971",
+    "decisive_quote": "governed under new section 5.61C(h)(2) of the Farm Credit Act of 1971, as amended. (sibling record 3052-AD48/202404, same agency FCA, same statute base)",
+    "why": "FCA's box shorthand omits the year; the agency's own later rulemaking on the identical statute spells it 'Farm Credit Act of 1971,' the exact Table III key.",
+    "anything_systemic": "missing-year, act unambiguous"
+  },
+  {
+    "key": "0906-AA79/201410#1",
+    "stated_act_name": "PHS Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Public Health Service Act",
+    "decisive_quote": "sec 31F-3 and 319F-4 of the PHS Act (LEGAL_AUTHORITY_LIST box)",
+    "why": "'PHS Act' is HHS's standard shorthand for the Public Health Service Act, which resolves directly (no year needed) in Table III.",
+    "anything_systemic": "bare agency acronym not carried as a Popular-Name-Tool alias"
+  },
+  {
+    "key": "3052-AD48/202404#1",
+    "stated_act_name": "Farm Credit Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Farm Credit Act of 1971",
+    "decisive_quote": "This rulemaking also made conforming amendments to other regulations to clarify that they do not apply to bridge System banks, which are governed under new section 5.61C(h)(2) of the Farm Credit Act of 1971, as amended.",
+    "why": "The record's own abstract states the year explicitly; 'Farm Credit Act of 1971' is a direct Table III hit.",
+    "anything_systemic": "missing-year, act unambiguous"
+  },
+  {
+    "key": "0930-AA15/201010#0",
+    "stated_act_name": "Protection and Advocacy with Mental Illness Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Protection and Advocacy for Individuals with Mental Illness Act",
+    "decisive_quote": "RULE_TITLE: 'Protection and Advocacy for Individuals With Mental Illness'; ABSTRACT: 'A final rule implementing the requirements of the Protection and Advocacy with Mental Illness Act was published on October 15, 1997...'",
+    "why": "The box dropped 'for Individuals.' The exact Table III key is 'Protection and Advocacy for Individuals with Mental Illness Act' (99-319), matching the record's own RULE_TITLE; OLRC's own alias also redirects the act's 1986 enacted name ('Protection and Advocacy for Mentally Ill Individuals Act of 1986') to this same current name.",
+    "anything_systemic": "dropped connector word; word-order divergence from the Popular Name Tool's current-name entry"
+  },
+  {
+    "key": "0563-AB61/199804#0",
+    "stated_act_name": "FAIR Act of 1996",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Federal Agriculture Improvement and Reform Act of 1996",
+    "decisive_quote": "FAIR Act of 1996, section 191, section 226 A(b) (LEGAL_AUTHORITY_LIST box)",
+    "why": "'FAIR' is the well-known acronym for the Federal Agriculture Improvement and Reform Act of 1996 (the 1996 Farm Bill); the acronym form is not itself indexed, but the expanded name is a direct Table III hit.",
+    "anything_systemic": "bare acronym nickname not carried as an alias"
+  },
+  {
+    "key": "0938-AL91/200310#3",
+    "stated_act_name": "Balanced Budget Refinement Act of 1999",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Medicare, Medicaid, and SCHIP Balanced Budget Refinement Act of 1999",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST consecutive boxes: '<LEGAL_AUTHORITY>Medicare, Medicaid, and SCHIP</LEGAL_AUTHORITY><LEGAL_AUTHORITY>Balanced Budget Refinement Act of 1999</LEGAL_AUTHORITY>'",
+    "why": "The act's full popular name spans two adjacent LEGAL_AUTHORITY boxes, split by the filer's line wrap; joined, 'Medicare, Medicaid, and SCHIP Balanced Budget Refinement Act of 1999' is the exact Table III key (106-113). Read alone, the box the pipeline scored is missing its own required prefix.",
+    "anything_systemic": "box-split defect: a shared multi-act prefix line ('Medicare, Medicaid, and SCHIP') was captured as its own failed 'other' fragment instead of being joined to the act name that follows it"
+  },
+  {
+    "key": "2060-AG09/199510#1",
+    "stated_act_name": "Land Withdrawal Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Waste Isolation Pilot Plant Land Withdrawal Act",
+    "decisive_quote": "These criteria are being developed pursuant to the Waste Isolation Pilot Plant (WIPP) Land Withdrawal Act and EPA's radioactive waste disposal standards (40 CFR 191). (sibling box: 'PL 102-579')",
+    "why": "The box truncated the act's distinguishing prefix ('Waste Isolation Pilot Plant'); the full name is a direct, year-less Table III hit under Public Law 102-579, the same law the record cites elsewhere.",
+    "anything_systemic": "dropped leading qualifier that is part of the act's own indexed short title"
+  },
+  {
+    "key": "2060-AF82/199510#0",
+    "stated_act_name": "Clean Air Act Amendments",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Clean Air Act Amendments of 1990",
+    "decisive_quote": "Section 129 of the Clean Air Act Amendments requires the Agency to finalize New Source Performance Standards (NSPS) and Emission Guidelines (EG) for Industrial and Commercial Waste Incinerators (ICWIs) by November 15, 1994.",
+    "why": "'Clean Air Act Amendments' alone is ambiguous across three indexed years (1966/1977/1990); section 129 was added by the 1990 amendments, and 'Clean Air Act Amendments of 1990' resolves directly in Table III.",
+    "anything_systemic": "missing-year on an act name that is ambiguous without it (multiple indexed years share the bare name)"
+  },
+  {
+    "key": "1400-AA51/199604#1",
+    "stated_act_name": "NAFTA Implementation Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "North American Free Trade Agreement Implementation Act",
+    "decisive_quote": "Implements chapter 16 of the North American Free Trade Agreement (NAFTA), and sections 341 and 342 of the North American Free Trade Agreement Implementation Act (the Implementation Act), signed December 8, 1993...",
+    "why": "The box used the informal 'NAFTA Implementation Act' shorthand; the record's own abstract spells out the exact Table III-indexed name.",
+    "anything_systemic": "acronym-expanded shorthand not carried as an alias"
+  },
+  {
+    "key": "2700-AD23/200610#0",
+    "stated_act_name": "Space Act of 1958",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "National Aeronautics and Space Act of 1958",
+    "decisive_quote": "Space Act of 1958, as amended, sec 306 (LEGAL_AUTHORITY_LIST box)",
+    "why": "NASA's universal shorthand for its organic statute dropped the 'National Aeronautics and' prefix; the full formal name is a direct Table III hit.",
+    "anything_systemic": "dropped leading qualifier that is part of the act's own indexed short title"
+  },
+  {
+    "key": "0910-AI87/202510#0",
+    "stated_act_name": "Food and Drug Administrative Safety and Innovation Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Food and Drug Administration Safety and Innovation Act",
+    "decisive_quote": "ABSTRACT: 'This rulemaking meets the mandate of section 714 of the Food and Drug Administration Safety and Innovation Act and will establish registration and good importing practice requirements...' versus the LEGAL_AUTHORITY box's own 'Food and Drug Administrative Safety and Innovation Act (FDASIA) of July 2012'",
+    "why": "The box text contains a one-word filer typo ('Administrative' for 'Administration') that the same agency's own ABSTRACT spells correctly; the corrected, year-less name is a direct Table III hit.",
+    "anything_systemic": "filer typo confirmed by the record's own abstract; also drop the nonstandard '(FDASIA) of July 2012' suffix, since Table III carries this act with no year at all"
+  },
+  {
+    "key": "0906-AA87/201104#0",
+    "stated_act_name": "PPAC Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Patient Protection and Affordable Care Act",
+    "decisive_quote": "This rule is required under the Affordable Care Act. (ABSTRACT) ... sibling box 'PL 111-148, 42 USC 1320a-7e,'",
+    "why": "'PPAC Act' is a nonstandard compression of the act's initials; the full name is a direct, year-less Table III hit tied to the same Public Law (111-148) the record cites elsewhere.",
+    "anything_systemic": "bare compressed-initials nickname not carried as an alias"
+  },
+  {
+    "key": "0938-AP73/200910#3",
+    "stated_act_name": "Recovery Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "American Recovery and Reinvestment Act of 2009",
+    "decisive_quote": "...in response to the American Recovery and Reinvestment Act of 2009 (the Recovery Act), which was enacted during the temporary delay of the November 25, 2008 final rule. ... sibling box 'PL 111-5'",
+    "why": "The box uses the abstract's own parenthetical short name ('the Recovery Act') rather than the full name the same abstract also supplies, which is a direct Table III hit and matches the sibling PL 111-5 citation.",
+    "anything_systemic": "bare short-name nickname not carried as an alias"
+  },
+  {
+    "key": "2060-AJ07/200310#3",
+    "stated_act_name": "Waste Isolation Pilot Plant Land Withdrawal Act of 1992",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Waste Isolation Pilot Plant Land Withdrawal Act (no year in Table III's own entry)",
+    "decisive_quote": "\"Waste Isolation Pilot Plant Land Withdrawal Act of 1992\" (filer's own quotation marks, LEGAL_AUTHORITY_LIST) alongside sibling box 'PL 102-579'",
+    "why": "The filer's spelling is otherwise exact but appends 'of 1992,' a year Table III's own popular-name entry for Pub. L. 102-579 does not carry ('waste isolation pilot plant land withdrawal act', no year). Stripping the year resolves directly; the resolver's year rule only ever supplies a missing year, never removes an extra one.",
+    "anything_systemic": "extraneous year appended beyond what Table III's own entry carries; ALIAS_YEAR_RULE is one-directional (adds, never strips) -- same root act as row 2060-AG09/199510#1 above, which is truncated in the opposite direction"
+  },
+  {
+    "key": "3206-AN96/202410#0",
+    "stated_act_name": "National Defense Authorization Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "National Defense Authorization Act for Fiscal Year 2020",
+    "decisive_quote": "Federal Employee Paid Leave Act, subtitle A of title LXXVI of division F of the National Defense Authorization Act for Fiscal Year 2020 (same LEGAL_AUTHORITY box whose stated_act_name field captured only 'National Defense Authorization Act')",
+    "why": "The extractor truncated the act's defining fiscal-year qualifier even though it appears verbatim later in the very same box; restoring it resolves directly to Pub. L. 116-92.",
+    "anything_systemic": "truncated trailing qualifier that is present in the same box's own text and was not carried into stated_act_name"
+  },
+  {
+    "key": "0412-AA49/201110#0",
+    "stated_act_name": "Foreign Assistance Act",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Foreign Assistance Act of 1961",
+    "decisive_quote": "Authority: Sec. 621, Pub. L. 87-195, 75 Stat. 445, (22 U.S.C. 2381) as amended... (USAID AIDAR authority citation for 48 CFR chapter 7, federalregister.gov doc 2023-27953; 'foreign assistance act of 1961' -> table3 key 87-195)",
+    "why": "'Foreign Assistance Act, as amended' is bare and ambiguous across 13 indexed years, but USAID's own acquisition-regulation authority citations confirm the organic 1961 Act -- the one all the others amend -- governs this exact CFR part (48 CFR 7), and that year resolves directly.",
+    "anything_systemic": "missing-year on an act name ambiguous without it; disambiguated by the CFR part's own published authority citation, not by the record alone"
+  },
+  {
+    "key": "2050-AE01/199610#2",
+    "stated_act_name": "Clean Air Act Amendments",
+    "verdict": "missed-witness",
+    "correct_spelling_if_any": "Clean Air Act Amendments of 1990",
+    "decisive_quote": "Under the Clean Air Act (CAA) Amendments of 1990, EPA is required to establish National Emission Standards for Hazardous Air Pollutants (NESHAPs) for most hazardous waste combustors (HWCs)... (RPLAN_INFO/STMT_OF_NEED)",
+    "why": "The record's own statement of need names the year explicitly; 'Clean Air Act Amendments of 1990' is a direct Table III hit (section 112 was added/amended by the 1990 Act).",
+    "anything_systemic": "missing-year on an act name that is ambiguous without it -- same defect and same correction as row 2060-AF82/199510#0 above"
+  }
+]

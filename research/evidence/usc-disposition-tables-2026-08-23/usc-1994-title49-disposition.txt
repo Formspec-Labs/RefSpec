@@ -1,0 +1,1852 @@
+  1 left  1(1), (2)	10501
+  1 left  1(3)	10102
+  1 left  1(4) (related to standards)	10701
+  1 left  1(4) (2d sentence last cl.)	10702
+  1 left  1(4) (1st sentence related to through routes and 2d sentence less last cl.).	10703
+  1 left  1(4) (1st sentence 14th-23d words).	11101
+  1 left  1(5)(a)	10701
+  1 left  1(5)(b) (7th and 8th sentences)	10709
+  1 left  1(5)(b) (less 7th and 8th sentences).	10701
+  1 left  1(5)(c)(i)	10709
+  1 left  1(5)(c)(ii)	10102
+  1 left  1(5)(d)	Rep.
+  1 left  1(5 1 ⁄ 2 )	10749
+  1 left  1(6) (last sentence)	10750
+  1 left  1(6) (less last sentence)	10702 (See also 10701(a))
+  1 left  1(7) (1st sentence, 32 words before 8th semicolon-9th semicolon).	10721
+  1 right 1(7) (1st sentence words before 2d semicolon, words between 5th semicolon and 21st word after 7th semicolon, 1st-18th words after 9th semicolon, 1st proviso (words before semicolon), 2d, and 3d provisos).	10722
+  1 right 1(7) (1st sentence 1st-4th and 13th-20th words after 2d semicolon and words between 3d and 5th semicolons).	10723
+  1 right 1(7) (1st sentence 5th-12th and 21st-29th words after 2d semicolon and last 11 words before 1st proviso).	10723
+  1 right 1(7) (1st sentence 1st proviso, words between semicolon and colon).	10724
+  1 right 1(7) (less 1st sentence)	11905
+  1 right 1(8)	10746
+  1 right 1(9)	11104
+  1 right 1(10)	10102
+  1 right 1(11)	11121
+  1 right 1(12) (3d sentence)	11902
+  1 right 1(12) (less 3d sentence)	11126
+  1 right 1(13)	11121
+  1 right 1(14)(a)	11122
+  1 right 1(14)(b)	11121
+  1 right 1(14)(c)	11105
+  1 right 1(15) (related to car service less last sentence).	11123
+  1 right 1(15) (last sentence)	11128
+  1 right 1(15) (related to service less last sentence).	11127
+  1 right 1(16) (related to traffic less (b))	11124
+  1 right 1(16) (related to service less (b)).	11127
+  1 right 1(16)(b)	11125
+  1 right 1(17)(a) (1st sentence)	11121
+  1 right 1(17)(a) (last sentence less proviso).	11901
+  1 right 1(17)(a) (last sentence proviso)	10501
+  1 right 1(17)(b)	11907
+  1 right 1(18)(a), (b)	10901
+  1 right 1(18)(c)	10902
+  1 right 1(18)(d)	10907
+  1 right 1(18)(e) (related to action by the Attorney General).	11703
+  1 right 1(18)(e) (related to Commission action).	11702
+  1 right 1(18)(e)	11901
+  1 right 1(18)(e) (related to State enforcement).	11505
+  1 right 1(19)-(22)	Rep.
+  1 right 1 note	10711
+  1 right 1a(1) (1st sentence)	10903
+  1 right 1a(1) (less 1st and last sentences).	10904
+  1 right 1a(1) (last sentence)	10907
+  1 right 1a(2), (3)	10904
+  1 right 1a(4)	10903
+  1 right 1a(5)	10904
+  1 right 1a(6), (7)	10905
+  1 right 1a(8)	Rep.
+  1 right 1a(9) (related to Commission action).	11702
+  1 right 1a(9) (related to action by the Attorney General).	11703
+  1 right 1a(9) (last sentence)	11901
+  1 right 1a(9) (related to State enforcement).	11505
+  1 right 1a(10)	10906
+  1 right 1a(11)	10905
+  1 right 2	10741
+  1 right 3(1)	10741
+  1 right 3(1a)	Rep.
+  2 left  3(2) (1st sentence)	10743
+  2 left  3(2) (less 1st sentence)	10744
+  2 left  3(3)	10744
+  2 left  3(4) (1st sentence 2d cl., 2d sentence related to standards).	10701
+  2 left  3(4) (less 1st sentence 2d cl., and 2d sentence related to facilities).	10742
+  2 left  3(5)	11103
+  2 left  4	10726
+  2 left  5(1) (words between semicolon and 1st colon).	11914
+  2 left  5(1) (less words between semicolon and 1st colon).	11342
+  2 left  5(2)(a)	11343
+  2 left  5(2)(b)-(e)	11344
+  2 left  5(2)(f)	11347
+  2 left  5(2)(g), (h)	11345
+  2 left  5(3)(a)-(e)	11346
+  2 left  5(3)(f) (last sentence)	11346
+  2 left  5(3)(f) (less last sentence)	11350
+  2 left  5(3)(g)	11346
+  2 left  5(4)	11348
+  2 left  5(5)-(7)	11343
+  2 left  5(8) (last sentence)	11912
+  2 left  5(8) (less last sentence)	11701
+  2 left  5(9)	11702
+  2 left  5(10)	11351
+  2 left  5(11)	11343
+  2 left  5(12)	11341
+  2 left  5(13)	Rep.
+  2 left  5(14)	11343
+  2 left  5(15) (words after semicolon)	11914
+  2 left  5(15) (less words after semicolon).	11321
+  2 left  5(16), (17)	11321
+  2 left  5a	Rep.
+  2 left  5b, 5c	10706
+  2 left  6(1)	10762
+  2 left  6(2)	10765
+  2 left  6(3), (4)	10762
+  2 left  6(5)	10764
+  2 left  6(6)	10762
+  2 left  6(7)	10761
+  2 left  6(8)	11128
+  2 left  6(9)	10762
+  2 left  6(10)	11901
+  2 left  6(11)	10503
+  2 left  6(12)	10765
+  2 left  7	10745
+  2 left  8, 9	11705
+  2 left  10(1)	11914
+  2 left  10(2)-(4)	11904
+  2 left  11	10301
+  2 left  12(1)(a) (less 2d sentence words after semicolon and last sentence words after 1st semicolon and before last semicolon).	10321
+  2 left  12(1)(a) (words after semicolon in 2d sentence).	10311
+  2 left  12(1)(a) (last sentence less words before 1st semicolon and after last semicolon).	11703
+  2 left  12(1)(b)	10505
+  2 left  12(2)-(7)	10321
+  2 left  13(1)	11701
+  2 left  13(2) (last sentence)	11502
+  2 left  13(2) (less last sentence)	11701
+  2 left  13(3)	11502
+  2 left  13(4), (5)	11501
+  2 left  13(6)	10326
+  2 left  13a(1)	10908
+  2 left  13a(2)	10909
+  2 left  14(1), (2)	10310
+  2 left  14(3) (last sentence)	10311
+  2 left  14(3) (less last sentence)	10310
+  2 left  15(1)	10704
+  2 left  15(2)	10324
+  2 left  15(3), (4)	10705
+  2 left  15(5)	10748
+  2 left  15(6)	10705
+  2 left  15(7)	10708
+  2 left  15(8)	10707
+  2 left  15(9)	10709
+  2 left  15(10)	10763
+  2 left  15(11)	11710
+  2 left  15(12)	10763
+  2 left  15(13), (14)	11910
+  2 left  15(15)	10747
+  2 left  15(16)	10321
+  2 left  15(17)	10727
+  2 left  15(18)	10728
+  2 left  15(19)	10729
+  2 left  15a(1)-(5)	10704
+  2 left  15a(6), 15b	Rep.
+  2 left  16(1), (2)	11705
+  2 left  16(3)(c), (g)	11705
+  2 left  16(3)(h)	Rep.
+  2 right 16(3) (less (c), (g), and (h))	11706
+  2 right 16(4)	11705
+  2 right 16(5)	10329
+  2 right 16(6)	10324
+  2 right 16(7)	11914
+  2 right 16(8)-(10)	11901
+  2 right 16(11)	10301
+  2 right 16(12) (related to Commission action).	11702
+  2 right 16(12) (related to action by the Attorney General).	11703
+  2 right 16(12) (related to action by private person).	11705
+  2 right 16(12) (enforcement of money award).	11705
+  2 right 16(13)	10303
+  2 right 16a	Rep.
+  2 right 17(1)	10302
+  2 right 17(2) (1st sentence 80th-98th words and 2d sentence).	10304
+  2 right 17(2) (less 80th-90th words in 1st sentence, less 2d sentence).	10305
+  2 right 17(3) (less 2d sentence and last 42 words of 3d sentence).	10306
+  2 right 17(3) (2d sentence)	10301
+  2 right 17(3) (last 42 words of 3d sentence).	10321
+  2 right 17(4) (1st and 3d sentences)	10305
+  2 right 17(4) (2d sentence)	10303
+  2 right 17(5)	10322
+  2 right 17(6), (7)	10323
+  2 right 17(8)	10324
+  2 right 17(9)(j)	10310
+  2 right 17(9) (less (j))	10327
+  2 right 17(10)	10325
+  2 right 17(11)	10305, 10306
+  2 right 17(12)	10328
+  2 right 17(13)	10308
+  2 right 17(14)(a)	11701
+  2 right 17(14)(b)	Rep.
+  2 right 17(15)	10309
+  2 right 17 note	10306
+  2 right 18(1) (1st and 3d sentences)	10301
+  2 right 18(1) (2d sentence)	10303
+  2 right 18(1) (4th sentence)	10307
+  2 right 18(1) (last sentence)	10321
+  2 right 18(2)	10301
+  2 right 19	10307
+  2 right 19a(a) (1st and last sentences)	10781
+  2 right 19a(a) (2d and 3d sentences)	10301
+  2 right 19a(b)	10782
+  2 right 19a(c)	10781
+  2 right 19a(d)	Rep.
+  2 right 19a(e)	10783
+  2 right 19a(f), (g)	10784
+  2 right 19a(h)-(j)	10785
+  2 right 19a(k) (1st sentence)	10786
+  2 right 19a(k) (less 1st sentence)	11901
+  2 right 19a(l)	11703
+  2 right 20(1), (2)	11145
+  2 right 20(3) (less (e))	11142
+  2 right 20(3)(e)	Rep.
+  2 right 20(4)	11143
+  2 right 20(5)	11144
+  2 right 20(6) (2d sentence, 1st cl.)	11144
+  2 right 20(6) (2d sentence, 2d cl.)	11145
+  2 right 20(6) (less 2d sentence)	11144
+  2 right 20(7)(a)	11901
+  2 right 20(7)(b) (proviso)	11144
+  2 right 20(7)(b) (less proviso)	11909
+  2 right 20(7)(c)-(e)	11901
+  2 right 20(7)(f)	11910
+  2 right 20(8)	11141
+  2 right 20(9)	11703
+  2 right 20(10)	10301
+  2 right 20(11) (2d sentence, 1st proviso)	10103
+  2 right 20(11) (less 1st sentence 2d proviso related to released value, 2d sentence less words before 2d proviso).	11707
+  2 right 20(11) (1st sentence 2d proviso related to released value), 2d sentence (less 1st-5th provisos).	10730
+  2 right 20(12)	11707
+  2 right 20a(1)-(10)	11301
+  2 right 20a(11) (2d and 3d sentences)	11709
+  2 right 20a(11) (less 2d, 3d, and 4th sentences).	11301
+  2 right 20a(11) (last sentence)	11911
+  2 right 20a(12) (last sentence)	11911
+  2 right 20a(12) (less last sentence)	11322
+  2 right 20b(1)	11361
+  2 right 20b(2) (1st-3d sentences, 4th sentence less words between 8th comma and period, 9th sentence).	11362
+  3 left  20b(2) (4th sentence, words between 8th comma and period, 8th comma and period, 8th sentence).	11363
+  3 left  20b(2) (5th and 7th sentences)	11364
+  3 left  20b(2) (less 1st-9th sentences)	11365
+  3 left  20b(3) (1st and last sentences)	11362
+  3 left  20b(3) (less 1st and last sentences).	11363
+  3 left  20b(4)	11365
+  3 left  20b(5)	11361
+  3 left  20b(6)	11366
+  3 left  20b(7)	Rep.
+  3 left  20b(8)	11362
+  3 left  20b(9)	11367
+  3 left  20b(10)	10321
+  3 left  20b(11)	11367
+  3 left  20b(12)	Rep.
+  3 left  20b(13)	11361
+  3 left  20c	11303
+  3 left  21	10311
+  3 left  22(1) (1st sentence 1st 26th and 62d-76th words).	10721
+  3 left  22(1) (1st sentence 77th-86th words and 2d proviso, 2d-4th sentences).	10722
+  3 left  22(1) (1st sentence words between 2d and 4th semicolons).	10722
+  3 left  22(1) (1st sentence words between 4th and 5th semicolons).	10722
+  3 left  22(1) (1st sentence 27th-61st words and words between 1st and 2d semicolons).	10723
+  3 left  22(1) (1st sentence words between 6th semicolon and 1st proviso).	10723
+  3 left  22(1) (last 2 sentences)	10724
+  3 left  22(1) (1st sentence words between 5th and 6th semicolons).	10103
+  3 left  22(1) (1st proviso 1st sentence)	Rep.
+  3 left  22(2) (less 1st sentence proviso)	10721
+  3 left  22(2) (1st sentence proviso)	Rep.
+  3 left  23	11703
+  3 left  25	Rep.
+  3 left  26(a)	20102
+  3 left  26(b)	20502
+  3 left  26(c)	20503
+  3 left  26(d)	20504
+  3 left  26(e)	20502
+  3 left  26(f) (words before last semicolon).	20505
+  3 left  26(f) (words after last semicolon).	20902
+  3 left  26(g)	501
+  3 left  26(h) (1st sentence words before last comma).	21302
+  3 left  26(h) (1st sentence words after last comma).	21304
+  3 left  26(h) (2d, 3d sentences, 4th sentence words before last comma).	21302
+  3 left  26(h) (4th sentence words after last comma, 5th sentence).	21304
+  3 left  26(h) (last sentence)	21302
+  3 left  26a	11504
+  3 left  26b	10381-10388
+  3 left  26c	11503
+  3 left  27	Rep.
+  3 left  41(1) (1st sentence)	11915
+  3 left  41(1) (less 1st sentence)	11903
+  3 left  41(2) (related to corporate violations).	11903
+  3 left  41(2) (related to corporate violations).	11915
+  3 left  41(2) (last sentence)	11916
+  3 left  41(3)	11902
+  3 left  42	Rep.
+  3 left  43	11703
+  3 left  44, 45	T. 15 §§ 28, 29
+  3 left  46	11913
+  3 left  47, 48	Rep.
+  3 left  49	Elim.
+  3 left  50 (related to notice)	10329
+  3 left  50 (related to process)	10330
+  3 left  51 (related to ownership)	11321
+  3 left  51 (related to 49:6(11))	10503
+  3 left  52	10783
+  3 left  53	Elim.
+  3 left  54-59	Rep.
+  3 left  60	11507
+  3 left  61-64	Rep.
+  3 left  65, 65a	10721
+  3 left  66	T. 31 § 3726
+  3 left  67	Elim.
+  3 left  71-79	Rep.
+  3 left  80	T. 40 § 316
+  3 left  81	80102
+  3 right 82, 83	80103
+  3 right 84, 85	80112
+  3 right 86, 87	80103
+  3 right 88, 89	80110
+  3 right 90-92	80111
+  3 right 93	80108
+  3 right 94	80114
+  3 right 95	80107
+  3 right 96-99	80110
+  3 right 100-102	80113
+  3 right 103	80115
+  3 right 104	Rep.
+  3 right 105	80109
+  3 right 106	80111
+  3 right 107, 108	80104
+  3 right 109 (1st sentence)	80106
+  3 right 109 (last sentence)	80103
+  3 right 110	80104
+  3 right 111	80105
+  3 right 112, 113	80106
+  3 right 114-116	80107
+  3 right 117, 118	80104
+  3 right 119, 120	80105
+  3 right 121	80116
+  3 right 122	80101
+  3 right 123, 124	Rep.
+  3 right 141	Rep.
+  3 right 142	303a
+  3 right 143	Rep.
+  3 right 151-157	Rep.
+  3 right 171-173a, 174-184	Rep.
+  3 right 201	Rep.
+  3 right 211-213	T. 43 §§ 1441-1443
+  3 right 214	Rep.
+  3 right 231	Rep.
+  3 right 241-246	T. 50 §§ 151-154, 156, 157
+  3 right 250-268	Rep.
+  3 right 301	Rep.
+  3 right 302(a), (b)(1)	10521
+  3 right 302(b) (less (1))	11506
+  3 right 302(c)	10523
+  3 right 303(a)(1)	10102
+  3 right 303(a)(2)	10342
+  3 right 303(a)(3)	Rep.
+  3 right 303(a)(4)	10341
+  3 right 303(a)(5)-(7)	Rep.
+  3 right 303(a)(8), (9)	10102
+  3 right 303(a)(10) (proviso)	10522
+  3 right 303(a)(10) (less proviso)	10521
+  3 right 303(a)(11)	10521, 10927
+  3 right 303(a)(12), (13)	10102
+  3 right 303(a)(14) (words before 2d comma).	10102
+  3 right 303(a)(14) (words after 2d comma).	10502
+  3 right 303(a)(15)-(19)	10102
+  3 right 303(a)(20), (21)	Rep.
+  3 right 303(a)(22), (23)	31501
+  3 right 303(b)	10526
+  3 right 303(c) (words between 6th and 7th commas).	10521
+  3 right 303(c) (words before ‘‘nor’’, less words between 6th and 7th commas).	10921
+  3 right 303(c) (less words before ‘‘nor’’)	10524
+  3 right 304(a) (matter preceding (1))	10321
+  3 right 304(a)(1) (related to service)	11101
+  3 right 304(a)(1) (related to accounts)	11142
+  3 right 304(a)(1)-(2) (related to qualifications, hours of service, and safety).	31502
+  3 right 304(a)(2) (less ‘‘qualifications’’ through period).	11142
+  3 right 304(a)(3) (1st sentence)	31502
+  3 right 304(a)(3) (last sentence) (related to ‘‘Secs. 304(c), 305, 320, 321, 322(a), (b), (d), (f), (g)’’).	502-507, 522, 523, 525, 526
+  3 right 304(a)(3) (last sentence) (related to ‘‘Sec. 305(d) (related to liability)’’).	525
+  3 right 304(a)(3) (last sentence) (related to ‘‘Sec. 324’’).	31504
+  3 right 304(a)(3a) (last sentence) (related to ‘‘Secs. 304(c), 305, 320, 321, 322(a), (b), (d), (f), (g)’’).	502-507, 522, 523, 525, 526
+  3 right 304(a)(3a) (1st sentence)	31502
+  3 right 304(a)(3a) (last sentence) (related to ‘‘Sec. 305(d) (related to liability)’’).	525
+  3 right 304(a)(3a) (last sentence) (related to ‘‘Sec. 324’’).	31504
+  3 right 304(a)(4)	11142
+  3 right 304(a)(4a)	10525
+  3 right 304(a)(5)	31503
+  3 right 304(a)(6)	10321
+  3 right 304(a)(7) (words after semicolon).	10311
+  3 right 304(a)(7) (less words after semicolon).	10321
+  4 left  304(b)	11102
+  4 left  304(c)	11701
+  4 left  304(d) (related to administration matters).	10303
+  4 left  304(d) (related to reports)	10310
+  4 left  304(d)	10311
+  4 left  304(e)	11107
+  4 left  304(f)	11101
+  4 left  304a(1)-(4)	11706
+  4 left  304a(5), (6)	11705
+  4 left  304a(7)	Rep.
+  4 left  304a(8)	11706
+  4 left  305(a) (1st and 2d sentences)	10341
+  4 left  305(a) (3d sentence less proviso)	10342
+  4 left  305(a) (3d sentence proviso)	10344
+  4 left  305(a) (less 1st-3d sentences)	10343
+  4 left  305(b) (2d sentence, 1st 12 words).	10344
+  4 left  305(b) (1st, 3d, 5th, and 12th sentences).	10342
+  4 left  305(b) (2d sentence 13th-37th words).	10341
+  4 left  305(b) (4th and 6th sentences)	10342
+  4 left  305(b) (7th-9th sentences)	10343
+  4 left  305(b) (10th sentence)	10342
+  4 left  305(b) (11th sentence)	10344
+  4 left  305(b) (less 1st-12th sentences)	10342
+  4 left  305(c) (related to the Commission).	10307
+  4 left  305(c) (related to joint boards)	10344
+  4 left  305(d) (related to Commission and employee board subpena power).	10321
+  4 left  305(d) (related to joint boards)	10344
+  4 left  305(d) (related to liability)	11913
+  4 left  305(e)	10328
+  4 left  305(f) (4th sentence)	10344
+  4 left  305(f) (less 4th sentence)	11502
+  4 left  305(g) (proviso)	Rep.
+  4 left  305(g) (less proviso)	11705, 11706
+  4 left  305(h)	10301-10306, 10308, 10309, 10321-10325, 10328
+  4 left  305(i) (related to members of Commission).	10301
+  4 left  305(i) (related to joint board)	10344
+  4 left  305(i) (related to examiner)	10306
+  4 left  305(j)	10301
+  4 left  305a	10344 note
+  4 left  306(a)(1) (word before proviso)	10921
+  4 left  306(a)(1) (words after colon)	Rep.
+  4 left  306(a)(2)	10932
+  4 left  306(a)(3)-(5)	Rep.
+  4 left  306(a)(6)	10931
+  4 left  306(a)(7)	10932
+  4 left  306(b), 307	10922
+  4 left  308(a), (b)	10922
+  4 left  308(c), (d)	10932
+  4 left  309(a)(1) (words before 1st proviso).	10921
+  4 left  309(a)(1) (words between 1st and last colons).	Rep.
+  4 left  309(a)(1) (last proviso)	10526
+  4 left  309(a)(2)	10932
+  4 left  309(a)(3)-(5)	Rep.
+  4 left  309(b) (last proviso)	10932
+  4 left  309(b) (less last proviso)	10923
+  4 left  310	10930
+  4 left  310a(a)	10928
+  4 left  310a(b)	11349
+  4 left  310a(c)	10928
+  4 left  310a(c)	11349
+  4 left  311(a) (words before 1st proviso).	10921
+  4 left  311(a) (words after 1st colon)	10924
+  4 left  311(b), (c) (words before 2d comma).	10924
+  4 left  311(c) (words after 2d comma)	10927
+  4 left  311(d)	11144
+  4 left  312(a)	10925
+  4 left  312(b)	10926
+  4 left  312(c)	Rep.
+  4 left  313	11304
+  4 left  314 (related to securities)	11302
+  4 left  314 (related to penalties)	11911
+  4 left  315	10927
+  4 left  316 (related to standards)	10701
+  4 left  316(a) (1st-24th, 45th-59th words).	10703
+  4 left  316(a) (60th-143d words)	10702
+  4 left  316(a) (25th-44th words)	11101
+  4 left  316(b) (related to standards)	10701
+  4 left  316(b) (16th-33d words)	11101
+  4 left  316(b) (less 16th-33d words)	10702
+  4 left  316(c) (less 2d sentence)	10703
+  4 left  316(c) (2d sentence)	10702
+  4 left  316(d) (1st sentence)	10701
+  4 left  316(d) (less 1st sentence)	10741
+  4 left  316(e) (2d sentence 2d cl.)	10705
+  4 left  316(e) (2d sentence less 2d cl. and less proviso).	10704
+  4 right 316(e) (proviso)	10521
+  4 right 316(e) (less 2d sentence)	11701
+  4 right 316(f)	10705
+  4 right 316(g) (less proviso)	10708
+  4 right 316(g) (proviso)	Rep.
+  4 right 316(h)	10701
+  4 right 316(i)	10704
+  4 right 316(j)	10103
+  4 right 317(a)	10762
+  4 right 317(b) (proviso)	10103, 10721-10724
+  4 right 317(b) (less proviso)	10761
+  4 right 317(c)	10762
+  4 right 317(d)	10761
+  4 right 318(a) (1st sentence related to standards).	10701
+  4 right 318(a) (1st and 4th sentences, and 7th sentence proviso related to relief).	10702
+  4 right 318(a) (2d, 5th, and 6th sentences, and 7th sentence proviso related to general requirements).	10762
+  4 right 318(a) (3d sentence, 7th sentence less proviso, and 7th sentence proviso related to relief).	10761
+  4 right 318(b)	10704
+  4 right 318(c) (proviso)	Rep.
+  4 right 318(c) (less proviso)	10708
+  4 right 319	10730, 11707
+  4 right 320(a) (1st and 2d sentences)	11145
+  4 right 320(a) (less 1st and 2d sentences).	10764
+  4 right 320(b)	11145
+  4 right 320(c)	11143
+  4 right 320(d)	11144
+  4 right 320(e)	11141
+  4 right 320(f)	504
+  4 right 320(g)	11144
+  4 right 321(a)	10329
+  4 right 321(b)	10324
+  4 right 321(c)	10330
+  4 right 321(d) (related to orders)	10324
+  4 right 321(d) (related to notice)	10329
+  4 right 321(d) (related to process)	10330
+  4 right 322(a)	11914
+  4 right 322(b)(1)	11702
+  4 right 322(b) (less (1))	11708
+  4 right 322(c) (related to rate violations).	11904
+  4 right 322(c) (related to evasion of regulation).	11906
+  4 right 322(d)-(f)	11910
+  4 right 322(g)	11909
+  4 right 322(h)	11901
+  4 right 323 (1st sentence)	10743
+  4 right 323 (less 1st sentence)	10744
+  4 right 324	11106
+  4 right 324a	10747
+  4 right 325	31503
+  4 right 325a	11504
+  4 right 326, 327	Rep.
+  4 right 401-403	Rep.
+  4 right 421-422a	Rep.
+  4 right 422b	Elim.
+  4 right 423-427	Rep.
+  4 right 451-460	Rep.
+  4 right 461	Elim.
+  4 right 481-496	Rep.
+  4 right 521-524	Rep.
+  4 right 551-560	Rep.
+  4 right 581, 582	Rep.
+  4 right 601-603	Rep.
+  4 right 621-623	Rep.
+  4 right 641-649	Rep.
+  4 right 671-685	Rep.
+  4 right 701-705	Rep.
+  4 right 711-722	Rep.
+  4 right 751-758	Rep.
+  4 right 781	80302
+  4 right 782	80303
+  4 right 783 (1st sentence)	80304
+  4 right 783 (last sentence)	80303
+  4 right 784 (proviso)	80304
+  4 right 784 (less proviso)	80306
+  4 right 785	80305
+  4 right 786	80306
+  4 right 787(a)-(c)	80301
+  4 right 787(d)-(g)	80302
+  4 right 788, 789	80304
+  4 right 901	Rep.
+  4 right 902(a)	10102
+  4 right 902(b)	Rep.
+  4 right 902(c), (d) (less exception)	10102
+  4 right 902(d) (words after 1st comma)	10502
+  4 right 902(e) (1st and 2d sentences)	10102
+  4 right 902(e) (3d-5th sentences)	10544
+  4 right 902(f)-(h)	10102
+  4 right 902(i)	10541
+  5 left  902(j)-(m)	10102
+  5 left  903(a)	10541
+  5 left  903(b)-(d)	10542
+  5 left  903(e)(1)	10544
+  5 left  903(e)(2) (last sentence)	Rep.
+  5 left  903(e)(2) (less last sentence)	10544
+  5 left  903(e)(3)	10544
+  5 left  903(f)	10543
+  5 left  903(g), (h)	10544
+  5 left  903(i)	10721
+  5 left  903(j), (k)	10541
+  5 left  903(l)	10929
+  5 left  904(a)	10321
+  5 left  904(b) (words after last semicolon).	10311
+  5 left  904(b) (less words after last semicolon).	10321
+  5 left  904(c)	11102
+  5 left  904(d)	11108
+  5 left  904(e)	11701
+  5 left  905(a) (1st sentence related to standards and 2d sentence).	10701
+  5 left  905(a) (1st sentence 1st cl.)	11101
+  5 left  905(a) (less 1st sentence 1st cl. and last sentence).	10702
+  5 left  905(b) (4th sentence)	10701, 10702
+  5 left  905(b) (less 4th sentence)	10703
+  5 left  905(c)	10741
+  5 left  905(d) (1st sentence 2d cl., 2d sentence related to facilities).	10701
+  5 left  905(d) (less 1st sentence 2d cl., 2d sentence related to standards).	10742
+  5 left  906(a), (b)	10762
+  5 left  906(c) (proviso)	10103, 10721-10724
+  5 left  906(c) (less proviso)	10761
+  5 left  906(d) (1st sentence)	10761
+  5 left  906(d) (less 1st sentence)	10762
+  5 left  906(e) (1st sentence related to standards).	10701
+  5 left  906(e) (1st sentence and 7th sentence proviso related to relief).	10702
+  5 left  906(e) (2d, 4th, 5th, and 6th sentences, and 7th sentence provision, related to general requirements).	10762
+  5 left  906(e) (3d sentence, and 7th sentence less proviso, and 7th sentence proviso related to relief).	10761
+  5 left  907(a)	11701
+  5 left  907(b)	10704
+  5 left  907(c)	10701
+  5 left  907(d), (e)	10705
+  5 left  907(f)	10704
+  5 left  907(g) (proviso)	Rep.
+  5 left  907(g) (less proviso)	10708
+  5 left  907(h)	10704
+  5 left  907(i) (proviso)	Rep.
+  5 left  907(i) (less proviso)	10708
+  5 left  908(a)-(e), (f)(4)	11705
+  5 left  908(f) (less (4))	11706
+  5 left  908(g)	11705
+  5 left  909(a) (words before 1st proviso).	10921
+  5 left  909(a) (words after 1st colon)	Rep.
+  5 left  909(b)-(e)	10922
+  5 left  909(f) (words before 1st proviso)	10921
+  5 left  909(f) (words after 1st colon)	Rep.
+  5 left  909(g)	10923
+  5 left  910	10930
+  5 left  911(a)	10928
+  5 left  911(b)	11349
+  5 left  912	10926
+  5 left  912a	10925
+  5 left  913(a)	11145
+  5 left  913(b)	10764
+  5 left  913(c)	11142
+  5 left  913(d)	11143
+  5 left  913(e)-(g)	11144
+  5 left  913 (less (a)-(g))	11141
+  5 left  914	10747
+  5 left  915(a)	10329
+  5 left  915(b)	11701
+  5 left  915(c), (d)	10324
+  5 left  915(e)	11914
+  5 left  916(a)	10301-10306, 10308, 10309, 10321-10325, 10328, 11703, 11913
+  5 left  916(b) (related to Commission action).	11702
+  5 left  916(b) (related to action by the Attorney General).	11703
+  5 left  916(b) (related to action by private person).	11705
+  5 left  916(c)	10310
+  5 left  916(d)	10303
+  5 left  917(a)	11914
+  5 left  917(b), (c)	11904
+  5 right 917(d)	11909
+  5 right 917(e)	11910
+  5 right 917(f) (1st and 2d sentences)	11910
+  5 right 917 (less (a)-(e) and (f) (1st and 2d sentences)).	11910
+  5 right 918 (1st sentence)	10743
+  5 right 918 (less 1st sentence)	10744
+  5 right 919	10301
+  5 right 920-922	Rep.
+  5 right 922a	11303
+  5 right 922b	11504
+  5 right 923	Rep.
+  5 right 1001	Rep.
+  5 right 1002(a)(2)	Rep.
+  5 right 1002(a)(1), (3), (4), (5), (8)	10102
+  5 right 1002(a)(6), (7)	10561
+  5 right 1002(b), (c)	10562
+  5 right 1003(a)	10321
+  5 right 1003(b)	11101
+  5 right 1003(c), (d)	10927
+  5 right 1003(e) (words after last semicolon).	10311
+  5 right 1003(e) (less words after last semicolon).	10321
+  5 right 1003(f)	11701
+  5 right 1004(a) (1st cl.)	11101
+  5 right 1004(a) (related to standards)	10701
+  5 right 1004(a) (related to carrier authority).	10702
+  5 right 1004(b), (c)	10741
+  5 right 1004(d)	10766
+  5 right 1005(a), (b)	10762
+  5 right 1005(c) (proviso)	10103, 10721-10724
+  5 right 1005(c) (less proviso)	10761
+  5 right 1005(d)	10762
+  5 right 1005(e)	10761
+  5 right 1006(a)	11701
+  5 right 1006(b)	10704
+  5 right 1006(c)	10701
+  5 right 1006(d)	10704
+  5 right 1006(e) (proviso)	Rep.
+  5 right 1006(e) (less proviso)	10708
+  5 right 1006(f) (2d and 3d sentences)	10502
+  5 right 1006(f) (less 2d last sentences)	11502
+  5 right 1006(f) (4th and last sentences)	11501
+  5 right 1006a(5), (6)	11705
+  5 right 1006a (less (5), (6), (7))	11706
+  5 right 1006a(7)	Rep.
+  5 right 1007, 1008	10725
+  5 right 1009	10766
+  5 right 1010(a)(1) (words before semicolon).	10921
+  5 right 1010(a) (less words before semicolon in par. (1)).	Rep.
+  5 right 1010(b)	10923
+  5 right 1010(c) (less 2d sentence, words before semicolon).	10923
+  5 right 1010(c) (2d sentence, words before semicolon).	10930
+  5 right 1010(d), (e)	10923
+  5 right 1010(f)	10925
+  5 right 1010(g)	10926
+  5 right 1010(h)	10930
+  5 right 1010(i) (1st sentence)	10933
+  5 right 1010(i) (less 1st sentence and 2d sentence words before semicolon).	11908
+  5 right 1010(i) (related to Commission action).	11702
+  5 right 1010(i) (related to enforcement by the United States).	11703
+  5 right 1010(i) (related to private enforcement).	11704
+  5 right 1010(i) (related to State enforcement).	11505
+  5 right 1011(a)	11323
+  5 right 1011(b) (last proviso)	Rep.
+  5 right 1011(b) (less last proviso)	10930
+  5 right 1011(c)	11323
+  5 right 1011(d)	11701
+  5 right 1011(e)	11702
+  5 right 1011(f)	11701
+  5 right 1011(g)	11323
+  5 right 1012(a) (1st and 2d sentences)	11145
+  5 right 1012(a) (3d sentence)	11142
+  5 right 1012(a) (last sentence)	10764
+  5 right 1012(b)	11145
+  5 right 1012(c)-(e)	11144
+  5 right 1012(f)	11141
+  5 right 1013 (1st sentence related to released value).	10730
+  5 right 1013	11707
+  5 right 1014	10743
+  5 right 1015	10747
+  5 right 1016(a)	10329
+  5 right 1016(b), (c)	10324
+  5 right 1016(d)	11914
+  5 right 1017(a)	10301-10306, 10308, 10309, 10311, 10321-10325, 10328, 11703, 11705, 11913
+  6 left  1017(b)(1) (related to Commission action).	11702
+  6 left  1017(b)(1) (related to action by the Attorney General).	11703
+  6 left  1017(b)(1) (related to action by private person).	11705
+  6 left  1017(b) (less (1))	11708
+  6 left  1017(c)	10310
+  6 left  1017(d)	10303
+  6 left  1018	10749
+  6 left  1019	Rep.
+  6 left  1020 (related to service)	11127
+  6 left  1020 (related to penalties)	11901
+  6 left  1021(a)	11914
+  6 left  1021(b), (c)	11904
+  6 left  1021(d)	11909
+  6 left  1021(e), (f)	11910
+  6 left  1021 (less (a)-(f))	11703
+  6 left  1022	Rep.
+  6 left  1101-1103	Rep.
+  6 left  1103a	Elim.
+  6 left  1104-1120	Rep.
+  6 left  1151	47301
+  6 left  1152	47302
+  6 left  1153	47303
+  6 left  1154	47302
+  6 left  1155-1157(b)	47304
+  6 left  1157(c)	Rep.
+  6 left  1158	47304
+  6 left  1159(a) (1st sentence)	47305
+  6 left  1159(a) (last sentence)	47306
+  6 left  1159(b)-(d)	47305
+  6 left  1159a, 1159b	41310
+  6 left  1160	47305
+  6 left  1181-1185	Rep.
+  6 left  1201-1203	80504
+  6 left  1211-1215	Rep.
+  6 left  1231-1240	Rep.
+  6 left  1301(1)	Rep.
+  6 left  1301(2), (3) (less proviso)	40102
+  6 left  1301(3) (proviso)	40109
+  6 left  1301(4)-(12)	40102
+  6 left  1301(13)	Rep.
+  6 left  1301(14) (related to certificate)	41101
+  6 left  1301(14) (less certificate)-(37)	40102
+  6 left  1301(38)	46501
+  6 left  1301(39)-(41)	40102
+  6 left  1302, 1303	40101
+  6 left  1303 note	44111, 44713, 45302, 46301, 46306, 46315
+  6 left  1304	40103
+  6 left  1305(a), (b)(1)	41713
+  6 left  1305(b)(2)	40102
+  6 left  1305(c), (d) (related to (a), (b)(1)).	41713
+  6 left  1305(d) (related to (b)(2))	40102
+  6 left  1305(d) (related to (c))	41713
+  6 left  1306-1308	Rep.
+  6 left  1321-1323	Rep.
+  6 left  1324(a)	40113
+  6 left  1324(b), (c)	41711
+  6 left  1324(d)	40114
+  6 left  1325	Rep.
+  6 left  1341(a), (b)	106
+  6 left  1341(c)	Rep.
+  6 left  1342	106
+  6 left  1343(a)(1), (2) (related to cooperative agreements).	324
+  6 left  1343(a)(2) (related to Deputy Administrator).	106
+  6 left  1343(b)	329
+  6 left  1343(c)	40107
+  6 left  1343(d)	323
+  6 left  1343(e)	Rep.
+  6 left  1343(f), (g) (1st sentence 33d-43d words).	323
+  6 left  1343(g) (less 1st sentence 33d-43d words).	325
+  6 left  1343(h)	Rep.
+  6 left  1343(i)	322
+  6 left  1344(a)-(d)	40110
+  6 left  1344(a)	322
+  6 left  1344(b)	331
+  6 left  1344(c)(1)	326
+  6 left  1344(d) (less words after semicolon).	322
+  6 left  1344(d) (words after semicolon)	(See former section 1348(b).)
+  6 left  1344(e)	322, 40111
+  6 left  1344(f)	40112
+  6 left  1344(g)	40110
+  6 left  1344(h)	47124
+  6 left  1345	40107
+  6 left  1346, 1346a	40104
+  6 left  1347	40101
+  6 left  1348(a)	40103
+  6 left  1348(b) (1st sentence cl. (3))	44721
+  6 left  1348(b) (1st sentence less cl. (3), 2d sentence).	44502
+  6 left  1348(b) (3d, last sentences)	44721
+  6 right 1348(c), (d)	40103
+  6 right 1348(e)	40109
+  6 right 1348(f)	40106
+  6 right 1348 notes	44506, 44514, 44719
+  6 right 1348a	44506
+  6 right 1349(a) (1st, 2d sentences)	44502
+  6 right 1349(a) (3d, last sentences)	40103
+  6 right 1349(b), 1350	44502
+  6 right 1351	44720
+  6 right 1352	329
+  6 right 1353(a)	44501
+  6 right 1353(b)	44504
+  6 right 1353(c)	44505
+  6 right 1353(d)	44501
+  6 right 1353(e)	44507
+  6 right 1353(f)	44508
+  6 right 1353(g)	44511
+  6 right 1353(h)	44512
+  6 right 1353(i)	44513
+  6 right 1353 notes	44506, 48102
+  6 right 1354(a)	40113
+  6 right 1354(b)	40114
+  6 right 1354(c) (related to this chapter)	46104
+  6 right 1354(c) (related to Airport and Airway Improvement Act of 1982).	47122
+  6 right 1354(c) (related to Federal Airport Act and Airport and Airway Development Act of 1970).	Rep.
+  6 right 1354(d)	40108
+  6 right 1354(e)	308(b), 40113
+  6 right 1354(f)	45302
+  6 right 1354 note	44515, 48110
+  6 right 1354a (1st sentence)	44510
+  6 right 1354a (2d sentence)	48106
+  6 right 1354a (3d, last sentences)	44510
+  6 right 1355 (less (a) (last sentence related to fees)).	44702
+  6 right 1355(a) (last sentence related to fees).	45303
+  6 right 1356(a) (1st, 2d sentences)	44901
+  6 right 1356(a) (3d sentence 1st-18th words).	44938
+  6 right 1356(a) (3d sentence 19th-last words).	44901
+  6 right 1356(a) (last sentence), (b)	44938
+  6 right 1356(c)	44901
+  6 right 1356a	Rep.
+  6 right 1356b	44903
+  6 right 1357(a), (b)	44903
+  6 right 1357(c)	44935
+  6 right 1357(d)(1), (2)	40119
+  6 right 1357(d)(3)-(8)	44912
+  6 right 1357(d)(9)	48107
+  6 right 1357(e)(1)	40119, 44937
+  6 right 1357(e)(2), (3), (f), (g)	44903
+  6 right 1357(g)	44936
+  6 right 1357(h)-(j)	44935
+  6 right 1357(k)(1)-(3)	44906
+  6 right 1357(k)(4)	44938
+  6 right 1357 notes	44904, 44906, 44914, 44936, 44938
+  6 right 1358	44915
+  6 right 1358a	44932
+  6 right 1358b(a)	44933
+  6 right 1358b(b)	44934
+  6 right 1358b(c)	Rep.
+  6 right 1358c	44913
+  6 right 1358d	44905
+  6 right 1358d note	44910
+  6 right 1359	Rep.
+  6 right 1371(a)	41101
+  6 right 1371(b), (c)	41108
+  6 right 1371(d)(1)-(3)	41102
+  6 right 1371(d)(4)(A)(i), (ii) (related to joint services).	41101
+  6 right 1371(d)(4)(A)(ii) (related to joint rates, fares), (B).	41503
+  6 right 1371(d)(5)-(7)	Rep.
+  6 right 1371(d)(8) (1st sentence)	41102
+  6 right 1371(d)(8) (last sentence)	41110
+  6 right 1371(d)(9)	41108
+  6 right 1371(e)(1)-(4)	41109
+  6 right 1371(e)(5)-(7)(A)	Rep.
+  6 right 1371(e)(7)(B)	41109
+  6 right 1371(e)(7)(C)	Rep.
+  6 right 1371(f), (g)	41110
+  6 right 1371(h)	41105
+  6 right 1371(i)	41101
+  6 right 1371(j)	41312
+  6 right 1371(k)	42112
+  6 right 1371(l)	41903
+  6 right 1371(m)	41107
+  6 right 1371(n)(1)	Rep.
+  6 right 1371(n)(2)-(6)	41104
+  6 right 1371(o)	41106
+  6 right 1371(p)	41111
+  6 right 1371(q)	41112
+  6 right 1371(r)	41110
+  7 left  1371a (related to certificate)	41110
+  7 left  1371a (related to permit)	41304
+  7 left  1372(a)	41301
+  7 left  1372(b)	41302
+  7 left  1372(c), (d)	41305
+  7 left  1372(e) (related to duration of permits).	41304
+  7 left  1372(e) (related to terms, conditions, or limitations of permits).	41305
+  7 left  1372(f)	41304
+  7 left  1372(g)	41303
+  7 left  1372(h)	41306
+  7 left  1373(a)	41504
+  7 left  1373(b)(1) (1st sentence)	41510
+  7 left  1373(b)(1) (2d-last sentences)	41511
+  7 left  1373(b)(2)	41510
+  7 left  1373(c)(1), (2)	41504
+  7 left  1373(c)(3)	41509
+  7 left  1373(d)	41506
+  7 left  1374(a)(1)	41702
+  7 left  1374(a)(2)	41501
+  7 left  1374(b)	41310
+  7 left  1374(c)	41705
+  7 left  1374(d)(1)	41706
+  7 left  1374(d)(2)	46301
+  7 left  1374 note	41706
+  7 left  1375(a)	Rep.
+  7 left  1375(b)	41902
+  7 left  1375(c), (d)	41903
+  7 left  1375(e)(1)	41912
+  7 left  1375(e)(2)	41904
+  7 left  1375(f)(1) (1st sentence)	41905
+  7 left  1375(f)(1) (2d-last sentences), (2).	41908
+  7 left  1375(g)	41911
+  7 left  1375(h)	41906
+  7 left  1375(i)	Rep.
+  7 left  1375(j)	T. 39 § 5007
+  7 left  1376(a)-(e)	41901
+  7 left  1376(f)	41910
+  7 left  1376(g)	Rep.
+  7 left  1376(h)(1)	41907
+  7 left  1376(h)(2)	41909
+  7 left  1376(h)(3)	41907
+  7 left  1376a, 1376b	Rep.
+  7 left  1377(a)	41708
+  7 left  1377(b), (c)	Rep.
+  7 left  1377(d), (e) (1st-3d sentences)	41709
+  7 left  1377(e) (last sentence)	41708
+  7 left  1378, 1379	Rep.
+  7 left  1380, 1380 note	44909
+  7 left  1381(a)	41712
+  7 left  1381(b)	41707
+  7 left  1382(a), (b)	41309
+  7 left  1382(c)	42111
+  7 left  1383	40102
+  7 left  1384	41308
+  7 left  1385	41711
+  7 left  1386(a)	41701
+  7 left  1386(b)	40109
+  7 left  1387, 1388(a)(1)-(3)	Rep.
+  7 left  1388(a)(4)	41103
+  7 left  1388(b)(1)(A)	Rep.
+  7 left  1388(b)(1)(B), (2)	41103
+  7 left  1388(b)(3)	Rep.
+  7 left  1388(b)(4)	41110
+  7 left  1388(c), (d)	41103
+  7 left  1389(a)	41731
+  7 left  1389(b)(1)	41733
+  7 left  1389(b)(2)	41734
+  7 left  1389(b)(3), (4)	41733
+  7 left  1389(b)(5)-(8)	41734
+  7 left  1389(b)(9)	41733
+  7 left  1389(c)	41735
+  7 left  1389(d)	41736
+  7 left  1389(e)(1)	41738
+  7 left  1389(e)(2)-(g)	41737
+  7 left  1389(h)	41741
+  7 left  1389(i)	41739
+  7 left  1389(j)	41740
+  7 left  1389(k)(1)	41732
+  7 left  1389(k)(2)-(5)	41731
+  7 left  1389(l)	41737
+  7 left  1389(m)	41742
+  7 left  1401(a)	44101
+  7 left  1401(b)	44102
+  7 left  1401(c), (d)	44103
+  7 left  1401(e)(1)	44105
+  7 left  1401(e)(2)(A)-(C)	44106
+  7 left  1401(e)(2)(D), (E)	44103
+  7 left  1401(e)(2)(F)	44106
+  7 left  1401(f), (g)	44103
+  7 left  1401(h)	44111
+  7 left  1401 note	44111, 44703, 44713
+  7 left  1402	44104
+  7 left  1403(a), (b)	44107
+  7 left  1403(c), (d)	44108
+  7 left  1403(e), (f)	44107
+  7 right 1403(g)	44110
+  7 right 1403(h)	44704
+  7 right 1404	44112
+  7 right 1405 (1st sentence)	44104
+  7 right 1405 (2d sentence)	44103
+  7 right 1405 (last sentence)	46301
+  7 right 1406, 1406 note	44108
+  7 right 1421(a), (b) (1st sentence related to standards, rules, and regulations).	44701
+  7 right 1421(b) (1st sentence related to issuing certificates).	44702
+  7 right 1421(b) (2d sentence)	44702
+  7 right 1421(b) (last sentence), (c)	44701
+  7 right 1421(d)	44712
+  7 right 1421(e)	44714
+  7 right 1421(f)	44716
+  7 right 1421 notes	44716, 44717, 44722
+  7 right 1422(a) (1st-10th words)	44702
+  7 right 1422(a) (11th-last words), (b)(1), (2)(A), (B).	44703
+  7 right 1422(b)(2)(C)	44710
+  7 right 1422(c), (d)	44703
+  7 right 1423(a)(1) (related to issuing certificates).	44702
+  7 right 1423(a)(1) (related to regulations for appliances), (2).	44704
+  7 right 1423(b) (related to issuing certificates).	44702
+  7 right 1423(b) (related to basis for issuing, and contents of, certificates).	44704
+  7 right 1423(c) (related to issuing certificates).	44702
+  7 right 1423(c) (related to basis for issuing, and contents of, certificates).	44704
+  7 right 1424(a) (related to issuing certificates).	44702
+  7 right 1424(a) (related to standards)	44701
+  7 right 1424(b)	44705
+  7 right 1425	44713
+  7 right 1426 (1st sentence)	44708
+  7 right 1426 (last sentence)	44702
+  7 right 1427 (1st sentence)	44707
+  7 right 1427 (last sentence), 1428	44702
+  7 right 1429(a) (1st-7th sentences)	44709
+  7 right 1429(a) (8th-last sentences related to Administrator under subchapter VII).	1153
+  7 right 1429(a) (8th-last sentences less Administrator under subchapter VII), (b).	44709
+  7 right 1429(c)	44710
+  7 right 1430	44711
+  7 right 1431(a)-(d)	44715
+  7 right 1431(e)	44709
+  7 right 1432(a) (related to issuing certificates).	44702
+  7 right 1432(a) (related to standards)	44701
+  7 right 1432(b), (c)	44706
+  7 right 1432(d)	44914
+  7 right 1433(a), (b)	40103 note
+  7 right 1433(c)	Rep.
+  7 right 1434(a)	45102
+  7 right 1434(b)	45103
+  7 right 1434(c)	45105
+  7 right 1434(d)	45104
+  7 right 1434(e)	45106
+  7 right 1434(f)	45101
+  7 right 1441(a)(1), (2)	1132
+  7 right 1441(a)(3)	1116
+  7 right 1441(a)(4)	1131
+  7 right 1441(a)(5)	1116
+  7 right 1441(b)	1113
+  7 right 1441(c) (1st sentence)	1132
+  7 right 1441(c) (2d, last sentences), (d)	1134
+  7 right 1441(e)	1154
+  7 right 1441(f)	1131
+  7 right 1441(g), 1442	1132
+  7 right 1443	1112
+  7 right 1461(a)	41307
+  7 right 1461(b)	41509
+  7 right 1462	40105
+  7 right 1463	44720
+  7 right 1471(a)(1) (related to subchapter VII).	1155
+  7 right 1471(a)(1) (less subchapter VII), (2) (related to subchapter III, V, VI, or XII, § 1501, 1514, or 1515(e)(2)(B), and Postal Service).	46301
+  7 right 1471(a)(2) (related to 1471(c))	46302
+  7 right 1471(a)(2) (related to 1471(d))	46303
+  7 right 1471(a)(2) (related to subchapter VII).	1155
+  7 right 1471(a)(3) (less (D)(v) (related to Administrator under subchapter VII)).	46301
+  8 left  1471(a)(3)(D)(v) (related to Administrator under subchapter VII).	1153
+  8 left  1471(b)	46304
+  8 left  1471(c)	46302
+  8 left  1471(d)	46303
+  8 left  1472(a)	46316
+  8 left  1472(b)	46306
+  8 left  1472(c)	46308
+  8 left  1472(d)	46309
+  8 left  1472(e)	46310
+  8 left  1472(f)	46311
+  8 left  1472(g)	46313
+  8 left  1472(h)(1)	40113
+  8 left  1472(h)(2)	46312
+  8 left  1472(h)(3)	40113
+  8 left  1472(i)	46502
+  8 left  1472(j)	46504
+  8 left  1472(k)	46506
+  8 left  1472(l)	46505
+  8 left  1472(m)	46507
+  8 left  1472(n)(1)	46502
+  8 left  1472(n)(2)	46501
+  8 left  1472(n)(3)	46502
+  8 left  1472(n)(4)	46501
+  8 left  1472(o)	T. 28 § 538
+  8 left  1472(p)	1155
+  8 left  1472(q)	46315
+  8 left  1472(r)	46314
+  8 left  1473(a)	Rep.
+  8 left  1473(b)(1)	1155, 46305
+  8 left  1473(b)(2), (3)	46304
+  8 left  1473(b)(4)	1155, 46305
+  8 left  1473(c)	46503
+  8 left  1474	T. 19 § 1644a
+  8 left  1475	Rep.
+  8 left  1481	46102
+  8 left  1482(a)-(c)	46101
+  8 left  1482(d), (e)	Rep.
+  8 left  1482(f)	41507
+  8 left  1482(g)	Rep.
+  8 left  1482(h)	41508
+  8 left  1482(i)	Rep.
+  8 left  1482(j)(1)-(7)	41509
+  8 left  1482(j)(8)	Rep.
+  8 left  1482(j)(9), (10)	41509
+  8 left  1482(k)	Rep.
+  8 left  1482a	41505
+  8 left  1483(a)	Rep.
+  8 left  1483(b)	41502
+  8 left  1483(c)-(e)	Rep.
+  8 left  1484	46104
+  8 left  1485(a)	46105
+  8 left  1485(b), (c)	46103
+  8 left  1485(d)-(f)	46105
+  8 left  1486 (related to CAB)	1153, 46110
+  8 left  1486 (related to Secretary)	46110
+  8 left  1487(a) (related to CAB)	1151, 46106
+  8 left  1487(a) (related to Attorney General).	46107
+  8 left  1487(a) (related to party in interest).	46108
+  8 left  1487(a) (related to Secretary)	46106
+  8 left  1487(b) (related to CAB)	1151, 46107
+  8 left  1487(b) (related to Secretary)	46107
+  8 left  1488 (related to CAB)	1151, 46107
+  8 left  1488 (related to Secretary)	46107
+  8 left  1489	1152, 46109
+  8 left  1490	41710
+  8 left  1501	44718
+  8 left  1502(a)	40105
+  8 left  1502(b)	40101
+  8 left  1502(c), (d)	40105
+  8 left  1503	40114
+  8 left  1504	40115
+  8 left  1505	40113
+  8 left  1506	40120
+  8 left  1507	44502
+  8 left  1508(a)	40103
+  8 left  1508(b)	41703
+  8 left  1509(a)	40120
+  8 left  1509(b)-(e)	T. 19 § 1644a
+  8 left  1509(f), 1509 note	44109
+  8 left  1510	40120
+  8 left  1511	44902
+  8 left  1512, 1513(a), (b)	40116
+  8 left  1513(c)	Rep.
+  8 left  1513(d)	40116
+  8 left  1513(e)	40117
+  8 left  1513(f)	40116
+  8 left  1514	40106
+  8 left  1515	44907
+  8 left  1515 note	44910
+  8 left  1515a	44908
+  8 left  1516	41704
+  8 left  1517, 1518	40118
+  8 left  1519	44721
+  8 left  1521, 1522	40103
+  8 left  1523	46307
+  8 right 1531	44301
+  8 right 1532(a)	44302
+  8 right 1532(b), (c)	44306
+  8 right 1533	44303
+  8 right 1534	44305
+  8 right 1535	44304
+  8 right 1536(a)-(d)	44307
+  8 right 1536(e)	Rep.
+  8 right 1536(f)	44307
+  8 right 1537(a) (1st sentence)	44308
+  8 right 1537(a) (last sentence words between 2d and 3d commas).	44302
+  8 right 1537(a) (last sentence less words between 2d and 3d commas).	44306
+  8 right 1537(b)-(d)	44308
+  8 right 1537(e)	Rep.
+  8 right 1537(f)	44308
+  8 right 1538, 1539	Rep.
+  8 right 1540	44309
+  8 right 1541	44302
+  8 right 1542	44310
+  8 right 1551(a)(1)(A)	41102
+  8 right 1551(a)(1)(B)	41102, 41110
+  8 right 1551(a)(1)(C)	41109
+  8 right 1551(a)(1)(D)	41312
+  8 right 1551(a)(1)(E) (related to 49:1371(n)(1)).	Rep.
+  8 right 1551(a)(1)(E) (related to 49:1371(n)(4)).	41104
+  8 right 1551(a)(1)(F), (G), (2), (3)	Rep.
+  8 right 1551(a)(4)(A) (related to 49:1371(l)).	41903
+  8 right 1551(a)(4)(A) (related to 49:1371(m)).	41107
+  8 right 1551(a)(4)(A) (related to 49:1375(b)).	41902
+  8 right 1551(a)(4)(A) (related to 49:1375(c), (d)).	41903
+  8 right 1551(a)(4)(B) (related to 49:1373(a)).	41504
+  8 right 1551(a)(4)(B) (related to 49:1373(b)).	41510, 41511
+  8 right 1551(a)(4)(B) (related to 49:1373(c)(1), (2)).	41504
+  8 right 1551(a)(4)(B) (related to 49:1373(c)(3)).	41509
+  8 right 1551(a)(4)(B) (related to 49:1373(d)).	41506
+  8 right 1551(a)(4)(C) (related to 49:1374(a)(1)).	41702
+  8 right 1551(a)(4)(C) (related to 49:1374(a)(2)).	Rep.
+  8 right 1551(a)(4)(C) (related to 49:1374(b)).	41310
+  8 right 1551(a)(5)(A)-(C), (D) (related to 49:1482(d), (e), (g)).	Rep.
+  8 right 1551(a)(5)(D) (related to 49:1482(h)).	41508
+  8 right 1551(a)(5)(D) (related to 49:1482(i)).	Rep.
+  8 right 1551(a)(6) (related to 49:1382)	41309
+  8 right 1551(a)(6) (related to 49:1384)	41308
+  8 right 1551(a)(7)	Rep.
+  8 right 1551(a)(8)	41107, 41901-41903
+  8 right 1551(b)(1)(A)	Rep.
+  8 right 1551(b)(1)(B)	40105
+  8 right 1551(b)(1)(C) (related to 49:1378, 1379).	Rep.
+  8 right 1551(b)(1)(C) (related to 49:1382(a), (b)).	41309
+  8 right 1551(b)(1)(C) (related to 49:1382(c)).	42111
+  8 right 1551(b)(1)(C) (related to 49:1384)	41308
+  8 right 1551(b)(1)(D)	41901; T. 39 § 5402
+  8 right 1551(b)(1)(E)	10526, 10749, 40101-40103, 40105, 40106, 40109, 40113, 40114, 40118, 41102-41112, 41302-41307, 41312, 41502-41511, 41701, 41703, 41704, 41708-41713, 41901-41903, 41907, 41910, 44712, 46101-46107, 46109, 46110, 46301-46305, 46309, 46311, 46313, 46316, 47501; T. 18 § 6001; T. 39 § 5007
+  8 right 1551(b)(2)	Rep.
+  8 right 1551(b)(3)	41107, 41901-41903
+  8 right 1551(c)-(e)	Rep.
+  8 right 1552(a)(1) (1st sentence)	42102
+  8 right 1552(a)(1) (last sentence)	42101
+  8 right 1552(a)(2)-(c)	42102
+  8 right 1552(d)(1), (2) (1st-3d sentences)	42103
+  8 right 1552(d)(2)(4th sentence)	42102
+  8 right 1552(d)(2) (last sentence), (3)	42103
+  8 right 1552(e)	42102
+  8 right 1552(f)	42104
+  8 right 1552(g)	42105
+  8 right 1552(h)	42101
+  8 right 1552(i)	42101-42103
+  8 right 1552(j)	42106
+  9 left  1553(a)(1)-(5)	Rep.
+  9 left  1553(a)(6)	T. 42 § 6362
+  9 left  1553(a)(7)	T. 2 § 451
+  9 left  1553(a)(8)-(10), (b)	Rep.
+  9 left  1553(c)	41901
+  9 left  1554-1557	Rep.
+  9 left  1601-1601b	5301
+  9 left  1601c	308(e)
+  9 left  1602(a)(1), (2)(A), (B)	5309
+  9 left  1602(a)(2)(C)	5323
+  9 left  1602(a)(3)-(5)	5309
+  9 left  1602(a)(6)-(8)	5328
+  9 left  1602(b), (c)	5309
+  9 left  1602(d)-(g)	5323
+  9 left  1602(h)	5337
+  9 left  1602(i)-(l)	5309
+  9 left  1602(m) (1st sentence)	5338
+  9 left  1602(m) (2d-last sentences)	5318
+  9 left  1602(n), 1602 note	5309
+  9 left  1602-1	Rep.
+  9 left  1602a	5323
+  9 left  1603(a)	5309
+  9 left  1603(b)(1)	5335
+  9 left  1603(b)(2)	Rep.
+  9 left  1603(c) (1st sentence)	5312
+  9 left  1603(c) (last sentence)	5338
+  9 left  1603(d)	5309
+  9 left  1604, 1604a	Rep.
+  9 left  1604b	5310
+  9 left  1605(a)	5312
+  9 left  1605(b), (c)	Rep.
+  9 left  1605(d)	5312
+  9 left  1606(a)	5324
+  9 left  1606(b)	Rep.
+  9 left  1607(a) (1st sentence)	5301
+  9 left  1607(a) (2d-last sentences), (b)-(g).	5303
+  9 left  1607(h)	5304
+  9 left  1607(i), (j)	5305
+  9 left  1607(k)	5334
+  9 left  1607(l)	5305
+  9 left  1607(m)	5306
+  9 left  1607(n)	5303
+  9 left  1607(o)	5306
+  9 left  1607(p)	5303
+  9 left  1607(q)	5323
+  9 left  1607a(a)-(d)	5336
+  9 left  1607a(e)(1)	5307, 5336
+  9 left  1607a(e)(2)-(k)(1)	5307
+  9 left  1607a(k)(2)	5336
+  9 left  1607a(k)(3), (l)	Rep.
+  9 left  1607a(m)(1)	5307
+  9 left  1607a(m)(2)-(o)	5336
+  9 left  1607a(p)	5307
+  9 left  1607a(q)	5336
+  9 left  1607a(r)	5307
+  9 left  1607a(s), (t)	5336
+  9 left  1607a note	5307
+  9 left  1607a-1	Rep.
+  9 left  1607a-2(a), (b)	5308
+  9 left  1607a-2(c)	5338
+  9 left  1607b, 1607c(a)	5312
+  9 left  1607c(b)(1)-(8)(B)(ii)	5317
+  9 left  1607c(b)(8)(B)(iii)	5338
+  9 left  1607c(b)(8)(B)(iv)-(10)(B)	5317
+  9 left  1607c(b)(10)(C)	5338
+  9 left  1607c(b)(10)(D)-(12)	5317
+  9 left  1607c(b)(13)	5338
+  9 left  1607c(b)(14), (15)	5317
+  9 left  1607c(c)(1)-(5)	5316
+  9 left  1607c(c)(6)	5338
+  9 left  1607c(c)(7)	5316
+  9 left  1608(a)	5334
+  9 left  1608(b)	5325
+  9 left  1608(c)	5302
+  9 left  1608(d)	5324
+  9 left  1608(e)	5323
+  9 left  1608(f)	10531
+  9 left  1608(g), (h)(1)	5323
+  9 left  1608(h)(2)	5302
+  9 left  1608(i)	5334
+  9 left  1608(j)	5323
+  9 left  1608(k)	5334
+  9 left  1608(l)	5326
+  9 left  1608(m)	5323
+  9 left  1608 notes	5302, 5318
+  9 left  1608 note (related to authority and functions reserved to Secretary of Housing and Urban Development).	5334
+  9 left  1609	5333
+  9 left  1610(a) (1st sentence)	5301
+  9 left  1610(a) (last sentence)-(c)	5324
+  9 left  1611(a), (b)	5335
+  9 left  1611(c)	Rep.
+  9 left  1612(a)	5301
+  9 left  1612(b) (1st sentence)	5310
+  9 left  1612(b) (last sentence)	5338
+  9 left  1612(c)	5310
+  9 right 1612(d)	5338
+  9 right 1612(e), (f)	5310
+  9 right 1613	Rep.
+  9 right 1614(a) (1st, 2d sentences)	5311
+  9 right 1614(a) (last sentence)	5338
+  9 right 1614(b)-(f)	5311
+  9 right 1614(g) (related to 1612(b))	5310
+  9 right 1614(g) (related to this section)-(i).	5311
+  9 right 1615(a)[no (b)]	5332
+  9 right 1616	5322
+  9 right 1617	5338
+  9 right 1618	5329
+  9 right 1618a	5331
+  9 right 1619	5327
+  9 right 1620	5321
+  9 right 1621	5319
+  9 right 1622(a)	5313
+  9 right 1622(b)(1)-(8) (related to this subsection).	5314
+  9 right 1622(b)(8) (related to subsection (a)(1)).	5313
+  9 right 1622(c)	5320
+  9 right 1623	5335
+  9 right 1624	5330
+  9 right 1625(a)-(c)	5315
+  9 right 1625(d)	5338
+  9 right 1631-1633	Elim.
+  9 right 1634	329
+  9 right 1635-1641	Elim.
+  9 right 1642, 1643	Rep.
+  9 right 1651(a), (b)(1)	101
+  9 right 1651(b)(2)	303
+  9 right 1652(a)-(d)	102
+  9 right 1652(e) (related to FAA)	106
+  9 right 1652(e)(1) (related to FHWA)	104
+  9 right 1652(e)(1) (related to FRA)	103
+  9 right 1652(e)(3) (related to USCG)	108
+  9 right 1652(e)(3) (related to FHWA)	104
+  9 right 1652(e)(3) (related to FRA)	103
+  9 right 1652(e)(4) (related to FHWA)	104
+  9 right 1652(e)(4) (related to FRA)	103
+  9 right 1652(f)	Rep.
+  9 right 1652a	103
+  9 right 1652b	44931
+  9 right 1652b note	337
+  9 right 1653(a)	301
+  9 right 1653(b)	302
+  9 right 1653(c)	351
+  9 right 1653(d)	352
+  9 right 1653(e)	307
+  9 right 1653(f)	303
+  9 right 1653(g)	304
+  9 right 1653(h)	Rep.
+  9 right 1653(i)(1)	5562
+  9 right 1653(i)(2)	5563
+  9 right 1653(i)(3)	5564
+  9 right 1653(i)(4)	5562
+  9 right 1653(i)(5)	5565
+  9 right 1653(i)(6)	Rep.
+  9 right 1653(i)(7)	5567
+  9 right 1653(i)(8)	5566
+  9 right 1653(i)(9)	5568
+  9 right 1653(i)(10)	5561
+  9 right 1653(i)(11)	5562
+  9 right 1653 note	335
+  9 right 1653a	Rep.
+  9 right 1654(a)-(e)	333
+  9 right 1654(a)	22102
+  9 right 1654(b), (c)	22101
+  9 right 1654(d)	22106
+  9 right 1654(e)	22105
+  9 right 1654(f)	22103
+  9 right 1654(g)	22104
+  9 right 1654(h)	22108
+  9 right 1654(i)	22106
+  9 right 1654(j)	22105
+  9 right 1654(k)-(m)	22107
+  9 right 1654(n)-(p)	22101
+  9 right 1654(q)	22108
+  9 right 1654a	308(d)
+  9 right 1655(a)(1)(A)	Rep.
+  9 right 1655(a)(1)(B), (C)	(See § 2 of Pub. L. 97-449.)
+  9 right 1655(a)(1)(D)	Rep.
+  9 right 1655(a)(1)(E)-(M)	(See § 2 of Pub. L. 97-449.)
+  9 right 1655(a)(2)(A) (related to 49:1634)	329
+  9 right 1655(a)(2), (3)	Rep.
+  9 right 1655(a)(4)	(See § 2 of Pub. L. 97-449.)
+  9 right 1655(a)(5)	Rep.
+  9 right 1655(a)(6)(A)	30102
+  9 right 1655(a)(6)(B)	(See § 2 of Pub. L. 97-449.)
+  9 right 1655(b)(1), (2)	108
+  9 right 1655(b)(3)	Rep.
+  9 right 1655(c)(1) (1st sentence proviso, 2d, last sentences).	106
+ 10 left  1655(c)(1)	1116, 1131, 1132, 1153, 40101-40109, 40113, 40114, 44103-44105, 44107, 44110, 44501, 44502, 44504, 44505, 44701-44705, 44707-44709, 44711, 44713, 44720, 44721, 45303, 46101-46107, 46110, 46301, 46304, 46308, 46311, 46313, 46316, 47151-47153, 47302-47306
+ 10 left  1655(c)(2)	Rep.
+ 10 left  1655(d) (1st sentence)	1112, 1113, 1116, 1131, 1132, 1134, 1151-1155
+ 10 left  1655(d) (last sentence)	1153
+ 10 left  1655(e)(1)(A)	20302, 21302
+ 10 left  1655(e)(1)(B)	20302
+ 10 left  1655(e)(1)(C)	20302, 21302
+ 10 left  1655(e)(1)(D)	Rep.
+ 10 left  1655(e)(1)(E), (F)	20701-20703, 21302
+ 10 left  1655(e)(1)(G)	20702, 20703, 21302
+ 10 left  1655(e)(1)(H)	Rep.
+ 10 left  1655(e)(1)(I)	20305, 20504
+ 10 left  1655(e)(1)(J)	20305
+ 10 left  1655(e)(1)(K)	20901, 20902, 21302
+ 10 left  1655(e)(2)	Rep.
+ 10 left  1655(e)(3)	80504
+ 10 left  1655(e)(4)	Rep.
+ 10 left  1655(e)(5)	(See § 2 of Pub. L. 97-449.)
+ 10 left  1655(e)(6)(A)	20502-20505, 21302
+ 10 left  1655(e)(6)(B)	3103
+ 10 left  1655(e)(6)(C)	3102, 3103
+ 10 left  1655(e)(6)(D) (related to ‘‘Sec. 321(a), (c)’’).	503
+ 10 left  1655(e)(6)(D) (related to ‘‘Sec. 324’’).	3104
+ 10 left  1655(f)(1)	Rep.
+ 10 left  1655(f)(2)	501, 502, 504-507, 521-526
+ 10 left  1655(f)(3)(A), (C) (related to FRA).	103
+ 10 left  1655(f)(3)(B), (C) (related to FHWA).	104
+ 10 left  1655(g)(1)-(3), (4)(A), (B), (E), (5), (6).	(See § 2 of Pub. L. 97-449.)
+ 10 left  1655(h), (i)	Rep.
+ 10 left  1656(less (a) next-to-last par.)	305
+ 10 left  1656(a) (next-to-last par.)	(See T. 42 § 1962a-2(a).)
+ 10 left  1657(a), (b)	323
+ 10 left  1657(c), (d)	324
+ 10 left  1657(e)-(g)	322
+ 10 left  1657(h), (i)	Rep.
+ 10 left  1657(j)	327
+ 10 left  1657(k)	102
+ 10 left  1657(l)	331
+ 10 left  1657(m)	326
+ 10 left  1657(n)	329
+ 10 left  1657(o)	325
+ 10 left  1657(p)	324
+ 10 left  1657(q)(1)-(3)	330
+ 10 left  1657(q)(4)	Rep.
+ 10 left  1657(r)	328
+ 10 left  1657-1	353
+ 10 left  1657a	332
+ 10 left  1658	308(a)
+ 10 left  1659	Rep.
+ 10 left  1660	335
+ 10 left  1671(1)-(4) (1st-32d words)	60101
+ 10 left  1671(4) (33d-last words)	60104
+ 10 left  1671(5), (6)	60101
+ 10 left  1671(7)	60115
+ 10 left  1671(8)-(17)	60101
+ 10 left  1671 note	60101
+ 10 left  1672(a)(1) (1st-5th sentences)	60102
+ 10 left  1672(a)(1) (6th sentence)	60104
+ 10 left  1672(a)(1) (7th, 8th sentences)	60102
+ 10 left  1672(a)(1) (9th, last sentences)	60104
+ 10 left  1672(a)(2), (3), (b)	60102
+ 10 left  1672(c)	60104
+ 10 left  1672(d)	60118
+ 10 left  1672(e)-(g)	60102
+ 10 left  1672(h)	60108
+ 10 left  1672(i)	60109
+ 10 left  1672(j)	60110
+ 10 left  1672(k)	60113
+ 10 left  1673	60115
+ 10 left  1674(a)	60105
+ 10 left  1674(b), (c) (related to agreement).	60106
+ 10 left  1674(c) (related to certification).	60105
+ 10 left  1674(d)	60107
+ 10 left  1674(e)	60105
+ 10 left  1674(f)	60106
+ 10 left  1674a	60103
+ 10 left  1674b(a)	Rep.
+ 10 left  1674b(b)(1)-(3)	60111
+ 10 left  1674b(b)(4)	60119
+ 10 left  1674b(c)	60111
+ 10 left  1675	60119
+ 10 left  1676(a)	60104
+ 10 left  1676(b)	60117
+ 10 left  1677(a), (b)(1)	60118
+ 10 right 1677(b)(2), (c)	60120
+ 10 right 1678, 1679	Rep.
+ 10 right 1679a(a), (b)	60122
+ 10 right 1679a(c)	60123
+ 10 right 1679a(d)	60122
+ 10 right 1679b(a)	60120
+ 10 right 1679b(b)	60112
+ 10 right 1680	60108
+ 10 right 1681(a)-(e)	60117
+ 10 right 1681(f)	60120
+ 10 right 1682	60117
+ 10 right 1682 note	60117
+ 10 right 1682a	60301
+ 10 right 1683	60124
+ 10 right 1684(a)	60125
+ 10 right 1684(b)	Rep.
+ 10 right 1684(c)-(e)	60125
+ 10 right 1684(f)	Rep.
+ 10 right 1685(a)	60116
+ 10 right 1685(b)	60113
+ 10 right 1686	60121
+ 10 right 1687(a)-(e)	60114
+ 10 right 1687(f)	60125
+ 10 right 1687(g)	60123
+ 10 right 1687(h)	60114
+ 10 right 1688	60101
+ 10 right 1701-1703	Rep.
+ 10 right 1704	44503
+ 10 right 1711-1713	Rep.
+ 10 right 1713a	47127
+ 10 right 1714-1730	Rep.
+ 10 right 1731	47106
+ 10 right 1741	80503
+ 10 right 1742	Rep.
+ 10 right 1743	44502
+ 10 right 1761, 1762	Rep.
+ 10 right 1801	5101
+ 10 right 1802	5102
+ 10 right 1803, 1804(a)(1)-(3)	5103
+ 10 right 1804(a)(4), (5)	5125
+ 10 right 1804(b)(1)-(3)	5112
+ 10 right 1804(b)(4)	5125
+ 10 right 1804(b)(5)-(9), (c)	5112
+ 10 right 1804(d)	5120
+ 10 right 1804(e), (f)	5104
+ 10 right 1804(g)	5110
+ 10 right 1805(a)	5106
+ 10 right 1805(b)	5107
+ 10 right 1805(c)	5108
+ 10 right 1805(d)	5109
+ 10 right 1805(e), (f)	Rep.
+ 10 right 1805 note	5109
+ 10 right 1806	5117
+ 10 right 1807	5114
+ 10 right 1808(a) (1st sentence, last sentence words before semicolon).	5121
+ 10 right 1808(a) (last sentence words after semicolon).	5122
+ 10 right 1808(b)-(e)	5121
+ 10 right 1809(a)	5123
+ 10 right 1809(b)	5124
+ 10 right 1810	5122
+ 10 right 1811(a)-(e)	5125
+ 10 right 1811(f)	5126
+ 10 right 1812	5127
+ 10 right 1813	5105
+ 10 right 1813 note	5105, 5118
+ 10 right 1814	5113
+ 10 right 1815(a)-(f)	5116
+ 10 right 1815(g)(1)-(6)	5115
+ 10 right 1815(g)(7)	5116
+ 10 right 1815(g)(8)	5115
+ 10 right 1815(g)(9)	5116
+ 10 right 1815(h)(1)-(5)	5108
+ 10 right 1815(h)(6)	5116
+ 10 right 1815(i)	5127
+ 10 right 1816(a)-(c)	5107
+ 10 right 1816(d)	5127
+ 10 right 1817	5111
+ 10 right 1818	5126
+ 10 right 1819(a)-(g)	5119
+ 10 right 1819(h)	5127
+ 10 right 1901	Rep.
+ 10 right 1902	1111
+ 10 right 1903(a)(1)(A)	1112, 1113, 1116, 1131, 1132, 1134, 1151, 1152, 1154, 1155
+ 10 right 1903(a)(1)(B)-(2)	1131
+ 10 right 1903(a)(3)-(8)	1116
+ 10 right 1903(a)(9)	1133
+ 10 right 1903(b)(1)	1113
+ 10 right 1903(b)(2)	1134
+ 10 right 1903(b)(3), (4)	1113
+ 10 right 1903(b)(5)	1134
+ 10 right 1903(b)(6)-(9)	1113
+ 10 right 1903(b)(10)	1115
+ 10 right 1903(b)(11)	1114
+ 10 right 1903(b)(12)	1113
+ 10 right 1903(c)	1154
+ 11 left  1903(d)	1153
+ 11 left  1904	1117
+ 11 left  1905(a)-(c)(2)	1114
+ 11 left  1905(c)(3)	1114, 1154
+ 11 left  1905(d)	1154
+ 11 left  1906	1135
+ 11 left  1907	1118
+ 11 left  2001(1)-(4) (1st-27th words)	60101
+ 11 left  2001(4) (28th-last words)	60104
+ 11 left  2001(5)-(9)	60101
+ 11 left  2001(10)	60115
+ 11 left  2001(11)	60101
+ 11 left  2001 note	60101
+ 11 left  2002(a)-(c) (4th sentence)	60102
+ 11 left  2002(c) (last sentence), (d)	60104
+ 11 left  2002(e), (f)	60102
+ 11 left  2002(g)	60104
+ 11 left  2002(h)	60118
+ 11 left  2002(i)-(k)	60102
+ 11 left  2002(l)	60108
+ 11 left  2002(m)	60109
+ 11 left  2002(n)	60102
+ 11 left  2003	60115
+ 11 left  2004(a)	60105
+ 11 left  2004(b), (c) (related to agreement).	60106
+ 11 left  2004(c) (related to certification).	60105
+ 11 left  2004(d)	60107
+ 11 left  2004(e), (f)	60105
+ 11 left  2004(g)	60106
+ 11 left  2005	60119
+ 11 left  2006(a), (b)(1)	60118
+ 11 left  2006(b)(2), (c)	60120
+ 11 left  2007(a), (b)	60122
+ 11 left  2007(c)	60123
+ 11 left  2007(d)	60122
+ 11 left  2008(a)	60120
+ 11 left  2008(b)	60112
+ 11 left  2009(a), (b)	60108
+ 11 left  2009(c)	Rep.
+ 11 left  2009(d)	60108
+ 11 left  2010(a)-(e)	60117
+ 11 left  2010(f)	60120
+ 11 left  2011	60117
+ 11 left  2012	60124
+ 11 left  2013(a)	60125
+ 11 left  2013(b)	Rep.
+ 11 left  2014	60121
+ 11 left  2015, 2015 note	60102
+ 11 left  2016	60101
+ 11 left  2101	47501
+ 11 left  2102	47502
+ 11 left  2103(a)	47503
+ 11 left  2103(b)	47505
+ 11 left  2104(a)-(d)	47504
+ 11 left  2104(e), 2105	Rep.
+ 11 left  2106	47507
+ 11 left  2107	47506
+ 11 left  2108	Rep.
+ 11 left  2121	Rep.
+ 11 left  2122(a)	47508
+ 11 left  2122(b)-2124	Rep.
+ 11 left  2125	47510
+ 11 left  2151	47521
+ 11 left  2152	47523
+ 11 left  2153(a)-(g)	47524
+ 11 left  2153(h)	47533
+ 11 left  2154	47525
+ 11 left  2155	47527
+ 11 left  2156	47526
+ 11 left  2157(a)-(c)	47528
+ 11 left  2157(d)	47530
+ 11 left  2157(e)	47531
+ 11 left  2157(f)	47532
+ 11 left  2157(g)	47528
+ 11 left  2157(h)	47522
+ 11 left  2157(i)	47528
+ 11 left  2158	47529
+ 11 left  2201	47101
+ 11 left  2202(a)(1)-(5)	47102
+ 11 left  2202(a)(6)	47107
+ 11 left  2202(a)(7)	47102
+ 11 left  2202(a)(8)	47102, 47106
+ 11 left  2202(a)(9), (10)	47102
+ 11 left  2202(a)(11)	47117
+ 11 left  2202(a)(12)-(19)	47102
+ 11 left  2202(a)(20)	47101
+ 11 left  2202(a)(21)-(23)	47102
+ 11 left  2202(a)(24)	47104, 47107, 48101-48104, 48108
+ 11 left  2202(a)(25)	Rep.
+ 11 left  2202(b)	47102
+ 11 left  2203(a)	47103
+ 11 left  2203(b)	44501
+ 11 left  2203(c), (d)(1)	47103
+ 11 left  2203(d)(2)	Rep.
+ 11 left  2204(a) (1st sentence)	47104
+ 11 left  2204(a) (2d sentence)	48103
+ 11 left  2204(a) (last sentence)	Rep.
+ 11 right 2204(b)(1)	47104
+ 11 right 2204(b)(2)	47107
+ 11 right 2204(c)	Rep.
+ 11 right 2204(d)	47113
+ 11 right 2204 note	47104
+ 11 right 2205(a)(1), (2)	48101
+ 11 right 2205(a)(3)	44502
+ 11 right 2205(b)(1)	44509
+ 11 right 2205(b)(2)-(5)	48102
+ 11 right 2205(c)	48104
+ 11 right 2205(d)	48105
+ 11 right 2205(e)(1)-(3)	48108
+ 11 right 2205(e)(4)	47117
+ 11 right 2205(e)(5)	48108
+ 11 right 2205(f)	48109
+ 11 right 2205 note	44502
+ 11 right 2206(a), (b)(1)-(5)(C)	47114
+ 11 right 2206(b)(5)(D)	47117
+ 11 right 2206(b)(5)(E), (F), (6), (7)	47114
+ 11 right 2206(c)	47115
+ 11 right 2206(d)	47116
+ 11 right 2206(e), (f)	47114
+ 11 right 2206 note	47115
+ 11 right 2207(a)-(e)(2)	47117
+ 11 right 2207(e)(3)	Rep.
+ 11 right 2207(f)	47118
+ 11 right 2208(a)(1)	47105
+ 11 right 2208(a)(2)	Rep.
+ 11 right 2208(a)(3)	47105
+ 11 right 2208(b)(1)(A)-(D)	47106
+ 11 right 2208(b)(1)(E)	47107
+ 11 right 2208(b)(2)-(4)	47106
+ 11 right 2208(b)(5) (1st sentence, last sentence words before 11th comma).	47101
+ 11 right 2208(b)(5) (last sentence words after 11th comma)-(8).	47106
+ 11 right 2208(b)(9)	47120
+ 11 right 2208(c)-(e)	47105
+ 11 right 2209	47109
+ 11 right 2210(a), (b)	47107
+ 11 right 2210(c)	47105
+ 11 right 2210(d)-(h)	47107
+ 11 right 2210 note	47107
+ 11 right 2211	47108
+ 11 right 2212(a), (b)(1)	47110
+ 11 right 2212(b)(2)-(4)	47119
+ 11 right 2212(b)(5)	47109
+ 11 right 2212(b)(6), (c), (d)	47110
+ 11 right 2213	47111
+ 11 right 2214	47112
+ 11 right 2215	47125
+ 11 right 2216	47126
+ 11 right 2217	47121
+ 11 right 2218(a)	47122
+ 11 right 2218(b) (related to application)	47106
+ 11 right 2218(b) (related to payment)	47111
+ 11 right 2219	47123
+ 11 right 2220	47129
+ 11 right 2221	Rep.
+ 11 right 2222, 2222 note	47124
+ 11 right 2223	Rep.
+ 11 right 2224	44514
+ 11 right 2225	44913
+ 11 right 2226	49104
+ 11 right 2226a	49101
+ 11 right 2226b	49105
+ 11 right 2226c	49102
+ 11 right 2226d	49103
+ 11 right 2227	47128
+ 11 right 2301	31101
+ 11 right 2302	31102
+ 11 right 2302 notes	31104, 31307
+ 11 right 2303	31103
+ 11 right 2304, 2304 note	31104
+ 11 right 2305	31105
+ 11 right 2306	31106
+ 11 right 2307	31107
+ 11 right 2311(a)-(i)	31111
+ 11 right 2311(j)	31112
+ 11 right 2312	31114
+ 11 right 2313	31115
+ 11 right 2314, 2315	Rep.
+ 11 right 2316	31113
+ 11 right 2401-2407	Elim.
+ 11 right 2421-2433	Elim.
+ 11 right 2451-2461	Elim.
+ 11 right 2501	31131
+ 11 right 2501 notes	5113, 31161
+ 11 right 2502	31131
+ 11 right 2503	31132
+ 11 right 2504	31135
+ 11 right 2505	31136
+ 11 right 2505 note	31137
+ 11 right 2506	31140
+ 11 right 2507	31141
+ 11 right 2508	31134
+ 11 right 2509	31142
+ 11 right 2510	31133
+ 12 left  2511	31143
+ 12 left  2511a	31162
+ 12 left  2512	31144
+ 12 left  2513-2517(a)	Rep.
+ 12 left  2517(b)	31145
+ 12 left  2518	31146
+ 12 left  2519	31147
+ 12 left  2520	Rep.
+ 12 left  2521	31137
+ 12 left  2601, 2602	70101
+ 12 left  2603	70102
+ 12 left  2604(a)(1)	70103
+ 12 left  2604(a)(2)	70116
+ 12 left  2604(b)	70103
+ 12 left  2605(a), (b)	70104
+ 12 left  2605(c)	70117
+ 12 left  2606 (1st sentence)	70105
+ 12 left  2606 (last sentence)	70107
+ 12 left  2607, 2608(a), (b)	70105
+ 12 left  2608(c)	70114
+ 12 left  2609	70107
+ 12 left  2610	70108
+ 12 left  2611	70110
+ 12 left  2612	Rep.
+ 12 left  2613	70106
+ 12 left  2614(a), (b)(1)-(3)	70111
+ 12 left  2614(b)(4)	70109
+ 12 left  2614(c)	70112
+ 12 left  2614(d)	70111
+ 12 left  2615(a)	70112
+ 12 left  2615(b)	70113
+ 12 left  2615(c)	70112
+ 12 left  2616-2618	70115
+ 12 left  2619	70116
+ 12 left  2620	70117
+ 12 left  2621, 2622	Rep.
+ 12 left  2623 (last sentence)	70118
+ 12 left  2623 (less last sentence)	70119
+ 12 left  2701	31302
+ 12 left  2702	31303
+ 12 left  2703	31304
+ 12 left  2704(a), (b)	31305
+ 12 left  2704(c)-(e)	31312
+ 12 left  2705	31308
+ 12 left  2706, 2706 note	31309
+ 12 left  2707	31310
+ 12 left  2708	31311
+ 12 left  2709	31313
+ 12 left  2710	31314
+ 12 left  2711	31315
+ 12 left  2712, 2713	Rep.
+ 12 left  2714	31316
+ 12 left  2715	31317
+ 12 left  2716	31301
+ 12 left  2717	31306
+ 12 left  2718	31310
+ 12 left  2801	5701
+ 12 left  2801 note	5713
+ 12 left  2802	5702
+ 12 left  2803	5703
+ 12 left  2804	5704
+ 12 left  2805	5705
+ 12 left  2806	5706
+ 12 left  2807	5707
+ 12 left  2808	5708
+ 12 left  2809	5710
+ 12 left  2810	5711
+ 12 left  2811	5712
+ 12 left  2812	5714

@@ -1,0 +1,172 @@
+{
+  "class": "I-absent-without-correction",
+  "reviewed": 20,
+  "verdict_counts": {
+    "missed-witness": 17,
+    "filer-error-confirmed": 2,
+    "correct-as-labeled": 1,
+    "wrong-value": 0
+  },
+  "notes": [
+    {
+      "key": "7100-AD80|201904|3",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citations 5 U.S.C. 1813/1817/1828 in the same LEGAL_AUTHORITY_LIST, plus the rule's own CFR_LIST (12 CFR 238, 12 CFR 239)",
+      "decisive_quote": "uscode.house.gov: '12 USC 1817: Assessments' (12 USC 1813: 'Definitions'; 12 USC 1828: 'Regulations governing insured depository institutions') vs. '5 USC 1817/1813/1828: Document not Found'; RIN_INFO CFR_LIST verbatim: ['12 CFR 238', '12 CFR 239']",
+      "why": "1813/1817/1828 are the FDI Act's own definitions/assessments/regulation sections, real only under title 12 and topically exact for a Federal Reserve Regulation LL/MM (Savings & Loan Holding Company) rule administered under 12 CFR parts 238/239; the title-5 label was carried forward unedited from the two genuinely-title-5 citations (552 FOIA, 559 APA) that open the same list, and stayed wrong identically across all 14 pinned editions (201110-202404).",
+      "anything_systemic": "List-coherence title repair (propose the title that makes every element of a mixed list real) would catch this whole run; the record's own CFR_LIST already states the correct title."
+    },
+    {
+      "key": "2577-AB55|199510|2",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citations 42 USC 1437 and 42 USC 1437a immediately preceding it in the same LEGAL_AUTHORITY_LIST",
+      "decisive_quote": "uscode.house.gov: '42 USC 1437d: Contract provisions and requirements; loans and annual contributions' vs. '42 USC 1743d: Document not Found'; RIN_INFO LEGAL_AUTHORITY_LIST verbatim: ['42 USC 1437', '42 USC 1437a', '42 USC 1743d', ...]",
+      "why": "42 U.S.C. 1437d is the U.S. Housing Act operative section governing PHA contract/management requirements, sitting in the identical '1437' family as the two sections immediately before it in the same box, and is exactly on point for 'Streamlining Public Housing Maintenance & Operation Rules'; 1743d has never existed and this RIN (first-time-published, dropped after two editions) never revisits the text.",
+      "anything_systemic": "Damage is a within-family digit scramble (1437 -> 1743, a two-step transposition of the middle digits), a mechanism the current CORRECTION_RULES roster does not name; sibling-family membership is the corroborating signal."
+    },
+    {
+      "key": "0910-AH27|201510|4",
+      "verdict": "missed-witness",
+      "witness_if_any": "the rule's own 21 CFR 201 authority note, held in the local pinned cache",
+      "decisive_quote": "21 CFR 201 authority_note (pinned cache): 'Authority: 21 U.S.C. 321, 331, 343, 351, 352, 353, 355, 358, 360, 360b, 360ccc, 360ccc-1, ...'",
+      "why": "The note names 360b -- New Animal Drugs, the FDCA's foundational provision for a rule titled 'Labeling Requirement for Approved and Conditionally Approved New Animal Drugs' -- one transposition away from the filer's '306b'; the row's own authority_in_own_cfr_note is already 'near-miss' against this exact note, and 360b is not otherwise present in the box (so it is not a restated duplicate, just an unproposed near-miss).",
+      "anything_systemic": "Textbook case of the CFR-authority-note join the prior review round flagged as highest-yield; the pipeline records the near-miss verdict but does not propose the note's own reading."
+    },
+    {
+      "key": "1545-BH64|201010|1",
+      "verdict": "missed-witness",
+      "witness_if_any": "the record's own CFR_LIST ('26 CFR 20') and ABSTRACT, which describe the amendment subsection-by-subsection",
+      "decisive_quote": "RIN_INFO: RULE_TITLE 'Gross Estate; Election to Value on Alternate Valuation Date'; CFR_LIST ['26 CFR 20']; ABSTRACT 'In cases where section 2032 election has been made, the proposed regulations provide guidance on: (1) the effect of certain post-death transactions ... (5) the effect of the grant of a qualified conservation easement under section 2031(c) ...'",
+      "why": "'26 USC 2032-1(c)/(e)/(f)' is Treas. Reg. Sec. 20.2032-1(c)/(e)/(f) with the '20.' CFR-part prefix dropped and the U.S.C. label carried from the sibling '26 USC 7805' -- the whole record is about amending that exact regulation, subsection by subsection, and the statute itself (26 U.S.C. 2032) is cited correctly in every edition before 201010 without a hyphenated suffix.",
+      "anything_systemic": "Same 'CFR regulation number in the USC slot, dropped leading part-number' mechanism the 2026-08-23 human review named for RIN 1545-BJ42 (26 CFR Sec.1.1014-5); the schema has no namespace-correction field, so this stays permanently uncorrected even once identified. Persists unedited across all 31 pinned editions of this RIN (200804-202510)."
+    },
+    {
+      "key": "0694-AB59|200010|0",
+      "verdict": "filer-error-confirmed",
+      "witness_if_any": null,
+      "decisive_quote": "cross-edition history: '18 USC 2501 et seq' at ordinal 0 in every edition 199710-200104, then ABSENT from the restructured list starting 200110 (which opens instead with the already-independently-cited '50 USC app 2401 et seq')",
+      "why": "The token is real damage -- BIS's standard Export Administration Regulations authority block never otherwise touches title 18 -- but it does not reduce to one honest target: the closest real candidate ('50 U.S.C. app. 2401 et seq.') needs two independent field edits (title AND section) and is already stated at ordinal 10 of the same box, and the filer's own history shows the token deleted rather than corrected when the list was rebuilt.",
+      "anything_systemic": "Matches the prior review's 'no survivor -- the repair is deletion' pattern (class H #4)."
+    },
+    {
+      "key": "1545-BI68|201310|2",
+      "verdict": "missed-witness",
+      "witness_if_any": "the rule's own 26 CFR 1 authority note, held in the local pinned cache -- names the exact regulation section",
+      "decisive_quote": "26 CFR 1 authority_note (pinned cache): 'Section 1.472-8 also issued under 26 U.S.C. 472.'",
+      "why": "The publisher's own authority note for the amended CFR part states, verbatim, that Sec. 1.472-8 is issued under 26 U.S.C. 472 -- the filer dropped the '1.' regulation prefix and mislabeled the reg number as a USC section; RULE_TITLE 'Carryover of LIFO Inventory Layers Received in Nontaxable Transactions' and ABSTRACT ('dollar-value last-in first-out (LIFO) inventories ... certain nonrecognition transactions') match Sec. 1.472-8 exactly.",
+      "anything_systemic": "Direct verbatim publisher confirmation, stronger evidence than the prior review round had for the analogous RIN 1545-BJ42 case; same namespace-correction gap as row 1545-BH64 above."
+    },
+    {
+      "key": "3235-AM45|201904|9",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citations 15 U.S.C. 80a-29 and 15 U.S.C.80a-37 in the same LEGAL_AUTHORITY_LIST",
+      "decisive_quote": "RIN_INFO LEGAL_AUTHORITY_LIST verbatim includes '15 U.S.C. 80(a)-23' beside '15 U.S.C. 80a-29' and '15 U.S.C.80a-37' -- same hyphenated 80a-NN family, three entries in one 25-item SEC boilerplate list",
+      "why": "15 U.S.C. 80a-23 (Investment Company Act Sec.23, repurchase of investment company securities) is real and sits in the identical '80a-NN' family as two other citations already correctly written elsewhere in the very same box; the filer parenthesized the 'a' as if it were a subsection letter of a bare section '80', which does not exist.",
+      "anything_systemic": "Precisely the shape the task calls '#47 parenthesised suffix' -- a lettered compound-section suffix wrapped in parens instead of run into the digits."
+    },
+    {
+      "key": "3235-AM09|201810|15",
+      "verdict": "missed-witness",
+      "witness_if_any": "the rule's own 17 CFR 240 authority note, held in the local pinned cache -- names the phrase twice verbatim",
+      "decisive_quote": "17 CFR 240 authority_note (pinned cache): 'Section 240.14e-4 also issued under the Exchange Act, 15 U.S.C. 78a et seq., ...' and 'Section 240.12a-7 also issued under 15 U.S.C. 78a et seq., ...'",
+      "why": "The exact four-word construction '[15 U.S.C.] 78a et seq.' appears twice, verbatim, in the authority note of the CFR part (17 CFR 240) this Form-1/ATS rule amends -- one dropped letter 'a' away from the filer's '78 et seq.'; RIN_INFO CFR_LIST is entirely 17 CFR 240.x parts.",
+      "anything_systemic": "IMPORTANT CAVEAT: the pipeline's own authority_in_own_cfr_note='present' verdict for this row is a coincidental false-positive, not real corroboration -- the note's raw text also contains rendering artifacts ('78(f)', '78(l)', '78(w)(a)(1)') that parse to the same bare '78' identity as the filer's box under the shared grammar, which is what actually produces the 'present' match. A consumer reading 'present' at face value would wrongly conclude '78' itself is a real, note-named citation; the genuine witness ('78a et seq.') had to be found by re-reading the note text directly."
+    },
+    {
+      "key": "3037-AA23|202510|0",
+      "verdict": "missed-witness",
+      "witness_if_any": "the filing agency's own name, which matches 41 U.S.C. 8502's title verbatim",
+      "decisive_quote": "uscode.house.gov: '41 USC 8502: Committee for Purchase From People Who Are Blind or Severely Disabled'; RIN_INFO AGENCY NAME: 'Committee for Purchase From People Who Are Blind or Severely Disabled'",
+      "why": "The Committee's own organic statute is chapter 85 of title 41 (Javits-Wagner-O'Day Act, Sec.Sec. 8501-8506); '41 U.S.C. 85' is the chapter number cited as if it were a section, and no section 85 exists. The identical citation for a sister RIN (3037-AA14, '41 U.S.C. 85') was independently confirmed in the 2026-08-23 human review round via '41 CFR ch. 51 notes: 41 U.S.C. 8501-8506'.",
+      "anything_systemic": "Chapter-cited-as-section is a granularity mismatch the schema cannot express as a single usc_section_corrected value (the true referent is a chapter/range, not one section) -- 'unrepairable by construction' per the prior review's own H-class judgment, even though a human is completely certain what is meant."
+    },
+    {
+      "key": "1512-AC22|200110|1",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citation 27 USC 5701 in the same LEGAL_AUTHORITY_LIST, sharing the identical title error",
+      "decisive_quote": "uscode.house.gov: '26 USC 5701: Rate of tax' and '26 USC 5702: Definitions' vs. '27 USC 5701: Document not Found'; RULE_TITLE 'Determination of Tax and Recordkeeping on Large Cigars'",
+      "why": "26 U.S.C. 5701/5702 are the tobacco-excise rate and definitions sections, exactly on point for a large-cigar tax-determination rule; the record's own CFR_LIST (27 CFR 270, 275) is genuinely title 27, and the U.S.C. title label appears to have been contaminated from the paired CFR title -- both sibling citations carry the identical wrong title, unchanged across all 6 pinned editions (200010-200304).",
+      "anything_systemic": "A distinct, nameable operator (CFR-title bleed into the paired USC citation) not covered by #34/#36/#47 as named."
+    },
+    {
+      "key": "1545-BI68|201210|1",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citation 26 USC 472-8 in the same LEGAL_AUTHORITY_LIST, confirmed via the 26 CFR 1 authority note",
+      "decisive_quote": "RIN_INFO LEGAL_AUTHORITY_LIST verbatim: ['26 USC 381(c)(5)-1', '26 USC 472-1', '26 USC 472-8', '26 USC 7805']; 26 CFR 1 authority_note: 'Section 1.472-8 also issued under 26 U.S.C. 472.'",
+      "why": "472-1 sits in the identical Treasury-regulation family (26 CFR Sec.1.472-1 through Sec.1.472-8, the dollar-value LIFO regulations) as 472-8, which the CFR part's own authority note confirms by name in the very same box; RULE_TITLE and ABSTRACT are again 'Carryover of LIFO Inventory Layers ... section 472 ... nontaxable transaction[s]'.",
+      "anything_systemic": "Same finding as 1545-BI68/201310 above, one edition earlier -- this filer's LIFO-regulation citations were mislabeled U.S.C. instead of CFR across at least two consecutive editions."
+    },
+    {
+      "key": "0938-AN71|200604|0",
+      "verdict": "missed-witness",
+      "witness_if_any": "the citation's own stated range end, '1320d-8', already correct within the same string",
+      "decisive_quote": "uscode.house.gov: '42 USC 1320d: Definitions' and '42 USC 1320d-8: Processing payment transactions by financial institutions' vs. '42 USC 1329d: Document not Found'; filer's own text: '(42 USC 1329d to 1320d-8)'",
+      "why": "The filer's own parenthetical states the range's END correctly ('1320d-8', a real, live section) while the START has a single-digit substitution (1320d -> 1329d); 42 U.S.C. 1320d is 'Definitions', the opening section of the exact HIPAA Administrative Simplification range (SSA Sec.Sec.1171-1179) the text names by section number two words earlier, and CFR_LIST is 45 CFR 163 (the NPI/HIPAA part). Stable, uncorrected across all 6 pinned editions (200504-200710).",
+      "anything_systemic": "Self-corroborating within one citation string -- the strongest possible internal witness, since the record needs no external source at all."
+    },
+    {
+      "key": "2050-AG85|201604|1",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citation 42 U.S.C. 11011 in the same LEGAL_AUTHORITY_LIST, carrying the identical single-digit substitution",
+      "decisive_quote": "uscode.house.gov: '42 USC 11021: Material safety data sheets' and '42 USC 11022: Emergency and hazardous chemical inventory forms' vs. '42 USC 11011/11012: Document not Found'; ABSTRACT: 'reporting requirements under sections 311 and 312 of the Emergency Planning and Community Right-to-Know Act (EPCRA)'",
+      "why": "11021/11022 are EPCRA Sec.Sec.311/312 exactly, the two sections the abstract names in plain English two sentences later, and CFR_LIST is 40 CFR 370 (the part implementing those two sections); both sibling citations in the box show the same single-position digit substitution (position 4: '1' for '2'), a systematic rather than random error.",
+      "anything_systemic": "Two-for-two identical-position substitution across siblings is an unusually clean corroboration signal."
+    },
+    {
+      "key": "0584-AD81|200610|4",
+      "verdict": "missed-witness",
+      "witness_if_any": "the rule's own 7 CFR 250 authority note, held in the local pinned cache -- a verbatim, item-for-item match",
+      "decisive_quote": "7 CFR 250 authority_note (pinned cache): 'Authority: 5 U.S.C. 301; 7 U.S.C. 612c, 612c note, 1431, 1431b, 1431e, 1431 note, 1446a-1, 1859, 2014, 2025; 15 U.S.C. 713c; 22 U.S.C. 1922; 42 U.S.C. 1751, 1755, 1758, 1760, 1761, 1762a, 1766, 3030a, 5179, 5180.'",
+      "why": "The filer's five-part authority list (5 USC 301; 7 USC 612(c) ... 2025; 15 USC 713c; 22 USC 1922; 41 USC 1751 ... 5180) is a field-for-field, section-for-section transcription of the CFR part's own published authority note -- identical section numbers in the identical order -- except the final group's title is written '41' where the note (and every other matching group) proves '42'.",
+      "anything_systemic": "The cleanest witness in the sample: not an inference, a verbatim publisher match of the entire ten-section list against the one-digit-off filer text."
+    },
+    {
+      "key": "3235-AI10|200210|0",
+      "verdict": "missed-witness",
+      "witness_if_any": "the SAME RIN's own later editions (200504 onward) spelling the identical two citations correctly",
+      "decisive_quote": "cross-edition history: 200410 ordinal 0 '5 USC 77a et seq' (usc_section_verdict=absent) -> 200504 ordinal 0 '15 USC 77a et seq' (usc_section_verdict=exists); same flip for ordinal 1 '78a et seq' in the same two editions",
+      "why": "This is the textbook 'same filer's later edition spelling it right' witness: the identical RIN, same two ordinals, same exact section tokens (77a et seq., 78a et seq. -- the Securities Act of 1933 and Securities Exchange Act of 1934's own opening sections), switch from title 5 to title 15 between the 200410 and 200504 editions and the verdict flips from absent to exists both times.",
+      "anything_systemic": "One of the task's own three named witness patterns; the pipeline holds the full edition series needed to detect this but does not consult a RIN's own later editions."
+    },
+    {
+      "key": "2125-AB91|200004|0",
+      "verdict": "correct-as-labeled",
+      "witness_if_any": null,
+      "decisive_quote": "uscode.house.gov: '49 USC 31502: Requirements for qualifications, hours of service, safety, and equipment standards' (topically apt, but not independently confirmed as this record's intended citation)",
+      "why": "'3102' is absent and stays absent in every one of the 6 editions this RIN carries it; the record's sibling citation ('49 USC app 2505', later corrected -- title kept -- but never to an appendix flag) independently maps to a DIFFERENT modern section (31136), which weakens rather than strengthens a guess at 31502 for '3102'. 49 U.S.C. 31502 (driver qualification/hours-of-service standards) is a topically apt, single-character-deletion candidate ('31502' minus the middle '5'), but no CFR note, sibling restatement, or later edition of this RIN corroborates it -- this RIN was transferred away and discontinued before any correction could appear.",
+      "anything_systemic": "Held to a higher bar deliberately: a plausible guess is not the same as a survivor (the prior review's own doctrine -- 'recovered is not correct'); no eCFR authority note for 49 CFR 391 is in the local pinned cache, and CFR pages are outside this review's authorized live-fetch domain, so the hypothesis could not be corroborated."
+    },
+    {
+      "key": "1557-AB99|200110|23",
+      "verdict": "missed-witness",
+      "witness_if_any": "the rule's own 12 CFR 19 authority note, held in the local pinned cache -- names both hyphenated sections verbatim",
+      "decisive_quote": "12 CFR 19 authority_note (pinned cache): '... 15 U.S.C. 78 l, 78o-4, 78o-5, 78q-1, 78s, 78u, 78u-2, 78u-3, 78w, and 1639e; ...'",
+      "why": "The note names 78u-2 and 78u-3 explicitly, both real (SEC/banking enforcement provisions); the filer's box has the identical digits and letters with the hyphen shifted one character too early ('78-u2' for '78u-2'), and the very same defect repeats immediately afterward at the next ordinal ('78-u3'), sitting between two correctly-written neighbors ('78u' before, '78w' two after).",
+      "anything_systemic": "A hyphen-position defect closely related to, but distinct from, the module's documented 'lost hyphen' family (C8) -- here the hyphen is present but migrated one character left rather than dropped."
+    },
+    {
+      "key": "0572-AC58|202304|2",
+      "verdict": "filer-error-confirmed",
+      "witness_if_any": null,
+      "decisive_quote": "uscode.house.gov: '7 USC 1926: Water and waste facility loans and grants' (RULE_TITLE: 'Update 7 CFR 1780 Water and Waste Loans and Grants') -- topically exact, but '1005' does not reduce to '1926' by any recognizable single or double edit",
+      "why": "6 U.S.C. is Homeland Security -- an implausible universe for a rural water/waste infrastructure loan rule -- and 6/7 U.S.C. 1005 both do not exist; the program's real authorizing family (7 U.S.C. 1921 et seq., very likely including Sec.1926) is identifiable from the CFR part and rule title, but no specific real section is one clean edit from '1005', so no single honest repair can be named. Stable, uncorrected across all 8 pinned editions (202204-202510).",
+      "anything_systemic": "A case where the general universe is confidently identifiable but the specific target is not -- kept refused per the prior review's 'two equidistant wrong repairs, refuse' doctrine rather than picking a plausible-looking number."
+    },
+    {
+      "key": "3150-AK91|202310|1",
+      "verdict": "missed-witness",
+      "witness_if_any": "the citing agency's own establishing statute",
+      "decisive_quote": "uscode.house.gov: '42 USC 5841: Establishment and transfers' vs. '44 USC 5841: Document not Found'; RIN_INFO AGENCY: 'Nuclear Regulatory Commission'",
+      "why": "42 U.S.C. 5841 is the Energy Reorganization Act of 1974 provision that creates the NRC itself -- boilerplate authority for essentially any NRC rule, routinely paired with 44 U.S.C. 2201 (records, the real sibling citation in this same box) -- one digit away from the filer's '44'. Stable, uncorrected across all 6 pinned editions (202304-202510).",
+      "anything_systemic": null
+    },
+    {
+      "key": "1018-AX21|201410|0",
+      "verdict": "missed-witness",
+      "witness_if_any": "sibling box citation 16 USC 685 later in the SAME LEGAL_AUTHORITY_LIST -- a literal in-record duplicate with the corrected title",
+      "decisive_quote": "RIN_INFO LEGAL_AUTHORITY_LIST verbatim: ['5 USC 685', '5 USC 690d', '5 USC 752', '16 USC 460k', '16 USC 668dd', '16 USC 685', '16 USC 690d', ...] -- ordinal 0 '5 USC 685' (absent) and ordinal 5 '16 USC 685' (exists) name the identical section number in the same box",
+      "why": "The same 12-item list independently restates the identical section number under the correct title two positions later (685 and 690d both appear twice, once as '5 USC' and once as '16 USC', the second copy verified 'exists'); an earlier edition of this same RIN (201004) opens directly with the correct '16 USC 685', suggesting the '5 USC' pair was mistakenly prepended in a later edit rather than ever being the filer's settled text.",
+      "anything_systemic": "The pipeline's own restates_box_citation field is null on both rows, so this same-record, cross-title duplicate is not currently detected even though it is a near-zero-risk, self-contained signal (same section number, two titles, one title independently verified real, in the identical record)."
+    }
+  ]
+}

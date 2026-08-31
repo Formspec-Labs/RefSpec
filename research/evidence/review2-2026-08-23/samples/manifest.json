@@ -1,0 +1,46 @@
+{
+ "seed": 20260823,
+ "artifact_receipt": "e88d9dca52d5c96daf7373c7348cee7ba1fb2d217ffc5ab03f725e55a2be095d",
+ "classes": {
+  "A-unstated-more-citations-follow": {
+   "population": 6876,
+   "sampled": 20
+  },
+  "B-unstated-not-yet-determined": {
+   "population": 5461,
+   "sampled": 20
+  },
+  "C-unstated-none-off-form": {
+   "population": 130,
+   "sampled": 20
+  },
+  "D-failed-nothing-stated": {
+   "population": 1658,
+   "sampled": 20
+  },
+  "E-failed-sec-only": {
+   "population": 624,
+   "sampled": 20
+  },
+  "F-failed-act-stated": {
+   "population": 34,
+   "sampled": 20
+  },
+  "G-act-relative-failed": {
+   "population": 481,
+   "sampled": 20
+  },
+  "H-absent-with-correction": {
+   "population": 3660,
+   "sampled": 20
+  },
+  "I-absent-without-correction": {
+   "population": 10531,
+   "sampled": 20
+  },
+  "J-disposition-answered": {
+   "population": 2548,
+   "sampled": 20
+  }
+ }
+}

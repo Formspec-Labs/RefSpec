@@ -1,0 +1,449 @@
+=== 0 rows=1 text='16 USC 460(k), 664, 668(dd), 685, 690(d), 715(i), 725'
+    rins=['1018-AU89'] editions=['200904', '201004']
+  ord0: type=usc status=partial usc=16:460 verdict=exists appendix=False 
+        notes={'near-miss': 1} parts={'50 CFR 29': 1}
+  ord1: type=usc status=partial usc=16:664 verdict=exists appendix=False 
+        notes={'present': 1} parts={'50 CFR 29': 1}
+  ord2: type=usc status=partial usc=16:668 verdict=exists appendix=False 
+        notes={'near-miss': 1} parts={'50 CFR 29': 1}
+  ord3: type=usc status=partial usc=16:685 verdict=exists appendix=False 
+        notes={'present': 1} parts={'50 CFR 29': 1}
+  ord4: type=usc status=partial usc=16:690 verdict=exists appendix=False 
+        notes={'near-miss': 1} parts={'50 CFR 29': 1}
+  ord5: type=usc status=partial usc=16:715 verdict=exists appendix=False 
+        notes={'near-miss': 1} parts={'50 CFR 29': 1}
+  ord6: type=usc status=partial usc=16:725 verdict=exists appendix=False 
+        notes={'present': 1} parts={'50 CFR 29': 1}
+
+=== 1 rows=1 text='42 USC 402'
+    rins=['0960-AD97', '0960-AG10', '0960-AG51'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=42:402 verdict=exists appendix=False 
+        notes={'near-miss': 3, None: 1} parts={'20 CFR 408': 1, '20 CFR 404': 1, '20 CFR 402': 1}
+
+=== 2 rows=1 text='EO 8284'
+    rins=['0930-AA18'] editions=['201404', '201410']
+  ord0: type=executive_order status=ok usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+
+=== 3 rows=1 text='49 U.S.C. 30166'
+    rins=['2127-AL83', '2127-AL58', '2127-AL24'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=49:30166 verdict=exists appendix=False 
+        notes={'present': 9, None: 1, 'absent': 3} parts={'49 CFR 572': 1, '49 CFR 595': 1, '49 CFR 563': 1, '49 CFR 571': 1, '49 CFR 512': 1, '49 CFR 575': 1, '49 CFR 574': 1, '49 CFR 1': 1, '49 CFR 573': 1, '49 CFR 555': 1, '49 CFR 577': 1, '49 CFR 541': 1}
+
+=== 4 rows=1 text='12 USC 2011'
+    rins=['3052-AB63', '3052-AC99', '3052-AC85'] editions=['199510', '201510']
+  ord0: type=usc status=ok usc=12:2011 verdict=exists appendix=False 
+        notes={'present': 3, 'near-miss': 2, 'absent': 1} parts={'12 CFR 616': 1, '12 CFR 613': 1, '12 CFR 611': 1, '12 CFR 614': 1, '12 CFR 620': 1, '12 CFR 618': 1}
+
+=== 5 rows=1 text='30 U.S.C. 185(s)'
+    rins=['0694-AD58', '0694-AG54', '0694-AG77'] editions=['201504', '202510']
+  ord0: type=usc status=partial usc=30:185 verdict=exists appendix=False 
+        notes={'absent': 12, None: 1} parts={'15 CFR 700': 1, '15 CFR 732': 1, '15 CFR 744': 1, '15 CFR 734': 1, '15 CFR 770': 1, '15 CFR 774': 1, '15 CFR 742': 1, '15 CFR 736': 1, '15 CFR 730': 1, '15 CFR 738': 1, '15 CFR 772': 1, '15 CFR 740': 1}
+
+=== 6 rows=1 text='21 USC 360b'
+    rins=['0910-AC78', '0910-AC94', '0910-AD12'] editions=['199510', '202510']
+  ord0: type=usc status=ok usc=21:360b verdict=exists appendix=False 
+        notes={'present': 21, 'absent': 1, None: 1, 'near-miss': 1} parts={'21 CFR 524': 1, '21 CFR 312': 1, '21 CFR 310': 1, '21 CFR 1': 1, '21 CFR 25': 1, '21 CFR 514': 1, '21 CFR 510': 1, '21 CFR 58': 1, '21 CFR 556': 1, '21 CFR 225': 1, '21 CFR 500': 1, '21 CFR 70': 1, '21 CFR 300': 1, '21 CFR 211': 1, '21 CFR 2': 1, '21 CFR 16': 1, '21 CFR 202': 1, '21 CFR 99': 1, '21 CFR 207': 1, '21 CFR 20': 1, '21 CFR 201': 1, '21 CFR 210': 1, '21 CFR 511': 1}
+
+=== 7 rows=1 text='Railroad Safety Improvement Act of 2008'
+    rins=['2130-AC07', '2130-AC18', '2130-AC17'] editions=['200910', '201704']
+  ord0: type=act_relative status=corroborated usc=None:None verdict=None appendix=False 
+        notes={'absent': 4, None: 1} parts={'49 CFR 243': 1, '49 CFR 217': 1, '49 CFR 236': 1, '49 CFR 234': 1}
+
+=== 8 rows=1 text='49 U.S.C. 5120(b)'
+    rins=['2137-AF57', '2137-AF20', '2137-AF75'] editions=['201604', '202510']
+  ord0: type=usc status=partial usc=49:5120 verdict=exists appendix=False 
+        notes={'present': 3} parts={'49 CFR 171': 1, '49 CFR 172': 1, '49 CFR 107': 1}
+
+=== 9 rows=1 text='16 USC 773 et seq'
+    rins=['0648-AI68', '0648-BB85', '0648-BD82'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=16:773 verdict=exists appendix=False 
+        notes={'present': 2, 'absent': 2, None: 1} parts={'50 CFR 660': 1, '50 CFR 300': 1, '50 CFR 679': 1, '50 CFR 648': 1}
+
+=== 10 rows=1 text='46 USC 10603'
+    rins=['2115-AE77', '1625-AA77'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=46:10603 verdict=exists appendix=False 
+        notes={'present': 1} parts={'46 CFR 28': 1}
+
+=== 11 rows=1 text='16 U.S.C. 472, 551, 620(f), 1133(c),&(d)(1), 1246(i)'
+    rins=['0596-AD24'] editions=['201504', '201804']
+  ord0: type=usc status=partial usc=16:472 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+  ord1: type=usc status=partial usc=16:551 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+  ord2: type=usc status=partial usc=16:620 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+  ord3: type=usc status=partial usc=16:1133 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+  ord4: type=usc status=partial usc=16:1246 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+
+=== 12 rows=1 text='49 U.S.C. 46306'
+    rins=['2120-AJ94', '2120-AL07', '2120-AL16'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=49:46306 verdict=exists appendix=False 
+        notes={None: 1, 'present': 2} parts={'14 CFR 91': 1, '14 CFR 48': 1}
+
+=== 13 rows=1 text='21 USC 371a'
+    rins=['0910-AC78', '0910-AC94', '0910-AD12'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=21:371a verdict=absent appendix=False 
+        notes={'near-miss': 4, None: 1} parts={'21 CFR 310': 1, '21 CFR 200': 1, '21 CFR 201': 1, '21 CFR 4': 1}
+
+=== 14 rows=1 text='18 USC 3621, 3622, 3624, 4001, 4042, 4081, 4082 (Repealed in part as to offenses committed on or after November 1, 1987), 5006 to 5024 (Repealed October 12, 1984, as to offenses committed)'
+    rins=['1120-AB56', '1120-AB59'] editions=['201004', '201410']
+  ord0: type=usc status=partial usc=18:3621 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 542': 1, '28 CFR 506': 1}
+  ord1: type=usc status=partial usc=18:3622 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 542': 1, '28 CFR 506': 1}
+  ord2: type=usc status=partial usc=18:3624 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 542': 1, '28 CFR 506': 1}
+  ord3: type=usc status=partial usc=18:4001 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 542': 1, '28 CFR 506': 1}
+  ord4: type=usc status=partial usc=18:4042 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 506': 1, '28 CFR 542': 1}
+  ord5: type=usc status=partial usc=18:4081 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 542': 1, '28 CFR 506': 1}
+  ord6: type=usc status=partial usc=18:4082 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 506': 1, '28 CFR 542': 1}
+  ord7: type=usc status=partial usc=18:5006 verdict=exists appendix=False 
+        notes={'present': 2} parts={'28 CFR 506': 1, '28 CFR 542': 1}
+
+=== 15 rows=1 text='47 USC 301'
+    rins=['3060-AH46', '3060-AI05', '3060-AJ33'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=47:301 verdict=exists appendix=False 
+        notes={'near-miss': 8, 'present': 10, 'absent': 2, None: 1} parts={'47 CFR 64': 1, '47 CFR 73': 1, '47 CFR 15': 1, '47 CFR 18': 1, '47 CFR 2': 1, '47 CFR 25': 1, '47 CFR 27': 1, '47 CFR 87': 1, '47 CFR 11': 1, '47 CFR 90': 1, '47 CFR 0': 1, '47 CFR 76': 1, '47 CFR 78': 1, '47 CFR 4': 1, '47 CFR 74': 1, '47 CFR 20': 1, '47 CFR 101': 1, '47 CFR 1': 1, '47 CFR 24': 1, '47 CFR 97': 1}
+
+=== 16 rows=1 text='47 U.S.C. 336'
+    rins=['3060-AK43', '3060-AK09', '3060-AK44'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=47:336 verdict=exists appendix=False 
+        notes={'present': 7, None: 1} parts={'47 CFR 15': 1, '47 CFR 5': 1, '47 CFR 2': 1, '47 CFR 27': 1, '47 CFR 73': 1, '47 CFR 97': 1, '47 CFR 74': 1}
+
+=== 17 rows=1 text='41 U.S.C. 1303'
+    rins=['0750-AI32', '0750-AI65', '0750-AH58'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=41:1303 verdict=exists appendix=False 
+        notes={'present': 51, 'absent': 1, None: 1} parts={'48 CFR 209': 1, '48 CFR 237': 1, '48 CFR 339': 1, '48 CFR 241': 1, '48 CFR 222': 1, '48 CFR 249': 1, '48 CFR 243': 1, '48 CFR 3009': 1, '48 CFR 203': 1, '48 CFR 3002': 1, '48 CFR 231': 1, '48 CFR 3001': 1, '48 CFR 232': 1, '48 CFR 247': 1, '48 CFR 251': 1, '48 CFR 817': 1, '48 CFR 852': 1, '48 CFR 216': 1, '48 CFR 229': 1, '48 CFR 223': 1, '48 CFR 204': 1, '48 CFR 242': 1, '48 CFR 3052': 1, '48 CFR 225': 1, '48 CFR 215': 1, '48 CFR 236': 1, '48 CFR 213': 1, '48 CFR 811': 1, '48 CFR 239': 1, '48 CFR 228': 1, '48 CFR 246': 1, '48 CFR 214': 1, '48 CFR 208': 1, '48 CFR 212': 1, '48 CFR 235': 1, '48 CFR 218': 1, '48 CFR 210': 1, '48 CFR 206': 1, '48 CFR 245': 1, '48 CFR 234': 1, '48 CFR 226': 1, '48 CFR 202': 1, '48 CFR 252': 1, '48 CFR 219': 1, '48 CFR 217': 1, '48 CFR 211': 1, '48 CFR 244': 1, '48 CFR 201': 1, '48 CFR 3025': 1, '48 CFR 205': 1, '48 CFR 227': 1, '48 CFR 207': 1}
+
+=== 18 rows=1 text='31 U.S.C. 9701'
+    rins=['0579-AD41', '1014-AA11', '1014-AA17'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=31:9701 verdict=exists appendix=False 
+        notes={'present': 47, 'absent': 14, None: 1} parts={'5 CFR 9801': 1, '32 CFR 238': 1, '30 CFR 1206': 1, '5 CFR 2635': 1, '46 CFR 503': 1, '18 CFR 101': 1, '19 CFR 133': 1, '13 CFR 102': 1, '43 CFR 2': 1, '18 CFR 141': 1, '20 CFR 402': 1, '49 CFR 1002': 1, '42 CFR 438': 1, '7 CFR 6': 1, '28 CFR 16': 1, '50 CFR 91': 1, '26 CFR 1': 1, '20 CFR 403': 1, '30 CFR 250': 1, '22 CFR 22': 1, '18 CFR 45': 1, '30 CFR 550': 1, '30 CFR 1290': 1, '46 CFR 502': 1, '10 CFR 1009': 1, '9 CFR 94': 1, '18 CFR 38': 1, '49 CFR 1011': 1, '9 CFR 92': 1, '7 CFR 340': 1, '19 CFR 4': 1, '18 CFR 35': 1, '43 CFR 3000': 1, '19 CFR 103': 1, '30 CFR 1210': 1, '18 CFR 292': 1, '18 CFR 154': 1, '5 CFR 9800': 1, '9 CFR 93': 1, '49 CFR 7': 1, '12 CFR 4': 1, '18 CFR 381': 1, '18 CFR 385': 1, '14 CFR 183': 1, '36 CFR 251': 1, '50 CFR 14': 1, '49 CFR 1101': 1, '18 CFR 33': 1, '18 CFR 1304': 1, '18 CFR 37': 1, '42 CFR 417': 1, '50 CFR 13': 1, '26 CFR 300': 1, '26 CFR 301': 1, '7 CFR 330': 1, '14 CFR 187': 1, '7 CFR 1': 1, '8 CFR 103': 1, '29 CFR 1610': 1, '36 CFR 14': 1, '19 CFR 24': 1}
+
+=== 19 rows=1 text='50 USC app 2401 et seq'
+    rins=['0694-AB34', '0694-AB07', '0694-AC33'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=50:2401 verdict=exists appendix=True 
+        notes={'near-miss': 8, 'absent': 19, None: 1} parts={'15 CFR 768': 1, '15 CFR 750': 1, '15 CFR 756': 1, '15 CFR 774': 1, '15 CFR 748': 1, '15 CFR 746': 1, '15 CFR 762': 1, '15 CFR 732': 1, '15 CFR 785': 1, '15 CFR 744': 1, '15 CFR 758': 1, '15 CFR 770': 1, '15 CFR 772': 1, '15 CFR 745': 1, '15 CFR 730': 1, '15 CFR 740': 1, '15 CFR 742': 1, '15 CFR 736': 1, '15 CFR 760': 1, '15 CFR 734': 1, '15 CFR 700': 1, '15 CFR 764': 1, '15 CFR 738': 1, '15 CFR 766': 1, '15 CFR 743': 1, '15 CFR 710': 1, '15 CFR 754': 1}
+
+=== 20 rows=1 text='5 USC 8347'
+    rins=['3206-AG29', '3206-AH62', '3206-AH68'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=5:8347 verdict=exists appendix=False 
+        notes={'present': 5, 'absent': 1} parts={'5 CFR 835': 1, '5 CFR 850': 1, '5 CFR 841': 1, '5 CFR 831': 1, '5 CFR 838': 1, '5 CFR 847': 1}
+
+=== 21 rows=2 text='16 USC 1531 et seq'
+    rins=['1018-AC42', '1018-AC57', '1018-AD11'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=16:1531 verdict=exists appendix=False 
+        notes={'absent': 9, 'near-miss': 5, 'present': 10, None: 1} parts={'50 CFR 1': 1, '15 CFR 922': 1, '50 CFR 226': 1, '50 CFR 402': 1, '50 CFR 18': 1, '50 CFR 224': 1, '50 CFR 660': 1, '50 CFR 216': 1, '50 CFR 424': 1, '15 CFR 17': 1, '50 CFR 223': 1, '50 CFR 23': 1, '43 CFR 3400': 1, '50 CFR 13': 1, '50 CFR 222': 1, '18 CFR 385': 1, '50 CFR 229': 1, '50 CFR 22': 1, '50 CFR 14': 1, '50 CFR 17': 1, '50 CFR 200': 1, '50 CFR 10': 1, '50 CFR 217': 1, '50 CFR 24': 1}
+
+=== 22 rows=1 text='21 USC 353'
+    rins=['0910-AC78', '0910-AC94', '0910-AD12'] editions=['199510', '202510']
+  ord0: type=usc status=ok usc=21:353 verdict=exists appendix=False 
+        notes={'present': 19, None: 1} parts={'21 CFR 54': 1, '21 CFR 50': 1, '21 CFR 600': 1, '21 CFR 312': 1, '21 CFR 201': 1, '21 CFR 314': 1, '21 CFR 203': 1, '21 CFR 329': 1, '21 CFR 56': 1, '21 CFR 361': 1, '21 CFR 511': 1, '21 CFR 640': 1, '21 CFR 310': 1, '21 CFR 330': 1, '21 CFR 4': 1, '21 CFR 610': 1, '21 CFR 20': 1, '21 CFR 200': 1, '21 CFR 500': 1}
+
+=== 23 rows=1 text='20 USC 7701 to 7714'
+    rins=['1810-AA84', '1810-AB00', '1810-AA96'] editions=['199604', '201410']
+  ord0: type=usc status=ok usc=20:7701 verdict=exists appendix=False 
+        notes={'present': 1} parts={'34 CFR 222': 1}
+
+=== 24 rows=1 text='15 U.S.C. 41 to 58'
+    rins=['3084-AB69', '3084-AB44', '3084-AB88'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=15:41 verdict=exists appendix=False 
+        notes={'present': 4, None: 1, 'absent': 2} parts={'16 CFR 425': 1, '16 CFR 437': 1, '16 CFR 312': 1, '16 CFR 436': 1, '16 CFR 310': 1, '16 CFR 464': 1}
+
+=== 25 rows=1 text='26 USC 482'
+    rins=['1545-BR72', '1545-BI87', '1545-BB26'] editions=['199510', '202510']
+  ord0: type=usc status=ok usc=26:482 verdict=exists appendix=False 
+        notes={'present': 1, None: 1} parts={'26 CFR 1': 1}
+
+=== 26 rows=1 text='EO 10577, 3 CFR, 1954-1958 Comp p 218'
+    rins=['3206-AM61'] editions=['201210', '201410']
+  ord0: type=executive_order status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+  ord1: type=eo_compilation status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+
+=== 27 rows=1 text='49 U.S.C. 13301'
+    rins=['2140-AB28', '2140-AB48', '2126-AB56'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=49:13301 verdict=exists appendix=False 
+        notes={'present': 5, None: 1} parts={'49 CFR 1039': 1, '49 CFR 379': 1, '49 CFR 365': 1, '49 CFR 376': 1, '49 CFR 375': 1}
+
+=== 28 rows=1 text='E.O. 12674, 54 FR 15159, 3 CFR 1989 Comp. p. 215, as modified by E.O. 12731, 55 FR 42547, 3 CFR 1990 Comp. p. 306'
+    rins=['0790-AL21'] editions=['202204', '202304']
+  ord0: type=executive_order status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+  ord1: type=executive_order status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+  ord2: type=eo_compilation status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+  ord3: type=eo_compilation status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+  ord4: type=federal_register status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+  ord5: type=federal_register status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+
+=== 29 rows=1 text='49 U.S.C. 46504'
+    rins=['2120-AK54', '2120-AK72', '2120-AL30'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=49:46504 verdict=exists appendix=False 
+        notes={'present': 1, None: 1} parts={'14 CFR 91': 1}
+
+=== 30 rows=1 text='42 USC 902(a)(5)'
+    rins=['0960-AE31', '0960-AE19', '0960-AD86'] editions=['199510', '201510']
+  ord0: type=usc status=partial usc=42:902 verdict=exists appendix=False 
+        notes={'present': 14, None: 1, 'absent': 2} parts={'20 CFR 422': 1, '20 CFR 430': 1, '20 CFR 423': 1, '20 CFR 416': 1, '20 CFR 408': 1, '20 CFR 401': 1, '20 CFR 402': 1, '20 CFR 403': 1, '20 CFR 429': 1, '20 CFR 431': 1, '20 CFR 418': 1, '2 CFR 2336': 1, '20 CFR 404': 1, '20 CFR 498': 1, '20 CFR 438': 1, '20 CFR 411': 1}
+
+=== 31 rows=1 text='16 USC 1854'
+    rins=['0648-AY81', '0648-AV56', '0648-AW60'] editions=['200710', '201304']
+  ord0: type=usc status=ok usc=16:1854 verdict=exists appendix=False 
+        notes={'absent': 3} parts={'50 CFR 679': 1, '50 CFR 600': 1, '50 CFR 660': 1}
+
+=== 32 rows=1 text='42 U.S.C. 300'
+    rins=['0910-AI27', '2020-AA54', '2040-AG36'] editions=['201810', '202510']
+  ord0: type=usc status=ok usc=42:300 verdict=exists appendix=False 
+        notes={None: 1, 'absent': 1, 'near-miss': 1} parts={'21 CFR 600': 1, '40 CFR 141': 1}
+
+=== 33 rows=1 text='42 USC 5165(b)'
+    rins=['1660-AA21'] editions=['200704', '201210']
+  ord0: type=usc status=partial usc=42:5165 verdict=exists appendix=False 
+        notes={'present': 1} parts={'44 CFR 206': 1}
+
+=== 34 rows=1 text='46 USC 6101'
+    rins=['2115-AE89', '1625-AB20', '1625-AA21'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=46:6101 verdict=exists appendix=False 
+        notes={'present': 9, 'absent': 3} parts={'46 CFR 4': 1, '46 CFR 197': 1, '33 CFR 164': 1, '46 CFR 401': 1, '46 CFR 167': 1, '33 CFR 173': 1, '46 CFR 13': 1, '46 CFR 122': 1, '33 CFR 403': 1, '46 CFR 97': 1, '33 CFR 1': 1, '33 CFR 151': 1}
+
+=== 35 rows=1 text='8 U.S.C. 1101, 1103, 1154, 1155, 1158, 1182, 1226, 1229, 1229a, 1229b, 1229c, 1231, 1252, 1254a, 1255, 1282, 1324d, 1330, 1361, 1362'
+    rins=['1125-AA44', '1125-AA68'] editions=['201504', '202510']
+  ord0: type=usc status=partial usc=8:1101 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord1: type=usc status=partial usc=8:1103 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord2: type=usc status=partial usc=8:1154 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord3: type=usc status=partial usc=8:1155 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord4: type=usc status=partial usc=8:1158 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord5: type=usc status=partial usc=8:1182 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord6: type=usc status=partial usc=8:1226 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord7: type=usc status=partial usc=8:1229 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord8: type=usc status=partial usc=8:1229a verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord9: type=usc status=partial usc=8:1229b verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord10: type=usc status=partial usc=8:1229c verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord11: type=usc status=partial usc=8:1231 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord12: type=usc status=partial usc=8:1252 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1208': 1}
+  ord13: type=usc status=partial usc=8:1254a verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord14: type=usc status=partial usc=8:1255 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord15: type=usc status=partial usc=8:1282 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1208': 1}
+  ord16: type=usc status=partial usc=8:1324d verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord17: type=usc status=partial usc=8:1330 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord18: type=usc status=partial usc=8:1361 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+  ord19: type=usc status=partial usc=8:1362 verdict=exists appendix=False 
+        notes={'present': 1} parts={'8 CFR 1003': 1}
+
+=== 36 rows=1 text='49 USC 30166'
+    rins=['2127-AB76', '2127-AF50', '2127-AF73'] editions=['199510', '202210']
+  ord0: type=usc status=ok usc=49:30166 verdict=exists appendix=False 
+        notes={'present': 14, 'absent': 8, None: 1} parts={'49 CFR 563': 1, '49 CFR 576': 1, '49 CFR 572': 1, '49 CFR 567': 1, '49 CFR 1': 1, '49 CFR 571': 1, '49 CFR 587': 1, '49 CFR 512': 1, '49 CFR 579': 1, '49 CFR 5': 1, '49 CFR 303': 1, '49 CFR 575': 1, '49 CFR 564': 1, '49 CFR 580': 1, '49 CFR 551': 1, '49 CFR 541': 1, '49 CFR 574': 1, '49 CFR 565': 1, '49 CFR 577': 1, '49 CFR 573': 1, '49 CFR 555': 1, '49 CFR 595': 1}
+
+=== 37 rows=1 text='35 U.S.C. 311'
+    rins=['0651-AD01', '0651-AD31', '0651-AD50'] editions=['201510', '202410']
+  ord0: type=usc status=ok usc=35:311 verdict=exists appendix=False 
+        notes={'present': 1} parts={'37 CFR 42': 1}
+
+=== 38 rows=1 text='47 USC 34 to 39'
+    rins=['3060-AH50', '3060-AG84', '3060-AI41'] editions=['199804', '201104']
+  ord0: type=usc status=ok usc=47:34 verdict=exists appendix=False 
+        notes={'near-miss': 1, 'absent': 1} parts={'47 CFR 43': 1, '47 CFR 1': 1}
+
+=== 39 rows=1 text='31 USC 9701'
+    rins=['1115-AD90', '2115-AE94', '1515-AB49'] editions=['199510', '201510']
+  ord0: type=usc status=ok usc=31:9701 verdict=exists appendix=False 
+        notes={'present': 72, 'absent': 36, None: 1, 'near-miss': 1} parts={'36 CFR 222': 1, '36 CFR 251': 1, '50 CFR 222': 1, '43 CFR 3830': 1, '30 CFR 280': 1, '30 CFR 1218': 1, '13 CFR 102': 1, '42 CFR 417': 1, '26 CFR 300': 1, '43 CFR 429': 1, '50 CFR 13': 1, '30 CFR 256': 1, '42 CFR 7': 1, '33 CFR 159': 1, '43 CFR 3800': 1, '30 CFR 250': 1, '33 CFR 173': 1, '18 CFR 45': 1, '22 CFR 22': 1, '9 CFR 98': 1, '19 CFR 12': 1, '46 CFR 2': 1, '18 CFR 33': 1, '8 CFR 2': 1, '12 CFR 1': 1, '9 CFR 92': 1, '8 CFR 208': 1, '19 CFR 133': 1, '49 CFR 1011': 1, '18 CFR 38': 1, '10 CFR 170': 1, '14 CFR 187': 1, '30 CFR 203': 1, '50 CFR 14': 1, '46 CFR 540': 1, '18 CFR 294': 1, '18 CFR 153': 1, '8 CFR 239': 1, '19 CFR 103': 1, '19 CFR 4': 1, '18 CFR 35': 1, '18 CFR 292': 1, '7 CFR 340': 1, '14 CFR 25': 1, '18 CFR 358': 1, '43 CFR 3000': 1, '25 CFR 150': 1, '30 CFR 1210': 1, '8 CFR 103': 1, '18 CFR 131': 1, '7 CFR 330': 1, '42 CFR 401': 1, '50 CFR 226': 1, '29 CFR 1610': 1, '8 CFR 100': 1, '8 CFR 235': 1, '46 CFR 67': 1, '18 CFR 34': 1, '18 CFR 37': 1, '22 CFR 51': 1, '32 CFR 238': 1, '13 CFR 125': 1, '49 CFR 360': 1, '26 CFR 1': 1, '46 CFR 503': 1, '18 CFR 101': 1, '30 CFR 251': 1, '42 CFR 34': 1, '8 CFR 212': 1, '50 CFR 223': 1, '20 CFR 403': 1, '7 CFR 352': 1, '9 CFR 95': 1, '30 CFR 1207': 1, '18 CFR 141': 1, '7 CFR 6': 1, '20 CFR 402': 1, '49 CFR 594': 1, '49 CFR 1002': 1, '43 CFR 2': 1, '9 CFR 130': 1, '18 CFR 32': 1, '38 CFR 36': 1, '46 CFR 10': 1, '12 CFR 4': 1, '18 CFR 385': 1, '18 CFR 381': 1, '10 CFR 11': 1, '49 CFR 7': 1, '9 CFR 93': 1, '40 CFR 86': 1, '14 CFR 183': 1, '14 CFR 1206': 1, '8 CFR 207': 1, '14 CFR 389': 1, '30 CFR 290': 1, '46 CFR 502': 1, '30 CFR 550': 1, '36 CFR 291': 1, '18 CFR 154': 1, '46 CFR 515': 1, '27 CFR 13': 1, '19 CFR 24': 1, '29 CFR 1910': 1, '22 CFR 706': 1, '31 CFR 281': 1, '50 CFR 91': 1, '28 CFR 16': 1, '9 CFR 94': 1}
+
+=== 40 rows=1 text='Pub. L. 109-280, sec. 508, Pension Protection Act of 2006'
+    rins=['1210-AB20'] editions=['201710', '202510']
+  ord0: type=public_law status=partial usc=None:None verdict=None appendix=False 
+        notes={'absent': 1} parts={'29 CFR 2520': 1}
+
+=== 41 rows=1 text='44 U.S.C. 3312'
+    rins=['3095-AB98', '3095-AC19', '3095-AC18'] editions=['201810', '202410']
+  ord0: type=usc status=ok usc=44:3312 verdict=exists appendix=False 
+        notes={'present': 1, None: 1} parts={'36 CFR 1236': 1}
+
+=== 42 rows=2 text='49 USC 21301'
+    rins=['2130-AB21', '2130-AB82', '2130-AA63'] editions=['199510', '202104']
+  ord0: type=usc status=ok usc=49:21301 verdict=exists appendix=False 
+        notes={'present': 7} parts={'49 CFR 225': 1, '49 CFR 240': 1, '49 CFR 234': 1, '49 CFR 219': 1, '49 CFR 270': 1, '49 CFR 214': 1, '49 CFR 244': 1}
+
+=== 43 rows=1 text='49 U.S.C. 1155'
+    rins=['2120-AK54', '2120-AK72', '2120-AL30'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=49:1155 verdict=exists appendix=False 
+        notes={'absent': 5, None: 1} parts={'14 CFR 61': 1, '14 CFR 91': 1, '14 CFR 36': 1, '14 CFR 11': 1, '14 CFR 1': 1}
+
+=== 44 rows=1 text='49 USC 41709'
+    rins=['2105-AC71', '2139-AA02', '2139-AA01'] editions=['199510', '201110']
+  ord0: type=usc status=ok usc=49:41709 verdict=exists appendix=False 
+        notes={'present': 2} parts={'14 CFR 241': 1, '14 CFR 234': 1}
+
+=== 45 rows=1 text='E.O. 13224'
+    rins=['0694-AD58', '0694-AG64', '0694-AG55'] editions=['201504', '202510']
+  ord0: type=executive_order status=ok usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+
+=== 46 rows=1 text='40 U.S.C. 121(c)'
+    rins=['9000-AM93', '9000-AM96', '9000-AL82'] editions=['201104', '202510']
+  ord0: type=usc status=partial usc=40:121 verdict=exists appendix=False *** MULTI-IDENTITY ***
+        notes={'present': 68, None: 2, 'absent': 1} parts={'48 CFR 339': 1, '48 CFR 14': 1, '48 CFR 552': 1, '48 CFR 511': 1, '48 CFR 4': 1, '48 CFR 3': 1, '48 CFR 32': 1, '48 CFR 9': 1, '48 CFR 52': 1, '48 CFR 542': 1, '48 CFR 5': 1, '48 CFR 27': 1, '48 CFR 302': 1, '48 CFR 502': 1, '48 CFR 816': 1, '48 CFR 512': 1, '48 CFR 51': 1, '48 CFR 44': 1, '48 CFR 536': 1, '48 CFR 33': 1, '48 CFR 819': 1, '48 CFR 11': 1, '48 CFR 30': 1, '48 CFR 503': 1, '48 CFR 22': 1, '48 CFR 53': 1, '48 CFR 16': 1, '48 CFR 570': 1, '48 CFR 25': 1, '48 CFR 1': 1, '48 CFR 2': 1, '48 CFR 39': 1, '48 CFR 519': 1, '48 CFR 504': 1, '48 CFR 31': 1, '48 CFR 852': 1, '48 CFR 808': 1, '48 CFR 6': 1, '48 CFR 24': 1, '48 CFR 42': 1, '48 CFR 37': 1, '48 CFR 17': 1, '48 CFR 538': 1, '48 CFR 516': 1, '48 CFR 801': 1, '48 CFR 47': 1, '48 CFR 50': 1, '48 CFR 517': 1, '48 CFR 515': 1, '48 CFR 28': 1, '45 CFR 88': 1, '48 CFR 513': 1, '48 CFR 40': 1, '48 CFR 34': 1, '48 CFR 8': 1, '48 CFR 15': 1, '48 CFR 19': 1, '48 CFR 509': 1, '48 CFR 532': 1, '48 CFR 10': 1, '48 CFR 541': 1, '48 CFR 36': 1, '48 CFR 13': 1, '48 CFR 23': 1, '48 CFR 7': 1, '48 CFR 12': 1, '48 CFR 523': 1, '48 CFR 49': 1, '48 CFR 501': 1}
+        VARIANT: (('citation_ordinal', 0), ('authority_type', 'usc'), ('parse_status', 'partial'), ('usc_title', 40), ('usc_section', '121'), ('usc_appendix', False), ('usc_section_verdict', 'exists'), ('authority_source', 'box'))
+        VARIANT: (('citation_ordinal', 0), ('authority_type', 'usc'), ('parse_status', 'partial'), ('usc_title', 40), ('usc_section', '121'), ('usc_appendix', False), ('usc_section_verdict', 'exists'), ('authority_source', 'box'), ('authority_join_rule', 'fragment-right:R5-opens-with-digit-no-scheme'))
+  ord1: type=usc status=partial usc=40:521 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+  ord2: type=usc status=partial usc=40:541 verdict=exists appendix=False 
+        notes={None: 1} parts={}
+
+=== 47 rows=1 text='12 USC 1715b'
+    rins=['2501-AC09', '2502-AG93', '2502-AH57'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=12:1715b verdict=exists appendix=False 
+        notes={None: 1, 'present': 13, 'near-miss': 1, 'absent': 1} parts={'24 CFR 232': 1, '24 CFR 25': 1, '24 CFR 206': 1, '24 CFR 202': 1, '24 CFR 234': 1, '24 CFR 207': 1, '24 CFR 251': 1, '24 CFR 236': 1, '24 CFR 242': 1, '24 CFR 290': 1, '24 CFR 200': 1, '24 CFR 203': 1, '24 CFR 27': 1, '24 CFR 291': 1, '24 CFR 221': 1}
+
+=== 48 rows=1 text='Pub. L. 116-147'
+    rins=['3245-AH56', '3245-AH59', '3245-AH62'] editions=['202010', '202510']
+  ord0: type=public_law status=ok usc=None:None verdict=None appendix=False 
+        notes={'absent': 2, 'present': 1} parts={'13 CFR 120': 1, '13 CFR 113': 1, '13 CFR 134': 1}
+
+=== 49 rows=1 text='42 USC 7525'
+    rins=['2060-AI03', '2060-AG78', '2060-AI69'] editions=['199704', '200504']
+  ord0: type=usc status=ok usc=42:7525 verdict=exists appendix=False 
+        notes={'present': 3} parts={'40 CFR 9': 1, '40 CFR 86': 1, '40 CFR 85': 1}
+
+=== 50 rows=1 text='47 USC 303'
+    rins=['3060-AF89', '3060-AF78', '3060-AG31'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=47:303 verdict=exists appendix=False 
+        notes={'present': 19, None: 1, 'near-miss': 2, 'absent': 2} parts={'47 CFR 73': 1, '47 CFR 5': 1, '47 CFR 20': 1, '47 CFR 87': 1, '47 CFR 2': 1, '47 CFR 18': 1, '47 CFR 4': 1, '47 CFR 11': 1, '47 CFR 61': 1, '47 CFR 13': 1, '47 CFR 15': 1, '47 CFR 24': 1, '47 CFR 0': 1, '47 CFR 80': 1, '47 CFR 74': 1, '47 CFR 25': 1, '47 CFR 76': 1, '47 CFR 101': 1, '47 CFR 64': 1, '47 CFR 90': 1, '47 CFR 79': 1, '47 CFR 1': 1, '47 CFR 27': 1}
+
+=== 51 rows=1 text='47 U.S.C. 303'
+    rins=['3060-AK19', '3060-AJ37', '3060-AJ71'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=47:303 verdict=exists appendix=False 
+        notes={'present': 16, None: 1, 'near-miss': 2, 'absent': 2} parts={'47 CFR 73': 1, '47 CFR 20': 1, '47 CFR 87': 1, '47 CFR 5': 1, '47 CFR 97': 1, '47 CFR 11': 1, '47 CFR 25': 1, '47 CFR 64': 1, '47 CFR 17': 1, '47 CFR 76': 1, '47 CFR 2': 1, '47 CFR 4': 1, '47 CFR 1': 1, '47 CFR 54': 1, '47 CFR 79': 1, '47 CFR 90': 1, '47 CFR 63': 1, '47 CFR 74': 1, '47 CFR 0': 1, '47 CFR 15': 1}
+
+=== 52 rows=1 text='42 USC 7408 and 7409'
+    rins=['2060-AI43', '2060-AP38', '2060-AO47'] editions=['200810', '201104']
+  ord0: type=usc status=partial usc=42:7408 verdict=exists appendix=False 
+        notes={'near-miss': 1} parts={'40 CFR 50': 1}
+  ord1: type=usc status=partial usc=42:7409 verdict=exists appendix=False 
+        notes={'near-miss': 1} parts={'40 CFR 50': 1}
+
+=== 53 rows=1 text='47 U.S.C. 303 and 308(b)'
+    rins=['3060-AL51'] editions=['202304', '202510']
+  ord0: type=usc status=partial usc=47:303 verdict=exists appendix=False 
+        notes={None: 1, 'present': 1} parts={'47 CFR 25': 1}
+  ord1: type=usc status=partial usc=47:308 verdict=exists appendix=False 
+        notes={None: 1, 'near-miss': 1} parts={'47 CFR 25': 1}
+
+=== 54 rows=1 text='54 U.S.C. 100752'
+    rins=['1024-AE00', '1024-AE23', '1024-AE20'] editions=['201504', '201704']
+  ord0: type=usc status=ok usc=54:100752 verdict=exists appendix=False 
+        notes={'near-miss': 3, 'absent': 1} parts={'36 CFR 2': 1, '36 CFR 13': 1, '36 CFR 7': 1, '43 CFR 10': 1}
+
+=== 55 rows=1 text='5 USC 552'
+    rins=['1004-AB55', '3245-AD66', '0960-AE32'] editions=['199510', '202510']
+  ord0: type=usc status=ok usc=5:552 verdict=exists appendix=False 
+        notes={'present': 87, 'absent': 34, 'near-miss': 5, None: 1} parts={'44 CFR 2': 1, '12 CFR 1200': 1, '10 CFR 2': 1, '24 CFR 2002': 1, '44 CFR 5': 1, '22 CFR 171': 1, '49 CFR 571': 1, '12 CFR 100': 1, '21 CFR 20': 1, '6 CFR 1001': 1, '49 CFR 513': 1, '22 CFR 505': 1, '7 CFR 1': 1, '8 CFR 236': 1, '32 CFR 750': 1, '20 CFR 422': 1, '28 CFR 16': 1, '12 CFR 309': 1, '43 CFR 2': 1, '28 CFR 1100': 1, '45 CFR 1148': 1, '5 CFR 9301': 1, '10 CFR 1004': 1, '8 CFR 343c': 1, '28 CFR 513': 1, '20 CFR 402': 1, '32 CFR 286': 1, '15 CFR 911': 1, '49 CFR 1001': 1, '12 CFR 792': 1, '34 CFR 5': 1, '18 CFR 8': 1, '5 CFR 2604': 1, '33 CFR 1': 1, '12 CFR 4': 1, '5 CFR 300': 1, '20 CFR 401': 1, '27 CFR 70': 1, '12 CFR 602': 1, '29 CFR 1610': 1, '14 CFR 1206': 1, '44 CFR 206': 1, '10 CFR 609': 1, '45 CFR 2507': 1, '12 CFR 1214': 1, '12 CFR 238': 1, '8 CFR 100': 1, '42 CFR 401': 1, '13 CFR 101': 1, '7 CFR 2018': 1, '12 CFR 1402': 1, '10 CFR 1': 1, '28 CFR 65': 1, '9 CFR 390': 1, '6 CFR 115': 1, '36 CFR 1120': 1, '7 CFR 295': 1, '43 CFR 3000': 1, '5 CFR 293': 1, '5 CFR 1820': 1, '12 CFR 261': 1, '17 CFR 3': 1, '25 CFR 516': 1, '8 CFR 204': 1, '15 CFR 4': 1, '44 CFR 1': 1, '24 CFR 15': 1, '16 CFR 435': 1, '19 CFR 103': 1, '33 CFR 127': 1, '14 CFR 1201': 1, '36 CFR 1250': 1, '17 CFR 200': 1, '8 CFR 247': 1, '10 CFR 905': 1, '12 CFR 1070': 1, '38 CFR 1': 1, '24 CFR 10': 1, '40 CFR 2': 1, '25 CFR 16': 1, '36 CFR 1600': 1, '22 CFR 303': 1, '28 CFR 802': 1, '12 CFR 19': 1, '34 CFR 8': 1, '46 CFR 502': 1, '5 CFR 532': 1, '32 CFR 222': 1, '12 CFR 1301': 1, '12 CFR 207': 1, '32 CFR 225': 1, '25 CFR 517': 1, '10 CFR 9': 1, '45 CFR 170': 1, '45 CFR 612': 1, '22 CFR 9': 1, '45 CFR 1184': 1, '43 CFR 1820': 1, '32 CFR 117': 1, '38 CFR 9': 1, '26 CFR 601': 1, '36 CFR 1260': 1, '20 CFR 200': 1, '29 CFR 1625': 1, '45 CFR 5': 1, '1 CFR 51': 1, '36 CFR 1001': 1, '5 CFR 294': 1, '5 CFR 297': 1, '37 CFR 102': 1, '46 CFR 503': 1, '45 CFR 1171': 1, '6 CFR 1000': 1, '13 CFR 102': 1, '49 CFR 7': 1, '31 CFR 1': 1, '49 CFR 512': 1, '8 CFR 103': 1, '43 CFR 3400': 1, '8 CFR 212': 1, '10 CFR 11': 1, '22 CFR 706': 1, '46 CFR 14': 1, '8 CFR 2': 1, '6 CFR 5': 1, '12 CFR 1202': 1}
+
+=== 56 rows=1 text='38 USC 7103(c)'
+    rins=['2900-AK91', '2900-AL77', '2900-AN34'] editions=['199704', '201104']
+  ord0: type=usc status=partial usc=38:7103 verdict=exists appendix=False 
+        notes={'absent': 1} parts={'38 CFR 19': 1}
+
+=== 57 rows=1 text='49 U.S.C. 46102'
+    rins=['2120-AM02', '2120-AK32'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=49:46102 verdict=exists appendix=False 
+        notes={'present': 2} parts={'14 CFR 17': 1, '14 CFR 11': 1}
+
+=== 58 rows=1 text='38 USC 5104'
+    rins=['2900-AP19', '2900-AL95', '2900-AK18'] editions=['200010', '201410']
+  ord0: type=usc status=ok usc=38:5104 verdict=exists appendix=False 
+        notes={'absent': 1} parts={'38 CFR 3': 1}
+
+=== 59 rows=1 text='21 U.S.C. 352'
+    rins=['0910-AI47', '0910-AH08', '0910-AH51'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=21:352 verdict=exists appendix=False 
+        notes={'present': 24, None: 1, 'near-miss': 1} parts={'21 CFR 314': 1, '21 CFR 514': 1, '21 CFR 207': 1, '21 CFR 807': 1, '21 CFR 216': 1, '21 CFR 330': 1, '21 CFR 202': 1, '21 CFR 310': 1, '21 CFR 610': 1, '21 CFR 312': 1, '21 CFR 2': 1, '21 CFR 16': 1, '21 CFR 1002': 1, '21 CFR 50': 1, '21 CFR 210': 1, '21 CFR 820': 1, '21 CFR 884': 1, '21 CFR 11': 1, '21 CFR 1': 1, '21 CFR 809': 1, '21 CFR 600': 1, '21 CFR 212': 1, '21 CFR 10': 1, '21 CFR 201': 1, '21 CFR 895': 1}
+
+=== 60 rows=1 text='sec 212 of Pension Protection Act of 2006, PL 109-280, 120 Stat 780'
+    rins=['1545-BH39', '1545-BH40'] editions=['200804', '201304']
+  ord0: type=public_law status=partial usc=None:None verdict=None appendix=False 
+        notes={'absent': 1} parts={'26 CFR 1': 1}
+  ord1: type=statute_at_large status=partial usc=None:None verdict=None appendix=False 
+        notes={None: 1} parts={}
+
+=== 61 rows=1 text='18 USC 847'
+    rins=['1512-AB84', '1512-AC08', '1512-AC30'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=18:847 verdict=exists appendix=False *** MULTI-IDENTITY ***
+        notes={'present': 3, None: 1, 'absent': 2} parts={'27 CFR 478': 2, '27 CFR 555': 1, '27 CFR 70': 1, '27 CFR 72': 1}
+        VARIANT: (('citation_ordinal', 0), ('authority_type', 'usc'), ('parse_status', 'ok'), ('usc_title', 18), ('usc_section', '847'), ('usc_appendix', False), ('usc_section_verdict', 'exists'), ('authority_source', 'box'), ('authority_join_rule', 'fragment-right:R5-opens-with-digit-no-scheme'))
+        VARIANT: (('citation_ordinal', 0), ('authority_type', 'usc'), ('parse_status', 'ok'), ('usc_title', 18), ('usc_section', '847'), ('usc_appendix', False), ('usc_section_verdict', 'exists'), ('authority_source', 'box'))
+  ord1: type=usc status=partial usc=18:921 verdict=exists appendix=False 
+        notes={'present': 1} parts={'27 CFR 478': 1}
+
+=== 62 rows=1 text='Sec 934 of the MMA'
+    rins=['0938-AN31'] editions=['200404', '200610']
+  ord0: type=act_relative status=corroborated usc=None:None verdict=None appendix=False 
+        notes={'absent': 1, None: 1} parts={'42 CFR 421': 1}
+
+=== 63 rows=1 text='5 USC 3304'
+    rins=['3206-AG22', '3206-AL67', '3206-AH85'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=5:3304 verdict=exists appendix=False 
+        notes={'present': 5, 'near-miss': 1} parts={'5 CFR 335': 1, '5 CFR 315': 1, '5 CFR 338': 1, '5 CFR 330': 1, '5 CFR 337': 1, '5 CFR 930': 1}
+
+=== 64 rows=1 text='29 USC 211'
+    rins=['1215-AB03', '1215-AB06', '1215-AB02'] editions=['199510', '200110']
+  ord0: type=usc status=ok usc=29:211 verdict=exists appendix=False 
+        notes={'present': 3} parts={'29 CFR 519': 1, '29 CFR 516': 1, '29 CFR 580': 1}
+
+=== 65 rows=1 text='49 USC 40119'
+    rins=['2120-AA83', '2120-AC32', '2120-AC84'] editions=['199604', '202104']
+  ord0: type=usc status=ok usc=49:40119 verdict=exists appendix=False 
+        notes={'near-miss': 8, 'present': 6, None: 1, 'absent': 1} parts={'14 CFR 91': 1, '14 CFR 147': 1, '14 CFR 61': 1, '49 CFR 1520': 1, '49 CFR 1503': 1, '49 CFR 15': 1, '14 CFR 145': 1, '14 CFR 107': 1, '49 CFR 1570': 1, '14 CFR 117': 1, '14 CFR 129': 1, '49 CFR 1540': 1, '14 CFR 21': 1, '14 CFR 5': 1, '14 CFR 121': 1}
+
+=== 66 rows=1 text='42 U.S.C. 2139a'
+    rins=['0694-AE43', '0694-AF52', '0694-AG71'] editions=['201504', '202510']
+  ord0: type=usc status=ok usc=42:2139a verdict=exists appendix=False 
+        notes={None: 1, 'present': 5, 'absent': 2} parts={'15 CFR 742': 1, '15 CFR 744': 1, '15 CFR 774': 1, '15 CFR 738': 1, '15 CFR 734': 1, '15 CFR 746': 1, '15 CFR 730': 1}
+
+=== 67 rows=1 text='12 USC 1463 to 1464'
+    rins=['1550-AC02', '1557-AB93', '1557-AD36'] editions=['200610', '201510']
+  ord0: type=usc status=ok usc=12:1463 verdict=exists appendix=False 
+        notes={'present': 6, 'absent': 2, None: 1} parts={'12 CFR 25': 1, '12 CFR 3': 1, '12 CFR 44': 1, '12 CFR 30': 1, '12 CFR 34': 1, '12 CFR 760': 1, '12 CFR 5': 1, '12 CFR 12': 1}
+
+=== 68 rows=1 text='12 USC 2013'
+    rins=['3052-AB93', '3052-AB43', '1510-AA59'] editions=['199510', '202510']
+  ord0: type=usc status=ok usc=12:2013 verdict=exists appendix=False 
+        notes={'present': 11, None: 1, 'absent': 1} parts={'12 CFR 628': 1, '12 CFR 614': 1, '31 CFR 380': 1, '12 CFR 613': 1, '12 CFR 618': 1, '12 CFR 616': 1, '12 CFR 610': 1, '12 CFR 615': 1, '12 CFR 611': 1, '31 CFR 202': 1, '12 CFR 620': 1, '31 CFR 203': 1}
+
+=== 69 rows=1 text='31 USC 1111'
+    rins=['0348-AB40', '0930-AA18', '0503-AA10'] editions=['199510', '201410']
+  ord0: type=usc status=ok usc=31:1111 verdict=exists appendix=False 
+        notes={None: 1, 'absent': 2, 'present': 1} parts={'36 CFR 251': 1, '2 CFR 1': 1, '2 CFR 176': 1}

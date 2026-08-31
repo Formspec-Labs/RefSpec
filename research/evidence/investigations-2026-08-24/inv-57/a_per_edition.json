@@ -1,0 +1,785 @@
+{
+  "199510": {
+    "file": "199510",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199604": {
+    "file": "199604",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199610": {
+    "file": "199610",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199704": {
+    "file": "199704",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199710": {
+    "file": "199710",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199804": {
+    "file": "199804",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199810": {
+    "file": "199810",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199904": {
+    "file": "199904",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "199910": {
+    "file": "199910",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200004": {
+    "file": "200004",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200010": {
+    "file": "200010",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200104": {
+    "file": "200104",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200110": {
+    "file": "200110",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200204": {
+    "file": "200204",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200210": {
+    "file": "200210",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200304": {
+    "file": "200304",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "200310": {
+    "file": "200310",
+    "total_occurrences": 2,
+    "by_codepoint": {
+      "U+0093": 1,
+      "U+0092": 1
+    },
+    "by_element": {
+      "other:LEGAL_DLINE_OVERALL_DESC": 1,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "200404": {
+    "file": "200404",
+    "total_occurrences": 330,
+    "by_codepoint": {
+      "U+0092": 152,
+      "U+0093": 77,
+      "U+0094": 75,
+      "U+0091": 6,
+      "U+0096": 16,
+      "U+0097": 3,
+      "U+0019": 1
+    },
+    "by_element": {
+      "ABSTRACT": 313,
+      "other:RULE_TITLE": 7,
+      "other:ADDITIONAL_INFO": 2,
+      "other:LEGAL_DLINE_OVERALL_DESC": 1,
+      "other:STMT_OF_NEED": 7
+    }
+  },
+  "200410": {
+    "file": "200410",
+    "total_occurrences": 415,
+    "by_codepoint": {
+      "U+0093": 85,
+      "U+0094": 84,
+      "U+0092": 208,
+      "U+0096": 18,
+      "U+0085": 8,
+      "U+0091": 1,
+      "U+0095": 8,
+      "U+0097": 2,
+      "U+0019": 1
+    },
+    "by_element": {
+      "ABSTRACT": 321,
+      "other:STMT_OF_NEED": 42,
+      "other:LEGAL_BASIS": 18,
+      "other:RISKS": 4,
+      "other:ALTERNATIVES": 14,
+      "other:COSTS_AND_BENEFITS": 8,
+      "other:RULE_TITLE": 6,
+      "other:ADDITIONAL_INFO": 2
+    }
+  },
+  "200504": {
+    "file": "200504",
+    "total_occurrences": 405,
+    "by_codepoint": {
+      "U+0093": 74,
+      "U+0094": 70,
+      "U+0092": 235,
+      "U+0091": 3,
+      "U+0085": 1,
+      "U+0096": 21,
+      "U+0097": 1
+    },
+    "by_element": {
+      "ABSTRACT": 376,
+      "other:RULE_TITLE": 7,
+      "other:DLINE_DESC": 2,
+      "other:LEGAL_DLINE_OVERALL_DESC": 12,
+      "other:ADDITIONAL_INFO": 2,
+      "other:LEGAL_BASIS": 1,
+      "other:STMT_OF_NEED": 5
+    }
+  },
+  "200510": {
+    "file": "200510",
+    "total_occurrences": 697,
+    "by_codepoint": {
+      "U+0092": 398,
+      "U+0093": 125,
+      "U+0094": 127,
+      "U+0091": 5,
+      "U+0085": 2,
+      "U+0096": 25,
+      "U+0097": 13,
+      "U+0095": 2
+    },
+    "by_element": {
+      "ABSTRACT": 500,
+      "other:ALTERNATIVES": 38,
+      "other:STMT_OF_NEED": 59,
+      "other:RULE_TITLE": 11,
+      "other:COSTS_AND_BENEFITS": 14,
+      "other:LEGAL_BASIS": 51,
+      "other:RISKS": 7,
+      "other:DLINE_DESC": 2,
+      "other:LEGAL_DLINE_OVERALL_DESC": 11,
+      "other:ADDITIONAL_INFO": 4
+    }
+  },
+  "200604": {
+    "file": "200604",
+    "total_occurrences": 634,
+    "by_codepoint": {
+      "U+0092": 364,
+      "U+0091": 2,
+      "U+0093": 115,
+      "U+0094": 117,
+      "U+0085": 1,
+      "U+0096": 22,
+      "U+0097": 10,
+      "U+0099": 1,
+      "U+0095": 2
+    },
+    "by_element": {
+      "ABSTRACT": 600,
+      "other:RULE_TITLE": 14,
+      "other:DLINE_DESC": 2,
+      "other:LEGAL_DLINE_OVERALL_DESC": 11,
+      "other:ADDITIONAL_INFO": 1,
+      "other:STMT_OF_NEED": 4,
+      "other:LEGAL_BASIS": 1,
+      "other:COSTS_AND_BENEFITS": 1
+    }
+  },
+  "200610": {
+    "file": "200610",
+    "total_occurrences": 834,
+    "by_codepoint": {
+      "U+0093": 152,
+      "U+0094": 152,
+      "U+0091": 3,
+      "U+0092": 456,
+      "U+0096": 38,
+      "U+0095": 14,
+      "U+0085": 1,
+      "U+0097": 17,
+      "U+0099": 1
+    },
+    "by_element": {
+      "other:STMT_OF_NEED": 57,
+      "other:ALTERNATIVES": 13,
+      "other:RISKS": 14,
+      "ABSTRACT": 680,
+      "LEGAL_AUTHORITY": 3,
+      "other:LEGAL_BASIS": 26,
+      "other:RULE_TITLE": 16,
+      "other:COSTS_AND_BENEFITS": 13,
+      "other:ADDITIONAL_INFO": 3,
+      "other:LEGAL_DLINE_OVERALL_DESC": 9
+    }
+  },
+  "200704": {
+    "file": "200704",
+    "total_occurrences": 698,
+    "by_codepoint": {
+      "U+0092": 421,
+      "U+0093": 106,
+      "U+0094": 104,
+      "U+0096": 45,
+      "U+0091": 2,
+      "U+0095": 8,
+      "U+0085": 1,
+      "U+0097": 11
+    },
+    "by_element": {
+      "ABSTRACT": 638,
+      "LEGAL_AUTHORITY": 12,
+      "other:RULE_TITLE": 23,
+      "other:ADDITIONAL_INFO": 3,
+      "other:LEGAL_DLINE_OVERALL_DESC": 11,
+      "other:STMT_OF_NEED": 5,
+      "other:LEGAL_BASIS": 1,
+      "other:RISKS": 4,
+      "other:ALTERNATIVES": 1
+    }
+  },
+  "200710": {
+    "file": "200710",
+    "total_occurrences": 1173,
+    "by_codepoint": {
+      "U+0092": 643,
+      "U+0093": 207,
+      "U+0094": 205,
+      "U+0096": 56,
+      "U+0095": 32,
+      "U+0091": 6,
+      "U+0097": 23,
+      "U+0099": 1
+    },
+    "by_element": {
+      "ABSTRACT": 898,
+      "LEGAL_AUTHORITY": 12,
+      "other:COSTS_AND_BENEFITS": 39,
+      "other:STMT_OF_NEED": 73,
+      "other:ALTERNATIVES": 29,
+      "other:RULE_TITLE": 35,
+      "other:LEGAL_BASIS": 51,
+      "other:RISKS": 23,
+      "other:ADDITIONAL_INFO": 1,
+      "other:LEGAL_DLINE_OVERALL_DESC": 12
+    }
+  },
+  "200804": {
+    "file": "200804",
+    "total_occurrences": 912,
+    "by_codepoint": {
+      "U+0095": 33,
+      "U+0092": 503,
+      "U+0093": 164,
+      "U+0094": 164,
+      "U+0096": 27,
+      "U+0097": 17,
+      "U+0099": 1,
+      "U+0091": 3
+    },
+    "by_element": {
+      "ABSTRACT": 851,
+      "LEGAL_AUTHORITY": 7,
+      "other:RULE_TITLE": 32,
+      "other:ADDITIONAL_INFO": 1,
+      "other:LEGAL_DLINE_OVERALL_DESC": 9,
+      "other:STMT_OF_NEED": 6,
+      "other:ALTERNATIVES": 3,
+      "other:RISKS": 3
+    }
+  },
+  "200810": {
+    "file": "200810",
+    "total_occurrences": 1192,
+    "by_codepoint": {
+      "U+0092": 622,
+      "U+0095": 33,
+      "U+0096": 67,
+      "U+0093": 219,
+      "U+0094": 220,
+      "U+0097": 24,
+      "U+0085": 1,
+      "U+0091": 5,
+      "U+0099": 1
+    },
+    "by_element": {
+      "ABSTRACT": 978,
+      "LEGAL_AUTHORITY": 8,
+      "other:ALTERNATIVES": 23,
+      "other:LEGAL_BASIS": 23,
+      "other:RISKS": 19,
+      "other:STMT_OF_NEED": 59,
+      "other:COSTS_AND_BENEFITS": 27,
+      "other:ADDITIONAL_INFO": 21,
+      "other:RULE_TITLE": 26,
+      "other:LEGAL_DLINE_OVERALL_DESC": 8
+    }
+  },
+  "200904": {
+    "file": "200904",
+    "total_occurrences": 989,
+    "by_codepoint": {
+      "U+0092": 473,
+      "U+0096": 67,
+      "U+0093": 200,
+      "U+0094": 196,
+      "U+0095": 31,
+      "U+0097": 15,
+      "U+0099": 1,
+      "U+0091": 5,
+      "U+0085": 1
+    },
+    "by_element": {
+      "ABSTRACT": 901,
+      "LEGAL_AUTHORITY": 2,
+      "other:RULE_TITLE": 42,
+      "other:ADDITIONAL_INFO": 33,
+      "other:LEGAL_DLINE_OVERALL_DESC": 9,
+      "other:RISKS": 2
+    }
+  },
+  "200910": {
+    "file": "200910",
+    "total_occurrences": 1041,
+    "by_codepoint": {
+      "U+0092": 509,
+      "U+0096": 59,
+      "U+0093": 199,
+      "U+0094": 198,
+      "U+0091": 16,
+      "U+0095": 34,
+      "U+0097": 20,
+      "U+0085": 6
+    },
+    "by_element": {
+      "ABSTRACT": 789,
+      "other:STMT_OF_NEED": 71,
+      "other:ALTERNATIVES": 26,
+      "other:LEGAL_BASIS": 50,
+      "other:RISKS": 14,
+      "other:COSTS_AND_BENEFITS": 17,
+      "other:RULE_TITLE": 27,
+      "other:LEGAL_DLINE_OVERALL_DESC": 8,
+      "other:TITLE": 2,
+      "other:ADDITIONAL_INFO": 36,
+      "LEGAL_AUTHORITY": 1
+    }
+  },
+  "201004": {
+    "file": "201004",
+    "total_occurrences": 579,
+    "by_codepoint": {
+      "U+0092": 337,
+      "U+0093": 88,
+      "U+0094": 90,
+      "U+0097": 16,
+      "U+0085": 2,
+      "U+0096": 43,
+      "U+0091": 3
+    },
+    "by_element": {
+      "ABSTRACT": 497,
+      "other:RULE_TITLE": 23,
+      "LEGAL_AUTHORITY": 2,
+      "other:LEGAL_DLINE_OVERALL_DESC": 7,
+      "other:STMT_OF_NEED": 12,
+      "other:LEGAL_BASIS": 1,
+      "other:TITLE": 4,
+      "other:RISKS": 3,
+      "other:ADDITIONAL_INFO": 30
+    }
+  },
+  "201010": {
+    "file": "201010",
+    "total_occurrences": 1318,
+    "by_codepoint": {
+      "U+0097": 109,
+      "U+0092": 571,
+      "U+0091": 12,
+      "U+0096": 154,
+      "U+0093": 229,
+      "U+0094": 235,
+      "U+0085": 8
+    },
+    "by_element": {
+      "other:RULE_TITLE": 108,
+      "ABSTRACT": 976,
+      "other:STMT_OF_NEED": 22,
+      "other:ALTERNATIVES": 21,
+      "other:LEGAL_BASIS": 36,
+      "other:RISKS": 11,
+      "LEGAL_AUTHORITY": 43,
+      "other:COSTS_AND_BENEFITS": 8,
+      "other:LEGAL_DLINE_OVERALL_DESC": 11,
+      "other:TITLE": 2,
+      "other:ADDITIONAL_INFO": 68,
+      "other:DLINE_DESC": 1,
+      "other:TTBL_ACTION": 11
+    }
+  },
+  "201104": {
+    "file": "201104",
+    "total_occurrences": 157,
+    "by_codepoint": {
+      "U+0096": 137,
+      "U+0097": 6,
+      "U+0095": 2,
+      "U+0085": 7,
+      "U+0092": 3,
+      "U+0093": 1,
+      "U+0094": 1
+    },
+    "by_element": {
+      "ABSTRACT": 45,
+      "other:RULE_TITLE": 3,
+      "LEGAL_AUTHORITY": 25,
+      "other:LEGAL_DLINE_OVERALL_DESC": 10,
+      "other:TITLE": 2,
+      "other:ADDITIONAL_INFO": 70,
+      "other:TTBL_ACTION": 2
+    }
+  },
+  "201110": {
+    "file": "201110",
+    "total_occurrences": 260,
+    "by_codepoint": {
+      "U+0095": 51,
+      "U+0096": 122,
+      "U+0097": 27,
+      "U+0085": 7,
+      "U+0093": 11,
+      "U+0094": 11,
+      "U+0092": 31
+    },
+    "by_element": {
+      "ABSTRACT": 132,
+      "other:LEGAL_DLINE_OVERALL_DESC": 6,
+      "other:RULE_TITLE": 18,
+      "other:COSTS_AND_BENEFITS": 8,
+      "other:ALTERNATIVES": 1,
+      "LEGAL_AUTHORITY": 29,
+      "other:TITLE": 2,
+      "other:ADDITIONAL_INFO": 58,
+      "other:STMT_OF_NEED": 4,
+      "other:TTBL_ACTION": 2
+    }
+  },
+  "2012": {
+    "file": "2012",
+    "total_occurrences": 74,
+    "by_codepoint": {
+      "U+0096": 63,
+      "U+0097": 2,
+      "U+0095": 9
+    },
+    "by_element": {
+      "ABSTRACT": 26,
+      "other:LEGAL_DLINE_OVERALL_DESC": 1,
+      "other:LEGAL_BASIS": 1,
+      "LEGAL_AUTHORITY": 23,
+      "other:COSTS_AND_BENEFITS": 2,
+      "other:ADDITIONAL_INFO": 19,
+      "other:DLINE_DESC": 1,
+      "other:ALTERNATIVES": 1
+    }
+  },
+  "201304": {
+    "file": "201304",
+    "total_occurrences": 48,
+    "by_codepoint": {
+      "U+0096": 33,
+      "U+0085": 1,
+      "U+0095": 10,
+      "U+0099": 1,
+      "U+0091": 2,
+      "U+0097": 1
+    },
+    "by_element": {
+      "ABSTRACT": 29,
+      "other:LEGAL_DLINE_OVERALL_DESC": 1,
+      "LEGAL_AUTHORITY": 13,
+      "other:RULE_TITLE": 3,
+      "other:ADDITIONAL_INFO": 2
+    }
+  },
+  "201310": {
+    "file": "201310",
+    "total_occurrences": 39,
+    "by_codepoint": {
+      "U+0096": 21,
+      "U+0085": 1,
+      "U+0095": 14,
+      "U+0099": 1,
+      "U+0091": 2
+    },
+    "by_element": {
+      "other:LEGAL_DLINE_OVERALL_DESC": 1,
+      "ABSTRACT": 12,
+      "LEGAL_AUTHORITY": 8,
+      "other:STMT_OF_NEED": 14,
+      "other:RULE_TITLE": 2,
+      "other:ADDITIONAL_INFO": 2
+    }
+  },
+  "201404": {
+    "file": "201404",
+    "total_occurrences": 19,
+    "by_codepoint": {
+      "U+0096": 18,
+      "U+0092": 1
+    },
+    "by_element": {
+      "ABSTRACT": 11,
+      "LEGAL_AUTHORITY": 7,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "201410": {
+    "file": "201410",
+    "total_occurrences": 39,
+    "by_codepoint": {
+      "U+0096": 12,
+      "U+0095": 11,
+      "U+0091": 16
+    },
+    "by_element": {
+      "ABSTRACT": 7,
+      "LEGAL_AUTHORITY": 4,
+      "other:STMT_OF_NEED": 11,
+      "other:ALTERNATIVES": 8,
+      "other:RISKS": 2,
+      "other:LEGAL_BASIS": 6,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "201504": {
+    "file": "201504",
+    "total_occurrences": 12,
+    "by_codepoint": {
+      "U+0096": 10,
+      "U+0091": 2
+    },
+    "by_element": {
+      "ABSTRACT": 8,
+      "LEGAL_AUTHORITY": 3,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "201510": {
+    "file": "201510",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "201604": {
+    "file": "201604",
+    "total_occurrences": 6,
+    "by_codepoint": {
+      "U+0096": 4,
+      "U+0091": 2
+    },
+    "by_element": {
+      "LEGAL_AUTHORITY": 2,
+      "ABSTRACT": 3,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "201610": {
+    "file": "201610",
+    "total_occurrences": 16,
+    "by_codepoint": {
+      "U+0091": 7,
+      "U+0095": 6,
+      "U+0096": 3
+    },
+    "by_element": {
+      "ABSTRACT": 5,
+      "other:ALTERNATIVES": 1,
+      "other:LEGAL_BASIS": 2,
+      "other:COSTS_AND_BENEFITS": 6,
+      "other:RULE_TITLE": 1,
+      "LEGAL_AUTHORITY": 1
+    }
+  },
+  "201704": {
+    "file": "201704",
+    "total_occurrences": 5,
+    "by_codepoint": {
+      "U+0091": 2,
+      "U+0096": 3
+    },
+    "by_element": {
+      "ABSTRACT": 3,
+      "other:RULE_TITLE": 1,
+      "LEGAL_AUTHORITY": 1
+    }
+  },
+  "201710": {
+    "file": "201710",
+    "total_occurrences": 2,
+    "by_codepoint": {
+      "U+0091": 2
+    },
+    "by_element": {
+      "ABSTRACT": 2
+    }
+  },
+  "201804": {
+    "file": "201804",
+    "total_occurrences": 3,
+    "by_codepoint": {
+      "U+009D": 1,
+      "U+0091": 2
+    },
+    "by_element": {
+      "ABSTRACT": 3
+    }
+  },
+  "201810": {
+    "file": "201810",
+    "total_occurrences": 9,
+    "by_codepoint": {
+      "U+0091": 7,
+      "U+0096": 2
+    },
+    "by_element": {
+      "other:STMT_OF_NEED": 5,
+      "ABSTRACT": 3,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "201904": {
+    "file": "201904",
+    "total_occurrences": 4,
+    "by_codepoint": {
+      "U+0091": 2,
+      "U+0096": 2
+    },
+    "by_element": {
+      "ABSTRACT": 3,
+      "other:RULE_TITLE": 1
+    }
+  },
+  "201910": {
+    "file": "201910",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202004": {
+    "file": "202004",
+    "total_occurrences": 2,
+    "by_codepoint": {
+      "U+0096": 2
+    },
+    "by_element": {
+      "other:RULE_TITLE": 1,
+      "ABSTRACT": 1
+    }
+  },
+  "202010": {
+    "file": "202010",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202104": {
+    "file": "202104",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202110": {
+    "file": "202110",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202204": {
+    "file": "202204",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202210": {
+    "file": "202210",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202304": {
+    "file": "202304",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202310": {
+    "file": "202310",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202404": {
+    "file": "202404",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202410": {
+    "file": "202410",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202504": {
+    "file": "202504",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  },
+  "202510": {
+    "file": "202510",
+    "total_occurrences": 0,
+    "by_codepoint": {},
+    "by_element": {}
+  }
+}

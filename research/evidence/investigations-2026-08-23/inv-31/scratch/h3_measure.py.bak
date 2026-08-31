@@ -1,0 +1,138 @@
+"""H3: rows that STATE an act name / section but carry no citation."""
+from __future__ import annotations
+
+import collections
+import json
+import random
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import common  # noqa: F401,E402
+
+import pyarrow.parquet as pq  # noqa: E402
+
+from refspec.registry.act_resolution import (  # noqa: E402
+    ActIndex, resolve_act_relative_citation, resolve_act_name,
+)
+from refspec.registry.citation_grammar import (  # noqa: E402
+    ActRelativeCitation, normalize_popular_name,
+)
+from refspec.registry.unified_agenda_parquet import (  # noqa: E402
+    _DEFAULT_ACT_INDEX, _usc_source_credits, resolvable_act_names,
+)
+
+BASE = common.BASE
+t = pq.read_table(BASE)
+cols = {n: t.column(n).to_pylist() for n in t.schema.names}
+n = t.num_rows
+
+pool = []
+by_class = collections.Counter()
+for i in range(n):
+    san, ssec = cols["stated_act_name"][i], cols["stated_section"][i]
+    if san is None and ssec is None:
+        continue
+    by_class[(cols["authority_type"][i], cols["parse_status"][i],
+              san is not None, ssec is not None)] += 1
+    if cols["authority_type"][i] == "other":
+        pool.append({"rin": cols["rin"][i], "pub": cols["publication_id"][i],
+                     "ordinal": cols["ordinal"][i],
+                     "text": cols["authority_text"][i],
+                     "stated_act_name": san, "stated_section": ssec})
+
+print("rows carrying a stated_act_name and/or stated_section:")
+tot = 0
+for (a, s, has_n, has_s), c in by_class.most_common():
+    tot += c
+    what = ("name+section" if has_n and has_s else ("name" if has_n else "section"))
+    print(f"  {a:<16} {s:<13} {what:<13} {c:>7,}")
+print(f"  TOTAL {tot:,}")
+print()
+print(f"of those, rows typed 'other' (nothing read at all): {len(pool):,}")
+sub = collections.Counter()
+for p in pool:
+    sub[("name" if p["stated_act_name"] else "") + ("+section" if p["stated_section"] else "")] += 1
+print("   split:", dict(sub))
+name_and_section = [p for p in pool if p["stated_act_name"] and p["stated_section"]]
+name_only = [p for p in pool if p["stated_act_name"] and not p["stated_section"]]
+sec_only = [p for p in pool if p["stated_section"] and not p["stated_act_name"]]
+print(f"   name+section {len(name_and_section):,} | name only {len(name_only):,} | section only {len(sec_only):,}")
+print(f"   distinct stated_act_name values: {len({p['stated_act_name'] for p in pool if p['stated_act_name']}):,}")
+
+# ---- what the act index says ------------------------------------------------
+index = ActIndex.from_artifact(_DEFAULT_ACT_INDEX)
+credits = _usc_source_credits()
+names = resolvable_act_names(_DEFAULT_ACT_INDEX)
+print(f"\nact index: {_DEFAULT_ACT_INDEX}   resolvable names: {len(names):,}")
+
+in_index = 0
+resolved = 0
+outcomes = collections.Counter()
+detail: list[dict] = []
+memo: dict[tuple, dict] = {}
+for p in pool:
+    if not p["stated_act_name"]:
+        outcomes["no_stated_act_name"] += 1
+        detail.append({**p, "outcome": "no_stated_act_name"})
+        continue
+    key = (p["stated_act_name"], p["stated_section"])
+    if key in memo:
+        r = memo[key]
+    else:
+        norm = normalize_popular_name(p["stated_act_name"])
+        act_key = resolve_act_name(norm, index)
+        if act_key is None:
+            r = {"normalized": norm, "act_key": None, "outcome": "act_not_in_index"}
+        else:
+            cit = ActRelativeCitation(act_key=act_key, section=p["stated_section"])
+            res = resolve_act_relative_citation(cit, index=index, source_credits=credits)
+            r = {"normalized": norm, "act_key": act_key,
+                 "outcome": "resolved" if res.iri else res.unresolved_reason,
+                 "usc_title": res.usc_title, "usc_section": res.usc_section,
+                 "answered_by": res.answered_by, "iri": res.iri,
+                 "table3_reason": res.table3_reason,
+                 "source_credit_status": res.source_credit_status}
+        memo[key] = r
+    in_index += r["act_key"] is not None
+    resolved += r["outcome"] == "resolved"
+    outcomes[r["outcome"]] += 1
+    detail.append({**p, **r})
+
+print(f"\nof the {len(pool):,} 'other' rows with a statement:")
+print(f"  stated_act_name normalizes to a name the OLRC index answers: {in_index:,}")
+print(f"  resolve_act_relative_citation returns an identifier:          {resolved:,}")
+print("  outcomes:")
+for o, c in outcomes.most_common():
+    print(f"    {str(o):<34} {c:>7,}")
+
+out = Path("/Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-31/scratch")
+(out / "h3_pool.json").write_text(json.dumps(detail, ensure_ascii=False), encoding="utf-8")
+
+keys = sorted((p["rin"], p["pub"], p["ordinal"]) for p in pool)
+sample = random.Random(20260823).sample(keys, 10)
+idx = {(d["rin"], d["pub"], d["ordinal"]): d for d in detail}
+picked = [idx[k] for k in sample]
+print("\n=== 10 seeded examples ===")
+for d in picked:
+    print(f"  {d['rin']} {d['pub']} ord{d['ordinal']}  text={d['text']!r}")
+    print(f"    stated_act_name={d['stated_act_name']!r}  stated_section={d['stated_section']!r}")
+    print(f"    -> {json.dumps({k: v for k, v in d.items() if k not in {'rin','pub','ordinal','text','stated_act_name','stated_section'}}, ensure_ascii=False)}")
+(out / "h3_seeded.json").write_text(json.dumps(picked, ensure_ascii=False, indent=1),
+                                    encoding="utf-8")
+
+print("\n=== specimen: Atomic Energy Act sec 275 ===")
+for i in range(n):
+    if cols["authority_text"][i] == "Atomic Energy Act sec 275":
+        print("  ", {k: cols[k][i] for k in ("rin", "publication_id", "ordinal", "citation_ordinal",
+                                             "authority_type", "parse_status", "usc_title",
+                                             "usc_section", "act_key", "act_section",
+                                             "act_resolution_evidence", "act_resolution_reason",
+                                             "stated_act_name", "stated_section")})
+print("\n=== specimen: UMTRCA sec 206(a) (2060-AP43 201004 ord2) ===")
+for i in range(n):
+    if cols["authority_text"][i] == "UMTRCA sec 206(a)" and cols["publication_id"][i] == "201004":
+        print("  ", {k: cols[k][i] for k in ("rin", "publication_id", "ordinal",
+                                             "authority_type", "parse_status", "act_key",
+                                             "act_section", "stated_act_name", "stated_section",
+                                             "corroboration_rule")})

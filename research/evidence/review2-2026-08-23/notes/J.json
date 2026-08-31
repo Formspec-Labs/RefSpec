@@ -1,0 +1,232 @@
+{
+  "class": "J-disposition-answered",
+  "reviewed": 20,
+  "verdict_counts": {
+    "correct-as-labeled": 15,
+    "label-overstates": 3,
+    "filer-error-confirmed": 1,
+    "wrong-value": 1
+  },
+  "rows": [
+    {
+      "key": "2120-AF67/199510/ord8.0",
+      "rin": "2120-AF67",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1472",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "ABSTRACT: \"The FAA will initiate a rulemaking action on night flying in mountainous areas...\" | table: \"1472(a)\" -> \"46316\" ... \"1472(r)\" -> \"46314\" (19 restated rows, one per lettered subsection of old 1472)",
+      "why": "RIN_INFO is an FAA 'Mountain Flying' rulemaking under the standard FAA legal-authority boilerplate block (14 CFR 91). Every printed row for former 1472 lands in Subtitle VII aviation-accident/security/enforcement provisions (46301-46507) plus one genuine cross-reference (28:538); all 19 successors are distinct lettered-subsection splits, none invented. Candidate framing is honest -- no single successor is asserted for a section the table itself splits 19 ways.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2105-AA84/199910/ord3.0",
+      "rin": "2105-AA84",
+      "publication_id": "199910",
+      "cited_section": "49 USC 1381",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "ABSTRACT: \"...the CAB proposed to amend the baggage liability notices... eliminate the disclaimer of liability... because that notice is false and misleading.\" -> successors 49:41712 (unfair or deceptive practices), 49:41707",
+      "why": "OST rule about a 'false and misleading' baggage-liability notice maps to 49:41712, the modern 'unfair or deceptive practices' provision -- squarely on-subject. Two successors, both genuine, framed as candidates.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2120-AA49/199510/ord3.0",
+      "rin": "2120-AA49",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1357",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1357(a), (b)\" -> \"44903\"; \"1357(d)(3)-(8)\" -> \"44912\"; \"1357 notes\" -> \"44904, 44906, 44914, 44936, 44938\" (11 distinct successors, all Subtitle VII airman/mechanic-certification provisions)",
+      "why": "FAA 'Fuel System Vent Fire Protection' airworthiness rule citing the standard FAA boilerplate block (14 CFR 25/121/135). All 11 successors are airman/repair-station certification sections (449xx range); verified the module's own read of the table matches the parquet exactly, row for row.",
+      "anything_systemic": null
+    },
+    {
+      "key": "1902-AF39/202004/ord4.0",
+      "rin": "1902-AF39",
+      "publication_id": "202004",
+      "cited_section": "49 App. U.S.C. 1 to 85 (1988)",
+      "verdict": "label-overstates",
+      "subjects_agree": true,
+      "decisive_quote": "authority_text \"49 App. U.S.C. 1 to 85 (1988)\" but usc_section_end is null (parse_status=partial) -- only section \"1\" is queried. Direct query of section \"2\" alone already yields NEW successors ['49:10741','49:5308','49:5338'] not present in section 1's 36-item list; section \"26\" alone yields nine more (49:20102, 49:20502-20505, 49:20902, 49:501, 49:21302, 49:21304) in a different modern subtitle (rail safety, not economic regulation) entirely absent from the stored list.",
+      "why": "RIN is FERC's oil-pipeline rate-index rulemaking (ABSTRACT: 'evaluating oil pipeline indexed rate changes... FERC Form No. 6'), authority also citing 42 U.S.C. 7101-7532 (DOE Organization Act, the actual transfer-of-ICC-jurisdiction statute) -- so citing the old Interstate Commerce Act's full 1-85 span as FERC's historical authority is subject-appropriate at the family level (ICC-descended economic regulation), even though the recorded successors (Subtitle IV rail-carrier provisions) read as 'rail' rather than 'pipeline' on their face; no printed row for sections 1-27 mentions pipelines separately, so this is the table's own resolution, not a system misread. The provable defect is completeness: the filer cited a stated range of 85 former sections and the pipeline verdict/successor list represents only former section 1 (an estimated 84 other former sections, several already confirmed to add distinct successors, are silently dropped from usc_disposition_successors even though the citation names them).",
+      "anything_systemic": "Range citations ('N to M') are not exploded before the disposition lookup: unified_agenda_parquet.py only feeds row['usc_title']/row['usc_section'] (the span's first token) into oracle.section_verdict()/disposition() -- usc_section_end is never consulted at that call site (verified by reading the source directly, lines ~2881-2931). For 'N to M' citations this silently truncates usc_disposition_successors to whatever the first section alone maps to."
+    },
+    {
+      "key": "2120-AA83/199510/ord6.0",
+      "rin": "2120-AA83",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1401",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1401(a)\" -> \"44101\" ... \"1401(h)\" -> \"44111\"; \"1401 note\" -> \"44111, 44703, 44713\" (8 successors, all Subtitle VII aircraft/airman certification, chapter 441)",
+      "why": "FAA 'Aircraft Flight Simulator Use in Pilot Training...' rule (part of a new Part 142 training-center concept), citing the standard FAA boilerplate authority block. 1401 is the old certification section; successors are exactly the modern certification chapter. Matches the parquet exactly.",
+      "anything_systemic": null
+    },
+    {
+      "key": "3090-AG59/199804/ord1.0",
+      "rin": "3090-AG59",
+      "publication_id": "199804",
+      "cited_section": "49 USC 486(c)",
+      "verdict": "filer-error-confirmed",
+      "subjects_agree": false,
+      "decisive_quote": "authority_text: \"49 USC 486(c), sec 205(c), 63 Stat 390\" | RIN_INFO ABSTRACT: \"This interim final rule implements the Single Audit Act Amendments of 1996 (Pub. L. 104-156, 110 Stat. 1396) and the... revision of OMB Circular A-133...\" | table: \"481-496\" -> \"Rep.\"",
+      "why": "The record's own text is the tell: 'sec 205(c), 63 Stat 390' is the Federal Property and Administrative Services Act of 1949 (Pub. L. 81-152, 63 Stat. 377) -- historically codified at 40 U.S.C. 486(c), GSA's standard grants/property-management authority, not anything in Title 49's aviation-era numbering (which the printed table confirms is a repealed 481-496 War-Risk-Insurance-era block with zero connection to a Single Audit Act grants rule). This reads as a '49' typed for '40' (a one-digit title slip), i.e. damage in the citation itself, not a gap in the table. usc_disposition_verdict is technically a true fact about the real former 49 U.S.C. 486, but is not a meaningful answer to what GSA's own text is actually citing.",
+      "anything_systemic": "Worth flagging alongside class D/E's title-digit-slip findings: a bare title-49-shaped citation that maps to a REAL repealed former section can still be a false positive if the surrounding box text names a different act/title's own section+Statutes citation. The disposition table has no way to see this -- it only ever sees the (title, section) the upstream parser already committed to."
+    },
+    {
+      "key": "2120-AF84/199510/ord3.0",
+      "rin": "2120-AF84",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1421",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1421(a), (b) (1st sentence related to standards, rules, and regulations).\" -> \"44701\"; \"1421 notes\" -> \"44716, 44717, 44722\" (7 successors, all Subtitle VII chapter 447 'Safety Regulation')",
+      "why": "FAA 'Bird Ingestion Standards' turbine-engine type-certification NPRM; 1421 is the old airworthiness-standards section, and every successor lands in the modern safety-regulation chapter. Exact match to the module's own read.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2105-AD66/201010/ord2.1",
+      "rin": "2105-AD66",
+      "publication_id": "201010",
+      "cited_section": "49 USC 106(g), ch 447 and 451",
+      "verdict": "wrong-value",
+      "subjects_agree": false,
+      "decisive_quote": "RIN_INFO ABSTRACT: \"...exempting them from certain provisions of subtitle VII of title 49 of the United States Code...\" | LEGAL_AUTHORITY_LIST sibling box, same record: \"49 USC ch 401, 411, and 417\" (captured correctly as authority_type='usc_chapter') | table row queried for '451': \"451-460\" -> \"Rep.\"",
+      "why": "The record's own abstract says outright that its authority runs off CURRENT Subtitle VII of Title 49, and the sibling box in the very same record shows the filer's 'ch NNN' convention is normally captured as a CHAPTER, not a section. In this citation_ordinal, the same 'ch' qualifier governing '447 and 451' was dropped for '451' alone, so the parser handed the disposition lookup a bare section token. The row's own usc_appendix flag is False -- the parser itself does NOT think this is an Appendix-style citation -- yet usc_section_verdict_reason still fires 'title_49_appendix_not_published', a contradiction in terms: that reason means 'this token looks pre-1996-Appendix-shaped and no archive holds it,' which cannot be true of a citation the same row just flagged as non-Appendix. That internal inconsistency is the tell that a short bare number is being routed on magnitude alone, independent of what the parser itself concluded about it. The table's '451-460 -> Rep.' row is real, but it answers a question about an unrelated repealed CAA-era block, not about the current chapter 451 the filer actually cited. This is upstream-of-disposition damage inherited by the verdict, not filer error: the filer's citation is well-formed current law.",
+      "anything_systemic": "Same defect class as the chapter-vs-section confusion noted for class J generally: a short bare number under title 49 is heuristically bucketed as 'probably pre-1994 Appendix' by the oracle, but modern Title 49 chapters are ALSO short numbers (Subtitle VII Part A runs chapters 401-471). Losing a 'ch' qualifier on one box entry while keeping it on the neighboring one shows this is a parse-boundary defect (the qualifier's scope over a comma list isn't carried to the second item), not a table-content problem."
+    },
+    {
+      "key": "2120-AA83/199510/ord5.0",
+      "rin": "2120-AA83",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1355",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1355 (less (a) (last sentence related to fees)).\" -> \"44702\"; \"1355(a) (last sentence related to fees).\" -> \"45303\"",
+      "why": "Same FAA flight-simulator/training-center RIN as row 5 above. 1355 (certificate fees) splits cleanly into the modern certification section (44702) and the modern fee section (45303) -- both aviation, both correct, both returned as honest candidates.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2105-AA88/199810/ord6.0",
+      "rin": "2105-AA88",
+      "publication_id": "199810",
+      "cited_section": "49 USC 1481",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1481\" -> \"46102\" (single row, single successor) | ABSTRACT: CAB counter-sign consumer-notice petition, 14 CFR 221/250/256",
+      "why": "OST consumer-notice rule citing the same CAB/DOT consumer-protection boilerplate block as row 2's RIN (same office, same era). Single clean successor, nothing to overstate.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2120-AE42/199510/ord6.0",
+      "rin": "2120-AE42",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1421 to 1431",
+      "verdict": "label-overstates",
+      "subjects_agree": true,
+      "decisive_quote": "usc_section_end='1431', usc_section_span_rule='stated' (the range WAS captured this time) yet usc_disposition_successors is byte-identical to bare '1421' alone: ['49:44701','49:44702','49:44712','49:44714','49:44716','49:44717','49:44722']. Direct query of '1423' alone already adds new successors ['49:44702','49:44704']; '1429' alone adds ['49:44709','49:1153','49:44710']; '1432' alone adds ['49:44706','49:44914'].",
+      "why": "FAA 'Aging Aircraft Safety' rule citing the boilerplate block with '1421 to 1431' as one of the spans. Unlike RIN 1902-AF39 (where the parser itself failed to capture the span end), here usc_section_end is present and correct -- the loss happens one step later, in unified_agenda_parquet.py's disposition-population loop, which reads only row['usc_section'] and never row['usc_section_end']. The successors that ARE returned are all genuinely aviation (chapter 447 Safety Regulation), so there is no subject-mismatch red flag, but the list represents roughly 1 of 11 cited former sections' successors, not 'every successor the table names' as the module's own docstring promises.",
+      "anything_systemic": "Confirms the same range-truncation defect as RIN 1902-AF39, but here with the parser working correctly and the loss isolated to unified_agenda_parquet.py's oracle call site (title, section = row['usc_title'], row['usc_section']; no reference to usc_section_end in the disposition block). This is the single clearest, most reproducible systemic finding in the class: every 'exists-as-recodified' row whose citation is a stated span silently reports only the first section's successors."
+    },
+    {
+      "key": "1625-AB20/201004/ord3.0",
+      "rin": "1625-AB20",
+      "publication_id": "201004",
+      "cited_section": "49 USC App 1804",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1803, 1804(a)(1)-(3)\" -> \"5103\"; \"1804(d)\" -> \"5120\"; \"1804(g)\" -> \"5110\" (6 distinct successors, all Subtitle III Hazardous Materials Transportation, chapter 51)",
+      "why": "Coast Guard passenger-vessel-stability rule citing an omnibus block of USCG vessel-inspection statutes plus HMTA's old general-authority section (1804) as boilerplate. Successors are exactly the modern hazmat-transportation chapter -- a real, complete, honestly-framed 6-of-6 read of the table, even though 'hazmat' is only tangential to the rule's narrow subject (vessel stability); that is the filer's own citation-practice choice (Coast Guard authority blocks are commonly reused wholesale across otherwise-unrelated dockets under the same CFR subchapter), not a disposition-table error.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2125-AD88/199704/ord2.0",
+      "rin": "2125-AD88",
+      "publication_id": "199704",
+      "cited_section": "49 USC 1651",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1651(a), (b)(1)\" -> \"101\"; \"1651(b)(2)\" -> \"303\" | ABSTRACT: \"...Subpart E sets forth the procedures by which a State may seek an exemption... for signs... consistent with the Dire Emergency Supplemental Appropriations Act of 1992...\"",
+      "why": "FHWA highway-beautification rule citing 1651 (the old DOT Act's declaration-of-policy section) as general departmental authority alongside its Title 23 sign-control sections. Bare '1651' (no subsection stated) correctly returns BOTH printed successors: 101 (general DOT policy) and 303 (the parkland/historic-site preservation policy, the direct ancestor of the well-known 'Section 4(f)' protections) -- both genuinely on-topic for a highway/scenic-beautification rulemaking, and neither is falsely asserted as the single answer.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2120-AF10/199510/ord7.0",
+      "rin": "2120-AF10",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1651(b)(2)",
+      "verdict": "label-overstates",
+      "subjects_agree": true,
+      "decisive_quote": "direct query disposition(49, '1651', '(b)(2)') -> verdict=exists-as-recodified, successors=(1) ['49:303'], subsection_resolved=True, from the single printed row \"1651(b)(2)\" -> \"303\". Yet the stored usc_disposition_successors for this row is the unnarrowed pair ['49:101','49:303'].",
+      "why": "This citation pinpoints (b)(2) specifically, and the printed 1994 table resolves that exact pinpoint to one successor (303) -- verified live against the module. Because no usc_subsection column exists in this schema and the oracle's disposition() call site never passes one, the build cannot distinguish this row from row 13's bare '1651' citation, so both get the same two-candidate answer even though this one's own text already narrows it to one. Not false (303 is genuine), but broader than the citation supports.",
+      "anything_systemic": "Same root cause as the span-clipping finding on rows 4/11, one level down: precision that is present in authority_text (a subsection pinpoint) and resolvable by the pinned table (subsection_resolved=True) is not threaded through the pipeline because the row schema has no field to carry a parsed subsection into the disposition query."
+    },
+    {
+      "key": "2120-AB46/199510/ord3.0",
+      "rin": "2120-AB46",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1421",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: identical 7-row read as RIN 2120-AF84 above (\"1421(a), (b)...\" -> \"44701\" etc.) | RULE_TITLE: \"Low Fuel Quantity Alerting System\"",
+      "why": "FAA airworthiness-standards rule (transport-category fuel alerting), boilerplate block. Same section, same correct 7-successor read as rows 7 and 15's siblings.",
+      "anything_systemic": null
+    },
+    {
+      "key": "0703-AA48/200204/ord0.0",
+      "rin": "0703-AA48",
+      "publication_id": "200204",
+      "cited_section": "49 USC 1507",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1507\" -> \"44502\" (single row, single successor) | ABSTRACT: \"This part establishes the policy and procedures for the use of Navy and Marine Corps aviation facilities by aircraft other than United States Department of Defense aircraft.\"",
+      "why": "Navy rule on DOD/civil joint use of Navy aviation facilities, whose ONLY cited authority is 1507. 44502 is the modern 'availability of facilities' section (chapter 445) -- an exact subject match for a facilities-use rule.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2125-AB91/199704/ord1.0",
+      "rin": "2125-AB91",
+      "publication_id": "199704",
+      "cited_section": "49 USC app 2505",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"2505\" -> \"31136\"; \"2505 note\" -> \"31137\" | ABSTRACT: \"...revising the driver qualification requirements to allow certain insulin-using diabetics to operate commercial motor vehicles...\"",
+      "why": "FHWA motor-carrier driver-qualification (diabetes waiver) rule; 2505 was part of the Motor Carrier Safety Act of 1984, and both successors are the modern Commercial Motor Vehicle Safety chapter (311) -- an exact subject match.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2105-AB39/200104/ord8.0",
+      "rin": "2105-AB39",
+      "publication_id": "200104",
+      "cited_section": "49 USC 1461",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1461(a)\" -> \"41307\"; \"1461(b)\" -> \"41509\" | ABSTRACT: \"...its enforcement policy concerning the rebating of international air fares...\"",
+      "why": "OST rebating-enforcement policy statement; successors land in Subtitle VII's economic-regulation/consumer-protection chapters (413/415), consistent with a rate/fare-practices subject.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2120-AE54/199510/ord5.0",
+      "rin": "2120-AE54",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1401",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: identical 8-row read as RIN 2120-AA83 above | RULE_TITLE: \"Non-Federal Navigation Facilities\"",
+      "why": "FAA navigation-facilities rule reusing the same standard FAA boilerplate authority block (including 1401) as several sibling RINs in this sample; the successors are the correct, table-verified certification-chapter provisions. 1401 itself is generic boilerplate relative to THIS rule's narrower subject, exactly as it is on every other FAA docket in the sample -- not a defect, just the agency's standard-form authority list.",
+      "anything_systemic": null
+    },
+    {
+      "key": "2120-AF67/199510/ord11.0",
+      "rin": "2120-AF67",
+      "publication_id": "199510",
+      "cited_section": "49 USC 1522",
+      "verdict": "correct-as-labeled",
+      "subjects_agree": true,
+      "decisive_quote": "table: \"1521, 1522\" -> \"40103\" (single row spanning two former sections, single successor)",
+      "why": "Same 'Mountain Flying' RIN as row 1. 40103 is 'Sovereignty and use of airspace' (chapter 401, General Provisions) -- correct and unambiguous single-successor read.",
+      "anything_systemic": null
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+[
+  {
+    "key": "3052-AC71|201210|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"12 USC 2013\" / \"12 USC 2015\" / \"12 USC 2018\" / \"12 USC 2019\" / \"...\" (box 5 of 5); ADDITIONAL_INFO: \"FEDERAL REGISTER LIAISON:  Cindy R. Nicholson, Technical Editor, Office of General Counsel, (703) 883-4125, nicholsonc@fca.gov\"",
+    "why": "The ellipsis is the final of 5 boxes, the 4 preceding boxes are all verified Farm Credit Act sections, and ADDITIONAL_INFO carries only an FR-liaison contact -- no continuation exists anywhere in the record, so the row correctly flags an unresolved end-of-list placeholder.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1840-AD71|202210|5|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"20 U.S.C. 1078-3\" / \"...\" (box 6 of 6); ADDITIONAL_INFO is empty.",
+    "why": "Ellipsis is the terminal box after 5 verified HEA/FFEL citations; ADDITIONAL_INFO is empty so nothing continues the list -- correct as an unresolved incomplete-list flag.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3206-AJ11|200704|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"5 USC 3327\" / \"...\" (box 5 of 5); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 4 verified 5 U.S.C. hiring-authority citations; no ADDITIONAL_INFO continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0910-AE42|199610|15|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"28 USC 2112\" / \"...\" (box 16 of 16); ABSTRACT: \"FDA is proposing to eliminate 36 percent of its regulations that it has determined are obsolete... (735 pages of which will first require Congressional action).\"",
+    "why": "Terminal box after 15 verified citations; the abstract independently confirms this is a sweeping, multi-statute deregulatory action, so an acknowledged-incomplete authority list is exactly what a filer would produce -- and ADDITIONAL_INFO carries no continuation.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3235-AH00|200004|7|0",
+    "verdict": "missed-witness",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ordinals 6-8: \"15 USC 78k\" / \"...\" / \"15 USC 77d\" -- and ordinals 8-41 (34 more boxes, all authority_type=usc, parse_status ok/partial) continue in the SAME LEGAL_AUTHORITY_LIST, including a near-duplicate restatement of ordinals 1-6 (\"15 USC 78c\",\"78d\",\"78f\",\"78i\",\"78j\",\"78k\") at ordinals 19-24.",
+    "why": "This is the one record in the sample where the ellipsis is NOT the tail of the list: it sits mid-list, and 34 more real, successfully parsed citations sit immediately after it under later ordinals of the very same box list (a consumer scanning ordinals 8-41 already has almost all of the record's authorities). The row's own typing (unstated/more-citations-follow) is not factually wrong -- box 7 really is a bare ellipsis -- but reading the row alone, without its neighbors, wrongly suggests the rest of the record's authorities are lost, when 34 of 41 non-placeholder boxes are captured right there under their own ordinals. A human reading the full RIN_INFO sees this immediately; nothing in the row's columns hints at it.",
+    "anything_systemic": "Positional metadata (e.g. 'is this box the last one in the record's LEGAL_AUTHORITY_LIST') would let a consumer distinguish a truly-unresolved tail placeholder from a mid-list one like this; only 1 of 20 sampled rows needed it, but it changes what 'more citations follow' implies for a downstream reader."
+  },
+  {
+    "key": "1400-AC94|201304|6|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"sec 1205(a), PL 107-228\" / \"...\" (box 7 of 7); ADDITIONAL_INFO: \"Includes Retrospective Review under E.O. 13563.\"",
+    "why": "Terminal box after 6 verified ITAR-authority citations (USC and two public laws); ADDITIONAL_INFO is a retrospective-review note, not a continuation.",
+    "anything_systemic": "Sibling box ordinal 4 in this SAME record, raw XML LEGAL_AUTHORITY text 'PL 105\\x96261' (verified against the raw edition bytes: 'PL 105' + 0xC2 0x96 (UTF-8 for U+0096, a C1 control code) + '261'), is a mangled-byte defect the module's docstring does not track -- it lists only two mangled-apostrophe editions (200404/200410, byte 0x19), not this 201304 U+0096 case. The grammar parsed through it correctly to public_law='105-261' (pl_congress_in_series=true) regardless, so no verdict in this class is affected, but the defect itself is unrecorded and could bite a future spelling-sensitive check."
+  },
+  {
+    "key": "0694-AC35|200104|14|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"Notice of August 3, 2000 (65 FR 48347, August 8, 2000)\" / \"...\" (box 15 of 15); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after a heterogeneous 14-item list (export-control USC sections, two EOs, one FR notice); no ADDITIONAL_INFO continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1505-AB81|200710|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"19 USC 1624\" / \"...\" (box 5 of 5); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 4 verified customs-authority citations for the Bahrain FTA implementation; no continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3052-AC41|200904|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"12 USC 2071\" / \"...\" (box 5 of 5); ADDITIONAL_INFO: \"FEDERAL REGISTER LIAISON:  Cindy R. Nicholson...\" (same FCA boilerplate as 3052-AC71).",
+    "why": "Terminal box after 4 verified Farm Credit Act citations; ADDITIONAL_INFO is the agency's standard liaison contact, not a continuation.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3052-AC33|200810|3|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"12 USC 2017 to 2018\" / \"...\" (box 4 of 4); ADDITIONAL_INFO: same FCA FR-liaison boilerplate.",
+    "why": "Terminal box after 3 verified Farm Credit Act citations; no continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "2120-AF86|199604|15|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"49 USC 44912\" / \"...\" (box 16 of 16); ADDITIONAL_INFO: \"Project Number: AFS-95-390R. ^PANALYSIS:  Regulatory Evaluation, 04/00/97\"",
+    "why": "Terminal box after 15 verified Title 49 aviation-safety citations; ADDITIONAL_INFO is an administrative project note, not a continuation.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3064-AF49|202010|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"12 U.S.C. 1818(a)\" / \"...\" (box 5 of 5); ADDITIONAL_INFO: \"Comments:  comments@fdic.gov....\"",
+    "why": "Terminal box after 4 verified FDI Act citations for a joint PPP-lending capital rule; ADDITIONAL_INFO is a comment-submission note, not a continuation.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1125-AA55|200810|7|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"PL 105-277, sec 902\" / \"...\" (box 8 of 8); ADDITIONAL_INFO: \"Joint rule with Department of Homeland Security (RIN 1615-AB50)\"",
+    "why": "Terminal box after 7 verified immigration-authority citations; ADDITIONAL_INFO cross-references the joint DHS rule but states no further legal authority.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1505-AB80|200704|5|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"19 USC 2612\" / \"...\" (box 6 of 6); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 5 verified customs/cultural-property citations for the Cyprus import-restriction extension; no continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0910-AH02|201304|5|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"21 USC 371\" / \"...\" (box 6 of 6); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 5 verified FD&C Act device-authority citations; no continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1615-AA59|200710|15|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"22 USC 7105\" / \"...\" (box 16 of 16); ADDITIONAL_INFO: \"CIS No. 2132-01; AG Order No. 2554-2002 / There is a related rulemaking... / Transferred from RIN 1115-AG19\"",
+    "why": "Terminal box after 15 verified INA/TVPA citations; ADDITIONAL_INFO carries docket and cross-reference administrivia, not a legal-authority continuation.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3060-AI41|201104|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"47 USC 201 to 205\" / \"...\" (box 5 of 5); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 4 verified Communications Act citations; no continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "7100-AE78|201710|5|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"12 U.S.C. 4005\" / \"...\" (box 6 of 6); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 5 verified Expedited Funds Availability Act citations (4001-4005); no continuation exists, though the EFAA runs to sec. 4010.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0596-AD33|202010|4|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"30 U.S.C. 21\" / \"...\" (box 5 of 5); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 4 verified Mineral Leasing Act citations; no continuation exists.",
+    "anything_systemic": null
+  },
+  {
+    "key": "2900-AN77|201210|6|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST ends: \"38 USC 8131 to 8137\" / \"...\" (box 7 of 7); ADDITIONAL_INFO is empty.",
+    "why": "Terminal box after 6 verified Title 38 citations; no continuation exists.",
+    "anything_systemic": null
+  }
+]

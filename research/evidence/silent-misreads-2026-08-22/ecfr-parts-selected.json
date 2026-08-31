@@ -1,0 +1,1802 @@
+[
+{
+"title": 26,
+"part": "1",
+"marginal": 27464,
+"total": 27464
+},
+{
+"title": 14,
+"part": "121",
+"marginal": 16500,
+"total": 16500
+},
+{
+"title": 21,
+"part": "310",
+"marginal": 16467,
+"total": 16467
+},
+{
+"title": 15,
+"part": "774",
+"marginal": 13813,
+"total": 13813
+},
+{
+"title": 49,
+"part": "571",
+"marginal": 12906,
+"total": 12906
+},
+{
+"title": 20,
+"part": "404",
+"marginal": 12844,
+"total": 12844
+},
+{
+"title": 8,
+"part": "214",
+"marginal": 11434,
+"total": 11434
+},
+{
+"title": 14,
+"part": "91",
+"marginal": 10227,
+"total": 15637
+},
+{
+"title": 50,
+"part": "17",
+"marginal": 9863,
+"total": 9863
+},
+{
+"title": 17,
+"part": "240",
+"marginal": 9788,
+"total": 9788
+},
+{
+"title": 8,
+"part": "1003",
+"marginal": 8731,
+"total": 8817
+},
+{
+"title": 47,
+"part": "1",
+"marginal": 6696,
+"total": 6696
+},
+{
+"title": 15,
+"part": "744",
+"marginal": 6514,
+"total": 9794
+},
+{
+"title": 48,
+"part": "52",
+"marginal": 5974,
+"total": 5974
+},
+{
+"title": 8,
+"part": "103",
+"marginal": 5643,
+"total": 9289
+},
+{
+"title": 38,
+"part": "3",
+"marginal": 5217,
+"total": 5217
+},
+{
+"title": 40,
+"part": "63",
+"marginal": 4612,
+"total": 4612
+},
+{
+"title": 47,
+"part": "64",
+"marginal": 4595,
+"total": 4919
+},
+{
+"title": 21,
+"part": "101",
+"marginal": 4515,
+"total": 4531
+},
+{
+"title": 49,
+"part": "1",
+"marginal": 4384,
+"total": 4437
+},
+{
+"title": 15,
+"part": "730",
+"marginal": 4250,
+"total": 5924
+},
+{
+"title": 47,
+"part": "2",
+"marginal": 4176,
+"total": 5800
+},
+{
+"title": 21,
+"part": "610",
+"marginal": 3865,
+"total": 3951
+},
+{
+"title": 19,
+"part": "10",
+"marginal": 3737,
+"total": 3737
+},
+{
+"title": 12,
+"part": "615",
+"marginal": 3259,
+"total": 3259
+},
+{
+"title": 47,
+"part": "73",
+"marginal": 3209,
+"total": 4204
+},
+{
+"title": 40,
+"part": "261",
+"marginal": 3174,
+"total": 3251
+},
+{
+"title": 8,
+"part": "204",
+"marginal": 3069,
+"total": 5809
+},
+{
+"title": 48,
+"part": "252",
+"marginal": 3052,
+"total": 3052
+},
+{
+"title": 15,
+"part": "700",
+"marginal": 2956,
+"total": 3084
+},
+{
+"title": 12,
+"part": "3",
+"marginal": 2862,
+"total": 2862
+},
+{
+"title": 19,
+"part": "24",
+"marginal": 2841,
+"total": 3517
+},
+{
+"title": 15,
+"part": "740",
+"marginal": 2810,
+"total": 9892
+},
+{
+"title": 26,
+"part": "301",
+"marginal": 2797,
+"total": 4065
+},
+{
+"title": 7,
+"part": "319",
+"marginal": 2674,
+"total": 2674
+},
+{
+"title": 8,
+"part": "212",
+"marginal": 2656,
+"total": 6793
+},
+{
+"title": 10,
+"part": "430",
+"marginal": 2610,
+"total": 2610
+},
+{
+"title": 28,
+"part": "540",
+"marginal": 2602,
+"total": 2602
+},
+{
+"title": 21,
+"part": "201",
+"marginal": 2563,
+"total": 7512
+},
+{
+"title": 17,
+"part": "230",
+"marginal": 2536,
+"total": 4056
+},
+{
+"title": 12,
+"part": "4",
+"marginal": 2424,
+"total": 2672
+},
+{
+"title": 38,
+"part": "17",
+"marginal": 2411,
+"total": 2525
+},
+{
+"title": 14,
+"part": "61",
+"marginal": 2313,
+"total": 5348
+},
+{
+"title": 19,
+"part": "122",
+"marginal": 2290,
+"total": 2512
+},
+{
+"title": 12,
+"part": "701",
+"marginal": 2284,
+"total": 2284
+},
+{
+"title": 29,
+"part": "1910",
+"marginal": 2273,
+"total": 2273
+},
+{
+"title": 14,
+"part": "25",
+"marginal": 2208,
+"total": 3965
+},
+{
+"title": 36,
+"part": "7",
+"marginal": 2205,
+"total": 2205
+},
+{
+"title": 10,
+"part": "50",
+"marginal": 2191,
+"total": 2191
+},
+{
+"title": 40,
+"part": "51",
+"marginal": 2171,
+"total": 2320
+},
+{
+"title": 24,
+"part": "203",
+"marginal": 2110,
+"total": 2110
+},
+{
+"title": 12,
+"part": "208",
+"marginal": 2103,
+"total": 2103
+},
+{
+"title": 21,
+"part": "312",
+"marginal": 2091,
+"total": 3133
+},
+{
+"title": 38,
+"part": "21",
+"marginal": 2034,
+"total": 2418
+},
+{
+"title": 40,
+"part": "122",
+"marginal": 1974,
+"total": 1974
+},
+{
+"title": 17,
+"part": "270",
+"marginal": 1968,
+"total": 3434
+},
+{
+"title": 37,
+"part": "1",
+"marginal": 1866,
+"total": 1866
+},
+{
+"title": 47,
+"part": "25",
+"marginal": 1849,
+"total": 3450
+},
+{
+"title": 19,
+"part": "12",
+"marginal": 1836,
+"total": 2579
+},
+{
+"title": 41,
+"part": "60",
+"marginal": 1830,
+"total": 1830
+},
+{
+"title": 17,
+"part": "242",
+"marginal": 1776,
+"total": 3178
+},
+{
+"title": 49,
+"part": "1520",
+"marginal": 1759,
+"total": 1759
+},
+{
+"title": 9,
+"part": "381",
+"marginal": 1755,
+"total": 1755
+},
+{
+"title": 50,
+"part": "679",
+"marginal": 1743,
+"total": 1743
+},
+{
+"title": 10,
+"part": "431",
+"marginal": 1742,
+"total": 1981
+},
+{
+"title": 13,
+"part": "120",
+"marginal": 1737,
+"total": 1737
+},
+{
+"title": 42,
+"part": "405",
+"marginal": 1720,
+"total": 1720
+},
+{
+"title": 21,
+"part": "1301",
+"marginal": 1716,
+"total": 1716
+},
+{
+"title": 32,
+"part": "199",
+"marginal": 1710,
+"total": 1725
+},
+{
+"title": 50,
+"part": "648",
+"marginal": 1686,
+"total": 1741
+},
+{
+"title": 18,
+"part": "35",
+"marginal": 1676,
+"total": 1676
+},
+{
+"title": 12,
+"part": "614",
+"marginal": 1649,
+"total": 2452
+},
+{
+"title": 15,
+"part": "748",
+"marginal": 1627,
+"total": 7014
+},
+{
+"title": 28,
+"part": "549",
+"marginal": 1627,
+"total": 1627
+},
+{
+"title": 17,
+"part": "1",
+"marginal": 1602,
+"total": 1602
+},
+{
+"title": 20,
+"part": "416",
+"marginal": 1589,
+"total": 7967
+},
+{
+"title": 12,
+"part": "19",
+"marginal": 1586,
+"total": 1736
+},
+{
+"title": 28,
+"part": "571",
+"marginal": 1553,
+"total": 1553
+},
+{
+"title": 12,
+"part": "325",
+"marginal": 1539,
+"total": 1539
+},
+{
+"title": 8,
+"part": "208",
+"marginal": 1535,
+"total": 3608
+},
+{
+"title": 27,
+"part": "9",
+"marginal": 1517,
+"total": 1517
+},
+{
+"title": 24,
+"part": "5",
+"marginal": 1488,
+"total": 1497
+},
+{
+"title": 41,
+"part": "102",
+"marginal": 1483,
+"total": 1483
+},
+{
+"title": 7,
+"part": "1951",
+"marginal": 1468,
+"total": 1468
+},
+{
+"title": 14,
+"part": "93",
+"marginal": 1459,
+"total": 1974
+},
+{
+"title": 40,
+"part": "82",
+"marginal": 1458,
+"total": 1458
+},
+{
+"title": 12,
+"part": "25",
+"marginal": 1412,
+"total": 1412
+},
+{
+"title": 21,
+"part": "314",
+"marginal": 1391,
+"total": 4527
+},
+{
+"title": 14,
+"part": "13",
+"marginal": 1385,
+"total": 1386
+},
+{
+"title": 50,
+"part": "622",
+"marginal": 1382,
+"total": 1391
+},
+{
+"title": 50,
+"part": "660",
+"marginal": 1379,
+"total": 1419
+},
+{
+"title": 27,
+"part": "478",
+"marginal": 1375,
+"total": 1375
+},
+{
+"title": 21,
+"part": "1310",
+"marginal": 1365,
+"total": 1403
+},
+{
+"title": 12,
+"part": "34",
+"marginal": 1361,
+"total": 2309
+},
+{
+"title": 47,
+"part": "15",
+"marginal": 1357,
+"total": 3228
+},
+{
+"title": 14,
+"part": "21",
+"marginal": 1346,
+"total": 2783
+},
+{
+"title": 49,
+"part": "385",
+"marginal": 1340,
+"total": 1446
+},
+{
+"title": 28,
+"part": "523",
+"marginal": 1323,
+"total": 1323
+},
+{
+"title": 21,
+"part": "56",
+"marginal": 1272,
+"total": 1421
+},
+{
+"title": 50,
+"part": "21",
+"marginal": 1247,
+"total": 1261
+},
+{
+"title": 13,
+"part": "121",
+"marginal": 1240,
+"total": 1519
+},
+{
+"title": 9,
+"part": "93",
+"marginal": 1238,
+"total": 1238
+},
+{
+"title": 12,
+"part": "563",
+"marginal": 1235,
+"total": 1235
+},
+{
+"title": 33,
+"part": "165",
+"marginal": 1232,
+"total": 1232
+},
+{
+"title": 21,
+"part": "1",
+"marginal": 1177,
+"total": 1289
+},
+{
+"title": 40,
+"part": "60",
+"marginal": 1177,
+"total": 1794
+},
+{
+"title": 47,
+"part": "20",
+"marginal": 1148,
+"total": 2657
+},
+{
+"title": 28,
+"part": "524",
+"marginal": 1141,
+"total": 1222
+},
+{
+"title": 8,
+"part": "235",
+"marginal": 1134,
+"total": 3517
+},
+{
+"title": 28,
+"part": "552",
+"marginal": 1133,
+"total": 1133
+},
+{
+"title": 31,
+"part": "285",
+"marginal": 1123,
+"total": 1123
+},
+{
+"title": 40,
+"part": "141",
+"marginal": 1120,
+"total": 1164
+},
+{
+"title": 5,
+"part": "2635",
+"marginal": 1119,
+"total": 1119
+},
+{
+"title": 50,
+"part": "300",
+"marginal": 1098,
+"total": 1297
+},
+{
+"title": 50,
+"part": "14",
+"marginal": 1097,
+"total": 1141
+},
+{
+"title": 40,
+"part": "80",
+"marginal": 1095,
+"total": 1095
+},
+{
+"title": 29,
+"part": "2520",
+"marginal": 1082,
+"total": 1082
+},
+{
+"title": 47,
+"part": "90",
+"marginal": 1082,
+"total": 2529
+},
+{
+"title": 46,
+"part": "10",
+"marginal": 1075,
+"total": 1111
+},
+{
+"title": 30,
+"part": "206",
+"marginal": 1070,
+"total": 1070
+},
+{
+"title": 30,
+"part": "250",
+"marginal": 1056,
+"total": 1062
+},
+{
+"title": 42,
+"part": "413",
+"marginal": 1038,
+"total": 1388
+},
+{
+"title": 48,
+"part": "7",
+"marginal": 1030,
+"total": 1814
+},
+{
+"title": 47,
+"part": "0",
+"marginal": 1022,
+"total": 2448
+},
+{
+"title": 29,
+"part": "2590",
+"marginal": 1017,
+"total": 1017
+},
+{
+"title": 31,
+"part": "103",
+"marginal": 1016,
+"total": 1020
+},
+{
+"title": 34,
+"part": "668",
+"marginal": 996,
+"total": 996
+},
+{
+"title": 17,
+"part": "275",
+"marginal": 984,
+"total": 1381
+},
+{
+"title": 8,
+"part": "241",
+"marginal": 979,
+"total": 1480
+},
+{
+"title": 18,
+"part": "385",
+"marginal": 976,
+"total": 1179
+},
+{
+"title": 41,
+"part": "301",
+"marginal": 976,
+"total": 976
+},
+{
+"title": 49,
+"part": "192",
+"marginal": 971,
+"total": 985
+},
+{
+"title": 22,
+"part": "62",
+"marginal": 958,
+"total": 973
+},
+{
+"title": 24,
+"part": "91",
+"marginal": 949,
+"total": 1061
+},
+{
+"title": 14,
+"part": "135",
+"marginal": 939,
+"total": 12168
+},
+{
+"title": 49,
+"part": "383",
+"marginal": 934,
+"total": 1272
+},
+{
+"title": 12,
+"part": "567",
+"marginal": 911,
+"total": 1043
+},
+{
+"title": 8,
+"part": "274a",
+"marginal": 900,
+"total": 5039
+},
+{
+"title": 50,
+"part": "216",
+"marginal": 899,
+"total": 1045
+},
+{
+"title": 7,
+"part": "250",
+"marginal": 884,
+"total": 884
+},
+{
+"title": 21,
+"part": "807",
+"marginal": 881,
+"total": 1217
+},
+{
+"title": 19,
+"part": "4",
+"marginal": 863,
+"total": 2903
+},
+{
+"title": 28,
+"part": "551",
+"marginal": 855,
+"total": 855
+},
+{
+"title": 47,
+"part": "54",
+"marginal": 854,
+"total": 1170
+},
+{
+"title": 6,
+"part": "5",
+"marginal": 844,
+"total": 844
+},
+{
+"title": 27,
+"part": "4",
+"marginal": 834,
+"total": 836
+},
+{
+"title": 50,
+"part": "635",
+"marginal": 824,
+"total": 829
+},
+{
+"title": 50,
+"part": "100",
+"marginal": 817,
+"total": 817
+},
+{
+"title": 27,
+"part": "40",
+"marginal": 814,
+"total": 814
+},
+{
+"title": 28,
+"part": "550",
+"marginal": 813,
+"total": 911
+},
+{
+"title": 12,
+"part": "7",
+"marginal": 797,
+"total": 1644
+},
+{
+"title": 49,
+"part": "40",
+"marginal": 797,
+"total": 843
+},
+{
+"title": 38,
+"part": "36",
+"marginal": 787,
+"total": 811
+},
+{
+"title": 42,
+"part": "84",
+"marginal": 786,
+"total": 786
+},
+{
+"title": 7,
+"part": "457",
+"marginal": 784,
+"total": 784
+},
+{
+"title": 14,
+"part": "399",
+"marginal": 784,
+"total": 805
+},
+{
+"title": 42,
+"part": "1003",
+"marginal": 782,
+"total": 809
+},
+{
+"title": 47,
+"part": "52",
+"marginal": 782,
+"total": 835
+},
+{
+"title": 21,
+"part": "601",
+"marginal": 781,
+"total": 4428
+},
+{
+"title": 50,
+"part": "20",
+"marginal": 781,
+"total": 874
+},
+{
+"title": 10,
+"part": "72",
+"marginal": 771,
+"total": 1013
+},
+{
+"title": 47,
+"part": "76",
+"marginal": 771,
+"total": 1318
+},
+{
+"title": 5,
+"part": "831",
+"marginal": 770,
+"total": 770
+},
+{
+"title": 38,
+"part": "20",
+"marginal": 764,
+"total": 899
+},
+{
+"title": 31,
+"part": "203",
+"marginal": 760,
+"total": 760
+},
+{
+"title": 49,
+"part": "171",
+"marginal": 759,
+"total": 763
+},
+{
+"title": 5,
+"part": "550",
+"marginal": 758,
+"total": 772
+},
+{
+"title": 49,
+"part": "1540",
+"marginal": 758,
+"total": 1496
+},
+{
+"title": 8,
+"part": "3",
+"marginal": 756,
+"total": 1514
+},
+{
+"title": 8,
+"part": "274",
+"marginal": 750,
+"total": 1022
+},
+{
+"title": 27,
+"part": "24",
+"marginal": 749,
+"total": 786
+},
+{
+"title": 23,
+"part": "655",
+"marginal": 747,
+"total": 1009
+},
+{
+"title": 48,
+"part": "970",
+"marginal": 743,
+"total": 743
+},
+{
+"title": 49,
+"part": "572",
+"marginal": 741,
+"total": 984
+},
+{
+"title": 19,
+"part": "351",
+"marginal": 738,
+"total": 738
+},
+{
+"title": 40,
+"part": "86",
+"marginal": 734,
+"total": 1243
+},
+{
+"title": 31,
+"part": "1010",
+"marginal": 723,
+"total": 723
+},
+{
+"title": 12,
+"part": "303",
+"marginal": 720,
+"total": 852
+},
+{
+"title": 7,
+"part": "273",
+"marginal": 718,
+"total": 721
+},
+{
+"title": 46,
+"part": "515",
+"marginal": 705,
+"total": 705
+},
+{
+"title": 21,
+"part": "4",
+"marginal": 696,
+"total": 705
+},
+{
+"title": 14,
+"part": "108",
+"marginal": 692,
+"total": 727
+},
+{
+"title": 28,
+"part": "511",
+"marginal": 688,
+"total": 904
+},
+{
+"title": 29,
+"part": "1926",
+"marginal": 683,
+"total": 1285
+},
+{
+"title": 21,
+"part": "211",
+"marginal": 681,
+"total": 1004
+},
+{
+"title": 44,
+"part": "206",
+"marginal": 677,
+"total": 677
+},
+{
+"title": 20,
+"part": "655",
+"marginal": 674,
+"total": 1980
+},
+{
+"title": 5,
+"part": "330",
+"marginal": 664,
+"total": 664
+},
+{
+"title": 28,
+"part": "542",
+"marginal": 663,
+"total": 663
+},
+{
+"title": 29,
+"part": "1614",
+"marginal": 651,
+"total": 651
+},
+{
+"title": 49,
+"part": "229",
+"marginal": 650,
+"total": 653
+},
+{
+"title": 12,
+"part": "225",
+"marginal": 640,
+"total": 1903
+},
+{
+"title": 9,
+"part": "94",
+"marginal": 639,
+"total": 878
+},
+{
+"title": 15,
+"part": "922",
+"marginal": 639,
+"total": 639
+},
+{
+"title": 49,
+"part": "390",
+"marginal": 638,
+"total": 1321
+},
+{
+"title": 14,
+"part": "97",
+"marginal": 630,
+"total": 969
+},
+{
+"title": 10,
+"part": "73",
+"marginal": 627,
+"total": 911
+},
+{
+"title": 28,
+"part": "541",
+"marginal": 625,
+"total": 742
+},
+{
+"title": 50,
+"part": "13",
+"marginal": 625,
+"total": 777
+},
+{
+"title": 14,
+"part": "95",
+"marginal": 624,
+"total": 728
+},
+{
+"title": 40,
+"part": "136",
+"marginal": 624,
+"total": 1020
+},
+{
+"title": 30,
+"part": "75",
+"marginal": 622,
+"total": 622
+},
+{
+"title": 42,
+"part": "440",
+"marginal": 616,
+"total": 682
+},
+{
+"title": 26,
+"part": "31",
+"marginal": 613,
+"total": 943
+},
+{
+"title": 31,
+"part": "210",
+"marginal": 613,
+"total": 613
+},
+{
+"title": 28,
+"part": "544",
+"marginal": 608,
+"total": 836
+},
+{
+"title": 7,
+"part": "210",
+"marginal": 604,
+"total": 607
+},
+{
+"title": 19,
+"part": "142",
+"marginal": 602,
+"total": 942
+},
+{
+"title": 37,
+"part": "42",
+"marginal": 599,
+"total": 713
+},
+{
+"title": 33,
+"part": "155",
+"marginal": 596,
+"total": 602
+},
+{
+"title": 40,
+"part": "790",
+"marginal": 594,
+"total": 594
+},
+{
+"title": 17,
+"part": "210",
+"marginal": 591,
+"total": 1234
+},
+{
+"title": 22,
+"part": "22",
+"marginal": 591,
+"total": 591
+},
+{
+"title": 42,
+"part": "482",
+"marginal": 586,
+"total": 650
+},
+{
+"title": 8,
+"part": "1208",
+"marginal": 578,
+"total": 3683
+},
+{
+"title": 8,
+"part": "287",
+"marginal": 578,
+"total": 752
+},
+{
+"title": 28,
+"part": "38",
+"marginal": 577,
+"total": 577
+},
+{
+"title": 41,
+"part": "302",
+"marginal": 577,
+"total": 899
+},
+{
+"title": 49,
+"part": "575",
+"marginal": 571,
+"total": 598
+},
+{
+"title": 41,
+"part": "101",
+"marginal": 570,
+"total": 1021
+},
+{
+"title": 18,
+"part": "284",
+"marginal": 569,
+"total": 761
+},
+{
+"title": 7,
+"part": "1980",
+"marginal": 566,
+"total": 715
+},
+{
+"title": 43,
+"part": "3164",
+"marginal": 566,
+"total": 566
+},
+{
+"title": 48,
+"part": "552",
+"marginal": 566,
+"total": 566
+},
+{
+"title": 40,
+"part": "372",
+"marginal": 564,
+"total": 564
+},
+{
+"title": 48,
+"part": "31",
+"marginal": 557,
+"total": 841
+},
+{
+"title": 12,
+"part": "5",
+"marginal": 554,
+"total": 1786
+},
+{
+"title": 15,
+"part": "746",
+"marginal": 554,
+"total": 4066
+},
+{
+"title": 24,
+"part": "58",
+"marginal": 550,
+"total": 795
+},
+{
+"title": 40,
+"part": "745",
+"marginal": 550,
+"total": 550
+},
+{
+"title": 7,
+"part": "400",
+"marginal": 548,
+"total": 606
+},
+{
+"title": 50,
+"part": "32",
+"marginal": 545,
+"total": 583
+},
+{
+"title": 42,
+"part": "410",
+"marginal": 542,
+"total": 953
+},
+{
+"title": 21,
+"part": "216",
+"marginal": 538,
+"total": 538
+},
+{
+"title": 5,
+"part": "302",
+"marginal": 537,
+"total": 653
+},
+{
+"title": 7,
+"part": "301",
+"marginal": 537,
+"total": 661
+},
+{
+"title": 21,
+"part": "1300",
+"marginal": 536,
+"total": 1613
+},
+{
+"title": 12,
+"part": "324",
+"marginal": 535,
+"total": 752
+},
+{
+"title": 26,
+"part": "54",
+"marginal": 535,
+"total": 1001
+},
+{
+"title": 12,
+"part": "308",
+"marginal": 534,
+"total": 576
+},
+{
+"title": 12,
+"part": "1026",
+"marginal": 525,
+"total": 529
+},
+{
+"title": 40,
+"part": "721",
+"marginal": 525,
+"total": 552
+},
+{
+"title": 15,
+"part": "904",
+"marginal": 524,
+"total": 524
+},
+{
+"title": 37,
+"part": "2",
+"marginal": 524,
+"total": 908
+},
+{
+"title": 20,
+"part": "422",
+"marginal": 522,
+"total": 1309
+},
+{
+"title": 21,
+"part": "800",
+"marginal": 520,
+"total": 520
+},
+{
+"title": 47,
+"part": "69",
+"marginal": 520,
+"total": 1404
+},
+{
+"title": 19,
+"part": "133",
+"marginal": 518,
+"total": 770
+},
+{
+"title": 14,
+"part": "71",
+"marginal": 512,
+"total": 588
+},
+{
+"title": 14,
+"part": "36",
+"marginal": 505,
+"total": 1085
+},
+{
+"title": 21,
+"part": "2",
+"marginal": 504,
+"total": 682
+},
+{
+"title": 40,
+"part": "264",
+"marginal": 502,
+"total": 1844
+},
+{
+"title": 28,
+"part": "545",
+"marginal": 500,
+"total": 1068
+},
+{
+"title": 22,
+"part": "120",
+"marginal": 498,
+"total": 507
+},
+{
+"title": 23,
+"part": "771",
+"marginal": 496,
+"total": 740
+},
+{
+"title": 14,
+"part": "145",
+"marginal": 495,
+"total": 1513
+},
+{
+"title": 17,
+"part": "232",
+"marginal": 495,
+"total": 2720
+},
+{
+"title": 15,
+"part": "742",
+"marginal": 490,
+"total": 9453
+},
+{
+"title": 13,
+"part": "107",
+"marginal": 488,
+"total": 594
+},
+{
+"title": 21,
+"part": "130",
+"marginal": 488,
+"total": 1091
+},
+{
+"title": 38,
+"part": "4",
+"marginal": 487,
+"total": 686
+},
+{
+"title": 50,
+"part": "223",
+"marginal": 487,
+"total": 504
+},
+{
+"title": 21,
+"part": "514",
+"marginal": 485,
+"total": 1220
+},
+{
+"title": 14,
+"part": "250",
+"marginal": 483,
+"total": 543
+},
+{
+"title": 28,
+"part": "543",
+"marginal": 480,
+"total": 584
+},
+{
+"title": 29,
+"part": "2550",
+"marginal": 480,
+"total": 510
+},
+{
+"title": 42,
+"part": "484",
+"marginal": 480,
+"total": 609
+},
+{
+"title": 50,
+"part": "600",
+"marginal": 477,
+"total": 586
+},
+{
+"title": 50,
+"part": "11",
+"marginal": 476,
+"total": 477
+},
+{
+"title": 5,
+"part": "2634",
+"marginal": 475,
+"total": 537
+},
+{
+"title": 7,
+"part": "1493",
+"marginal": 475,
+"total": 475
+},
+{
+"title": 29,
+"part": "4044",
+"marginal": 474,
+"total": 474
+},
+{
+"title": 31,
+"part": "208",
+"marginal": 472,
+"total": 489
+},
+{
+"title": 40,
+"part": "257",
+"marginal": 472,
+"total": 579
+},
+{
+"title": 7,
+"part": "1942",
+"marginal": 470,
+"total": 749
+},
+{
+"title": 24,
+"part": "202",
+"marginal": 470,
+"total": 573
+},
+{
+"title": 22,
+"part": "41",
+"marginal": 469,
+"total": 469
+},
+{
+"title": 36,
+"part": "251",
+"marginal": 469,
+"total": 469
+},
+{
+"title": 38,
+"part": "1",
+"marginal": 468,
+"total": 555
+},
+{
+"title": 43,
+"part": "4",
+"marginal": 468,
+"total": 498
+},
+{
+"title": 12,
+"part": "611",
+"marginal": 465,
+"total": 969
+},
+{
+"title": 17,
+"part": "3",
+"marginal": 465,
+"total": 561
+},
+{
+"title": 5,
+"part": "532",
+"marginal": 462,
+"total": 492
+},
+{
+"title": 48,
+"part": "752",
+"marginal": 462,
+"total": 463
+},
+{
+"title": 28,
+"part": "513",
+"marginal": 458,
+"total": 458
+},
+{
+"title": 24,
+"part": "200",
+"marginal": 454,
+"total": 838
+},
+{
+"title": 49,
+"part": "577",
+"marginal": 452,
+"total": 452
+},
+{
+"title": 47,
+"part": "11",
+"marginal": 451,
+"total": 546
+},
+{
+"title": 49,
+"part": "215",
+"marginal": 451,
+"total": 587
+},
+{
+"title": 12,
+"part": "44",
+"marginal": 448,
+"total": 448
+},
+{
+"title": 12,
+"part": "741",
+"marginal": 444,
+"total": 770
+},
+{
+"title": 40,
+"part": "50",
+"marginal": 442,
+"total": 629
+},
+{
+"title": 14,
+"part": "107",
+"marginal": 441,
+"total": 1461
+},
+{
+"title": 5,
+"part": "732",
+"marginal": 440,
+"total": 441
+},
+{
+"title": 14,
+"part": "77",
+"marginal": 439,
+"total": 440
+},
+{
+"title": 5,
+"part": "315",
+"marginal": 438,
+"total": 628
+},
+{
+"title": 8,
+"part": "245",
+"marginal": 434,
+"total": 4834
+},
+{
+"title": 34,
+"part": "75",
+"marginal": 432,
+"total": 432
+},
+{
+"title": 21,
+"part": "600",
+"marginal": 430,
+"total": 3582
+},
+{
+"title": 13,
+"part": "124",
+"marginal": 429,
+"total": 550
+}
+]

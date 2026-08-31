@@ -1,0 +1,28 @@
+HTTP/2 301 
+content-type: text/html; charset=UTF-8
+content-length: 0
+location: https://www.archives.gov/federal-register/executive-orders/1993
+date: Mon, 24 Aug 2026 20:33:59 GMT
+x-frame-options: SAMEORIGIN
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+cache-control: no-cache, must-revalidate
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-cache: Miss from cloudfront
+via: 1.1 1f1744cc287fbe3723d548ac02f36c6a.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: DJ9jfknv1l7kF7dtzFZU08s8IWFXL8f4u8CFMh-yQojgb86cwPqrTg==
+
+HTTP/2 404 
+content-type: text/html; charset=utf-8
+date: Mon, 24 Aug 2026 20:33:59 GMT
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-frame-options: SAMEORIGIN
+content-language: en
+x-content-type-options: nosniff
+cache-control: public, max-age=60
+x-cache: Error from cloudfront
+via: 1.1 1f1744cc287fbe3723d548ac02f36c6a.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: oc8jAP2EjXnGDJnvadeUDm1fOo6cicI-9tO2Ps4JQHCiBh_8CK4BwA==
+

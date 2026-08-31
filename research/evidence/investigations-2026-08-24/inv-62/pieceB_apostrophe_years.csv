@@ -1,0 +1,14 @@
+token_group,text_variant,rows,rin_prefix,authority_type,parse_status,act_key,act_section,roster_would_resolve_to,roster_status,year_consistent
+BBA'97,"BBA '97",5,0938,other,failed,,,balanced budget act of 1997 (roster: BBA@0938),candidate-index-match,YES ('97=1997)
+BBA'97,"BBA'97",4,0938,other,failed,,,balanced budget act of 1997 (roster: BBA@0938),candidate-index-match,YES ('97=1997)
+BBA'97,"Sec 4701(b) of BBA '97",2,0938,other,failed,,,balanced budget act of 1997 (roster: BBA@0938),candidate-index-match,YES ('97=1997)
+BBA'97,"Sec 4741(a)(2) of BBA '97",2,0938,other,failed,,,balanced budget act of 1997 (roster: BBA@0938),candidate-index-match,YES ('97=1997)
+BBRA'99,"BBRA '99",5,0938,other,failed,,,"medicare, medicaid, and schip balanced budget refinement act of 1999 (roster: BBRA@0938)",pinned-quote,YES ('99=1999)
+BBRA'99,"BBRA' 99",1,0938,other,failed,,,"medicare, medicaid, and schip balanced budget refinement act of 1999 (roster: BBRA@0938)",pinned-quote,YES ('99=1999) -- NOTE: same TOKEN'-space-YY shape as the BIPA defect but does NOT mis-set act_section here
+BBRA'99,"BBRA'99",3,0938,other,failed,,,"medicare, medicaid, and schip balanced budget refinement act of 1999 (roster: BBRA@0938)",pinned-quote,YES ('99=1999)
+BIPA'00,"BIPA '00",8,0938,other,failed,,,"medicare, medicaid, and schip benefits improvement and protection act of 2000 (roster: BIPA@0938)",candidate-index-match,YES ('00=2000)
+BIPA'00,"BIPA' 00",1,0938,act_relative,partial,bipa,00 <-- DEFECT: this is the apostrophe-year misread as act_section,"medicare, medicaid, and schip benefits improvement and protection act of 2000 (roster: BIPA@0938)",candidate-index-match,YES ('00=2000) but act_section='00' is wrong -- there is no stated section in this text
+BIPA'00,"BIPA'00",3,0938,other,failed,,,"medicare, medicaid, and schip benefits improvement and protection act of 2000 (roster: BIPA@0938)",candidate-index-match,YES ('00=2000)
+OBRA'87,"Omnibus Budget Reconciliation Act of 1987 (OBRA '87)",3,0938,act_relative,partial,omnibus budget reconciliation act of 1987,(none stated),"already resolved via the co-present full name, not via the initialism+year",n/a -- full name present in same text; no roster row needed,YES (year is literal in the same text)
+OBRA'93,"Sec 13622 of OBRA '93",2,0938,act_relative,failed,obra,13622 (correctly the real section -- NOT overwritten by the year here),omnibus budget reconciliation act of 1993 (Pub. L. 103-66) -- IF a year-keyed OBRA roster row existed,NO ROSTER ROW EXISTS for OBRA at any agency/year,YES ('93=1993) but moot -- roster has no OBRA entry to check consistency against; act_resolution_reason=act_not_in_index because bare OBRA is year-ambiguous (1986/1987/1989/1990/1993 are five different acts)
+FY'97 (not an initialism -- regex false positive),"PL 104-208 Omnibus Consolidated Appropriations for FY '97",1,2502,public_law,partial,,,n/a -- FY = Fiscal Year designation, not an act initialism,excluded from population,n/a

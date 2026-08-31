@@ -1,0 +1,28 @@
+HTTP/2 301 
+content-type: text/html; charset=UTF-8
+content-length: 0
+location: https://www.archives.gov/federal-register/executive-orders/1993-clinton
+date: Mon, 24 Aug 2026 20:33:31 GMT
+x-frame-options: SAMEORIGIN
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+cache-control: no-cache, must-revalidate
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-cache: Miss from cloudfront
+via: 1.1 30dd3884a4b369c2dc7ffa8271e1b512.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: Ctuj7xHfAhjV0KAzvsMg1vGRyUEdrDlUhFQ3p1RYX7uT693zkhEVLw==
+
+HTTP/2 404 
+content-type: text/html; charset=utf-8
+date: Mon, 24 Aug 2026 20:33:31 GMT
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-frame-options: SAMEORIGIN
+content-language: en
+x-content-type-options: nosniff
+cache-control: public, max-age=60
+x-cache: Error from cloudfront
+via: 1.1 30dd3884a4b369c2dc7ffa8271e1b512.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: 9BL6J7zLAoXMI12je4U_7JA2WkcjDKlHo4uh38JCtaJiY_xIzDfNLQ==
+

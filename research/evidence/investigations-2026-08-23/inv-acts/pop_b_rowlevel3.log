@@ -1,0 +1,117 @@
+POP_B_ROWS total: 2937
+category counts: {'no_token': 2185, 'abstract_alone': 60, 'neither': 567, 'roster': 125}
+
+examples:
+ roster:
+    0906-AA81 201004 'PHSA 42, USC 247d-6d and 247d-6e'
+    0906-AA81 201010 'PHSA 42, USC 247d-6d and 247d-6e'
+    0906-AA81 201104 'PHSA 42, USC 247d-6d and 247d-6e'
+    0906-AA81 201704 'PHSA 42, U.S.C. 247d-6d and 247d-6e'
+    0906-AA85 201404 'and 319F-4 PHA'
+ abstract_alone:
+    0412-AA64 200910 'NEPA 1969'
+    0412-AA64 201004 'NEPA 1969'
+    0412-AA64 201010 'NEPA 1969'
+    0412-AA64 201104 'NEPA 1969'
+    0412-AA64 201110 'NEPA 1969'
+ neither:
+    0412-AA64 200910 'ARRA 2009'
+    0412-AA64 201004 'ARRA 2009'
+    0412-AA64 201010 'ARRA 2009'
+    0412-AA64 201104 'ARRA 2009'
+    0412-AA64 201110 'ARRA 2009'
+
+top tokens driving the NEITHER bucket:
+  PHS          55
+  BBRA         41
+  IIJA         28
+  MIPPA        27
+  BIPA         23
+  TEA-21       20
+  FSH          18
+  HSIA         18
+  DHS          17
+  NAFTA        16
+  ARRA         15
+  FD&C         15
+  INA          12
+  DCR          12
+  NDAA         11
+  FLSA         10
+  EPA           9
+  FIPS          9
+  BB            9
+  UMTRCA        9
+  REAL          8
+  EPCRA         8
+  LU            8
+  PPAC          6
+  FDASIA        6
+
+abstract-alone details (token bound from record's own ABSTRACT):
+  {'rin': '0412-AA64', 'publication_id': '200910', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201004', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201010', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201104', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201110', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201210', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201304', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201310', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201404', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201410', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201504', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201510', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201604', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0412-AA64', 'publication_id': '201610', 'text': 'NEPA 1969', 'token': 'NEPA', 'abstract_name': 'National Environmental Policy Act', 'in_act_index': 'national environmental policy act of 1969'}
+  {'rin': '0720-AB70', 'publication_id': '201704', 'text': 'NDAA-17 sec. 701', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201704', 'text': 'NDAA-17 sec. 706', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201704', 'text': 'NDAA-17 sec. 715', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201704', 'text': 'NDAA-17 sec. 718', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201704', 'text': 'NDAA-17 sec. 729', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201710', 'text': 'NDAA-17 sec. 701', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201710', 'text': 'NDAA-17 sec. 706', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201710', 'text': 'NDAA-17 sec. 715', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201710', 'text': 'NDAA-17 sec. 718', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201710', 'text': 'NDAA-17 sec. 729', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201804', 'text': 'NDAA-17 sec. 701', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201804', 'text': 'NDAA-17 sec. 706', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201804', 'text': 'NDAA-17 sec. 715', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201804', 'text': 'NDAA-17 sec. 718', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201804', 'text': 'NDAA-17 sec. 729', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201810', 'text': 'NDAA-17 sec. 701', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201810', 'text': 'NDAA-17 sec. 706', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201810', 'text': 'NDAA-17 sec. 715', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201810', 'text': 'NDAA-17 sec. 718', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201810', 'text': 'NDAA-17 sec. 729', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201904', 'text': 'NDAA-17 sec. 701', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201904', 'text': 'NDAA-17 sec. 706', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201904', 'text': 'NDAA-17 sec. 715', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201904', 'text': 'NDAA-17 sec. 718', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB70', 'publication_id': '201904', 'text': 'NDAA-17 sec. 729', 'token': 'NDAA-17', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB87', 'publication_id': '202204', 'text': 'NDAA 2021, sec. 702', 'token': 'NDAA', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0720-AB87', 'publication_id': '202210', 'text': 'NDAA 2021, sec. 702', 'token': 'NDAA', 'abstract_name': 'National Defense Authorization Act', 'in_act_index': None}
+  {'rin': '0750-AG63', 'publication_id': '201004', 'text': 'Weapon System Reform Act of 2009 (WSARA)', 'token': 'WSARA', 'abstract_name': 'Weapons System Acquisition Reform Act of 2009', 'in_act_index': None}
+  {'rin': '0750-AG63', 'publication_id': '201010', 'text': 'Weapon System Reform Act of 2009 (WSARA)', 'token': 'WSARA', 'abstract_name': 'Weapons System Acquisition Reform Act of 2009', 'in_act_index': None}
+  {'rin': '0750-AG63', 'publication_id': '201104', 'text': 'Weapon System Reform Act of 2009 (WSARA)', 'token': 'WSARA', 'abstract_name': 'Weapons System Acquisition Reform Act of 2009', 'in_act_index': None}
+  {'rin': '0930-AA16', 'publication_id': '201010', 'text': 'Sections 1911 through 1956 of the PHS Act Authorize the Community Mental Health Services (CMHS) Block Grant and the Substance Abuse Prevention and Treatment (SAPT) Block Grant', 'token': 'CMHS', 'abstract_name': 'Public Health Service Act', 'in_act_index': 'public health service act'}
+  {'rin': '0930-AA16', 'publication_id': '201010', 'text': 'Sections 1911 through 1956 of the PHS Act Authorize the Community Mental Health Services (CMHS) Block Grant and the Substance Abuse Prevention and Treatment (SAPT) Block Grant', 'token': 'SAPT', 'abstract_name': 'Public Health Service Act', 'in_act_index': 'public health service act'}
+  {'rin': '0930-AA16', 'publication_id': '201104', 'text': 'Sections 1911 through 1956 of the Public Health Services (PHS) Act Authorize the Community Mental Health Services (CMHS) Block Grant and the Substance Abuse Prevention and Treatment (SAPT) Block Grant', 'token': 'CMHS', 'abstract_name': 'Public Health Service Act', 'in_act_index': 'public health service act'}
+  {'rin': '0930-AA16', 'publication_id': '201104', 'text': 'Sections 1911 through 1956 of the Public Health Services (PHS) Act Authorize the Community Mental Health Services (CMHS) Block Grant and the Substance Abuse Prevention and Treatment (SAPT) Block Grant', 'token': 'SAPT', 'abstract_name': 'Public Health Service Act', 'in_act_index': 'public health service act'}
+  {'rin': '0930-AA16', 'publication_id': '201110', 'text': 'Sections 1911 through 1956 of the Public Health Services (PHS) Act Authorize the Community Mental Health Services (CMHS) Block Grant and the Substance Abuse Prevention and Treatment (SAPT) Block Grant', 'token': 'CMHS', 'abstract_name': 'Public Health Service Act', 'in_act_index': 'public health service act'}
+  {'rin': '0930-AA16', 'publication_id': '201110', 'text': 'Sections 1911 through 1956 of the Public Health Services (PHS) Act Authorize the Community Mental Health Services (CMHS) Block Grant and the Substance Abuse Prevention and Treatment (SAPT) Block Grant', 'token': 'SAPT', 'abstract_name': 'Public Health Service Act', 'in_act_index': 'public health service act'}
+  {'rin': '0938-AK54', 'publication_id': '200104', 'text': "BIPA '00", 'token': 'BIPA', 'abstract_name': 'Benefits Improvement and Protection Act', 'in_act_index': None}
+  {'rin': '0938-AK54', 'publication_id': '200110', 'text': "BIPA '00", 'token': 'BIPA', 'abstract_name': 'Benefits Improvement and Protection Act', 'in_act_index': None}
+  {'rin': '0938-AM40', 'publication_id': '200304', 'text': 'BIPA 2000, sec 427', 'token': 'BIPA', 'abstract_name': 'Benefits Improvement and Protection Act of 2000', 'in_act_index': None}
+  {'rin': '0938-AP41', 'publication_id': '200910', 'text': 'MIPPA', 'token': 'MIPPA', 'abstract_name': 'Medicare Improvements for Patients and Providers Act of 2008', 'in_act_index': 'medicare improvements for patients and providers act of 2008'}
+  {'rin': '0938-AP41', 'publication_id': '201004', 'text': 'MIPPA', 'token': 'MIPPA', 'abstract_name': 'Medicare Improvements for Patients and Providers Act of 2008', 'in_act_index': 'medicare improvements for patients and providers act of 2008'}
+  {'rin': '0991-AC04', 'publication_id': '201610', 'text': 'FOIA by the Electronic FOIA Act of 1996', 'token': 'FOIA', 'abstract_name': "Department of Health and Human Services' Freedom of Information Act", 'in_act_index': None}
+  {'rin': '2020-AA47', 'publication_id': '201210', 'text': 'CWA sections 304(i) and 501(a)', 'token': 'CWA', 'abstract_name': 'Clean Water Act', 'in_act_index': 'federal water pollution control act'}
+  {'rin': '2025-AA25', 'publication_id': '200910', 'text': 'EPCRA sec 313 and PPA sec 6607', 'token': 'EPCRA', 'abstract_name': 'Emergency Planning and Community Right-To-Know Act of 1986', 'in_act_index': 'emergency planning and community right-to-know act of 1986'}
+  {'rin': '2025-AA25', 'publication_id': '200910', 'text': 'EPCRA sec 313 and PPA sec 6607', 'token': 'PPA', 'abstract_name': 'Pollution Prevention Act of 1990', 'in_act_index': 'pollution prevention act of 1990'}
+  {'rin': '2025-AA27', 'publication_id': '201110', 'text': 'EPCRA, sec 313', 'token': 'EPCRA', 'abstract_name': 'Emergency Planning and Community Right-to-Know Act', 'in_act_index': 'emergency planning and community right-to-know act of 1986'}
+  {'rin': '2030-AA48', 'publication_id': '199704', 'text': 'FASA', 'token': 'FASA', 'abstract_name': 'Federal Acquisition Streamlining Act', 'in_act_index': 'federal acquisition streamlining act of 1994'}
+  {'rin': '2060-AP43', 'publication_id': '200904', 'text': 'UMTRCA sec 206(a)', 'token': 'UMTRCA', 'abstract_name': 'Uranium Mill Tailings Radiation Control Act', 'in_act_index': 'uranium mill tailings radiation control act of 1978'}
+  {'rin': '2126-AD02', 'publication_id': '202510', 'text': 'sec. 32107, paragraphs (b) and (c) of MAP-21', 'token': 'MAP-21', 'abstract_name': 'Century Act', 'in_act_index': None}
+  {'rin': '3041-AD79', 'publication_id': '202004', 'text': 'VGBA', 'token': 'VGBA', 'abstract_name': 'Virginia Graeme Baker Pool and Spa Safety Act', 'in_act_index': 'virginia graeme baker pool and spa safety act'}
+
+wrote /Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-acts/pop_b_rowlevel.json

@@ -1,0 +1,5 @@
+usc_section_end: NULL->value 1834, value->longer value 224, value->NULL (gate) 21
+note verdict: Counter({('near-miss', 'present'): 164, ('absent', 'present'): 14})
+added rows: 62
+distinct texts touched: 398
+distinct RINs touched: 440

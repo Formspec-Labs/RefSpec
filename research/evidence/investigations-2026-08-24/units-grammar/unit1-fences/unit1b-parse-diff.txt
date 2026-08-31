@@ -1,0 +1,60 @@
+### FILER TEXTS moved by unit 1b: 0 (rows behind them 0)
+
+
+### NOTES moved by unit 1b: 14
+
+--- 2:2700  note='Authority: Sec. 2455, Pub. L. 103-355, 108 Stat. 3327 (31 U.S.C. 6101 note); E.O. 12549 (3 CFR, 1986 Comp., p. 189); E.O. 12689 (3 CFR, 1989, 1986 Comp., p. 235); 15 U.S.C. 634(b)(6).'
+    GONE    [('usc', '31:1989'), ('usc', '31:1986')]
+    ARRIVED []
+
+--- 5:10000  note='Authority: 5 U.S.C. 552, as amended; E.O. 12600, 52 FR 23781, 3 CFR 1987, 1987 Comp., p. 235; 3 CFR 235.'
+    GONE    [('cfr', '3:1987'), ('usc', '5:1987')]
+    ARRIVED []
+
+--- 8:1215  note='Authority: Sec. 104, 66 Stat. 174, Proc. 3004, 18 FR 489; 8 U.S.C. 1104, 3 CFR, 1953 Supp. Interpret or apply sec. 215, 66 Stat. 190; (8 U.S.C. 1185).'
+    GONE    [('usc', '8:1953')]
+    ARRIVED []
+
+--- 8:223  note='Authority: 8 U.S.C. 1103, 1181, 1182, 1186a, 1203, 1225, 1226, 1227, 1251; Protocol Relating to the Status of Refugees, November 1, 1968, 19 U.S.T. 6223 (TIAS) 6577; 8 CFR part 2.'
+    GONE    [('usc', '8:19')]
+    ARRIVED []
+
+--- 12:602  note='Authority: Secs. 5.9, 5.17, 5.59 of the Farm Credit Act (12 U.S.C. 2243, 2252, 2277a-8); 5 U.S.C 301, 552; 12 U.S.C. 1821(t); 52 FR 10012; E.O. 12600; 52 FR 23781, 3 CFR 1987, p. 235.'
+    GONE    [('cfr', '3:1987')]
+    ARRIVED []
+
+--- 22:150  note='Authority: 22 U.S.C. 2651a, 2656; 22 U.S.C. 254c; Vienna Convention on Diplomatic Relations, Done at Vienna April 18, 1961, 23 U.S.T. 3227; Vienna Convention on Consular Relations, Done at Vienna April 24, 1963, 21 U.S.T. 77; Convention on the Privileges and Immunities of the United Nations, 21 U.S.T. 1418.'
+    GONE    [('usc', '22:23'), ('usc', '22:21')]
+    ARRIVED []
+
+--- 22:42  note='Authority: 8 U.S.C. 1104 and 1182; Pub. L. 105-277, 112 Stat. 2681; Pub. L. 108-449, 118 Stat. 3469; The Convention on Protection of Children and Co-operation in Respect of Intercountry Adoption (done at the Hague, May 29, 1993), S. Treaty Doc. 105-51 (1998), 1870 U.N.T.S. 167 (Reg. No. 31922 (1993)); 42 U.S.C. 14901-14954 (Pub. L. 106-279, 114 Stat. 825); 8 U.S.C. 1101 (Pub L. 117-31, 135 Stat. 309); 8 U.S.C. 1154 (Pub. L. 109-162, 119 Stat. 2960); 8 U.S.C. 1201 (Pub. L. 114-70, 129 Stat. 561).'
+    GONE    [('usc', '8:1870')]
+    ARRIVED []
+
+--- 32:1703  note='Authority: The Intelligence Reform and Terrorism Prevention Act of 2004, Public Law No. 108-458, 118 Stat. 3638 (2004); National Security Act of 1947, as amended, 50 U.S.C. 401 et seq.; Executive Order 12333, as amended; and United States ex rel. Touhy v. Ragen, 340 U.S. 462 (1951).'
+    GONE    [('usc', '50:340')]
+    ARRIVED []
+
+--- 32:1805  note='Authority: 5 U.S.C. 104; Presidential Decision Directive/NSC 24 “U.S. Counterintelligence Effectiveness, dated May 3, 1994; 50 U.S.C. 403g; United States ex rel. Touhy v. Ragen, 340 U.S. 462 (1951); E.O. 12333; E.O. 12356; U.S. v. Snepp 444 U.S. 507 (1980).'
+    GONE    [('usc', '50:340')]
+    ARRIVED []
+
+--- 32:1905  note='Authority: 5 U.S.C. 403(d)(3); 50 U.S.C. 403g; United States ex rel. Touhy v. Ragen, 340 U.S. 462 (1951); E.O. 12333 §§ 1.8(i), 1.5(h), 3.2; E.O. 12356; U.S. v. Snepp, 444 U.S. 507 (1980).'
+    GONE    [('usc', '50:340'), ('usc', '50:444')]
+    ARRIVED []
+
+--- 33:403  note='Authority: 68 Stat. 92-96, 33 U.S.C. 981-990; Agreement between the Governments of United States and of Canada dated March 9, 1959, 10 U.S.T. 323, unless otherwise noted.'
+    GONE    [('usc', '33:10')]
+    ARRIVED []
+
+--- 34:7  note='Authority: E.O. 10096, 15 FR 391; 3 CFR 1950 Supp.; E.O. 10930, 26 FR 2583; 3 CFR 1961 Supp.'
+    GONE    [('cfr', '3:1950'), ('cfr', '3:1961')]
+    ARRIVED []
+
+--- 45:7  note='Authority: Reorg. Plan No. 1 of 1953, 18 FR 2053; 3 CFR 1953 Supp. E.O. 10096, 15 FR 391; 3 CFR. 1950 Supp. and E.O. 10930, 26 FR 2583; 3 CFR 1961 Supp.'
+    GONE    [('cfr', '3:1953'), ('cfr', '3:1950'), ('cfr', '3:1961')]
+    ARRIVED []
+
+--- 47:80  note='Authority: 47 U.S.C. 151-155, 301-609; 3 U.S.T. 3450, 3 U.S.T. 4726, 12 U.S.T. 2377.'
+    GONE    [('usc', '47:3'), ('usc', '47:12')]
+    ARRIVED []

@@ -1,0 +1,58 @@
+### the rows the bare-name reader added (CERCLA and its siblings)
+  rows= 21  '42 USC 9602/CERCLA 102' -> 'cercla' sec '102' => 42 U.S.C. 9602 [exists]
+  rows=  8  '42 USC 9604(i)/CERCLA 104(i)' -> 'cercla' sec '104' => 42 U.S.C. 9604 [exists]
+  rows=  6  '42 USC 9605/CERCLA 105' -> 'cercla' sec '105' => 42 U.S.C. 9605 [exists]
+  rows=  4  '42 USC 9609/CERCLA 109' -> 'cercla' sec '109' => 42 U.S.C. 9609 [exists]
+  rows=  4  '42 USC 9665 to 9857/CERCLA 115' -> 'cercla' sec '115' => 42 U.S.C. 9615 [exists]
+  rows=  4  '33 USC 1321(c)(2)/CERCLA 107' -> 'cercla' sec '107' => 42 U.S.C. 9607 [exists]
+  rows=  4  '33 USC 1361/CERCLA 311' -> 'cercla' sec '311' => 42 U.S.C. 9660 [exists]
+  rows=  3  '42 USC 9617(e)/CERCLA 117' -> 'cercla' sec '117' => 42 U.S.C. 9617 [exists]
+  rows=  2  '42 USC 9611(c)/CERCLA 119' -> 'cercla' sec '119' => 42 U.S.C. 9619 [exists]
+  rows=  2  '42 USC 9615/CERCLA 115' -> 'cercla' sec '115' => 42 U.S.C. 9615 [exists]
+  rows=  1  '33 USC 1321/CERCLA 501' -> 'cercla' sec '501' => None U.S.C. None [None]
+  rows=  1  '42 USC 9602/CERCLA 102(a)' -> 'cercla' sec '102' => 42 U.S.C. 9602 [exists]
+  rows=  1  '42 USC 9601-9675/CERCLA 105' -> 'cercla' sec '105' => 42 U.S.C. 9605 [exists]
+
+### the duplicate is gone
+    0 act_relative resource conservation and recovery act of 1976 3004 agency-roster-initialism
+
+### residue after the bare-name reader: 39 values, 140 rows
+  rows=  20  '42 USC 6912/RCRA 2002'
+  rows=  10  '42 USC 6905/RCRA 1006921, 6922, 6924, 6934, and 6938'
+  rows=   9  '33 USC 2601/Shore Protection Act of 1988 (PL 100-6-88),4103(b)'
+  rows=   8  '42 USC 2021(h)/AEA(h)/Reorganization Plan No. 3 of 1970'
+  rows=   6  '42 USC 6907, 6944, 6949/RCRA 4010, 1008, 2002, and 4004'
+  rows=   6  '33 USC 1361(a)/76 Stat 816'
+  rows=   5  'N/A'
+  rows=   4  '33 USC 1319/CWA 309'
+  rows=   4  '33 USC 1321/CWA 311'
+  rows=   4  '42 USC 11045/EPCRA 325'
+  rows=   4  '33 USC 1401 et seq/MPRSA 2 et seq'
+  rows=   4  '42 USC 6926(b)/3006(b)'
+  rows=   4  '42 USC 9609/11045'
+  rows=   4  '42 USC 4111/Clean Air Act Amendments of 1990, section 110(n)(3)'
+  rows=   4  '42 USC 11013/SARA (EPCRA) 313'
+  rows=   4  '112 Stat/1920(1998)'
+  rows=   4  'TSCA 402/404'
+  rows=   3  'PL 99-499/SARA title III'
+  rows=   3  '42 USC 9605 and 9615 /CERCLA 105 and 115'
+  rows=   3  '40 USC 390/EPAAR 205'
+  rows=   3  '42 USC 6905/1006'
+  rows=   2  '40 USC 486(c)/EPAAR 205(c)'
+  rows=   2  '42 USC 4111/Clean Air Act Amendments of 1990, section 129'
+  rows=   2  '/CAA 112 & 103'
+  rows=   2  '33 USC 1251/33 USC 1345'
+  rows=   2  '33 USC 1401 et seq /MPRSA 2 et seq'
+  rows=   2  '33 USC 1361(a)/76 Stat. 816'
+  rows=   1  '33 USC 1251/CWA 101 et seq'
+  rows=   1  '33 USC 1361/FWPCA 1361'
+  rows=   1  '33 USC 1321/FWPCA 1321'
+  rows=   1  '33 USC 1321/FWPCA 311'
+  rows=   1  '33 USC 1321/FWPCA 501'
+  rows=   1  '42 USC /RCRA 3004(a)(q)'
+  rows=   1  '42 USC 9605(a)(8)(b)/CERCLA 105 (a)(8)(B)'
+  rows=   1  '/TSCA 4'
+  rows=   1  '42 USC 6905/RCRA 2002'
+  rows=   1  'HR 4577, Treasury/General Government Appropriations Act of 2001'
+  rows=   1  '42 USC 300//-2(a)(1)(3)'
+  rows=   1  '42 USC 300//-7(c)'

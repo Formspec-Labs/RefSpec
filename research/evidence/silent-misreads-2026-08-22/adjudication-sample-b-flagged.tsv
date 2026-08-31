@@ -1,0 +1,15 @@
+# Adjudicated non-CORRECT verdicts, sample B (per-row sample, n=150 rows / 140 texts)
+# batch	index	in_sample_rows	verdict	authority_text	reason
+B_1	13	1	DROPPED	Secretary's Orders 4-75 and 14-75	plural label lists in vain: Secretary's Order 14-75 dropped
+B_1	17	1	MISREAD_LAUNDERED	12 U.S.C. 1829(b)	12 U.S.C. 1829(b) -> section 1829; FinCEN BSA authority is 1829b
+B_1	19	1	MISREAD_LAUNDERED	42 USC 629(b)	42 USC 629(b) -> section 629, which has only unlettered paragraphs; means 629b
+B_1	23	1	DROPPED	42 USC 7401/CAA 112	42 USC 7401/CAA 112: the act-section half of the value is discarded
+B_1	66	1	MISREAD_LAUNDERED	38 U.S.C. 7009	38 U.S.C. 7009 does not exist (title 38 ch.71 starts at 7101)
+B_1	68	1	MISREAD_LAUNDERED	12 U.S.C. 1701-1	12 U.S.C. 1701-1 does not exist; 12 U.S.C. 1701x-1 does
+B_2	7	1	MISREAD_GRAMMAR	16 U.S.C. 472, 551, 620(f), 1133(c),&(d)(1), 1246(i)	16 U.S.C. ...620(f)...: 16 U.S.C. 620 has only (a),(b); means 620f
+B_2	23	1	MISREAD_LAUNDERED	42 U.S.C. 300	42 U.S.C. 300 bare, where the SDWA 300f et seq. is meant
+B_2	38	1	MISREAD_LAUNDERED	38 USC 3080	38 USC 3080 does not exist (ch.30 ends at 3036)
+B_2	51	1	MISREAD_LAUNDERED	21 USC 371a	21 USC 371a does not exist; means 21 U.S.C. 371(a)
+B_2	52	1	MISREAD_GRAMMAR	18 USC 3621, 3622, 3624, 4001, 4042, 4081, 4082 (Repealed in part as to offenses committed on or after November 1, 1987), 5006 to 5024 (Repealed October 12, 1984, as to offenses committed)	date-year phantom: 18 U.S.C. 1987 harvested from "November 1, 1987"
+B_2	64	1	MISREAD_GRAMMAR	16 USC 460(k), 664, 668(dd), 685, 690(d), 715(i), 725	16 USC 460(k), 668(dd), 690(d), 715(i): four lettered sections read as subsections
+B_2	66	1	MISREAD_LAUNDERED	EO 8284	EO 8284 where OMB Circular A-25 rests on EO 8248

@@ -1,0 +1,47 @@
+POP_B_ROWS: 2937
+rows with >=1 candidate initialism token: 752
+distinct initialism tokens: 118
+
+TOP 40 initialisms by row frequency:
+  PHS           58  RIN 0906-AA79 / 201004  'sec 31F-3 and 319F-4 of the PHS Act'
+  BBRA          41  RIN 0938-AK14 / 200010  'sec 212 of BBRA of 1999'
+  CAA           40  RIN 2009-AA00 / 200710  'CAA 301(d)'
+  MIPPA         32  RIN 0938-AP41 / 200810  'MIPPA'
+  IIJA          28  RIN 2105-AE98 / 202204  'sec. 11101(e) of the IIJA'
+  BIPA          27  RIN 0938-AK54 / 200104  "BIPA '00"
+  NDAA-17       25  RIN 0720-AB70 / 201704  'NDAA-17 sec. 701'
+  FLSA          24  RIN 1210-AB46 / 201010  'FLSA sec 18A'
+  TEA-21        20  RIN 2105-AC90 / 200010  'TEA-21'
+  FSH           18  RIN 0596-AD14 / 201404  'FSH 2709.11'
+  HSIA          18  RIN 0648-AR87 / 200404  'HSIA 2002, sec 303'
+  DHS           17  RIN 1601-AA65 / 201110  'DHS Delegation Number 0700'
+  NAFTA         16  RIN 1400-AA51 / 199510  'North American Free Trade Agreement (NAFTA)'
+  NEPA          15  RIN 0412-AA64 / 200910  'NEPA 1969'
+  ARRA          15  RIN 0412-AA64 / 200910  'ARRA 2009'
+  FD&C          15  RIN 0910-AG32 / 200910  'secs 505(i), 520(g), and 701(a), FD&C Act'
+  BBA           15  RIN 0938-AI89 / 199804  '42 USC BBA 4106'
+  INA           15  RIN 1205-AA66 / 199510  'INA 212(a)(5)(A)'
+  MMA           14  RIN 0917-AA07 / 200504  'MMA, sec 506'
+  TSCA          14  RIN 2060-AF40 / 199510  'TSCA 305'
+  NDAA          13  RIN 0720-AB87 / 202204  'NDAA 2021, sec. 702'
+  DCR           12  RIN 3225-AA19 / 202004  'D.C. Law 18-88, sec. 56 DCR 7413'
+  CWA           11  RIN 2009-AA04 / 201004  'CWA 312(f)(4)(A)'
+  RCRA          11  RIN 2050-AE01 / 199510  '42 USC /RCRA 3004(a)(q)'
+  EPCRA         10  RIN 2025-AA25 / 200910  'EPCRA sec 313 and PPA sec 6607'
+  UMTRCA        10  RIN 2060-AP43 / 200904  'UMTRCA sec 206(a)'
+  EPA            9  RIN 0596-AD03 / 201404  'EPA 1992'
+  FIPS           9  RIN 0790-AI97 / 201410  'FIPS 201-2'
+  BB             9  RIN 1545-BQ55 / 202210  'Division BB'
+  CAAA           9  RIN 2050-AE01 / 199510  'RCRA 3005(a), CAAA section 112'
+  REAL           8  RIN 1601-AA37 / 200610  'Division B--REAL ID Act of 2005'
+  LU             8  RIN 2126-AB74 / 201504  'SAFTEA LU'
+  SSA            7  RIN 0936-AA07 / 201604  '1007: SSA Subsection 1902 (a) (61)'
+  PPAC           6  RIN 0906-AA87 / 201010  'Sec 6403 PPAC Act'
+  FDASIA         6  RIN 0910-AI87 / 202304  'sec. 714 of the Food and Drug Administrative Safety and Innovation Act (FDASIA) of July 2012'
+  NPI            6  RIN 0938-AN71 / 200504  'NPI final rule (01/23/2004)'
+  NPS            6  RIN 0938-AN71 / 200504  'NPS System of Records (07/28/1998)'
+  PPRA           6  RIN 0938-AP17 / 200710  'PPRA'
+  SMART          6  RIN 0938-AR88 / 201304  'SMART sec 203'
+  OSH            6  RIN 1218-AB58 / 199610  'Section 6(b)(1) and 7(b) of the OSH Act'
+
+wrote /Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-acts/pop_b_per_token.json

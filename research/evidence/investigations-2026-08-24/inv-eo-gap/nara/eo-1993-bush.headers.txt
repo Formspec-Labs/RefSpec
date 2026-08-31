@@ -1,0 +1,28 @@
+HTTP/2 301 
+content-type: text/html; charset=UTF-8
+content-length: 0
+location: https://www.archives.gov/federal-register/executive-orders/1993-bush
+date: Mon, 24 Aug 2026 20:33:29 GMT
+x-frame-options: SAMEORIGIN
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+cache-control: no-cache, must-revalidate
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-cache: Miss from cloudfront
+via: 1.1 13123a343330dc5aacb74d5b3c4fdf0e.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: 07cDmUaeUnUyPDFOp-SJmJE1PoJxOnQsrunJCyz7j5xarVbpcly_7w==
+
+HTTP/2 404 
+content-type: text/html; charset=utf-8
+date: Mon, 24 Aug 2026 20:33:30 GMT
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-frame-options: SAMEORIGIN
+content-language: en
+x-content-type-options: nosniff
+cache-control: public, max-age=60
+x-cache: Error from cloudfront
+via: 1.1 13123a343330dc5aacb74d5b3c4fdf0e.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: Zrnp9OSPL6K6QUmPOaaYrAQrsx0nDcuUxtD-zIe8xtMzPlmcIJyM7Q==
+

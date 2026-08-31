@@ -1,0 +1,10 @@
+{
+ "seed": 20260822,
+ "frame": "parse_status IN ('ok','partial','corroborated')",
+ "frame_rows": 780582,
+ "frame_texts": 41063,
+ "artifact_receipt": "ca8d7912c119daeb0d45bc6247a9b10940cfce3aa0541f768d40e02b5777e950",
+ "recipe_reproduces_2026_08_22_samples": true,
+ "sampleA_overlap_with_2026_08_22": 149,
+ "sampleB_overlap": 140
+}

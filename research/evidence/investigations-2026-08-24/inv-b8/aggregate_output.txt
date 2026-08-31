@@ -1,0 +1,65 @@
+population readings (row,letter): 14740
+distinct rows: 14073
+distinct texts: 1340
+distinct RINs: 2641
+
+== witness 1 (structure) buckets ==
+  ambiguous-both-real: 9612 readings
+  unknown-structure:subsection_structure_not_published: 3241 readings
+  witness1-no-such-subsection: 1887 readings
+
+== witness 2a (note) buckets ==
+  disagree-names-NNN: 5148 readings
+  agree-names-NNNx: 4112 readings
+  absent-in-note: 4097 readings
+  no-note-held: 1383 readings
+
+== witness 2b (other editions) buckets ==
+  absent-elsewhere: 12009 readings
+  text-spells-NNNx: 2061 readings
+  no-other-editions: 648 readings
+  structural-only-NNNx: 22 readings
+
+== cross-tab: publish / candidate / refuse ==
+  CANDIDATE: 2a/2b without 1: 3761 readings / 3560 rows / 447 texts / 615 RINs
+  CANDIDATE: witness1 alone: 716 readings / 664 rows / 118 texts / 140 RINs
+  PUBLISH: 1+2a: 722 readings / 722 rows / 102 texts / 136 RINs
+  PUBLISH: 1+2a+2b: 289 readings / 287 rows / 81 texts / 80 RINs
+  PUBLISH: 1+2b: 160 readings / 160 rows / 48 texts / 38 RINs
+  REFUSE: no witness: 9092 readings / 8888 rows / 670 texts / 1878 RINs
+
+CONFLICT (witness1 fires but note names bare NNN): 147 readings
+  1018-AC02 199510 16 460 k -> 460k note_part= 50 CFR 36
+  1512-AB35 199510 40 304 k -> 304k note_part= 27 CFR 72
+  2501-AC09 199604 12 1735 f -> 1735f note_part= 24 CFR 25
+  1018-AC02 199604 16 460 k -> 460k note_part= 50 CFR 36
+  1018-AS85 199604 16 460 k -> 460k note_part= 50 CFR 36
+  1512-AB35 199604 40 304 k -> 304k note_part= 27 CFR 72
+  1018-AC02 199610 16 460 k -> 460k note_part= 50 CFR 36
+  1018-AS85 199610 16 460 k -> 460k note_part= 50 CFR 36
+  1512-AB35 199610 40 304 k -> 304k note_part= 27 CFR 72
+  0970-AB82 199704 42 1396 k -> 1396k note_part= 45 CFR 303
+
+Ambiguous-by-structure but 2a/2b still prefers NNNx: 2954
+
+== tail lesson (item 5), among PUBLISH readings ==
+PUBLISH readings with a further tail in the text: 18 / 1171
+  of those, tail affirmed by oracle (identity keeps the tail): 18
+  of those, tail NOT affirmed by oracle (identity would be bare NNNx, tail unconfirmed): 0
+   KEEP 2501-AC91 200210 1735 f text_tail= 14 -> candidate_identity= 1735f-14  | text: 12 USC 1708(c), 1708(d), 1709(s), 1735(f)-14
+   KEEP 2501-AC91 200304 1735 f text_tail= 14 -> candidate_identity= 1735f-14  | text: 12 USC 1708(c), 1708(d), 1709(s), 1735(f)-14
+   KEEP 2070-AJ76 201104 300 v text_tail= 1 -> candidate_identity= 300v-1  | text: 42 USC 300(v)-1(b)
+   KEEP 2070-AJ76 201110 300 v text_tail= 1 -> candidate_identity= 300v-1  | text: 42 USC 300(v)-1(b)
+   KEEP 2502-AJ13 201210 1735 f text_tail= 14 -> candidate_identity= 1735f-14  | text: 12 USC 1708(c), 1708(d), 1709(s), 1715b and 1735(f)14
+   KEEP 2070-AJ76 201210 300 v text_tail= 1 -> candidate_identity= 300v-1  | text: 42 USC 300(v)-1(b)
+   KEEP 2070-AJ76 201304 300 v text_tail= 1 -> candidate_identity= 300v-1  | text: 42 USC 300(v)-1(b)
+   KEEP 1240-AA08 201610 7385 s text_tail= 10 -> candidate_identity= 7385s-10  | text: 42 U.S.C. 7385(s)-10(e)
+   KEEP 1240-AA08 201704 7385 s text_tail= 10 -> candidate_identity= 7385s-10  | text: 42 U.S.C. 7385(s)-10(e)
+   KEEP 1240-AA08 201710 7385 s text_tail= 10 -> candidate_identity= 7385s-10  | text: 42 U.S.C. 7385(s)-10(e)
+   KEEP 1240-AA08 201804 7385 s text_tail= 10 -> candidate_identity= 7385s-10  | text: 42 U.S.C. 7385(s)-10(e)
+   KEEP 1240-AA08 201810 7385 s text_tail= 10 -> candidate_identity= 7385s-10  | text: 42 U.S.C. 7385(s)-10(e)
+   KEEP 1240-AA08 201904 7385 s text_tail= 10 -> candidate_identity= 7385s-10  | text: 42 U.S.C. 7385(s)-10(e)
+   KEEP 2040-AF96 202310 300 g text_tail= 2 -> candidate_identity= 300g-2  | text: 42 U.S.C. 300g-3(h)(6), 42 U.S.C. 300(g)-2(a)(6), and 42 U.S.C. 300j-9(a)(1)
+   KEEP 2040-AF96 202404 300 g text_tail= 2 -> candidate_identity= 300g-2  | text: 42 U.S.C. 300g-3(h)(6), 42 U.S.C. 300(g)-2(a)(6), and 42 USC 300j-9(a)(1)
+
+wrote publish_rows.jsonl (1171), candidate_rows.jsonl (4477), refuse_rows.jsonl (9092)

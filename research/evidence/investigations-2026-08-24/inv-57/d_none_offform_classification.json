@@ -1,0 +1,349 @@
+{
+  "distinct_rin_rows": [
+    {
+      "rin": "0938-AJ88",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AJ89",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2105-AE92",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AJ65",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AN22",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AD11",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AL64",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AL47",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AM49",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2080-AA06",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AO05",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AD17",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 2
+    },
+    {
+      "rin": "0938-AN91",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0694-AJ97",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AJ63",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AB67",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AK55",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 2
+    },
+    {
+      "rin": "0991-AC20",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0960-AH15",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AL55",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AD26",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0583-AD16",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "1115-AE28",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2080-AA08",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2127-AL99",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 2
+    },
+    {
+      "rin": "2080-AA07",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AB66",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0694-AI86",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AM89",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0583-AC67",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AJ83",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2140-AA73",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2120-AL53",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 24
+    },
+    {
+      "rin": "0938-AJ98",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AO07",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2080-AA11",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0605-AA61",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AK00",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2126-AC47",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AB65",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AN23",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AL34",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "1650-AA00",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 3
+    },
+    {
+      "rin": "0938-AL39",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AC72",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AM60",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AL83",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AN70",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2126-AC48",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "3235-AJ36",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AK79",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0596-AD22",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2080-AA05",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "3069-AB28",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 7
+    },
+    {
+      "rin": "0694-AH03",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AN87",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "1601-AA36",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 2
+    },
+    {
+      "rin": "2700-AE76",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 2
+    },
+    {
+      "rin": "0938-AK16",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AK50",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0694-AJ86",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AM95",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AL30",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0583-AC92",
+      "has_fr_citation_ever": false,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "2105-AE99",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 5
+    },
+    {
+      "rin": "2105-AF06",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "3041-AC06",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0938-AN94",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 1
+    },
+    {
+      "rin": "0584-AD76",
+      "has_fr_citation_ever": true,
+      "max_cfr_refs": 2
+    }
+  ]
+}

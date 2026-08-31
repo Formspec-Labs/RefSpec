@@ -1,0 +1,142 @@
+[
+  {
+    "key": "3069-AB28|200610|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\" (only box); TIMETABLE_LIST: action='Final Action' fr_citation='71 FR 35495' amending CFR_LIST 12 CFR 900/914/915/917/925/950-952/955 (7 boxes); RIN's own 5-edition history (200410-200610) never once states an authority.",
+    "why": "FHFB finalized a binding rule amending seven CFR parts and published it at 71 FR 35495, yet across every one of this RIN's 5 editions from first filing to completion the Legal Authority box was always 'None' -- a completed final CFR rule necessarily rests on statutory authority (the Federal Home Loan Bank Act), so the field was simply never populated.",
+    "anything_systemic": "Same RIN as row 3069-AB28|200410 (this sample's row 15): the whole 5-edition life of this RIN never once states authority, even through a real Final Action -- a 'never filled, not just dropped' pattern distinct from the regression pattern below."
+  },
+  {
+    "key": "0938-AK50|200210|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "RULE_TITLE: \"Payment for Upgraded Durable Medical Equipment; Withdrawal of Proposed Rule\"; ABSTRACT: \"This notice will withdraw the proposed rule that was published in the Federal Register on April 27, 2000.\"; CFR_LIST: ['None']; prior editions (200104-200204) all read LEGAL_AUTHORITY='Not Yet Determined', only flipping to 'None' at the withdrawal edition.",
+    "why": "This entry is a bare withdrawal of an already-published NPRM that amends no CFR text (CFR_LIST is also 'None'), so a defensible reading is that there is no new 'legal authority for the action' to state; the filer's earlier honest use of 'Not Yet Determined' shows they engaged with the field until the action became a pure withdrawal.",
+    "anything_systemic": null
+  },
+  {
+    "key": "1650-AA00|200510|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\" (only box); same RIN's immediately preceding edition (200504) LEGAL_AUTHORITY_LIST: ['PL 106-215', 'PL 106-396', 'PL 107-56', 'PL 107-173', '8 USC 1104', '8 USC 1184', '8 USC 1185 (pursuant to EO 13323, 1/2/04)', '8 USC 1365a', '8 USC 1365a (note)', '8 USC 1379', '8 USC 1731', '8 USC 1732'].",
+    "why": "This is a MAJOR, Other-Significant, still-actively-proposed US-VISIT biometrics rule whose immediately prior edition (200504) carried a full 12-citation authority list naming four Public Laws and eight U.S.C. sections; the very next edition wiping that down to bare 'None' for the same unchanged rule is a filer regression, not a real change in legal basis.",
+    "anything_systemic": "Regression pattern: a real, rich citation list is entered in one edition and then dropped to an off-form 'None'/'Not applicable' in the next edition of the SAME still-pending rule. See also 0584-AD76|200604 and 0596-AB67|199804 -- three independent instances of the identical failure mode, suggesting filers do not reliably carry an authority list forward when resubmitting an edition."
+  },
+  {
+    "key": "0596-AD11|201410|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\" (only box); TIMETABLE_LIST: action='Final Rule' date='06/11/2014' fr_citation='79 FR 33436'; ABSTRACT: \"Pursuant to 36 CFR section 294.27(b) of the Idaho Roadless Rule, the Chief of the Forest Service may modify Idaho Roadless Areas after a 45-day public notice and opportunity to comment.\"",
+    "why": "This is a completed, published Final Rule (79 FR 33436) amending binding text at 36 CFR 294.27/294.29, and its own abstract names the specific regulatory provision that triggers the action -- a published CFR-amending final rule must state authority in its own Federal Register text, so 'None' here is the field never being carried into the Agenda record rather than a true absence.",
+    "anything_systemic": null
+  },
+  {
+    "key": "2080-AA05|199604|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"Not applicable\"; same RIN's earliest edition (199510) LEGAL_AUTHORITY_LIST: \"None. This rule is for guidance only.\"; CFR_LIST across this RIN's life never states a real CFR part ('Not yet determined').",
+    "why": "This is an EPA Office of Research and Development risk-assessment Guidelines document, not a binding CFR rule, and the RIN's own first Agenda entry spells out the reasoning in full ('This rule is for guidance only') -- confirming 'Not applicable' genuinely reflects the absence of rulemaking authority rather than an omitted citation.",
+    "anything_systemic": "EPA ORD 'Guidelines' family (RINs 2080-AA05, 2080-AA06, 2080-AA07 -- rows 5, 8, 11, 14 of this sample): every one self-explains as guidance-only in its earliest edition and never touches the CFR. This is a distinct, identifiable subpopulation within 'none-off-form' where the off-form text is a genuine, deliberate non-answer rather than a publisher defect."
+  },
+  {
+    "key": "0938-AO07|200910|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\"; TIMETABLE_LIST (this edition): action='NPRM' date='To Be Determined' (never published); this RIN's final 201004 edition: TIMETABLE 'Withdrawn 01/25/2010' with no FR citation ever recorded, LEGAL_AUTHORITY still 'None'.",
+    "why": "Despite being tagged 'Other Significant' with a real target (42 CFR 447 and 457), this proposed rule never reached the Federal Register at any point in its 10-edition life and was ultimately withdrawn outright in 2010 with no FR citation -- there is no adjacent edition or abstract language proving a stated authority ever existed to be dropped, so I cannot elevate this past the default reading.",
+    "anything_systemic": "Negative control: this RIN and 0583-AC92|200304 (row 12) both end in an unpublished 'Withdrawn' milestone with zero FR citation ever generated -- proof that some 'none-off-form' rows in this class really do correspond to actions that never became operative enough to require a stated authority, unlike the confirmed-error rows."
+  },
+  {
+    "key": "0938-AL30|200210|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\"; CFR_LIST: ['None']; TIMETABLE_LIST: action='Final Action' date='03/06/2002' fr_citation='67 FR 10293'; only 2 editions total (200204 'Not Yet Determined', then 200210 'None').",
+    "why": "This CMS State-sponsor drug-discount-card initiative reached a real, published Final Action (67 FR 10293) yet never states a CFR part or any legal authority across its whole 2-edition life; I flag this as a genuine anomaly worth a closer look, but lacking an adjacent real-citation edition or abstract statutory language to point to, I cannot call it confirmed rather than merely suspicious.",
+    "anything_systemic": "Unlike 0938-AO07 and 0583-AC92 (which never published), this row DID reach a real Federal Register Final Action with no CFR impact and no stated authority -- a case the sample leaves genuinely unresolved rather than cleanly explained either way."
+  },
+  {
+    "key": "2080-AA07|199704|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"Not applicable\"; same RIN's earliest edition (199510) LEGAL_AUTHORITY_LIST: \"None. This rule is for guidance only.\"; CFR_LIST: ['Not yet determined'].",
+    "why": "Same EPA ORD 'Guidelines for Ecological Risk Assessment' family as rows 2080-AA05 and 2080-AA06 -- non-binding guidance that never touches the CFR, with the RIN's own earliest entry explicitly explaining the 'None' as guidance-only.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0584-AD76|200604|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"none\" (lowercase, only box); same RIN's very next edition (200610) LEGAL_AUTHORITY_LIST: ['5 USC 301', '7 USC 612d, 612c note', '7 USC 1431, 1431b, 1431e, 1431 note, 1446a-1, 1859, 2014, 2025', '15 USC 713c', '22 USC 1922', '42 USC 1751, 1755, 1758, 1760, 1761, 1762a, 1766, 3030a, 5179, 5180'], stable through completion in 201110.",
+    "why": "This still-proposed rule's very next Agenda edition lists a full, specific six-citation authority block that remains unchanged for the rest of the rule's multi-year life through completion -- proving the authority existed at filing time and simply had not been entered yet for this one edition.",
+    "anything_systemic": "Regression/lag pattern (see 1650-AA00|200510 systemic note); here it runs the other direction -- an early edition is blank/off-form and the citation arrives the very next cycle, showing the same field is unreliable in both directions across adjacent editions of one RIN."
+  },
+  {
+    "key": "2127-AL99|202204|0|0",
+    "verdict": "missed-witness",
+    "decisive_quote": "This record's own CFR_LIST: ['49 CFR 571', '49 CFR 1.95']; LEGAL_AUTHORITY_LIST: \"None\"; this same RIN's 8 immediately preceding editions (201804-202110) all read LEGAL_AUTHORITY_LIST: \"delegation of authority at 49 CFR 1.95\".",
+    "why": "This is the exact RIN the kind-table's own code comment cites as the worked example (ANPRM at 83 FR 50872, confirmed in TIMETABLE_LIST here) -- the record's own CFR_LIST still carries '49 CFR 1.95', the identical delegation section this RIN used as its stated Legal Authority in all 8 prior editions, so the real authority text is a witness sitting inside this very record, not just a hypothetical.",
+    "anything_systemic": "NHTSA appears to stop maintaining Legal Authority the moment RULE_STAGE shifts to a withdrawal/dormant 'Long-Term Actions' status, even though the underlying 49 CFR 1.95 delegation obviously has not changed -- see also 2127-AL99|202410 (row 17), same RIN two editions later, same dropped citation."
+  },
+  {
+    "key": "2080-AA06|199604|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"Not applicable\"; same RIN's earliest edition (199510) LEGAL_AUTHORITY_LIST: \"None. This rule is for guidance only.\"; CFR_LIST: ['Not yet determined'].",
+    "why": "Same EPA ORD 'Guidelines for Carcinogen Risk Assessment' family as 2080-AA05 and 2080-AA07 -- non-binding guidance, never touches the CFR across a 22-edition life, with the RIN's own earliest entry explicitly self-describing the 'None' as guidance-only.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0583-AC92|200304|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\"; this RIN's only other (final) edition, 200310: TIMETABLE 'Withdrawn 08/12/2003' with no FR citation ever recorded, LEGAL_AUTHORITY_LIST there reads 'Not Yet Determined'.",
+    "why": "This FSIS proposal to add Mexico to the eligible-poultry-importer list never states real authority in either of its two editions and was withdrawn five months after first publication in the Agenda without ever reaching the Federal Register, so there is no confirming evidence the field is hiding a real, existing citation.",
+    "anything_systemic": "Second half of the negative-control pair with 0938-AO07|200910 (row 6) -- see that row's systemic note."
+  },
+  {
+    "key": "0938-AL64|200304|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "RULE_TITLE: \"Request for Information on Benefit-Specific Waiting Periods (CMS-2150-NC)\"; ABSTRACT: \"This notice requests information on the use of benefit-specific waiting periods by group health plan and group health insurance issuers.\"; CFR_LIST: ['None']; TIMETABLE_LIST: action='NPRM' date='09/00/2003' (a projected date that never resolves to a real FR citation anywhere in this RIN's 7 editions).",
+    "why": "This is a pure Request for Information, not a rule -- it never states a CFR part touched and never produces a real Federal Register citation across its whole 7-edition/3-year life, so a plausible reading is that CMS genuinely had no CFR-rulemaking authority to cite for an information-gathering notice.",
+    "anything_systemic": null
+  },
+  {
+    "key": "2080-AA07|199804|0|0",
+    "verdict": "correct-as-labeled",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"Not Applicable\"; TIMETABLE_LIST: action='Final Action - The Guidelines Were Published in February, 1998.'; ADDITIONAL_INFO: \"SAN No. 3670 ^PRFA:  N\".",
+    "why": "This is the completed edition of the same EPA ORD non-binding Ecological Risk Assessment Guidelines as row 2080-AA07|199704 (row 8) -- the timetable itself confirms it finished as published Guidelines, not a codified CFR rule, consistent with the RIN's own 199510 self-description as guidance-only.",
+    "anything_systemic": null
+  },
+  {
+    "key": "3069-AB28|200410|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\" (first-ever Agenda entry for this RIN, RIN_STATUS='First Time Published in The Unified Agenda'); the same RIN's completed edition (200610, row 1 of this sample) shows a real Final Action at 71 FR 35495 amending 7 CFR parts, and LEGAL_AUTHORITY reads 'None' in all 5 editions in between.",
+    "why": "This is the earliest Agenda filing for RIN 3069-AB28, which goes on to finalize as a real CFR-amending rule (see row 1); across every single edition of this RIN's life -- from this first filing through completion -- Legal Authority is always 'None', showing the field was never engaged with at any point, not merely forgotten once.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0938-AM60|200304|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "ABSTRACT: \"The purpose of this notice is to implement a Federal court order requiring the retroactive implementation of the Ambulance Fee Schedule to be established by the statutory effective date of January 1, 2000.\"; TIMETABLE_LIST: action='Notice' date='04/16/2003' fr_citation='68 FR 18654'; LEGAL_AUTHORITY_LIST: \"None\".",
+    "why": "The record's own abstract affirms this published Medicare notice (68 FR 18654) implements both a federal court order and a specific 'statutory effective date' for the Ambulance Fee Schedule (the Balanced Budget Act of 1997's Medicare payment provisions) -- confirming real statutory grounding exists even though it was never entered in the Legal Authority box.",
+    "anything_systemic": null
+  },
+  {
+    "key": "2127-AL99|202410|0|0",
+    "verdict": "missed-witness",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"None\"; same RIN's 8 editions from 201804-202110 all read LEGAL_AUTHORITY_LIST: \"delegation of authority at 49 CFR 1.95\", before dropping to 'None' at 202204 and staying 'None' through this edition and beyond (202304, 202310, 202404, 202410, 202504, 202510).",
+    "why": "Identical fact pattern to 2127-AL99|202204 (row 10, this sample) two editions earlier -- the 'None' is not a real absence of authority but the wholesale drop of a specific, real citation ('delegation of authority at 49 CFR 1.95') this exact RIN carried for 8 straight editions; the rulemaking's dormancy changed, not NHTSA's underlying delegated authority.",
+    "anything_systemic": null
+  },
+  {
+    "key": "2105-AE92|202104|0|0",
+    "verdict": "missed-witness",
+    "decisive_quote": "ABSTRACT: \"This rulemaking would adjust for inflation the maximum average annual gross receipts for a disadvantaged business enterprise (DBE) to be considered a small business concern as defined in the FAST Act.\"; TIMETABLE_LIST: action='Final Rule' date='12/14/2020' fr_citation='85 FR 80646'; LEGAL_AUTHORITY_LIST: \"None\"; this RIN's 3 preceding editions (201910-202010) all read 'Not Yet Determined'.",
+    "why": "This completed, published DOT final rule (85 FR 80646, amending 49 CFR 26) names its own controlling statute directly in the abstract -- the FAST Act -- inside the very record whose Legal Authority box reads 'None'; the prior three editions honestly used 'Not Yet Determined', so the box's final value is a citation-bearing rule flipping to a bare non-answer, not new information about the rule's authority.",
+    "anything_systemic": null
+  },
+  {
+    "key": "0596-AB67|199804|0|0",
+    "verdict": "filer-error-confirmed",
+    "decisive_quote": "LEGAL_AUTHORITY_LIST: \"Not Applicable\"; same RIN's later editions (199904 through completion at 200104) all read LEGAL_AUTHORITY_LIST: ['16 USC 551', '23 USC 205'], unchanged for the rest of the rule's life.",
+    "why": "This still-pending Forest Service transportation-system rule's later editions carry a stable, specific two-citation authority block -- 16 USC 551 (the Forest Service's organic authority over National Forest System administration) and 23 USC 205 (forest highway authority), both squarely on point for a road-management rule -- proving real authority existed from the start and was simply not entered for this and the following edition.",
+    "anything_systemic": "Third instance of the regression/lag pattern (see 1650-AA00|200510 and 0584-AD76|200604 systemic notes) -- three independent RINs in this 20-row sample show a real citation list appearing in an adjacent edition of the same still-pending rule."
+  },
+  {
+    "key": "0938-AJ65|200004|0|0",
+    "verdict": "missed-witness",
+    "decisive_quote": "ABSTRACT: \"This notice sets forth the updates required in section 4432 of the Balanced Budget Act of 1997 related to Medicare payments and consolidated billing for skilled nursing facilities.\"; TIMETABLE_LIST: action='Notice' date='07/30/1999' fr_citation='64 FR 41684'; LEGAL_AUTHORITY_LIST: \"None\".",
+    "why": "The record's own abstract names a precise pinpoint statutory citation -- section 4432 of the Balanced Budget Act of 1997 -- as the direct basis for this published notice (64 FR 41684), sitting in the very same RIN_INFO record whose Legal Authority box reads 'None'.",
+    "anything_systemic": null
+  }
+]

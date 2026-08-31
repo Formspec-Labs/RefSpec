@@ -1,0 +1,47 @@
+eo_number,category,row_count,n_editions,min_edition,max_edition
+1197,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",6,6,200204,200410
+1205,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",5,5,202204,202404
+1220,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",7,6,199510,199804
+1223,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",4,4,201004,201110
+1293,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",18,17,200610,201504
+1327,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",3,3,201904,202004
+1338,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",1,1,201910,201910
+3019,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",1,1,199510,199510
+3891,"pre-1929 (pre-Hoover, outside NARA disposition-table era)",1,1,202004,202004
+7419,FDR-era untouched-by-1945-1989-codification (ambiguous),4,4,199510,199704
+8284,FDR-era untouched-by-1945-1989-codification (ambiguous),3,3,201404,201504
+12671,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,3,199510,199610
+12673,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",17,16,199510,200304
+12674,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",689,59,199510,202504
+12684,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",7,7,200104,200404
+12689,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",158,41,199510,202510
+12698,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",23,7,200104,200404
+12699,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",10,10,199510,200610
+12715,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,3,201304,201604
+12721,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",13,13,199510,200110
+12731,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",569,59,199510,202504
+12735,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,1,199510,199510
+12742,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",40,33,199510,202510
+12744,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",1,1,199510,199510
+12748,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",2,2,200304,200310
+12777,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",90,43,199510,202110
+12778,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",22,22,199604,202510
+12828,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",8,6,199510,200810
+12829,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",126,47,199510,202510
+12831,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",14,14,199510,200204
+12843,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,3,199510,199610
+12849,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,3,199510,199610
+12851,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",692,47,200104,202510
+12854,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",161,50,199910,202510
+12856,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,3,199704,199804
+12858,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",4,4,200310,200504
+12859,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",1,1,200104,200104
+12866,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",118,32,199510,202510
+12869,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",2,2,199604,199610
+12873,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",14,7,199510,199810
+12881,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",2,2,199610,199704
+12883,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",3,3,199704,199804
+12885,"gap-1990-1993 (post-Reagan-codification, pre-FR-API)",19,19,200310,202410
+20450,already flagged: out-of-series (eo_in_known_series=False),3,3,199610,199710
+21600,already flagged: out-of-series (eo_in_known_series=False),2,2,199804,199810
+23891,already flagged: out-of-series (eo_in_known_series=False),2,2,202004,202010

@@ -1,0 +1,1953 @@
+{
+  "pop_b_rows": 2937,
+  "rows_with_any_token": 752,
+  "distinct_tokens": 118,
+  "top40": [
+    {
+      "token": "PHS",
+      "rows": 58,
+      "example": {
+        "rin": "0906-AA79",
+        "publication_id": "201004",
+        "text": "sec 31F-3 and 319F-4 of the PHS Act"
+      }
+    },
+    {
+      "token": "BBRA",
+      "rows": 41,
+      "example": {
+        "rin": "0938-AK14",
+        "publication_id": "200010",
+        "text": "sec 212 of BBRA of 1999"
+      }
+    },
+    {
+      "token": "CAA",
+      "rows": 40,
+      "example": {
+        "rin": "2009-AA00",
+        "publication_id": "200710",
+        "text": "CAA 301(d)"
+      }
+    },
+    {
+      "token": "MIPPA",
+      "rows": 32,
+      "example": {
+        "rin": "0938-AP41",
+        "publication_id": "200810",
+        "text": "MIPPA"
+      }
+    },
+    {
+      "token": "IIJA",
+      "rows": 28,
+      "example": {
+        "rin": "2105-AE98",
+        "publication_id": "202204",
+        "text": "sec. 11101(e) of the IIJA"
+      }
+    },
+    {
+      "token": "BIPA",
+      "rows": 27,
+      "example": {
+        "rin": "0938-AK54",
+        "publication_id": "200104",
+        "text": "BIPA '00"
+      }
+    },
+    {
+      "token": "NDAA-17",
+      "rows": 25,
+      "example": {
+        "rin": "0720-AB70",
+        "publication_id": "201704",
+        "text": "NDAA-17 sec. 701"
+      }
+    },
+    {
+      "token": "FLSA",
+      "rows": 24,
+      "example": {
+        "rin": "1210-AB46",
+        "publication_id": "201010",
+        "text": "FLSA sec 18A"
+      }
+    },
+    {
+      "token": "TEA-21",
+      "rows": 20,
+      "example": {
+        "rin": "2105-AC90",
+        "publication_id": "200010",
+        "text": "TEA-21"
+      }
+    },
+    {
+      "token": "FSH",
+      "rows": 18,
+      "example": {
+        "rin": "0596-AD14",
+        "publication_id": "201404",
+        "text": "FSH 2709.11"
+      }
+    },
+    {
+      "token": "HSIA",
+      "rows": 18,
+      "example": {
+        "rin": "0648-AR87",
+        "publication_id": "200404",
+        "text": "HSIA 2002, sec 303"
+      }
+    },
+    {
+      "token": "DHS",
+      "rows": 17,
+      "example": {
+        "rin": "1601-AA65",
+        "publication_id": "201110",
+        "text": "DHS Delegation Number 0700"
+      }
+    },
+    {
+      "token": "NAFTA",
+      "rows": 16,
+      "example": {
+        "rin": "1400-AA51",
+        "publication_id": "199510",
+        "text": "North American Free Trade Agreement (NAFTA)"
+      }
+    },
+    {
+      "token": "NEPA",
+      "rows": 15,
+      "example": {
+        "rin": "0412-AA64",
+        "publication_id": "200910",
+        "text": "NEPA 1969"
+      }
+    },
+    {
+      "token": "ARRA",
+      "rows": 15,
+      "example": {
+        "rin": "0412-AA64",
+        "publication_id": "200910",
+        "text": "ARRA 2009"
+      }
+    },
+    {
+      "token": "FD&C",
+      "rows": 15,
+      "example": {
+        "rin": "0910-AG32",
+        "publication_id": "200910",
+        "text": "secs 505(i), 520(g), and 701(a), FD&C Act"
+      }
+    },
+    {
+      "token": "BBA",
+      "rows": 15,
+      "example": {
+        "rin": "0938-AI89",
+        "publication_id": "199804",
+        "text": "42 USC BBA 4106"
+      }
+    },
+    {
+      "token": "INA",
+      "rows": 15,
+      "example": {
+        "rin": "1205-AA66",
+        "publication_id": "199510",
+        "text": "INA 212(a)(5)(A)"
+      }
+    },
+    {
+      "token": "MMA",
+      "rows": 14,
+      "example": {
+        "rin": "0917-AA07",
+        "publication_id": "200504",
+        "text": "MMA, sec 506"
+      }
+    },
+    {
+      "token": "TSCA",
+      "rows": 14,
+      "example": {
+        "rin": "2060-AF40",
+        "publication_id": "199510",
+        "text": "TSCA 305"
+      }
+    },
+    {
+      "token": "NDAA",
+      "rows": 13,
+      "example": {
+        "rin": "0720-AB87",
+        "publication_id": "202204",
+        "text": "NDAA 2021, sec. 702"
+      }
+    },
+    {
+      "token": "DCR",
+      "rows": 12,
+      "example": {
+        "rin": "3225-AA19",
+        "publication_id": "202004",
+        "text": "D.C. Law 18-88, sec. 56 DCR 7413"
+      }
+    },
+    {
+      "token": "CWA",
+      "rows": 11,
+      "example": {
+        "rin": "2009-AA04",
+        "publication_id": "201004",
+        "text": "CWA 312(f)(4)(A)"
+      }
+    },
+    {
+      "token": "RCRA",
+      "rows": 11,
+      "example": {
+        "rin": "2050-AE01",
+        "publication_id": "199510",
+        "text": "42 USC /RCRA 3004(a)(q)"
+      }
+    },
+    {
+      "token": "EPCRA",
+      "rows": 10,
+      "example": {
+        "rin": "2025-AA25",
+        "publication_id": "200910",
+        "text": "EPCRA sec 313 and PPA sec 6607"
+      }
+    },
+    {
+      "token": "UMTRCA",
+      "rows": 10,
+      "example": {
+        "rin": "2060-AP43",
+        "publication_id": "200904",
+        "text": "UMTRCA sec 206(a)"
+      }
+    },
+    {
+      "token": "EPA",
+      "rows": 9,
+      "example": {
+        "rin": "0596-AD03",
+        "publication_id": "201404",
+        "text": "EPA 1992"
+      }
+    },
+    {
+      "token": "FIPS",
+      "rows": 9,
+      "example": {
+        "rin": "0790-AI97",
+        "publication_id": "201410",
+        "text": "FIPS 201-2"
+      }
+    },
+    {
+      "token": "BB",
+      "rows": 9,
+      "example": {
+        "rin": "1545-BQ55",
+        "publication_id": "202210",
+        "text": "Division BB"
+      }
+    },
+    {
+      "token": "CAAA",
+      "rows": 9,
+      "example": {
+        "rin": "2050-AE01",
+        "publication_id": "199510",
+        "text": "RCRA 3005(a), CAAA section 112"
+      }
+    },
+    {
+      "token": "REAL",
+      "rows": 8,
+      "example": {
+        "rin": "1601-AA37",
+        "publication_id": "200610",
+        "text": "Division B--REAL ID Act of 2005"
+      }
+    },
+    {
+      "token": "LU",
+      "rows": 8,
+      "example": {
+        "rin": "2126-AB74",
+        "publication_id": "201504",
+        "text": "SAFTEA LU"
+      }
+    },
+    {
+      "token": "SSA",
+      "rows": 7,
+      "example": {
+        "rin": "0936-AA07",
+        "publication_id": "201604",
+        "text": "1007: SSA Subsection 1902 (a) (61)"
+      }
+    },
+    {
+      "token": "PPAC",
+      "rows": 6,
+      "example": {
+        "rin": "0906-AA87",
+        "publication_id": "201010",
+        "text": "Sec 6403 PPAC Act"
+      }
+    },
+    {
+      "token": "FDASIA",
+      "rows": 6,
+      "example": {
+        "rin": "0910-AI87",
+        "publication_id": "202304",
+        "text": "sec. 714 of the Food and Drug Administrative Safety and Innovation Act (FDASIA) of July 2012"
+      }
+    },
+    {
+      "token": "NPI",
+      "rows": 6,
+      "example": {
+        "rin": "0938-AN71",
+        "publication_id": "200504",
+        "text": "NPI final rule (01/23/2004)"
+      }
+    },
+    {
+      "token": "NPS",
+      "rows": 6,
+      "example": {
+        "rin": "0938-AN71",
+        "publication_id": "200504",
+        "text": "NPS System of Records (07/28/1998)"
+      }
+    },
+    {
+      "token": "PPRA",
+      "rows": 6,
+      "example": {
+        "rin": "0938-AP17",
+        "publication_id": "200710",
+        "text": "PPRA"
+      }
+    },
+    {
+      "token": "SMART",
+      "rows": 6,
+      "example": {
+        "rin": "0938-AR88",
+        "publication_id": "201304",
+        "text": "SMART sec 203"
+      }
+    },
+    {
+      "token": "OSH",
+      "rows": 6,
+      "example": {
+        "rin": "1218-AB58",
+        "publication_id": "199610",
+        "text": "Section 6(b)(1) and 7(b) of the OSH Act"
+      }
+    }
+  ],
+  "per_token": {
+    "NEPA": {
+      "token": "NEPA",
+      "row_count": 15,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0412-AA64",
+          "200910",
+          "National Environmental Policy Act"
+        ],
+        [
+          "0412-AA64",
+          "201004",
+          "National Environmental Policy Act"
+        ],
+        [
+          "0412-AA64",
+          "201010",
+          "National Environmental Policy Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 14,
+      "abstract_name_in_act_index": [
+        "national environmental policy act of 1969"
+      ]
+    },
+    "ARRA": {
+      "token": "ARRA",
+      "row_count": 15,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "HTS": {
+      "token": "HTS",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FAIR": {
+      "token": "FAIR",
+      "row_count": 4,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "YSC": {
+      "token": "YSC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "EPA": {
+      "token": "EPA",
+      "row_count": 9,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FS": {
+      "token": "FS",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FSH": {
+      "token": "FSH",
+      "row_count": 18,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "HSIA": {
+      "token": "HSIA",
+      "row_count": 18,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "NPHA": {
+      "token": "NPHA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MSCFMA": {
+      "token": "MSCFMA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MMPA": {
+      "token": "MMPA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "IEEPA": {
+      "token": "IEEPA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "UCMJ": {
+      "token": "UCMJ",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "NDAA-17": {
+      "token": "NDAA-17",
+      "row_count": 25,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0720-AB70",
+          "201704",
+          "National Defense Authorization Act for Fiscal Year 2017"
+        ],
+        [
+          "0720-AB70",
+          "201704",
+          "National Defense Authorization Act for Fiscal Year 2017"
+        ],
+        [
+          "0720-AB70",
+          "201704",
+          "National Defense Authorization Act for Fiscal Year 2017"
+        ]
+      ],
+      "abstract_resolvable_rows": 25,
+      "abstract_name_in_act_index": [
+        "national defense authorization act for fiscal year 2017"
+      ]
+    },
+    "NDAA": {
+      "token": "NDAA",
+      "row_count": 13,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0720-AB87",
+          "202204",
+          "National Defense Authorization Act"
+        ],
+        [
+          "0720-AB87",
+          "202210",
+          "National Defense Authorization Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 2,
+      "abstract_name_in_act_index": []
+    },
+    "WSARA": {
+      "token": "WSARA",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0750-AG63",
+          "201004",
+          "Weapons System Acquisition Reform Act of 2009"
+        ],
+        [
+          "0750-AG63",
+          "201010",
+          "Weapons System Acquisition Reform Act of 2009"
+        ],
+        [
+          "0750-AG63",
+          "201104",
+          "Weapons System Acquisition Reform Act of 2009"
+        ]
+      ],
+      "abstract_resolvable_rows": 3,
+      "abstract_name_in_act_index": []
+    },
+    "FY": {
+      "token": "FY",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FIPS": {
+      "token": "FIPS",
+      "row_count": 9,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USD": {
+      "token": "USD",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "EE": {
+      "token": "EE",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PHS": {
+      "token": "PHS",
+      "row_count": 58,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PHSA": {
+      "token": "PHSA",
+      "row_count": 4,
+      "in_roster_example_survivors": [
+        "public health service act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 4,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PHA": {
+      "token": "PHA",
+      "row_count": 3,
+      "in_roster_example_survivors": [
+        "public health service act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 3,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PPAC": {
+      "token": "PPAC",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SS": {
+      "token": "SS",
+      "row_count": 4,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FD&C": {
+      "token": "FD&C",
+      "row_count": 15,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FDASIA": {
+      "token": "FDASIA",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MMA": {
+      "token": "MMA",
+      "row_count": 14,
+      "in_roster_example_survivors": [
+        "medicare prescription drug, improvement, and modernization act of 2003",
+        "medicare, medicaid, and schip balanced budget refinement act of 1999",
+        "medicare, medicaid, and schip benefits improvement and protection act of 2000"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 8,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USO": {
+      "token": "USO",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "CMHS": {
+      "token": "CMHS",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SAPT": {
+      "token": "SAPT",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SSA": {
+      "token": "SSA",
+      "row_count": 7,
+      "in_roster_example_survivors": [
+        "social security act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 7,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "BBA": {
+      "token": "BBA",
+      "row_count": 15,
+      "in_roster_example_survivors": [
+        "balanced budget act of 1997"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 15,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "BBRA": {
+      "token": "BBRA",
+      "row_count": 41,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "BIPA": {
+      "token": "BIPA",
+      "row_count": 27,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0938-AK54",
+          "200104",
+          "Benefits Improvement and Protection Act"
+        ],
+        [
+          "0938-AK54",
+          "200110",
+          "Benefits Improvement and Protection Act"
+        ],
+        [
+          "0938-AM40",
+          "200304",
+          "Benefits Improvement and Protection Act of 2000"
+        ]
+      ],
+      "abstract_resolvable_rows": 3,
+      "abstract_name_in_act_index": []
+    },
+    "USPHSA": {
+      "token": "USPHSA",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FSA": {
+      "token": "FSA",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PRWORA": {
+      "token": "PRWORA",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SCHIP": {
+      "token": "SCHIP",
+      "row_count": 4,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "NPI": {
+      "token": "NPI",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "NPS": {
+      "token": "NPS",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "HIPAA": {
+      "token": "HIPAA",
+      "row_count": 5,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PPRA": {
+      "token": "PPRA",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MMSEA": {
+      "token": "MMSEA",
+      "row_count": 4,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MIPPA": {
+      "token": "MIPPA",
+      "row_count": 32,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0938-AP41",
+          "200910",
+          "Medicare Improvements for Patients and Providers Act of 2008"
+        ],
+        [
+          "0938-AP41",
+          "201004",
+          "Medicare Improvements for Patients and Providers Act of 2008"
+        ]
+      ],
+      "abstract_resolvable_rows": 2,
+      "abstract_name_in_act_index": [
+        "medicare improvements for patients and providers act of 2008"
+      ]
+    },
+    "BA": {
+      "token": "BA",
+      "row_count": 1,
+      "in_roster_example_survivors": [
+        "balanced budget act of 1997"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 1,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "PPACA": {
+      "token": "PPACA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MMEA": {
+      "token": "MMEA",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "TPTCC": {
+      "token": "TPTCC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "ATRA": {
+      "token": "ATRA",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SMART": {
+      "token": "SMART",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USCC": {
+      "token": "USCC",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "OL": {
+      "token": "OL",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FOIA": {
+      "token": "FOIA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "0991-AC04",
+          "201610",
+          "Department of Health and Human Services' Freedom of Information Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": []
+    },
+    "FLPMA": {
+      "token": "FLPMA",
+      "row_count": 3,
+      "in_roster_example_survivors": [
+        "federal land policy and management act of 1976"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 3,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USE": {
+      "token": "USE",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "ANILCA": {
+      "token": "ANILCA",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "DOJ": {
+      "token": "DOJ",
+      "row_count": 5,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FBI": {
+      "token": "FBI",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "INA": {
+      "token": "INA",
+      "row_count": 15,
+      "in_roster_example_survivors": [
+        "immigration and nationality act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 3,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "1615-AC48",
+          "201910",
+          "Immigration and Nationality Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": [
+        "immigration and nationality act"
+      ]
+    },
+    "FLSA": {
+      "token": "FLSA",
+      "row_count": 24,
+      "in_roster_example_survivors": [
+        "fair labor standards act of 1938"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 14,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "1215-AA82",
+          "199510",
+          "Fair Labor Standards Act"
+        ],
+        [
+          "1215-AA82",
+          "199604",
+          "Fair Labor Standards Act"
+        ],
+        [
+          "1215-AA82",
+          "199610",
+          "Fair Labor Standards Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 14,
+      "abstract_name_in_act_index": [
+        "fair labor standards act of 1938"
+      ]
+    },
+    "OSH": {
+      "token": "OSH",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "NAFTA": {
+      "token": "NAFTA",
+      "row_count": 16,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "VCDR": {
+      "token": "VCDR",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "AML": {
+      "token": "AML",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "TD": {
+      "token": "TD",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USCU": {
+      "token": "USCU",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "HTSUS": {
+      "token": "HTSUS",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "BB": {
+      "token": "BB",
+      "row_count": 9,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "REAL": {
+      "token": "REAL",
+      "row_count": 8,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "DHS": {
+      "token": "DHS",
+      "row_count": 17,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "INS": {
+      "token": "INS",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USCG": {
+      "token": "USCG",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "ESSA": {
+      "token": "ESSA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USA": {
+      "token": "USA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "APUSC": {
+      "token": "APUSC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "DEL": {
+      "token": "DEL",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "DOE": {
+      "token": "DOE",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FERC-2006": {
+      "token": "FERC-2006",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "CAA": {
+      "token": "CAA",
+      "row_count": 40,
+      "in_roster_example_survivors": [
+        "clean air act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 34,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2060-AN12",
+          "200804",
+          "Clean Air Act"
+        ],
+        [
+          "2060-AO02",
+          "200710",
+          "Clean Air Act"
+        ],
+        [
+          "2060-AO02",
+          "200904",
+          "Clean Air Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 9,
+      "abstract_name_in_act_index": [
+        "clean air act"
+      ]
+    },
+    "CWA": {
+      "token": "CWA",
+      "row_count": 11,
+      "in_roster_example_survivors": [
+        "clean water act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 4,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2040-AD44",
+          "200110",
+          "Clean Water Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": [
+        "federal water pollution control act"
+      ]
+    },
+    "EPCRA": {
+      "token": "EPCRA",
+      "row_count": 10,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2025-AA25",
+          "200910",
+          "Emergency Planning and Community Right-To-Know Act of 1986"
+        ],
+        [
+          "2025-AA27",
+          "201110",
+          "Emergency Planning and Community Right-to-Know Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 2,
+      "abstract_name_in_act_index": [
+        "emergency planning and community right-to-know act of 1986"
+      ]
+    },
+    "PPA": {
+      "token": "PPA",
+      "row_count": 5,
+      "in_roster_example_survivors": [
+        "pollution prevention act of 1990"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 4,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2025-AA25",
+          "200910",
+          "Pollution Prevention Act of 1990"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": [
+        "pollution prevention act of 1990"
+      ]
+    },
+    "FASA": {
+      "token": "FASA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2030-AA48",
+          "199704",
+          "Federal Acquisition Streamlining Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": [
+        "federal acquisition streamlining act of 1994"
+      ]
+    },
+    "SDWA": {
+      "token": "SDWA",
+      "row_count": 6,
+      "in_roster_example_survivors": [
+        "safe drinking water act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 6,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2040-AD86",
+          "200210",
+          "Safe Drinking Water Act"
+        ],
+        [
+          "2040-AD88",
+          "200210",
+          "Safe Drinking Water Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 2,
+      "abstract_name_in_act_index": [
+        "safe drinking water act"
+      ]
+    },
+    "RCRA": {
+      "token": "RCRA",
+      "row_count": 11,
+      "in_roster_example_survivors": [
+        "resource conservation and recovery act of 1976"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 11,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2090-AA32",
+          "200304",
+          "Resource Conservation and Recovery Act"
+        ],
+        [
+          "2090-AA32",
+          "200310",
+          "Resource Conservation and Recovery Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 2,
+      "abstract_name_in_act_index": [
+        "resource conservation and recovery act of 1976"
+      ]
+    },
+    "CAAA": {
+      "token": "CAAA",
+      "row_count": 9,
+      "in_roster_example_survivors": [
+        "clean air act amendments of 1990"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 8,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "TSCA": {
+      "token": "TSCA",
+      "row_count": 14,
+      "in_roster_example_survivors": [
+        "toxic substances control act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 13,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2070-AD11",
+          "199610",
+          "Toxic Substances Control Act"
+        ],
+        [
+          "2070-AD11",
+          "199704",
+          "Toxic Substances Control Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 2,
+      "abstract_name_in_act_index": [
+        "toxic substances control act"
+      ]
+    },
+    "UMTRCA": {
+      "token": "UMTRCA",
+      "row_count": 10,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2060-AP43",
+          "200904",
+          "Uranium Mill Tailings Radiation Control Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": [
+        "uranium mill tailings radiation control act of 1978"
+      ]
+    },
+    "FIFRA": {
+      "token": "FIFRA",
+      "row_count": 4,
+      "in_roster_example_survivors": [
+        "federal insecticide, fungicide, and rodenticide act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 4,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SWDA": {
+      "token": "SWDA",
+      "row_count": 2,
+      "in_roster_example_survivors": [
+        "solid waste disposal act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 2,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "TEA-21": {
+      "token": "TEA-21",
+      "row_count": 20,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FAA": {
+      "token": "FAA",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "IIJA": {
+      "token": "IIJA",
+      "row_count": 28,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SUC": {
+      "token": "SUC",
+      "row_count": 5,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "LU": {
+      "token": "LU",
+      "row_count": 8,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SAFTEA": {
+      "token": "SAFTEA",
+      "row_count": 6,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "CMVSA": {
+      "token": "CMVSA",
+      "row_count": 3,
+      "in_roster_example_survivors": [
+        "commercial motor vehicle safety act of 1986"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 3,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MCA": {
+      "token": "MCA",
+      "row_count": 3,
+      "in_roster_example_survivors": [
+        "motor carrier act, 1935"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 3,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MCSA": {
+      "token": "MCSA",
+      "row_count": 3,
+      "in_roster_example_survivors": [
+        "motor carrier safety act of 1984"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 3,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "MAP-21": {
+      "token": "MAP-21",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "2126-AD02",
+          "202510",
+          "Century Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": []
+    },
+    "FAST": {
+      "token": "FAST",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "UDC": {
+      "token": "UDC",
+      "row_count": 3,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USHA": {
+      "token": "USHA",
+      "row_count": 4,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USDC": {
+      "token": "USDC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "WHA": {
+      "token": "WHA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "CEA": {
+      "token": "CEA",
+      "row_count": 2,
+      "in_roster_example_survivors": [
+        "commodity exchange act"
+      ],
+      "in_roster_any_row": true,
+      "roster_resolvable_rows": 2,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "VGBA": {
+      "token": "VGBA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": true,
+      "abstract_examples": [
+        [
+          "3041-AD79",
+          "202004",
+          "Virginia Graeme Baker Pool and Spa Safety Act"
+        ]
+      ],
+      "abstract_resolvable_rows": 1,
+      "abstract_name_in_act_index": [
+        "virginia graeme baker pool and spa safety act"
+      ]
+    },
+    "FEMA": {
+      "token": "FEMA",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "CADC": {
+      "token": "CADC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "FMC": {
+      "token": "FMC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "WSC": {
+      "token": "WSC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "IRPS": {
+      "token": "IRPS",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "SAFE": {
+      "token": "SAFE",
+      "row_count": 4,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "UUSC": {
+      "token": "UUSC",
+      "row_count": 1,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "DCR": {
+      "token": "DCR",
+      "row_count": 12,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    },
+    "USAC": {
+      "token": "USAC",
+      "row_count": 2,
+      "in_roster_example_survivors": null,
+      "in_roster_any_row": false,
+      "roster_resolvable_rows": 0,
+      "abstract_defines_any_row": false,
+      "abstract_examples": [],
+      "abstract_resolvable_rows": 0,
+      "abstract_name_in_act_index": []
+    }
+  }
+}

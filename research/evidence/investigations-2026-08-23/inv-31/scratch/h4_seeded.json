@@ -1,0 +1,265 @@
+[
+ {
+  "row": 236268,
+  "rin": "3060-AH98",
+  "pub": "200210",
+  "ordinal": 3,
+  "text": "47 USC (f)",
+  "tokens": [
+   {
+    "token": "f",
+    "word": "f",
+    "lead": "",
+    "trail": "",
+    "span": [
+     8,
+     9
+    ],
+    "candidates": [
+     "FR"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 496191,
+  "rin": "0938-AR04",
+  "pub": "201304",
+  "ordinal": 1,
+  "text": "secs 1413, 2001, 2002, 2201",
+  "tokens": [
+   {
+    "token": "secs",
+    "word": "secs",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "sec."
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 115958,
+  "rin": "1400-AA56",
+  "pub": "199904",
+  "ordinal": 0,
+  "text": "International Legal Material, vol XII, no. 6, Nov. 1973, p 1302",
+  "tokens": [
+   {
+    "token": "p",
+    "word": "p",
+    "lead": "",
+    "trail": "",
+    "span": [
+     57,
+     58
+    ],
+    "candidates": [
+     "PL"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 572924,
+  "rin": "0750-AI53",
+  "pub": "201610",
+  "ordinal": 1,
+  "text": "Pub. L. 113 to 291, sec. 816",
+  "tokens": [
+   {
+    "token": "Pub.",
+    "word": "Pub.",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "Pub. L."
+    ]
+   },
+   {
+    "token": "L.",
+    "word": "L.",
+    "lead": "",
+    "trail": "",
+    "span": [
+     5,
+     7
+    ],
+    "candidates": [
+     "PL"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 199535,
+  "rin": "1400-AB15",
+  "pub": "200110",
+  "ordinal": 1,
+  "text": "secs 1243 and 1245 of the Defense Offsets",
+  "tokens": [
+   {
+    "token": "secs",
+    "word": "secs",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "sec."
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 386505,
+  "rin": "3206-AL40",
+  "pub": "200804",
+  "ordinal": 1,
+  "text": "secs 7, 9",
+  "tokens": [
+   {
+    "token": "secs",
+    "word": "secs",
+    "lead": "",
+    "trail": "",
+    "span": [
+     0,
+     4
+    ],
+    "candidates": [
+     "sec."
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 341793,
+  "rin": "1117-AA96",
+  "pub": "200610",
+  "ordinal": 7,
+  "text": "USC 958(f)",
+  "tokens": [
+   {
+    "token": "f",
+    "word": "f",
+    "lead": "",
+    "trail": "",
+    "span": [
+     8,
+     9
+    ],
+    "candidates": [
+     "FR"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 608483,
+  "rin": "0945-AA10",
+  "pub": "201804",
+  "ordinal": 7,
+  "text": "1396a(a), 1396a(w)(3), 1396f, 1396s(c)(2)(B)(ii), 1396u-2(b)(3)(B), 1397j-1(b), 1553, 5106i(a)",
+  "tokens": [
+   {
+    "token": "1396f",
+    "word": "f",
+    "lead": "1396",
+    "trail": "",
+    "span": [
+     23,
+     28
+    ],
+    "candidates": [
+     "FR"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 12367,
+  "rin": "2080-AA08",
+  "pub": "199510",
+  "ordinal": 0,
+  "text": "None. This rule is for guidance only.",
+  "tokens": [
+   {
+    "token": "for",
+    "word": "for",
+    "lead": "",
+    "trail": "",
+    "span": [
+     19,
+     22
+    ],
+    "candidates": [
+     "FR"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ },
+ {
+  "row": 571686,
+  "rin": "0584-AE42",
+  "pub": "201610",
+  "ordinal": 0,
+  "text": "OMB Guidance, \"Uniform Administrative Requirements, Cost Principles, and Audit Requirements for Federal Awards\"",
+  "tokens": [
+   {
+    "token": "for",
+    "word": "for",
+    "lead": "",
+    "trail": "",
+    "span": [
+     92,
+     95
+    ],
+    "candidates": [
+     "FR"
+    ]
+   }
+  ],
+  "survivors": [],
+  "corroborated": 0,
+  "exactly_one": false
+ }
+]

@@ -1,0 +1,94 @@
+changed rows: 1428   kinds: {'ADDED'}
+
+### SEEDED HOLD-OUT, random.Random(20260823), 30 of the arrivals, read by eye
+
+  2020-AA25 199604 ord=1 cit=1
+     text: 33 USC 1321(c)(2)/CERCLA 107
+     new : {'act_key': "'cercla'", 'act_section': "'107'", 'usc_title': '42', 'usc_section': "'9607'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:index-holds-a-bare-name-and-section'"}
+  2040-AA13 199610 ord=2 cit=1
+     text: 33 USC 1316/CWA 306
+     new : {'act_key': "'clean water act'", 'act_section': "'306'", 'usc_title': '33', 'usc_section': "'1316'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2040-AB75 199610 ord=0 cit=1
+     text: 42 USC 300/SDWA 1412
+     new : {'act_key': "'safe drinking water act'", 'act_section': "'1412'", 'usc_title': '42', 'usc_section': "'300g-1'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2040-AC29 199610 ord=0 cit=1
+     text: 33 USC 1251/CWA 101
+     new : {'act_key': "'clean water act'", 'act_section': "'101'", 'usc_title': '33', 'usc_section': "'1251'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'present'"}
+  2040-AC30 199510 ord=1 cit=1
+     text: 33 USC 1314/CWA 304
+     new : {'act_key': "'clean water act'", 'act_section': "'304'", 'usc_title': '33', 'usc_section': "'1314'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2040-AC41 199604 ord=0 cit=1
+     text: 42 USC 300g-1 /SDWA 1412
+     new : {'act_key': "'safe drinking water act'", 'act_section': "'1412'", 'usc_title': '42', 'usc_section': "'300g-1'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2040-AC58 199704 ord=0 cit=1
+     text: 33 USC 1314/CWA 304
+     new : {'act_key': "'clean water act'", 'act_section': "'304'", 'usc_title': '33', 'usc_section': "'1314'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2040-AC64 199704 ord=1 cit=1
+     text: 33 USC 1361(a)/CWA 501
+     new : {'act_key': "'clean water act'", 'act_section': "'501'", 'usc_title': '33', 'usc_section': "'1361'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'present'"}
+  2040-AC84 199510 ord=4 cit=1
+     text: 33 USC 1318/CWA 308
+     new : {'act_key': "'clean water act'", 'act_section': "'308'", 'usc_title': '33', 'usc_section': "'1318'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'present'"}
+  2040-AC90 199610 ord=4 cit=1
+     text: 33 USC 1362/CWA 502
+     new : {'act_key': "'clean water act'", 'act_section': "'502'", 'usc_title': '33', 'usc_section': "'1362'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2040-AD10 199710 ord=1 cit=1
+     text: 33 USC 1314/CWA 304
+     new : {'act_key': "'clean water act'", 'act_section': "'304'", 'usc_title': '33', 'usc_section': "'1314'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'present'"}
+  2050-AC44 199510 ord=2 cit=1
+     text: 42 USC 6912(a)/RCRA 2002(a)
+     new : {'act_key': "'resource conservation and recovery act of 1976'", 'act_section': "'2002'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2050-AD84 199510 ord=2 cit=1
+     text: 42 USC 6921/RCRA 3001
+     new : {'act_key': "'resource conservation and recovery act of 1976'", 'act_section': "'3001'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2050-AD85 199510 ord=0 cit=1
+     text: 42 USC 6905/RCRA 1006
+     new : {'act_key': "'resource conservation and recovery act of 1976'", 'act_section': "'1006'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2050-AE21 199610 ord=1 cit=1
+     text: 42 USC 6923/RCRA 3003(a)(3)
+     new : {'act_key': "'resource conservation and recovery act of 1976'", 'act_section': "'3003'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2050-AE25 199604 ord=3 cit=1
+     text: 42 USC 6925/RCRA 3005
+     new : {'act_key': "'resource conservation and recovery act of 1976'", 'act_section': "'3005'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2060-AC06 199704 ord=0 cit=1
+     text: 42 USC 7408/CAA 108
+     new : {'act_key': "'clean air act'", 'act_section': "'108'", 'usc_title': '42', 'usc_section': "'7408'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2060-AD04 199704 ord=0 cit=1
+     text: 42 USC 7411/CAA 111
+     new : {'act_key': "'clean air act amendments of 1990'", 'act_section': "'111'", 'usc_title': '42', 'usc_section': "'7408'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2060-AD60 199610 ord=0 cit=1
+     text: 42 USC 7607/CAA 112
+     new : {'act_key': "'clean air act'", 'act_section': "'112'", 'usc_title': '42', 'usc_section': "'7412'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2060-AD77 199604 ord=0 cit=1
+     text: 42 USC 7545/CAAA 211(f)
+     new : {'act_key': "'clean air act amendments of 1990'", 'act_section': "'211'", 'usc_title': '42', 'usc_section': "'7542'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2060-AF79 199610 ord=0 cit=1
+     text: 42 USC 7405/CAA 105
+     new : {'act_key': "'clean air act'", 'act_section': "'105'", 'usc_title': '42', 'usc_section': "'7405'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2060-AG31 199610 ord=0 cit=1
+     text: 42 USC 7509/CAA 129
+     new : {'act_key': "'clean air act'", 'act_section': "'129'", 'usc_title': '42', 'usc_section': "'7429'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2070-AB07 199710 ord=0 cit=1
+     text: 15 USC 2603/TSCA 4
+     new : {'act_key': "'toxic substances control act'", 'act_section': "'4'", 'usc_title': '15', 'usc_section': "'2603'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2070-AB79 199604 ord=3 cit=1
+     text: 42 USC 9604(i)/CERCLA 104(i)
+     new : {'act_key': "'cercla'", 'act_section': "'104'", 'usc_title': '42', 'usc_section': "'9604'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:index-holds-a-bare-name-and-section'", 'authority_in_own_cfr_note': "'absent'"}
+  2070-AC17 199510 ord=0 cit=1
+     text: 15 USC 2605/TSCA 6
+     new : {'act_key': "'toxic substances control act'", 'act_section': "'6'", 'usc_title': '15', 'usc_section': "'2605'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'"}
+  2070-AC17 199704 ord=0 cit=1
+     text: 15 USC 2605/TSCA 6
+     new : {'act_key': "'toxic substances control act'", 'act_section': "'6'", 'usc_title': '15', 'usc_section': "'2605'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'"}
+  2070-AC36 199704 ord=0 cit=1
+     text: 15 USC 2603/TSCA 4
+     new : {'act_key': "'toxic substances control act'", 'act_section': "'4'", 'usc_title': '15', 'usc_section': "'2603'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2070-AC54 199510 ord=0 cit=1
+     text: 21 USC 346/FFDCA 408
+     new : {'act_key': "'federal food, drug, and cosmetic act'", 'act_section': "'408'", 'usc_title': '21', 'usc_section': "'346a'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2070-AC60 199604 ord=0 cit=1
+     text: 7 USC 136/FIFRA 2
+     new : {'act_key': "'federal insecticide, fungicide, and rodenticide act'", 'act_section': "'2'", 'usc_title': '7', 'usc_section': "'136'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'", 'authority_in_own_cfr_note': "'absent'"}
+  2070-AC76 199610 ord=2 cit=1
+     text: 42 USC 7403/CAA 103
+     new : {'act_key': "'clean air act'", 'act_section': "'103'", 'usc_title': '42', 'usc_section': "'7403'", 'usc_section_verdict': "'exists'", 'corroboration_rule': "'second-authority-behind-a-slash:agency-roster-initialism'"}

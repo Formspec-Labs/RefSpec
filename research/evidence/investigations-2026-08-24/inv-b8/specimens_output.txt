@@ -1,0 +1,81 @@
+unique publish rows: 1166
+unique non-publish (candidate+refuse) rows: 12972
+
+=== 15 WOULD-PUBLISH SPECIMENS ===
+- 3064-AD00 200804 title 15 '1681(m)' -> 1681m
+    text: 15 USC 1681(m)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (12 CFR 334) | w2b: absent-elsewhere (None)
+- 1018-AV45 200710 title 16 '715(i)' -> 715i
+    text: 16 USC 715(i)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (50 CFR 32) | w2b: absent-elsewhere (None)
+- 2040-AD15 199910 title 42 '300(f)' -> 300f
+    text: 42 USC 300(f) et seq
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (40 CFR 141) | w2b: absent-elsewhere (None)
+- 0596-AB70 199810 title 16 '472(a)' -> 472a
+    text: 16 USC 472(a)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (36 CFR 223) | w2b: absent-elsewhere (None)
+- 2040-AF55 201604 title 42 '300(f)' -> 300f
+    text: 42 U.S.C. 300(f) et seq. Safe Drinking Water Act
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (40 CFR 141) | w2b: text-spells-NNNx (bare NNNx in 201504)
+- 3084-AB46 201904 title 15 '18(a)' -> 18a
+    text: 15 U.S.C. 18(a), Clayton Act
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (16 CFR 801) | w2b: absent-elsewhere (None)
+- 2040-AC99 199804 title 42 '300(g)' -> 300g
+    text: 42 USC 300(g)(3c)
+    structure: witness1-no-such-subsection | note: absent-in-note (40 CFR 141) | w2b: text-spells-NNNx (bare NNNx in 199704)
+- 1105-AB30 201004 title 28 '589(b)' -> 589b
+    text: 28 USC 589(b)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (28 CFR 58) | w2b: absent-elsewhere (None)
+- 2070-AD23 200004 title 21 '346(a)' -> 346a
+    text: 21 USC 346(a)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (40 CFR 180) | w2b: text-spells-NNNx (bare NNNx in 199710)
+- 0551-AA85 201610 title 7 '3319(a)' -> 3319a
+    text: 7 U.S.C. 3319(a)
+    structure: witness1-no-such-subsection | note: no-note-held (None) | w2b: text-spells-NNNx (bare NNNx in 201304)
+- 2502-AJ17 201310 title 12 '1715(b)' -> 1715b
+    text: 12 USC 1701z-11(e), 1709(c)(1), 1713 and 1715(b)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (24 CFR 203) | w2b: absent-elsewhere (None)
+- 2050-AH12 202404 title 42 '6939(g)' -> 6939g
+    text: 42 U.S.C. 6939(g)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (40 CFR 262) | w2b: absent-elsewhere (None)
+- 0551-AA30 200010 title 15 '714(b)' -> 714b
+    text: 15 USC 714(b)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (7 CFR 1493) | w2b: absent-elsewhere (None)
+- 7100-AC80 200204 title 12 '92(a)' -> 92a
+    text: 12 USC 92(a)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (12 CFR 208) | w2b: absent-elsewhere (None)
+- 1530-AA10 202504 title 31 '3720(d)' -> 3720d
+    text: 31 U.S.C. 3701, 3711, 3716, 3719, 3720(A), 3720(B), 3720(D) and 3720(E)
+    structure: witness1-no-such-subsection | note: agree-names-NNNx (31 CFR 285) | w2b: absent-elsewhere (None)
+
+=== 10 REFUSED / ONE-WITNESS SPECIMENS ===
+- 3245-AF14 200510 title 15 '636(b)' -> 636b  [no-witness]
+    text: 15 USC 636(b)
+    structure: ambiguous-both-real | note: disagree-names-NNN (13 CFR 123) | w2b: absent-elsewhere (None)
+- 3045-AA24 201404 title 42 '2000(d)' -> 2000d  [2a/2b-without-1]
+    text: 42 USC 2000 (d)
+    structure: unknown-structure:subsection_structure_not_published | note: no-note-held (None) | w2b: text-spells-NNNx (bare NNNx in 200004)
+- 9000-AK29 200610 title 42 '2473(c)' -> 2473c  [no-witness]
+    text: 42 USC 2473(c)
+    structure: unknown-structure:subsection_structure_not_published | note: absent-in-note (48 CFR 1) | w2b: absent-elsewhere (None)
+- 0960-AF83 200304 title 42 '405(a)' -> 405a  [no-witness]
+    text: 42 USC 405(a)
+    structure: ambiguous-both-real | note: disagree-names-NNN (20 CFR 404) | w2b: absent-elsewhere (None)
+- 9000-AK75 200904 title 42 '2473(c)' -> 2473c  [no-witness]
+    text: 42 USC 2473(c)
+    structure: unknown-structure:subsection_structure_not_published | note: absent-in-note (48 CFR 1) | w2b: absent-elsewhere (None)
+- 1140-AA47 201910 title 5 '552(a)' -> 552a  [no-witness]
+    text: 5 U.S.C. 552(a)
+    structure: ambiguous-both-real | note: disagree-names-NNN (27 CFR 478) | w2b: absent-elsewhere (None)
+- 0790-AI82 201904 title 10 '1781(c)' -> 1781c  [2a/2b-without-1]
+    text: 10 U.S.C. 1781(c)
+    structure: ambiguous-both-real | note: agree-names-NNNx (32 CFR 75) | w2b: text-spells-NNNx (bare NNNx in 201210)
+- 1505-AB69 200710 title 22 '2370(a)' -> 2370a  [no-witness]
+    text: 22 USC 2370(a)
+    structure: ambiguous-both-real | note: disagree-names-NNN (31 CFR 501) | w2b: absent-elsewhere (None)
+- 3245-AE54 200010 title 15 '636(h)' -> 636h  [no-witness]
+    text: 15 USC 636(h)
+    structure: ambiguous-both-real | note: disagree-names-NNN (13 CFR 120) | w2b: no-other-editions (None)
+- 3245-AE50 200104 title 15 '637(a)' -> 637a  [no-witness]
+    text: 15 USC 637(a)
+    structure: ambiguous-both-real | note: disagree-names-NNN (13 CFR 134) | w2b: absent-elsewhere (None)

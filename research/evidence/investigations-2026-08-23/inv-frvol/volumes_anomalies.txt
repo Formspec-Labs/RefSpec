@@ -1,0 +1,5 @@
+1994: 249 zero/null-page row(s) dated AFTER the winning document (1994-12-28, 94-32043, page 67119) -- true max may be understated. Example later doc: X94-91230 on 1994-12-30
+1994: 998/1000 (100%) rows in window carry end_page None/0 (API metadata gap) -- max taken over the 2 usable rows only
+2001 (vol 66): last_page 67702 drops >15% vs prior year's 83293 -- check
+2017 (vol 82): last_page 61949 drops >15% vs prior year's 97110 -- check
+2025 (vol 90): last_page 61584 drops >15% vs prior year's 107261 -- check

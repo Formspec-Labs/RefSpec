@@ -1,0 +1,90 @@
+<mods xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.loc.gov/mods/v3" version="3.3" xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-3.xsd" ID="P0b002ee1a14a20b9">
+<name type="corporate">
+ <namePart>United States Government Publishing Office</namePart>
+ <role>
+  <roleTerm authority="marcrelator" type="text">publisher</roleTerm>
+  <roleTerm authority="marcrelator" type="code">pbl</roleTerm>
+</role>
+ <role>
+  <roleTerm authority="marcrelator" type="text">distributor</roleTerm>
+  <roleTerm authority="marcrelator" type="code">dst</roleTerm>
+</role>
+</name>
+<name type="corporate">
+ <namePart>United States</namePart>
+ <namePart>National Archives and Records Administration</namePart>
+ <namePart>Federal Register Office</namePart>
+ <role>
+  <roleTerm authority="marcrelator" type="text">author</roleTerm>
+  <roleTerm authority="marcrelator" type="code">aut</roleTerm>
+</role>
+ <description>Government Organization</description>
+</name>
+<typeOfResource>text</typeOfResource>
+<genre authority="marcgt">government publication</genre>
+<language>
+ <languageTerm type="code" authority="iso639-2b">eng</languageTerm>
+</language>
+<extension>
+ <collectionCode>PPP</collectionCode>
+ <category>Budget and Presidential Materials</category>
+ <branch>executive</branch>
+ <dateIngested>2019-06-06</dateIngested>
+</extension>
+<originInfo>
+ <publisher>Office of the Federal Register, National Archives and Records Administration</publisher>
+ <dateIssued encoding="w3cdtf">1990-01-01</dateIssued>
+ <issuance>continuing</issuance>
+ <frequency authority="marcfrequency">semiannual</frequency>
+</originInfo>
+<physicalDescription>
+ <note type="source content type">deposited</note>
+ <digitalOrigin>reformatted digital</digitalOrigin>
+ <extent>1038 p.</extent>
+</physicalDescription>
+<classification authority="sudocs">AE 2.114:990/BK.1</classification>
+<identifier type="uri">https://www.govinfo.gov/app/details/PPP-1990-book1</identifier>
+<identifier type="local">P0b002ee1a14a20b9</identifier>
+<identifier type="ILS system id">000636663</identifier>
+<recordInfo>
+ <recordContentSource authority="marcorg">DGPO</recordContentSource>
+ <recordCreationDate encoding="w3cdtf">2019-06-06</recordCreationDate>
+ <recordChangeDate encoding="w3cdtf">2019-06-06</recordChangeDate>
+ <recordIdentifier source="DGPO">PPP-1990-book1</recordIdentifier>
+ <recordOrigin>machine generated</recordOrigin>
+ <languageOfCataloging>
+  <languageTerm type="code" authority="iso639-2b">eng</languageTerm>
+</languageOfCataloging>
+</recordInfo>
+<accessCondition type="GPO scope determination">fdlp</accessCondition>
+<extension>
+ <docClass>PPP</docClass>
+ <accessId>PPP-1990-book1</accessId>
+ <bookNumber>1</bookNumber>
+ <dateBegin>1990-01-01</dateBegin>
+ <dateEnd>1990-06-30</dateEnd>
+ <isDigitized>true</isDigitized>
+ <president id="GHWB" party="R">
+                      <name type="authority-fnf">George H. W. Bush</name>
+                      <name type="authority-lnf">Bush, George H. W.</name>
+                      <name type="authority-other">George Herbert Walker Bush</name>
+                </president>
+</extension>
+<titleInfo>
+ <title>Public Papers of the Presidents of the United States: George H. W. Bush (1990, Book I)</title>
+ <partNumber>1</partNumber>
+</titleInfo>
+<location>
+ <url displayLabel="Content Detail" access="object in context">https://www.govinfo.gov/app/details/PPP-1990-book1</url>
+ <url displayLabel="PDF rendition" access="raw object">https://www.govinfo.gov/content/pkg/PPP-1990-book1/pdf/PPP-1990-book1.pdf</url>
+</location>
+<identifier type="preferred citation">PPP 1990, Book 1</identifier>
+<name type="personal">
+ <namePart>George H. W. Bush</namePart>
+ <role>
+  <roleTerm authority="marcrelator" type="text">originator</roleTerm>
+  <roleTerm authority="marcrelator" type="code">org</roleTerm>
+</role>
+ <description>President of the United States</description>
+</name>
+</mods>

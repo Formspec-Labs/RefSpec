@@ -1,0 +1,94 @@
+HTTP/2 302 
+server: nginx
+date: Mon, 24 Aug 2026 20:36:16 GMT
+content-type: text/plain; charset=utf-8
+content-length: 0
+x-archive-redirect-reason: found capture at 20170304195827
+location: https://web.archive.org/web/20170304195827id_/http://www.archives.gov/federal-register/executive-orders/1993-bush.html
+server-timing: captures_list;dur=0.809872, exclusion.robots;dur=0.099489, exclusion.robots.policy;dur=0.082036, esindex;dur=0.009365, cdx.remote;dur=16.353603, LoadShardBlock;dur=148.398065, PetaboxLoader3.datanode;dur=74.316588, PetaboxLoader3.resolve;dur=18.430982
+x-app-server: wwwb-app244-dc8
+x-ts: 302
+x-tr: 202
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app244; path=/
+x-location: All
+x-as: 11351
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: TWC-11351-NORTHEAST
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+
+HTTP/2 302 
+server: nginx
+date: Mon, 24 Aug 2026 20:36:17 GMT
+content-type: text/plain; charset=utf-8
+content-length: 0
+x-archive-redirect-reason: found capture at 20170523183719
+location: https://web.archive.org/web/20170523183719id_/https://www.archives.gov/federal-register/executive-orders/1993-bush.html
+server-timing: captures_list;dur=0.666805, exclusion.robots;dur=0.058668, exclusion.robots.policy;dur=0.045582, esindex;dur=0.010126, cdx.remote;dur=8.211739, LoadShardBlock;dur=320.087678, PetaboxLoader3.resolve;dur=883.818777, PetaboxLoader3.datanode;dur=204.664392, load_resource;dur=1077.611967
+x-app-server: wwwb-app245-dc8
+x-ts: 302
+x-tr: 1436
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app245; path=/
+x-location: All
+x-as: 11351
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: TWC-11351-NORTHEAST
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+
+HTTP/2 200 
+server: nginx
+date: Mon, 24 Aug 2026 20:36:18 GMT
+content-type: text/html; charset=utf-8
+content-length: 28136
+x-archive-orig-accept-ranges: bytes
+x-archive-orig-age: 59123
+x-archive-orig-cache-control: public, max-age=0, s-maxage=0, must-revalidate
+x-archive-orig-content-language: en
+x-archive-orig-date: Tue, 23 May 2017 02:11:56 GMT
+x-archive-orig-etag: W/"1495505515-1"
+x-archive-orig-last-modified: Tue, 23 May 2017 02:11:55 GMT
+x-archive-orig-set-cookie: UUID=9b9fe6ce-85f2-c414-0143-1bcac51b95de; expires=Wed, 23-May-2018 02:11:55 GMT; Max-Age=31536000; path=/; domain=.archives.gov; httponly
+x-archive-orig-strict-transport-security: max-age=31536000;
+x-archive-orig-vary: Cookie,Accept-Encoding
+x-archive-orig-x-cache: HIT
+x-archive-orig-x-cache-hits: 1
+x-archive-orig-x-content-type-options: nosniff
+x-archive-orig-x-content-type-options: nosniff
+x-archive-orig-x-frame-options: SAMEORIGIN
+x-archive-orig-content-length: 28136
+x-archive-orig-connection: Close
+cache-control: max-age=1800
+accept-ranges: bytes
+memento-datetime: Tue, 23 May 2017 18:37:19 GMT
+link: <https://www.archives.gov/federal-register/executive-orders/1993-bush.html>; rel="original", <https://web.archive.org/web/timemap/link/https://www.archives.gov/federal-register/executive-orders/1993-bush.html>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/https://www.archives.gov/federal-register/executive-orders/1993-bush.html>; rel="timegate"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: GOV-2017-20170523180626522-09143-09153-wbgrp-crawl207/GOV-2017-20170523182126757-09148-22051~wbgrp-crawl207.us.archive.org~8443.warc.gz
+server-timing: captures_list;dur=0.391866, exclusion.robots;dur=0.040068, exclusion.robots.policy;dur=0.032723, esindex;dur=0.006958, cdx.remote;dur=22.611115, LoadShardBlock;dur=276.090180, PetaboxLoader3.resolve;dur=59.615329, PetaboxLoader3.datanode;dur=256.256381, load_resource;dur=65.722191
+x-app-server: wwwb-app265-dc8
+x-ts: 200
+x-tr: 382
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app265; path=/
+cache-control: private
+x-location: All
+x-as: 11351
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: TWC-11351-NORTHEAST
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+

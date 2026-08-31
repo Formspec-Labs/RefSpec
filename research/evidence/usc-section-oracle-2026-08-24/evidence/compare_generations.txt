@@ -1,0 +1,71 @@
+========================================================================
+(a) ANNUAL COVERAGE MATRIX
+========================================================================
+
+-- annual sections: g1 pairs 1642, g2 pairs 1654
+gained (in g2, not in g1):
+	title=12	appendix=False	year=2010
+	title=13	appendix=False	year=2010
+	title=14	appendix=False	year=2010
+	title=33	appendix=False	year=2012
+	title=35	appendix=False	year=2012
+	title=36	appendix=False	year=2012
+	title=37	appendix=False	year=2012
+	title=38	appendix=False	year=2012
+	title=39	appendix=False	year=2012
+	title=40	appendix=False	year=2012
+	title=41	appendix=False	year=2012
+	title=51	appendix=False	year=2010
+lost (in g1, not in g2):
+
+-- annual ranges: g1 pairs 749, g2 pairs 751
+gained (in g2, not in g1):
+	title=12	appendix=False	year=2010
+	title=33	appendix=False	year=2012
+lost (in g1, not in g2):
+
+========================================================================
+(b) PER-PAIR COUNTS FOR THE GAINED PAIRS (generation 2)
+========================================================================
+title	appendix	year	sections	ranges
+12	False	2010	1925	88
+13	False	2010	65	0
+14	False	2010	335	0
+33	False	2012	1318	49
+35	False	2012	167	0
+36	False	2012	1137	0
+37	False	2012	202	0
+38	False	2012	1009	0
+39	False	2012	166	0
+40	False	2012	431	0
+41	False	2012	229	0
+51	False	2010	234	0
+
+========================================================================
+(c) EVERY OTHER PAIR, ROW-FOR-ROW
+========================================================================
+
+-- annual sections: 1642 pairs outside the gained set, compared by md5 of the sorted row set
+   identical: 1642   differing: 0
+   EXCEPT g1-g2: 0   EXCEPT g2-g1: 0
+
+-- annual ranges: 749 pairs outside the gained set, compared by md5 of the sorted row set
+   identical: 749   differing: 0
+   EXCEPT g1-g2: 0   EXCEPT g2-g1: 0
+
+========================================================================
+(d) THE FOUR RELEASE-POINT TABLES, AND THE ENUMERATED SET
+========================================================================
+table	g1_rows	g2_rows	only_in_g1	only_in_g2
+usc-oracle-sections	59364	59364	0	0
+usc-oracle-ranges	1751	1751	0	0
+usc-oracle-subsections	160209	160209	0	0
+usc-oracle-chapters	2905	2905	0	0
+
+enumerated (release point U non-appendix annual): g1 66780  g2 66780  delta 0
+pairs appearing ONLY because a previously-skipped volume prints them: 0
+pairs lost: 0
+
+distinct (title, appendix, section) in annual sections: g1 67022  g2 67022
+annual sections total rows: g1 1565007  g2 1572225
+annual ranges total rows:   g1 49823  g2 49960

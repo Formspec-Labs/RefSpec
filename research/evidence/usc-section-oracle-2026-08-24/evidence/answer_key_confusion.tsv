@@ -1,0 +1,9 @@
+keys are distinct (title, edition_year, section, rin); the CSV and the flip list
+both carry several rows per key, so these are key counts, not row counts.
+answer_key_bucket	generation_2_says	distinct_keys
+1-case-bug-high-confidence	flips	1355
+2-case-bug-uncertain	stays	28
+3-future-edition-beyond-2024	stays	23
+4-genuine-era-mismatch	stays	3869
+
+keys generation 2 flips that the answer key does not carry at all: 0

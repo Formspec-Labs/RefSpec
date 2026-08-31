@@ -1,0 +1,14 @@
+HEAD 66 keys / 264 rows -> NOW 76 / 323
+new keys 10, gone keys 0
+
+### EVERY NEW abbreviated span, with how much of its interior is law
+  rows=  14  49 U.S.C. 44709-44711  members=3 law=3 ends=(True,True)   '49 USC 44709 to 4711'
+  rows=   6  16 U.S.C. 3101-3126  members=26 law=19 ends=(True,True)   '16 USC 3101 to 26'
+  rows=   3  7 U.S.C. 77701-77772  members=72 law=0 ends=(False,False)   '7 USC 77701 to 7772'
+  rows=   3  15 U.S.C. 1261-1262  members=2 law=2 ends=(True,True)   '15 U.S.C. 1261 to 62'
+  rows=   2  42 U.S.C. 7470-7479  members=10 law=10 ends=(True,True)   '42 USC 7470 to 79'
+  rows=   2  42 U.S.C. 3601-3620  members=20 law=19 ends=(True,False)   '42 USC 3601 to 20'
+  rows=   1  49 U.S.C. 44701-44702  members=2 law=2 ends=(True,True)   '49 USC 44701 to 4702'
+  rows=   1  49 U.S.C. 45301-45302  members=2 law=2 ends=(True,True)   '49 USC 45301 to 5302'
+  rows=   1  49 U.S.C. 440113-440114  members=2 law=0 ends=(False,False)   '49 USC 440113 to 40114'
+  rows=   1  38 U.S.C. 1967-1968  members=2 law=2 ends=(True,True)   '38 USC 1967 to 68'

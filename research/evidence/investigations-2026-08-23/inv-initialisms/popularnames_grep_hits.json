@@ -1,0 +1,14 @@
+{
+  "DHS": [
+    {
+      "context": "<div id='DARTAct' class='popular-name-table-entry' release-point='119-102' item='2478'>\n    <p class='popular-name'>DART Act</p>\n    <p class='popular-name-information' content-type='also-known-as'>Also known as DHS Audit Requirement Target Act of 20",
+      "pattern": "Also known as\\s+DHS\\b"
+    }
+  ],
+  "SAFE": [
+    {
+      "context": "<div id='StrengtheningandFocusingEnforcementtoDeterOrganizedStealingandEnhanceSafetyActof2012' class='popular-name-table-entry' release-point='119-102' item='11841'>\n    <p class='popular-name'>Strengthening and Focusing Enforcement to Deter Organize",
+      "pattern": "Also known as\\s+SAFE\\b"
+    }
+  ]
+}

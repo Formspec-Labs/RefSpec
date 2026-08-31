@@ -1,0 +1,280 @@
+[
+ {
+  "rin": "2900-AR38",
+  "pub": "202110",
+  "ordinal": 4,
+  "text": "1702",
+  "donor_ordinal": 2,
+  "donor_text": "41 U.S.C. 1121(c)(3)",
+  "carried_title": 41,
+  "probe": "41 U.S.C. 1702",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "1702",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "2502-AJ55",
+  "pub": "202010",
+  "ordinal": 2,
+  "text": "and 1735f-19",
+  "donor_ordinal": 1,
+  "donor_text": "1715w, 1735d",
+  "carried_title": 12,
+  "probe": "12 U.S.C. 1735f-19",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "1735f-19",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "3090-AK46",
+  "pub": "202304",
+  "ordinal": 1,
+  "text": "521-523",
+  "donor_ordinal": 0,
+  "donor_text": "40 U.S.C. 121(c)",
+  "carried_title": 40,
+  "probe": "40 U.S.C. 521-523",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "521",
+    "section_end": "523",
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": "exists"
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "1120-AB49",
+  "pub": "201104",
+  "ordinal": 2,
+  "text": "551, 552(a)",
+  "donor_ordinal": 1,
+  "donor_text": "5 USC 301",
+  "carried_title": 5,
+  "probe": "5 U.S.C. 551, 552(a)",
+  "reads": 2,
+  "verdicts": [
+   {
+    "section": "551",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   },
+   {
+    "section": "552",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "3095-AC11",
+  "pub": "202504",
+  "ordinal": 2,
+  "text": "3102",
+  "donor_ordinal": 1,
+  "donor_text": "44 U.S.C. 3101",
+  "carried_title": 44,
+  "probe": "44 U.S.C. 3102",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "3102",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "1820-AB65",
+  "pub": "201304",
+  "ordinal": 1,
+  "text": "1406",
+  "donor_ordinal": 0,
+  "donor_text": "20 USC 1221e-3",
+  "carried_title": 20,
+  "probe": "20 U.S.C. 1406",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "1406",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "0702-AA66",
+  "pub": "201510",
+  "ordinal": 8,
+  "text": "89-670 and 91-605",
+  "donor_ordinal": 3,
+  "donor_text": "23 U.S.C. 402",
+  "carried_title": 23,
+  "probe": "23 U.S.C. 89-670 and 91-605",
+  "reads": 2,
+  "verdicts": [
+   {
+    "section": "89",
+    "section_end": "670",
+    "verdict": "absent",
+    "reason": null,
+    "attested_at_edition": false,
+    "evidence": [],
+    "end_verdict": "absent"
+   },
+   {
+    "section": "91",
+    "section_end": "605",
+    "verdict": "absent",
+    "reason": null,
+    "attested_at_edition": false,
+    "evidence": [],
+    "end_verdict": "exists"
+   }
+  ],
+  "gate": "absent"
+ },
+ {
+  "rin": "1820-AB65",
+  "pub": "201404",
+  "ordinal": 2,
+  "text": "1411-1419",
+  "donor_ordinal": 0,
+  "donor_text": "20 USC 1221e-3",
+  "carried_title": 20,
+  "probe": "20 U.S.C. 1411-1419",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "1411",
+    "section_end": "1419",
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": "exists"
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "2900-AR07",
+  "pub": "202104",
+  "ordinal": 6,
+  "text": "1707",
+  "donor_ordinal": 3,
+  "donor_text": "41 U.S.C. 1121(c)(3)",
+  "carried_title": 41,
+  "probe": "41 U.S.C. 1707",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "1707",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ },
+ {
+  "rin": "2900-AR07",
+  "pub": "202104",
+  "ordinal": 5,
+  "text": "1702",
+  "donor_ordinal": 3,
+  "donor_text": "41 U.S.C. 1121(c)(3)",
+  "carried_title": 41,
+  "probe": "41 U.S.C. 1702",
+  "reads": 1,
+  "verdicts": [
+   {
+    "section": "1702",
+    "section_end": null,
+    "verdict": "exists",
+    "reason": null,
+    "attested_at_edition": true,
+    "evidence": [
+     "release-point",
+     "annual"
+    ],
+    "end_verdict": null
+   }
+  ],
+  "gate": "exists"
+ }
+]

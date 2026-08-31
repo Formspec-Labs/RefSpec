@@ -1,0 +1,44 @@
+### THE 14 TRAPS, before and after
+
+HELD  old_rows=3 new_rows=3  '42 USC 7401/et seq'
+      ('usc', 'partial', None, None, 42, '7401', None, None)
+
+HELD  old_rows=1 new_rows=1  'PL 106-554, Treasury/General Government Appropriations Act of 2001'
+      ('public_law', 'partial', None, None, None, None, '106-554', None)
+
+HELD  old_rows=13 new_rows=13  'PL 110-53, sec 1413, The Implementing Recommendations of the 9/11 Commission Act of 2007'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=13 new_rows=13  'PL 110-53, sec 1521, The Implementing Recommendations of the 9/11 Commission Act of 2007'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=13 new_rows=13  'PL 110-53, sec 1536, The Implementing Recommendations of the 9/11 Commission Act of 2007'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=9 new_rows=9  'PL 110-53, sec 711, 9/11 Act'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=18 new_rows=18  'PL 96-354; 5 USC 601. Docket 41683, EDR 468/PSDR-81.'
+      ('usc', 'partial', None, None, 5, '601', None, None)
+      ('public_law', 'partial', None, None, None, None, '96-354', None)
+
+HELD  old_rows=3 new_rows=3  'Pub. L. 110-53, sec 1413, The Implementing Recommendations of the 9/11 Commission Act of 2007'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=3 new_rows=3  'Pub. L. 110-53, sec 1521, The Implementing Recommendations of the 9/11 Commission Act of 2007'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=3 new_rows=3  'Pub. L. 110-53, sec 1536, The Implementing Recommendations of the 9/11 Commission Act of 2007'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=2 new_rows=2  'Pub. L. 110-53, sec 711, 9/11 Act'
+      ('public_law', 'partial', None, None, None, None, '110-53', None)
+
+HELD  old_rows=2 new_rows=2  'Pub. L. 117-180, Division G – Hermit’s Peak/Calf Canyon Fire Assistance Act'
+      ('public_law', 'partial', None, None, None, None, '117-180', None)
+
+HELD  old_rows=1 new_rows=1  'Pub. L. 117-180, Division G – Hermit’s Peak/Calf Canyon Fire Assistance Act (Act)'
+      ('public_law', 'partial', None, None, None, None, '117-180', None)
+
+HELD  old_rows=3 new_rows=3  'S/B Improving Head Start for School Readiness Act of 2007, PL 110-134'
+      ('public_law', 'partial', None, None, None, None, '110-134', None)

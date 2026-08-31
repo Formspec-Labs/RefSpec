@@ -1,0 +1,16 @@
+anchor signal tally (boxes that NAME an act, by how): {'stated_act_name': 11799, 'act_key': 8412, 'abstract_initialism': 250, 'roster_initialism': 6329, 'roster_initialism_ambiguous': 29}
+candidate later-boxes total: 62
+distinct records: 48
+distinct RINs: 15
+total underlying parquet rows: 62
+
+resolution outcome tally (per candidate BOX): {'RESOLVED': 20, 'act_section_not_classified': 13, 'PARTIALLY_RESOLVED_LIST': 3, 'classification_not_current': 1, 'usc_section_not_expressible': 16, 'act_not_in_index': 9}
+resolved boxes: 20  partially-resolved-list boxes: 3
+
+wrote /Users/mikewolfd/.claude/jobs/9dfc0c64/tmp/inv-acts/pop_a_candidates.json
+
+specimen check (expect 4 candidate boxes, ordinals 1-4):
+  1 '1903 (a)(6)' carry_key= social security act signal= roster_initialism
+  2 '1903(b)(3)' carry_key= social security act signal= roster_initialism
+  3 '1903(q)' carry_key= social security act signal= roster_initialism
+  4 '1102' carry_key= social security act signal= roster_initialism

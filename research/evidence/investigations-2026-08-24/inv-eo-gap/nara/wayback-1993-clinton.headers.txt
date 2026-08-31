@@ -1,0 +1,96 @@
+HTTP/2 302 
+server: nginx
+date: Mon, 24 Aug 2026 20:36:24 GMT
+content-type: text/plain; charset=utf-8
+content-length: 0
+x-archive-redirect-reason: found capture at 20170102022701
+location: https://web.archive.org/web/20170102022701id_/http://www.archives.gov/federal-register/executive-orders/1993-clinton.html
+server-timing: captures_list;dur=0.332338, exclusion.robots;dur=0.039779, exclusion.robots.policy;dur=0.031947, esindex;dur=0.005904, cdx.remote;dur=40.812681, LoadShardBlock;dur=114.582520, PetaboxLoader3.datanode;dur=57.972426
+x-app-server: wwwb-app220-dc8
+x-ts: 302
+x-tr: 171
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app220; path=/
+x-location: All
+x-as: 11351
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: TWC-11351-NORTHEAST
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+
+HTTP/2 302 
+server: nginx
+date: Mon, 24 Aug 2026 20:36:27 GMT
+content-type: text/plain; charset=utf-8
+content-length: 0
+x-archive-redirect-reason: found capture at 20170102022723
+location: https://web.archive.org/web/20170102022723id_/https://www.archives.gov/federal-register/executive-orders/1993-clinton.html
+server-timing: captures_list;dur=0.563498, exclusion.robots;dur=0.070593, exclusion.robots.policy;dur=0.057165, esindex;dur=0.009919, cdx.remote;dur=787.473787, LoadShardBlock;dur=1369.562540, PetaboxLoader3.resolve;dur=409.608529, PetaboxLoader3.datanode;dur=1208.270098, load_resource;dur=403.280664
+x-app-server: wwwb-app263-dc8
+x-ts: 302
+x-tr: 2587
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app263; path=/
+x-location: All
+x-as: 11351
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: TWC-11351-NORTHEAST
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+
+HTTP/2 200 
+server: nginx
+date: Mon, 24 Aug 2026 20:36:27 GMT
+content-type: text/html; charset=utf-8
+content-length: 64442
+x-archive-orig-accept-ranges: bytes
+x-archive-orig-age: 9016
+x-archive-orig-cache-control: public, max-age=0, must-revalidate
+x-archive-orig-cache-control: no-cache="set-cookie"
+x-archive-orig-content-language: en
+x-archive-orig-date: Sun, 01 Jan 2017 23:57:07 GMT
+x-archive-orig-etag: W/"1483252840-1"
+x-archive-orig-last-modified: Sun, 01 Jan 2017 06:40:40 GMT
+x-archive-orig-set-cookie: UUID=9373c1de-f0b1-be14-5d03-96d472b03171; expires=Mon, 01-Jan-2018 06:40:40 GMT; Max-Age=31536000; path=/; domain=.archives.gov; httponly
+x-archive-orig-set-cookie: AWSELB=85D14F711EA66FC57D21557BF6CA403052D8E78023FD4A8B4FC08FF67ABF1ECD315591B1B7D57380491ED7AE6B50FF32387CD6AD7F63542ECF64CA950F347B56ADCE12D5E5;PATH=/;MAX-AGE=3600
+x-archive-orig-strict-transport-security: max-age=31536000;
+x-archive-orig-vary: Cookie,Accept-Encoding
+x-archive-orig-x-cache: HIT
+x-archive-orig-x-cache-hits: 3
+x-archive-orig-x-content-type-options: nosniff
+x-archive-orig-x-content-type-options: nosniff
+x-archive-orig-x-frame-options: SAMEORIGIN
+x-archive-orig-content-length: 64442
+x-archive-orig-connection: Close
+cache-control: max-age=1800
+accept-ranges: bytes
+memento-datetime: Mon, 02 Jan 2017 02:27:23 GMT
+link: <https://www.archives.gov/federal-register/executive-orders/1993-clinton.html>; rel="original", <https://web.archive.org/web/timemap/link/https://www.archives.gov/federal-register/executive-orders/1993-clinton.html>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/https://www.archives.gov/federal-register/executive-orders/1993-clinton.html>; rel="timegate"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: UNT-20170101205807009-06267-06356-libharvest1/UNT-20170102022552286-06327-23878~libharvest1.library.unt.edu~9443.warc.gz
+server-timing: captures_list;dur=0.357832, exclusion.robots;dur=0.044509, exclusion.robots.policy;dur=0.036568, esindex;dur=0.005786, cdx.remote;dur=5.834867, LoadShardBlock;dur=121.408780, PetaboxLoader3.datanode;dur=91.686274, PetaboxLoader3.resolve;dur=92.853955, load_resource;dur=68.161840
+x-app-server: wwwb-app222-dc8
+x-ts: 200
+x-tr: 212
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app222; path=/
+cache-control: private
+x-location: All
+x-as: 11351
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: TWC-11351-NORTHEAST
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+

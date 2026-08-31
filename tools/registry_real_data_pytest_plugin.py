@@ -37,6 +37,31 @@ _COUNT_FIELDS = frozenset(
     }
 )
 _MAX_SOURCE_EVIDENCE_SEQUENCE_ITEMS = 100
+# How many receipts one module function may open before further distinct calls
+# stop opening new ones.
+#
+# The dedupe key below groups repeat calls by the source artifacts they name,
+# which is right for a reader called once per pinned file and wrong for a
+# reader called once per *fragment of* one pinned file: `_source_evidence`
+# hashes every `bytes` argument, so each fragment synthesizes a digest nothing
+# published and every call opens its own slot. `usc_act_index.parse_act`, run
+# over the 48,973 acts of one already-pinned bulk XML member, opened 48,975 --
+# 51.4 MB of the audit summary's 54.9 MB, and a quadratic key scan that is most
+# of why the audited run took 1,462s. Every other function in the audit opens
+# at most 69 (`infrastructure/artifact_serialization.py::plain_json`; the two
+# largest readers, the fifty CFR subject-index pages and the sixty Unified
+# Agenda editions, open 61 and 60). This cap therefore clips exactly one group
+# and leaves the largest legitimate one room to triple.
+#
+# Nothing is evicted: the first calls to open a slot keep it, which is
+# reproducible because the tests walk their pinned inputs in file order. The
+# cap is per function name, so a module's other functions are untouched -- the
+# `build`/`verify_source` receipts that name usc_act_index's actual pinned
+# digests are not competing with `parse_act` for slots. And it is fail-closed
+# rather than silent: if a reader ever does need more than this many pinned
+# inputs under one function, `execution_receipt_failures` reports the pins it
+# did not observe by name and the cap is raised deliberately.
+_MAX_EXECUTIONS_PER_FUNCTION = 200
 
 
 def pytest_addoption(parser: Any) -> None:
@@ -246,10 +271,13 @@ def _record(module_name: str, function_name: str, arguments: tuple[Any, ...], re
         (index for index, existing in enumerate(executions) if evidence_key(existing) == key),
         None,
     )
-    if matching_index is None:
+    if matching_index is not None:
+        if evidence_strength(execution) > evidence_strength(executions[matching_index]):
+            executions[matching_index] = execution
+        return
+    recorded_for_function = sum(1 for existing in executions if existing.get("function") == function_name)
+    if recorded_for_function < _MAX_EXECUTIONS_PER_FUNCTION:
         executions.append(execution)
-    elif evidence_strength(execution) > evidence_strength(executions[matching_index]):
-        executions[matching_index] = execution
 
 
 def _call_and_record(

@@ -1,0 +1,49 @@
+HTTP/2 301 
+content-type: text/html; charset=UTF-8
+content-length: 0
+location: https://www.archives.gov/federal-register/executive-orders/clinton
+date: Mon, 24 Aug 2026 20:32:00 GMT
+x-frame-options: SAMEORIGIN
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+cache-control: no-cache, must-revalidate
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-cache: Miss from cloudfront
+via: 1.1 a5ec1cc448d0ca618712f253b7a7adba.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: uzbkkZbaOQHIL8BpygqfEUaUKYKI8N0s683xphFi1ua74JwMzOm9hw==
+
+HTTP/2 302 
+content-type: text/html; charset=UTF-8
+content-length: 0
+location: https://www.archives.gov/federal-register/executive-orders/disposition
+date: Mon, 24 Aug 2026 20:32:00 GMT
+x-frame-options: SAMEORIGIN
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+cache-control: no-cache, must-revalidate
+x-redirect-id: 30748
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-cache: Miss from cloudfront
+via: 1.1 a5ec1cc448d0ca618712f253b7a7adba.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: FZOxV9VSIakBmIGANCOwu5S6oyjXVl36IqvIIRXPtqbkWg8nr_dU3w==
+
+HTTP/2 200 
+content-type: text/html; charset=utf-8
+date: Mon, 24 Aug 2026 19:52:35 GMT
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-frame-options: SAMEORIGIN
+content-language: en
+last-modified: Mon, 24 Aug 2026 18:51:01 GMT
+x-content-type-options: nosniff
+etag: W/"1787597461-0-gzip"
+accept-ranges: bytes
+cache-control: public, max-age=60, s-maxage=86400
+vary: Cookie,Accept-Encoding
+x-cache: Hit from cloudfront
+via: 1.1 a5ec1cc448d0ca618712f253b7a7adba.cloudfront.net (CloudFront)
+x-amz-cf-pop: JFK52-P4
+x-amz-cf-id: Uv1kznQrdhm1eJ1FaT9T6gOQWM4yhULxgH0tsaNExOzCj_CJ4FE4mQ==
+age: 2365
+

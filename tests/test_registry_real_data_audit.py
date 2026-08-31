@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import importlib.util
 import json
@@ -360,3 +361,65 @@ def test_receipt_collector_records_only_the_outer_production_call() -> None:
 
     assert result == {"records": [{"value": "publisher bytes"}]}
     assert [execution["function"] for execution in receipt_plugin._MODULES["example"]["executions"]] == ["outer"]
+
+
+def test_receipt_collector_bounds_a_function_called_once_per_fragment() -> None:
+    """One pinned file read fragment by fragment is one source, not thousands.
+
+    ``_source_evidence`` hashes every ``bytes`` argument, so a reader called
+    once per fragment of an already-pinned file synthesizes a digest per call
+    and each one opened its own receipt: ``usc_act_index.parse_act`` opened
+    48,975 over the 48,973 acts of one bulk XML member, which was 51.4 MB of a
+    54.9 MB audit summary. The cap clips that; the pins the module actually
+    consumed are carried by its other functions, which the cap never sees.
+    """
+
+    receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
+    fragment_count = receipt_plugin._MAX_EXECUTIONS_PER_FUNCTION * 3
+
+    receipt_plugin._record(
+        "example",
+        "build",
+        (),
+        {"records": [{"digest": "sha256:" + "0" * 64}]},
+    )
+    for index in range(fragment_count):
+        receipt_plugin._record(
+            "example",
+            "parse_fragment",
+            (f"<act>{index}</act>".encode(),),
+            {"records": [{"value": index}]},
+        )
+
+    executions = receipt_plugin._MODULES["example"]["executions"]
+    by_function = collections.Counter(execution["function"] for execution in executions)
+    assert by_function["parse_fragment"] == receipt_plugin._MAX_EXECUTIONS_PER_FUNCTION
+    # The cap is per function name: the receipt naming the real pinned input is
+    # not competing with the fragments for slots.
+    assert by_function["build"] == 1
+
+
+def test_receipt_collector_keeps_every_pin_of_an_ordinary_many_file_source() -> None:
+    """The negative case for the cap: a real many-file source stays whole.
+
+    The two largest readers in the audit open 61 and 60 receipts -- the fifty
+    CFR subject-index pages and the sixty Unified Agenda editions, each read
+    one pinned file at a time. A cap that clipped those would drop pinned
+    digests the real-data gate requires, so this fixture is deliberately
+    larger than both and every digest must survive.
+    """
+
+    receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
+    payloads = [f"publisher edition {index}".encode() for index in range(80)]
+
+    for index, payload in enumerate(payloads):
+        receipt_plugin._record(
+            "example",
+            "parse_edition",
+            (payload, f"https://publisher.example/edition-{index}"),
+            {"records": [{"value": payload.decode()}]},
+        )
+
+    executions = receipt_plugin._MODULES["example"]["executions"]
+    retained = {digest for execution in executions for digest in execution["sourceEvidence"]["digests"]}
+    assert retained == {"sha256:" + hashlib.sha256(payload).hexdigest() for payload in payloads}

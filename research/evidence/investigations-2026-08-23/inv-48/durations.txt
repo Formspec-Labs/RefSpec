@@ -1,0 +1,90 @@
+tests/test_generate_atlas_v3_full.py: 12 warnings
+tests/test_identifier_scheme_prebuild.py: 4 warnings
+tests/test_producer_prebuild_validation.py: 39 warnings
+  /Users/mikewolfd/Work/RefSpec/.venv/lib/python3.12/site-packages/rdflib/graph.py:2493: DeprecationWarning: Dataset.default_context is deprecated, use Dataset.default_graph instead.
+    context = self.default_context
+
+tests/test_generate_atlas_v3_full.py: 165 warnings
+tests/test_identifier_scheme_prebuild.py: 2 warnings
+tests/test_producer_prebuild_validation.py: 7 warnings
+  /Users/mikewolfd/Work/RefSpec/.venv/lib/python3.12/site-packages/rdflib/graph.py:2325: DeprecationWarning: Dataset.default_context is deprecated, use Dataset.default_graph instead.
+    if context == self.default_context:
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 60 durations =============================
+271.64s call     tests/test_atlas_v3_registry_alignments.py::test_fast_default_served_set_is_computed_from_shipped_evidence
+157.64s setup    tests/test_producer_prebuild_validation.py::test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set
+140.02s setup    tests/test_atlas_v3_registry_alignments.py::test_fast_default_served_set_is_computed_from_shipped_evidence
+95.58s setup    tests/test_atlas_v3_registry_alignments_lc.py::test_mapping_release_preserves_lc_direction_and_exact_predicate_mix
+83.70s call     tests/test_unified_agenda_editions.py::test_the_structured_cfr_field_carries_impossible_titles
+80.12s call     tests/test_unified_agenda_editions.py::test_every_pinned_edition_reads_back_exactly
+77.56s setup    tests/test_atlas_v3_registry_alignments_bulk.py::test_group_topology_is_one_fast_delta_and_two_eurovoc_pairs
+74.91s call     tests/test_unified_agenda_editions.py::test_the_continuation_population_is_the_whole_series
+55.05s setup    tests/test_atlas_v3_registry_alignments_lc.py::test_language_determined_external_endpoints_are_contentful
+50.87s call     tests/test_atlas_v3_binding.py::test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild
+40.13s call     tests/test_atlas_v3_binding.py::test_memory_fallback_matches_the_sealed_corpus
+39.96s call     tests/test_atlas_v3_binding.py::test_atlas_v3_binding_and_sealed_corpus_pass
+39.90s call     tests/test_eurovoc_microthesaurus_domain.py::test_real_4_24_release_reproduces_the_frozen_edge_set
+38.55s call     tests/test_producer_prebuild_validation.py::test_fast_see_also_has_no_thesaurus_related_eligible_pairs
+36.07s setup    tests/test_atlas_v3_registry_alignments_bulk.py::test_fast_see_also_keeps_content_but_emits_no_unlicensed_semantic_relation
+35.88s call     tests/test_producer_prebuild_validation.py::test_frozen_gemet_eurovoc_s46_refusals_match_the_real_validator
+33.44s setup    tests/test_lc_external_links.py::test_real_archive_pins_all_target_vocabulary_and_predicate_counts
+29.10s call     tests/test_atlas_v3_registry_vocabularies.py::test_large_pinned_vocabulary_normalizes_complete_source[load_nasa_thesaurus_release]
+22.30s call     tests/test_atlas_v3_registry_vocabularies.py::test_eurovoc_claim_views_match_parser_compatibility_releases
+21.21s call     tests/test_atlas_v3_binding.py::test_an_edited_builder_input_forces_the_rebuild
+21.14s call     tests/test_atlas_v3_binding.py::test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails
+20.37s call     tests/test_producer_prebuild_validation.py::test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set
+16.06s setup    tests/test_fast_topical.py::test_native_sources_rebuild_the_measured_current_topical_shape
+16.01s setup    tests/test_atlas_v3_registry_alignments.py::test_mapping_subjects_match_the_complete_eurovoc_release_partitions
+14.19s call     tests/test_atlas_v3_registry_vocabularies.py::test_large_pinned_vocabulary_normalizes_complete_source[load_gemet_release]
+13.58s call     tests/test_identifier_shapes.py::test_the_office_segment_is_measured_over_the_real_docket_column
+13.17s call     tests/test_producer_prebuild_validation.py::test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build
+12.34s setup    tests/test_oclc_fast_external_links.py::test_official_capture_accounts_for_every_mapping_and_refusal
+11.42s call     tests/test_mesh_tree_numbers.py::test_real_2026_release_derives_the_frozen_edge_set
+11.05s call     tests/test_producer_prebuild_validation.py::test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope
+10.99s setup    tests/test_atlas_v3_registry_alignments_subject.py::test_lcsh_mesh_release_is_an_e3_opt_in_adoption
+10.49s call     tests/test_atlas_v3_registry_vocabularies.py::test_large_pinned_vocabulary_normalizes_complete_source[load_doe_osti_release]
+10.19s call     tests/test_atlas_v3_registry_vocabularies.py::test_large_pinned_vocabulary_normalizes_complete_source[load_mesh_2026_release]
+8.95s call     tests/test_verify_atlas_source_fidelity.py::test_main_collects_errors_when_the_distribution_is_absent
+8.81s call     tests/test_verify_atlas_source_fidelity.py::test_main_collects_all_missing_pinned_inputs
+7.97s call     tests/test_usc_section_oracle.py::test_attested_years_index_matches_the_old_linear_scan_on_every_corpus_key
+7.96s call     tests/test_producer_prebuild_validation.py::test_frozen_umthes_s27_transformations_match_the_real_validator
+7.65s call     tests/test_unified_agenda_parquet.py::test_the_sibling_carry_refuses_what_its_four_fences_are_for
+6.89s call     tests/test_atlas_v3_registry_vocabularies.py::test_large_pinned_vocabulary_normalizes_complete_source[load_elsst_r6_release]
+6.80s call     tests/test_usc_act_index.py::test_the_page_span_population_is_counted_whole_and_split
+6.71s call     tests/test_generate_atlas_v3_full.py::test_streamed_construction_matches_the_whole_graph_oracle
+6.55s call     tests/test_verify_atlas_source_fidelity.py::test_main_collects_errors_when_the_source_root_is_absent
+6.43s call     tests/test_generate_atlas_v3_full.py::test_streamed_whole_graph_refusal_probe[source-accounting]
+6.16s call     tests/test_generate_atlas_v3_full.py::test_streamed_whole_graph_refusal_probe[count-mismatch]
+6.15s call     tests/test_atlas_v3_validator_regressions.py::test_fail_fast_and_audit_name_the_same_constraint_components[assertion-extra-property]
+5.37s call     tests/test_atlas_v3_validator_regressions.py::test_meta_conformance_is_proven_once_per_process_and_never_cached_as_a_pass
+5.23s call     tests/test_usc_disposition_tables.py::test_the_population_is_the_one_the_review_counted
+4.95s call     tests/test_crs_source_concept_release_generation.py::test_write_reproduces_from_the_checked_embedded_source_packages
+4.92s call     tests/test_unified_agenda_parquet.py::test_a_section_verdict_and_the_one_reading_that_survives
+4.83s call     tests/test_unified_agenda_parquet.py::test_the_receipt_census_covers_the_section_fence
+4.70s call     tests/test_usc_act_index.py::test_the_popular_name_cite_coverage_is_order_free
+4.61s call     tests/test_rkaf_term_currency.py::test_every_rkaf_term_refspec_uses_exists_in_the_packaged_registry
+4.38s call     tests/test_atlas_v3_validator_regressions.py::test_a_validator_only_change_invalidates_the_validation_cache
+4.38s call     tests/test_atlas_v3_validator_regressions.py::test_fail_fast_and_audit_name_the_same_constraint_components[mapping-period-start-not-datetime]
+4.31s call     tests/test_atlas_v3_validator_regressions.py::test_fail_fast_and_audit_name_the_same_constraint_components[derived-is-authoritative]
+4.31s call     tests/test_atlas_v3_validator_regressions.py::test_tampered_cache_receipt_falls_back_to_full_validation
+4.30s call     tests/test_citation_grammar.py::test_the_phantom_spans_are_recounted_not_restated
+4.29s call     tests/test_atlas_v3_validator_regressions.py::test_fail_fast_and_audit_name_the_same_constraint_components[mapping-subject-ring-dated]
+4.28s call     tests/test_atlas_v3_validator_regressions.py::test_fail_fast_and_audit_name_the_same_constraint_components[mapping-missing-evidence]
+4.23s call     tests/test_atlas_v3_validator_regressions.py::test_fail_fast_and_audit_name_the_same_constraint_components[evidence-warrant-unsanctioned]
+=========================== short test summary info ============================
+FAILED tests/test_registry_real_data_audit.py::test_registry_audit_snapshot_is_current_and_honest_about_open_gaps - AssertionError: assert [{'auditRole'...'], ...}, ...] == [{'auditRole'...']...
+FAILED tests/test_unified_agenda_parquet.py::test_the_authority_field_is_no_longer_shipped_as_raw_text - assert 798518 == 797193
+FAILED tests/test_unified_agenda_parquet.py::test_the_continuations_families_are_measured_not_asserted - AssertionError: assert {'dc_code': 2...statute': 118} == {'dc_code': 2...st...
+FAILED tests/test_unified_agenda_parquet.py::test_the_third_waves_families_are_measured_not_asserted - assert 1298 == 1272
+FAILED tests/test_unified_agenda_parquet.py::test_the_receipt_names_the_code_that_wrote_it - AssertionError: assert {'ecfr-author...ocuments.csv'} == {'ecfr-author...w-...
+FAILED tests/test_unified_agenda_parquet.py::test_an_unresolved_row_still_states_what_it_states - AssertionError: assert 1142 == 1138
+FAILED tests/test_unified_agenda_parquet.py::test_a_resolution_supersedes_a_statement - AssertionError: a value states both when it carries both
+FAILED tests/test_unified_agenda_parquet.py::test_the_section_fence_over_the_built_table - AssertionError: assert {'absent': (1...88, 164, 349)} == {'absent': (1...88...
+FAILED tests/test_unified_agenda_parquet.py::test_the_corrected_key_split_over_the_built_table - AssertionError: assert [('A4-subsect...uffix', 0, 4)] == [('A4-subsect...io...
+FAILED tests/test_unified_agenda_parquet.py::test_the_receipt_census_covers_the_section_fence - AssertionError: assert {'A4+B8+parse...'parse': 6507} == {'A4+B8+parse...'p...
+FAILED tests/test_unified_agenda_parquet.py::test_the_three_carried_verdicts_over_the_built_table - assert 6591 == 6566
+FAILED tests/test_unified_agenda_parquet.py::test_an_expanded_span_says_so_and_is_never_ok - AssertionError: assert {'abbreviated...tated': 49993} == {'abbreviated...ta...
+FAILED tests/test_unified_agenda_parquet.py::test_the_rules_own_cfr_part_note_judges_what_the_filer_wrote - AssertionError: assert {'absent': (8...326728, 9798)} == {'absent': (8...32...
+FAILED tests/test_unified_agenda_parquet.py::test_the_note_verdict_census_is_the_receipts - AssertionError: assert {'act_relativ...ent': 320643}} == {'act_relativ...en...
+14 failed, 4135 passed, 113 skipped, 4823 warnings in 2014.80s (0:33:34)

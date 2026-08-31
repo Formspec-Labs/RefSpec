@@ -1,0 +1,236 @@
+AML          rows=  3 distinct_rins=  1 prefixes=1506
+    sec. 6103 of the AML Act
+ANILCA       rows=  2 distinct_rins=  1 prefixes=1024
+    ANILCA sec 203 || ANILCA sec 1313
+APUSC        rows=  1 distinct_rins=  1 prefixes=1902
+    49 APUSC 1 to 85
+ARRA         rows= 15 distinct_rins=  3 prefixes=0412,1810,1855
+    ARRA 2009 || ARRA as amended by PL 112-10 and PL 112-74 || ARRA as amended by PL 112-010 and PL 112-74
+ATRA         rows=  3 distinct_rins=  1 prefixes=0938
+    ATRA sec 632(a) || ATRA
+BA           rows=  1 distinct_rins=  1 prefixes=0938
+    BBA, BA, BIPA, MMA, PPACA || BBA, BA, BIPA, MMA, PL 111.148
+BB           rows=  9 distinct_rins= 44 prefixes=0938,1210,1545,1615,1904,3206
+    Pub. L. 116-260, Division BB, title I || Pub. L. 116-260, Division BB, title I and title II || Pub. L. 116-260, Division BB, title II
+BBA          rows= 15 distinct_rins= 24 prefixes=0936,0938,0960
+    Bipartisan Budget Act of 2018 (BBA 2018), Pub. L. 115-123. sec. 50412 || Bipartisan Budget Act of 2018 (BBA, Pub.L. No. 115-123), secs. 50341 a || Bipartisan Budget Act of 2018 (BBA, Pub. L. No. 115-123), secs. 50341 
+BBRA         rows= 41 distinct_rins= 25 prefixes=0938
+    sec 212 of BBRA of 1999 || Sec 212 of BBRA of 1999 || BBRA '99
+BIPA         rows= 27 distinct_rins= 36 prefixes=0938
+    BIPA '00 || 42 CFR 1395w-4, BIPA || Sec 522 of BIPA
+CAA          rows= 40 distinct_rins=339 prefixes=2009,2012,2020,2050,2060,2070,2090
+    CAA 301(d) || CAA, title I || 42 USC 7413/CAA 113
+CAAA         rows=  9 distinct_rins= 38 prefixes=2020,2050,2060
+    42 USC 7413(d)/CAAA 113(d) || RCRA 3005(a), CAAA section 112 || 42 USC 7412 CAAA sec 112
+CADC         rows=  1 distinct_rins=  1 prefixes=3072
+    WSC v. FMC, No. 24-1088 (CADC Sept. 23, 2025)
+CEA          rows=  2 distinct_rins= 12 prefixes=3038
+    sec 5 of the CEA (7 USC 7) || sec 2(h) of the CEA (7 USC 2(h)) || sec 8a(5) of the CEA (7 USC 12a(5))
+CMHS         rows=  3 distinct_rins=  1 prefixes=0930
+    Sections 1911 through 1956 of the PHS Act Authorize the Community Ment || Sections 1911 through 1956 of the Public Health Services (PHS) Act Aut
+CMVSA        rows=  3 distinct_rins=  1 prefixes=2126
+    MCA of 1935, MCSA 1984, CMVSA 1986 || CMVSA 1986
+CWA          rows= 11 distinct_rins=136 prefixes=0710,2009,2020,2030,2040,2050,2060
+    33 USC 1361 CWA sec 501 || 33 USC 1362 CWA sec 502 || CWA 312(f)(4)(A)
+DCR          rows= 12 distinct_rins=  1 prefixes=3225
+    D.C. Law 18-88, sec. 56 DCR 7413
+DEL          rows=  3 distinct_rins=  4 prefixes=1902
+    3 CFR 1978 Comp. p. 136, DOE Delegation Order No. S1–DEL– FERC–206 (Ma || DOE Delegation Order No. S1-DEL-FERC-2006 || 3 CFR 1978 Comp., p. 136, DOE Delegation Order No. S1-DEL-FERC-2006 (M
+DHS          rows= 17 distinct_rins= 46 prefixes=1601,1625
+    DHS Delegation Number 0700 || DHS Del. No. 13001, Rev. 01 (June 2, 2020) || DHS Delegation Number 0702
+DOE          rows=  3 distinct_rins=  6 prefixes=1901,1902
+    DOE Delegation Order No. 0204-111 || DOE Delegation Order No. 0204-127 || 3 CFR 1949 to 1953 Comp. p. 970, as amended by E.O. 12038, 3 CFR 1978 
+DOJ          rows=  5 distinct_rins=  3 prefixes=1103,1105
+    DOJ Ord 1735.1 || DOJ Order 2710.8A || DOJ Order 1735.1
+EE           rows=  3 distinct_rins=  2 prefixes=0790,1513
+    EE.O.M Directive 715 || EE.O.M 715 || Section 107 of the Taxpayer Certainty and Disaster Tax Relief Act of 2
+EPA          rows=  9 distinct_rins=  4 prefixes=0596,2030
+    EPA 1992 || EPA Acquisition Regulation sec 205 || 40 USC 390 EPA Acquisition Regulation sec 205
+EPCRA        rows= 10 distinct_rins= 21 prefixes=2020,2025,2070
+    42 USC 11045/EPCRA 325 || 42 USC 11013 EPCRA 313 || 42 USC 11013 "EPCRA 313"
+ESSA         rows=  1 distinct_rins=  1 prefixes=1810
+    Every Student Succeeds Act (ESSA) of 2015
+FAA          rows=  2 distinct_rins= 10 prefixes=2105
+    sec. 403 of the 2018 FAA Reauthorization Act || Section 403 of the 2018 FAA Reauthorization Act || FAA Reauthorization Act of 2018, sec. 427
+FAIR         rows=  4 distinct_rins=  2 prefixes=0563
+    FAIR Act of 1996, section 191, section 226 A(b)
+FASA         rows=  1 distinct_rins=  1 prefixes=2030
+    EO 12549, EO 12689 and FASA || FASA || EO 12689 and FASA
+FAST         rows=  3 distinct_rins=  8 prefixes=2125,2126,2130,2132
+    Section 5516 of the FAST Act (Pub. L. 114-94) || sec. 5516 of the FAST Act (Pub. L. 114-94) || FAST Act, Pub. L. 114-94, sec. 5202
+FBI          rows=  2 distinct_rins=  1 prefixes=1105
+    14, 1997, 'Delegation of Responsibilities Concerning FBI
+FD&C         rows= 15 distinct_rins= 11 prefixes=0910
+    secs 505(i), 520(g), and 701(a), FD&C Act || Title III, sec 301 of FDA Food Safety Modernization Act, PL 111-353, e || title III, sec 301 of FDA Food Safety Modernization Act, PL 111-353, e
+FDASIA       rows=  6 distinct_rins=  2 prefixes=0910
+    secs 506C, 506C-1, 506D, and 506F of the FDA&C Act , as amended by tit || secs 506C, 506C-1, 506D, and 506F of the FDA&C Act, as amended by titl || secs 506c, 506c-1, 506d, and 506f of the FDA&C Act, as amended by titl
+FEMA         rows=  1 distinct_rins=  1 prefixes=3067
+    FEMA Reg 5 issued under sec. 602
+FERC-2006    rows=  3 distinct_rins=  3 prefixes=1902
+    DOE Delegation Order No. S1-DEL-FERC-2006 || 3 CFR 1978 Comp., p. 136, DOE Delegation Order No. S1-DEL-FERC-2006 (M
+FIFRA        rows=  4 distinct_rins= 26 prefixes=2020,2070
+    7 USC 136f/FIFRA 8 || 7 USC 136f FIFRA sec 8 || 7 USC 136/FIFRA 6
+FIPS         rows=  9 distinct_rins=  3 prefixes=0790
+    FIPS 201-2
+FLPMA        rows=  3 distinct_rins=  6 prefixes=1004
+    43 U.S.C. 1733, 1740, and 1763 (FLPMA) || 43 U.S.C. 1740, and 1763 (FLPMA) || 43 U.S.C. 1740 and 1763 (FLPMA)
+FLSA         rows= 24 distinct_rins=  5 prefixes=1210,1215,1218
+    FLSA sec 18A || Sec 13(a)(15), Fair Labor Standards Act (FLSA), as amended || Sec 13(b)(21), FLSA, as amended
+FMC          rows=  1 distinct_rins=  1 prefixes=3072
+    WSC v. FMC, No. 24-1088 (CADC Sept. 23, 2025)
+FOIA         rows=  1 distinct_rins= 14 prefixes=0348,0412,0605,0960,0991,1212,2105,3005,3037,3076,3137,3155,3219
+    5 USC 552 Electronic FOIA Amendments of 1996 || The FOIA Improvement Act of 2016 (Pub. L. 114-185) || FOIA Improvements Act of 2016
+FS           rows=  1 distinct_rins=  1 prefixes=0596
+    FS Handbooks
+FSA          rows=  2 distinct_rins=  1 prefixes=0938
+    Sec. 303 of the FSA
+FSH          rows= 18 distinct_rins=  4 prefixes=0596
+    FSH 2709.11 || FSH 1509.13 || FSH 6709.11
+FY           rows=  3 distinct_rins= 12 prefixes=0348,0790,1205,1215,1240,1400,1601,2502,3206
+    sec 823 of the National Defense Authorization Act for Fiscal Year 2009 || sec 321 of the National Defense Authorization Act for FY 2009 (PL 110- || Sec 326, National Defense Authorization Act for FY 1995
+HIPAA        rows=  5 distinct_rins= 15 prefixes=0938,0945,1210
+    HIPAA of 1996, secs 1171 to 1179 of the Social Security Act (42 USC 13 || HIPAA || HIPAA, PL 104-191
+HSIA         rows= 18 distinct_rins=  2 prefixes=0648
+    HSIA 2002, sec 303 || HSIA 2002, sec 304 || HSIA 2002 sec 303
+HTS          rows=  1 distinct_rins=  1 prefixes=0551
+    ch 4 of the HTS
+HTSUS        rows=  1 distinct_rins= 51 prefixes=1505,1515,1651,1685
+    19 USC 1202 (General Note 3(i), Harmonized Tariff Schedule of the Unit || 19 USC 1202 ((General Note 3(i), Harmonized Tariff Schedule of the Uni || 19 USC 1202 (Additional U.S. Note 4 to Chapter 71, HTSUS)
+IEEPA        rows=  1 distinct_rins=  2 prefixes=0694,1505
+    IEEPA || 50 USC 1705 (IEEPA)
+IIJA         rows= 28 distinct_rins=  6 prefixes=0348,2105,2132
+    Infrastructure Investment and Jobs Act (“IIJA”), Pub. L. No. 117-58, w || sec. 11101(e) of the IIJA || IIJA sec. 30012
+INA          rows= 15 distinct_rins= 25 prefixes=1205,1400,1615,1651
+    INA 212(a)(5)(A) || Section 212(d)(4)(C) of the Immigration & Nationality Act (INA) || section 212(d)(4)(C) of the Immigration & Nationality Act (INA)
+INS          rows=  1 distinct_rins=  1 prefixes=1615
+    INS secs. 208, 241, and 274A
+IRPS         rows=  1 distinct_rins=  1 prefixes=3133
+    IRPS 87-2
+LU           rows=  8 distinct_rins= 18 prefixes=2125,2126,2127,2132
+    PL 109-59 (SAFETEA-LU) sec 1604 || PL 109-59 (SAFETEA-LU) section 1604 || PL 109-59 (SAFETEA-LU), sec 1604
+MAP-21       rows=  2 distinct_rins= 22 prefixes=2125,2126,2130,2132
+    sec 1111, MAP-21 (PL 112-141) || Sec 1111, MAP-21 (PL 112-141) || Sec. 1111, MAP-21 (Pub. L. 112-141)
+MCA          rows=  3 distinct_rins=  1 prefixes=2126
+    MCA of 1935, MCSA 1984, CMVSA 1986 || MCA of 1935
+MCSA         rows=  3 distinct_rins=  1 prefixes=2126
+    MCA of 1935, MCSA 1984, CMVSA 1986 || MCSA 1984
+MIPPA        rows= 32 distinct_rins= 14 prefixes=0938
+    MIPPA || sec 153 of MIPPA || MIPPA (title XVIII of the Social Security Act)
+MMA          rows= 14 distinct_rins= 54 prefixes=0917,0938
+    MMA, sec 506 || Sec 421 of the MMA || Sec 701 of the MMA
+MMEA         rows=  3 distinct_rins=  3 prefixes=0938
+    MIPPA sec 153(c), MMEA || MMEA, Sec 102 || MIPPA sec 153 (c) MMEA
+MMPA         rows=  1 distinct_rins=  2 prefixes=0648
+    MMPA 101(a)(5)(A) || MMPA, 16 U.S.C. 1361 et seq.
+MMSEA        rows=  4 distinct_rins=  1 prefixes=0938
+    MMSEA
+MSCFMA       rows=  1 distinct_rins=  1 prefixes=0648
+    MSCFMA
+NAFTA        rows= 16 distinct_rins=  2 prefixes=1400,1615
+    North American Free Trade Agreement (NAFTA) || NAFTA Implementation Act, sec 341 and 342 || 1603 NAFTA
+NDAA         rows= 13 distinct_rins=  9 prefixes=0348,0720,0790,1400,1601,2133,3206
+    sec 823 of the National Defense Authorization Act for Fiscal Year 2009 || sec 823 of the National Defense Authorization Act for Fiscal Year 2009 || NDAA 2021, sec. 702
+NDAA-17      rows= 25 distinct_rins=  1 prefixes=0720
+    NDAA-17 sec. 701 || NDAA-17 sec. 706 || NDAA-17 sec. 715
+NEPA         rows= 15 distinct_rins=  7 prefixes=0412,1090,2020,2127,2700,3084
+    NEPA 1969 || NEPA,42 U.S.C. 4321 || NEPA, 42 U.S.C. 4321
+NPHA         rows=  1 distinct_rins=  1 prefixes=0648
+    North Pacific Halibut Act of 1982 (NPHA)
+NPI          rows=  6 distinct_rins=  1 prefixes=0938
+    NPI final rule (01/23/2004)
+NPS          rows=  6 distinct_rins=  1 prefixes=0938
+    NPS System of Records (07/28/1998)
+OL           rows=  1 distinct_rins=  1 prefixes=0991
+    OL 111-148, sec 3301, sec 6402
+OSH          rows=  6 distinct_rins=  7 prefixes=1218
+    Section 6(b)(1) and 7(b) of the OSH Act || OSH Act || sec 18 of OSH Act
+PHA          rows=  3 distinct_rins=  2 prefixes=0906,0920
+    PL 109-148 sec 31F-3 and319F-4 PHA || PL 109-148 sec 31F-3 and 319F-4 PHA || and 319F-4 PHA
+PHS          rows= 58 distinct_rins= 33 prefixes=0906,0910,0920,0930,0937,0938,0950,1210
+    sec 31F-3 and 319F-4 of the PHS Act || sec 31F-3 and 319F-4 of PHS Act as amended || PL 109-148, sec 31F-3 and 319F-4 of PHS Act as amended
+PHSA         rows=  4 distinct_rins=  3 prefixes=0906
+    title VII of the Public Health Service Act (PHSA), per 70 FR 8381-8382 || title VII of the Public Health Service Act (PHSA), per 70 FR 8381 to 8 || PHSA 42, USC 247d-6d and 247d-6e
+PPA          rows=  5 distinct_rins=  5 prefixes=0348,2025,2070
+    sec 106(d) of the Pension Protection Act of 2006 (PPA, PL 109-280) || EPCRA sec 313 and PPA sec 6607 || 42 USC 13106 (PPA sec 6607)
+PPAC         rows=  6 distinct_rins=  5 prefixes=0906,0917,0991
+    Sec 6403 PPAC Act || sec 6403 PPAC Act || IHCI Act as amended by PL 111-148, sec 10221 PPAC Act
+PPACA        rows=  1 distinct_rins=  1 prefixes=0938
+    BBA, BA, BIPA, MMA, PPACA
+PPRA         rows=  6 distinct_rins=  2 prefixes=0938
+    PPRA
+PRWORA       rows=  2 distinct_rins=  2 prefixes=0938,1205
+    Sec. 103 of PRWORA || 8 U.S.C. 1601 et seq., Pub. L. 104-193, Personal Responsibility and Wo
+RCRA         rows= 11 distinct_rins= 65 prefixes=2050,2060,2070,2090
+    42 USC 6924/RCRA 3004(u), 3004(v) || 42 USC 6924 RCRA sec 3004(u) || 42 USC 6924 RCRA sec 3004(v)
+REAL         rows=  8 distinct_rins=  4 prefixes=1601
+    Division B--REAL ID Act of 2005 || Division B-- REAL ID Act of 2005
+SAFE         rows=  4 distinct_rins=  2 prefixes=1515,3133
+    Security and Accountability for Every (SAFE) Port Act of 2006 || SAFE Mortgage Licensing Act
+SAFTEA       rows=  6 distinct_rins=  1 prefixes=2126
+    SAFTEA LU
+SAPT         rows=  3 distinct_rins=  1 prefixes=0930
+    Sections 1911 through 1956 of the PHS Act Authorize the Community Ment || Sections 1911 through 1956 of the Public Health Services (PHS) Act Aut
+SCHIP        rows=  4 distinct_rins=  5 prefixes=0938
+    Sec 522 of the Medicare, Medicaid, and SCHIP Benefits Improvement and  || Medicare, Medicaid & SCHIP Benefits Improve.& Protection Act of 2000,  || Medicare, Medicaid and SCHIP Benefits Improvement and Protection Act o
+SDWA         rows=  6 distinct_rins= 54 prefixes=2020,2040,2070
+    42 USC 300/SDWA 1423 || SDWA Sec 1447 || SDWA Sec 1449
+SMART        rows=  6 distinct_rins=  1 prefixes=0938
+    SMART sec 203 || SMART, sec 203
+SS           rows=  4 distinct_rins=  3 prefixes=0906,0936,0938
+    sec 371 to 375, PHS Act, sec 1138, SS Act || sec 1138, SS Act || SS 4004 and 5003
+SSA          rows=  7 distinct_rins= 15 prefixes=0936,0938,0985,0991,2502,2510
+    1007: SSA Subsection 1902 (a) (61) || 1007: SSA subsection 1902 (a) (61) || Section 1832(a)(2)(F) of SSA
+SUC          rows=  5 distinct_rins=  1 prefixes=2120
+    49 SUC 45102 to 45103
+SWDA         rows=  2 distinct_rins=  3 prefixes=2040,2090
+    42 USC 300j-12 SWDA 1452 (g)(3) || 40 USC 300(f)-300(j) SWDA 1412 || 42 USC 300f et seq, SWDA 1412
+TD           rows=  1 distinct_rins=  1 prefixes=1512
+    TD 120-01 (formerly TD 221)
+TEA-21       rows= 20 distinct_rins=  3 prefixes=2105,2126
+    PL 105-178, TEA-21 || TEA-21 || sec 4009 of TEA-21
+TPTCC        rows=  1 distinct_rins=  1 prefixes=0938
+    TPTCC, sec 302
+TSCA         rows= 14 distinct_rins=100 prefixes=2050,2060,2070
+    15 USC 2605 TSCA 6(e)(3)(B) || 15 USC 2605 "TSCA 6(e)(3)(B)" || TSCA 305
+UCMJ         rows=  1 distinct_rins=  1 prefixes=0702
+    Articles 123a, 133, and 134, Uniform Code of Military Justice (UCMJ)
+UDC          rows=  3 distinct_rins=  1 prefixes=2502
+    12 UDC 1735(f)-14
+UMTRCA       rows= 10 distinct_rins=  1 prefixes=2060
+    UMTRCA sec 206(a)
+USA          rows=  1 distinct_rins=  2 prefixes=1506,1902
+    Section 314 of the USA PATRIOT Act (Pub. L. 107-56) || sec. 314 of the USA PATRIOT Act (Pub. L. 107-56) || 49 USA app 1 to 85
+USAC         rows=  2 distinct_rins=  1 prefixes=3235
+    15 USAC 80b-78w(a) || 15 USAC 77s(a)
+USCC         rows=  2 distinct_rins=  1 prefixes=0960
+    42 USCC 1382
+USCG         rows=  2 distinct_rins=  1 prefixes=1625
+    33 USCG 1231
+USCU         rows=  1 distinct_rins=  1 prefixes=1513
+    26 USCU.S.C. 5061 to 5064
+USD          rows=  1 distinct_rins=  1 prefixes=0790
+    38 USD ch 43
+USDC         rows=  1 distinct_rins=  1 prefixes=2900
+    Nehmer v. U.S. Department of Veterans Affairs, No. C86-06160 WHA, USDC
+USE          rows=  1 distinct_rins=  1 prefixes=1018
+    16 USE 715(i)
+USHA         rows=  4 distinct_rins=  2 prefixes=2577
+    USHA of 1937 || Section 3(a)(2)(B) of the USHA of 1937
+USO          rows=  3 distinct_rins=  1 prefixes=0919
+    42 USO 299b-12 to 299b-26
+USPHSA       rows=  3 distinct_rins=  1 prefixes=0938
+    USPHSA, sec 353
+UUSC         rows=  1 distinct_rins=  1 prefixes=3206
+    5 UUSC 1305
+VCDR         rows=  2 distinct_rins=  1 prefixes=1400
+    VCDR
+VGBA         rows=  1 distinct_rins=  2 prefixes=3041
+    15 U.S.C. 8001, VGBA || VGBA
+WHA          rows=  1 distinct_rins=  1 prefixes=2900
+    Nehmer v. U.S. Department of Veterans Affairs, No. C86-06160 WHA, USDC
+WSARA        rows=  3 distinct_rins=  1 prefixes=0750
+    Weapon System Reform Act of 2009 (WSARA)
+WSC          rows=  1 distinct_rins=  1 prefixes=3072
+    WSC v. FMC, No. 24-1088 (CADC Sept. 23, 2025)
+YSC          rows=  1 distinct_rins=  1 prefixes=0572
+    40 YSC 1480

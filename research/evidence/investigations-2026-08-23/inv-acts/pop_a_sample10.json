@@ -1,0 +1,944 @@
+[
+  {
+    "rin": "3052-AD51",
+    "publication_id": "202210",
+    "boxes": [
+      [
+        0,
+        "secs.4.12, 5.9, 5.17, 8.11",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        1,
+        "8.31, 8.32, 8.33, 8.34, 8.35",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        2,
+        "8.36, 8.37, 8.41 of the Farm",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        3,
+        "Credit Act (12 U.S.C. 2183, 2243, 2252, 2279aa-11, 2279bb-2, 2279bb-3, 2279bb-4, 2279bb-5, 2279bb-6, 2279-cc)",
+        [
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        4,
+        "secs 514",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        5,
+        "...",
+        [
+          [
+            "unstated",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "3052-AD51",
+        "publication_id": "202210",
+        "ordinal": 4,
+        "text": "secs 514",
+        "anchor_ordinal": 3,
+        "anchor_text": "Credit Act (12 U.S.C. 2183, 2243, 2252, 2279aa-11, 2279bb-2, 2279bb-3, 2279bb-4, 2279bb-5, 2279bb-6, 2279-cc)",
+        "anchor_signal": "stated_act_name",
+        "carry_key": "Credit Act",
+        "row_count": 1,
+        "identities": [
+          "514"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "act_not_in_index"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "2130-AC10",
+    "publication_id": "201604",
+    "boxes": [
+      [
+        0,
+        "Pub. L. No. 220-432, Div. A, 122 Stat. 4848 et seq.",
+        [
+          [
+            "public_law",
+            "partial"
+          ],
+          [
+            "statute_at_large",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        1,
+        "Rail Safety Improvement Act of 2008",
+        [
+          [
+            "act_relative",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        2,
+        "Section 412 (uncodified)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "2130-AC10",
+        "publication_id": "201604",
+        "ordinal": 2,
+        "text": "Section 412 (uncodified)",
+        "anchor_ordinal": 1,
+        "anchor_text": "Rail Safety Improvement Act of 2008",
+        "anchor_signal": "act_key",
+        "carry_key": "rail safety improvement act of 2008",
+        "row_count": 1,
+        "identities": [
+          "412"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "usc_section_not_expressible"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "0938-AP51",
+    "publication_id": "201310",
+    "boxes": [
+      [
+        0,
+        "sec 1102",
+        [
+          [
+            "act_relative",
+            "corroborated"
+          ]
+        ]
+      ],
+      [
+        1,
+        "42 USC 1302",
+        [
+          [
+            "usc",
+            "ok"
+          ]
+        ]
+      ],
+      [
+        2,
+        "sec 1861",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        3,
+        "42 USC 1395 hh",
+        [
+          [
+            "usc",
+            "partial"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "0938-AP51",
+        "publication_id": "201310",
+        "ordinal": 2,
+        "text": "sec 1861",
+        "anchor_ordinal": 0,
+        "anchor_text": "sec 1102",
+        "anchor_signal": "act_key",
+        "carry_key": "social security act",
+        "row_count": 1,
+        "identities": [
+          "1861"
+        ],
+        "outcomes": [
+          [
+            "42",
+            "1395x",
+            "table3",
+            null
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "2060-AP37",
+    "publication_id": "201210",
+    "boxes": [
+      [
+        0,
+        "sec 107(d)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        1,
+        "sec 172(a)",
+        [
+          [
+            "act_relative",
+            "corroborated"
+          ]
+        ]
+      ],
+      [
+        2,
+        "sec 181(a)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "2060-AP37",
+        "publication_id": "201210",
+        "ordinal": 2,
+        "text": "sec 181(a)",
+        "anchor_ordinal": 1,
+        "anchor_text": "sec 172(a)",
+        "anchor_signal": "act_key",
+        "carry_key": "clean air act amendments of 1990",
+        "row_count": 1,
+        "identities": [
+          "181"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "act_section_not_classified"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "0936-AA07",
+    "publication_id": "201710",
+    "boxes": [
+      [
+        0,
+        "1007: SSA subsection 1902 (a) (61)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        1,
+        "1903 (a)(6)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        2,
+        "1903(b)(3)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        3,
+        "1903(q)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        4,
+        "1102",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        5,
+        "...",
+        [
+          [
+            "unstated",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "0936-AA07",
+        "publication_id": "201710",
+        "ordinal": 1,
+        "text": "1903 (a)(6)",
+        "anchor_ordinal": 0,
+        "anchor_text": "1007: SSA subsection 1902 (a) (61)",
+        "anchor_signal": "roster_initialism",
+        "carry_key": "social security act",
+        "row_count": 1,
+        "identities": [
+          "1903",
+          "6"
+        ],
+        "outcomes": [
+          [
+            "42",
+            "1396b",
+            "table3",
+            null
+          ],
+          [
+            "42",
+            "306",
+            "table3",
+            null
+          ]
+        ]
+      },
+      {
+        "rin": "0936-AA07",
+        "publication_id": "201710",
+        "ordinal": 2,
+        "text": "1903(b)(3)",
+        "anchor_ordinal": 0,
+        "anchor_text": "1007: SSA subsection 1902 (a) (61)",
+        "anchor_signal": "roster_initialism",
+        "carry_key": "social security act",
+        "row_count": 1,
+        "identities": [
+          "1903",
+          "3"
+        ],
+        "outcomes": [
+          [
+            "42",
+            "1396b",
+            "table3",
+            null
+          ],
+          [
+            "42",
+            "303",
+            "table3",
+            null
+          ]
+        ]
+      },
+      {
+        "rin": "0936-AA07",
+        "publication_id": "201710",
+        "ordinal": 3,
+        "text": "1903(q)",
+        "anchor_ordinal": 0,
+        "anchor_text": "1007: SSA subsection 1902 (a) (61)",
+        "anchor_signal": "roster_initialism",
+        "carry_key": "social security act",
+        "row_count": 1,
+        "identities": [
+          "1903"
+        ],
+        "outcomes": [
+          [
+            "42",
+            "1396b",
+            "table3",
+            null
+          ]
+        ]
+      },
+      {
+        "rin": "0936-AA07",
+        "publication_id": "201710",
+        "ordinal": 4,
+        "text": "1102",
+        "anchor_ordinal": 0,
+        "anchor_text": "1007: SSA subsection 1902 (a) (61)",
+        "anchor_signal": "roster_initialism",
+        "carry_key": "social security act",
+        "row_count": 1,
+        "identities": [
+          "1102"
+        ],
+        "outcomes": [
+          [
+            "42",
+            "1302",
+            "table3",
+            null
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "2090-AA13",
+    "publication_id": "200404",
+    "boxes": [
+      [
+        0,
+        "CAA 42 U.S.C. 7401,7412,7414,7416,",
+        [
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        1,
+        "7601",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        2,
+        "RCRA 42 U.S.C. 6912, 6922",
+        [
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "2090-AA13",
+        "publication_id": "200404",
+        "ordinal": 1,
+        "text": "7601",
+        "anchor_ordinal": 0,
+        "anchor_text": "CAA 42 U.S.C. 7401,7412,7414,7416,",
+        "anchor_signal": "roster_initialism",
+        "carry_key": "clean air act",
+        "row_count": 1,
+        "identities": [
+          "7601"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "act_section_not_classified"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "3052-AD51",
+    "publication_id": "202204",
+    "boxes": [
+      [
+        0,
+        "secs.4.12, 5.9, 5.17, 8.11",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        1,
+        "8.31, 8.32, 8.33, 8.34, 8.35",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        2,
+        "8.36, 8.37, 8.41 of the Farm",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        3,
+        "Credit Act (12 U.S.C. 2183, 2243, 2252, 2279aa-11, 2279bb-2, 2279bb-3, 2279bb-4, 2279bb-5, 2279bb-6, 2279-cc)",
+        [
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        4,
+        "secs 514",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        5,
+        "...",
+        [
+          [
+            "unstated",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "3052-AD51",
+        "publication_id": "202204",
+        "ordinal": 4,
+        "text": "secs 514",
+        "anchor_ordinal": 3,
+        "anchor_text": "Credit Act (12 U.S.C. 2183, 2243, 2252, 2279aa-11, 2279bb-2, 2279bb-3, 2279bb-4, 2279bb-5, 2279bb-6, 2279-cc)",
+        "anchor_signal": "stated_act_name",
+        "carry_key": "Credit Act",
+        "row_count": 1,
+        "identities": [
+          "514"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "act_not_in_index"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "3052-AD51",
+    "publication_id": "202304",
+    "boxes": [
+      [
+        0,
+        "secs.4.12, 5.9, 5.17, 8.11",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        1,
+        "8.31, 8.32, 8.33, 8.34, 8.35",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        2,
+        "8.36, 8.37, 8.41 of the Farm",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        3,
+        "Credit Act (12 U.S.C. 2183, 2243, 2252, 2279aa-11, 2279bb-2, 2279bb-3, 2279bb-4, 2279bb-5, 2279bb-6, 2279-cc)",
+        [
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ],
+          [
+            "usc",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        4,
+        "secs 514",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        5,
+        "...",
+        [
+          [
+            "unstated",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "3052-AD51",
+        "publication_id": "202304",
+        "ordinal": 4,
+        "text": "secs 514",
+        "anchor_ordinal": 3,
+        "anchor_text": "Credit Act (12 U.S.C. 2183, 2243, 2252, 2279aa-11, 2279bb-2, 2279bb-3, 2279bb-4, 2279bb-5, 2279bb-6, 2279-cc)",
+        "anchor_signal": "stated_act_name",
+        "carry_key": "Credit Act",
+        "row_count": 1,
+        "identities": [
+          "514"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "act_not_in_index"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "2130-AC10",
+    "publication_id": "201704",
+    "boxes": [
+      [
+        0,
+        "Pub. L. No. 220-432, Div. A, 122 Stat.. 4848 et seq.",
+        [
+          [
+            "public_law",
+            "partial"
+          ],
+          [
+            "statute_at_large",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        1,
+        "Rail Safety Improvement Act of 2008",
+        [
+          [
+            "act_relative",
+            "partial"
+          ]
+        ]
+      ],
+      [
+        2,
+        "sec. 412 (uncodified)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "2130-AC10",
+        "publication_id": "201704",
+        "ordinal": 2,
+        "text": "sec. 412 (uncodified)",
+        "anchor_ordinal": 1,
+        "anchor_text": "Rail Safety Improvement Act of 2008",
+        "anchor_signal": "act_key",
+        "carry_key": "rail safety improvement act of 2008",
+        "row_count": 1,
+        "identities": [
+          "412"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "usc_section_not_expressible"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "rin": "2060-AP37",
+    "publication_id": "201110",
+    "boxes": [
+      [
+        0,
+        "sec 107(d)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ],
+      [
+        1,
+        "sec 172(a)",
+        [
+          [
+            "act_relative",
+            "corroborated"
+          ]
+        ]
+      ],
+      [
+        2,
+        "sec 181(a)",
+        [
+          [
+            "other",
+            "failed"
+          ]
+        ]
+      ]
+    ],
+    "candidates": [
+      {
+        "rin": "2060-AP37",
+        "publication_id": "201110",
+        "ordinal": 2,
+        "text": "sec 181(a)",
+        "anchor_ordinal": 1,
+        "anchor_text": "sec 172(a)",
+        "anchor_signal": "act_key",
+        "carry_key": "clean air act amendments of 1990",
+        "row_count": 1,
+        "identities": [
+          "181"
+        ],
+        "outcomes": [
+          [
+            null,
+            null,
+            null,
+            "act_section_not_classified"
+          ]
+        ]
+      }
+    ]
+  }
+]

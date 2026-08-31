@@ -1,0 +1,281 @@
+Total rows: 67
+
+[1] RIN 1105-AA23 ed 199510  marker='AUTHORITY CONT:'
+    boxes (15): ['28 USC 509', '28 USC 510', '28 USC 515 to 518', '28 USC 524', '8 USC 1324', '15 USC 1177', '17 USC 509', '18 USC 512', '18 USC 981', '18 USC 982', '18 USC 1467', '18 USC 1955', '18 USC 1963', '18 USC 2253', '18 USC 2254']
+    continuation: '18 USC 2513; 19 USC 1613; 19 USC 1618; 21 USC 853; 21 USC 881; 22 USC 401.'
+
+[2] RIN 3235-AG65 ed 199510  marker='AUTHORITY CONT:'
+    boxes (16): ['15 USC 77(c) to 77(d)', '15 USC 77(s)', '15 USC 77(ttt)', '15 USC 78(c)', '15 USC 78(i)', '15 USC 78(j)', '15 USC 78 (l) to 78(q)', '15 USC 78(s)', '15 USC 78(w)', '15 USC 78(x)', '15 USC 79(q)', '15 USC 79(t)', '15 USC 80a-29', '15 USC 80a-37', '15 USC 80b-3', '...']
+    continuation: '15 USC 77(g); 15 USC 77(j); 15 USC 77 (eee); 15 USC 77(ggg); 15 USC 77(nnn); 15 USC 77(sss); 15 USC 78(d); 15 USC 78(ff); 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-11'
+    [trailing after boundary, excluded]: '^PRFA:  N'
+
+[3] RIN 0938-AG59 ed 199604  marker='Authority (Continued)'
+    boxes (14): ['42 USC 1395g(a)', '42 USC 1395x', '42 USC 1395z', '42 USC 1395cc(a)', '42 USC 1395ii', '42 USC 1396a(a)(28)', '42 USC 1396r(a) to (f)', '42 USC 1302', '42 USC 1395i-3(a) to (f)', '42 USC 1395x(j)and (l)', '42 USC 1395aa', '42 USC 1395hh', '42 USC 1395oo', '42 USC 1395d(a) and (c) and (d)']
+    continuation: '42 USC 1395f(b) 42 USC 1395l 42 USC 1395x(v) 42 USC 1395cc 42 USC 1395ww'
+
+[4] RIN 1105-AA23 ed 199604  marker='AUTHORITY CONT:'
+    boxes (15): ['28 USC 509', '28 USC 510', '28 USC 515 to 518', '28 USC 524', '8 USC 1324', '15 USC 1177', '17 USC 509', '18 USC 512', '18 USC 981', '18 USC 982', '18 USC 1467', '18 USC 1955', '18 USC 1963', '18 USC 2253', '18 USC 2254']
+    continuation: '18 USC 2513; 19 USC 1613; 19 USC 1618; 21 USC 853; 21 USC 881; 22 USC 401.'
+
+[5] RIN 3235-AG25 ed 199604  marker='Authority Continued.'
+    boxes (15): ['15 USC 78e', '15 USC 78q', '15 USC 78w', '15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77s', '15 USC 77eee', '15 USC 77ggg', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78m']
+    continuation: '15 USC 78n; 15 USC 78o; 15 USC 78o-4; 15 USC 78o-5; 15 USC 78p; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78l(d); 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[6] RIN 3235-AG65 ed 199604  marker='AUTHORITY CONT:'
+    boxes (16): ['15 USC 77c to 77d', '15 USC 77s', '15 USC 77ttt', '15 USC 78c', '15 USC 78i', '15 USC 78j', '15 USC 78l to 78q', '15 USC 78s', '15 USC 78w', '15 USC 78x', '15 USC 79q', '15 USC 79t', '15 USC 80a-29', '15 USC 80a-37', '15 USC 80b-3', '...']
+    continuation: '15 USC 77g; 15 USC 77j; 15 USC 77 eee; 15 USC 77ggg; 15 USC 77nnn; 15 USC 77sss; 15 USC 78d; 15 USC 78ff; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-11; 15 USC 78ll(d)'
+    [trailing after boundary, excluded]: '^PRFA:  N'
+
+[7] RIN 3235-AG68 ed 199604  marker='AUTHORITY CONT:'
+    boxes (15): ['15 USC 77c to 77d', '15 USC 77s', '15 USC 77ttt', '15 USC 78c', '15 USC 78i', '15 USC 78j', '15 USC 78l to 78q', '15 USC 78s', '15 USC 78w', '15 USC 78x', '15 USC 79q', '15 USC 79t', '15 USC 80a-29', '15 USC 80a-37', '15 USC 80b-3']
+    continuation: '15 USC 77g; 15 USC 77j; 15 USC 77 eee; 15 USC 77ggg; 15 USC 77nnn; 15 USC 77sss; 15 USC 78d; 15 USC 78ff; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80b-4; 15 USC 80b-1; 15 USC 78ll(d)'
+
+[8] RIN 0938-AG59 ed 199610  marker='Authority (Continued)'
+    boxes (13): ['42 USC 1395g(a)', '42 USC 1395x', '42 USC 1395z', '42 USC 1395cc(a)', '42 USC 1395ii', '42 USC 1396a(a)(28)', '42 USC 1396r(a) to (f)', '42 USC 1302', '42 USC 1395i-3(a) to (f)', '42 USC 1395aa', '42 USC 1395hh', '42 USC 1395oo', '42 USC 1395d(a) and (c) and (d)']
+    continuation: '42 USC 1395f(b) 42 USC 1395l 42 USC 1395ww'
+
+[9] RIN 1105-AA23 ed 199610  marker='AUTHORITY CONT:'
+    boxes (15): ['28 USC 509', '28 USC 510', '28 USC 515 to 518', '28 USC 524', '8 USC 1324', '15 USC 1177', '17 USC 509', '18 USC 512', '18 USC 981', '18 USC 982', '18 USC 1467', '18 USC 1955', '18 USC 1963', '18 USC 2253', '18 USC 2254']
+    continuation: '18 USC 2513; 19 USC 1613; 19 USC 1618; 21 USC 853; 21 USC 881; 22 USC 401.'
+
+[10] RIN 3235-AG69 ed 199610  marker='Authority Continue.'
+    boxes (16): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77S', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l', '...']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11;'
+
+[11] RIN 3235-AG25 ed 199610  marker='Authority Continued.'
+    boxes (15): ['15 USC 78e', '15 USC 78q', '15 USC 78w', '15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77s', '15 USC 77eee', '15 USC 77ggg', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78m']
+    continuation: '15 USC 78n; 15 USC 78o; 15 USC 78o-4; 15 USC 78o-5; 15 USC 78p; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78l(d); 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[12] RIN 0938-AG59 ed 199704  marker='AUTHORITY CONT:'
+    boxes (13): ['42 USC 1395g(a)', '42 USC 1395x', '42 USC 1395z', '42 USC 1395cc(a)', '42 USC 1395ii', '42 USC 1396a(a)(28)', '42 USC 1396r(a) to (f)', '42 USC 1302', '42 USC 1395i-3(a) to (f)', '42 USC 1395aa', '42 USC 1395hh', '42 USC 1395oo', '42 USC 1395d(a) and (c) and (d)']
+    continuation: '42 USC 1395f(b) 42 USC 1395l 42 USC 1395ww'
+
+[13] RIN 1105-AA23 ed 199704  marker='AUTHORITY CONT:'
+    boxes (15): ['28 USC 509', '28 USC 510', '28 USC 515 to 518', '28 USC 524', '8 USC 1324', '15 USC 1177', '17 USC 509', '18 USC 512', '18 USC 981', '18 USC 982', '18 USC 1467', '18 USC 1955', '18 USC 1963', '18 USC 2253', '18 USC 2254']
+    continuation: '18 USC 2513; 19 USC 1613; 19 USC 1618; 21 USC 853; 21 USC 881; 22 USC 401.'
+
+[14] RIN 3235-AH12 ed 199704  marker='AUTHORITY CONT:'
+    boxes (15): ['15 USC 77b', '15 USC 77f', '15 USC 77h', '15 USC 77j', '15 USC 77s', '15 USC 77sss', '15 USC 78c', '15 USC 78d', '15 USC 78l', '15 USC 78m', '15 USC 78n', '15 USC 78o', '15 USC 78w', '15 USC 79ll(d)', '15 USC 79t']
+    continuation: '15 USC 80a-8, 15 USC 80a-29, 15 USC 80a-30, 15 USC 80a-37, 15 USC 80a-1 et seq, 15 USC 80a-34(b), 15 USC 80a-39, 15 USC 77g, 15 USC 80a-24'
+
+[15] RIN 3235-AG69 ed 199704  marker='Authority Continue.'
+    boxes (16): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77S', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l', '...']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11;'
+
+[16] RIN 3235-AF54 ed 199704  marker='AUTHORITY CONT:'
+    boxes (16): ['15 USC 77g', '15 USC 77q(a)', '15 USC 77s(a)', '15 USC 78b', '15 USC 78c', '15 USC 78i(a)', '15 USC 78j', '15 USC 78k-1(c)', '15 USC 78l', '15 USC 78m', '15 USC 78n', '15 USC 78o(c)', '15 USC 78o(g)', '15 USC 78q(a)', '15 USC 78q(h)', '...']
+    continuation: '15 USC 78w(a); 15 USC 78dd-1; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37'
+
+[17] RIN 3235-AG78 ed 199704  marker='AUTHORITY CONT:'
+    boxes (15): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77s', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78f', '15 USC 78i', '15 USC 78j']
+    continuation: '15 USC 78k; 15 USC 78k-1; 15 USC 78l; 15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[18] RIN 0938-AG59 ed 199710  marker='AUTHORITY CONT:'
+    boxes (9): ['42 USC 1302', '42 USC 1395f(b)', '42 USC 1395g(a)', '42 USC 1395hh', '42 USC 1395ii', '42 USC 1395oo', '42 USC 1395xx', '42 USC 1395x(v)', '42 USC 13951']
+    continuation: '42 USC 1395f(b) 42 USC 1395l 42 USC 1395ww'
+
+[19] RIN 1210-AA62 ed 199710  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712, 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181, 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[20] RIN 1210-AA63 ed 199710  marker='AUTHORITY CONT:'
+    boxes (4): ['29 USC 1181 (PL 104-204', '110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712, 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181, 1182, 1191-1194), and amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[21] RIN 3235-AH12 ed 199710  marker='AUTHORITY CONT:'
+    boxes (15): ['15 USC 77b', '15 USC 77f', '15 USC 77h', '15 USC 77j', '15 USC 77s', '15 USC 77sss', '15 USC 78c', '15 USC 78d', '15 USC 78l', '15 USC 78m', '15 USC 78n', '15 USC 78o', '15 USC 78w', '15 USC 79ll(d)', '15 USC 79t']
+    continuation: '15 USC 80a-8; 15 USC 80a-29; 15 USC 80a-30; 15 USC 80a-37; 15 USC 80a-1 et seq; 15 USC 80a-34(b); 15 USC 80a-39; 15 USC 77g; 15 USC 80a-24'
+
+[22] RIN 3235-AG69 ed 199710  marker='Authority Continue.'
+    boxes (16): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77S', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l', '...']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11;'
+
+[23] RIN 1210-AA63 ed 199804  marker='AUTHORITY CONT:'
+    boxes (4): ['29 USC 1181 (PL 104-204', '110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712, 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181, 1182, 1191-1194), and amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[24] RIN 1210-AA62 ed 199804  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712, 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181, 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[25] RIN 3235-AG69 ed 199804  marker='AUTHORITY CONTINUED:'
+    boxes (15): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77S', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[26] RIN 3235-AH12 ed 199804  marker='AUTHORITY CONT:'
+    boxes (16): ['15 USC 77b', '15 USC 77f', '15 USC 77h', '15 USC 77j', '15 USC 77s', '15 USC 77sss', '15 USC 78c', '15 USC 78d', '15 USC 78l', '15 USC 78m', '15 USC 78n', '15 USC 78o', '15 USC 78w', '15 USC 79ll(d)', '15 USC 79t', '...']
+    continuation: '15 USC 80a-8; 15 USC 80a-29; 15 USC 80a-30; 15 USC 80a-37; 15 USC 80a-1 et seq; 15 USC 80a-34(b); 15 USC 80a-39; 15 USC 77g; 15 USC 80a-24. The proposed and final rules were mistakenly published in the Federal Register under the RIN of a related rulemaking, 3235-AE17.'
+
+[27] RIN 0910-AA94 ed 199810  marker='Authority continued:'
+    boxes (15): ['21 USC 321', '21 USC 331', '21 USC 351', '21 USC 352', '21 USC 353', '21 USC 355', '21 USC 356', '21 USC 357', '21 USC 358', '21 USC 360', '21 USC 360b', '21 USC 360gg to 360ss', '21 USC 371', '21 USC 374', '21 USC 379e']
+    continuation: '42 USC 216; 42 USC 241; 42 USC 262; 42 USC 264'
+
+[28] RIN 1090-AA67 ed 199810  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '31 USC 6101 note', '31 USC 7501', '41 USC 252a', '41 USC 701 et seq', 'PL 104-256, sec 501', 'PL 105-62, sec 503', 'PL 105-62, sec 303', 'PL 105-83, sec 307', 'EO 12549', 'EO 12674', 'EO 12689', 'EO 12731', 'EO 13043', 'OMB Circular A-102']
+    continuation: 'OMB Circular A-110; OMB Circular A-133'
+
+[29] RIN 1210-AA63 ed 199810  marker='AUTHORITY CONT:'
+    boxes (4): ['29 USC 1181 (PL 104-204', '110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), and amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[30] RIN 1210-AA62 ed 199810  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[31] RIN 3235-AG69 ed 199810  marker='AUTHORITY CONTINUED:'
+    boxes (15): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77S', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[32] RIN 0910-AA94 ed 199904  marker='Authority continued:'
+    boxes (13): ['21 USC 321', '21 USC 331', '21 USC 351', '21 USC 352', '21 USC 353', '21 USC 355', '21 USC 358', '21 USC 360', '21 USC 360b', '21 USC 360gg to 360ss', '21 USC 371', '21 USC 374', '21 USC 379e']
+    continuation: '42 USC 216; 42 USC 241; 42 USC 262; 42 USC 264'
+
+[33] RIN 1090-AA67 ed 199904  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '31 USC 6101 note', '31 USC 7501', '41 USC 252a', '41 USC 701 et seq', 'PL 104-256, sec 501', 'PL 105-62, sec 503', 'PL 105-62, sec 303', 'PL 105-83, sec 307', 'EO 12549', 'EO 12674', 'EO 12689', 'EO 12731', 'EO 13043', 'OMB Circular A-102']
+    continuation: 'OMB Circular A-110; OMB Circular A-133'
+
+[34] RIN 1105-AA60 ed 199904  marker='AUTHORITY CONT:'
+    boxes (7): ['5 USC 301', '5 USC 315', '5 USC 2303', '28 USC 509', '28 USC 510', '28 USC 515 to 519', 'Memorandum for the Attorney General (cont. in Additional Info.)']
+    continuation: 'from the President, April 14, 1997, Delegation of Responsibilities Concerning FBI Employees Under the Civil Service Reform Act of 1978.'
+
+[35] RIN 1115-AE47 ed 199904  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1158', '8 USC 1181', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp., p. 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a technical correction to the services regulations '
+
+[36] RIN 1115-AF13 ed 199904  marker='AUTHORITIES CONT:'
+    boxes (15): ['8 USC 1101', '8 USC 1103', '8 USC 1104', '8 USC 1185', '8 USC 1201', '8 USC 1221', '8 USC 1228', '8 USC 1229', '8 USC 1252', '8 USC 1252b', '8 USC 1304', '8 USC 1321', '8 USC 1324', '8 USC 1356', '8 USC 1362']
+    continuation: '8 USC 1362; 8 USC 1430; 8 USC 1443; 8 USC 1447; 8 USC 9701; 5 USC 552 and 552A; 8 USC 1182; and 8 CFR 2.'
+
+[37] RIN 1210-AA62 ed 199904  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[38] RIN 1210-AA63 ed 199904  marker='AUTHORITY CONT:'
+    boxes (4): ['29 USC 1181 (PL 104-204', '110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), and amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[39] RIN 3235-AG69 ed 199904  marker='AUTHORITY CONTINUED:'
+    boxes (15): ['15 USC 77c', '15 USC 77d', '15 USC 77g', '15 USC 77j', '15 USC 77S', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 79g; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[40] RIN 3235-AH16 ed 199904  marker='AUTHORITY CONT:'
+    boxes (16): ['15 USC 77c', '15 USC 77d', '15 USC 77j', '15 USC 77g', '15 USC 77s', '15 USC 77eee', '15 USC 77ggg', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78f', '15 USC 78j', '15 USC 78k', '...']
+    continuation: '15 USC 78i; 15 USC 78o; 15 USC 78q; 15 USC 78w; 15 USC 78mm'
+    [trailing after boundary, excluded]: '\n\nCFR CITATION CONT: 17 CFR 249.617 (Revision); 17 CFR 15c2-5 (Revision) 17 CFR '
+
+[41] RIN 0910-AA94 ed 199910  marker='Authority continued:'
+    boxes (13): ['21 USC 321', '21 USC 331', '21 USC 351', '21 USC 352', '21 USC 353', '21 USC 355', '21 USC 358', '21 USC 360', '21 USC 360b', '21 USC 360gg to 360ss', '21 USC 371', '21 USC 374', '21 USC 379e']
+    continuation: '42 USC 216; 42 USC 241; 42 USC 262; 42 USC 264'
+
+[42] RIN 1090-AA67 ed 199910  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '31 USC 6101 note', '31 USC 7501', '41 USC 252a', '41 USC 701 et seq', 'PL 104-256, sec 501', 'PL 105-62, sec 503', 'PL 105-62, sec 303', 'PL 105-83, sec 307', 'EO 12549', 'EO 12674', 'EO 12689', 'EO 12731', 'EO 13043', 'OMB Circular A-102']
+    continuation: 'OMB Circular A-110; OMB Circular A-133'
+
+[43] RIN 1105-AA60 ed 199910  marker='AUTHORITY CONT:'
+    boxes (7): ['5 USC 301', '5 USC 315', '5 USC 2303', '28 USC 509', '28 USC 510', '28 USC 515 to 519', 'Memorandum for the Attorney General (cont. in Additional Info.)']
+    continuation: 'from the President, April 14, 1997, Delegation of Responsibilities Concerning FBI Employees Under the Civil Service Reform Act of 1978.'
+
+[44] RIN 1115-AE47 ed 199910  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1158', '8 USC 1181', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp., p. 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a technical correction to the services regulations '
+
+[45] RIN 1210-AA62 ed 199910  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[46] RIN 1210-AA63 ed 199910  marker='AUTHORITY CONT:'
+    boxes (3): ['29 USC 1181 (PL 104-204, 110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[47] RIN 3235-AG69 ed 199910  marker='AUTHORITY CONTINUED:'
+    boxes (27): ['15 USC 77c', '15 USC 77j', '15 USC 77d', '15 USC 77s', '15 USC 77z-2', '15 USC 77j', '15 USC 77g', '15 USC 77eee', '15 USC 77nnn', '15 USC 77ggg', '15 USC 78k-1', '15 USC 78k', '15 USC 78j-1', '15 USC 78f', '15 USC 78d', '15 USC 77g', '15 USC 77j', '15 USC 77z-2', '15 USC 77eee', '15 USC 77nnn', '15 USC 77sss', '15 USC 77ttt', '15 USC 78c', '15 USC 78d', '15 USC 78i', '15 USC 78j', '15 USC 78l']
+    continuation: '15 USC 78m; 15 USC 78n; 15 USC 78o; 15 USC 78p; 15 USC 78q; 15 USC 78s; 15 USC 78u-5; 15 USC 78w; 15 USC 78x; 15 USC 78ll(d); 15 USC 78mm; 15 USC 79q; 15 USC 79t; 15 USC 80a-20; 15 USC 80a-23; 15 USC 80a-29; 15 USC 80a-37; 15 USC 80b-3; 15 USC 80b-4; 15 USC 80b-11'
+
+[48] RIN 0910-AA94 ed 200004  marker='Authority continued:'
+    boxes (13): ['21 USC 321', '21 USC 360gg to 360ss', '21 USC 371', '21 USC 374', '21 USC 379e', '21 USC 331', '21 USC 351', '21 USC 352', '21 USC 353', '21 USC 355', '21 USC 358', '21 USC 360', '21 USC 360b']
+    continuation: '42 USC 216; 42 USC 241; 42 USC 262; 42 USC 264'
+
+[49] RIN 1115-AE47 ed 200004  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1158', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp., p. 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a technical correction to the services regulations '
+
+[50] RIN 1210-AA62 ed 200004  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[51] RIN 1210-AA63 ed 200004  marker='AUTHORITY CONT:'
+    boxes (3): ['29 USC 1181 (PL 104-204, 110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[52] RIN 1115-AE47 ed 200010  marker='AUTHORITY CONT:'
+    boxes (15): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1158', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a technical correction to the services regulations '
+
+[53] RIN 1210-AA63 ed 200010  marker='AUTHORITY CONT:'
+    boxes (3): ['29 USC 1181 (PL 104-204, 110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[54] RIN 1210-AA62 ed 200010  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[55] RIN 1115-AE47 ed 200104  marker='AUTHORITY CONT:'
+    boxes (14): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a correction to the services regulations that gover'
+
+[56] RIN 1210-AA63 ed 200104  marker='AUTHORITY CONT:'
+    boxes (3): ['29 USC 1181 (PL 104-204, 110 Stat 2935)', '29 USC 1135', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[57] RIN 1210-AA62 ed 200104  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[58] RIN 1115-AE47 ed 200110  marker='AUTHORITY CONT:'
+    boxes (14): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a correction to the services regulations that gover'
+
+[59] RIN 1210-AA63 ed 200110  marker='AUTHORITY CONT:'
+    boxes (10): ['29 USC 1027, ERISA sec 107', '29 USC 1059, ERISA sec 209', '29 USC 1135, ERISA sec 505', '29 USC 1171 to 1173, ERISA sec 701 to 703', '29 USC 1181, ERISA sec 711', '29 USC 1182, ERISA sec 712', '29 USC 1191 to 1194, ERISA sec 731 to 734', 'PL 104-191, 101 Stat 1936 (HIPAA)', 'PL 104-204, 110 Stat 2935 (NMHPA)', "Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987"]
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[60] RIN 1210-AA62 ed 200110  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[61] RIN 1115-AE47 ed 200204  marker='AUTHORITY CONT:'
+    boxes (14): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a correction to the services regulations that gover'
+
+[62] RIN 1210-AA62 ed 200204  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182 (PL 104-204', '110 Stat 2944)', '29 USC 1194']
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[63] RIN 1210-AA63 ed 200204  marker='AUTHORITY CONT:'
+    boxes (10): ['29 USC 1027, ERISA sec 107', '29 USC 1059, ERISA sec 209', '29 USC 1135, ERISA sec 505', '29 USC 1171 to 1173, ERISA sec 701 to 703', '29 USC 1181, ERISA sec 711', '29 USC 1182, ERISA sec 712', '29 USC 1191 to 1194, ERISA sec 731 to 734', 'PL 104-191, 101 Stat 1936 (HIPAA)', 'PL 104-204, 110 Stat 2935 (NMHPA)', "Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987"]
+    continuation: "Secs. 107, 209, 505, 701-703, 711, 712 731-734 of ERISA (29 U.S.C. 1027, 1059, 1135, 1171-1173, 1181 1182, 1191-1194), as amended by HIPAA (Pub. L. 104-191, 101 Stat. 1936) and NMHPA (Pub. L. 104-204) and Secretary of Labor's Order No. 1-87, 52 FR 13139, April 21, 1987."
+
+[64] RIN 1115-AE47 ed 200210  marker='AUTHORITY CONT:'
+    boxes (14): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a correction to the services regulations that gover'
+
+[65] RIN 1210-AA62 ed 200210  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182', '29 USC 1194', 'PL 104-204, 110 Stat. 2944']
+    continuation: 'Secs. 107, 209, 505, 701-703, 711, 712'
+
+[66] RIN 1115-AE47 ed 200304  marker='AUTHORITY CONT:'
+    boxes (14): ['5 USC 301', '8 USC 1182', '8 USC 1183', '8 USC 1184', '8 USC 1185', '8 USC 1186a', '8 USC 1187', '5 USC 552', '5 USC 552a', '8 USC 1101', '8 USC 1102', '8 USC 1103', '8 USC 1154', '8 USC 1181']
+    continuation: '8 USC 1186b, 1187, 1201, 1203, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1251, 1252, 1252 note, 1252a, 1252b, 1253, 1254, 1254a note, 1255, 1256, 1258, 1259, 1281, 1282, 1304, 1324a, 1330, 1356, 1357, 1362, 1429, 1440, 1443, 1447; 28 USC 509, 510, 1746; 31 USC 9701; 3 CFR, 1982 Comp, p 166; 8 CFR part 2.'
+    [trailing after boundary, excluded]: '\n\nINS Rule No. 1920-98 makes a correction to the services regulations that gover'
+
+[67] RIN 1210-AA62 ed 200304  marker='AUTHORITIES CONT:'
+    boxes (4): ['29 USC 1135', '29 USC 1182', '29 USC 1194', 'PL 104-204, 110 Stat. 2944']
+    continuation: 'secs 107, 209, 505, 701 to 703, 711, 712.'
