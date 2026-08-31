@@ -25,9 +25,22 @@ platform-wide); the archived source is evidence and reference, not a payload.
 ## 0. Merge first — the fork (gates everything below)
 
 > **RESOLVED 2026-08-31 by REF-051** (`docs/decisions.md`): the fork was
-> history, not content — the standalone tree is a strict path superset, the
-> submodule's 579 unique lines are superseded early drafts, and its five build
-> commits are absorbed. **This checkout is canonical; every port lands here.**
+> history, not content — the archived line's unique content is superseded
+> early drafts, and its five build commits are absorbed. **This checkout is
+> canonical; every port lands here.**
+>
+> **Measurement erratum (validated 2026-08-31, six-agent retention audit +
+> independent codex re-derivation; full record at
+> `~/Work/corpora/_retained-2026-08-31-refspec-branches/`):** REF-051's
+> recorded figures do not reproduce. Verified: ONE submodule-only path (the
+> rc15 vendored wheel, superseded by rc16 — no content loss), not zero; and
+> `git diff --numstat 64a55685 141fd671` gives 56 files / 2,869 archive-side
+> lines (all paths), 35 / 721 under `src/ tests/ tools/ bindings/`
+> (direction-sensitive: reverse is 56/2,867 and 35/724 — restatements must
+> name their direction), not "63 files / 579 lines". The audit also confirmed
+> the supersession itself at content level, including the one absent mechanism
+> (`cfr_additional_parts`), which the archived branch itself superseded 9m29s
+> after writing it. Disposition unchanged; amend the register's figures.
 > Nothing deleted: the submodule line survives as
 > `refs/snapshots/pre-consolidation-2026-08-28` (spicysearch side) and
 > `refs/snapshots/submodule-line-2026-08-31` (this repo's object store).
