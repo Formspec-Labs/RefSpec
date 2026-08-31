@@ -67,10 +67,16 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # became of a former Title 49 Appendix section. Same shape again: a
         # reader over a sealed directory, no registry RESOURCE, and
         # registry-descriptors.nq unmoved for the third time.
-        "implementationModuleCount": 35,
+        # 35 -> 37 and 95 -> 97: the intake-ledger identity wave (2026-08-31).
+        # iri_minting (seven urn:rkaf minters over the shapes the registry
+        # already validates) and agency_crosswalk (the sealed 2026-08-02
+        # FR/regulations.gov crosswalk as derived in-house reference data).
+        # Same shape a fourth time: no registry RESOURCE, so the indexed
+        # counts hold still while both module counts move by two.
+        "implementationModuleCount": 37,
         "indexedResourceCount": 98,
         "indexedWithoutExactReleaseCount": 93,
-        "registryModuleCount": 95,
+        "registryModuleCount": 97,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the

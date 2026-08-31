@@ -1288,6 +1288,11 @@ STRING_GRAMMAR_MODULES: frozenset[str] = frozenset(
     {
         "citation_grammar.py",
         "identifier_shapes.py",
+        # The minting layer spells identifiers for values callers supply,
+        # wrapping the two grammars above; it reads no publisher bytes of its
+        # own. Its census tests read the same pinned columns
+        # identifier_shapes' tests read, under that module's coverage.
+        "iri_minting.py",
     }
 )
 
@@ -1301,6 +1306,20 @@ SOURCE_BLOCKERS: dict[str, list[str]] = {
         "tests verify the built Parquet artifact against its receipt, not the "
         "publisher editions it was built from; those bytes are covered by "
         "unified_agenda_editions.py"
+    )],
+    # The crosswalk carries the sealed 2026-08-02 build's mapping as curated
+    # in-module rows; the sealed artifact, receipt and input parquets live in
+    # the corpora register (docs/regeneration-inputs.md), not here, and one
+    # input has already been overwritten since sealing, so the gap is
+    # permanent unless the pinned bytes resurface.
+    "agency_crosswalk.py": [(
+        "publisher bytes are not retained here: the module embeds the sealed "
+        "agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose "
+        "artifact, receipt and four input parquets live under ~/Work/corpora/_preserved-2026-08-27/ "
+        "with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet at "
+        "that path was overwritten after sealing (893,766 rows vs the pinned 715,080), so the "
+        "sealed tier histogram can be verified against the embedded rows but no longer exactly "
+        "re-derived from the inputs"
     )],
     # Act resolution reads sha256-pinned artifacts built from the OLRC pages
     # elsewhere; this repository does not retain the publisher bytes. Named,

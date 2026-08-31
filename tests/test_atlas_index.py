@@ -102,7 +102,16 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # 34 -> 35: usc_disposition_tables, which answers what a positive-law
         # recodification did with a former section the section oracle's own
         # sources cannot see.
-        "implementationModuleCount": 35,
+        # 35 -> 37: the intake-ledger identity wave (2026-08-31). iri_minting
+        # closes the gap identifier_shapes' header declared — seven urn:rkaf
+        # minters beside act_resolution's USC one, restating rulespec's
+        # lexical spaces verbatim. agency_crosswalk carries the sealed
+        # 2026-08-02 FR/regulations.gov agency crosswalk (316 codes, 914
+        # ranked candidates) and its three measured rules; it is derived
+        # in-house reference data, not an external catalog resource, which is
+        # why it classifies here beside claim_release_exports rather than as
+        # an index row.
+        "implementationModuleCount": 37,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
         # REF-035 through REF-037 add the mapping and acquisition bridges.

@@ -720,7 +720,11 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:170afb958d999b157527c92b664dae137c8cae408cbf71aad6ab6d735ee867f0"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:9cdb0db71bc114ffc4f034abcf1fe97d4a66e7b4eb74bbb1459deef3851ce46a"
+# 2026-08-31: the intake-ledger identity wave adds iri_minting and
+# agency_crosswalk as implementation modules. The descriptors .nq graph is
+# byte-identical (implementation modules place no descriptor quads); only the
+# proof's inputs.atlasIndexDigest moved, and this pin moves with it.
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:7839091449a792a203f428134e6abbaa5391cfe563897794faba15e38b70005c"
 
 
 def _load_validator() -> Any:

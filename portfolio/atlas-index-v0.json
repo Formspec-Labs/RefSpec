@@ -8,6 +8,7 @@
     "refspec.registry.adapters.elsst_acquisition",
     "refspec.registry.adapters.elsst_import_coverage",
     "refspec.registry.adapters.icpsr_zyte",
+    "refspec.registry.agency_crosswalk",
     "refspec.registry.cfr_authority_notes",
     "refspec.registry.citation_grammar",
     "refspec.registry.claim_release_exports",
@@ -26,6 +27,7 @@
     "refspec.registry.infrastructure.source_controlled_resource",
     "refspec.registry.infrastructure.source_identity",
     "refspec.registry.infrastructure.zyte_transport",
+    "refspec.registry.iri_minting",
     "refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release",
     "refspec.registry.managed_releases.icpsr_managed_release",
     "refspec.registry.packages.crs_source_concept_releases",
@@ -38,8 +40,8 @@
     "refspec.registry.usc_disposition_tables",
     "refspec.registry.usc_section_oracle"
   ],
-  "indexDigest": "sha256:47849d8a285a0c4c5a77121f1f085107eeb3cdfe02d54ad92c3e8fc1d18a4c02",
-  "indexId": "urn:ref:atlas-index:47849d8a285a0c4c5a77121f1f085107eeb3cdfe02d54ad92c3e8fc1d18a4c02",
+  "indexDigest": "sha256:e4304815e59da31e70453f4284c0a342539480fddf4d0671832a54ebdd723327",
+  "indexId": "urn:ref:atlas-index:e4304815e59da31e70453f4284c0a342539480fddf4d0671832a54ebdd723327",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
@@ -3617,7 +3619,7 @@
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 35,
+    "implementationModuleCount": 37,
     "participationCounts": {
       "bridge": 34,
       "core": 1,
