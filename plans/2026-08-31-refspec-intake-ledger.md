@@ -8,6 +8,12 @@ checkout's code on that date by running or reading it, not recalled from the
 2026-08-27/28 archive sweep (several sweep claims were already stale — noted
 where they were).
 
+This ledger covers intake **from outside the repo**. Its in-repo companion is
+[`research/investigations-mined-2026-08-31.md`](../research/investigations-mined-2026-08-31.md)
+— the same-day mining of RefSpec's own investigation directories into a ranked
+fix backlog. Both streams draw on the same engineering capacity and §6 sets
+them against each other; neither is complete without the other.
+
 Provenance for measurements: the nugget README and sweep appendix at
 `~/Work/corpora/_nuggets-2026-08-27/README.md`, whose entries were established
 by executing both implementations against real corpora. Ports follow the
@@ -201,11 +207,59 @@ that RefSpec's receipts and docs **name these paths** as regeneration inputs:
 
 ---
 
+## 6. In-repo intake — the mined investigations backlog (by reference)
+
+[`research/investigations-mined-2026-08-31.md`](../research/investigations-mined-2026-08-31.md)
+is the authoritative version of everything in this section; nothing below is
+restated with enough precision to act on. It mined all sixteen
+`research/evidence/investigations-2026-08-2{3,4}/` directories against shipped
+code and the byte-verified rebuild-#12 artifact, re-measuring every population.
+What it holds, and how it interacts with this ledger:
+
+- **Nine silent-wrong-answer classes, ranked by blast radius** — values RefSpec
+  publishes wrongly *today* with no refusal beside them. The top of the list:
+  the B8 two-witness enlargement (1,101 net-new publishable readings), the
+  case-sensitive annual-archive extractor (1,912 `exists`-but-unattested rows
+  that are extractor holes, not history), reg-shaped citations truncating in
+  the U.S.C. slot (77 affirmed-wrong rows), Statutes-at-Large pages fabricating
+  U.S.C. citations (148, a new find), and the missing Executive Order existence
+  oracle (2,876 rows passing an inadequate fence).
+- **A "loud" additive tier** — roster retiers, the apostrophe-year shape,
+  `usc_slot_reading`, the paren-suffix promotion, placeholder candidates —
+  no wrong answer today, measured value waiting.
+- **Five falsified-prose notes in digest-pinned modules** — each forces a
+  rebuild if touched, so each is bound to ride the next unit that touches its
+  module, never a drive-by.
+- **A durability warning that belongs to §4's doctrine:** sixteen of the 32
+  EO-gap numbers (1,173 corpus rows, EO 12866 among them) resolve **only**
+  from Wayback captures whose bytes exist nowhere but the committed
+  `inv-eo`/`inv-eo-gap` directories, sha256-manifested. Those directories are
+  pinned publisher evidence, not prunable research — the in-repo counterpart
+  of the corpora salvage rows above.
+- **A landed-and-verified list** — do not re-litigate; the sweep-staleness
+  lesson of this ledger applies to those READMEs too (several describe
+  already-fixed defects in present tense).
+
+**Priority interaction:** the backlog's ranked tier publishes wrong values
+today; this ledger's ports add missing capability. By this repo's own
+correctness-first posture, backlog items 1–5 outrank every port in §1 except
+1.2 (bare-legacy FR mint), which is the same kind of defect — a silently
+identity-less 39.2% — and can be scheduled with them. The promotion ceremony
+the backlog file defines (dated evidence home, pinned bytes, reader, receipt
+line, breaking test) is also the ceremony §1's ports should arrive through.
+
+---
+
 ## Suggested packaging
 
 1. **You:** merge ruling (§0), then the two one-sentence rulings (§2).
-2. **"Identity" package:** 1.1 + 1.2 + 3.1 — one lane, ends with every FR
+2. **Correctness lane (first):** §6 backlog items 1–5 plus port 1.2 — the
+   things publishing wrong or identity-less answers today.
+3. **"Identity" package:** 1.1 + 1.2 + 3.1 — one lane, ends with every FR
    document mintable and one copy of the shape knowledge.
-3. **"USC regeneration" package:** 1.3 + 1.4 — ends RefSpec's dependency on
-   abandoned code entirely.
-4. **Standalone:** 1.5 crosswalk; 1.6 rides along when convenient.
+4. **"USC regeneration" package:** 1.3 + 1.4 — ends RefSpec's dependency on
+   abandoned code entirely. Note 1.3/1.4 and §6 item 2 (the extractor fix +
+   re-pin) all touch the oracle/act-index artifact lineage — cheapest as one
+   re-pin cycle, not three.
+5. **Standalone:** 1.5 crosswalk; 1.6 rides along when convenient; §6's loud
+   tier as capacity allows.
