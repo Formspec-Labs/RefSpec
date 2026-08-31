@@ -1435,36 +1435,57 @@ def load_eurovoc_4_24_releases(
 def _gemet_theme_labels(
     parsed: GemetVocabulary,
     theme_iris: Collection[str],
-) -> dict[str, list[RegistryLabel]]:
-    """Theme rdfs:label/acronymLabel take their own path, not the SKOS-role
-    helpers above: unlike concept and Group/SuperGroup skos:prefLabel, these
-    are not SKOS label roles, so SKOS S13 preferred/alternate precedence
-    does not apply. English-only, per this module's house policy; en/en-US
-    exact-duplicate text collapses within each predicate (never across
-    rdfs:label vs acronymLabel, which are always kept as two distinct
-    labels when both are present). acronymLabel becomes an "alternate"
-    label -- GEMET's own predicate name calls it a label, and it is an
-    alternate name for the Theme, not a classification code -- never
-    promoted to "preferred" and never dropped."""
+) -> dict[str, tuple[RegistryLabel, ...]]:
+    """Theme rdfs:label/acronymLabel do not take the SKOS *role* precedence
+    path: unlike concept and Group/SuperGroup skos:prefLabel, these are not
+    SKOS label roles, so SKOS S13 preferred/alternate/hidden precedence
+    (_normalize_skos_label_roles) does not apply. The role each predicate
+    carries is fixed here instead -- rdfs:label is "preferred", acronymLabel
+    is "alternate"; GEMET's own predicate name calls the acronym a label, and
+    it is an alternate name for the Theme, not a classification code, so it is
+    never promoted to "preferred" and never dropped.
 
-    by_subject_predicate: dict[tuple[str, str], dict[str, str]] = defaultdict(dict)
+    Everything downstream of that role assignment is the *same* English-family
+    normalization the concept and Group/SuperGroup paths use, run through the
+    one shared helper rather than a second copy of it: non-English literals are
+    dropped, an en-US variant whose text repeats the base en text collapses
+    into it, and an en-US variant whose text *diverges* from a base en
+    preferred label is demoted to "alternate" instead of becoming a second
+    preferred label in the same language (which RegistryResource rejects).
+    Ordering is _sorted_labels, exactly as the sibling paths emit it, so a
+    Theme's preferred label leads and the tuple type matches its siblings.
+
+    The helper's English-family counters are deliberately discarded: Theme
+    labels are metadata literals, not the skos:prefLabel/altLabel population
+    the release's englishFamily*/droppedLabelCount metadata reports on, and
+    folding 40 Themes' 36-language rdfs:label into those totals would silently
+    restate what those numbers mean."""
+
+    candidates: list[tuple[str, str | None, str, LabelRole, str]] = []
     for row in parsed.organization_metadata_literals:
         if row.subject_iri not in theme_iris:
             continue
-        if row.property_iri not in (GEMET_DISPLAY_LABEL, GEMET_ACRONYM_LABEL):
+        if row.property_iri == GEMET_DISPLAY_LABEL:
+            role: LabelRole = "preferred"
+        elif row.property_iri == GEMET_ACRONYM_LABEL:
+            role = "alternate"
+        else:
             continue
-        if not is_english_language_tag(row.value.language_tag):
-            continue
-        by_subject_predicate[(row.subject_iri, row.property_iri)][row.value.language_tag] = row.value.lexical_form
-
-    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
-    for (subject_iri, predicate_iri), by_language in by_subject_predicate.items():
-        role: LabelRole = "preferred" if predicate_iri == GEMET_DISPLAY_LABEL else "alternate"
-        for value in sorted(set(by_language.values())):
-            labels[subject_iri].append(
-                RegistryLabel(value=value, role=role, source_path=f"{subject_iri}::{predicate_iri}")
+        candidates.append(
+            (
+                row.subject_iri,
+                row.value.language_tag,
+                row.value.lexical_form,
+                role,
+                f"{row.subject_iri}::{row.property_iri}",
             )
-    return labels
+        )
+
+    labels, _dropped, _variants, _duplicates, _synonyms = _normalize_english_label_candidates(
+        candidates,
+        theme_iris,
+    )
+    return {subject_iri: _sorted_labels(rows) for subject_iri, rows in labels.items()}
 
 
 def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> RegistryRelease:
@@ -1585,7 +1606,7 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
         resources.append(
             RegistryResource(
                 iri=resource_iri,
-                labels=theme_labels[resource_iri],
+                labels=theme_labels.get(resource_iri, ()),
                 native_payload={
                     "organizationKind": "theme",
                     "publisherResourceIri": resource_iri,

@@ -721,10 +721,14 @@ REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:170afb958d999b157527c92b664dae137
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
 # 2026-08-31: the intake-ledger identity wave adds iri_minting and
-# agency_crosswalk as implementation modules. The descriptors .nq graph is
-# byte-identical (implementation modules place no descriptor quads); only the
-# proof's inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:7839091449a792a203f428134e6abbaa5391cfe563897794faba15e38b70005c"
+# agency_crosswalk as implementation modules, and the same-day operational
+# wave's GEMET Theme label fix edits the two files the index pins as that
+# row's readiness evidence (src/refspec/atlas/v3_registry_vocabularies.py and
+# its test file — verified against the index diff; usc_act_index.py, also
+# edited that day, is NOT index evidence and moved nothing here). The
+# descriptors .nq graph is byte-identical both times; only the proof's
+# inputs.atlasIndexDigest moved, and this pin moves with it.
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:2c59d192ae53a69e4003097dd6fa9b72cc3e11d4f58d8013da504325d9cf06a1"
 
 
 def _load_validator() -> Any:

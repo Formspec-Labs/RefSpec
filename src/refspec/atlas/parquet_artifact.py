@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 import pyarrow as pa
 
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
+    file_sha256,
     sha256_digest,
 )
 
@@ -31,16 +31,6 @@ def artifact_file_paths(directory: Path) -> set[str]:
     return {
         path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file() or path.is_symlink()
     }
-
-
-def file_sha256(path: Path) -> str:
-    """Hash one file without loading it into memory."""
-
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
 
 
 def canonical_payload_sha256(value: object) -> str:

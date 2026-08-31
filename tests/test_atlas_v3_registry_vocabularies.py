@@ -184,6 +184,158 @@ def test_gemet_normalization_keeps_variant_synonym_and_deduplicates_twins(
     assert release.metadata["englishFamilyVariantSynonymCount"] == 1
 
 
+def _gemet_theme_parsed(
+    *display_and_acronym: tuple[str, str, str],
+    theme_iri: str,
+) -> SimpleNamespace:
+    """A minimal GemetVocabulary shaped like the real Theme population: no
+    concepts, one Theme skos:Collection, and its rdfs:label/acronymLabel
+    metadata literals given as (predicate, language, text) triples."""
+
+    return SimpleNamespace(
+        concepts=(),
+        labels=(),
+        metadata_literals=(),
+        notes=(),
+        notations=(),
+        semantic_relations=(),
+        organization_resources=(
+            SimpleNamespace(
+                resource_iri=theme_iri,
+                kind="theme",
+                type_iris=("http://www.w3.org/2004/02/skos/core#Collection",),
+                scheme_iris=("https://example.test/gemet",),
+            ),
+        ),
+        organization_labels=(),
+        organization_metadata_literals=tuple(
+            SimpleNamespace(
+                subject_iri=theme_iri,
+                property_iri=predicate,
+                value=SimpleNamespace(lexical_form=text, language_tag=language),
+            )
+            for predicate, language, text in display_and_acronym
+        ),
+        organization_membership_relations=(),
+        organization_hierarchy_relations=(),
+    )
+
+
+def _gemet_theme_resource(
+    parsed: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    expected_label_count: int,
+) -> object:
+    monkeypatch.setitem(vocabularies.EXPECTED_RESOURCE_COUNTS, "gemet-4.2.3", 1)
+    monkeypatch.setitem(vocabularies.EXPECTED_LABEL_COUNTS, "gemet-4.2.3", expected_label_count)
+    monkeypatch.setitem(vocabularies.EXPECTED_RELATION_COUNTS, "gemet-4.2.3", 0)
+    source = vocabularies.RegistryInputPin(
+        path=tmp_path / "gemet.rdf",
+        logical_path="output/registry-real-data-sources/gemet.rdf",
+        sha256="sha256:" + "0" * 64,
+        byte_length=1,
+        source_iri="https://example.test/gemet.rdf",
+    )
+    release = vocabularies._normalize_gemet(parsed, source)
+    (resource,) = release.resources
+    return resource
+
+
+def test_gemet_theme_labels_are_sorted_tuples_led_by_the_display_label(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """The acronymLabel predicate IRI is reached before rdfs:label in the
+    publisher's own row order for every Theme in the pinned release, so an
+    insertion-ordered list hands the acronym out ahead of the display label.
+    Theme labels must leave normalization exactly as the concept and
+    Group/SuperGroup paths leave theirs: a _sorted_labels tuple, preferred
+    first."""
+
+    theme_iri = "https://example.test/gemet/theme/1"
+    parsed = _gemet_theme_parsed(
+        (vocabularies.GEMET_ACRONYM_LABEL, "en", "ADM"),
+        (vocabularies.GEMET_ACRONYM_LABEL, "en-US", "ADM"),
+        (vocabularies.GEMET_DISPLAY_LABEL, "en", "administration"),
+        (vocabularies.GEMET_DISPLAY_LABEL, "en-US", "administration"),
+        (vocabularies.GEMET_DISPLAY_LABEL, "bg", "администрация"),
+        theme_iri=theme_iri,
+    )
+
+    resource = _gemet_theme_resource(parsed, monkeypatch, tmp_path, expected_label_count=2)
+
+    assert isinstance(resource.labels, tuple)
+    assert [(label.role, label.value) for label in resource.labels] == [
+        ("preferred", "administration"),
+        ("alternate", "ADM"),
+    ]
+    assert resource.labels == vocabularies._sorted_labels(resource.labels)
+    assert [label.source_path for label in resource.labels] == [
+        f"{theme_iri}::{vocabularies.GEMET_DISPLAY_LABEL}",
+        f"{theme_iri}::{vocabularies.GEMET_ACRONYM_LABEL}",
+    ]
+
+
+def test_gemet_theme_divergent_en_us_display_label_becomes_alternate(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Every Theme in the pinned release tags both rdfs:label and acronymLabel
+    with en *and* en-US, and the texts happen to be identical today. The day a
+    release states different text under en-US, a per-language collapse emits
+    two preferred labels that RegistryLabel stamps `language="en"` alike, and
+    RegistryResource's one-preferred-per-language check raises. The base-en
+    precedence rule demotes the divergent variant instead."""
+
+    theme_iri = "https://example.test/gemet/theme/1"
+    parsed = _gemet_theme_parsed(
+        (vocabularies.GEMET_ACRONYM_LABEL, "en", "ADM"),
+        (vocabularies.GEMET_ACRONYM_LABEL, "en-US", "ADM"),
+        (vocabularies.GEMET_DISPLAY_LABEL, "en", "public administration"),
+        (vocabularies.GEMET_DISPLAY_LABEL, "en-US", "public administration (US)"),
+        theme_iri=theme_iri,
+    )
+
+    resource = _gemet_theme_resource(parsed, monkeypatch, tmp_path, expected_label_count=3)
+
+    assert [(label.role, label.value) for label in resource.labels] == [
+        ("preferred", "public administration"),
+        ("alternate", "ADM"),
+        ("alternate", "public administration (US)"),
+    ]
+    assert [label.language for label in resource.labels] == ["en", "en", "en"]
+    assert sum(1 for label in resource.labels if label.role == "preferred") == 1
+
+
+def test_gemet_theme_labels_without_the_fix_would_raise_on_divergent_variants() -> None:
+    """The negative half of the fixture above: two same-language preferred
+    labels -- what the pre-fix per-language collapse produced -- is exactly
+    what RegistryResource must refuse. This pins the guard the normalization
+    is steering around, so a regression cannot pass by loosening it."""
+
+    with pytest.raises(ValueError, match="more than one preferred label"):
+        vocabularies.RegistryResource(
+            iri="https://example.test/gemet/theme/1",
+            labels=(
+                vocabularies.RegistryLabel(
+                    value="public administration",
+                    role="preferred",
+                    source_path="theme/1::rdfs:label",
+                ),
+                vocabularies.RegistryLabel(
+                    value="public administration (US)",
+                    role="preferred",
+                    source_path="theme/1::rdfs:label",
+                ),
+            ),
+            native_payload={},
+            source_locator="https://example.test/gemet/theme/1",
+            source_digest="sha256:" + "0" * 64,
+        )
+
+
 def test_direct_relations_keep_only_unique_member_triples() -> None:
     member = SimpleNamespace(
         subject_iri="https://example.test/a",

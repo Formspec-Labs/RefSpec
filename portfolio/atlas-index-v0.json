@@ -40,8 +40,8 @@
     "refspec.registry.usc_disposition_tables",
     "refspec.registry.usc_section_oracle"
   ],
-  "indexDigest": "sha256:e4304815e59da31e70453f4284c0a342539480fddf4d0671832a54ebdd723327",
-  "indexId": "urn:ref:atlas-index:e4304815e59da31e70453f4284c0a342539480fddf4d0671832a54ebdd723327",
+  "indexDigest": "sha256:538c29c9d24dc9fa7411d50ee210f7730fd9034ddd7d350953dc163d246484e0",
+  "indexId": "urn:ref:atlas-index:538c29c9d24dc9fa7411d50ee210f7730fd9034ddd7d350953dc163d246484e0",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
@@ -894,7 +894,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_vocabularies.py",
-          "sha256": "sha256:72b26368e4907ea7ceaaf4ab307f1c89c7f5c265e1e61a666e8caa6f6d6a4527"
+          "sha256": "sha256:017d65a33e6351b687f544ff52efe3ec4783bc93cc8b7ab8358d3638da80da8c"
         },
         {
           "kind": "parserTest",
@@ -904,7 +904,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_vocabularies.py",
-          "sha256": "sha256:8ad2fdf45fc3dd8ebcf3306131ca9cfad32f437d2eb63abacec55bdaa3afea76"
+          "sha256": "sha256:0ba5d366ebce226d469205a1f1884eb635c038871fce8a20e90cbcbcc45614b9"
         },
         {
           "kind": "sourceImplementation",
@@ -914,8 +914,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:b40dbb185db90b0aa28018688d743db0e53b55012204dee282636ca3f99283fb",
-      "rowId": "urn:ref:atlas-index-row:b40dbb185db90b0aa28018688d743db0e53b55012204dee282636ca3f99283fb",
+      "rowDigest": "sha256:4ae690bb0bd659199c97b51c6040353f7de686d5ac10ac7984909fe432840fc8",
+      "rowId": "urn:ref:atlas-index-row:4ae690bb0bd659199c97b51c6040353f7de686d5ac10ac7984909fe432840fc8",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_thesaurus"
     },

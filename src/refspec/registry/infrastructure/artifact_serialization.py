@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any, Literal
 
 from refspec.storage import canonical_json
@@ -44,6 +45,23 @@ def sha256_digest(payload: bytes) -> str:
     """Return a lowercase ``sha256:<64 hex>`` digest for exact bytes."""
 
     return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def file_sha256(path: Path) -> str:
+    """Hash one file's bytes without loading the whole file into memory.
+
+    Restated identically (not imported) in three publisher-facing build
+    scripts this module may not depend on --
+    ``tools/build_usc_popular_names.py``, ``tools/build_usc_source_credits.py``,
+    and ``bindings/atlas/3.1/tools/validate.py`` -- which is why this
+    function exists here rather than only inline at its two call sites.
+    """
+
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def path_sha256_descriptor(path: str, payload: bytes) -> dict[str, str]:
@@ -81,6 +99,7 @@ __all__ = [
     "SourceArtifactPathStyle",
     "canonical_json_bytes",
     "canonical_jsonl_bytes",
+    "file_sha256",
     "path_sha256_descriptor",
     "plain_json",
     "sha256_digest",
