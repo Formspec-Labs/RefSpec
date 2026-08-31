@@ -1038,6 +1038,21 @@ research/residual-shacl 3154b751, research/shacl-sparql 1c5f1d12).**
    release-workflow spec; at these ratios full acceptance would fit in
    ~9 GB, i.e. a standard hosted runner. Re-open this the day CI is
    meant to own acceptance.
+   **FULL-SCALE ADDENDUM (2026-08-31, branch-retention audit):** the
+   "OSP never queried" instrumentation above is a staging-scale claim,
+   but the store ships at release scale — and the only full-scale
+   confirmation lived on the branch: the interrupted measurement run at
+   the `feat/parse-substrate` tip (`9bf8036e`, `CODEX_LOG.txt`;
+   preserved under `refs/snapshots/branch-tidy-2026-08-31/feat-parse-substrate`
+   and on the GitHub branch) recorded the complete acceptance path at
+   **29,283,283 quads with zero object-only scans**. The omitted-OSP
+   safety argument therefore holds at ship scale, not just staging.
+   Caveat carried with the receipt: its 15,937.4 MiB unbounded-pool
+   figure was measured under host contention (two other agents shared
+   the box), so it bounds the pool's cost only loosely against the
+   quiet-machine 14.31 GiB above. `object_scan_count`
+   (`parse_substrate.py`) is the instrument that watches this invariant;
+   as of this addendum only a test reads it.
 3. *SHACL-SPARQL — portable, and the blocker's premises corrected.* All
    four adjudication rules expressed as portable SPARQL 1.1 (164 lines,
    115 of SPARQL); 26/26 fixture checks agree across pySHACL and Jena.
