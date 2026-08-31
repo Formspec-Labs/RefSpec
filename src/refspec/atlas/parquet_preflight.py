@@ -529,6 +529,12 @@ def _validate_evidence(
         )
 
 
+#: Derived projections a view may carry beside the closed record roles.
+DERIVED_VIEW_TABLES = frozenset(
+    {"agencyProjection", "agencyProjectionUnresolved", "derivedRelations"}
+)
+
+
 def validate_atlas_parquet_tables(
     tables: Mapping[str, pa.Table],
     *,
@@ -537,10 +543,20 @@ def validate_atlas_parquet_tables(
 ) -> dict[str, Any]:
     """Validate global relational invariants over already-authenticated tables."""
 
+    # The record roles are the closed relational core every view must carry.
+    # A view may also carry derived projections beside them -- the agency
+    # projection and the derived-relation table the mapping era added -- which
+    # are checked by their own producers, not by these relational invariants.
     expected_roles = {role.value for role in CompactRecordRole}
-    if set(tables) != expected_roles:
-        _fail("preflight.tables", f"table roles differ: expected={sorted(expected_roles)}, actual={sorted(tables)}")
-    _validate_record_identities(tables)
+    missing = sorted(expected_roles - set(tables))
+    if missing:
+        _fail("preflight.tables", f"view omits record roles: {missing}")
+    unknown = sorted(set(tables) - expected_roles - DERIVED_VIEW_TABLES)
+    if unknown:
+        _fail("preflight.tables", f"view carries unknown tables: {unknown}")
+    # Only the record roles carry a logical-record identifier; the derived
+    # projections are keyed by their own subjects.
+    _validate_record_identities({role: tables[role] for role in sorted(expected_roles)})
 
     resources = tables[CompactRecordRole.RESOURCE.value]
     labels = tables[CompactRecordRole.LABEL.value]

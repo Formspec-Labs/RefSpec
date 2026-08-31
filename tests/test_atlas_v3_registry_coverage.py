@@ -45,13 +45,32 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 111,
+        "atlasIndexRowCount": 112,
         "catalogOnlyDescriptorCount": 18,
-        "catalogResourceCount": 115,
-        "implementationModuleCount": 26,
-        "indexedResourceCount": 97,
-        "indexedWithoutExactReleaseCount": 92,
-        "registryModuleCount": 86,
+        "catalogResourceCount": 116,
+        # 31 -> 32 and 91 -> 92: usc_act_index, which builds the act index
+        # act_resolution reads from OLRC's whole-of-Table-III release. It
+        # publishes no registry RESOURCE, so registry-descriptors.nq does not
+        # move at all — only the module rolls the two counts and the proof's
+        # module set.
+        # 32 -> 33 and 92 -> 93: usc_section_oracle, which answers whether a
+        # U.S.C. section exists at a given edition from the pinned OLRC
+        # release point and the 1994-2024 annual archives. Same shape as
+        # usc_act_index: a reader over sealed tables, no registry RESOURCE, so
+        # registry-descriptors.nq is again unmoved.
+        # 33 -> 34 and 93 -> 94: cfr_authority_notes, the sealed cache of 287
+        # eCFR part authority notes. Both pins were left behind when that
+        # module landed at 6fd787d1 and the classification check ahead of them
+        # masked it, which is why they move two here rather than one.
+        # 34 -> 35 and 94 -> 95: usc_disposition_tables, which reads the
+        # printed 1994 disposition table so the section oracle can say what
+        # became of a former Title 49 Appendix section. Same shape again: a
+        # reader over a sealed directory, no registry RESOURCE, and
+        # registry-descriptors.nq unmoved for the third time.
+        "implementationModuleCount": 35,
+        "indexedResourceCount": 98,
+        "indexedWithoutExactReleaseCount": 93,
+        "registryModuleCount": 95,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the
@@ -64,6 +83,8 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # REF-035 restores the mapping-reference count to 12 with the two
         # independently checked mapping-only sources.
         # REF-038 adds the regulations.gov entity-identity mapping release.
+        # The OFR CFR List of Subjects part index is publisher-written CFR
+        # structure, so it lands as a structural schema (10 -> 11).
         "resourceKindCounts": {
             "classification": 6,
             "codeList": 26,
@@ -72,7 +93,7 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
             "mappingReference": 37,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
-            "structuralSchema": 10,
+            "structuralSchema": 11,
             "subjectVocabulary": 6,
         },
         "sourceModuleCount": 60,

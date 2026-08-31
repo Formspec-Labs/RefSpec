@@ -709,6 +709,12 @@ atlas:sourceDigest
   rdfs:range xsd:string ;
   rdfs:label "source digest"@en .
 
+atlas:sourceIssued
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:SourceRelease ;
+  rdfs:label "source issued"@en ;
+  rdfs:comment "Acquisition-recorded issue date of a source release; Atlas representation structure, not a publisher claim."@en .
+
 atlas:evidenceSourceDigest
   a owl:DatatypeProperty ;
   rdfs:domain rkaf:EvidenceBinding ;
@@ -836,6 +842,13 @@ atlas:thesaurusRelated
   rdfs:range atlas:SubjectConcept ;
   rdfs:label "thesaurus related"@en ;
   rdfs:comment "Publisher-authored associative link retained when projecting it as skos:related would violate a SKOS integrity condition."@en .
+
+atlas:hasSchemeMember
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SubjectConcept ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "has scheme member"@en ;
+  rdfs:comment "Publisher-authored additional concept-scheme membership, asserted from the grouping scheme resource toward its member concept, for a publisher that structures one vocabulary with member concept sub-schemes (EuroVoc's microthesauri are the first user). skos:inScheme itself is never reused for this: SubjectConceptShape fixes it to exactly one value equal to atlas:inScheme, so a concept's additional membership in a sub-scheme beyond its single primary scheme is asserted the other direction instead of widening that cardinality."@en .
 
 atlas:sameEntityAs
   a owl:ObjectProperty ;

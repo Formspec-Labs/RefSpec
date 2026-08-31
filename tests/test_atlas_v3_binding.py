@@ -94,18 +94,20 @@ def _standalone(
     )
 
 
+@pytest.mark.slow
 def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 153,
-        "invalidCount": 136,
-        "registryDescriptorCount": 104,
-        "registryDescriptorQuadCount": 1230,
+        "caseCount": 174,
+        "invalidCount": 151,
+        "registryDescriptorCount": 105,
+        "registryDescriptorQuadCount": 1241,
         "schemaCount": 10,
     }
 
 
+@pytest.mark.slow
 def test_memory_fallback_matches_the_sealed_corpus() -> None:
     """The stock store remains a complete oracle and operational fallback."""
 
@@ -114,10 +116,10 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 153,
-        "invalidCount": 136,
-        "registryDescriptorCount": 104,
-        "registryDescriptorQuadCount": 1230,
+        "caseCount": 174,
+        "invalidCount": 151,
+        "registryDescriptorCount": 105,
+        "registryDescriptorQuadCount": 1241,
         "schemaCount": 10,
     }
 
@@ -148,19 +150,24 @@ def _makefile_rule(name: str) -> tuple[list[str], list[str]]:
 def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None:
     """`make test` drops `test-atlas-v3` because this module already runs it.
 
-    The corpus pass is the single most expensive thing the suite does (~205s).
-    Running it from both the Makefile and pytest cost that twice for one
-    answer. The aggregate target now relies on
-    ``test_atlas_v3_binding_and_sealed_corpus_pass`` above, so this check
-    keeps the two halves of that claim true: the standalone target must still
-    invoke exactly what ``_standalone()`` invokes, and ``test`` must not list
-    it a second time.
+    The corpus pass is one subprocess over the whole sealed corpus. It is no
+    longer the suite's single
+    most expensive thing -- since the artifact-reading and corpus tests moved
+    into the slow tier, several registry-alignment fixture builds there cost
+    more (tests/test_atlas_v3_registry_alignments_lc.py's LC release alone
+    measured 362.85s of fixture setup that day) -- but running the corpus
+    pass from both the Makefile and pytest still costs it twice for one
+    answer, which is the waste this check actually guards against. The
+    aggregate target now relies on ``test_atlas_v3_binding_and_sealed_corpus_pass``
+    above, so this check keeps the two halves of that claim true: the
+    standalone target must still invoke exactly what ``_standalone()``
+    invokes, and ``test`` must not list it a second time.
     """
 
     prerequisites, _ = _makefile_rule("test")
     assert "test-package" in prerequisites
     assert "test-atlas-v3" not in prerequisites, (
-        "make test would run the 110-case corpus twice: test-package already "
+        "make test would run the sealed corpus twice: test-package already "
         "covers test-atlas-v3 via test_atlas_v3_binding_and_sealed_corpus_pass"
     )
 
@@ -182,17 +189,17 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "derivedRelations": 1,
         "evidenceBindings": 13,
         "identifiers": 1,
-        "labels": 21,
+        "labels": 27,
         "mappingAssertions": 5,
         "nativeRelationAssertions": 2,
         "projectedRelations": 13,
         "relationAssertions": 13,
-        "releases": 13,
-        "resources": 21,
+        "releases": 16,
+        "resources": 27,
         "sourceAssignments": 3,
-        "sourceRecords": 21,
+        "sourceRecords": 27,
     }
-    assert result["quadCount"] == 1289
+    assert result["quadCount"] == 1474
     assert result["inferredMappingCount"] == 7
 
 
@@ -528,6 +535,7 @@ def test_fixture_receipt_fast_path_passes_on_a_clean_tree(tmp_path: Path) -> Non
     assert "rebuilt and compared" not in result.stdout
 
 
+@pytest.mark.slow
 def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Path) -> None:
     root = _sandboxed_repository(tmp_path)
     tampered = root / "bindings" / "atlas" / "3.1" / "fixtures" / "corpus.json"
@@ -543,6 +551,7 @@ def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Pat
     assert "Atlas 3.1 fixtures differ" in result.stdout + result.stderr
 
 
+@pytest.mark.slow
 def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
     root = _sandboxed_repository(tmp_path)
     ontology = root / "bindings" / "atlas" / "3.1" / "ontology" / "atlas.ttl"
@@ -557,6 +566,7 @@ def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
     assert "Atlas 3.1 fixtures differ" in result.stdout + result.stderr
 
 
+@pytest.mark.slow
 def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Path) -> None:
     root = _sandboxed_repository(tmp_path)
     receipt = root / "bindings" / "atlas" / "3.1" / "fixtures-receipt.json"
@@ -576,7 +586,7 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
     """`contractDigest` pins what conformance means, not what computed it.
 
     Every case's manifest and acceptance record carries this digest, so
-    whatever it covers must be reissued across all 110 cases whenever it moves.
+    whatever it covers must be reissued across the full corpus whenever it moves.
     Keeping the tools inside it meant a one-line edit to the builder or the
     validator reissued the whole corpus for a contract that had not changed.
     Which validator produced a verdict is still pinned, separately and by name,
@@ -585,7 +595,11 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
 
     baseline = atlas_validate._binding_digests()["contractDigest"]
 
-    for contract in ("ontology/atlas.ttl", "shapes/atlas.shacl.ttl"):
+    for contract in (
+        "admitted-derived-rules.json",
+        "ontology/atlas.ttl",
+        "shapes/atlas.shacl.ttl",
+    ):
         changed = (BINDING_ROOT / contract).read_bytes() + b"\n# contract comment\n"
         digests = atlas_validate._binding_digests(content_overrides={Path(contract): changed})
         assert digests["contractDigest"] != baseline, f"{contract} must reissue the corpus"
@@ -597,6 +611,30 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
             atlas_validate._binding_digests(content_overrides={tool: b"# edited tool\n"})
 
     assert Path("README.md") not in atlas_validate.CONTRACT_PATHS
+
+
+def test_derived_rule_registry_is_contract_covered_and_matches_the_executable_roster() -> None:
+    relative = Path("admitted-derived-rules.json")
+    assert relative in atlas_validate.CONTRACT_PATHS
+    document = atlas_validate._load_json(
+        BINDING_ROOT / relative,
+        require_canonical=True,
+    )
+    assert document == atlas_validate._derived_rule_registry_document()
+    assert atlas_validate._check_derived_rule_registry() == document
+    assert len(document["rules"]) == 6
+
+
+def test_derived_rule_registry_refuses_semantic_drift_from_the_executable_roster() -> None:
+    document = json.loads(
+        json.dumps(atlas_validate._derived_rule_registry_document())
+    )
+    document["rules"][0]["admittedPredicates"] = [str(SKOS.closeMatch)]
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as exc_info:
+        atlas_validate._check_derived_rule_registry(document)
+
+    assert exc_info.value.code == "binding.derived-rule-registry"
 
 
 def test_growing_the_conformance_corpus_leaves_the_contract_where_it_was() -> None:

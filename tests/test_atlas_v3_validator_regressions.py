@@ -238,6 +238,7 @@ def test_source_accounting_duplicate_disposition_keeps_json_schema_error() -> No
             "sourceReleases": 1,
             "unresolved": 0,
         },
+        "assertedInventoryDigest": "sha256:" + "0" * 64,
         "type": "AtlasSourceAccounting",
         "version": "3.1",
     }
@@ -332,6 +333,7 @@ def test_source_accounting_disposition_targets_are_status_specific(
             "sourceReleases": 1,
             "unresolved": int(status == "unresolved"),
         },
+        "assertedInventoryDigest": "sha256:" + "0" * 64,
         "type": "AtlasSourceAccounting",
         "version": "3.1",
     }
@@ -2136,7 +2138,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 1289
+    assert result["quadCount"] == 1474
     assert result["inferredMappingCount"] == 7
 
 
@@ -2148,7 +2150,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 1289
+    assert result["quadCount"] == 1474
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -2263,7 +2265,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 1161
+    assert result["quadCount"] == 1340
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(

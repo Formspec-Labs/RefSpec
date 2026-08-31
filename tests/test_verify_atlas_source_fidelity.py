@@ -2682,11 +2682,9 @@ def _language_declaration(
         "exclusionType": "languageFamily",
         "selection": {
             "countUnit": ("unique auditor semantic literal claim after SourceSpec subset selection"),
-            "excludedClaimRule": (
-                "language tag is present and primary language subtag is outside the admitted families"
-            ),
-            "includedLanguageFamilies": ["de", "en", "es", "fi", "fr", "it", "ja"],
-            "selectionRule": "publisher-or-deterministic-lowercase-bcp47",
+            "excludedClaimRule": ("language tag is present and primary language subtag is not en"),
+            "includedLanguageFamilies": ["en"],
+            "selectionRule": "bcp47-primary-language-subtag",
         },
         "predicateFamilies": families,
         "countsBySourceAndLanguage": {"example": counts_by_language},
@@ -3882,8 +3880,42 @@ def test_untagged_label_inverse_fails_closed_if_source_adds_a_language_tag(
     )
 
 
-def test_label_fidelity_refuses_to_pass_when_it_inspected_nothing(suite: Fixture) -> None:
+def test_label_fidelity_passes_when_it_compared_every_label_exposed(suite: Fixture) -> None:
+    """A scope smaller than the configured sample must compare all of it.
+
+    The floor is the lesser of the configured sample and what the scoped pairs
+    expose. A bounded unit -- one source, 127 labels -- is exhaustively checked
+    at 127; demanding an absolute 200 there failed a comparison that had
+    inspected everything there was and found no mismatch.
+    """
+
     check = result(suite.run(Expectations(minimum_label_sample=10_000)), "label-fidelity")
+    assert check.passed
+    assert not check.failures
+
+
+def test_label_fidelity_refuses_to_pass_when_it_inspected_nothing(suite: Fixture) -> None:
+    """The guard's real subject: a run that compared nothing proves nothing."""
+
+    # A publisher and an Atlas that both carry concepts and no labels at all:
+    # the comparison has nothing to inspect, so it must refuse rather than
+    # report a vacuous pass.
+    suite.publisher_path.write_text(
+        "\n".join(
+            [
+                f"@prefix skos: <{SKOS}> .",
+                f"<{SCHEME}> a skos:ConceptScheme .",
+                f"<{EX}c1> a skos:Concept ; skos:inScheme <{SCHEME}> .",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    suite.pin_input("example.ttl")
+    suite.write_pack_lines(
+        [line for line in atlas_pack_lines() if "Label" not in line and "literalForm" not in line]
+    )
+    check = result(suite.run(), "label-fidelity")
     assert not check.passed
     assert any("cannot pass" in text for text in check.failures)
 

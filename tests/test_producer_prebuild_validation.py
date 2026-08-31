@@ -531,22 +531,23 @@ def test_prebuild_refuses_duplicate_resource_iris_in_seconds(
         generator.validate_prebuild_loaded_releases((releases[0], duplicate))
 
 
-def test_prebuild_refuses_mapping_pack_partitioning_in_seconds(
+def test_prebuild_refuses_an_unbucketed_large_release_in_seconds(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_synthetic_release_schemes(monkeypatch)
     releases = _synthetic_releases(tmp_path)
     mapping_release = _synthetic_mapping_release(tmp_path, releases)
-    original_partition = generator._release_pack_partition
 
-    def legacy_partition(plan, subject):
-        if plan.kind == "mapping":
-            return "0"
-        return original_partition(plan, subject)
+    def never_partition(plan, subject):
+        return None
 
-    monkeypatch.setattr(generator, "_release_pack_partition", legacy_partition)
-    with pytest.raises(ValueError, match="must not use a source pack partition"):
+    # A release over the threshold that refuses to bucket is the failure that
+    # matters now: it writes one pack the binding's size ceiling rejects, and
+    # the independent validator then cannot load the distribution at all.
+    monkeypatch.setattr(generator, "_release_pack_partition", never_partition)
+    monkeypatch.setattr(generator, "_PACK_LARGE_RELEASE_RESOURCE_THRESHOLD", 1)
+    with pytest.raises(ValueError, match="must bucket its pack"):
         generator.validate_prebuild_loaded_releases(releases, (mapping_release,))
 
 
@@ -729,6 +730,7 @@ def real_fast_lcsh_s27_inputs() -> tuple[
     return fast_release, lc_release, lcsh_source_release
 
 
+@pytest.mark.slow
 def test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set(
     real_fast_lcsh_s27_inputs: tuple[
         RegistryMappingRelease,
@@ -769,6 +771,7 @@ def test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set(
     assert len(reconciled_fast.mappings) == 427_693
 
 
+@pytest.mark.slow
 def test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope(
     real_fast_lcsh_s27_inputs: tuple[
         RegistryMappingRelease,
@@ -823,6 +826,7 @@ def test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope
     assert base_alignments.FAST_LCSH_S27_REFUSAL_COUNT == 174_766
 
 
+@pytest.mark.slow
 def test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build(
     real_fast_lcsh_s27_inputs: tuple[
         RegistryMappingRelease,
@@ -903,6 +907,7 @@ def test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other(
     assert generator._reconcile_fast_lcsh_s27_mapping_conflicts((unrelated,)) == (unrelated,)
 
 
+@pytest.mark.slow
 def test_fast_see_also_has_no_thesaurus_related_eligible_pairs() -> None:
     source_root = bulk_alignments.DEFAULT_SOURCE_ROOT
     source = bulk_alignments._fast_bulk_input(source_root)
@@ -965,6 +970,7 @@ def test_fast_see_also_has_no_thesaurus_related_eligible_pairs() -> None:
     )
 
 
+@pytest.mark.slow
 def test_frozen_gemet_eurovoc_s46_refusals_match_the_real_validator() -> None:
     source_root = subject_alignments.DEFAULT_SOURCE_ROOT
     if not (source_root / gemet.GEMET_ALIGNMENT_FILENAME).is_file():
@@ -999,6 +1005,7 @@ def test_frozen_gemet_eurovoc_s46_refusals_match_the_real_validator() -> None:
     generator.ATLAS_VALIDATE._check_skos_integrity(admitted_relations)
 
 
+@pytest.mark.slow
 def test_frozen_umthes_s27_transformations_match_the_real_validator() -> None:
     source_root = subject_alignments.DEFAULT_SOURCE_ROOT
     if not (source_root / subject_alignments.umthes.UMTHES_CAPTURE_FILENAME).is_file():
@@ -1056,6 +1063,76 @@ def test_deep_prebuild_runs_compiled_output_validation(complete_prebuild) -> Non
     )
     assert validation.deep_compiled_output is not None
     assert validation.deep_compiled_output["status"] == "passed"
+
+
+def test_prebuild_accepts_the_cfr_part_to_subject_crossing_without_a_build() -> None:
+    """REF-047's cross-ring carrier, proved admissible in seconds.
+
+    A full build takes hours, so nothing else in the suite would catch a
+    cross-ring assertion the producer refuses until a release run failed on
+    it. This loads the two real releases the crossing spans and runs the whole
+    prebuild: endpoint ring agreement, the closed cross-ring predicate matrix,
+    release ownership of every assertion, and the compiled row counts.
+    """
+
+    releases = generator.load_releases(
+        frozenset(
+            {
+                "cfr-subject-index-parts-2026-08-20",
+                "federal-register-api-topics-2026-08-03",
+            }
+        )
+    )
+    started_at = time.perf_counter()
+
+    validation = generator.validate_prebuild_loaded_releases(releases)
+
+    assert time.perf_counter() - started_at < 60
+    counts = validation.compiled_rows.expected_counts
+    assert counts["crossRingRelationAssertions"] == 31_685
+    assert counts["mappingAssertions"] == 0
+    assert counts["resources"] == 9_468
+    # 8,424 CFR parts + 1,044 Federal Register topics; the topics release owns
+    # its own 1,428 native relations and the crossing owns none.
+    assert counts["nativeRelationAssertions"] == 1_428
+    assert counts["relationAssertions"] == counts["evidenceBindings"] == 33_113
+
+
+def test_prebuild_refuses_a_cfr_part_subject_link_that_leaves_the_admitted_cell() -> None:
+    """The cross-ring predicate gate is what admits this crossing, not prose.
+
+    `atlas:hasIndexedSubject` is the only predicate Atlas 3.1's closed matrix
+    allows from legalIdentity to subject. Swapping in the entity-ring
+    predicate that carries REF-037's other crossing must fail before anything
+    is written.
+    """
+
+    releases = generator.load_releases(
+        frozenset(
+            {
+                "cfr-subject-index-parts-2026-08-20",
+                "federal-register-api-topics-2026-08-03",
+            }
+        )
+    )
+    carrier = next(
+        release for release in releases if release.spec.key == "cfr-subject-index-parts-2026-08-20"
+    )
+    first, *rest = carrier.cross_ring_relations
+    dirty = dataclasses.replace(
+        carrier,
+        cross_ring_relations=(
+            dataclasses.replace(
+                first,
+                predicate="https://refspec.org/ns/atlas/v3#referencesLegalIdentity",
+            ),
+            *rest,
+        ),
+    )
+    mutated = tuple(dirty if release is carrier else release for release in releases)
+
+    with pytest.raises(ValueError, match="cross-ring"):
+        generator.validate_prebuild_loaded_releases(mutated)
 
 
 @pytest.mark.skipif(

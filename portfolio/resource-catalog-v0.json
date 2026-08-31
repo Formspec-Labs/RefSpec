@@ -1,6 +1,6 @@
 {
-  "catalogDigest": "sha256:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
-  "catalogId": "urn:ref:resource-catalog:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
+  "catalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
+  "catalogId": "urn:ref:resource-catalog:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
   "recordedAt": "2026-08-06T18:42:39Z",
@@ -108,6 +108,19 @@
       "sourceAvailability": "partial",
       "title": "CFR List of Subjects assignments",
       "versionRepresentation": "Pin CFR title, part, edition or point-in-time date, source artifact, and digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The publisher revises the fifty static pages annually with no revision token in the URL, hand-maintains their markup, and lists three parts twice; every page is pinned by digest and byte length.",
+      "identifierRepresentation": "Each CFR part carries the publisher's own citation as its notation. Index terms stay publisher strings and are linked to held Federal Register topic concepts only on exact case-folded preferred-label match; no concept identity is minted.",
+      "officialLocator": "https://www.archives.gov/federal-register/cfr/subjects",
+      "resourceId": "cfr-subject-index",
+      "resourceKind": "structuralSchema",
+      "sourceAvailability": "available",
+      "title": "CFR List of Subjects, arranged by CFR title and part",
+      "versionRepresentation": "Pin each of the fifty title pages by exact digest and byte length; the publisher's own revision statement travels in release metadata."
     },
     {
       "consumability": "inventoryOnly",
@@ -1892,8 +1905,8 @@
   ],
   "summary": {
     "evidenceOnlyCount": 7,
-    "inventoryOnlyCount": 105,
-    "resourceCount": 115,
+    "inventoryOnlyCount": 106,
+    "resourceCount": 116,
     "verifiedDistributionCount": 5,
     "verifiedResourceCount": 3
   }

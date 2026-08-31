@@ -120,9 +120,9 @@
                 }
               },
               "required": [
-                            "sourceRecord",
-                            "status"
-                          ],
+                "sourceRecord",
+                "status"
+              ],
               "type": "object"
             },
             "type": "array",
@@ -184,12 +184,16 @@
     },
     "version": {
       "const": "3.1"
+    },
+    "assertedInventoryDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
     }
   },
   "required": [
     "type",
     "version",
     "distributionId",
+    "assertedInventoryDigest",
     "inputs",
     "totals"
   ],

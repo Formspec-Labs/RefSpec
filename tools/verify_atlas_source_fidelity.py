@@ -823,9 +823,15 @@ class RdfSourcePolicy:
     reification_weight_predicate: str | None = None
     reification_weight_value: LiteralValue | None = None
     relation_predicate_inverse: tuple[tuple[str, str], ...] = ()
+    #: (Atlas type IRI, publisher type IRI) pairs for units whose resources the
+    #: Atlas types differently than the publisher does -- a microthesaurus is a
+    #: scheme to its publisher and a concept of the Atlas's own microthesauri
+    #: scheme. Declared per spec so the reversal is executable, never assumed.
+    member_type_inverse: tuple[tuple[str, str], ...] = ()
     relation_scope: str = "member-subject"
     source_wide_literal_predicates: tuple[str, ...] = ()
     record_digest_input_paths: tuple[str, ...] = ()
+    record_digest_is_native_payload_digest: bool = False
     record_locator: str | None = None
     record_input_path_by_resource: tuple[tuple[str, str], ...] = ()
     record_locator_by_resource: tuple[tuple[str, str], ...] = ()
@@ -1337,7 +1343,7 @@ _ENGLISH_LANGUAGE_EXCLUSION = DeclaredLanguageExclusion(
         "publisher literals outside that family are deliberately not represented"
     ),
     payload_json=_ENGLISH_LANGUAGE_EXCLUSION_PAYLOAD,
-    payload_sha256=("sha256:8c7ffd458cef9b182d86b1b3e9626cc0d38d5db6eb0d8ba1ef59e63e024082bb"),
+    payload_sha256=("sha256:18151c979231d9d8d68b41b89a27de7b1a39887826c013c6838330e82b61359f"),
 )
 _ENGLISH_LANGUAGE_EXCLUSION_SOURCE_NAMES = frozenset(
     _ENGLISH_LANGUAGE_EXCLUSION.payload().get("countsBySourceAndLanguage", {})
@@ -2131,17 +2137,40 @@ def _select_publisher_view(view: PublisherView, subset: str) -> PublisherView:
     """Apply one narrow, source-declared partition selector to publisher claims."""
     if subset == "all":
         return view
-    if subset not in {"eurovoc-main", "eurovoc-domains"}:
+    if subset not in {"eurovoc-main", "eurovoc-domains", "eurovoc-microthesauri"}:
         raise ValueError(f"unsupported publisher subset selector: {subset}")
 
-    domain_scheme = "http://eurovoc.europa.eu/domains"
-    domain_concepts = frozenset(subject for subject, target in view.memberships if target == domain_scheme)
-    concepts = view.concepts - domain_concepts if subset == "eurovoc-main" else domain_concepts
-    schemes = view.schemes - {domain_scheme} if subset == "eurovoc-main" else frozenset({domain_scheme})
-    relations = frozenset(row for row in view.relations if row[0] in concepts)
-    memberships = frozenset(row for row in view.memberships if row[0] in concepts)
-    top_concept_of = frozenset(row for row in view.top_concept_of if row[0] in concepts)
-    has_top_concept = frozenset(row for row in view.has_top_concept if row[1] in concepts)
+    if subset == "eurovoc-microthesauri":
+        # A microthesaurus is a concept scheme carrying a four-digit numeric
+        # publisher notation -- stated here from the publisher's own notations
+        # rather than read from the producer. The main thesaurus scheme and
+        # the domains grouping scheme carry none and fall out by construction.
+        #
+        # This partition is the inverse shape of the two below: the unit's
+        # resources are the SCHEMES, and the concepts they contain belong to
+        # `eurovoc-4.24`. So memberships are kept by the scheme they point at,
+        # not by their subject.
+        microthesauri = frozenset(
+            scheme
+            for scheme in view.schemes
+            for notation in view.notations.get(scheme, ())
+            if len(notation.value) == 4 and notation.value.isdigit()
+        )
+        concepts = microthesauri
+        schemes = microthesauri
+        relations = frozenset()
+        memberships = frozenset(row for row in view.memberships if row[1] in microthesauri)
+        top_concept_of = frozenset()
+        has_top_concept = frozenset()
+    else:
+        domain_scheme = "http://eurovoc.europa.eu/domains"
+        domain_concepts = frozenset(subject for subject, target in view.memberships if target == domain_scheme)
+        concepts = view.concepts - domain_concepts if subset == "eurovoc-main" else domain_concepts
+        schemes = view.schemes - {domain_scheme} if subset == "eurovoc-main" else frozenset({domain_scheme})
+        relations = frozenset(row for row in view.relations if row[0] in concepts)
+        memberships = frozenset(row for row in view.memberships if row[0] in concepts)
+        top_concept_of = frozenset(row for row in view.top_concept_of if row[0] in concepts)
+        has_top_concept = frozenset(row for row in view.has_top_concept if row[1] in concepts)
     source_scheme_references = {
         *(scheme for _, scheme in memberships),
         *(scheme for _, scheme in top_concept_of),
@@ -2323,6 +2352,7 @@ FR_AGENCIES_ROSTER_JSON_READER = "fr-agencies-roster-json-v1/1.0"
 FCC_BUREAUS_OFFICES_HTML_READER = "fcc-bureaus-offices-html-v1/1.0"
 FH_COMPLETE_ROSTER_JSON_READER = "fh-complete-roster-json-v1/1.0"
 ECFR_AGENCIES_JSON_READER = "ecfr-agencies-json-v1/1.0"
+CFR_SUBJECT_INDEX_HTML_READER = "cfr-subject-index-html-v1/1.0"
 REGULATIONS_GOV_AGENCIES_JSON_READER = (
     "regulations-gov-agencies-json-v1/1.0"
 )
@@ -2338,6 +2368,7 @@ NRC_APS_ACCESSION_NUMBER_PDF_READER = "nrc-aps-accession-number-pdf-v1/1.0"
 FAST_BOOK_FUND_GROUPS_OOXML_READER = "fast-book-fund-groups-ooxml-v1/1.0"
 SPEC_SCOPED_RECORD_READERS = frozenset(
     {
+        CFR_SUBJECT_INDEX_HTML_READER,
         CSV_RECORD_SELECTOR_READER,
         ECFR_AGENCIES_JSON_READER,
         REGULATIONS_GOV_AGENCIES_JSON_READER,
@@ -4836,6 +4867,440 @@ def _read_ecfr_agencies_capture(
     expected = (153, 316, 487, 315, 49, 163, 446)
     if observed != expected:
         raise ValueError(f"{spec.name} census differs: expected {expected!r}, observed {observed!r}")
+    return _api_capture_view(records, spec, payloads)
+
+
+# --- Office of the Federal Register, CFR List of Subjects -------------------
+# Fifty publisher pages, one per CFR title, each a single definition list whose
+# <dt> carries a part citation and heading and whose following <dd> elements
+# carry that part's index terms.
+#
+# The producer reads these same bytes with regular expressions. A second regex
+# reader would inherit a regex reader's blind spot -- a run of text that matches
+# is accepted wherever it sits, because the pattern never had an opinion about
+# which element the text was in -- and the two would agree by construction on
+# exactly the pages where both are wrong. This reader is event-driven instead:
+# html.parser reports every start and end tag, so an element boundary is a fact
+# the reader observes rather than something a pattern happens to span. That is
+# what makes a heading the publisher typed as <dd>, a tag name the publisher
+# misspelled, and an element the publisher never closed visible here.
+#
+# Nothing below is imported from, copied from, or shaped after
+# refspec.registry.cfr_list_of_subjects.
+
+_CFR_SUBJECT_INDEX_PAGE_ROLE = "publisherSubjectIndexPage"
+_CFR_SUBJECT_INDEX_WITNESS_ROLE = "targetVocabularyWitness"
+_CFR_SUBJECT_INDEX_URL = "https://www.archives.gov/federal-register/cfr/subject-title-{title:02d}.html"
+_CFR_SUBJECT_INDEX_RESERVED_TITLES = frozenset({35})
+_CFR_PART_KEYWORDS = frozenset({"Part", "Oart"})
+_CFR_CITATION_SEPARATORS = "_—"
+_CFR_LEAKED_MARKUP_PREFIX = "strong>"
+_ATLAS_HAS_INDEXED_SUBJECT = f"{ATLAS}hasIndexedSubject"
+_FEDERAL_REGISTER_TOPICS_RECORDED_AT = "2026-08-03T00:00:00Z"
+
+# What this reader itself finds in the pinned bytes. Publisher drift fails the
+# reader here, before any Atlas comparison runs, so a changed page can never be
+# absorbed silently into a passing verdict.
+#
+# These are deliberately not the release's counts. This reading finds two more
+# parts and two more assignments than the shipped release, because the release
+# lost 42 CFR 59 and 45 CFR 2532 to an irregular element sitting between two
+# headings. Bending these constants to agree would be the one thing an
+# independent reader must never do. The divergence is frozen and named in
+# tests/test_verify_cfr_subject_index_reader.py, so it fails that suite the
+# moment it changes in either direction.
+_CFR_SUBJECT_INDEX_CENSUS: Mapping[str, int] = {
+    "pages": 50,
+    "titlesWithParts": 49,
+    "partEntries": 8_428,
+    "distinctParts": 8_425,
+    "termAssignments": 32_202,
+    "distinctTermAssignments": 32_188,
+    "distinctTerms": 1_068,
+}
+# Publisher irregularities, counted rather than skipped. Each one is a place the
+# publisher's own markup departs from the pattern the rest of the page follows;
+# an unlisted one, or a different count for a listed one, fails the reader.
+_CFR_SUBJECT_INDEX_IRREGULARITIES: Mapping[str, int] = {
+    # A part heading the publisher typed as <dd> instead of <dt>. Element type
+    # is the only thing that distinguishes it from a term, so a reader that does
+    # not track element boundaries drops the part and hands its terms to the
+    # part above.
+    "headingTypedAsDefinition": 32,
+    # "2 CFR 401_..." and twelve others: the word "Part" is simply missing.
+    "missingPartKeyword": 13,
+    # "48 CFR Oart 739_...": a typo for "Part".
+    "misspelledPartKeyword": 1,
+    # "30 CFR Part 285—...": an em dash where every other heading has "_".
+    "emDashSeparator": 1,
+    # "<dt>strong&gt;48 CFR Part 2952_...": an escaped tag fragment leaked into
+    # the heading text.
+    "leakedStrongFragment": 1,
+    # A <dt> holding a heading whose citation the publisher lost. It is a part
+    # boundary with no part identity, so it ends the preceding part instead of
+    # extending it.
+    "headingWithoutCitation": 2,
+    # Term assignments that follow one of those citation-less headings and
+    # therefore belong to no identifiable CFR part.
+    "unattributedTermAssignment": 6,
+    # "<dt>&nbsp;</dt>" and four other elements with no text at all.
+    "emptyElement": 5,
+    # "<ddgrant programs=\"\" programs-social=\"\">": a definition element whose
+    # tag name the publisher mangled. It is not a <dd>, so its position holds no
+    # term.
+    "malformedListElement": 1,
+    # An element the publisher never closed, ended here by the next element.
+    "implicitlyClosedElement": 0,
+}
+# The publisher lists these three parts twice. Their term lists merge in
+# publisher order; nothing is dropped and no second identity is minted.
+_CFR_SUBJECT_INDEX_DUPLICATE_PARTS: tuple[tuple[int, str], ...] = (
+    (7, "1000"),
+    (29, "4231"),
+    (48, "642"),
+)
+# Term resolution against the held federal-register-api-topics concepts, by
+# exact case-folded preferred label. An unresolved term is counted and left
+# verbatim on its part; it is never minted as a concept.
+_CFR_SUBJECT_INDEX_RESOLUTION: Mapping[str, int] = {
+    "resolvedTerms": 863,
+    "unresolvedTerms": 205,
+    "partSubjectRelations": 31_685,
+}
+
+
+class _CfrSubjectIndexParser(HTMLParser):
+    """Stream one CFR List of Subjects page, keeping element boundaries visible.
+
+    The parser reports the definition list as an ordered run of ``(tag, text)``
+    items and counts the markup irregularities it had to survive. It makes no
+    decision about what a heading is: that is the caller's grammar, applied to
+    text this parser has already attributed to one exact element.
+    """
+
+    def __init__(self, cfr_title: int) -> None:
+        super().__init__(convert_charrefs=True)
+        self.cfr_title = cfr_title
+        self.items: list[tuple[str, str]] = []
+        self.irregularities: Counter[str] = Counter()
+        self._list_depth = 0
+        self._lists = 0
+        self._open: str | None = None
+        self._buffer: list[str] = []
+
+    def _close_item(self) -> None:
+        if self._open is None:
+            return
+        self.items.append((self._open, " ".join("".join(self._buffer).split())))
+        self._open = None
+        self._buffer = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "dl":
+            self._list_depth += 1
+            self._lists += 1
+            if self._list_depth > 1:
+                raise ValueError(f"CFR title {self.cfr_title} nests one definition list inside another")
+            return
+        if self._list_depth == 0:
+            if tag in {"dt", "dd"}:
+                raise ValueError(f"CFR title {self.cfr_title} places <{tag}> outside any definition list")
+            return
+        if tag in {"dt", "dd"}:
+            if self._open is not None:
+                self.irregularities["implicitlyClosedElement"] += 1
+            self._close_item()
+            self._open = tag
+            self._buffer = []
+            return
+        if tag.startswith(("dd", "dt")):
+            # Not a definition element: a tag name the publisher mangled. A
+            # pattern reader sees "<dd" and takes the position; this one does
+            # not, and records the defect where it happened.
+            self.irregularities["malformedListElement"] += 1
+        if self._open is not None:
+            # An element boundary separates words. "SO<sub>2</sub>" is read as
+            # the publisher renders it, two runs of text, not "SO2".
+            self._buffer.append(" ")
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self._list_depth and self._open is not None:
+            self._buffer.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "dl":
+            if self._list_depth == 0:
+                raise ValueError(f"CFR title {self.cfr_title} closes a definition list it never opened")
+            self._close_item()
+            self._list_depth -= 1
+            return
+        if self._list_depth == 0:
+            return
+        if tag in {"dt", "dd"}:
+            if self._open is None:
+                raise ValueError(f"CFR title {self.cfr_title} closes </{tag}> with no element open")
+            if self._open != tag:
+                raise ValueError(f"CFR title {self.cfr_title} closes </{tag}> while <{self._open}> is open")
+            self._close_item()
+            return
+        if self._open is not None:
+            self._buffer.append(" ")
+
+    def handle_data(self, data: str) -> None:
+        if self._list_depth and self._open is not None:
+            self._buffer.append(data)
+
+    def finish(self) -> None:
+        self.close()
+        if self._open is not None:
+            raise ValueError(f"CFR title {self.cfr_title} ends with <{self._open}> still open")
+        if self._list_depth != 0:
+            raise ValueError(f"CFR title {self.cfr_title} ends inside a definition list")
+        if self._lists != 1:
+            raise ValueError(f"CFR title {self.cfr_title} carries {self._lists} definition lists, expected one")
+
+
+def _cfr_publisher_text(value: str) -> str:
+    """Drop the one trailing full stop the publisher writes after a phrase."""
+    return value.removesuffix(".")
+
+
+def _cfr_part_citation(text: str, cfr_title: int) -> tuple[str, str, Counter[str]] | None:
+    """Split one element's text into a CFR part number and its heading.
+
+    Returns ``None`` when the text is not a part citation at all, so the caller
+    can decide what the element is from its type. Irregularities the publisher
+    left in an otherwise readable citation are counted, never waved through.
+    """
+    irregularities: Counter[str] = Counter()
+    remainder = text
+    if remainder.startswith(_CFR_LEAKED_MARKUP_PREFIX):
+        irregularities["leakedStrongFragment"] += 1
+        remainder = remainder[len(_CFR_LEAKED_MARKUP_PREFIX) :]
+    cut = min((remainder.find(mark) for mark in _CFR_CITATION_SEPARATORS if mark in remainder), default=-1)
+    if cut < 0:
+        return None
+    if remainder[cut] != "_":
+        irregularities["emDashSeparator"] += 1
+    citation = remainder[:cut].split()
+    heading = _cfr_publisher_text(remainder[cut + 1 :].strip())
+    if len(citation) < 3 or citation[0] != str(cfr_title) or citation[1] != "CFR":
+        return None
+    words = citation[2:]
+    if words[0] in _CFR_PART_KEYWORDS:
+        if words[0] != "Part":
+            irregularities["misspelledPartKeyword"] += 1
+        words = words[1:]
+    else:
+        irregularities["missingPartKeyword"] += 1
+    if len(words) != 1:
+        return None
+    part = words[0]
+    if not part[:1].isdigit() or not part.replace("-", "").replace(".", "").isalnum():
+        return None
+    if not heading:
+        return None
+    return part, heading, irregularities
+
+
+def _federal_register_topic_identities(payload: bytes, label: str) -> dict[str, tuple[str, str]]:
+    """Index the publisher's own ``thesaurus`` collection by case-folded label.
+
+    Atlas adopts only that collection as ``federal-register-api-topics``; the
+    ``ad_hoc`` collection is document fragments the API harvested out of rule
+    text. Those 1,044 rows are therefore the only concept identities a CFR part
+    can be linked to. Identity is re-derived here from the same pinned bytes
+    with the same source-local UUIDv7 spelling the topics comparison uses, so
+    agreement is derived, not asserted.
+    """
+    document = _json_without_duplicate_keys(payload, label)
+    if not isinstance(document, Mapping):
+        raise ValueError(f"{label} must be a JSON object")
+    results = document.get("results")
+    if not isinstance(results, Mapping):
+        raise ValueError(f"{label}.results must be an object")
+    rows = results.get("thesaurus")
+    if not isinstance(rows, list):
+        raise ValueError(f"{label}.results.thesaurus must be an array")
+    index: dict[str, tuple[str, str]] = {}
+    for ordinal, row in enumerate(rows):
+        if not isinstance(row, Mapping):
+            raise ValueError(f"{label}.results.thesaurus[{ordinal}] must be an object")
+        name = _required_text(row.get("name"), f"{label}.results.thesaurus[{ordinal}].name")
+        digest = _canonical_json_source_digest(
+            {
+                "collection": "thesaurus",
+                "sourceOrdinal": ordinal,
+                "record": row,
+            }
+        )
+        resource = _source_local_resource_iri(
+            "federal-register-api",
+            _FEDERAL_REGISTER_TOPICS_RECORDED_AT,
+            _FEDERAL_REGISTER_TOPICS_URL,
+            f"thesaurus:{ordinal}:{digest}",
+        )
+        folded = name.casefold()
+        if folded in index:
+            raise ValueError(f"{label} preferred label is ambiguous when case-folded: {folded!r}")
+        index[folded] = (resource, name)
+    return index
+
+
+def _read_cfr_subject_index(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Reconstruct every CFR part and index term from the fifty pinned pages."""
+
+    pages = [(pin, payloads[pin]) for pin in spec.inputs if pin.role == _CFR_SUBJECT_INDEX_PAGE_ROLE]
+    _witness_pin, witness_payload = _pin_with_role(spec, payloads, _CFR_SUBJECT_INDEX_WITNESS_ROLE)
+    topics = _federal_register_topic_identities(witness_payload, f"{spec.name} topics witness")
+
+    irregularities: Counter[str] = Counter(dict.fromkeys(_CFR_SUBJECT_INDEX_IRREGULARITIES, 0))
+    entries: list[tuple[int, str, str, list[str]]] = []
+    for pin, payload in pages:
+        cfr_title = int(pin.path.rsplit("subject-title-", 1)[1].removesuffix(".html"))
+        if pin.source_iri != _CFR_SUBJECT_INDEX_URL.format(title=cfr_title):
+            raise ValueError(f"{spec.name} page {pin.path} does not pin its own publisher URL")
+        parser = _CfrSubjectIndexParser(cfr_title)
+        parser.feed(payload.decode("utf-8"))
+        parser.finish()
+        irregularities.update(parser.irregularities)
+        open_part: list[str] | None = None
+        for tag, text in parser.items:
+            if not text:
+                irregularities["emptyElement"] += 1
+                continue
+            citation = _cfr_part_citation(text, cfr_title)
+            if citation is not None:
+                part, heading, defects = citation
+                irregularities.update(defects)
+                if tag == "dd":
+                    irregularities["headingTypedAsDefinition"] += 1
+                open_part = []
+                entries.append((cfr_title, part, heading, open_part))
+                continue
+            if tag == "dt":
+                # A heading position with no citation in it. It ends the part
+                # above rather than extending it: the publisher started a new
+                # group here, and the terms below belong to whatever part it
+                # failed to name.
+                irregularities["headingWithoutCitation"] += 1
+                open_part = None
+                continue
+            if open_part is None:
+                irregularities["unattributedTermAssignment"] += 1
+                continue
+            open_part.append(_cfr_publisher_text(text))
+
+    order: list[tuple[int, str]] = []
+    headings: dict[tuple[int, str], str] = {}
+    terms_by_part: dict[tuple[int, str], list[str]] = {}
+    duplicates: list[tuple[int, str]] = []
+    assignments = 0
+    for cfr_title, part, heading, terms in entries:
+        key = (cfr_title, part)
+        assignments += len(terms)
+        if key not in terms_by_part:
+            order.append(key)
+            headings[key] = heading
+            terms_by_part[key] = []
+        else:
+            duplicates.append(key)
+            if headings[key] != heading:
+                raise ValueError(f"{spec.name} lists {key!r} under two different headings")
+        for term in terms:
+            if term not in terms_by_part[key]:
+                terms_by_part[key].append(term)
+
+    distinct_terms = {term for terms in terms_by_part.values() for term in terms}
+    census = {
+        "pages": len(pages),
+        "titlesWithParts": len({cfr_title for cfr_title, _part in order}),
+        "partEntries": len(entries),
+        "distinctParts": len(order),
+        "termAssignments": assignments,
+        "distinctTermAssignments": sum(len(terms) for terms in terms_by_part.values()),
+        "distinctTerms": len(distinct_terms),
+    }
+    if census != dict(_CFR_SUBJECT_INDEX_CENSUS):
+        raise ValueError(f"{spec.name} census differs: expected {dict(_CFR_SUBJECT_INDEX_CENSUS)}, observed {census}")
+    if dict(irregularities) != dict(_CFR_SUBJECT_INDEX_IRREGULARITIES):
+        raise ValueError(
+            f"{spec.name} publisher irregularities differ: "
+            f"expected {dict(_CFR_SUBJECT_INDEX_IRREGULARITIES)}, observed {dict(irregularities)}"
+        )
+    if tuple(sorted(duplicates)) != _CFR_SUBJECT_INDEX_DUPLICATE_PARTS:
+        raise ValueError(f"{spec.name} duplicate part listings differ: {sorted(duplicates)!r}")
+    listed_titles = {cfr_title for cfr_title, _part in order}
+    reserved_with_parts = sorted(_CFR_SUBJECT_INDEX_RESERVED_TITLES & listed_titles)
+    if reserved_with_parts:
+        raise ValueError(f"{spec.name} lists parts under reserved CFR titles {reserved_with_parts}")
+
+    records: list[_ApiCaptureRecord] = []
+    resolved_terms: set[str] = set()
+    unresolved_terms: set[str] = set()
+    relation_count = 0
+    for key in order:
+        cfr_title, part = key
+        terms = terms_by_part[key]
+        heading = headings[key]
+        citation = f"{cfr_title} CFR Part {part}"
+        artifact = _CFR_SUBJECT_INDEX_URL.format(title=cfr_title)
+        unresolved_here = [term for term in terms if term.casefold() not in topics]
+        native: dict[str, Any] = {
+            "cfrTitle": cfr_title,
+            "cfrPart": part,
+            "cfrCitation": citation,
+            "partHeading": heading,
+            "publisherIndexTerms": list(terms),
+            "publisherIndexTermCount": len(terms),
+            "sourceArtifact": artifact,
+        }
+        if unresolved_here:
+            native["unresolvedIndexTerms"] = unresolved_here
+            native["unresolvedIndexTermCount"] = len(unresolved_here)
+        if key in _CFR_SUBJECT_INDEX_DUPLICATE_PARTS:
+            native["publisherListedPartTwice"] = True
+        relations: list[tuple[str, str]] = []
+        for term in terms:
+            resolution = topics.get(term.casefold())
+            if resolution is None:
+                unresolved_terms.add(term)
+                continue
+            resolved_terms.add(term)
+            relation_count += 1
+            relations.append((_ATLAS_HAS_INDEXED_SUBJECT, resolution[0]))
+        records.append(
+            _ApiCaptureRecord(
+                resource=f"urn:ref:cfr-part:{cfr_title}:{urllib.parse.quote(part, safe='')}",
+                preferred_label=heading,
+                notations=(citation,),
+                source_locator=artifact + "#" + urllib.parse.quote(citation, safe=""),
+                source_digest=_canonical_json_source_digest(
+                    {
+                        "cfrPart": part,
+                        "cfrTitle": cfr_title,
+                        "partHeading": heading,
+                        "terms": list(terms),
+                    }
+                ),
+                native_payload=native,
+                relations=tuple(relations),
+            )
+        )
+
+    resolution = {
+        "resolvedTerms": len(resolved_terms),
+        "unresolvedTerms": len(unresolved_terms),
+        "partSubjectRelations": relation_count,
+    }
+    if resolution != dict(_CFR_SUBJECT_INDEX_RESOLUTION):
+        raise ValueError(
+            f"{spec.name} term resolution differs: "
+            f"expected {dict(_CFR_SUBJECT_INDEX_RESOLUTION)}, observed {resolution}"
+        )
     return _api_capture_view(records, spec, payloads)
 
 
@@ -8323,9 +8788,11 @@ def _rdf_source_policy(
     reification_weight_predicate: str | None = None,
     reification_weight_value: LiteralValue | None = None,
     relation_predicate_inverse: tuple[tuple[str, str], ...] = (),
+    member_type_inverse: tuple[tuple[str, str], ...] = (),
     relation_scope: str = "member-subject",
     source_wide_literal_predicates: tuple[str, ...] = (),
     record_digest_input_paths: tuple[str, ...] = (),
+    record_digest_is_native_payload_digest: bool = False,
     record_locator: str | None = None,
     record_input_path_by_resource: tuple[tuple[str, str], ...] = (),
     record_locator_by_resource: tuple[tuple[str, str], ...] = (),
@@ -8344,9 +8811,11 @@ def _rdf_source_policy(
         reification_weight_predicate=reification_weight_predicate,
         reification_weight_value=reification_weight_value,
         relation_predicate_inverse=relation_predicate_inverse,
+        member_type_inverse=member_type_inverse,
         relation_scope=relation_scope,
         source_wide_literal_predicates=source_wide_literal_predicates,
         record_digest_input_paths=record_digest_input_paths,
+        record_digest_is_native_payload_digest=(record_digest_is_native_payload_digest),
         record_locator=record_locator,
         record_input_path_by_resource=record_input_path_by_resource,
         record_locator_by_resource=record_locator_by_resource,
@@ -13003,6 +13472,7 @@ _PUBLISHER_READERS: Mapping[
     str,
     Callable[[SourceSpec, Mapping[SourcePin, bytes]], PublisherView],
 ] = {
+    CFR_SUBJECT_INDEX_HTML_READER: _read_cfr_subject_index,
     ECFR_AGENCIES_JSON_READER: _read_ecfr_agencies_capture,
     REGULATIONS_GOV_AGENCIES_JSON_READER: (
         _read_regulations_gov_agencies_capture
@@ -17931,6 +18401,443 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
     ),
     SourceSpec(
+        name="cfr-subject-index-parts-2026-08-20",
+        kind="vocabulary",
+        release_keys=("cfr-subject-index-parts-2026-08-20",),
+        inputs=(
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-01.html",
+                sha256="sha256:ca142b0353700443034183b3843b12662d9fae04263c0255d8dae4ea79a283a4",
+                byte_length=48_819,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-01.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-02.html",
+                sha256="sha256:41e7e65685771813ac0a2e0178b77dae537a6f6442006b8d880a4829cbd8a94b",
+                byte_length=73_358,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-02.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-03.html",
+                sha256="sha256:6766fc8439d225c4caa69165126d929522a4b15bd4e47d063ee480a7c7ec01ae",
+                byte_length=44_301,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-03.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-04.html",
+                sha256="sha256:4cd5ab085be506c2a784e51153127ff12cd2a9606a928169502638254627d8e3",
+                byte_length=46_490,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-04.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-05.html",
+                sha256="sha256:2351e21701bede06a4d48078920c8a0f70e586bdb63a82d5172bc4979e49c03d",
+                byte_length=99_358,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-05.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-06.html",
+                sha256="sha256:99af4c96e6edffcb5fafb7f001fa524bfbcc24e27944a4389564070f7b4ff5a0",
+                byte_length=48_801,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-06.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-07.html",
+                sha256="sha256:a617e770552103f7a0457fae26e74a501ddab518307f6f489472f31aaec5fd63",
+                byte_length=164_244,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-07.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-08.html",
+                sha256="sha256:ad9ed40d041775a7c4bad8a77a59706c5f923b8cd66bf741c6c9edacb2c3eb0d",
+                byte_length=68_689,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-08.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-09.html",
+                sha256="sha256:1d010b14c7b2692b5081dcfbe9d614effa76f6f39db1dbff2fea3dadbe73fa91",
+                byte_length=73_319,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-09.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-10.html",
+                sha256="sha256:a229552584bf963223e4f31a52297d0c77d275e03b9ab054d598771eee185302",
+                byte_length=93_742,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-10.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-11.html",
+                sha256="sha256:897820b37b916c08dea346e7d4befac773c6bdffbb5d360150ea0f9c36d2f6f3",
+                byte_length=52_730,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-11.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-12.html",
+                sha256="sha256:1251cd6b88a191a39fd19d7d08cd67a76f6274f5f25c5bc8b7b2d533258f6ac5",
+                byte_length=135_821,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-12.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-13.html",
+                sha256="sha256:f2674fbf336d9ea60a098722efc88fcf131831888cf73fd896adef4b706537a9",
+                byte_length=55_954,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-13.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-14.html",
+                sha256="sha256:1d5f5a64ec265035243daf67085a41e104bd3cf845d096124fe00edb8a332b41",
+                byte_length=85_013,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-14.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-15.html",
+                sha256="sha256:e3449cf820d586d6eb9de638b9a1263de4df524e41c48fc8d4601716ef1e0a8e",
+                byte_length=77_751,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-15.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-16.html",
+                sha256="sha256:42ca1113ace56b3c8e26f78eca52b396318427a1ebf155f8b71c5a179aebbd4d",
+                byte_length=92_067,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-16.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-17.html",
+                sha256="sha256:ffcacd92f2e6fb8256293f3124cc090def752509c7adbe430158826030681dbd",
+                byte_length=68_849,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-17.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-18.html",
+                sha256="sha256:2b7f130184fe980bf28b8c56d20ddff6b929722ebf8df674cfc12fcae28a16a5",
+                byte_length=68_632,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-18.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-19.html",
+                sha256="sha256:ac1bf6d70081b32b42d7de39efec78d7e4cfd383b8a315b609fa932703a05c65",
+                byte_length=61_596,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-19.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-20.html",
+                sha256="sha256:c0b214f23cbbcb42c750d15253102f7a47bfc00331c23ce390ccf57c836bbf38",
+                byte_length=77_071,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-20.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-21.html",
+                sha256="sha256:7c98df4468a0f0f3cd3341e4479e893aaebccb31070f6a4eb01cd2cbd278a343",
+                byte_length=91_081,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-21.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-22.html",
+                sha256="sha256:2e942085731643fb55b5ad0298ba4b5c4ce698c3762821f56b2d0036bdcbe610",
+                byte_length=88_137,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-22.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-23.html",
+                sha256="sha256:aa06fb5cb15a9cc8fff5b0dac8417940d33e2ddf2c7c4728487f03328448613b",
+                byte_length=59_575,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-23.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-24.html",
+                sha256="sha256:55bee75a0e477fc2c6bd4acf8150d8dfc332afbe39a0ceda14dc345b1ffa3e92",
+                byte_length=88_972,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-24.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-25.html",
+                sha256="sha256:b65560d06c55b6c59a11a6f60c29f3e3b0eacbee058604696f7af7b93ccf92d3",
+                byte_length=73_779,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-25.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-26.html",
+                sha256="sha256:1c8ff3d7b2b02d094da405ea35b70c21bda6fb829be919ec31f9942f329f74cc",
+                byte_length=58_249,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-26.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-27.html",
+                sha256="sha256:d4d2f41edbd32d428e317950c502ff234ba7ea7e6e4dd6b79ec1d0408aadf8d3",
+                byte_length=57_878,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-27.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-28.html",
+                sha256="sha256:85174c2697fb0a64584b048551e90e2dd1c6cdef7ccf933f758273530d4d74bd",
+                byte_length=73_408,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-28.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-29.html",
+                sha256="sha256:d66bcf0f2bd02d49cb83289e03426bf385feefe988d13bc664c4baa4081ef784",
+                byte_length=117_895,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-29.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-30.html",
+                sha256="sha256:60c3f40c550af1d8a7113288975750abc1d69297c4e960df77a46edd27aa0d51",
+                byte_length=93_295,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-30.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-31.html",
+                sha256="sha256:c81105e9985acd0fee40107884824677199658c0f0f3ddbefe2a69079d1c4412",
+                byte_length=94_875,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-31.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-32.html",
+                sha256="sha256:c015a1335bbc7676f6dbcd5d422f46c26b5895e4f677ef6e61c4ec809d5d6ba6",
+                byte_length=92_267,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-32.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-33.html",
+                sha256="sha256:5594b47d044da778100bcda088d4ffdbae4f1ccd9dfafc50638242039949cea2",
+                byte_length=71_768,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-33.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-34.html",
+                sha256="sha256:348bc17e7c9d642cb5e2eb3c8acda08f995f90974fb28434554c60d27204ee87",
+                byte_length=72_018,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-34.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-35.html",
+                sha256="sha256:2ca3a9f45fea58a8a4e9d90e2aa9b285df343487d6d194255dbc9a390fdc782e",
+                byte_length=42_654,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-35.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-36.html",
+                sha256="sha256:a5260e38f186484dba952f38ed14d8ca3103ac2001e53e4adcb097fc864d7bf3",
+                byte_length=77_044,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-36.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-37.html",
+                sha256="sha256:17e0972baeff8e3d5af9d6ad0366f438cd774a986c550cb194b6820a20c5a254",
+                byte_length=54_533,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-37.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-38.html",
+                sha256="sha256:61e99960af89607ced15817148d9417c3e77595a58e5141c314077881adbf56d",
+                byte_length=62_645,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-38.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-39.html",
+                sha256="sha256:8df830ed9e33d2d07fa61f22beef43e18f6ed035cac8fced20b88cf8a0b3aea6",
+                byte_length=60_797,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-39.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-40.html",
+                sha256="sha256:f56a17f997053ca3489764b32bd904538b3821f48d8a97d79f06d6932571afc4",
+                byte_length=139_078,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-40.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-41.html",
+                sha256="sha256:f704711f42e1051e85083f72b2d03ec1f2426bfba5477f70882f6042302252ce",
+                byte_length=82_530,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-41.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-42.html",
+                sha256="sha256:a028422449822b535f36e8d013db2b77aee43ca01d4e7bd01a29cbcdc4187052",
+                byte_length=85_906,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-42.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-43.html",
+                sha256="sha256:5ab6c46df1bbf2c028560d6f7bd663b277c301974757cdab98f2303a6c21d562",
+                byte_length=84_903,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-43.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-44.html",
+                sha256="sha256:087ab7819357f0bc834485a5d44ff27b5c4cc00ff969705d45a5c2e7c2b0338c",
+                byte_length=58_825,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-44.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-45.html",
+                sha256="sha256:178f0f791aae7f85c7c0c853ba7529e60ac00cde514cd1c1e55dbd8a100f26e3",
+                byte_length=122_694,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-45.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-46.html",
+                sha256="sha256:b7e84a5a238590aac27b297e67d20960c7832ed91f62837427314e8bfe2615cf",
+                byte_length=89_104,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-46.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-47.html",
+                sha256="sha256:58b8ebb67028b6f853a11092bf9172076b6c722aa274dfb31f21a980727ef6d1",
+                byte_length=62_958,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-47.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-48.html",
+                sha256="sha256:f9ddd39f2ff30312a326ab367dbc45aed7a30488955ac9ac6c59dad28fc236a6",
+                byte_length=162_521,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-48.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-49.html",
+                sha256="sha256:49d523ac6b3c0a414c818a62dc28bb083b3b5b8420d466a317edb524ef702644",
+                byte_length=125_496,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-49.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/cfr_list_of_subjects/subject-index/subject-title-50.html",
+                sha256="sha256:94261baa606319564d4f87d72efb1df433be461f8e24796be54fa4c804b1aea6",
+                byte_length=65_227,
+                fmt="html",
+                role="publisherSubjectIndexPage",
+                source_iri="https://www.archives.gov/federal-register/cfr/subject-title-50.html",
+            ),
+            SourcePin(
+                path="tests/fixtures/federal_register_topics_api/federal-register-topics-2026-08-03.json",
+                sha256="sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+                byte_length=920_705,
+                fmt="json",
+                role="targetVocabularyWitness",
+                source_iri="https://www.federalregister.gov/api/v1/topics.json",
+            ),
+        ),
+        reader=CFR_SUBJECT_INDEX_HTML_READER,
+        # urn:ref:cfr-part:<title>:<part> is derived entirely from the
+        # publisher's own citation; traceability proves the two sets are equal.
+        identity_policy="source-key-derived",
+        policies=DIRECT_SKOS_POLICIES,
+        rdf_source=_rdf_source_policy(
+            frozenset(
+                {
+                    "cfrCitation",
+                    "cfrPart",
+                    "cfrTitle",
+                    "partHeading",
+                    "publisherIndexTermCount",
+                    "publisherIndexTerms",
+                    "publisherListedPartTwice",
+                    "sourceArtifact",
+                    "unresolvedIndexTermCount",
+                    "unresolvedIndexTerms",
+                }
+            ),
+            additional_relation_predicates=(f"{ATLAS}hasIndexedSubject",),
+        ),
+    ),
+    SourceSpec(
         name="ecfr-agencies-roster-2026-08-15",
         kind="vocabulary",
         release_keys=("ecfr-agencies-roster-2026-08-15",),
@@ -18763,6 +19670,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             _GENERIC_SKOS_NATIVE_FIELDS,
             note_predicate_inverse=SKOS_SCOPE_NOTE,
             record_digest_input_paths=("osti-semantic-thesaurus-2020.rdf",),
+            record_digest_is_native_payload_digest=True,
         ),
     ),
     SourceSpec(
@@ -18825,6 +19733,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS | {"metadata"},
             record_digest_input_paths=("ELSST_R6.ttl",),
+            record_digest_is_native_payload_digest=True,
         ),
     ),
     SourceSpec(
@@ -18852,7 +19761,11 @@ SOURCES: tuple[SourceSpec, ...] = (
         declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,
+            atlas_only_native_payload_fields=frozenset(
+                {"attribution", "licenseIri", "publisher", "publisherResourceKind", "releaseVersion"}
+            ),
             record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
+            record_digest_is_native_payload_digest=True,
         ),
     ),
     SourceSpec(
@@ -18880,7 +19793,47 @@ SOURCES: tuple[SourceSpec, ...] = (
         declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
         rdf_source=_rdf_source_policy(
             _GENERIC_SKOS_NATIVE_FIELDS,
+            atlas_only_native_payload_fields=frozenset(
+                {"attribution", "licenseIri", "publisher", "publisherResourceKind", "releaseVersion"}
+            ),
             record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
+            record_digest_is_native_payload_digest=True,
+        ),
+    ),
+    SourceSpec(
+        name="eurovoc-microthesauri-4.24",
+        kind="vocabulary",
+        release_keys=("eurovoc-microthesauri-4.24",),
+        inputs=(
+            _registry_source_pin(
+                "eurovoc-4.24-metadata.ttl",
+                "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+                36_011,
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl",
+            ),
+            _registry_source_pin(
+                "eurovoc-4.24-skos-core.zip",
+                "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+                8_567_290,
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip",
+                fmt="xml",
+                zip_member="eurovoc_in_skos_core_concepts.rdf",
+            ),
+        ),
+        policies=DIRECT_SKOS_POLICIES,
+        subset="eurovoc-microthesauri",
+        declared_claim_exclusions=(_PUBLICATIONS_OFFICE_DATASET_DESCRIPTION,),
+        # The unit's records are scheme-shaped: a microthesaurus is a scheme,
+        # so schemeIris/topConceptOfIris genuinely do not apply, and the five
+        # acquisition-metadata fields are Atlas-authored representation.
+        rdf_source=_rdf_source_policy(
+            frozenset({"publisherConceptIri"}),
+            atlas_only_native_payload_fields=frozenset(
+                {"attribution", "licenseIri", "publisher", "publisherResourceKind", "releaseVersion"}
+            ),
+            member_type_inverse=((SKOS_CONCEPT, SKOS_CONCEPT_SCHEME),),
+            record_digest_input_paths=("eurovoc-4.24-skos-core.zip",),
+            record_digest_is_native_payload_digest=True,
         ),
     ),
     SourceSpec(
@@ -19000,6 +19953,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             _GENERIC_SKOS_NATIVE_FIELDS | {"labelRoleNormalization", "metadata"},
             additional_annotation_predicates=(f"{GEMET_SCHEMA}source",),
             record_digest_input_paths=("gemet.rdf",),
+            record_digest_is_native_payload_digest=True,
         ),
     ),
     SourceSpec(
@@ -19091,6 +20045,7 @@ SOURCES: tuple[SourceSpec, ...] = (
                 ),
             ),
             record_digest_input_paths=("thesaurus-SKOS.xml",),
+            record_digest_is_native_payload_digest=True,
             source_wide_literal_predicates=("http://synaptica.net/zthes/label",),
         ),
     ),
@@ -20157,7 +21112,20 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
 
         resource_input_path = input_path_by_resource.get(target)
         compact_resource_digest = pair.publisher.resource_input_digest_values.get(target)
-        if resource_input_path in pair.publisher.input_content_digests:
+        if policy.record_digest_is_native_payload_digest and payload is not None:
+            # The producer's stated record contract: sourceDigest is the
+            # sha256 over the record's own canonical nativePayload bytes,
+            # never the caller-supplied file digest. This makes the check
+            # self-consistency; the independent tie to publisher bytes lives
+            # in the field-level inverses and the release-level pin.
+            expected_payload_digest = _canonical_json_digest(payload)
+            observed_digest = pair.atlas.record_source_digests.get(record)
+            if observed_digest != expected_payload_digest:
+                failures.append(
+                    f"{source}: source record <{record}> digest differs -- expected "
+                    f"{expected_payload_digest} over its own native payload, observed {observed_digest!r}"
+                )
+        elif resource_input_path in pair.publisher.input_content_digests:
             expected_digests = {pair.publisher.input_content_digests[resource_input_path]}
         elif default_digests:
             expected_digests = default_digests
@@ -20165,8 +21133,12 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             expected_digests = {compact_resource_digest}
         else:
             expected_digests = set(pair.publisher.resource_input_digests.get(target, frozenset()))
+        if policy.record_digest_is_native_payload_digest and payload is not None:
+            expected_digests = None
         observed_digest = pair.atlas.record_source_digests.get(record)
-        if len(expected_digests) != 1:
+        if expected_digests is None:
+            pass
+        elif len(expected_digests) != 1:
             failures.append(
                 f"{source}: source record <{record}> has {len(expected_digests)} direct "
                 f"publisher digest candidates for <{target}>; exact sourceDigest is not proven"
@@ -20871,6 +21843,7 @@ def check_label_fidelity(ctx: Context) -> CheckResult:
     failures = _incomplete_evaluation_failure(ctx, "label fidelity", "vocabulary")
     source_findings: list[Finding] = []
     compared = 0
+    exposed = 0
     for pair in ctx.vocabularies():
         if not pair.spec.has_policy("english-label-selection"):
             failures.append(f"{pair.spec.name}: no executable label-selection policy is declared")
@@ -20930,6 +21903,7 @@ def check_label_fidelity(ctx: Context) -> CheckResult:
             publisher_claims = set(_publisher_label_claims(pair, publisher_map))
             atlas_claims = set(_atlas_label_claims(pair, atlas_map, source_predicate))
             compared += len(atlas_claims)
+            exposed += len(publisher_claims | atlas_claims)
 
             missing = sorted(publisher_claims - atlas_claims, key=lambda row: (row[0], row[1].value))
             added = sorted(atlas_claims - publisher_claims, key=lambda row: (row[0], row[1].value))
@@ -20975,11 +21949,19 @@ def check_label_fidelity(ctx: Context) -> CheckResult:
                     )
                 )
 
+    # The floor exists so a run that inspects nothing cannot report a pass. It
+    # is the lesser of the configured sample and what the scoped pairs actually
+    # expose, never below one: a whole-corpus run keeps the full tripwire, a
+    # scope holding fewer labels than the sample must still compare all of
+    # them, and a scope exposing nothing still fails.
     minimum_label_sample = max(1, ctx.expectations.minimum_label_sample)
-    if compared < minimum_label_sample and _scope_requires(ctx, "vocabulary"):
+    label_floor = max(1, min(minimum_label_sample, exposed))
+    if compared < label_floor and _scope_requires(ctx, "vocabulary"):
         failures.append(
-            f"only {compared} labels were compared, below the {minimum_label_sample} floor; "
-            f"a label check that inspects nothing cannot pass"
+            f"only {compared} labels were compared, below the floor of {label_floor} "
+            f"(the lesser of the configured {minimum_label_sample} and the {exposed} "
+            "label claims the scoped pairs expose); a label check that inspects "
+            "nothing cannot pass"
         )
     return _result(
         "label-fidelity",
@@ -21609,6 +22591,16 @@ def _atlas_member_iri_claims(
         for row in pair.atlas.raw_source_iri_claims
         if row[0] in pair.publisher.concepts and row[1] not in dedicated and not row[1].startswith(ATLAS)
     }
+    # A unit may declare that it types its resources differently than the
+    # publisher does. Reverse exactly the declared pair, so the publisher's own
+    # typing is what gets compared; every other Atlas typing stays an added
+    # claim that `_atlas_only_raw_type_claim` ignores.
+    type_inverse = dict(pair.spec.rdf_source.member_type_inverse) if pair.spec.rdf_source is not None else {}
+    if type_inverse:
+        raw_claims = {
+            (subject, predicate, type_inverse.get(obj, obj)) if predicate == RDF_TYPE else (subject, predicate, obj)
+            for subject, predicate, obj in raw_claims
+        }
     source_evidence_claims = {
         row
         for row in (pair.atlas.native_relations | pair.atlas.relations)
@@ -21632,13 +22624,18 @@ def _atlas_only_raw_type_claim(
 
 def _atlas_source_scheme_identities(pair: SourcePair) -> frozenset[str]:
     """Read explicit publisher scheme types without counting governed schemes."""
+    # A unit whose resources ARE schemes declares the typing inverse; honor the
+    # same declaration here, so a scheme the Atlas types as its own concept is
+    # still recognised as the publisher scheme it reverses to.
+    type_inverse = dict(pair.spec.rdf_source.member_type_inverse) if pair.spec.rdf_source is not None else {}
     exact_type_claims = {
         subject
         for subject, predicate, obj in (
             pair.atlas.raw_source_iri_claims | pair.atlas.native_relations | pair.atlas.relations
         )
-        if predicate == RDF_TYPE and obj == SKOS_CONCEPT_SCHEME
+        if predicate == RDF_TYPE and (obj == SKOS_CONCEPT_SCHEME or type_inverse.get(obj) == SKOS_CONCEPT_SCHEME)
     }
+    # The intersection with the publisher's own schemes keeps this fail-closed.
     return frozenset(pair.publisher.schemes & (exact_type_claims | set(pair.atlas.skos_schemes)))
 
 
@@ -21657,6 +22654,24 @@ def _publisher_source_scheme_iri_metadata(
     )
 
 
+def _governed_scheme_membership(pair: SourcePair, row: tuple[str, str, str]) -> bool:
+    """Is this row the Atlas placing a subject in a scheme it governs itself?
+
+    A unit whose resources are also schemes has its own minted scheme asserted
+    over them. That membership is representation structure -- the same reading
+    `atlas_only_quad` already takes -- not a claim about the publisher's
+    scheme. Membership in a PUBLISHER scheme stays compared.
+    """
+
+    return (
+        row[1] == SKOS_IN_SCHEME
+        # The subject's own atlas:inScheme names the scheme the Atlas governs
+        # it under; the paired skos:inScheme is that same structural fact.
+        and row[2] in pair.atlas.atlas_scheme_iris.get(row[0], frozenset())
+        and row[2] not in pair.publisher.schemes
+    )
+
+
 def _atlas_source_scheme_iri_metadata(
     pair: SourcePair,
 ) -> frozenset[tuple[str, str, str]]:
@@ -21671,6 +22686,7 @@ def _atlas_source_scheme_iri_metadata(
         and not (row[0] in pair.publisher.schemes and row[1] == RDF_TYPE and row[2] == SKOS_CONCEPT_SCHEME)
         and row[1] != SKOS_HAS_TOP_CONCEPT
         and row[1] not in SKOSXL_LABEL_PREDICATES
+        and not _governed_scheme_membership(pair, row)
     }
     source_evidence_candidates = {
         row
@@ -21680,6 +22696,7 @@ def _atlas_source_scheme_iri_metadata(
         and not (row[0] in pair.publisher.schemes and row[1] == RDF_TYPE and row[2] == SKOS_CONCEPT_SCHEME)
         and row[1] != SKOS_HAS_TOP_CONCEPT
         and row[1] not in SKOSXL_LABEL_PREDICATES
+        and not _governed_scheme_membership(pair, row)
     }
     return frozenset(
         {
@@ -21822,10 +22839,15 @@ _LANGUAGE_EXCLUSION_FIELDS = frozenset(
 )
 _LANGUAGE_EXCLUSION_SELECTION = {
     "countUnit": ("unique auditor semantic literal claim after SourceSpec subset selection"),
-    "excludedClaimRule": ("language tag is present and primary language subtag is outside the admitted families"),
-    "includedLanguageFamilies": ["de", "en", "es", "fi", "fr", "it", "ja"],
-    "selectionRule": "publisher-or-deterministic-lowercase-bcp47",
+    "excludedClaimRule": ("language tag is present and primary language subtag is not en"),
+    "includedLanguageFamilies": ["en"],
+    "selectionRule": "bcp47-primary-language-subtag",
 }
+# The seven-family ENGLISH_LANGUAGE_SCOPE above is the distribution-wide wire
+# admission (alignment endpoint packs legitimately carry de/es/fi/fr/it/ja).
+# Every DECLARED source is en-only in the Atlas, so the claim-level exclusion
+# rule is "not en" — the rule the payload was authored under. The seven-family
+# membership test that briefly lived here rejected the payload it shipped with.
 
 
 def _language_exclusion_payload_parts(
@@ -21886,7 +22908,7 @@ def _language_exclusion_payload_parts(
                 if (
                     not isinstance(language, str)
                     or _BCP47.fullmatch(language) is None
-                    or language.casefold().split("-", 1)[0] in ENGLISH_LANGUAGE_SCOPE["includedLanguageFamilies"]
+                    or language.casefold().split("-", 1)[0] == "en"
                 ):
                     failures.append(f"declaration language {language!r} is not a valid out-of-scope BCP 47 tag")
                     continue
@@ -22011,7 +23033,7 @@ def _apply_declared_language_exclusion(
             invalid.append(f"<{subject}> <{predicate}> {_literal_repr(literal)}")
             continue
         normalized = language.casefold()
-        if normalized.split("-", 1)[0] in ENGLISH_LANGUAGE_SCOPE["includedLanguageFamilies"]:
+        if normalized.split("-", 1)[0] == "en":
             continue
         # The family is the existing auditor comparison that owns this claim.
         # The payload's predicate families also form one closed predicate

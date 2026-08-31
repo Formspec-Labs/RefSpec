@@ -1,14 +1,18 @@
 {
   "format": "refspec-atlas-index-input/experimental-v0",
   "implementationModules": [
+    "refspec.registry.act_resolution",
     "refspec.registry.adapters.concept_domain_bridge",
     "refspec.registry.adapters.crs_zyte",
     "refspec.registry.adapters.elsst_acquisition",
     "refspec.registry.adapters.elsst_import_coverage",
     "refspec.registry.adapters.icpsr_zyte",
+    "refspec.registry.cfr_authority_notes",
+    "refspec.registry.citation_grammar",
     "refspec.registry.claim_release_exports",
     "refspec.registry.entity_registry_release",
     "refspec.registry.gcmd_science_keywords_hierarchy",
+    "refspec.registry.identifier_shapes",
     "refspec.registry.infrastructure.artifact_serialization",
     "refspec.registry.infrastructure.controlled_identifier",
     "refspec.registry.infrastructure.identifier_validation",
@@ -26,121 +30,3046 @@
     "refspec.registry.packages.crs_source_concept_releases",
     "refspec.registry.packages.crs_source_packages",
     "refspec.registry.packages.federal_register_topics_package",
-    "refspec.registry.packages.lda_controlled_list_resources"
+    "refspec.registry.packages.lda_controlled_list_resources",
+    "refspec.registry.unified_agenda_editions",
+    "refspec.registry.unified_agenda_parquet",
+    "refspec.registry.usc_act_index",
+    "refspec.registry.usc_disposition_tables",
+    "refspec.registry.usc_section_oracle"
   ],
   "recordedAt": "2026-08-06T18:42:39Z",
-  "resourceCatalogDigest": "sha256:6d0fb2cc7b7ecabb76bfa302f2a3897ffcdb8e14890a36ee0e38d3d6403a51b5",
+  "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
   "rows": [
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/billstatus_codes.py"},{"kind":"parserTest","path":"tests/test_billstatus_codes.py"}],"release":null,"resourceId":"congress-billstatus-native-controls","sourceModule":"refspec.registry.billstatus_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","sourceAssignedEvidence"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/cbo_topic_codes.py"},{"kind":"parserTest","path":"tests/test_cbo_topic_codes.py"}],"release":null,"resourceId":"cbo-cost-estimate-feed","sourceModule":"refspec.registry.cbo_topic_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"rejected","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/cbo_topic_codes.py"},{"kind":"parserTest","path":"tests/test_cbo_topic_codes.py"}],"release":null,"resourceId":"cbo-publication-identifiers","sourceModule":"refspec.registry.cbo_topic_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"planned","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/cbo_topic_codes.py"},{"kind":"parserTest","path":"tests/test_cbo_topic_codes.py"}],"release":null,"resourceId":"cbo-cost-estimate-feed","sourceModule":"refspec.registry.cbo_topic_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"rejected","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/census_geo_codes.py"},{"kind":"parserTest","path":"tests/test_census_geo_codes.py"}],"release":null,"resourceId":"census-acs-geography-identifiers","sourceModule":"refspec.registry.census_geo_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/census_geo_codes.py"},{"kind":"parserTest","path":"tests/test_census_geo_codes.py"}],"release":null,"resourceId":"census-tiger-geoid-structure","sourceModule":"refspec.registry.census_geo_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/census_geo_codes.py"},{"kind":"parserTest","path":"tests/test_census_geo_codes.py"}],"release":null,"resourceId":"usgs-gnis-identifiers","sourceModule":"refspec.registry.census_geo_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","mappingReference"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/census_gov_finance_codes.py"},{"kind":"parserTest","path":"tests/test_census_gov_finance_codes.py"}],"release":null,"resourceId":"census-aspep-function-item-codes","sourceModule":"refspec.registry.census_gov_finance_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","mappingReference"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/census_gov_finance_codes.py"},{"kind":"parserTest","path":"tests/test_census_gov_finance_codes.py"}],"release":null,"resourceId":"census-aspep-data-flags","sourceModule":"refspec.registry.census_gov_finance_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","mappingReference"],"planningStatus":"rejected","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/census_gov_finance_codes.py"},{"kind":"parserTest","path":"tests/test_census_gov_finance_codes.py"}],"release":null,"resourceId":"nasbo-state-expenditure-program-areas","sourceModule":"refspec.registry.census_gov_finance_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/cfr_list_of_subjects.py"},{"kind":"parserTest","path":"tests/test_cfr_list_of_subjects.py"}],"release":null,"resourceId":"cfr-list-of-subjects","sourceModule":"refspec.registry.cfr_list_of_subjects"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/courtlistener_codes.py"},{"kind":"parserTest","path":"tests/test_courtlistener_codes.py"}],"release":null,"resourceId":"courtlistener-jurisdictions","sourceModule":"refspec.registry.courtlistener_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","navigation","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/crs_legislative_resources.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/packages/crs_source_concept_releases.py"},{"kind":"parserTest","path":"tests/test_crs_legislative_resources.py"},{"kind":"sourceConceptReleaseValidation","path":"research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"}],"release":{"evidencePath":"research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json","manifestDigest":"sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7","releaseId":"urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"},"resourceId":"crs-legislative-subject-terms","sourceModule":"refspec.registry.crs_legislative_resources"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","navigation","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/crs_legislative_resources.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/packages/crs_source_concept_releases.py"},{"kind":"parserTest","path":"tests/test_crs_legislative_resources.py"},{"kind":"sourceConceptReleaseValidation","path":"research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"}],"release":{"evidencePath":"research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json","manifestDigest":"sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8","releaseId":"urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"},"resourceId":"crs-policy-areas","sourceModule":"refspec.registry.crs_legislative_resources"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["entityResolution","sourceAssignedEvidence"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/crs_legislative_resources.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/packages/crs_source_concept_releases.py"},{"kind":"parserTest","path":"tests/test_crs_legislative_resources.py"},{"kind":"sourceConceptReleaseValidation","path":"research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"}],"release":{"evidencePath":"research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json","manifestDigest":"sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd","releaseId":"urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"},"resourceId":"crs-legislative-subject-terms","sourceModule":"refspec.registry.crs_legislative_resources"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/crs_product_topics.py"},{"kind":"parserTest","path":"tests/test_crs_product_topics.py"}],"release":null,"resourceId":"crs-native-controls","sourceModule":"refspec.registry.crs_product_topics"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:genre","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/crs_product_topics.py"},{"kind":"parserTest","path":"tests/test_crs_product_topics.py"}],"release":null,"resourceId":"crs-native-controls","sourceModule":"refspec.registry.crs_product_topics"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:specialist-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"deferred","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/doe_osti_thesaurus.py"},{"kind":"parserTest","path":"tests/test_doe_osti_thesaurus.py"}],"release":null,"resourceId":"doe-osti-semantic-thesaurus-2020","sourceModule":"refspec.registry.doe_osti_thesaurus"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/elsst.py"},{"kind":"parserTest","path":"tests/test_elsst.py"},{"kind":"managedReleaseValidation","path":"research/evidence/elsst-r6-atlas2-managed-release-2026-08-04/evidence.json"}],"release":{"evidencePath":"research/evidence/elsst-r6-atlas2-managed-release-2026-08-04/evidence.json","manifestDigest":"sha256:466a4464cd252bf0b0c0e872927abc430f7532610100cf01e8104eec0ee69f25","releaseId":"https://elsst.cessda.eu/id/6"},"resourceId":"elsst","sourceModule":"refspec.registry.elsst"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"rejected","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/epa_srs_substances.py"},{"kind":"parserTest","path":"tests/test_epa_srs_substances.py"}],"release":null,"resourceId":"epa-substance-identifiers","sourceModule":"refspec.registry.epa_srs_substances"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_vocabularies.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/eurovoc_thesaurus.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_vocabularies.py"},{"kind":"parserTest","path":"tests/test_eurovoc_thesaurus.py"}],"release":null,"resourceId":"eurovoc","sourceModule":"refspec.registry.eurovoc_thesaurus"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"deferred","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/eurovoc_organization_experiment.py"},{"kind":"parserTest","path":"tests/test_eurovoc_organization_experiment.py"}],"release":null,"resourceId":"eurovoc","sourceModule":"refspec.registry.eurovoc_organization_experiment"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/eurovoc_lcsh_alignment.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments.py"},{"kind":"parserTest","path":"tests/test_eurovoc_lcsh_alignment.py"}],"release":null,"resourceId":"eurovoc-lcsh-alignment","sourceModule":"refspec.registry.eurovoc_lcsh_alignment"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/fast_topical.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments.py"},{"kind":"parserTest","path":"tests/test_fast_topical.py"}],"release":null,"resourceId":"fast-lcsh-adopted-mapping","sourceModule":"refspec.registry.fast_topical"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fac_dictionary.py"},{"kind":"parserTest","path":"tests/test_fac_dictionary.py"}],"release":null,"resourceId":"fac-api-dictionary","sourceModule":"refspec.registry.fac_dictionary"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fast_topical.py"},{"kind":"parserTest","path":"tests/test_fast_topical.py"}],"release":null,"resourceId":"fast-topical","sourceModule":"refspec.registry.fast_topical"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fcc_ecfs_codes.py"},{"kind":"parserTest","path":"tests/test_fcc_ecfs_codes.py"}],"release":null,"resourceId":"fcc-ecfs-native-controls","sourceModule":"refspec.registry.fcc_ecfs_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fcc_ecfs_codes.py"},{"kind":"parserTest","path":"tests/test_fcc_ecfs_codes.py"}],"release":null,"resourceId":"fcc-ecfs-native-controls","sourceModule":"refspec.registry.fcc_ecfs_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:legal-location","intendedUses":["deterministicMetadata","legalIdentityResolution"],"planningStatus":"rejected","semanticRing":"legalIdentity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fcc_ecfs_codes.py"},{"kind":"parserTest","path":"tests/test_fcc_ecfs_codes.py"}],"release":null,"resourceId":"fcc-ecfs-native-controls","sourceModule":"refspec.registry.fcc_ecfs_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fec_committee_codes.py"},{"kind":"parserTest","path":"tests/test_fec_committee_codes.py"}],"release":null,"resourceId":"fec-native-controls","sourceModule":"refspec.registry.fec_committee_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/federal_hierarchy_orgs.py"},{"kind":"parserTest","path":"tests/test_federal_hierarchy_orgs.py"}],"release":null,"resourceId":"federal-hierarchy","sourceModule":"refspec.registry.federal_hierarchy_orgs"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentPrimary","atlasParticipation":"core","facet":"urn:ref:facet:general-subject","intendedUses":["candidateGeneration","mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/federal_register_thesaurus_2025.py"},{"kind":"parserTest","path":"tests/test_federal_register_thesaurus_2025.py"},{"kind":"managedReleaseValidation","path":"research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json"}],"release":{"evidencePath":"research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json","manifestDigest":"sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6","releaseId":"urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"},"resourceId":"federal-register-thesaurus-2025","sourceModule":"refspec.registry.federal_register_thesaurus_2025"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/federal_register_topics_api.py"},{"kind":"parserTest","path":"tests/test_federal_register_topics_api.py"}],"release":null,"resourceId":"federal-register-api-topics","sourceModule":"refspec.registry.federal_register_topics_api"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"planned","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/ferc_elibrary_codes.py"},{"kind":"parserTest","path":"tests/test_ferc_elibrary_codes.py"}],"release":null,"resourceId":"ferc-elibrary-native-controls","sourceModule":"refspec.registry.ferc_elibrary_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/ferc_elibrary_codes.py"},{"kind":"parserTest","path":"tests/test_ferc_elibrary_codes.py"}],"release":null,"resourceId":"ferc-elibrary-identifiers","sourceModule":"refspec.registry.ferc_elibrary_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/gao_cra_form_codes.py"},{"kind":"parserTest","path":"tests/test_gao_cra_form_codes.py"}],"release":null,"resourceId":"gao-cra-submission-form-controls","sourceModule":"refspec.registry.gao_cra_form_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["candidateRanking","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/gao_published_topics.py"},{"kind":"parserTest","path":"tests/test_gao_published_topics.py"}],"release":null,"resourceId":"gao-topics","sourceModule":"refspec.registry.gao_published_topics"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:specialist-subject","intendedUses":["deterministicMetadata","mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/gcmd_science_keywords.py"},{"kind":"parserTest","path":"tests/test_gcmd_science_keywords.py"}],"release":null,"resourceId":"gcmd-science-keywords","sourceModule":"refspec.registry.gcmd_science_keywords"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":"specialist","facet":"urn:ref:facet:specialist-subject","intendedUses":["candidateGeneration","mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/gemet_thesaurus.py"},{"kind":"parserTest","path":"tests/test_gemet_thesaurus.py"}],"release":null,"resourceId":"gemet","sourceModule":"refspec.registry.gemet_thesaurus"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/govinfo_collections.py"},{"kind":"parserTest","path":"tests/test_govinfo_collections.py"}],"release":null,"resourceId":"govinfo-collections","sourceModule":"refspec.registry.govinfo_collections"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:legal-location","intendedUses":["deterministicMetadata","legalIdentityResolution"],"planningStatus":"planned","semanticRing":"legalIdentity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/govinfo_collections.py"},{"kind":"parserTest","path":"tests/test_govinfo_collections.py"}],"release":null,"resourceId":"ecfr-cfr-structure","sourceModule":"refspec.registry.govinfo_collections"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:legal-location","intendedUses":["deterministicMetadata","legalIdentityResolution"],"planningStatus":"rejected","semanticRing":"legalIdentity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/govinfo_collections.py"},{"kind":"parserTest","path":"tests/test_govinfo_collections.py"}],"release":null,"resourceId":"govinfo-cfr-packages","sourceModule":"refspec.registry.govinfo_collections"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:affected-population","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/grants_gov_codes.py"},{"kind":"parserTest","path":"tests/test_grants_gov_codes.py"}],"release":null,"resourceId":"grants-gov-status-codes","sourceModule":"refspec.registry.grants_gov_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:general-subject","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/grants_gov_codes.py"},{"kind":"parserTest","path":"tests/test_grants_gov_codes.py"}],"release":null,"resourceId":"grants-gov-status-codes","sourceModule":"refspec.registry.grants_gov_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/icpsr_subject.py"},{"kind":"parserTest","path":"tests/test_icpsr_subject.py"},{"kind":"managedReleaseValidation","path":"research/evidence/icpsr-managed-release-2026-07-30/evidence.json"}],"release":{"evidencePath":"research/evidence/icpsr-managed-release-2026-07-30/evidence.json","manifestDigest":"sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a","releaseId":"urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37"},"resourceId":"icpsr-subject-thesaurus","sourceModule":"refspec.registry.icpsr_subject"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments.py"},{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lcsh.py"},{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_subject.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lcsh_topical.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lcsh.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_subject.py"},{"kind":"parserTest","path":"tests/test_lcsh_topical.py"}],"release":null,"resourceId":"lcsh-subjects","sourceModule":"refspec.registry.lcsh_topical"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["candidateRanking","sourceAssignedEvidence"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/lda_controlled_codes.py"},{"kind":"parserTest","path":"tests/test_lda_controlled_codes.py"}],"release":null,"resourceId":"lda-general-issue-codes","sourceModule":"refspec.registry.lda_controlled_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:genre","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/lda_controlled_codes.py"},{"kind":"parserTest","path":"tests/test_lda_controlled_codes.py"}],"release":null,"resourceId":"lda-filing-types","sourceModule":"refspec.registry.lda_controlled_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":"specialist","facet":"urn:ref:facet:specialist-subject","intendedUses":["candidateGeneration","mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/mesh_descriptors.py"},{"kind":"parserTest","path":"tests/test_mesh_descriptors.py"}],"release":null,"resourceId":"mesh-descriptors","sourceModule":"refspec.registry.mesh_descriptors"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:industry-classification","intendedUses":["deterministicMetadata","facetedRetrieval","rankingSignal"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/naics_psc_codes.py"},{"kind":"parserTest","path":"tests/test_naics_psc_codes.py"}],"release":null,"resourceId":"naics","sourceModule":"refspec.registry.naics_psc_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval","rankingSignal"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/naics_psc_codes.py"},{"kind":"parserTest","path":"tests/test_naics_psc_codes.py"}],"release":null,"resourceId":"psc","sourceModule":"refspec.registry.naics_psc_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","mappingReference"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nasa_technology_taxonomy.py"},{"kind":"parserTest","path":"tests/test_nasa_technology_taxonomy.py"}],"release":null,"resourceId":"nasa-technology-taxonomy","sourceModule":"refspec.registry.nasa_technology_taxonomy"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentSubstantive","atlasParticipation":"specialist","facet":"urn:ref:facet:specialist-subject","intendedUses":["candidateGeneration","mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nasa_thesaurus.py"},{"kind":"parserTest","path":"tests/test_nasa_thesaurus.py"}],"release":null,"resourceId":"nasa-thesaurus","sourceModule":"refspec.registry.nasa_thesaurus"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nature_of_suit_codes.py"},{"kind":"parserTest","path":"tests/test_nature_of_suit_codes.py"}],"release":null,"resourceId":"nature-of-suit","sourceModule":"refspec.registry.nature_of_suit_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"rejected","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nppes_npi_identifiers.py"},{"kind":"parserTest","path":"tests/test_nppes_npi_identifiers.py"}],"release":null,"resourceId":"nppes-npi-authority","sourceModule":"refspec.registry.nppes_npi_identifiers"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nppes_npi_identifiers.py"},{"kind":"parserTest","path":"tests/test_nppes_npi_identifiers.py"}],"release":null,"resourceId":"cms-certification-number-authority","sourceModule":"refspec.registry.nppes_npi_identifiers"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nppes_npi_identifiers.py"},{"kind":"parserTest","path":"tests/test_nppes_npi_identifiers.py"}],"release":null,"resourceId":"nppes-data-dissemination-layout","sourceModule":"refspec.registry.nppes_npi_identifiers"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nrc_adams_aps_docs.py"},{"kind":"parserTest","path":"tests/test_nrc_adams_aps_docs.py"}],"release":null,"resourceId":"nrc-adams-native-controls","sourceModule":"refspec.registry.nrc_adams_aps_docs"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/nrc_adams_aps_docs.py"},{"kind":"parserTest","path":"tests/test_nrc_adams_aps_docs.py"}],"release":null,"resourceId":"nrc-adams-identifiers","sourceModule":"refspec.registry.nrc_adams_aps_docs"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:administrative-process-stage","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/oira_review_codes.py"},{"kind":"parserTest","path":"tests/test_oira_review_codes.py"}],"release":null,"resourceId":"oira-review-native-controls","sourceModule":"refspec.registry.oira_review_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/omb_a11_budget_codes.py"},{"kind":"parserTest","path":"tests/test_omb_a11_budget_codes.py"}],"release":null,"resourceId":"omb-a11-budget-codes","sourceModule":"refspec.registry.omb_a11_budget_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"planned","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/opm_workforce_codes.py"},{"kind":"parserTest","path":"tests/test_opm_workforce_codes.py"}],"release":null,"resourceId":"opm-ehri-workforce-codes","sourceModule":"refspec.registry.opm_workforce_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"rejected","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/opm_workforce_codes.py"},{"kind":"parserTest","path":"tests/test_opm_workforce_codes.py"}],"release":null,"resourceId":"opm-plum-position-status-codes","sourceModule":"refspec.registry.opm_workforce_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:genre","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/oversight_report_types.py"},{"kind":"parserTest","path":"tests/test_oversight_report_types.py"}],"release":null,"resourceId":"oversight-report-types","sourceModule":"refspec.registry.oversight_report_types"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:administrative-process-stage","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/pra_icr_codes.py"},{"kind":"parserTest","path":"tests/test_pra_icr_codes.py"}],"release":null,"resourceId":"pra-icr-native-controls","sourceModule":"refspec.registry.pra_icr_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/regulations_gov_codes.py"},{"kind":"parserTest","path":"tests/test_regulations_gov_codes.py"}],"release":null,"resourceId":"regulations-gov-native-controls","sourceModule":"refspec.registry.regulations_gov_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_rosters.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/regulations_gov_agencies.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_rosters.py"},{"kind":"parserTest","path":"tests/test_regulations_gov_agencies.py"}],"release":null,"resourceId":"regulations-gov-native-controls","sourceModule":"refspec.registry.regulations_gov_agencies"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["entityResolution","mappingReference"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_entity.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_entity.py"},{"kind":"sourceObservation","path":"research/evidence/agency-identifier-census-2026-08-16/census.json"}],"release":null,"resourceId":"regulations-gov-agency-identity","sourceModule":"refspec.registry.regulations_gov_agencies"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:affected-population","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/sam_assistance_listing_codes.py"},{"kind":"parserTest","path":"tests/test_sam_assistance_listing_codes.py"}],"release":null,"resourceId":"sam-assistance-listing-controls","sourceModule":"refspec.registry.sam_assistance_listing_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/sam_assistance_listing_codes.py"},{"kind":"parserTest","path":"tests/test_sam_assistance_listing_codes.py"}],"release":null,"resourceId":"sam-assistance-listing-controls","sourceModule":"refspec.registry.sam_assistance_listing_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:administrative-process-stage","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/sam_opportunities_codes.py"},{"kind":"parserTest","path":"tests/test_sam_opportunities_codes.py"}],"release":null,"resourceId":"sam-opportunities-native-controls","sourceModule":"refspec.registry.sam_opportunities_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/sam_opportunities_codes.py"},{"kind":"parserTest","path":"tests/test_sam_opportunities_codes.py"}],"release":null,"resourceId":"sam-opportunities-native-controls","sourceModule":"refspec.registry.sam_opportunities_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/treasury_tas_fast_book.py"},{"kind":"parserTest","path":"tests/test_treasury_tas_fast_book.py"}],"release":null,"resourceId":"treasury-account-symbol-structure","sourceModule":"refspec.registry.treasury_tas_fast_book"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/treasury_tas_fast_book.py"},{"kind":"parserTest","path":"tests/test_treasury_tas_fast_book.py"}],"release":null,"resourceId":"treasury-fast-book","sourceModule":"refspec.registry.treasury_tas_fast_book"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"rejected","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/uei_cage_identifiers.py"},{"kind":"parserTest","path":"tests/test_uei_cage_identifiers.py"}],"release":null,"resourceId":"uei-authority","sourceModule":"refspec.registry.uei_cage_identifiers"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"rejected","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/uei_cage_identifiers.py"},{"kind":"parserTest","path":"tests/test_uei_cage_identifiers.py"}],"release":null,"resourceId":"cage-authority","sourceModule":"refspec.registry.uei_cage_identifiers"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:administrative-process-stage","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/unified_agenda_codes.py"},{"kind":"parserTest","path":"tests/test_unified_agenda_codes.py"}],"release":null,"resourceId":"unified-agenda-native-controls","sourceModule":"refspec.registry.unified_agenda_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:administrative-process-stage","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/gao_cra_form_codes.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/unified_agenda_codes.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments.py"},{"kind":"parserTest","path":"tests/test_gao_cra_form_codes.py"},{"kind":"parserTest","path":"tests/test_unified_agenda_codes.py"}],"release":null,"resourceId":"unified-agenda-gao-cra-priority-mapping","sourceModule":"refspec.registry.unified_agenda_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/unified_agenda_codes.py"},{"kind":"parserTest","path":"tests/test_unified_agenda_codes.py"}],"release":null,"resourceId":"unified-agenda-legal-authority-citations","sourceModule":"refspec.registry.unified_agenda_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/usaspending_gsdm_codes.py"},{"kind":"parserTest","path":"tests/test_usaspending_gsdm_codes.py"}],"release":null,"resourceId":"usaspending-award-type-codes","sourceModule":"refspec.registry.usaspending_gsdm_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata","schemaInterpretation"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/usaspending_gsdm_codes.py"},{"kind":"parserTest","path":"tests/test_usaspending_gsdm_codes.py"}],"release":null,"resourceId":"governmentwide-spending-data-model","sourceModule":"refspec.registry.usaspending_gsdm_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:genre","intendedUses":["deterministicMetadata","facetedRetrieval"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/federal_register_native_controls.py"},{"kind":"parserTest","path":"tests/test_federal_register_native_controls.py"}],"release":null,"resourceId":"federal-register-native-controls","sourceModule":"refspec.registry.federal_register_native_controls"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/federal_register_native_controls.py"},{"kind":"parserTest","path":"tests/test_federal_register_native_controls.py"}],"release":null,"resourceId":"federal-register-native-controls","sourceModule":"refspec.registry.federal_register_native_controls"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/fcc_bureaus_offices.py"},{"kind":"parserTest","path":"tests/test_fcc_bureaus_offices.py"}],"release":null,"resourceId":"fcc-ecfs-native-controls","sourceModule":"refspec.registry.fcc_bureaus_offices"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/federal_hierarchy_complete.py"},{"kind":"parserTest","path":"tests/test_federal_hierarchy_complete.py"}],"release":null,"resourceId":"federal-hierarchy","sourceModule":"refspec.registry.federal_hierarchy_complete"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/opm_workforce_codes.py"},{"kind":"parserTest","path":"tests/test_opm_workforce_codes.py"}],"release":null,"resourceId":"opm-ehri-workforce-codes","sourceModule":"refspec.registry.opm_workforce_codes"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentMention","atlasParticipation":null,"facet":"urn:ref:facet:entity","intendedUses":["deterministicMetadata","entityResolution","legalIdentityResolution"],"planningStatus":"planned","semanticRing":"entity","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_rosters.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/cfr_list_of_subjects.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_rosters.py"},{"kind":"parserTest","path":"tests/test_ecfr_agencies.py"}],"release":null,"resourceId":"ecfr-agencies","sourceModule":"refspec.registry.cfr_list_of_subjects"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_bulk.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/oclc_fast_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_bulk.py"},{"kind":"parserTest","path":"tests/test_oclc_fast_external_links.py"}],"release":null,"resourceId":"fast-bulk-external-links-delta","sourceModule":"refspec.registry.oclc_fast_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_bulk.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/oclc_fast_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_bulk.py"},{"kind":"parserTest","path":"tests/test_oclc_fast_external_links.py"}],"release":null,"resourceId":"fast-bulk-see-also-endpoints","sourceModule":"refspec.registry.oclc_fast_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_bulk.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/eurovoc_alignment_portfolio.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_bulk.py"},{"kind":"parserTest","path":"tests/test_eurovoc_alignment_portfolio.py"}],"release":null,"resourceId":"eurovoc-gemet-alignment","sourceModule":"refspec.registry.eurovoc_alignment_portfolio"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_bulk.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/eurovoc_alignment_portfolio.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_bulk.py"},{"kind":"parserTest","path":"tests/test_eurovoc_alignment_portfolio.py"}],"release":null,"resourceId":"eurovoc-mesh-alignment","sourceModule":"refspec.registry.eurovoc_alignment_portfolio"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_subject.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/gemet_alignments.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_subject.py"},{"kind":"parserTest","path":"tests/test_gemet_alignments.py"}],"release":null,"resourceId":"gemet-alignments","sourceModule":"refspec.registry.gemet_alignments"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lcsh-external-links-mapping","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_subject.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lcsh_mesh_mapping.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_subject.py"},{"kind":"parserTest","path":"tests/test_lcsh_mesh_mapping.py"}],"release":null,"resourceId":"northwestern-mesh-lcsh-mapping","sourceModule":"refspec.registry.lcsh_mesh_mapping"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-agrovoc-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-bncf-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-bne-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-fast-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-getty-aat-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-getty-ulan-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-gnd-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-homosaurus-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-nalt-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-ndl-names-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-ndl-subjects-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-periodo-lcsh-periods-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-rameau-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-wikidata-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_lc.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/lc_external_links.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_lc.py"},{"kind":"parserTest","path":"tests/test_lc_external_links.py"}],"release":null,"resourceId":"lc-external-yso-endpoints","sourceModule":"refspec.registry.lc_external_links"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_subject.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/umthes_content.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_subject.py"},{"kind":"parserTest","path":"tests/test_umthes_content.py"}],"release":null,"resourceId":"umthes","sourceModule":"refspec.registry.umthes_content"},
-    {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:general-subject","intendedUses":["mappingReference"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/atlas/v3_registry_alignments_subject.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/gemet_alignments.py"},{"kind":"sourceImplementation","path":"src/refspec/registry/umthes_content.py"},{"kind":"parserTest","path":"tests/test_atlas_v3_registry_alignments_subject.py"},{"kind":"parserTest","path":"tests/test_gemet_alignments.py"},{"kind":"parserTest","path":"tests/test_umthes_content.py"}],"release":null,"resourceId":"gemet-umthes-alignments","sourceModule":"refspec.registry.gemet_alignments"}
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/billstatus_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_billstatus_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "congress-billstatus-native-controls",
+      "sourceModule": "refspec.registry.billstatus_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cbo_topic_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cbo_topic_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cbo-cost-estimate-feed",
+      "sourceModule": "refspec.registry.cbo_topic_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cbo_topic_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cbo_topic_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cbo-publication-identifiers",
+      "sourceModule": "refspec.registry.cbo_topic_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cbo_topic_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cbo_topic_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cbo-cost-estimate-feed",
+      "sourceModule": "refspec.registry.cbo_topic_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_geo_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_geo_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-acs-geography-identifiers",
+      "sourceModule": "refspec.registry.census_geo_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_geo_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_geo_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-tiger-geoid-structure",
+      "sourceModule": "refspec.registry.census_geo_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_geo_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_geo_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "usgs-gnis-identifiers",
+      "sourceModule": "refspec.registry.census_geo_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_gov_finance_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_gov_finance_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-aspep-function-item-codes",
+      "sourceModule": "refspec.registry.census_gov_finance_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_gov_finance_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_gov_finance_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-aspep-data-flags",
+      "sourceModule": "refspec.registry.census_gov_finance_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_gov_finance_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_gov_finance_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nasbo-state-expenditure-program-areas",
+      "sourceModule": "refspec.registry.census_gov_finance_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cfr_list_of_subjects.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cfr_list_of_subjects.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cfr-list-of-subjects",
+      "sourceModule": "refspec.registry.cfr_list_of_subjects"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "candidateRanking",
+        "deterministicMetadata",
+        "legalIdentityResolution",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "legalIdentity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_rosters.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cfr_list_of_subjects.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_rosters.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cfr_subject_index.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cfr-subject-index",
+      "sourceModule": "refspec.registry.cfr_list_of_subjects"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/courtlistener_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_courtlistener_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "courtlistener-jurisdictions",
+      "sourceModule": "refspec.registry.courtlistener_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "navigation",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_legislative_resources.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/packages/crs_source_concept_releases.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_legislative_resources.py"
+        },
+        {
+          "kind": "sourceConceptReleaseValidation",
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+        "manifestDigest": "sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7",
+        "releaseId": "urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
+      },
+      "resourceId": "crs-legislative-subject-terms",
+      "sourceModule": "refspec.registry.crs_legislative_resources"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "navigation",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_legislative_resources.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/packages/crs_source_concept_releases.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_legislative_resources.py"
+        },
+        {
+          "kind": "sourceConceptReleaseValidation",
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+        "manifestDigest": "sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8",
+        "releaseId": "urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"
+      },
+      "resourceId": "crs-policy-areas",
+      "sourceModule": "refspec.registry.crs_legislative_resources"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "entityResolution",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_legislative_resources.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/packages/crs_source_concept_releases.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_legislative_resources.py"
+        },
+        {
+          "kind": "sourceConceptReleaseValidation",
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+        "manifestDigest": "sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd",
+        "releaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"
+      },
+      "resourceId": "crs-legislative-subject-terms",
+      "sourceModule": "refspec.registry.crs_legislative_resources"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_product_topics.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_product_topics.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "crs-native-controls",
+      "sourceModule": "refspec.registry.crs_product_topics"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_product_topics.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_product_topics.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "crs-native-controls",
+      "sourceModule": "refspec.registry.crs_product_topics"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "deferred",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/doe_osti_thesaurus.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_doe_osti_thesaurus.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "doe-osti-semantic-thesaurus-2020",
+      "sourceModule": "refspec.registry.doe_osti_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/elsst.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_elsst.py"
+        },
+        {
+          "kind": "managedReleaseValidation",
+          "path": "research/evidence/elsst-r6-atlas2-managed-release-2026-08-04/evidence.json"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/elsst-r6-atlas2-managed-release-2026-08-04/evidence.json",
+        "manifestDigest": "sha256:466a4464cd252bf0b0c0e872927abc430f7532610100cf01e8104eec0ee69f25",
+        "releaseId": "https://elsst.cessda.eu/id/6"
+      },
+      "resourceId": "elsst",
+      "sourceModule": "refspec.registry.elsst"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/epa_srs_substances.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_epa_srs_substances.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "epa-substance-identifiers",
+      "sourceModule": "refspec.registry.epa_srs_substances"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_vocabularies.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_thesaurus.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_vocabularies.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_thesaurus.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc",
+      "sourceModule": "refspec.registry.eurovoc_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "deferred",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_organization_experiment.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_organization_experiment.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc",
+      "sourceModule": "refspec.registry.eurovoc_organization_experiment"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_lcsh_alignment.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_lcsh_alignment.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc-lcsh-alignment",
+      "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fast_topical.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fast_topical.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fast-lcsh-adopted-mapping",
+      "sourceModule": "refspec.registry.fast_topical"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fac_dictionary.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fac_dictionary.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fac-api-dictionary",
+      "sourceModule": "refspec.registry.fac_dictionary"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fast_topical.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fast_topical.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fast-topical",
+      "sourceModule": "refspec.registry.fast_topical"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_ecfs_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_ecfs_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "sourceModule": "refspec.registry.fcc_ecfs_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_ecfs_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_ecfs_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "sourceModule": "refspec.registry.fcc_ecfs_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "legalIdentity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_ecfs_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_ecfs_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "sourceModule": "refspec.registry.fcc_ecfs_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fec_committee_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fec_committee_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fec-native-controls",
+      "sourceModule": "refspec.registry.fec_committee_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_hierarchy_orgs.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_hierarchy_orgs.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-hierarchy",
+      "sourceModule": "refspec.registry.federal_hierarchy_orgs"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+      "atlasParticipation": "core",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_thesaurus_2025.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_thesaurus_2025.py"
+        },
+        {
+          "kind": "managedReleaseValidation",
+          "path": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
+        "manifestDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
+        "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
+      },
+      "resourceId": "federal-register-thesaurus-2025",
+      "sourceModule": "refspec.registry.federal_register_thesaurus_2025"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_topics_api.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_topics_api.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-api-topics",
+      "sourceModule": "refspec.registry.federal_register_topics_api"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/ferc_elibrary_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_ferc_elibrary_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "ferc-elibrary-native-controls",
+      "sourceModule": "refspec.registry.ferc_elibrary_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/ferc_elibrary_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_ferc_elibrary_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "ferc-elibrary-identifiers",
+      "sourceModule": "refspec.registry.ferc_elibrary_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gao_cra_form_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gao_cra_form_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "gao-cra-submission-form-controls",
+      "sourceModule": "refspec.registry.gao_cra_form_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gao_published_topics.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gao_published_topics.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "gao-topics",
+      "sourceModule": "refspec.registry.gao_published_topics"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gcmd_science_keywords.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gcmd_science_keywords.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "gcmd-science-keywords",
+      "sourceModule": "refspec.registry.gcmd_science_keywords"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gemet_thesaurus.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gemet_thesaurus.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "gemet",
+      "sourceModule": "refspec.registry.gemet_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/govinfo_collections.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_govinfo_collections.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "govinfo-collections",
+      "sourceModule": "refspec.registry.govinfo_collections"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "legalIdentity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/govinfo_collections.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_govinfo_collections.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "ecfr-cfr-structure",
+      "sourceModule": "refspec.registry.govinfo_collections"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "legalIdentity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/govinfo_collections.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_govinfo_collections.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "govinfo-cfr-packages",
+      "sourceModule": "refspec.registry.govinfo_collections"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:affected-population",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/grants_gov_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_grants_gov_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "grants-gov-status-codes",
+      "sourceModule": "refspec.registry.grants_gov_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/grants_gov_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_grants_gov_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "grants-gov-status-codes",
+      "sourceModule": "refspec.registry.grants_gov_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/icpsr_subject.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_icpsr_subject.py"
+        },
+        {
+          "kind": "managedReleaseValidation",
+          "path": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
+        "manifestDigest": "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a",
+        "releaseId": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37"
+      },
+      "resourceId": "icpsr-subject-thesaurus",
+      "sourceModule": "refspec.registry.icpsr_subject"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lcsh.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lcsh_topical.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lcsh.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lcsh_topical.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lcsh-subjects",
+      "sourceModule": "refspec.registry.lcsh_topical"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lda_controlled_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lda_controlled_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lda-general-issue-codes",
+      "sourceModule": "refspec.registry.lda_controlled_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lda_controlled_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lda_controlled_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lda-filing-types",
+      "sourceModule": "refspec.registry.lda_controlled_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/mesh_descriptors.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_mesh_descriptors.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "mesh-descriptors",
+      "sourceModule": "refspec.registry.mesh_descriptors"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:industry-classification",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval",
+        "rankingSignal"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/naics_psc_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_naics_psc_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "naics",
+      "sourceModule": "refspec.registry.naics_psc_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval",
+        "rankingSignal"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/naics_psc_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_naics_psc_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "psc",
+      "sourceModule": "refspec.registry.naics_psc_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nasa_technology_taxonomy.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nasa_technology_taxonomy.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nasa-technology-taxonomy",
+      "sourceModule": "refspec.registry.nasa_technology_taxonomy"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nasa_thesaurus.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nasa_thesaurus.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nasa-thesaurus",
+      "sourceModule": "refspec.registry.nasa_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nature_of_suit_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nature_of_suit_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nature-of-suit",
+      "sourceModule": "refspec.registry.nature_of_suit_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nppes_npi_identifiers.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nppes_npi_identifiers.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nppes-npi-authority",
+      "sourceModule": "refspec.registry.nppes_npi_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nppes_npi_identifiers.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nppes_npi_identifiers.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cms-certification-number-authority",
+      "sourceModule": "refspec.registry.nppes_npi_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nppes_npi_identifiers.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nppes_npi_identifiers.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nppes-data-dissemination-layout",
+      "sourceModule": "refspec.registry.nppes_npi_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nrc_adams_aps_docs.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nrc_adams_aps_docs.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nrc-adams-native-controls",
+      "sourceModule": "refspec.registry.nrc_adams_aps_docs"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nrc_adams_aps_docs.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nrc_adams_aps_docs.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "nrc-adams-identifiers",
+      "sourceModule": "refspec.registry.nrc_adams_aps_docs"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/oira_review_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_oira_review_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "oira-review-native-controls",
+      "sourceModule": "refspec.registry.oira_review_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/omb_a11_budget_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_omb_a11_budget_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "omb-a11-budget-codes",
+      "sourceModule": "refspec.registry.omb_a11_budget_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/opm_workforce_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_opm_workforce_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "opm-ehri-workforce-codes",
+      "sourceModule": "refspec.registry.opm_workforce_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/opm_workforce_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_opm_workforce_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "opm-plum-position-status-codes",
+      "sourceModule": "refspec.registry.opm_workforce_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/oversight_report_types.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_oversight_report_types.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "oversight-report-types",
+      "sourceModule": "refspec.registry.oversight_report_types"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/pra_icr_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_pra_icr_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "pra-icr-native-controls",
+      "sourceModule": "refspec.registry.pra_icr_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulations_gov_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulations_gov_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-native-controls",
+      "sourceModule": "refspec.registry.regulations_gov_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_rosters.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulations_gov_agencies.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_rosters.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulations_gov_agencies.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-native-controls",
+      "sourceModule": "refspec.registry.regulations_gov_agencies"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "entityResolution",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_entity.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_entity.py"
+        },
+        {
+          "kind": "sourceObservation",
+          "path": "research/evidence/agency-identifier-census-2026-08-16/census.json"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-agency-identity",
+      "sourceModule": "refspec.registry.regulations_gov_agencies"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:affected-population",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_assistance_listing_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_assistance_listing_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-assistance-listing-controls",
+      "sourceModule": "refspec.registry.sam_assistance_listing_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_assistance_listing_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_assistance_listing_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-assistance-listing-controls",
+      "sourceModule": "refspec.registry.sam_assistance_listing_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_opportunities_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_opportunities_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-opportunities-native-controls",
+      "sourceModule": "refspec.registry.sam_opportunities_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_opportunities_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_opportunities_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-opportunities-native-controls",
+      "sourceModule": "refspec.registry.sam_opportunities_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/treasury_tas_fast_book.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_treasury_tas_fast_book.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "treasury-account-symbol-structure",
+      "sourceModule": "refspec.registry.treasury_tas_fast_book"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/treasury_tas_fast_book.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_treasury_tas_fast_book.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "treasury-fast-book",
+      "sourceModule": "refspec.registry.treasury_tas_fast_book"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/uei_cage_identifiers.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_uei_cage_identifiers.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "uei-authority",
+      "sourceModule": "refspec.registry.uei_cage_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "rejected",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/uei_cage_identifiers.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_uei_cage_identifiers.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "cage-authority",
+      "sourceModule": "refspec.registry.uei_cage_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/unified_agenda_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_unified_agenda_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-native-controls",
+      "sourceModule": "refspec.registry.unified_agenda_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gao_cra_form_codes.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/unified_agenda_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gao_cra_form_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_unified_agenda_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-gao-cra-priority-mapping",
+      "sourceModule": "refspec.registry.unified_agenda_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/unified_agenda_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_unified_agenda_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-legal-authority-citations",
+      "sourceModule": "refspec.registry.unified_agenda_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/usaspending_gsdm_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_usaspending_gsdm_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "usaspending-award-type-codes",
+      "sourceModule": "refspec.registry.usaspending_gsdm_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/usaspending_gsdm_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_usaspending_gsdm_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "governmentwide-spending-data-model",
+      "sourceModule": "refspec.registry.usaspending_gsdm_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "semanticRing": "value",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_native_controls.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_native_controls.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-native-controls",
+      "sourceModule": "refspec.registry.federal_register_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_native_controls.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_native_controls.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-native-controls",
+      "sourceModule": "refspec.registry.federal_register_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_bureaus_offices.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_bureaus_offices.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "sourceModule": "refspec.registry.fcc_bureaus_offices"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_hierarchy_complete.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_hierarchy_complete.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-hierarchy",
+      "sourceModule": "refspec.registry.federal_hierarchy_complete"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/opm_workforce_codes.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_opm_workforce_codes.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "opm-ehri-workforce-codes",
+      "sourceModule": "refspec.registry.opm_workforce_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "entity",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_rosters.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cfr_list_of_subjects.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_rosters.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_ecfr_agencies.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "ecfr-agencies",
+      "sourceModule": "refspec.registry.cfr_list_of_subjects"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/oclc_fast_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_oclc_fast_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fast-bulk-external-links-delta",
+      "sourceModule": "refspec.registry.oclc_fast_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/oclc_fast_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_oclc_fast_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "fast-bulk-see-also-endpoints",
+      "sourceModule": "refspec.registry.oclc_fast_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_alignment_portfolio.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_alignment_portfolio.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc-gemet-alignment",
+      "sourceModule": "refspec.registry.eurovoc_alignment_portfolio"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_alignment_portfolio.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_bulk.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_alignment_portfolio.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc-mesh-alignment",
+      "sourceModule": "refspec.registry.eurovoc_alignment_portfolio"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gemet_alignments.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gemet_alignments.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "gemet-alignments",
+      "sourceModule": "refspec.registry.gemet_alignments"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lcsh-external-links-mapping",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lcsh_mesh_mapping.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lcsh_mesh_mapping.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "northwestern-mesh-lcsh-mapping",
+      "sourceModule": "refspec.registry.lcsh_mesh_mapping"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-agrovoc-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-bncf-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-bne-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-fast-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-getty-aat-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-getty-ulan-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-gnd-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-homosaurus-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-nalt-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-ndl-names-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-ndl-subjects-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-periodo-lcsh-periods-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-rameau-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-wikidata-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lc_external_links.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_lc.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lc_external_links.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "lc-external-yso-endpoints",
+      "sourceModule": "refspec.registry.lc_external_links"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/umthes_content.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_umthes_content.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "umthes",
+      "sourceModule": "refspec.registry.umthes_content"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "semanticRing": "subject",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gemet_alignments.py"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/umthes_content.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments_subject.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gemet_alignments.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_umthes_content.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "gemet-umthes-alignments",
+      "sourceModule": "refspec.registry.gemet_alignments"
+    }
   ]
 }

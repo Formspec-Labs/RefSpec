@@ -87,7 +87,22 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["nonAuthorizing"] is True
     assert index["summary"] == {
         "exactReleaseCount": 6,
-        "implementationModuleCount": 26,
+        # 26 -> 31: the mapping-era Zyte/ELSST adapters (3) landed without
+        # this pin moving (the classification check masked it under -x),
+        # then the spicy-regs ports act_resolution and identifier_shapes (2).
+        # 31 -> 32: usc_act_index, which builds the act index act_resolution
+        # reads, from OLRC's whole-of-Table-III release.
+        # 32 -> 33: usc_section_oracle, which answers "does U.S.C. title T
+        # section S exist, and when" from the pinned OLRC release point and
+        # the 1994-2024 annual archives.
+        # 33 -> 34: cfr_authority_notes, the sealed cache of 287 eCFR part
+        # authority notes. The pin was left at 33 when that module landed at
+        # 6fd787d1 and the classification check masked it, which is why it
+        # moves two here rather than one.
+        # 34 -> 35: usc_disposition_tables, which answers what a positive-law
+        # recodification did with a former section the section oracle's own
+        # sources cannot see.
+        "implementationModuleCount": 35,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
         # REF-035 through REF-037 add the mapping and acquisition bridges.
@@ -105,18 +120,20 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # REF-035 adds one subject-ring and one value-ring mapping source.
         # The regulations.gov roster and its REF-038 identity mapping add two
         # entity-ring sources.
+        # The OFR's CFR List of Subjects part index lands in the legal-identity
+        # ring (3 -> 4): 8,423 CFR parts, the first CFR parts the Atlas holds.
         "semanticRingCounts": {
             "entity": 18,
-            "legalIdentity": 3,
+            "legalIdentity": 4,
             "subject": 45,
             "value": 45,
         },
-        "rowCount": 111,
+        "rowCount": 112,
         "sourceModuleCount": 60,
         "statusCounts": {
             "deferred": 2,
             "notApplicable": 44,
-            "planned": 55,
+            "planned": 56,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
             # the entity-registry object instead. REF-031: the three

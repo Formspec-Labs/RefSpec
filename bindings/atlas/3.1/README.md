@@ -477,6 +477,17 @@ condition because the same resources also have a transitive hierarchy path.
 Atlas does not declare these predicates inverse, transitive, or equivalent to
 SKOS label or semantic relations.
 
+A predicate's symmetric meaning permits a consumer to traverse one assertion
+in either direction; it does not create a reciprocal assertion or a second
+speaker. When a publisher supplies both directed `skos:related` statements,
+Atlas preserves both assertion identities and both projection records.
+
+Atlas also imposes no universal acyclicity rule on publisher hierarchies.
+Source-specific rules MAY require a tree or directed acyclic graph when the
+publisher's own structure promises one. General SKOS integrity checks use
+cycle-safe strongly connected component traversal, so a hierarchy cycle is
+handled as data rather than as a validator failure by itself.
+
 Each same-ring assertion records its semantic ring. Each cross-ring assertion
 records its distinct source and target rings. Every assertion records exact
 endpoint releases, sealed editorial policy, assertion time, lifecycle status,
@@ -573,10 +584,29 @@ editorial mapping query. Applications opt into derived relations explicitly.
 The derived input digest is SHA-256 over canonical REF JSON without a terminal
 LF: `{"assertions":[{"assertion":<IRI>,"contentDigest":<digest>},...]}` with
 rows sorted by assertion IRI. Which `(rule, engine, engineVersion)` tuples a
-distribution may use is a registry (`validate.py`'s
-`_DERIVED_RULE_ADMISSIONS`), not one hardcoded tuple: each entry names its own
-admitted semantic ring(s) and predicate(s), evidence kind, row-shape check,
-and replay. Three rules are registered as of REF-043 (`docs/decisions.md`).
+distribution may use is the contract-covered
+`admitted-derived-rules.json` registry, not one hardcoded tuple: each entry
+names its admitted semantic ring(s), predicate(s), endpoint scheme scope,
+evidence kind, direction and mirror policy, row-shape profile, and replay
+profile. It is the sole semantic roster. The validator parses it through one
+closed typed loader and dispatches by rule ID to a replay callable; Python MUST
+NOT repeat its endpoint families, predicates, sources, selection policy, replay
+profile, or row-shape policy. The current local `_DERIVED_RULE_ADMISSIONS`
+constant is nonconformant migration debt until removed. Six rules are
+registered as of REF-049 (`docs/decisions.md`).
+
+The registry pins the declared admission policy; the named Python replay
+functions implement it. Their source and pinned runtime are covered by
+the fixture receipt and validation-cache tool digest, while the portable
+corpus proves their behavior. A policy change therefore moves
+`contractDigest`; a behavior-preserving implementation change moves the tool
+digest and reruns the corpus without changing the meaning of an existing
+distribution.
+
+Admission makes a rule available; it does not require every producer to emit
+that rule. A distribution with no rows for an admitted rule remains valid.
+Once at least one row names a closed structural rule, that rule's replay MUST
+regenerate and match the complete edge set for the asserted inputs it covers.
 
 `urn:ref:rule:skos-exact-match-closure-path`, executed by `owlrl` 7.1.4, is
 ring `atlas:subject`, predicate `skos:exactMatch`, and every input MUST be a
@@ -623,6 +653,64 @@ projection, so its replay regenerates the complete expected edge set from
 the asserted graph's own source-record payloads -- scoped to the scheme, so
 a locally valid but incomplete or over-complete edge set fails even though
 every shipped row passes its own check.
+
+`urn:ref:rule:fr-thesaurus-compound-head-broader`, executed by this
+binding's own code
+(`https://refspec.org/code/atlas-v3-derived-fr-compound-headings` version
+`"1"`), is ring `atlas:subject`, predicate `skos:broader`, and every input
+MUST be exactly two active `atlas:SourceRecord`s whose
+`atlas:representsResource` targets are exactly the row's own subject and
+object. Both endpoints MUST sit in the Federal Register thesaurus scheme
+(`urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025`), and the
+subject's own preferred-label text MUST contain a hyphen whose segment
+before the first hyphen equals one of the object's own preferred-label
+texts; the output MUST NOT already have a directly asserted projection or
+its SKOS inverse (`skos:narrower`) asserted in the opposite direction.
+Like the MeSH and GCMD rules this is a closed, one-release projection, so
+its replay regenerates the complete expected compound/head pair set from
+the asserted graph's own preferred labels -- scoped to the scheme, with no
+hand-maintained denylist for the 8 hyphenated terms whose head is not
+itself a term.
+
+`urn:ref:rule:eurovoc-microthesaurus-domain-notation-prefix`, executed by
+this binding's own code
+(`https://refspec.org/code/atlas-v3-derived-eurovoc-microthesaurus-domain`
+version `"1"`), is ring `atlas:subject`, predicate `skos:broader`, and
+every input MUST be exactly two active `atlas:SourceRecord`s whose
+`atlas:representsResource` targets are exactly the row's own subject and
+object. Unlike every prior rule, subject and object sit in two DIFFERENT
+schemes: the subject MUST sit in the EuroVoc microthesauri scheme
+(`urn:ref:atlas-resource-scheme:eurovoc:microthesauri`) and the object MUST
+sit in the EuroVoc domains scheme (`urn:ref:atlas-resource-scheme:eurovoc:domains`),
+checked independently rather than as one shared scheme. The subject's own
+`atlas:notation` MUST include a four-digit value whose two-digit prefix
+equals one of the object's own `atlas:notation` values; the output MUST
+NOT already have a directly asserted projection or its SKOS inverse
+(`skos:narrower`) asserted in the opposite direction. Like the MeSH, GCMD,
+and FR rules this is a closed, one-release projection, so its replay
+regenerates the complete expected edge set from the asserted graph's own
+notations, scoped to both schemes independently.
+
+`urn:ref:rule:fr-thesaurus-api-topic-label-equality`, executed by this
+binding's own code
+(`https://refspec.org/code/atlas-v3-derived-fr-thesaurus-api-topic-alignment`
+version `"1"`), is ring `atlas:subject`, predicate `skos:closeMatch`, and
+every input MUST be exactly two active `atlas:SourceRecord`s whose
+`atlas:representsResource` targets are exactly the row's own subject and
+object. The subject MUST sit in the Federal Register thesaurus scheme
+(`urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025`) and the
+object MUST sit in the Federal Register API-topics scheme
+(`urn:ref:atlas-resource-scheme:federal-register-api-topics`). Their own
+SKOS-XL preferred-label texts MUST be non-empty trimmed Atlas label text and
+equal after Unicode case folding; no punctuation, compatibility, stemming,
+or lexical normalization is applied. Folded labels MUST remain
+unique within each scheme, and the resulting cross-scheme population MUST
+be a bijection. The output MUST NOT duplicate a direct `skos:closeMatch` in
+either direction, or a stronger direct `skos:exactMatch` over the same pair in
+either direction. Replay regenerates the complete expected edge set from the
+asserted graph's own preferred labels. `skos:closeMatch` is intentionally
+symmetric but non-transitive: this rule records retrieval-level alignment
+without creating `skos:exactMatch` closure.
 
 `skos:exactMatch` retains its W3C semantics. A producer that does not accept
 transitive consequences SHOULD use `skos:closeMatch` or a ring-specific Atlas

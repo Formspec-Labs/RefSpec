@@ -603,6 +603,16 @@
       "versionRepresentation": "Pin each point-in-time date, endpoint and query, exact response digest, title currency fields, and observed-versus-authoritative structure coverage."
     },
     {
+      "accessOrReproducibilityGap": "The publisher revises the fifty static pages annually with no revision token in the URL, hand-maintains their markup, and lists three parts twice; every page is pinned by digest and byte length.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Each CFR part carries the publisher's own citation as its notation. Index terms stay publisher strings and are linked to held Federal Register topic concepts only on exact case-folded preferred-label match; no concept identity is minted.",
+      "officialLocator": "https://www.archives.gov/federal-register/cfr/subjects",
+      "resourceId": "cfr-subject-index",
+      "resourceKind": "structuralSchema",
+      "title": "CFR List of Subjects, arranged by CFR title and part",
+      "versionRepresentation": "Pin each of the fifty title pages by exact digest and byte length; the publisher's own revision statement travels in release metadata."
+    },
+    {
       "accessOrReproducibilityGap": "Package summaries and PREMIS records describe individual GovInfo packages; they do not by themselves supply typed legal-effect edges across packages.",
       "distributionStatus": "available",
       "identifierRepresentation": "Preserve official GovInfo package, granule, collection, docket-class, version, file, and fixity identifiers without conflating them with eCFR current-state identities.",

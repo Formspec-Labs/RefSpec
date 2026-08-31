@@ -22,8 +22,8 @@ The idea in four verbs:
    this source tree, or queries a RefSpec service.
 
 Everything else in the repo exists to make those four verbs trustworthy: a
-sealed conformance corpus (130 fixture cases), a source-fidelity auditor that
-compares the Atlas back to the publishers' own bytes, and a
+sealed conformance corpus, a source-fidelity auditor that compares the Atlas
+back to the publishers' own bytes, and a
 [decision ledger](docs/decisions.md) recording why each piece exists.
 
 **Status:** unpublished editor's draft; no license selected; no W3C

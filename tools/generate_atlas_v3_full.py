@@ -66,11 +66,22 @@ from refspec.atlas.derived_graph import (
     collect_asserted_fact_view,
     collect_node_digests,
 )
+from refspec.atlas.derived_graph.eurovoc_microthesaurus_domain import (
+    derive_eurovoc_microthesaurus_domain_rows,
+    eurovoc_microthesaurus_domain_evidence_nodes,
+    resolve_microthesaurus_domain_edges,
+)
 from refspec.atlas.derived_graph.fr_compound_headings import (
     collect_fr_preferred_labels,
     derive_fr_compound_heading_broader_rows,
     fr_compound_heading_evidence_nodes,
     resolve_compound_heading_edges_from_labels,
+)
+from refspec.atlas.derived_graph.fr_thesaurus_api_topic_alignment import (
+    collect_fr_alignment_preferred_labels,
+    derive_fr_thesaurus_api_topic_rows,
+    fr_thesaurus_api_topic_evidence_nodes,
+    resolve_fr_thesaurus_api_topic_edges_from_scheme_labels,
 )
 from refspec.atlas.derived_graph.gcmd_column_nesting import (
     derive_gcmd_column_nesting_rows,
@@ -144,7 +155,16 @@ BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
 if str(BINDING_ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(BINDING_ROOT / "tools"))
 DEFAULT_OUTPUT = ROOT / "output" / "atlas-3.1-full-2026-08-06" / "distribution"
-SPICY_REGS_ROOT = ROOT.parent
+# RefSpec lived at spicy-regs/RefSpec until 2026-08-21, when the canonical
+# checkout moved to a sibling of spicy-regs. The managed-release inputs this
+# resolves are digest-pinned either way; only the anchor moves with the
+# layout. Their eventual home is RefSpec's own output tree, but that changes
+# published logical paths and verifier expectations, so it is a separate step.
+SPICY_REGS_ROOT = (
+    ROOT.parent
+    if (ROOT.parent / "output" / "refspec-vocabulary-portfolio").is_dir()
+    else ROOT.parent / "spicy-regs"
+)
 COMPLETE_TOPOLOGY_SCOPE = "completeDeclaredTopology"
 BOUNDED_SELECTION_SCOPE = "boundedReleaseSelection"
 # The scope segment names what the distribution is. It is not decoration: this
@@ -697,10 +717,10 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:8d2d80654c0e2fafacbab6b3c9a938f2314c8094eaaef5cf28ca8c2f8e18b685"
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:170afb958d999b157527c92b664dae137c8cae408cbf71aad6ab6d735ee867f0"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:5a092aa7543cd5f33de5f11be921bff1c8c084a0241f2384d177b441d0962ef4"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:9cdb0db71bc114ffc4f034abcf1fe97d4a66e7b4eb74bbb1459deef3851ce46a"
 
 
 def _load_validator() -> Any:
@@ -892,9 +912,13 @@ def distribution_identity(accounting: Mapping[str, Any]) -> str:
     """Derive one distribution's identity from the ledger content it labels.
 
     The source accounting is the closed record of exactly which source releases
-    and which source records a distribution represents, so two builds over the
-    same sources derive the same identity and two builds over different sources
-    cannot share one. It is also the first identity-bearing document a build
+    and which source records a distribution represents, and it carries the
+    asserted graph's inventory digest, so two builds of the same sources AND
+    the same constructed content derive the same identity, while two builds
+    that differ in either cannot share one. Sources alone were not enough: a
+    normalization-policy change alters what the producer keeps without altering
+    what it reads, and on 2026-08-21 three builds with different content shared
+    one id because of it. It is also the first identity-bearing document a build
     writes, which is why the identity is not the manifest digest: the manifest
     lists this ledger as a member, so a manifest-derived identity could never
     appear inside the ledger it covers. No field read here is a timestamp.
@@ -905,7 +929,7 @@ def distribution_identity(accounting: Mapping[str, Any]) -> str:
     """
 
     content = {key: value for key, value in accounting.items() if key != "distributionId"}
-    if set(content) != {"inputs", "totals", "type", "version"}:
+    if set(content) != {"assertedInventoryDigest", "inputs", "totals", "type", "version"}:
         raise ValueError("distribution identity requires the closed source accounting content")
     totals = content["totals"]
     if not isinstance(totals, Mapping) or not isinstance(totals.get("sourceReleases"), int):
@@ -913,6 +937,30 @@ def distribution_identity(accounting: Mapping[str, Any]) -> str:
     prefix = DISTRIBUTION_ID_PREFIXES[distribution_scope_profile(totals["sourceReleases"])]
     digest = _canonical_digest({"content": content, "profile": _DISTRIBUTION_IDENTITY_PROFILE})
     return prefix + digest.removeprefix("sha256:")
+
+
+#: An accounting is assembled while the graph is still in memory, before the
+#: packs it will be digested from exist. It carries this sentinel until
+#: `_stamped_source_accounting` replaces it with the real asserted-graph
+#: inventory digest at write time, so the closed content shape never varies
+#: and no written distribution can carry it.
+UNSTAMPED_ASSERTED_INVENTORY_DIGEST = "sha256:" + "0" * 64
+
+
+def _stamped_source_accounting(
+    accounting: Mapping[str, Any],
+    asserted_inventory_digest: str,
+) -> dict[str, Any]:
+    """Close one source accounting over its content AND its constructed graph."""
+
+    content = {
+        key: value
+        for key, value in accounting.items()
+        if key not in {"assertedInventoryDigest", "distributionId"}
+    }
+    return _identified_source_accounting(
+        {**content, "assertedInventoryDigest": asserted_inventory_digest}
+    )
 
 
 def _identified_source_accounting(content: Mapping[str, Any]) -> dict[str, Any]:
@@ -3292,8 +3340,12 @@ def _add_source_release(
 ) -> URIRef:
     node = URIRef(identifier)
     graph.add((node, RDF.type, ATLAS.SourceRelease))
-    graph.add((node, DCTERMS.identifier, Literal(identifier)))
-    graph.add((node, DCTERMS.issued, Literal(issued, datatype=XSD.date)))
+    # No dcterms claims here: dcterms:identifier restated the node's own IRI,
+    # and dcterms:issued is acquisition metadata RefSpec records, not a claim
+    # any publisher byte makes about this subject. Both read as publisher
+    # assertions to an independent verifier; the issue date stays under an
+    # atlas-namespace predicate, which is representation structure.
+    graph.add((node, ATLAS.sourceIssued, Literal(issued, datatype=XSD.date)))
     graph.add((node, ATLAS.sourceDigest, Literal(digest)))
     graph.add((node, ATLAS.sourceLocator, locator))
     return node
@@ -4104,16 +4156,25 @@ def _require_absolute_iri(value: object, *, context: str) -> str:
 
 # The releases the shipped derivation registry currently reads. REF-042
 # admitted the second rule (MeSH tree-number broader); REF-043 the third
-# (GCMD column nesting). The producer's job is narrower than the binding's
-# -- it only has to know WHICH releases feed a registered rule, not carry
-# the registry itself, since (per `src/refspec/atlas/derived_graph/__init__.py`'s
-# own extension-point docstring) a rule registered without its binding
-# allowlist entry already refuses loudly in the generation receipt rather
-# than shipping unaccepted rows. FR-compound is recorded as the next
-# entry; it is not wired here.
+# (GCMD column nesting); the Federal Register compound-heading rule is the
+# fourth; the EuroVoc microthesaurus-domain rule is the fifth, and the first
+# whose premise spans two DIFFERENT releases (a microthesaurus's notation and
+# a domain's notation), so it names two release keys rather than one -- it
+# only fires when BOTH are loaded, never from one alone. The producer's job
+# is narrower than the binding's -- it only has to know WHICH releases feed
+# a registered rule, not carry the registry itself, since (per
+# `src/refspec/atlas/derived_graph/__init__.py`'s own extension-point
+# docstring) a rule registered without its binding allowlist entry already
+# refuses loudly in the generation receipt rather than shipping unaccepted
+# rows.
 MESH_DESCRIPTORS_RELEASE_KEY = "mesh-descriptors-2026"
 GCMD_SCIENCE_KEYWORDS_RELEASE_KEY = "gcmd-science-keywords-24-4"
 FR_THESAURUS_RELEASE_KEY = "federal-register-thesaurus-2025"
+EUROVOC_MICROTHESAURI_RELEASE_KEY = "eurovoc-microthesauri-4.24"
+EUROVOC_DOMAINS_RELEASE_KEY = "eurovoc-domains-4.24"
+# Date-pinned upstream, unlike its siblings: the Federal Register API topic
+# list is a mutable-API capture, so its release key carries the capture date.
+FR_API_TOPICS_RELEASE_KEY = "federal-register-api-topics-2026-08-03"
 
 
 def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
@@ -4153,6 +4214,44 @@ def _expected_derived_relation_count(releases: Sequence[LoadedRelease]) -> int:
             }
             edges, _counts = resolve_compound_heading_edges_from_labels(preferred_by_resource)
             expected += len(edges)
+    releases_by_key = {release.spec.key: release for release in releases}
+    microthesauri_release = releases_by_key.get(EUROVOC_MICROTHESAURI_RELEASE_KEY)
+    domains_release = releases_by_key.get(EUROVOC_DOMAINS_RELEASE_KEY)
+    if microthesauri_release is not None and domains_release is not None:
+        # The only rule whose premise spans two releases: it fires only when
+        # BOTH are loaded, matching `_derive_registered_relations` below.
+        microthesaurus_notations_by_resource = {
+            resource.iri: resource.notations for resource in microthesauri_release.resources
+        }
+        domain_notation_by_resource = {
+            resource.iri: resource.notations[0] for resource in domains_release.resources
+        }
+        edges, _counts = resolve_microthesaurus_domain_edges(
+            microthesaurus_notations_by_resource,
+            domain_notation_by_resource,
+        )
+        expected += len(edges)
+    # The sixth rule, like the EuroVoc one, fires only when BOTH of its
+    # releases are loaded -- and like the compound-heading rule it matches on
+    # preferred label TEXT. Its scheme scoping is already implied here, since
+    # each release contributes only its own resources, so the two maps go
+    # straight to the shared matching core.
+    thesaurus_release = releases_by_key.get(FR_THESAURUS_RELEASE_KEY)
+    api_topics_release = releases_by_key.get(FR_API_TOPICS_RELEASE_KEY)
+    if thesaurus_release is not None and api_topics_release is not None:
+        def _preferred(release: LoadedRelease) -> dict[str, str]:
+            return {
+                resource.iri: label.value
+                for resource in release.resources
+                for label in resource.labels
+                if label.role == "preferred"
+            }
+
+        edges, _counts = resolve_fr_thesaurus_api_topic_edges_from_scheme_labels(
+            _preferred(thesaurus_release),
+            _preferred(api_topics_release),
+        )
+        expected += len(edges)
     return expected
 
 
@@ -4666,7 +4765,7 @@ def _validate_compiled_source_accounting(
 ) -> str:
     """Reconcile the generated ledger with the compact source membership."""
 
-    if set(accounting) != {"distributionId", "inputs", "totals", "type", "version"}:
+    if set(accounting) != {"assertedInventoryDigest", "distributionId", "inputs", "totals", "type", "version"}:
         raise ValueError("compiled producer source accounting fields differ")
     if (
         accounting.get("distributionId") != distribution_identity(accounting)
@@ -5383,6 +5482,7 @@ def _build_graphs(
                 "sourceReleases": len(accounting_inputs),
                 "unresolved": unresolved,
             },
+            "assertedInventoryDigest": UNSTAMPED_ASSERTED_INVENTORY_DIGEST,
             "type": "AtlasSourceAccounting",
             "version": "3.1",
         }
@@ -5928,9 +6028,11 @@ class _StreamingGraphSpool:
             if owner is None:
                 relative = Path("packs") / "catalog.nq.zst"
             elif self.plans_by_token[owner].kind == "mapping":
-                if partition is not None:
-                    raise ValueError("mapping packs do not support source partitions")
-                relative = Path("packs") / "mappings" / f"{owner}.nq.zst"
+                relative = (
+                    Path("packs") / "mappings" / f"{owner}.nq.zst"
+                    if partition is None
+                    else Path("packs") / "mappings" / owner / f"{partition}.nq.zst"
+                )
             else:
                 filename = "all.nq.zst" if partition is None else f"{partition}.nq.zst"
                 relative = Path("packs") / "sources" / owner / filename
@@ -6636,6 +6738,7 @@ def _stream_source_release(
                 "sourceReleases": 1,
                 "unresolved": sum(row["status"] == "unresolved" for row in dispositions),
             },
+            "assertedInventoryDigest": UNSTAMPED_ASSERTED_INVENTORY_DIGEST,
             "type": "AtlasSourceAccounting",
             "version": "3.1",
         }
@@ -6816,11 +6919,13 @@ def _derive_registered_relations(
     """Populate the derived graph from every registered rule this build's
     loaded releases admit.
 
-    REF-042 registered the second rule (MeSH tree-number broader) and
-    REF-043 the third (GCMD column nesting, reading each keyword's own
-    source-record payload path columns); FR-compound is recorded as the
-    next entry, not wired here. A rule only fires when its source release
-    was actually part of this build, which is what keeps the derived graph
+    REF-042 registered the second rule (MeSH tree-number broader), REF-043
+    the third (GCMD column nesting, reading each keyword's own
+    source-record payload path columns), and later work the fourth
+    (Federal Register compound headings, reading preferred-label text) and
+    fifth (EuroVoc microthesaurus-domain, reading notation prefixes across
+    two releases at once). A rule only fires when its source release(s)
+    were actually part of this build, which is what keeps the derived graph
     opt-in at the release-selection level a bounded/scoped build already
     has (REF-040's same precedent for the FAST-LCSH S27 reconciliation):
     a build that never loads ``mesh-descriptors-2026`` or
@@ -6839,12 +6944,18 @@ def _derive_registered_relations(
     # from the label TEXT ('Grant programs-agriculture' names its own parent),
     # and labels live behind SKOS-XL nodes the fact view never collected. Its
     # module ships that one-pass label view itself, so a rule declares an
-    # optional collector here and its two entry points receive it.
-    for release_key, evidence_nodes, derive, collect_labels in (
+    # optional collector here and its two entry points receive it. The EuroVoc
+    # rule is the first whose premise spans two releases (a microthesaurus's
+    # own notation and a domain's own notation) rather than one, so it names
+    # an optional second release key: both must be loaded for it to fire, and
+    # its fact view and cited asserted relations are read from both releases'
+    # spooled lines combined.
+    for release_key, evidence_nodes, derive, collect_labels, second_release_key in (
         (
             MESH_DESCRIPTORS_RELEASE_KEY,
             mesh_tree_number_evidence_nodes,
             derive_mesh_tree_number_broader_rows,
+            None,
             None,
         ),
         (
@@ -6852,18 +6963,40 @@ def _derive_registered_relations(
             gcmd_column_nesting_evidence_nodes,
             derive_gcmd_column_nesting_rows,
             None,
+            None,
         ),
         (
             FR_THESAURUS_RELEASE_KEY,
             fr_compound_heading_evidence_nodes,
             derive_fr_compound_heading_broader_rows,
             collect_fr_preferred_labels,
+            None,
+        ),
+        (
+            EUROVOC_MICROTHESAURI_RELEASE_KEY,
+            eurovoc_microthesaurus_domain_evidence_nodes,
+            derive_eurovoc_microthesaurus_domain_rows,
+            None,
+            EUROVOC_DOMAINS_RELEASE_KEY,
+        ),
+        # The only entry that is BOTH cross-scheme and label-collecting: it
+        # spans two releases like the EuroVoc rule and needs a label view like
+        # the compound-heading rule, so it is the first to use both columns.
+        (
+            FR_THESAURUS_RELEASE_KEY,
+            fr_thesaurus_api_topic_evidence_nodes,
+            derive_fr_thesaurus_api_topic_rows,
+            collect_fr_alignment_preferred_labels,
+            FR_API_TOPICS_RELEASE_KEY,
         ),
     ):
         release = _release(release_key)
-        if release is None:
+        second_release = _release(second_release_key) if second_release_key is not None else None
+        if release is None or (second_release_key is not None and second_release is None):
             continue
         lines = list(_spooled_release_lines(spool, release_key))
+        if second_release is not None:
+            lines.extend(_spooled_release_lines(spool, second_release_key))
         facts = collect_asserted_fact_view(lines)
         # A rule with a label collector gets its label view built from the very
         # lines the fact view just read, then passed to both of its entry
@@ -6883,7 +7016,8 @@ def _derive_registered_relations(
         # set (today both are exactly zero) still refuses a duplicate
         # rather than silently emitting one.
         asserted_relations = frozenset(
-            (relation.subject, relation.predicate, relation.object) for relation in release.relations
+            (relation.subject, relation.predicate, relation.object)
+            for relation in (*release.relations, *(second_release.relations if second_release is not None else ()))
         )
         outcome = (
             derive(context, asserted_relations=asserted_relations)
@@ -7013,6 +7147,7 @@ def _stream_construct_graphs(
                 "sourceReleases": len(accounting_rows),
                 "unresolved": unresolved,
             },
+            "assertedInventoryDigest": UNSTAMPED_ASSERTED_INVENTORY_DIGEST,
             "type": "AtlasSourceAccounting",
             "version": "3.1",
         }
@@ -7179,12 +7314,15 @@ def _release_pack_partition(
     release: ReleasePackPlan,
     subject: URIRef,
 ) -> str | None:
-    # A mapping release is packed whole: `packs/mappings/<key>.nq.zst` has no
-    # partition segment, and the packer refuses one. Bucketing is a
-    # source-release device for large member sets, and a large mapping release
-    # is large in assertions, not members.
-    if release.kind == "mapping":
-        return None
+    # Bucketing began as a source-release device for large member sets, and
+    # mapping releases were exempted because they are "large in assertions,
+    # not members". The premise is right and the conclusion was wrong: a pack's
+    # SIZE follows assertions, so a release large in assertions is precisely
+    # the one that overruns a byte limit. lcsh-external-links-mappings wrote
+    # 24,059,764 quads into one 6.13 GiB pack against the binding's 4 GiB
+    # per-pack ceiling, and the independent validator refused to load any full
+    # distribution because of it. A mapping plan's count is its mapping count,
+    # so the same threshold applies to both kinds.
     if release.resource_count < _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD:
         return None
     digest = hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
@@ -7619,10 +7757,16 @@ def _compact_record_from_graph(
         atlas_release = ATLAS.AtlasRelease in types
         if source_release == atlas_release:
             raise ValueError(f"release {subject} has an ambiguous concrete type")
+        # A SourceRelease names itself by IRI and dates itself under the
+        # atlas namespace; dcterms on that subject would read as publisher
+        # claims to an independent verifier. AtlasRelease rows keep dcterms:
+        # the Atlas is the publisher of its own releases.
         record.update(
             {
                 "releaseType": "SourceRelease" if source_release else "AtlasRelease",
-                "identifier": str(
+                "identifier": str(subject)
+                if source_release
+                else str(
                     _one_graph_object(
                         graph,
                         subject,
@@ -7634,7 +7778,7 @@ def _compact_record_from_graph(
                     _one_graph_object(
                         graph,
                         subject,
-                        DCTERMS.issued,
+                        ATLAS.sourceIssued if source_release else DCTERMS.issued,
                         expected_type=Literal,
                     )
                 ),
@@ -7915,9 +8059,11 @@ def _write_asserted_packs(
             if owner is None:
                 relative = Path("packs") / "catalog.nq.zst"
             elif releases_by_key[owner].kind == "mapping":
-                if partition is not None:
-                    raise ValueError("mapping packs do not support source partitions")
-                relative = Path("packs") / "mappings" / f"{owner}.nq.zst"
+                relative = (
+                    Path("packs") / "mappings" / f"{owner}.nq.zst"
+                    if partition is None
+                    else Path("packs") / "mappings" / owner / f"{partition}.nq.zst"
+                )
             else:
                 filename = "all.nq.zst" if partition is None else f"{partition}.nq.zst"
                 relative = Path("packs") / "sources" / owner / filename
@@ -8720,7 +8866,20 @@ def _write_candidate_distribution(
         if graphs.asserted.revision != graphs.sealed_asserted_revision:
             raise ValueError("asserted graph changed while checking the Parquet view")
     _STATUS.phase("write-receipts-and-manifest")
+    # The identity is stamped here, not at accounting assembly: the asserted
+    # graph's inventory digest is what makes the id bind constructed content,
+    # and it only exists once the packs are sealed.
+    graphs.accounting = _stamped_source_accounting(
+        graphs.accounting,
+        next(row["inventoryDigest"] for row in graph_descriptors if row["role"] == "asserted"),
+    )
     accounting_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(graphs.accounting))
+    # The producer validated this exact ledger; stamping only closed it over
+    # the graph digest, so the receipt attests the file as written.
+    compiled_validation = {
+        **compiled_validation,
+        "sourceAccountingDigest": _sha256_file(accounting_path),
+    }
 
     binding_digests = ATLAS_VALIDATE._binding_digests()
     binding = {
@@ -8965,7 +9124,17 @@ def _write_streamed_candidate_distribution(
         parquet_parity = streamed.spool.check_parquet(parquet_tables)
 
     _STATUS.phase("write-receipts-and-manifest")
+    # Same stamping as the whole-graph path: the identity closes over the
+    # asserted graph digest, which exists only once the packs are sealed.
+    streamed.accounting = _stamped_source_accounting(
+        streamed.accounting,
+        next(row["inventoryDigest"] for row in graph_descriptors if row["role"] == "asserted"),
+    )
     accounting_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(streamed.accounting))
+    compiled_validation = {
+        **streamed.compiled_validation,
+        "sourceAccountingDigest": _sha256_file(accounting_path),
+    }
     binding_digests = ATLAS_VALIDATE._binding_digests()
     binding = {
         "validatorVersion": "3.1",
@@ -8984,7 +9153,7 @@ def _write_streamed_candidate_distribution(
     )
     construction_summary_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(construction_summary))
     producer_validation = _producer_validation_receipt(
-        streamed.compiled_validation,
+        compiled_validation,
         binding=binding,
         asserted_inventory_digest=graph_descriptors[0]["inventoryDigest"],
         construction_summary_receipt=_construction_summary_receipt(
@@ -9149,106 +9318,6 @@ def _promote_validated_distribution(
         raise
 
 
-def _write_distribution(
-    output: Path,
-    graphs: BuildGraphs,
-    *,
-    releases: Sequence[ReleasePackPlan] = (),
-    construction_seeds: Sequence[ReleaseConstructionSeed] = (),
-    generation_report: Mapping[str, Any],
-    compiled_validation: Mapping[str, Any],
-    parquet_view: Path | None = None,
-    agency_projection: AgencyProjection | None = None,
-    agency_projection_missing_keys: Sequence[str] = (),
-) -> dict[str, Any]:
-    """Validate in a sibling temporary directory, then promote the result."""
-
-    output.parent.mkdir(parents=True, exist_ok=True)
-    counts = compiled_validation.get("counts")
-    if not isinstance(counts, Mapping):
-        raise TypeError("compiled producer validation has no count receipt")
-    created_at = generation_report.get("createdAt")
-    if not isinstance(created_at, str) or not created_at:
-        raise TypeError("generation report has no recorded instant")
-    distribution_id = _distribution_id(graphs.accounting)
-    relation_scope = _production_relation_scope_from_counts(counts)
-    report_distribution_path = _generation_report_distribution_path(output)
-    with tempfile.TemporaryDirectory(
-        prefix=f".{output.name}.candidate-",
-        dir=output.parent,
-    ) as raw_temporary_root:
-        temporary_root = Path(raw_temporary_root)
-        candidate = temporary_root / "distribution"
-        staged_tables = None if parquet_view is None else temporary_root / "parquet-view"
-        result, manifest = _write_candidate_distribution(
-            candidate,
-            graphs,
-            releases,
-            created_at=created_at,
-            compiled_validation=compiled_validation,
-            construction_seeds=construction_seeds,
-            parquet_tables=staged_tables,
-            agency_projection=agency_projection,
-        )
-        if staged_tables is not None:
-            # The tables were streamed out of the graph while the packs were
-            # written; only their authenticated identity was missing, and the
-            # manifest they pin now exists.
-            _STATUS.phase("seal-parquet-view")
-            sealed_view = temporary_root / "sealed-parquet-view"
-            seal_atlas_parquet_view(
-                candidate,
-                staged_tables,
-                sealed_view,
-                expected_manifest_digest=_sha256_file(candidate / "atlas-manifest.json"),
-                agency_projection=_agency_projection_manifest_metadata(
-                    agency_projection,
-                    agency_projection_missing_keys,
-                ),
-                derived_relations={"status": "notEmitted"},
-            )
-        report = {
-            **_plain(generation_report),
-            "distribution": {
-                "id": distribution_id,
-                "manifestDigest": _sha256_file(candidate / "atlas-manifest.json"),
-                "path": report_distribution_path,
-            },
-            "memoryProfile": _STATUS.memory_profile(),
-            "productionRelationScope": relation_scope,
-            "validation": result,
-        }
-        candidate_report = temporary_root / "generation-report.json"
-        candidate_report.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
-        if manifest["distributionId"] != distribution_id:
-            raise ValueError("candidate manifest distribution identity differs")
-        report_path = _generation_report_path(output)
-        if report_path.exists() and not (report_path.is_file() or report_path.is_symlink()):
-            raise FileExistsError(f"generation report path is not replaceable: {report_path}")
-        _STATUS.phase("promote-validated-distribution")
-        _promote_validated_distribution(
-            candidate,
-            output,
-            temporary_root=temporary_root,
-        )
-        if parquet_view is not None:
-            previous_view_root = temporary_root / "previous-parquet-view"
-            previous_view_root.mkdir()
-            _promote_validated_distribution(
-                sealed_view,
-                parquet_view,
-                temporary_root=previous_view_root,
-            )
-        try:
-            candidate_report.replace(report_path)
-        except BaseException:
-            failed_candidate = temporary_root / "validated-distribution"
-            output.rename(failed_candidate)
-            previous = temporary_root / "previous-distribution"
-            if previous.exists():
-                previous.rename(output)
-            raise
-    return result
 
 
 def _write_streamed_distribution(
@@ -9271,7 +9340,6 @@ def _write_streamed_distribution(
     created_at = generation_report.get("createdAt")
     if not isinstance(created_at, str) or not created_at:
         raise TypeError("generation report has no recorded instant")
-    distribution_id = _distribution_id(streamed.accounting)
     relation_scope = _production_relation_scope_from_counts(counts)
     report_distribution_path = _generation_report_distribution_path(output)
     with tempfile.TemporaryDirectory(
@@ -9304,6 +9372,7 @@ def _write_streamed_distribution(
                 ),
                 derived_relations=_derived_relation_view_metadata(streamed.derived_rows),
             )
+        distribution_id = _distribution_id(streamed.accounting)
         report = {
             **_plain(generation_report),
             "distribution": {
@@ -9317,7 +9386,7 @@ def _write_streamed_distribution(
         }
         candidate_report = temporary_root / "generation-report.json"
         candidate_report.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
-        if manifest["distributionId"] != distribution_id:
+        if manifest["distributionId"] != _distribution_id(streamed.accounting):
             raise ValueError("candidate manifest distribution identity differs")
         report_path = _generation_report_path(output)
         if report_path.exists() and not (report_path.is_file() or report_path.is_symlink()):
@@ -9420,9 +9489,10 @@ def verify_inputs(
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
     descriptors = set(registry.subjects(RDF.type, ATLAS.ResourceScheme))
     # REF-037 adds the acquisition-wave endpoint schemes while its ten
-    # mapping-only sources remain descriptor records without schemes.
-    if len(descriptors) != 104:
-        raise ValueError(f"expected 104 registry descriptors; found {len(descriptors)}")
+    # mapping-only sources remain descriptor records without schemes. The OFR
+    # CFR List of Subjects part index adds the 105th.
+    if len(descriptors) != 105:
+        raise ValueError(f"expected 105 registry descriptors; found {len(descriptors)}")
 
     return {
         "expectedResources": sum(source.expected_resources for source in sources),
@@ -9872,8 +9942,11 @@ def _validate_release_pack_partitions(
     probe = URIRef("urn:ref:atlas:prebuild-pack-partition-probe")
     for plan in plans:
         partition = _release_pack_partition(plan, probe)
-        if plan.kind == "mapping" and partition is not None:
-            raise ValueError(f"mapping release {plan.key} must not use a source pack partition")
+        large = plan.resource_count >= _PACK_LARGE_RELEASE_RESOURCE_THRESHOLD
+        if large and partition is None:
+            raise ValueError(f"large release {plan.key} must bucket its pack")
+        if not large and partition is not None:
+            raise ValueError(f"small release {plan.key} must not bucket its pack")
 
 
 def validate_prebuild_loaded_releases(

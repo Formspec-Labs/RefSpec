@@ -137,8 +137,7 @@ def _add_release(
     graph.add((release, DCTERMS.identifier, Literal(name)))
     graph.add((release, DCTERMS.issued, Literal("2026-08-05", datatype=XSD.date)))
     graph.add((source_release, RDF.type, ATLAS.SourceRelease))
-    graph.add((source_release, DCTERMS.identifier, Literal(f"fixture-{name}-2026")))
-    graph.add((source_release, DCTERMS.issued, Literal("2026-08-05", datatype=XSD.date)))
+    graph.add((source_release, ATLAS.sourceIssued, Literal("2026-08-05", datatype=XSD.date)))
     graph.add(
         (
             source_release,
@@ -917,6 +916,74 @@ def _base_fixture() -> Fixture:
             ("fr-loan-compound", ATLAS.SubjectConcept, "Loan programs-veterans"),
         ],
     )
+    # Raw material for the Federal Register thesaurus/API-topic alignment
+    # rule (REF-049): two labels shared across the publisher's two named
+    # schemes, plus one API topic whose matching label exists only in a
+    # foreign fixture scheme. The first two make a complete positive and a
+    # replay-gap negative possible. The third proves that label equality
+    # cannot escape the rule's contract-covered endpoint scope.
+    (
+        _fr_api_release,
+        _fr_api_scheme,
+        _fr_api_source_release,
+        _fr_api_rows,
+    ) = _add_release(
+        asserted,
+        name="federal-register-api-topics",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=atlas_validate.FR_API_TOPICS_SCHEME,
+        resources=[
+            ("fr-api-grant-programs", ATLAS.SubjectConcept, "GRANT PROGRAMS"),
+            ("fr-api-loan-programs", ATLAS.SubjectConcept, "Loan programs"),
+            ("fr-api-administrative-law", ATLAS.SubjectConcept, "Administrative law"),
+        ],
+    )
+    # Raw material for the EuroVoc microthesaurus-domain derived rule
+    # (REF-046): two ordinary SubjectConcepts in the REAL EuroVoc
+    # microthesauri scheme and one in the REAL EuroVoc domains scheme --
+    # the first rule whose fixture spans two different schemes. Both
+    # microthesauri's four-digit notations share the domain's two-digit
+    # notation as their prefix, so both admit an edge to it -- the
+    # replay-gap case has a gap to leave, and the positive case ships both.
+    # No asserted relation between any pair and no derived row over any of
+    # them in base, so every pre-existing case's derived graph is unchanged
+    # and only the EuroVoc-specific mutations below touch them.
+    (
+        _eurovoc_micro_release,
+        _eurovoc_micro_scheme,
+        _eurovoc_micro_source_release,
+        eurovoc_micro_rows,
+    ) = _add_release(
+        asserted,
+        name="eurovoc-microthesauri",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=atlas_validate.EUROVOC_MICROTHESAURI_SCHEME,
+        resources=[
+            ("eurovoc-micro-political-framework", ATLAS.SubjectConcept, "0406 political framework"),
+            ("eurovoc-micro-political-party", ATLAS.SubjectConcept, "0411 political party"),
+        ],
+    )
+    (
+        _eurovoc_domain_release,
+        _eurovoc_domain_scheme,
+        _eurovoc_domain_source_release,
+        eurovoc_domain_rows,
+    ) = _add_release(
+        asserted,
+        name="eurovoc-domains-fixture",
+        profile=ATLAS.conceptScheme,
+        ring=ATLAS.subject,
+        scheme=atlas_validate.EUROVOC_DOMAINS_SCHEME,
+        resources=[("eurovoc-domain-politics", ATLAS.SubjectConcept, "04 POLITICS")],
+    )
+    eurovoc_micro_a, _eurovoc_micro_a_source = eurovoc_micro_rows[0]
+    eurovoc_micro_b, _eurovoc_micro_b_source = eurovoc_micro_rows[1]
+    eurovoc_domain, _eurovoc_domain_source = eurovoc_domain_rows[0]
+    asserted.add((eurovoc_micro_a, ATLAS.notation, Literal("0406")))
+    asserted.add((eurovoc_micro_b, ATLAS.notation, Literal("0411")))
+    asserted.add((eurovoc_domain, ATLAS.notation, Literal("04")))
     value_release, value_scheme, _value_source_release, value_rows = _add_release(
         asserted,
         name="values",
@@ -1366,6 +1433,7 @@ def _base_fixture() -> Fixture:
             "sourceReleases": len(accounting_inputs),
             "unresolved": 0,
         },
+        "assertedInventoryDigest": "sha256:" + "0" * 64,
         "type": "AtlasSourceAccounting",
         "version": "3.1",
     }
@@ -1554,12 +1622,15 @@ def _logical_owner(
         return source_owner.get(source_release) if isinstance(source_release, URIRef) else None
     if role == "Statement":
         bindings = [binding for binding in graph.subjects(RKAF.bindsAssertion, subject) if isinstance(binding, URIRef)]
-        if len(bindings) == 1:
-            source_record = graph.value(bindings[0], ATLAS.evidenceSourceRecord)
-            if isinstance(source_record, URIRef):
-                source_release = graph.value(source_record, ATLAS.inSourceRelease)
-                if isinstance(source_release, URIRef) and source_release in source_owner:
-                    return source_owner[source_release]
+        evidence_owners = {
+            source_owner[source_release]
+            for binding in bindings
+            for source_record in graph.objects(binding, ATLAS.evidenceSourceRecord)
+            for source_release in graph.objects(source_record, ATLAS.inSourceRelease)
+            if isinstance(source_release, URIRef) and source_release in source_owner
+        }
+        if bindings and len(evidence_owners) == 1:
+            return next(iter(evidence_owners))
         endpoint_release = iri(ATLAS.sourceRelease)
         if endpoint_release is not None:
             return atlas_owner.get(endpoint_release) or source_owner.get(endpoint_release)
@@ -2466,6 +2537,145 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             source_record=next(fixture.asserted.objects(entity, ATLAS.sourceRecord)),
         )
 
+    # Portable graph-shape cases prompted by the graph-theory assessment in
+    # research/graph-theory-relevance-2026-08-24.md. They prove distinctions
+    # Atlas already promises: assertion multiplicity is not edge multiplicity,
+    # evidence multiplicity is not assertion multiplicity, reciprocal source
+    # statements retain their directions, and hierarchy reachability remains
+    # total in the presence of a cycle.
+    subject_a = URIRef("urn:ref:atlas-fixture:resource:subject-a")
+    subject_b = URIRef("urn:ref:atlas-fixture:resource:subject-b")
+    source_a = URIRef("urn:ref:atlas-fixture:source-record:subject-a")
+    fr_head = URIRef("urn:ref:atlas-fixture:resource:fr-head")
+    fr_loan_head = URIRef("urn:ref:atlas-fixture:resource:fr-loan-head")
+    fr_compound = URIRef("urn:ref:atlas-fixture:resource:fr-compound")
+    fr_head_source = URIRef("urn:ref:atlas-fixture:source-record:fr-head")
+    fr_loan_head_source = URIRef("urn:ref:atlas-fixture:source-record:fr-loan-head")
+
+    def multiple_assertions_one_projection(fixture: Fixture) -> None:
+        source_release = next(fixture.asserted.objects(subject_a, ATLAS.inRelease))
+        target_release = next(fixture.asserted.objects(subject_b, ATLAS.inRelease))
+        second_policy = _add_policy(fixture.asserted, version="parallel-support")
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.MappingAssertion,
+            ring=ATLAS.subject,
+            subject=subject_a,
+            predicate=SKOS.exactMatch,
+            obj=subject_b,
+            source_release=source_release,
+            target_release=target_release,
+            evidence_record=source_a,
+            evidence_name="parallel-exact-ab",
+            policy=second_policy,
+            review_warrant="humanReview",
+        )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+        _account_assertions(fixture)
+
+    def multiple_evidence_one_assertion(fixture: Fixture) -> None:
+        assertion = next(
+            row
+            for row in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+            if fixture.asserted.value(row, RDF.subject) == subject_a
+            and fixture.asserted.value(row, RDF.object) == subject_b
+            and fixture.asserted.value(row, RDF.predicate) == SKOS.exactMatch
+        )
+        policy = next(fixture.asserted.objects(assertion, ATLAS.governedByPolicy))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.MappingAssertion,
+            ring=ATLAS.subject,
+            subject=subject_a,
+            predicate=SKOS.exactMatch,
+            obj=subject_b,
+            source_release=next(fixture.asserted.objects(assertion, ATLAS.sourceRelease)),
+            target_release=next(fixture.asserted.objects(assertion, ATLAS.targetRelease)),
+            evidence_record=URIRef("urn:ref:atlas-fixture:source-record:subject-a-child"),
+            evidence_name="second-evidence-exact-ab",
+            policy=policy,
+            review_warrant="humanReview",
+        )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+        _account_assertions(fixture)
+
+    def multiple_evidence_stale_count(fixture: Fixture) -> None:
+        """Keep the second valid binding but leave its manifest count stale."""
+
+        multiple_evidence_one_assertion(fixture)
+        counts = _counts(fixture)
+        fixture.manifest_patch["counts"] = {
+            **counts,
+            "evidenceBindings": counts["evidenceBindings"] - 1,
+        }
+
+    def reciprocal_publisher_related(fixture: Fixture) -> None:
+        release = next(fixture.asserted.objects(fr_head, ATLAS.inRelease))
+        for subject, obj, evidence_record, name in (
+            (fr_head, fr_loan_head, fr_head_source, "fr-head-related-loan-head"),
+            (fr_loan_head, fr_head, fr_loan_head_source, "fr-loan-head-related-head"),
+        ):
+            _add_assertion(
+                fixture.asserted,
+                assertion_type=ATLAS.NativeRelationAssertion,
+                ring=ATLAS.subject,
+                subject=subject,
+                predicate=SKOS.related,
+                obj=obj,
+                source_release=release,
+                target_release=release,
+                evidence_record=evidence_record,
+                evidence_name=name,
+                review_warrant="publisherAssertion",
+            )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+        _account_assertions(fixture)
+
+    def cycle_safe_hierarchy(fixture: Fixture) -> None:
+        release = next(fixture.asserted.objects(fr_head, ATLAS.inRelease))
+        for subject, obj, evidence_record, name in (
+            (fr_head, fr_loan_head, fr_head_source, "fr-head-broader-loan-head"),
+            (fr_loan_head, fr_head, fr_loan_head_source, "fr-loan-head-broader-head"),
+            (
+                fr_loan_head,
+                fr_compound,
+                fr_loan_head_source,
+                "fr-loan-head-broader-compound",
+            ),
+        ):
+            _add_assertion(
+                fixture.asserted,
+                assertion_type=ATLAS.NativeRelationAssertion,
+                ring=ATLAS.subject,
+                subject=subject,
+                predicate=SKOS.broader,
+                obj=obj,
+                source_release=release,
+                target_release=release,
+                evidence_record=evidence_record,
+                evidence_name=name,
+                review_warrant="publisherAssertion",
+            )
+        # The first two edges form one strongly connected component.  The
+        # third edge leaves it for `fr_compound`; this authored association
+        # asks S27 about that cross-component path and therefore exercises the
+        # condensed DAG rather than only the same-component shortcut.
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=fr_head,
+            predicate=ATLAS.thesaurusRelated,
+            obj=fr_compound,
+            source_release=release,
+            target_release=release,
+            evidence_record=fr_head_source,
+            evidence_name="fr-head-thesaurus-related-compound",
+            review_warrant="publisherAssertion",
+        )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+        _account_assertions(fixture)
+
     # REF-042: the MeSH tree-number-broader rule, the registry's second entry.
     # `_base_fixture` seeds the raw material (mesh-parent/mesh-child, tree
     # numbers "C14.280"/"C14.280.647", no asserted relation between them) but
@@ -2756,6 +2966,270 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # every row-shape check, but the loan pair ships no row, so only
         # the whole-set replay notices (missing=1).
         add_fr_derived_row(fixture)
+
+    eurovoc_micro_a = URIRef("urn:ref:atlas-fixture:resource:eurovoc-micro-political-framework")
+    eurovoc_micro_b = URIRef("urn:ref:atlas-fixture:resource:eurovoc-micro-political-party")
+    eurovoc_domain = URIRef("urn:ref:atlas-fixture:resource:eurovoc-domain-politics")
+    eurovoc_micro_a_source = URIRef("urn:ref:atlas-fixture:source-record:eurovoc-micro-political-framework")
+    eurovoc_micro_b_source = URIRef("urn:ref:atlas-fixture:source-record:eurovoc-micro-political-party")
+    eurovoc_domain_source = URIRef("urn:ref:atlas-fixture:source-record:eurovoc-domain-politics")
+
+    def add_eurovoc_derived_row(
+        fixture: Fixture,
+        *,
+        subject: URIRef = eurovoc_micro_a,
+        predicate: URIRef = SKOS.broader,
+        obj: URIRef = eurovoc_domain,
+        evidence: tuple[URIRef, ...] = (eurovoc_micro_a_source, eurovoc_domain_source),
+    ) -> URIRef:
+        """Mint one EuroVoc microthesaurus-domain derived row, following the
+        exact identity formula `add_mesh_derived_row` uses."""
+
+        node = URIRef("urn:ref:atlas-derived:pending")
+        fixture.derived.add((node, RDF.type, ATLAS.DerivedRelation))
+        fixture.derived.add((node, ATLAS.relationSubject, subject))
+        fixture.derived.add((node, ATLAS.relationPredicate, predicate))
+        fixture.derived.add((node, ATLAS.relationObject, obj))
+        for item in evidence:
+            fixture.derived.add((node, ATLAS.derivedFromAssertion, item))
+        fixture.derived.add((node, ATLAS.semanticRing, ATLAS.subject))
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, atlas_validate.EUROVOC_MICROTHESAURUS_DOMAIN_RULE)
+        )
+        fixture.derived.add((node, ATLAS.engine, atlas_validate.EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE))
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.engineVersion,
+                Literal(atlas_validate.EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                RKAF.inputDigest,
+                Literal(atlas_validate.derived_input_digest(fixture.asserted, list(evidence))),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.generatedAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        return _reidentify_derived(fixture.derived, node)
+
+    def eurovoc_microthesaurus_domain_broader(fixture: Fixture) -> None:
+        # The positive case: the complete, exact edge set the two
+        # microthesauri imply -- both rows, so the replay's whole-of-rule
+        # regeneration finds no gap and no extra.
+        add_eurovoc_derived_row(fixture)
+        add_eurovoc_derived_row(
+            fixture,
+            subject=eurovoc_micro_b,
+            evidence=(eurovoc_micro_b_source, eurovoc_domain_source),
+        )
+
+    def eurovoc_microthesaurus_domain_unallowlisted_rule(fixture: Fixture) -> None:
+        node = add_eurovoc_derived_row(fixture)
+        _remove_subject_predicate(fixture.derived, node, ATLAS.derivationRule)
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, URIRef("urn:ref:rule:bogus-unregistered-rule"))
+        )
+        _reidentify_derived(fixture.derived, node)
+
+    def eurovoc_microthesaurus_domain_wrong_predicate(fixture: Fixture) -> None:
+        add_eurovoc_derived_row(fixture, predicate=SKOS.related)
+
+    def eurovoc_microthesaurus_domain_malformed_inputs(fixture: Fixture) -> None:
+        add_eurovoc_derived_row(fixture, evidence=(eurovoc_micro_a_source,))
+
+    def eurovoc_microthesaurus_domain_duplicates_asserted(fixture: Fixture) -> None:
+        # An asserted (domain, skos:narrower, microthesaurus) beside the
+        # derived (microthesaurus, skos:broader, domain): the
+        # mirror-predicate duplicate check, cross-release like the real
+        # relation itself -- the asserted relation's subject (the domain)
+        # owns it, its object (the microthesaurus) sits in the other
+        # release.
+        eurovoc_domain_release_iri = next(fixture.asserted.objects(eurovoc_domain, ATLAS.inRelease))
+        eurovoc_micro_release_iri = next(fixture.asserted.objects(eurovoc_micro_a, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=eurovoc_domain,
+            predicate=SKOS.narrower,
+            obj=eurovoc_micro_a,
+            source_release=eurovoc_domain_release_iri,
+            target_release=eurovoc_micro_release_iri,
+            evidence_record=eurovoc_domain_source,
+            evidence_name="eurovoc-domain-narrower-eurovoc-micro-a",
+            review_warrant="publisherAssertion",
+        )
+        add_eurovoc_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def eurovoc_microthesaurus_domain_replay_gap(fixture: Fixture) -> None:
+        # The reasoning.authority negative: micro_a's row passes every
+        # row-shape check, but micro_b ships no row, so only the whole-set
+        # replay notices (missing=1).
+        add_eurovoc_derived_row(fixture)
+
+    # REF-049: case-folded preferred-label equality between the Federal
+    # Register thesaurus and the API-topic list becomes the sixth admitted
+    # derived rule. The base fixture carries two complete matches and a third
+    # API label matching a resource in a foreign scheme, so this battery proves
+    # the positive population, every registry boundary, symmetric collision
+    # handling, and whole-rule completeness.
+    fr_api_grant = URIRef("urn:ref:atlas-fixture:resource:fr-api-grant-programs")
+    fr_api_loan = URIRef("urn:ref:atlas-fixture:resource:fr-api-loan-programs")
+    fr_api_administrative_law = URIRef(
+        "urn:ref:atlas-fixture:resource:fr-api-administrative-law"
+    )
+    fr_api_grant_source = URIRef(
+        "urn:ref:atlas-fixture:source-record:fr-api-grant-programs"
+    )
+    fr_api_loan_source = URIRef(
+        "urn:ref:atlas-fixture:source-record:fr-api-loan-programs"
+    )
+    fr_api_administrative_law_source = URIRef(
+        "urn:ref:atlas-fixture:source-record:fr-api-administrative-law"
+    )
+
+    def add_fr_alignment_derived_row(
+        fixture: Fixture,
+        *,
+        subject: URIRef = fr_head,
+        predicate: URIRef = SKOS.closeMatch,
+        obj: URIRef = fr_api_grant,
+        evidence: tuple[URIRef, ...] = (fr_head_source, fr_api_grant_source),
+    ) -> URIRef:
+        node = URIRef("urn:ref:atlas-derived:pending")
+        fixture.derived.add((node, RDF.type, ATLAS.DerivedRelation))
+        fixture.derived.add((node, ATLAS.relationSubject, subject))
+        fixture.derived.add((node, ATLAS.relationPredicate, predicate))
+        fixture.derived.add((node, ATLAS.relationObject, obj))
+        for item in evidence:
+            fixture.derived.add((node, ATLAS.derivedFromAssertion, item))
+        fixture.derived.add((node, ATLAS.semanticRing, ATLAS.subject))
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, atlas_validate.FR_THESAURUS_API_TOPIC_RULE)
+        )
+        fixture.derived.add((node, ATLAS.engine, atlas_validate.FR_THESAURUS_API_TOPIC_ENGINE))
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.engineVersion,
+                Literal(atlas_validate.FR_THESAURUS_API_TOPIC_ENGINE_VERSION),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                RKAF.inputDigest,
+                Literal(atlas_validate.derived_input_digest(fixture.asserted, list(evidence))),
+            )
+        )
+        fixture.derived.add(
+            (
+                node,
+                ATLAS.generatedAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        return _reidentify_derived(fixture.derived, node)
+
+    def fr_thesaurus_api_topic_close_match(fixture: Fixture) -> None:
+        add_fr_alignment_derived_row(fixture)
+        add_fr_alignment_derived_row(
+            fixture,
+            subject=fr_loan_head,
+            obj=fr_api_loan,
+            evidence=(fr_loan_head_source, fr_api_loan_source),
+        )
+
+    def fr_thesaurus_api_topic_unallowlisted_rule(fixture: Fixture) -> None:
+        node = add_fr_alignment_derived_row(fixture)
+        _remove_subject_predicate(fixture.derived, node, ATLAS.derivationRule)
+        fixture.derived.add(
+            (node, ATLAS.derivationRule, URIRef("urn:ref:rule:bogus-unregistered-rule"))
+        )
+        _reidentify_derived(fixture.derived, node)
+
+    def fr_thesaurus_api_topic_wrong_predicate(fixture: Fixture) -> None:
+        add_fr_alignment_derived_row(fixture, predicate=SKOS.exactMatch)
+
+    def fr_thesaurus_api_topic_malformed_inputs(fixture: Fixture) -> None:
+        add_fr_alignment_derived_row(fixture, evidence=(fr_head_source,))
+
+    def fr_thesaurus_api_topic_foreign_scheme(fixture: Fixture) -> None:
+        add_fr_alignment_derived_row(
+            fixture,
+            subject=subject_a,
+            obj=fr_api_administrative_law,
+            evidence=(source_a, fr_api_administrative_law_source),
+        )
+
+    def fr_thesaurus_api_topic_reversed_direction(fixture: Fixture) -> None:
+        add_fr_alignment_derived_row(
+            fixture,
+            subject=fr_api_grant,
+            obj=fr_head,
+            evidence=(fr_api_grant_source, fr_head_source),
+        )
+
+    def fr_thesaurus_api_topic_duplicates_asserted(fixture: Fixture) -> None:
+        api_release = next(fixture.asserted.objects(fr_api_grant, ATLAS.inRelease))
+        thesaurus_release = next(fixture.asserted.objects(fr_head, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.MappingAssertion,
+            ring=ATLAS.subject,
+            subject=fr_api_grant,
+            predicate=SKOS.closeMatch,
+            obj=fr_head,
+            source_release=api_release,
+            target_release=thesaurus_release,
+            evidence_record=fr_api_grant_source,
+            evidence_name="fr-api-grant-close-match-fr-head",
+            review_warrant="humanReview",
+        )
+        add_fr_alignment_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+        _account_assertions(fixture)
+
+    def fr_thesaurus_api_topic_asserted_exact_match(fixture: Fixture) -> None:
+        thesaurus_release = next(fixture.asserted.objects(fr_head, ATLAS.inRelease))
+        api_release = next(fixture.asserted.objects(fr_api_grant, ATLAS.inRelease))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.MappingAssertion,
+            ring=ATLAS.subject,
+            subject=fr_head,
+            predicate=SKOS.exactMatch,
+            obj=fr_api_grant,
+            source_release=thesaurus_release,
+            target_release=api_release,
+            evidence_record=fr_head_source,
+            evidence_name="fr-head-exact-match-fr-api-grant",
+            review_warrant="humanReview",
+        )
+        add_fr_alignment_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+        _account_assertions(fixture)
+
+    def fr_thesaurus_api_topic_ambiguous_folded_label(fixture: Fixture) -> None:
+        label = next(fixture.asserted.objects(fr_api_loan, SKOSXL.prefLabel))
+        _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
+        fixture.asserted.add(
+            (label, SKOSXL.literalForm, Literal("grant programs", lang="en"))
+        )
+        add_fr_alignment_derived_row(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def fr_thesaurus_api_topic_replay_gap(fixture: Fixture) -> None:
+        add_fr_alignment_derived_row(fixture)
 
     def mesh_tree_number_unallowlisted_rule(fixture: Fixture) -> None:
         # The registry bites on a rule IRI it has never seen, exactMatch's
@@ -4571,6 +5045,36 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
         ("rdf-literal-escaping", ["rdf", "dataset"], "valid", rdf_literal_escaping),
         (
+            "multiple-assertions-one-projection",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            multiple_assertions_one_projection,
+        ),
+        (
+            "multiple-evidence-one-assertion",
+            ["rdf", "dataset"],
+            "valid",
+            multiple_evidence_one_assertion,
+        ),
+        (
+            "multiple-evidence-stale-count",
+            ["dataset"],
+            "construction.counts",
+            multiple_evidence_stale_count,
+        ),
+        (
+            "reciprocal-publisher-related",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            reciprocal_publisher_related,
+        ),
+        (
+            "cycle-safe-hierarchy",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            cycle_safe_hierarchy,
+        ),
+        (
             "source-native-thesaurus",
             ["rdf", "shacl", "dataset", "reasoning"],
             "valid",
@@ -5204,6 +5708,102 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset", "reasoning"],
             "reasoning.authority",
             fr_compound_head_replay_gap,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-broader",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            eurovoc_microthesaurus_domain_broader,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-unallowlisted-rule",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            eurovoc_microthesaurus_domain_unallowlisted_rule,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-wrong-predicate",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            eurovoc_microthesaurus_domain_wrong_predicate,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-malformed-inputs",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            eurovoc_microthesaurus_domain_malformed_inputs,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-duplicates-asserted",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            eurovoc_microthesaurus_domain_duplicates_asserted,
+        ),
+        (
+            "eurovoc-microthesaurus-domain-replay-gap",
+            ["dataset", "reasoning"],
+            "reasoning.authority",
+            eurovoc_microthesaurus_domain_replay_gap,
+        ),
+        (
+            "fr-thesaurus-api-topic-close-match",
+            ["rdf", "dataset", "reasoning"],
+            "valid",
+            fr_thesaurus_api_topic_close_match,
+        ),
+        (
+            "fr-thesaurus-api-topic-unallowlisted-rule",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_thesaurus_api_topic_unallowlisted_rule,
+        ),
+        (
+            "fr-thesaurus-api-topic-wrong-predicate",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_thesaurus_api_topic_wrong_predicate,
+        ),
+        (
+            "fr-thesaurus-api-topic-malformed-inputs",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_thesaurus_api_topic_malformed_inputs,
+        ),
+        (
+            "fr-thesaurus-api-topic-foreign-scheme",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_thesaurus_api_topic_foreign_scheme,
+        ),
+        (
+            "fr-thesaurus-api-topic-reversed-direction",
+            ["dataset", "reasoning"],
+            "dataset.derived-rule",
+            fr_thesaurus_api_topic_reversed_direction,
+        ),
+        (
+            "fr-thesaurus-api-topic-duplicates-asserted",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            fr_thesaurus_api_topic_duplicates_asserted,
+        ),
+        (
+            "fr-thesaurus-api-topic-asserted-exact-match",
+            ["dataset", "reasoning"],
+            "dataset.derived-authority",
+            fr_thesaurus_api_topic_asserted_exact_match,
+        ),
+        (
+            "fr-thesaurus-api-topic-ambiguous-folded-label",
+            ["dataset", "reasoning"],
+            "reasoning.authority",
+            fr_thesaurus_api_topic_ambiguous_folded_label,
+        ),
+        (
+            "fr-thesaurus-api-topic-replay-gap",
+            ["dataset", "reasoning"],
+            "reasoning.authority",
+            fr_thesaurus_api_topic_replay_gap,
         ),
     ]
 

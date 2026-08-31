@@ -124,6 +124,7 @@ def _compiled_test_accounting() -> dict[str, object]:
                 "sourceReleases": 1,
                 "unresolved": 0,
             },
+            "assertedInventoryDigest": generator.UNSTAMPED_ASSERTED_INVENTORY_DIGEST,
             "type": "AtlasSourceAccounting",
             "version": "3.1",
         }
@@ -572,12 +573,22 @@ def test_distribution_identity_is_the_digest_of_the_content_it_labels() -> None:
     # No timestamp reaches the identity: the fields it digests are the ledger's
     # own, and adding a recorded instant beside them cannot move it.
     assert set(accounting) == {
+        "assertedInventoryDigest",
         "distributionId",
         "inputs",
         "totals",
         "type",
         "version",
     }
+
+    # The identity binds constructed content, not sources alone: restamping the
+    # same ledger against a different asserted graph must move it. Three builds
+    # on 2026-08-21 shared one id while their content differed, because a
+    # normalization-policy change alters what the producer keeps without
+    # altering what it reads.
+    restamped = generator._stamped_source_accounting(accounting, "sha256:" + "a" * 64)
+    assert restamped["distributionId"] != identity
+    assert generator.distribution_identity(restamped) == restamped["distributionId"]
     assert "2026" not in json.dumps(
         {key: value for key, value in accounting.items() if key != "distributionId"},
         sort_keys=True,
@@ -1408,7 +1419,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 111
+    assert len(generator._validated_registry_index_rows(index, proof)) == 112
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(row for row in changed_index["rows"] if row["resourceId"] == "eurovoc-lcsh-alignment")
@@ -1558,7 +1569,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
 
     inventory = generator.verify_inputs(releases, mapping_releases)
     assert inventory["expectedResources"] == 2
-    assert inventory["registryDescriptors"] == 104
+    assert inventory["registryDescriptors"] == 105
     mapping_source = inventory["mappingSources"][0]
     assert [row["role"] for row in mapping_source["inputs"]] == [
         "publisherAlignment",
@@ -1790,7 +1801,10 @@ def test_streamed_construction_matches_the_whole_graph_oracle(
             if path.is_file()
         }
 
-    assert streamed.accounting == legacy_accounting
+    unstamped = generator.UNSTAMPED_ASSERTED_INVENTORY_DIGEST
+    assert generator._stamped_source_accounting(
+        streamed.accounting, unstamped
+    ) == generator._stamped_source_accounting(legacy_accounting, unstamped)
     assert streamed.compiled_validation == legacy_validation
     assert streamed_manifest == legacy_manifest
     assert streamed_result == legacy_result
@@ -2191,59 +2205,6 @@ def _probe_evidence_resolution(
     assert "mapping evidence identities differ" in str(streamed_error.value)
 
 
-def _probe_pack_partition(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    plan = dataclasses.replace(
-        _test_release_plan(),
-        atlas_release_iri=None,
-        kind="mapping",
-    )
-    graph = generator._new_build_graph()
-    catalog = generator._new_build_graph()
-    try:
-        generator._add_source_release(
-            graph,
-            identifier=plan.source_release_iri,
-            digest="sha256:" + "1" * 64,
-            issued="2026-08-06",
-            locator=URIRef("urn:test:source"),
-        )
-        monkeypatch.setattr(
-            generator,
-            "_release_pack_partition",
-            lambda release, subject: "0" if release.kind == "mapping" else None,
-        )
-
-        legacy_root = tmp_path / "legacy"
-        legacy_root.mkdir()
-        with pytest.raises(ValueError) as legacy_error:
-            generator._write_asserted_packs(legacy_root, graph, (plan,))
-
-        spool = generator._StreamingGraphSpool(
-            tmp_path / "streamed-spool",
-            (plan,),
-            resource_owner_tokens={},
-            catalog=catalog,
-        )
-        spool.append_graph(graph, plan)
-        streamed_root = tmp_path / "streamed"
-        streamed_root.mkdir()
-        with pytest.raises(ValueError) as streamed_error:
-            spool.materialize_packs(
-                streamed_root,
-                incremental=generator.ColdPackMaterialization(),
-            )
-
-        assert type(streamed_error.value) is type(legacy_error.value)
-        assert str(streamed_error.value) == str(legacy_error.value)
-        assert str(streamed_error.value) == "mapping packs do not support source partitions"
-    finally:
-        graph.close()
-        catalog.close()
-
-
 def _probe_refused_release_before_write(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2304,7 +2265,6 @@ _STREAMED_WHOLE_GRAPH_REFUSAL_PROBES: dict[
     ),
     "evidence-resolution": (_probe_evidence_resolution, None),
     "non-iri-subject": (_probe_non_iri_subject, None),
-    "pack-partition": (_probe_pack_partition, None),
     "reachability-divergence": (
         _probe_reachability_divergence,
         (
@@ -2328,7 +2288,6 @@ def test_streamed_whole_graph_refusal_battery_has_no_missing_probe() -> None:
         "duplicate-claim",
         "evidence-resolution",
         "non-iri-subject",
-        "pack-partition",
         "reachability-divergence",
         "refused-release-before-write",
         "source-accounting",
@@ -4584,26 +4543,38 @@ def test_producer_pins_the_ref037_ecfr_cross_ring_carrier() -> None:
     assert {(row.source_ring, row.target_ring) for row in relations} == {("entity", "legalIdentity")}
 
 
-def test_mapping_releases_are_never_partitioned() -> None:
-    """A mapping release packs whole, however many assertions it carries.
+def test_a_large_mapping_release_buckets_its_pack() -> None:
+    """A mapping release buckets on the same threshold as any other kind.
 
-    `packs/mappings/<key>.nq.zst` has no partition segment and the packer
-    refuses one, but the partitioner used to decide on resource_count alone.
-    The FAST-to-LCSH release crossed the large-release threshold and the build
-    failed 176 seconds in. Bucketing is a source-release device for large
-    member sets; a large mapping release is large in assertions, not members.
+    Bucketing began as a source-release device for large member sets, and
+    mappings were exempted on the reasoning that a large mapping release is
+    "large in assertions, not members". The premise is right and the
+    conclusion was wrong: a pack's SIZE follows assertions. The exemption let
+    lcsh-external-links-mappings write 24,059,764 quads into one 6.13 GiB
+    pack against the binding's 4 GiB ceiling, and the independent validator
+    then refused to load any full distribution at all -- it stops at
+    rdf.resource-limit before reaching a single conformance check.
+
+    The first attempt at this failed only because the writer had no path for
+    a partitioned mapping pack. It now writes
+    `packs/mappings/<key>/<bucket>.nq.zst`.
     """
 
     mapping_plan = generator.ReleasePackPlan(
-        key="fast-to-lcsh-mapping",
+        key="lcsh-external-links-mappings",
         source_release_iri="urn:test:source-release",
-        atlas_release_iri="urn:test:atlas-release",
+        atlas_release_iri=None,
         ring="subject",
         resource_count=generator._PACK_LARGE_RELEASE_RESOURCE_THRESHOLD * 10,
         kind="mapping",
     )
+    small_plan = dataclasses.replace(
+        mapping_plan,
+        resource_count=generator._PACK_LARGE_RELEASE_RESOURCE_THRESHOLD - 1,
+    )
     source_plan = dataclasses.replace(mapping_plan, kind="sourceRelease")
     subject = URIRef("urn:test:subject")
 
-    assert generator._release_pack_partition(mapping_plan, subject) is None
+    assert generator._release_pack_partition(mapping_plan, subject) is not None
     assert generator._release_pack_partition(source_plan, subject) is not None
+    assert generator._release_pack_partition(small_plan, subject) is None

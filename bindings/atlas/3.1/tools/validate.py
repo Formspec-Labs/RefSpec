@@ -115,6 +115,7 @@ PROFILE_MAP_PATH = BINDING_ROOT / "registry-resource-profiles.json"
 REGISTRY_COVERAGE_PATH = BINDING_ROOT / "tests" / "registry-coverage.json"
 REGISTRY_DESCRIPTOR_PROOF_PATH = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTOR_DATASET_PATH = BINDING_ROOT / "tests" / "registry-descriptors.nq"
+DERIVED_RULE_REGISTRY_PATH = BINDING_ROOT / "admitted-derived-rules.json"
 # The semantic contract: the RULES a distribution is validated *against*.
 # Changing any of these changes what conformance means, so every fixture must
 # be reissued against the new meaning -- that is the point of pinning them into
@@ -130,6 +131,7 @@ REGISTRY_DESCRIPTOR_DATASET_PATH = BINDING_ROOT / "tests" / "registry-descriptor
 # described instead: `corpus_digest()` is recorded in each acceptance record,
 # beside the validator identity it qualifies. See REF-029.
 CONTRACT_PATHS = (
+    Path("admitted-derived-rules.json"),
     Path("ontology/atlas.ttl"),
     Path("registry-resource-profiles.json"),
     Path("shapes/atlas.shacl.ttl"),
@@ -245,6 +247,54 @@ FR_COMPOUND_HEADING_BROADER_RULE = URIRef("urn:ref:rule:fr-thesaurus-compound-he
 FR_COMPOUND_HEADING_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-fr-compound-headings")
 FR_COMPOUND_HEADING_ENGINE_VERSION = "1"
 FR_COMPOUND_HEADING_SCHEME = URIRef("urn:ref:atlas-resource-scheme:federal-register-thesaurus-2025")
+# The fifth entry in `_DERIVED_RULE_ADMISSIONS` (see REF-046 in
+# docs/decisions.md). The Publications Office never asserts a
+# microthesaurus's domain anywhere in the pinned SKOS Core distribution
+# (REF-045 recorded the exhaustive check); the only linkage is notational --
+# every microthesaurus's four-digit publisher notation carries a two-digit
+# prefix naming exactly one of the 21 domain codes. Reading that prefix as
+# the microthesaurus's `skos:broader` domain is RefSpec's structural
+# projection, not the publisher's assertion, so it lives only in the derived
+# graph. Unlike every prior rule, subject and object sit in two DIFFERENT
+# schemes (the microthesaurus scheme and the domains scheme), so this rule
+# is scheme-scoped in BOTH directions: a microthesaurus-shaped notation on a
+# foreign-scheme resource, or a domain-shaped notation on one, can never
+# admit an edge -- the MeSH rule shipped scheme-blind and an adversarial
+# battery caught it admitting any dot-structured notation; this rule does
+# not repeat that bug for either endpoint.
+# `src/refspec/atlas/derived_graph/eurovoc_microthesaurus_domain.py` carries
+# the identical constants on the producer side; the two modules do not
+# import each other (the binding stays importable standalone), so
+# `tests/test_eurovoc_microthesaurus_domain.py` proves they still agree.
+EUROVOC_MICROTHESAURUS_DOMAIN_RULE = URIRef("urn:ref:rule:eurovoc-microthesaurus-domain-notation-prefix")
+EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE = URIRef("https://refspec.org/code/atlas-v3-derived-eurovoc-microthesaurus-domain")
+EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION = "1"
+EUROVOC_MICROTHESAURI_SCHEME = URIRef("urn:ref:atlas-resource-scheme:eurovoc:microthesauri")
+EUROVOC_DOMAINS_SCHEME = URIRef("urn:ref:atlas-resource-scheme:eurovoc:domains")
+# The sixth entry in `_DERIVED_RULE_ADMISSIONS`. Atlas carries two Office of
+# the Federal Register vocabularies and asserts nothing between them: the
+# 705-concept curated thesaurus and the 1,044-term list documents are indexed
+# with, each with entirely internal relations and zero statements crossing.
+# 698 of their preferred labels are equal once case-folded (695 verbatim; the
+# three extra are one publisher spelling its own term two ways). Reading that
+# equality as a link is RefSpec's projection, not OFR's assertion -- and
+# RefSpec owns neither endpoint, so under REF-035 an assertion would be E4 on
+# evidence that is actually mechanical. It lives only in the derived graph.
+# The predicate is `skos:closeMatch`, never `skos:exactMatch`: S45 makes
+# exactMatch transitive, so one wrong edge contaminates every chain, and the
+# binding already runs a corpus-wide S46 preflight for that reason. S43 makes
+# closeMatch symmetric but not transitive, which is exactly what label
+# equality licenses. Scheme-scoped in BOTH directions, like the EuroVoc rule.
+# `src/refspec/atlas/derived_graph/fr_thesaurus_api_topic_alignment.py`
+# carries the identical constants on the producer side; the two modules do
+# not import each other, so `tests/test_fr_thesaurus_api_topic_alignment.py`
+# proves they still agree.
+FR_THESAURUS_API_TOPIC_RULE = URIRef("urn:ref:rule:fr-thesaurus-api-topic-label-equality")
+FR_THESAURUS_API_TOPIC_ENGINE = URIRef(
+    "https://refspec.org/code/atlas-v3-derived-fr-thesaurus-api-topic-alignment"
+)
+FR_THESAURUS_API_TOPIC_ENGINE_VERSION = "1"
+FR_API_TOPICS_SCHEME = URIRef("urn:ref:atlas-resource-scheme:federal-register-api-topics")
 
 SCHEMAS = {
     "manifest": "atlas-manifest.schema.json",
@@ -721,6 +771,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         DCTERMS.identifier,
         DCTERMS.title,
         DCTERMS.issued,
+        ATLAS.sourceIssued,
         DCTERMS.description,
         PROV.hadMember,
         PROV.wasDerivedFrom,
@@ -1009,6 +1060,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "cross-ring-endpoint-ring-reversal",
         "cross-ring-missing-evidence",
         "cross-role-identity",
+        "cycle-safe-hierarchy",
         "construction-language-scope-missing",
         "dataset-digest-mismatch",
         "derived-input-digest",
@@ -1022,6 +1074,12 @@ REQUIRED_CORPUS_CASES = frozenset(
         "derived-reflexive-output",
         "derived-rescinded-input",
         "duplicate-preferred-language",
+        "eurovoc-microthesaurus-domain-broader",
+        "eurovoc-microthesaurus-domain-duplicates-asserted",
+        "eurovoc-microthesaurus-domain-malformed-inputs",
+        "eurovoc-microthesaurus-domain-replay-gap",
+        "eurovoc-microthesaurus-domain-unallowlisted-rule",
+        "eurovoc-microthesaurus-domain-wrong-predicate",
         "evidence-attested-at-not-datetime",
         "evidence-attestor-kind-unknown",
         "evidence-decision-not-approved",
@@ -1035,6 +1093,16 @@ REQUIRED_CORPUS_CASES = frozenset(
         "fr-compound-head-replay-gap",
         "fr-compound-head-unallowlisted-rule",
         "fr-compound-head-wrong-predicate",
+        "fr-thesaurus-api-topic-close-match",
+        "fr-thesaurus-api-topic-ambiguous-folded-label",
+        "fr-thesaurus-api-topic-asserted-exact-match",
+        "fr-thesaurus-api-topic-duplicates-asserted",
+        "fr-thesaurus-api-topic-foreign-scheme",
+        "fr-thesaurus-api-topic-malformed-inputs",
+        "fr-thesaurus-api-topic-replay-gap",
+        "fr-thesaurus-api-topic-reversed-direction",
+        "fr-thesaurus-api-topic-unallowlisted-rule",
+        "fr-thesaurus-api-topic-wrong-predicate",
         "gcmd-column-nesting-broader",
         "gcmd-column-nesting-duplicates-asserted",
         "gcmd-column-nesting-malformed-inputs",
@@ -1074,11 +1142,15 @@ REQUIRED_CORPUS_CASES = frozenset(
         "naked-projected-mapping",
         "no-derived",
         "multilingual-label",
+        "multiple-assertions-one-projection",
+        "multiple-evidence-one-assertion",
+        "multiple-evidence-stale-count",
         "non-english-definition",
         "partitioned-packs",
         "profile-ring-mismatch",
         "qualified-lattice-branches",
         "qualified-three-machine-support",
+        "reciprocal-publisher-related",
         "release-membership-mode-unknown",
         "policy-payload-changed",
         "rdf-literal-escaping",
@@ -2471,6 +2543,7 @@ def binding_runtime() -> dict[str, str]:
 
 
 def _check_binding_pins(manifest: Mapping[str, Any], acceptance: Mapping[str, Any]) -> None:
+    _check_derived_rule_registry()
     expected = _binding_digests()
     manifest_binding = manifest["binding"]
     for field, digest in expected.items():
@@ -7035,8 +7108,14 @@ class _DerivedRuleAdmission:
     engine_version: str
     admitted_rings: frozenset[URIRef]
     admitted_predicates: frozenset[URIRef]
+    subject_schemes: frozenset[URIRef] | None
+    object_schemes: frozenset[URIRef] | None
     evidence_kind: str
     mirror_predicate: URIRef | None
+    symmetric_collision_predicates: frozenset[URIRef]
+    direction_profile: str
+    row_shape_profile: str
+    replay_profile: str
     validate_row: Callable[[_DerivedRowContext], None]
     replay: Callable[..., None]
 
@@ -7591,6 +7670,297 @@ def _replay_fr_compound_heading_broader(
         )
 
 
+def _validate_eurovoc_microthesaurus_domain_row(context: _DerivedRowContext) -> None:
+    """The EuroVoc microthesaurus-domain rule's row shape.
+
+    Proved locally, from only this row's own cited evidence and the two
+    endpoints' own asserted `atlas:notation` values -- the same "prove it
+    from what this row cites" discipline the other rules follow. Unlike
+    every prior rule, subject and object are checked against two DIFFERENT
+    schemes, not one shared scheme: the subject must sit in the EuroVoc
+    microthesauri scheme and the object must sit in the EuroVoc domains
+    scheme, in that fixed direction. The whole-of-rule proof that the
+    shipped edge set is COMPLETE and UNAMBIGUOUS lives in
+    `_replay_eurovoc_microthesaurus_domain`.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    if (subject, ATLAS.inScheme, EUROVOC_MICROTHESAURI_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} subject {subject} is not in the EuroVoc microthesauri scheme",
+        )
+    if (obj, ATLAS.inScheme, EUROVOC_DOMAINS_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} object {obj} is not in the EuroVoc domains scheme",
+        )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} microthesaurus-domain edge is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    represented = {
+        _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule") for evidence in inputs
+    }
+    if represented != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    subject_notations = {str(value) for value in asserted.objects(subject, ATLAS.notation)}
+    obj_notations = {str(value) for value in asserted.objects(obj, ATLAS.notation)}
+    domain_prefixes = {notation[:2] for notation in subject_notations if len(notation) == 4 and notation.isdigit()}
+    if not domain_prefixes & obj_notations:
+        _fail("dataset.derived-rule", f"{node} is not the domain of its microthesaurus subject")
+
+
+def _replay_eurovoc_microthesaurus_domain(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE microthesaurus-domain edge set from the asserted
+    graph's own `atlas:notation` facts and require it to equal exactly what
+    this rule's derived nodes ship. Same whole-of-rule scope as the other
+    structural rules: a closed, one-release projection with a definite total
+    edge count. Scoped to both schemes independently, the same as the row
+    check: a microthesaurus-shaped notation on a foreign-scheme resource, or
+    a domain-shaped notation on one, is never a candidate endpoint here.
+    """
+
+    microthesauri: dict[URIRef, set[str]] = defaultdict(set)
+    domains: dict[URIRef, set[str]] = defaultdict(set)
+    for resource, notation in asserted.subject_objects(ATLAS.notation):
+        if not isinstance(resource, URIRef):
+            continue
+        if (resource, ATLAS.inScheme, EUROVOC_MICROTHESAURI_SCHEME) in asserted:
+            microthesauri[resource].add(str(notation))
+        elif (resource, ATLAS.inScheme, EUROVOC_DOMAINS_SCHEME) in asserted:
+            domains[resource].add(str(notation))
+
+    domain_owners: dict[str, set[URIRef]] = defaultdict(set)
+    for resource, notations in domains.items():
+        if len(notations) != 1:
+            _fail(
+                "reasoning.authority",
+                f"EuroVoc domain {resource} does not carry exactly one notation",
+            )
+        (notation,) = notations
+        domain_owners[notation].add(resource)
+
+    expected: set[tuple[URIRef, URIRef]] = set()
+    for resource, notations in microthesauri.items():
+        prefixes = {notation[:2] for notation in notations if len(notation) == 4 and notation.isdigit()}
+        for prefix in prefixes:
+            owners = domain_owners.get(prefix)
+            if not owners or len(owners) > 1:
+                continue
+            (domain,) = owners
+            if domain == resource:
+                _fail(
+                    "reasoning.authority",
+                    f"microthesaurus notation prefix {prefix!r} on {resource} resolves its own domain to itself",
+                )
+            expected.add((resource, domain))
+
+    actual: set[tuple[URIRef, URIRef]] = set()
+    for node in nodes:
+        subject = _iri(
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived subject",
+        )
+        obj = _iri(
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+            code="reasoning.authority",
+            label="derived object",
+        )
+        actual.add((subject, obj))
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "eurovoc microthesaurus-domain broader edges do not regenerate the identical set from the "
+            f"asserted graph (missing={missing}, extra={extra})",
+        )
+
+
+def _fr_label_fold(text: str) -> str:
+    """Casefold one already-canonical Atlas label.
+
+    Atlas construction records require trimmed label text, which
+    ``_fr_alignment_labels`` independently checks.  ``strip`` is therefore a
+    defensive no-op for conforming inputs.  Deliberately not NFKC, not
+    punctuation-stripping, not stemming: every additional transform widens
+    the population on evidence the label texts do not carry. The producer
+    module carries the identical function; the two do not import each other,
+    so a test proves they agree.
+    """
+
+    return text.strip().casefold()
+
+
+def _fr_alignment_labels(asserted: Graph, scheme: URIRef) -> dict[URIRef, str]:
+    """Every preferred-label text in one Federal Register scheme, proved unambiguous."""
+
+    label_links: dict[URIRef, list[URIRef]] = defaultdict(list)
+    for resource, label in asserted.subject_objects(SKOSXL.prefLabel):
+        if not isinstance(resource, URIRef):
+            continue
+        if (resource, ATLAS.inScheme, scheme) not in asserted:
+            continue
+        label_links[resource].append(label)
+    labels: dict[URIRef, str] = {}
+    for resource, links in label_links.items():
+        if len(links) != 1:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register resource {resource} does not carry exactly one preferred label",
+            )
+        forms = {str(form) for form in asserted.objects(links[0], SKOSXL.literalForm)}
+        if len(forms) != 1:
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label of {resource} does not carry exactly one literal form",
+            )
+        (text,) = forms
+        if not text or text != text.strip():
+            _fail(
+                "reasoning.authority",
+                f"Federal Register preferred label of {resource} is not non-empty trimmed text: {text!r}",
+            )
+        labels[resource] = text
+    return labels
+
+
+def _validate_fr_thesaurus_api_topic_row(context: _DerivedRowContext) -> None:
+    """The Federal Register thesaurus/API-topic rule's row shape.
+
+    Proved locally, from only this row's own cited evidence and the two
+    endpoints' own asserted preferred labels. Subject and object are checked
+    against two DIFFERENT schemes in a fixed direction -- thesaurus term to
+    API topic -- so a matching label on a resource in any other scheme can
+    never admit an edge. The whole-of-rule proof that the shipped edge set is
+    COMPLETE and a strict bijection lives in
+    `_replay_fr_thesaurus_api_topic`.
+    """
+
+    node, subject, obj, inputs, asserted = (
+        context.node,
+        context.subject,
+        context.obj,
+        context.inputs,
+        context.asserted,
+    )
+    if (subject, ATLAS.inScheme, FR_COMPOUND_HEADING_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} subject {subject} is not in the Federal Register thesaurus scheme",
+        )
+    if (obj, ATLAS.inScheme, FR_API_TOPICS_SCHEME) not in asserted:
+        _fail(
+            "dataset.derived-rule",
+            f"{node} object {obj} is not in the Federal Register API topics scheme",
+        )
+    if subject == obj:
+        _fail("dataset.derived-rule", f"{node} thesaurus/API-topic edge is reflexive")
+    if len(inputs) != 2:
+        _fail("dataset.derived-rule", f"{node} does not cite exactly two source records")
+    represented = {
+        _one(asserted, evidence, ATLAS.representsResource, code="dataset.derived-rule") for evidence in inputs
+    }
+    if represented != {subject, obj}:
+        _fail("dataset.derived-rule", f"{node} evidence does not represent its own endpoints")
+    subject_labels = _fr_alignment_labels(asserted, FR_COMPOUND_HEADING_SCHEME)
+    object_labels = _fr_alignment_labels(asserted, FR_API_TOPICS_SCHEME)
+    subject_text = subject_labels.get(subject)
+    object_text = object_labels.get(obj)
+    if subject_text is None or object_text is None:
+        _fail("dataset.derived-rule", f"{node} endpoint carries no preferred label")
+    if _fr_label_fold(subject_text) != _fr_label_fold(object_text):
+        _fail(
+            "dataset.derived-rule",
+            f"{node} endpoints do not share a folded preferred label: "
+            f"{subject_text!r} vs {object_text!r}",
+        )
+
+
+def _replay_fr_thesaurus_api_topic(
+    nodes: AbstractSet[URIRef],
+    *,
+    derived: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport] | None = None,
+    asserted: Graph,
+) -> None:
+    """Regenerate the COMPLETE thesaurus/API-topic edge set from the asserted
+    graph's own preferred labels and require it to equal exactly what this
+    rule's derived nodes ship.
+
+    Whole-of-rule scope, like the other structural rules: a closed,
+    two-release projection with a definite total edge count. The match must
+    be a strict bijection -- a folded label reaching two resources inside
+    either scheme, or a many-to-one collapse across them, is a finding about
+    the two publisher lists rather than an edge to ship, and fails here
+    rather than being silently narrowed.
+
+    The bijection assertion below is defensive in the same way the
+    producer's is: `_index` already raises on a repeated folded key inside
+    either scheme, so intersecting two such indexes cannot repeat a subject
+    or object. It guards a future change to `_index`, not a state reachable
+    today.
+    """
+
+    thesaurus = _fr_alignment_labels(asserted, FR_COMPOUND_HEADING_SCHEME)
+    api_topics = _fr_alignment_labels(asserted, FR_API_TOPICS_SCHEME)
+
+    def _index(labels: dict[URIRef, str], scheme_name: str) -> dict[str, URIRef]:
+        index: dict[str, URIRef] = {}
+        for resource, text in labels.items():
+            key = _fr_label_fold(text)
+            previous = index.setdefault(key, resource)
+            if previous != resource:
+                _fail(
+                    "reasoning.authority",
+                    f"{scheme_name} preferred label is ambiguous between two resources: {key!r}",
+                )
+        return index
+
+    thesaurus_index = _index(thesaurus, "federal-register-thesaurus-2025")
+    api_index = _index(api_topics, "federal-register-api-topics")
+    expected = {
+        (thesaurus_index[key], api_index[key]) for key in set(thesaurus_index) & set(api_index)
+    }
+    subjects = {subject for subject, _ in expected}
+    objects = {obj for _, obj in expected}
+    if len(subjects) != len(expected) or len(objects) != len(expected):
+        _fail(
+            "reasoning.authority",
+            "Federal Register thesaurus/API-topic label match is not a bijection: "
+            f"{len(expected)} pairs over {len(subjects)} terms and {len(objects)} topics",
+        )
+    actual = {
+        (
+            _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
+            _one(derived, node, ATLAS.relationObject, code="reasoning.authority"),
+        )
+        for node in nodes
+    }
+    if actual != expected:
+        missing = len(expected - actual)
+        extra = len(actual - expected)
+        _fail(
+            "reasoning.authority",
+            "Federal Register thesaurus/API-topic closeMatch edges do not regenerate the identical "
+            f"set from the asserted graph (missing={missing}, extra={extra})",
+        )
+
+
 _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {
     (EXACT_MATCH_TRANSITIVITY_RULE, DERIVATION_ENGINE, DERIVATION_ENGINE_VERSION): _DerivedRuleAdmission(
         rule=EXACT_MATCH_TRANSITIVITY_RULE,
@@ -7598,8 +7968,14 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         engine_version=DERIVATION_ENGINE_VERSION,
         admitted_rings=frozenset({ATLAS.subject}),
         admitted_predicates=frozenset({SKOS.exactMatch}),
+        subject_schemes=None,
+        object_schemes=None,
         evidence_kind=_EVIDENCE_KIND_ASSERTION,
         mirror_predicate=SKOS.exactMatch,
+        symmetric_collision_predicates=frozenset(),
+        direction_profile="canonical-iri-order",
+        row_shape_profile="exact-match-simple-path-v1",
+        replay_profile="exact-match-cited-path-owlrl-v1",
         validate_row=_validate_exact_match_transitivity_row,
         replay=_replay_exact_match_transitivity,
     ),
@@ -7613,8 +7989,14 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         engine_version=MESH_TREE_NUMBER_ENGINE_VERSION,
         admitted_rings=frozenset({ATLAS.subject}),
         admitted_predicates=frozenset({SKOS.broader}),
+        subject_schemes=frozenset({MESH_TREE_NUMBER_SCHEME}),
+        object_schemes=frozenset({MESH_TREE_NUMBER_SCHEME}),
         evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
         mirror_predicate=SKOS.narrower,
+        symmetric_collision_predicates=frozenset(),
+        direction_profile="premise-child-to-parent",
+        row_shape_profile="mesh-tree-number-parent-v1",
+        replay_profile="complete-mesh-tree-number-edge-set-v1",
         validate_row=_validate_mesh_tree_number_broader_row,
         replay=_replay_mesh_tree_number_broader,
     ),
@@ -7628,8 +8010,14 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         engine_version=GCMD_COLUMN_NESTING_ENGINE_VERSION,
         admitted_rings=frozenset({ATLAS.subject}),
         admitted_predicates=frozenset({SKOS.broader}),
+        subject_schemes=frozenset({GCMD_COLUMN_NESTING_SCHEME}),
+        object_schemes=frozenset({GCMD_COLUMN_NESTING_SCHEME}),
         evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
         mirror_predicate=SKOS.narrower,
+        symmetric_collision_predicates=frozenset(),
+        direction_profile="premise-child-to-parent",
+        row_shape_profile="gcmd-column-nesting-v1",
+        replay_profile="complete-gcmd-column-nesting-edge-set-v1",
         validate_row=_validate_gcmd_column_nesting_row,
         replay=_replay_gcmd_column_nesting,
     ),
@@ -7643,12 +8031,121 @@ _DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission
         engine_version=FR_COMPOUND_HEADING_ENGINE_VERSION,
         admitted_rings=frozenset({ATLAS.subject}),
         admitted_predicates=frozenset({SKOS.broader}),
+        subject_schemes=frozenset({FR_COMPOUND_HEADING_SCHEME}),
+        object_schemes=frozenset({FR_COMPOUND_HEADING_SCHEME}),
         evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
         mirror_predicate=SKOS.narrower,
+        symmetric_collision_predicates=frozenset(),
+        direction_profile="premise-child-to-parent",
+        row_shape_profile="fr-compound-heading-label-head-v1",
+        replay_profile="complete-fr-compound-heading-edge-set-v1",
         validate_row=_validate_fr_compound_heading_broader_row,
         replay=_replay_fr_compound_heading_broader,
     ),
+    (
+        EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
+        EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE,
+        EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
+        engine=EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE,
+        engine_version=EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.broader}),
+        subject_schemes=frozenset({EUROVOC_MICROTHESAURI_SCHEME}),
+        object_schemes=frozenset({EUROVOC_DOMAINS_SCHEME}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        mirror_predicate=SKOS.narrower,
+        symmetric_collision_predicates=frozenset(),
+        direction_profile="premise-microthesaurus-to-domain",
+        row_shape_profile="eurovoc-microthesaurus-domain-prefix-v1",
+        replay_profile="complete-eurovoc-microthesaurus-domain-edge-set-v1",
+        validate_row=_validate_eurovoc_microthesaurus_domain_row,
+        replay=_replay_eurovoc_microthesaurus_domain,
+    ),
+    (
+        FR_THESAURUS_API_TOPIC_RULE,
+        FR_THESAURUS_API_TOPIC_ENGINE,
+        FR_THESAURUS_API_TOPIC_ENGINE_VERSION,
+    ): _DerivedRuleAdmission(
+        rule=FR_THESAURUS_API_TOPIC_RULE,
+        engine=FR_THESAURUS_API_TOPIC_ENGINE,
+        engine_version=FR_THESAURUS_API_TOPIC_ENGINE_VERSION,
+        admitted_rings=frozenset({ATLAS.subject}),
+        admitted_predicates=frozenset({SKOS.closeMatch}),
+        subject_schemes=frozenset({FR_COMPOUND_HEADING_SCHEME}),
+        object_schemes=frozenset({FR_API_TOPICS_SCHEME}),
+        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
+        # closeMatch is symmetric under SKOS S43, so the mirror of an
+        # admitted edge is the same predicate rather than an inverse one --
+        # unlike every prior rule here, whose broader mirrors to narrower.
+        mirror_predicate=SKOS.closeMatch,
+        # An asserted exactMatch is stronger than this derived closeMatch and
+        # makes the mechanical alignment redundant in either direction.
+        symmetric_collision_predicates=frozenset({SKOS.exactMatch}),
+        direction_profile="federal-register-thesaurus-to-api-topic",
+        row_shape_profile="fr-thesaurus-api-topic-folded-pref-label-v1",
+        replay_profile="complete-fr-thesaurus-api-topic-edge-set-v1",
+        validate_row=_validate_fr_thesaurus_api_topic_row,
+        replay=_replay_fr_thesaurus_api_topic,
+    ),
 }
+
+
+def _derived_rule_registry_document() -> dict[str, Any]:
+    """Render the executable derived-rule admissions as contract data.
+
+    The JSON file is the semantic roster and therefore participates in
+    ``contractDigest``.  The Python entries supply the executable row and
+    replay functions.  Exact equality here prevents either representation
+    from silently admitting a rule, endpoint scope, predicate, evidence kind,
+    direction, or replay profile the other one does not name.
+    """
+
+    rows: list[dict[str, Any]] = []
+    for admission in _DERIVED_RULE_ADMISSIONS.values():
+        row: dict[str, Any] = {
+            "admittedPredicates": sorted(map(str, admission.admitted_predicates)),
+            "admittedRings": sorted(map(str, admission.admitted_rings)),
+            "directionProfile": admission.direction_profile,
+            "engine": str(admission.engine),
+            "engineVersion": admission.engine_version,
+            "evidenceKind": admission.evidence_kind,
+            "replayProfile": admission.replay_profile,
+            "rowShapeProfile": admission.row_shape_profile,
+            "rule": str(admission.rule),
+            "symmetricCollisionPredicates": sorted(
+                map(str, admission.symmetric_collision_predicates)
+            ),
+        }
+        if admission.subject_schemes is not None:
+            row["subjectSchemes"] = sorted(map(str, admission.subject_schemes))
+        if admission.object_schemes is not None:
+            row["objectSchemes"] = sorted(map(str, admission.object_schemes))
+        if admission.mirror_predicate is not None:
+            row["mirrorPredicate"] = str(admission.mirror_predicate)
+        rows.append(row)
+    rows.sort(key=lambda row: (row["rule"], row["engine"], row["engineVersion"]))
+    return {
+        "rules": rows,
+        "type": "AtlasAdmittedDerivedRuleRegistry",
+        "version": "3.1",
+    }
+
+
+def _check_derived_rule_registry(document: Any | None = None) -> dict[str, Any]:
+    actual = (
+        _load_json(DERIVED_RULE_REGISTRY_PATH, require_canonical=True)
+        if document is None
+        else document
+    )
+    expected = _derived_rule_registry_document()
+    if actual != expected:
+        _fail(
+            "binding.derived-rule-registry",
+            "admitted-derived-rules.json differs from the executable derived-rule registry",
+        )
+    return expected
 
 
 def _check_derived(
@@ -7742,6 +8239,14 @@ def _check_derived(
             _fail("dataset.derived-rule", f"{node} uses an unallowlisted rule or engine")
         if ring not in admission.admitted_rings or predicate not in admission.admitted_predicates:
             _fail("dataset.derived-rule", f"{node} ring or predicate is not admitted for its rule")
+        if admission.subject_schemes is not None and not any(
+            (subject, ATLAS.inScheme, scheme) in asserted for scheme in admission.subject_schemes
+        ):
+            _fail("dataset.derived-rule", f"{node} subject scheme is not admitted for its rule")
+        if admission.object_schemes is not None and not any(
+            (obj, ATLAS.inScheme, scheme) in asserted for scheme in admission.object_schemes
+        ):
+            _fail("dataset.derived-rule", f"{node} object scheme is not admitted for its rule")
         active_inputs = (
             active_assertions if admission.evidence_kind == _EVIDENCE_KIND_ASSERTION else active_source_records
         )
@@ -7785,6 +8290,17 @@ def _check_derived(
             _fail(
                 "dataset.derived-authority",
                 f"{node} duplicates a directly asserted projection relation",
+            )
+        if any(
+            (subject, collision_predicate, obj) in direct_relations
+            or (subject, collision_predicate, obj) in projection
+            or (obj, collision_predicate, subject) in direct_relations
+            or (obj, collision_predicate, subject) in projection
+            for collision_predicate in admission.symmetric_collision_predicates
+        ):
+            _fail(
+                "dataset.derived-authority",
+                f"{node} is redundant with a stronger directly asserted projection relation",
             )
 
 
@@ -8476,8 +8992,20 @@ def _construction_record_from_rdf(
         record.update(
             {
                 "releaseType": "SourceRelease" if is_source else "AtlasRelease",
-                "identifier": str(_construction_rdf_one(graph, subject, DCTERMS.identifier, term_type=Literal)),
-                "issued": str(_construction_rdf_one(graph, subject, DCTERMS.issued, term_type=Literal)),
+                # A SourceRelease is identified by its own IRI and dated under
+                # the atlas namespace; dcterms there would read as publisher
+                # claims. AtlasRelease rows keep dcterms.
+                "identifier": str(subject)
+                if is_source
+                else str(_construction_rdf_one(graph, subject, DCTERMS.identifier, term_type=Literal)),
+                "issued": str(
+                    _construction_rdf_one(
+                        graph,
+                        subject,
+                        ATLAS.sourceIssued if is_source else DCTERMS.issued,
+                        term_type=Literal,
+                    )
+                ),
             }
         )
         if is_source:
@@ -8770,29 +9298,37 @@ def _construction_source_record_owner(
     return source_owner.get(str(source_release))
 
 
-def _construction_statement_source_record(
+def _construction_statement_source_records(
     asserted: Graph,
     statement: URIRef,
     *,
     asserted_facts: _AssertedFacts | None = None,
     bindings_by_statement: Mapping[URIRef, Sequence[URIRef]] | None = None,
-) -> URIRef:
+) -> tuple[URIRef, ...]:
     bindings = list(
         bindings_by_statement.get(statement, ())
         if bindings_by_statement is not None
         else asserted.subjects(RKAF.bindsAssertion, statement)
     )
-    if len(bindings) != 1 or not isinstance(bindings[0], URIRef):
+    if not bindings or any(not isinstance(binding, URIRef) for binding in bindings):
         _fail(
             "construction.sample",
-            f"statement {statement} has no unique RDF evidence binding",
+            f"statement {statement} has no RDF evidence bindings",
         )
-    return _construction_rdf_one(
-        asserted,
-        bindings[0],
-        ATLAS.evidenceSourceRecord,
-        term_type=URIRef,
-        asserted_facts=asserted_facts,
+    return tuple(
+        sorted(
+            (
+                _construction_rdf_one(
+                    asserted,
+                    binding,
+                    ATLAS.evidenceSourceRecord,
+                    term_type=URIRef,
+                    asserted_facts=asserted_facts,
+                )
+                for binding in bindings
+            ),
+            key=str,
+        )
     )
 
 
@@ -8880,17 +9416,22 @@ def _construction_compact_owner(
             asserted_facts=asserted_facts,
         )
     if role == "Statement":
-        return _construction_source_record_owner(
+        records = _construction_statement_source_records(
             asserted,
-            _construction_statement_source_record(
-                asserted,
-                subject,
-                asserted_facts=asserted_facts,
-                bindings_by_statement=bindings_by_statement,
-            ),
-            source_owner,
+            subject,
             asserted_facts=asserted_facts,
+            bindings_by_statement=bindings_by_statement,
         )
+        owners = {
+            _construction_source_record_owner(
+                asserted,
+                record,
+                source_owner,
+                asserted_facts=asserted_facts,
+            )
+            for record in records
+        }
+        return next(iter(owners)) if len(owners) == 1 else None
     _fail("construction.record-ownership", f"unsupported logical record role {role}")
 
 
