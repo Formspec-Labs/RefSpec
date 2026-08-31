@@ -8,6 +8,11 @@
 # Six rebuilds on 2026-08-22/23 were attributed this way; the receipt of the
 # faithful build matched the artifact byte for byte every time.
 set -e
+set -u
+if [[ $# -lt 2 ]]; then
+  echo "usage: tools/faithful_agenda_build.sh <commit> <scratch-dir>" >&2
+  exit 1
+fi
 COMMIT="$1"; S="$2"
 REPO=/Users/mikewolfd/Work/RefSpec
 cd "$REPO"
