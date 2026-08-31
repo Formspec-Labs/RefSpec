@@ -66,6 +66,7 @@ links to nine reports covering:
 - [Multidimensional vocabulary atlas experiment](evidence/vocabulary-atlas-graph-experiment-2026-07-31.md)
 - [LadybugDB static-atlas serving spike](evidence/ladybug-vocabulary-atlas-spike-2026-07-31/README.md)
 - [GraphDB v5 repository configuration](evidence/vocabulary-atlas-graphdb-v5/README.md)
+- [Graph theory relevance to RefSpec](graph-theory-relevance-2026-08-24.md)
 
 These snapshots preserve the experiments that led to the two-graph static
 asset. Their document-oriented projections predate the four-product split.
