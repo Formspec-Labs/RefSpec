@@ -318,6 +318,15 @@ instance on the first concept query (`engine.py:1831-1836`), and every snapshot
 build and re-verify opens it too. 4.48 GB of resident memory to answer a label
 lookup is a product constraint, not a storage one.
 
+**Peak-RSS measurement caveat (2026-08-31):** in a sandbox that denies the
+`sysctl kern.clockrate` query, `/usr/bin/time -l` **silently omits its
+extended fields — peak RSS included — while still exiting 0.** A run whose
+receipt carries no RSS number was unmeasured, not free; treat the omission as
+a refusal and re-run outside the sandbox before citing it here. Observed in
+the 2026-08-23 auditor full-audit wave (`research/auditor-language-scope` tip
+`3d4c4de2`, `REPORT.md`; bytes preserved under
+`refs/snapshots/branch-tidy-2026-08-31/research-auditor-language-scope`).
+
 ## The ELSST double-edition question
 
 **The 121 qualified mappings reference R6 only.** All 365 candidates in the

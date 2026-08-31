@@ -69,7 +69,8 @@ applies to the output/ copy); point the extraction-measurement work at it.
 the FR API for data already held, or worse, keeps being "blocked".
 
 ### 2. The verifier coverage campaign's unlanded remainder *(carried, re-verified)*
-**Location:** GitHub-only branches `research/coverage-csv-pdf` (`22edea`),
+**Location:** GitHub-only branches `research/coverage-csv-pdf` (`70f3e706`;
+this entry originally cited `22edea`, which resolves to no object),
 `research/coverage-html-misc` (`aa113fe4`), `research/coverage-readers5`,
 `research/coverage-patternrow` (24 ahead), `coverage-json`, `coverage-bulk`,
 `coverage-dry`, plus `research/shacl-*`, `spike/*`.
@@ -87,8 +88,15 @@ readers ride along.
 **Delta since the 08-20 audit:** its "four uncovered units" are all closed as
 of today — eurovoc-microthesauri by SourceSpec, the three raw-PDF units by
 visual attestation (a different route than the branch's planned extracts; the
-attestation supersedes the blocker but is weaker than a re-runnable reader,
-which those branches still don't contain either).
+attestation supersedes the blocker but is weaker than a re-runnable reader).
+*(Correction 2026-08-31, branch-retention audit: this entry originally added
+"which those branches still don't contain either" — false. The
+`coverage-csv-pdf` tip `70f3e706` does contain a runnable reader: a generic
+checked-extract reader over eight frozen extract JSONs. It is not a
+publisher-byte re-parser, and its frozen extracts pre-date four repaired
+defects — a before-image, not a route; canonical's pypdf readers are the
+route. Validated record:
+`refs/snapshots/branch-tidy-2026-08-31/research-coverage-csv-pdf`.)*
 
 **If ignored:** the campaign's tier-3 harnesses (`probe_rudof_*.py`,
 `JenaBenchmark.java`, parse-substrate stores) stay verdicts-without-harnesses
