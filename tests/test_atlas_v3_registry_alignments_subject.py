@@ -73,6 +73,7 @@ def umthes_assets():
     return adapters._umthes_assets(SOURCE_ROOT)
 
 
+@pytest.mark.slow
 def test_gemet_release_emits_only_the_immediately_joinable_held_pair(gemet_release) -> None:
     assert gemet_release.key == "gemet-eurovoc-alignments-4.2.3"
     assert len(gemet_release.mappings) == 1_936
@@ -105,6 +106,7 @@ def test_gemet_release_emits_only_the_immediately_joinable_held_pair(gemet_relea
     } == adapters.GEMET_EUROVOC_S46_REFUSALS["gemet"]
 
 
+@pytest.mark.slow
 def test_gemet_release_carries_verbatim_publisher_assertions(gemet_release) -> None:
     for row in gemet_release.mappings:
         (evidence,) = row.evidence
@@ -126,6 +128,7 @@ def test_gemet_release_carries_verbatim_publisher_assertions(gemet_release) -> N
     assert gemet_release.metadata["rollingSourceUrl"] is False
 
 
+@pytest.mark.slow
 def test_umthes_endpoints_carry_real_multilingual_publisher_content(umthes_assets) -> None:
     endpoint, _mapping = umthes_assets
 
@@ -161,6 +164,7 @@ def test_umthes_endpoints_carry_real_multilingual_publisher_content(umthes_asset
     assert all(resource.labels for resource in endpoint.resources)
 
 
+@pytest.mark.slow
 def test_gemet_umthes_mappings_resolve_the_publisher_namespace(umthes_assets) -> None:
     endpoint, release = umthes_assets
 
@@ -187,6 +191,7 @@ def test_gemet_umthes_mappings_resolve_the_publisher_namespace(umthes_assets) ->
         }
 
 
+@pytest.mark.slow
 def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(
     mesh_mapping_release,
     consolidated_lcsh_release,
@@ -217,6 +222,7 @@ def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(
     assert "defaultServed" not in release.metadata
 
 
+@pytest.mark.slow
 def test_lcsh_mesh_evidence_records_each_marc_translation(mesh_mapping_release) -> None:
     release = mesh_mapping_release
 
@@ -246,6 +252,7 @@ def test_lcsh_mesh_evidence_records_each_marc_translation(mesh_mapping_release) 
     assert release.metadata["refusalCounts"] == dict(mesh_lcsh.EXPECTED_REFUSAL_COUNTS)
 
 
+@pytest.mark.slow
 def test_new_releases_pass_all_three_population_refusal_guards(
     gemet_release,
     mesh_mapping_release,
@@ -292,6 +299,7 @@ def test_new_releases_pass_all_three_population_refusal_guards(
         generator._refuse_observed_inventory_release(loaded)
 
 
+@pytest.mark.slow
 def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(mesh_mapping_release, umthes_assets) -> None:
     atlas = Namespace("https://refspec.org/ns/atlas/v3#")
     dataset = Dataset()
@@ -314,6 +322,7 @@ def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(mesh_mapping_release, u
     assert all(not resource.identifiers for resource in umthes_endpoint.resources)
 
 
+@pytest.mark.slow
 def test_new_mapping_releases_never_mint_an_inverse_or_closure(
     gemet_release,
     mesh_mapping_release,

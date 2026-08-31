@@ -47,6 +47,7 @@ def see_also_endpoint():
     return adapters.load_fast_bulk_see_also_endpoint_release(SOURCE_ROOT)
 
 
+@pytest.mark.slow
 def test_group_topology_is_one_fast_delta_and_two_eurovoc_pairs(releases) -> None:
     assert set(releases) == adapters.BULK_REGISTRY_MAPPING_RELEASE_KEYS
     assert {key: len(release.mappings) for key, release in releases.items()} == {
@@ -58,6 +59,7 @@ def test_group_topology_is_one_fast_delta_and_two_eurovoc_pairs(releases) -> Non
     assert all(release.scope == "captureSubset" for release in releases.values())
 
 
+@pytest.mark.slow
 def test_fast_bulk_release_emits_only_the_frozen_nonoverlapping_delta(releases) -> None:
     release = releases["fast-bulk-external-links-delta-2026-07-27"]
     triples = {(row.subject, row.predicate, row.object) for row in release.mappings}
@@ -96,6 +98,7 @@ def test_fast_bulk_release_emits_only_the_frozen_nonoverlapping_delta(releases) 
     }
 
 
+@pytest.mark.slow
 def test_fast_bulk_release_records_complete_capture_refusals_and_endpoint_accounting(releases) -> None:
     metadata = releases["fast-bulk-external-links-delta-2026-07-27"].metadata
 
@@ -121,6 +124,7 @@ def test_fast_bulk_release_records_complete_capture_refusals_and_endpoint_accoun
     }
 
 
+@pytest.mark.slow
 def test_fast_warrants_preserve_related_and_record_same_as_adoption(releases) -> None:
     release = releases["fast-bulk-external-links-delta-2026-07-27"]
     for row in release.mappings:
@@ -149,6 +153,7 @@ def test_fast_warrants_preserve_related_and_record_same_as_adoption(releases) ->
     }
 
 
+@pytest.mark.slow
 def test_fast_see_also_keeps_content_but_emits_no_unlicensed_semantic_relation(
     see_also_endpoint,
 ) -> None:
@@ -189,6 +194,7 @@ def test_fast_see_also_keeps_content_but_emits_no_unlicensed_semantic_relation(
     }
 
 
+@pytest.mark.slow
 def test_fast_release_records_the_rolling_source_pin_and_license(releases) -> None:
     metadata = releases["fast-bulk-external-links-delta-2026-07-27"].metadata
     assert metadata["licenseStatement"] == fast.FAST_EXTERNAL_LINKS_LICENSE_ARCHIVE_STATEMENT
@@ -208,6 +214,7 @@ def test_fast_release_records_the_rolling_source_pin_and_license(releases) -> No
     }
 
 
+@pytest.mark.slow
 def test_eurovoc_gemet_and_mesh_land_every_currently_held_pair(releases) -> None:
     gemet = releases["eurovoc-gemet-alignment-20201218"]
     mesh = releases["eurovoc-mesh-alignment-20171215"]
@@ -234,6 +241,7 @@ def test_eurovoc_gemet_and_mesh_land_every_currently_held_pair(releases) -> None
     } == adapters.GEMET_EUROVOC_S46_REFUSALS["eurovoc"]
 
 
+@pytest.mark.slow
 def test_eurovoc_warrants_are_verbatim_publisher_assertions(releases) -> None:
     gemet = releases["eurovoc-gemet-alignment-20201218"]
     mesh = releases["eurovoc-mesh-alignment-20171215"]
@@ -266,6 +274,7 @@ def test_eurovoc_warrants_are_verbatim_publisher_assertions(releases) -> None:
         }
 
 
+@pytest.mark.slow
 def test_eurovoc_releases_record_all_17_pins_counts_and_rights(releases) -> None:
     for key in ("eurovoc-gemet-alignment-20201218", "eurovoc-mesh-alignment-20171215"):
         metadata = releases[key].metadata
@@ -303,6 +312,7 @@ def test_eurovoc_releases_record_all_17_pins_counts_and_rights(releases) -> None
         )
 
 
+@pytest.mark.slow
 def test_releases_never_mint_inverse_or_transitive_claims(releases) -> None:
     all_triples = {
         (row.subject, row.predicate, row.object) for release in releases.values() for row in release.mappings
@@ -311,6 +321,7 @@ def test_releases_never_mint_inverse_or_transitive_claims(releases) -> None:
     assert all((obj, predicate, subject) not in all_triples for subject, predicate, obj in all_triples)
 
 
+@pytest.mark.slow
 def test_mapping_inputs_pass_all_three_population_refusal_guards(releases, see_also_endpoint) -> None:
     generator = _generator_module()
     for release in releases.values():
@@ -341,6 +352,7 @@ def test_mapping_inputs_pass_all_three_population_refusal_guards(releases, see_a
     generator._refuse_observed_inventory_release(shaped_endpoint)
 
 
+@pytest.mark.slow
 def test_identifier_authority_tripwire_stays_empty(releases, see_also_endpoint) -> None:
     for release in releases.values():
         assert release.metadata["sourceIdentifierCount"] == 0

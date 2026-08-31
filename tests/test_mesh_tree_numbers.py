@@ -362,6 +362,7 @@ def test_binding_carries_the_same_rule_identity() -> None:
     assert atlas_validate.MESH_TREE_NUMBER_BROADER_RULE != atlas_validate.EXACT_MATCH_TRANSITIVITY_RULE
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     not (DEFAULT_SOURCE_ROOT / "desc2026.xml").is_file(),
     reason="exact cached MeSH 2026 descriptor XML is not available",

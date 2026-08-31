@@ -208,6 +208,7 @@ def test_direct_relations_keep_only_unique_member_triples() -> None:
     )
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     not EUROVOC_CLAIM_ROOT.is_dir()
     or not (
@@ -312,6 +313,7 @@ def _skip_unless_source_present(filename: str) -> pytest.MarkDecorator:
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "loader",
     (

@@ -68,6 +68,7 @@ class _MappingEndpointResources:
             yield SimpleNamespace(iri=mapping.object)
 
 
+@pytest.mark.slow
 def test_mapping_release_preserves_lc_direction_and_exact_predicate_mix(
     mapping_release,
 ) -> None:
@@ -86,6 +87,7 @@ def test_mapping_release_preserves_lc_direction_and_exact_predicate_mix(
     )
 
 
+@pytest.mark.slow
 def test_every_translated_mapping_carries_the_ref_035_adoption_chain(
     mapping_release,
 ) -> None:
@@ -107,6 +109,7 @@ def test_every_translated_mapping_carries_the_ref_035_adoption_chain(
         assert row.predicate == alignments.MADS_TO_SKOS_PREDICATE[publisher_claim["predicateIri"]]
 
 
+@pytest.mark.slow
 def test_release_accounts_for_held_absent_and_external_endpoints(mapping_release) -> None:
     metadata = mapping_release.metadata
 
@@ -139,6 +142,7 @@ def test_release_accounts_for_held_absent_and_external_endpoints(mapping_release
     }
 
 
+@pytest.mark.slow
 def test_source_rights_and_rolling_archive_identity_are_verbatim(mapping_release) -> None:
     artifact = mapping_release.metadata["sourceArtifact"]
 
@@ -159,6 +163,7 @@ def test_source_rights_and_rolling_archive_identity_are_verbatim(mapping_release
     }
 
 
+@pytest.mark.slow
 def test_endpoint_release_is_complete_for_every_emitted_lc_subject(
     endpoint_release,
     mapping_release,
@@ -179,6 +184,7 @@ def test_endpoint_release_is_complete_for_every_emitted_lc_subject(
     assert mapping_release.metadata["lcshEndpointAbsentCount"] == alignments.LC_ALL_MISSING_LCSH_SUBJECT_COUNT == 469
 
 
+@pytest.mark.slow
 def test_language_determined_external_endpoints_are_contentful(external_target_releases) -> None:
     assert {release.key for release in external_target_releases} == set(
         alignments.LC_EXTERNAL_TARGET_ENDPOINT_RELEASE_KEYS.values()
@@ -209,6 +215,7 @@ def test_language_determined_external_endpoints_are_contentful(external_target_r
             )
 
 
+@pytest.mark.slow
 def test_release_never_mints_inverse_or_transitive_claims(mapping_release) -> None:
     triples = {(row.subject, row.predicate, row.object) for row in mapping_release.mappings}
 
@@ -217,6 +224,7 @@ def test_release_never_mints_inverse_or_transitive_claims(mapping_release) -> No
     assert all(row.evidence[0].native_payload["publisherClaim"]["nativeStatement"] for row in mapping_release.mappings)
 
 
+@pytest.mark.slow
 def test_new_releases_pass_all_three_population_refusal_guards(
     endpoint_release,
     mapping_release,
@@ -260,6 +268,7 @@ def test_new_releases_pass_all_three_population_refusal_guards(
         generator._refuse_observed_inventory_release(release)
 
 
+@pytest.mark.slow
 def test_identifier_authority_tripwire_is_nonvacuous(
     endpoint_release,
     mapping_release,

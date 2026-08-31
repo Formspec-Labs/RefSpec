@@ -119,6 +119,7 @@ def native_snapshot() -> fast.ParsedFASTTopicalNativeSnapshot:
     )
 
 
+@pytest.mark.slow
 def test_native_sources_rebuild_the_measured_current_topical_shape(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
@@ -145,6 +146,7 @@ def test_native_sources_rebuild_the_measured_current_topical_shape(
     assert native_snapshot.latest_change_status_counts == {"c": 1_527, "d": 3, "n": 464, "x": 62}
 
 
+@pytest.mark.slow
 def test_native_snapshot_pins_current_lcsh_link_shape(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
@@ -161,6 +163,7 @@ def test_native_snapshot_pins_current_lcsh_link_shape(
     }
 
 
+@pytest.mark.slow
 def test_native_snapshot_preserves_publisher_lcsh_statements_without_promotion(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
@@ -190,6 +193,7 @@ def test_native_snapshot_preserves_publisher_lcsh_statements_without_promotion(
     )
 
 
+@pytest.mark.slow
 def test_native_snapshot_preserves_real_ids_labels_synonyms_and_hierarchy(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
@@ -208,6 +212,7 @@ def test_native_snapshot_preserves_real_ids_labels_synonyms_and_hierarchy(
     assert native_snapshot.rows[-1].heading == "New mothers--Mental health"
 
 
+@pytest.mark.slow
 def test_native_snapshot_preserves_replacement_and_obsolete_tombstones(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:

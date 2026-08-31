@@ -1,4 +1,4 @@
-.PHONY: seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-json-binding test-atlas-v3 \
+.PHONY: seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures contract-dev \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
@@ -54,9 +54,12 @@ check-generated:
 # identical command inside
 # tests/test_atlas_v3_binding.py::test_atlas_v3_binding_and_sealed_corpus_pass,
 # which additionally pins the exact case, schema and descriptor counts the
-# bare target only exit-codes. Listing both ran the 110-case corpus twice for
-# ~205s each -- a third of the whole suite spent proving the same thing twice.
-# Keep the standalone target for binding work; do not re-add it here.
+# bare target only exit-codes. Listing both would run the full corpus
+# twice for ~37s each (36.65s measured 2026-08-23, one subprocess run in
+# isolation) -- proving the same thing twice, not the third of the whole
+# suite it used to be, now that the corpus pass runs in the slow tier rather
+# than in test-package. Keep the standalone target for binding work; do not
+# re-add it here.
 # Order matters here beyond taste: `check-generated` materializes the
 # gitignored Atlas 3.0 case tree (see that rule), and `test-package` reads it.
 # Make runs these left to right, so a cold checkout is healed before pytest
@@ -113,15 +116,24 @@ audit-registry-real-data:
 # a serial exemption. Drop the flag to debug -- bare `uv run pytest -q` still
 # works and is easier to read when something breaks.
 # Wall-clock budget (plans/validation-cost-reset-plan.md check regime and its
-# "Budget gate re-spec" open item): target is 60s, warn past 60s. The old
-# 120s (2x margin) FAIL line was re-measured at 112-140s on identical trees
-# and flipped red nondeterministically, so the hard FAIL threshold is 240s --
-# a runaway guard, not a margin on the target. The 120s FAIL line re-arms
-# once the suite is next measured under 60s (expected after the plan's
-# deletion campaign shrinks it); until then 240s is what actually gates.
+# "Budget gate re-spec" open item). Measured twice on a quiet Apple M4 Pro (14
+# cores), 2026-08-23, right after the slow-marking pass below moved the
+# artifact-reading and corpus tests out of this tier: 124s and 123s
+# (123.04s and 122.69s inside pytest). The 60s target was always aspirational
+# and was never once measured here, even at this tier's smallest; honestly
+# the target is the measured floor, so it moves to 130s -- a few seconds of
+# slack over both runs so ordinary noise does not WARN, not a return to an
+# unreached number. The old 120s (2x margin) FAIL line was re-measured at
+# 112-140s on identical trees and flipped red nondeterministically, so the
+# hard FAIL threshold is 240s -- a runaway guard, not a margin on the target.
+# Against today's ~123s floor that is already close to 2x headroom (it was
+# ~1.17x over the old 205s baseline this tier carried before the slow-marking
+# pass), so 240s stays rather than tightens: two quiet-machine runs are not
+# the repeated measurement the 112-140s spread came from, and shrinking the
+# guard on that little evidence would risk the same nondeterministic flip.
 test-package: atlas-v3-fixtures
 	@start=$$(date +%s); \
-	uv run pytest -q -n auto; \
+	uv run pytest -q -n auto -m "not slow"; \
 	status=$$?; \
 	end=$$(date +%s); \
 	elapsed=$$((end - start)); \
@@ -129,9 +141,28 @@ test-package: atlas-v3-fixtures
 	if [ "$$elapsed" -gt 240 ]; then \
 		echo "test-package budget FAIL: took $${elapsed}s, exceeds the 240s runaway-guard budget" >&2; \
 		exit 1; \
-	elif [ "$$elapsed" -gt 60 ]; then \
-		echo "test-package budget WARN: took $${elapsed}s, over the 60s target (within the 240s fail budget)" >&2; \
+	elif [ "$$elapsed" -gt 130 ]; then \
+		echo "test-package budget WARN: took $${elapsed}s, over the 130s target (within the 240s fail budget)" >&2; \
 	fi
+
+# The slow tier `test-package` excludes: registry alignment/vocabulary tests
+# that read or derive from a large pinned real source (module-scoped fixtures
+# that would otherwise pin a whole xdist worker to one cluster for the rest of
+# the run), the sealed-corpus/rebuild-cache subprocess tests in
+# tests/test_atlas_v3_binding.py, and -- since 2026-08-23 -- the
+# artifact-reading and corpus-scale tests in test_unified_agenda_parquet.py,
+# test_unified_agenda_editions.py, test_usc_section_oracle.py,
+# test_usc_disposition_tables.py, test_usc_act_index.py and
+# test_identifier_shapes.py (158 tests). Each of those six files keeps its
+# small synthetic-fixture tests in this tier; test_unified_agenda_parquet.py
+# also keeps test_the_entry_point_verifies_the_artifact_against_its_receipt,
+# so the fast tier still proves the shared artifact matches its receipt.
+# `audit-registry-real-data` already runs the complete, unfiltered suite
+# (tools/verify_registry_audit.py's run_full_test_suite passes pytest no `-m`
+# selection at all), so this tier duplicates no coverage -- it only gives the
+# slow half of the suite a target that can be run and measured on its own.
+test-slow: atlas-v3-fixtures
+	uv run pytest -q -n auto -m slow
 
 test-json-binding:
 	uv run --no-project --with-requirements bindings/json/1.0/requirements.txt \

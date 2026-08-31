@@ -160,6 +160,7 @@ def real_capture() -> lc.LcExternalLinksCapture:
     return lc.load_lc_external_links_capture(SOURCE)
 
 
+@pytest.mark.slow
 def test_real_archive_pins_all_target_vocabulary_and_predicate_counts(
     real_capture: lc.LcExternalLinksCapture,
 ) -> None:
@@ -171,6 +172,7 @@ def test_real_archive_pins_all_target_vocabulary_and_predicate_counts(
     )
 
 
+@pytest.mark.slow
 def test_real_archive_captures_and_deterministically_tags_every_external_label(
     real_capture: lc.LcExternalLinksCapture,
 ) -> None:

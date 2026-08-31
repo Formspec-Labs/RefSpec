@@ -17,12 +17,12 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# The sealed-corpus pass validates all 110 conformance cases in one indivisible
-# subprocess. At ~33s it is still the longest single test by a wide margin, and
-# pytest-xdist hands work out in collection order, so in its natural
-# alphabetical position it is dispatched late and its tail becomes serial time
-# at the end of the run. Hoisting it lets it overlap everything else: measured
-# 86s -> 52s across the suite.
+# The sealed-corpus pass validates all 159 conformance cases in one indivisible
+# subprocess. At ~40s (39.96s measured 2026-08-23) it is still the longest
+# single test by a wide margin, and pytest-xdist hands work out in collection
+# order, so in its natural alphabetical position it is dispatched late and its
+# tail becomes serial time at the end of the run. Hoisting it lets it overlap
+# everything else: measured 86s -> 52s across the suite.
 #
 # Missing is not an error. A narrower run legitimately collects some of that
 # module without this test, so the hook simply does nothing when it is absent;

@@ -68,6 +68,7 @@ def capture():
     )
 
 
+@pytest.mark.slow
 def test_official_capture_accounts_for_every_mapping_and_refusal(capture) -> None:
     assert capture.assertion_count == 935_540
     assert capture.predicate_counts == {
@@ -96,6 +97,7 @@ def test_official_capture_accounts_for_every_mapping_and_refusal(capture) -> Non
     ]
 
 
+@pytest.mark.slow
 def test_official_capture_pins_each_target_vocabulary_mix(capture) -> None:
     assert capture.target_predicate_counts == {
         target: dict(counts) for target, counts in fast.EXPECTED_TARGET_PREDICATE_COUNTS.items()

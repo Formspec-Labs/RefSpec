@@ -112,6 +112,7 @@ def test_ua_gao_priority_mapping_refuses_source_byte_drift(
         alignments.load_unified_agenda_gao_cra_priority_mapping_release(tmp_path)
 
 
+@pytest.mark.slow
 def test_fast_default_served_set_is_computed_from_shipped_evidence(
     fast_mapping_release,
 ) -> None:
@@ -162,6 +163,7 @@ def test_fast_default_served_set_is_computed_from_shipped_evidence(
     assert default_served == {(row.subject, row.predicate, row.object) for row in fast_mapping_release.mappings}
 
 
+@pytest.mark.slow
 def test_fast_inferred_mapping_delta_is_computed_before_build(
     mapping_release,
     fast_mapping_release,
@@ -190,6 +192,7 @@ def test_fast_inferred_mapping_delta_is_computed_before_build(
     assert impact["inferredMappingDelta"] == 759_598
 
 
+@pytest.mark.slow
 def test_fast_lcsh_exact_sample_carries_the_full_adoption_chain(
     fast_mapping_release,
 ) -> None:
@@ -240,6 +243,7 @@ def test_fast_lcsh_mapping_refuses_source_byte_drift(tmp_path: Path) -> None:
         alignments.load_fast_lcsh_mapping_release(tmp_path)
 
 
+@pytest.mark.slow
 def test_fast_lcsh_release_pins_joinable_and_unemitted_counts(
     fast_mapping_release,
     endpoint_release,
@@ -292,6 +296,7 @@ def test_fast_lcsh_release_pins_joinable_and_unemitted_counts(
     assert "publisherRelatedMatchIsDefault" not in release.metadata
 
 
+@pytest.mark.slow
 def test_fast_lcsh_s46_widened_scope_has_overlap_but_zero_component_conflicts(
     fast_mapping_release,
 ) -> None:
@@ -314,6 +319,7 @@ def test_fast_lcsh_s46_widened_scope_has_overlap_but_zero_component_conflicts(
     assert s46["status"] == "measuredZeroConflictsOverThisReleasesOwnExactMatchComponents"
 
 
+@pytest.mark.slow
 def test_fast_nnd_links_never_become_exact_matches(fast_mapping_release) -> None:
     nnd = [
         row
@@ -334,6 +340,7 @@ def test_fast_nnd_links_never_become_exact_matches(fast_mapping_release) -> None
     )
 
 
+@pytest.mark.slow
 def test_new_mapping_endpoints_pass_all_refusal_guards_and_mint_no_identifiers(
     ua_gao_mapping_release,
     fast_mapping_release,
@@ -400,6 +407,7 @@ def test_new_mapping_endpoints_pass_all_refusal_guards_and_mint_no_identifiers(
     assert fast_mapping_release.metadata["sourceIdentifierCount"] == 0
 
 
+@pytest.mark.slow
 def test_new_mapping_releases_assert_each_direction_once(
     ua_gao_mapping_release,
     fast_mapping_release,
