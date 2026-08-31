@@ -8,23 +8,38 @@ read from RefSpec once. This note records what the drift actually is — both
 modules imported and run side by side on 2026-08-31 — so the retirement, when
 it lands, adopts each difference on purpose instead of silently.
 
-## Why the retirement did not land 2026-08-31
+## The two gates, and where they stand
 
-Two gates, both discovered by attempting it:
+Both were discovered by attempting the retirement on 2026-08-31; both moved
+the same day:
 
 1. **The spicysearch worktree was dirty** — six files of unrelated
-   in-progress work — and its RefSpec submodule repoint (REF-051's executing
-   step) refuses to land on a dirty tree. It waits for a clean worktree.
+   in-progress work — and the submodule repoint (REF-051's executing step)
+   refuses to land on a dirty tree. **Cleared and executed later that day**:
+   once the worktree's owner committed their milestone, spicysearch `5ee3d34`
+   moved the pin `141fd671 → 99167ca1`, flipped the submodule URL to GitHub,
+   and its full fast tier passed against the new pin (1,319 green).
 2. **There is no import wiring to swap.** The assumed topology ("submodule +
    editable path dep") is stale: spicysearch's `pyproject.toml` declares no
    `refspec` dependency at all — only `docspec` and `rulespec-artifacts` as
    vendored wheel path deps — and its venv has no `refspec` install. Every
    live reference is a filesystem path (`REFSPEC_CHECKOUT` pointing at a
-   build's `output/`) or a schema string literal. Making
-   `refspec.registry.identifier_shapes` importable inside spicysearch's venv
-   is a packaging decision (a vendored wheel like the existing pattern, or a
-   workspace/path source) that the ledger did not make and this note does not
-   make either. The divert is one file *after* that decision, not before.
+   build's `output/`) or a schema string literal. **The packaging path is now
+   proven, not just proposed**: `uv build --wheel` produces
+   `refspec-0.1.0.dev0-py3-none-any.whl` (1.6 MB), which installs only
+   beside the vendored `rulespec_conformance-0.2.0rc15` wheel (refspec's
+   dependency on it is index-less by design) — so the pattern is TWO wheels
+   into spicysearch's existing `vendor/` + `[tool.uv.sources]` scheme, whose
+   pyarrow ceiling was already widened to `<24` for exactly this. Verified in
+   an isolated env: the divert's imports work, including
+   `mint_federal_register_document_iri("09-19806", column_licensed=True)` →
+   `urn:rkaf:partner:refspec:frdoc:09-19806`. What remains is the
+   spicysearch-side change itself: vendor the two wheels, declare the dep,
+   swap `identifiers.py`'s shape definitions for the refspec imports (query
+   policy stays), and add the drift table below to its tests so each
+   adoption is loud. The four `document_number` consumers
+   (`identifiers.py`, `date_events.py`, `metadata_snapshot.py`,
+   `source_catalog_metadata.py`) are where minting plugs in after that.
 
 ## The drift, reproduced
 

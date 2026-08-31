@@ -84,6 +84,15 @@ joining the ranked backlog in
 
 ## Operational findings — no pins, ordinary commits, deliberately not tonight
 
+> **RESOLVED the same day, later that session.** Every item below — plus
+> everything two further review cycles shook out beyond this list — landed
+> through a six-lane agent wave, a max-effort external review (13 confirmed
+> findings), four resolver passes, a re-review (9 resolved / 4 partial /
+> 2 new), and a residual pass closing the rest. See the commit train of
+> 2026-08-31 (`fix(explorer)` through `fix(build)`). The sealed-lineage
+> section above is untouched by all of it and remains the backlog, beside
+> `investigations-mined-2026-08-31.md`.
+
 Out of the intake-ledger goal's scope; recorded so they are picked up on
 purpose. Cheapest-and-loudest first:
 
