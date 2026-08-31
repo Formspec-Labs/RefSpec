@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,7 @@ VALIDATOR_PATH = BINDING_ROOT / "tools" / "validate.py"
 FIXTURE_BUILDER = BINDING_ROOT / "tools" / "build_fixtures.py"
 VALID_DISTRIBUTION = BINDING_ROOT / "fixtures" / "valid" / "all-resource-profiles"
 REQUIREMENTS = BINDING_ROOT / "requirements.txt"
+MAKEFILE = ROOT / "Makefile"
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 RKAF = Namespace("https://rulespec.org/ns/v1#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
@@ -124,10 +126,15 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     }
 
 
-def _makefile_rule(name: str) -> tuple[list[str], list[str]]:
-    """Return one Makefile rule's prerequisites and its recipe, line-joined."""
+def _makefile_rule(name: str, makefile: Path | None = None) -> tuple[list[str], list[str]]:
+    """Return one Makefile rule's prerequisites and its recipe, line-joined.
 
-    lines = (ROOT / "Makefile").read_text(encoding="utf-8").splitlines()
+    ``makefile`` defaults to the repository's own, and is a parameter only so
+    the mutation demonstration below can point the same parser at a temporary
+    copy -- the Makefile itself is never written by these tests.
+    """
+
+    lines = (makefile or MAKEFILE).read_text(encoding="utf-8").splitlines()
     for index, line in enumerate(lines):
         if not line.startswith(f"{name}:"):
             continue
@@ -148,26 +155,35 @@ def _makefile_rule(name: str) -> tuple[list[str], list[str]]:
 
 
 def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None:
-    """`make test` drops `test-atlas-v3` because this module already runs it.
+    """`make test` reaches the sealed corpus through the slow tier, once.
 
-    The corpus pass is one subprocess over the whole sealed corpus. It is no
-    longer the suite's single
-    most expensive thing -- since the artifact-reading and corpus tests moved
-    into the slow tier, several registry-alignment fixture builds there cost
-    more (tests/test_atlas_v3_registry_alignments_lc.py's LC release alone
-    measured 362.85s of fixture setup that day) -- but running the corpus
-    pass from both the Makefile and pytest still costs it twice for one
-    answer, which is the waste this check actually guards against. The
-    aggregate target now relies on ``test_atlas_v3_binding_and_sealed_corpus_pass``
-    above, so this check keeps the two halves of that claim true: the
-    standalone target must still invoke exactly what ``_standalone()``
-    invokes, and ``test`` must not list it a second time.
+    The corpus pass is one subprocess over the whole sealed corpus, run by
+    ``test_atlas_v3_binding_and_sealed_corpus_pass`` above. That test is
+    ``@pytest.mark.slow``, so `test-package`'s `-m "not slow"` does not run
+    it -- only `test-slow` (`-m slow`) does. `test` must therefore list
+    `test-slow` as a prerequisite, or the corpus (and the rest of the
+    slow-marked tier) silently stops running under `make test`, which is
+    exactly what happened between the slow-marking pass on 2026-08-23 and
+    the fix that added this line: `test-package` was the only tier wired
+    into `test`, so `make test` alone no longer reached the sealed corpus or
+    the rest of the slow tier at all. `test` must also still not list
+    `test-atlas-v3`: doing so would run the identical corpus subprocess a
+    second time for the same answer, which is the waste this check has
+    always guarded against. This check keeps all three parts of that claim
+    true: `test-package` and `test-slow` are both listed, `test-atlas-v3` is
+    not, and the standalone target still invokes exactly what
+    ``_standalone()`` invokes.
     """
 
     prerequisites, _ = _makefile_rule("test")
     assert "test-package" in prerequisites
+    assert "test-slow" in prerequisites, (
+        "make test would skip the sealed corpus and the rest of the slow "
+        "tier: test_atlas_v3_binding_and_sealed_corpus_pass is "
+        "pytest.mark.slow, and only test-slow (-m slow) runs it"
+    )
     assert "test-atlas-v3" not in prerequisites, (
-        "make test would run the sealed corpus twice: test-package already "
+        "make test would run the sealed corpus twice: the slow tier already "
         "covers test-atlas-v3 via test_atlas_v3_binding_and_sealed_corpus_pass"
     )
 
@@ -177,6 +193,124 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
         ROOT / token if token.startswith("bindings/") else token
         for token in recipe[0].split()
     ] == ["uv", "run", "--no-project", "--with-requirements", REQUIREMENTS, "python", VALIDATOR_PATH]
+
+    # Listing both tiers is only half the claim. The other half is what each
+    # tier SELECTS: `test-package` must take `not slow` and `test-slow` must
+    # take `slow`, or the prerequisite list above is satisfied by a pair that
+    # runs the corpus twice (both unfiltered) or not at all (both `not slow`).
+    assert _slow_tier_partition_violation(MAKEFILE) is None
+    assert _pytest_marker_expressions(_makefile_rule("test-package")[1]) == ["not slow"]
+    assert _pytest_marker_expressions(_makefile_rule("test-slow")[1]) == ["slow"]
+
+
+#: The two Makefile edits that keep every prerequisite assertion above green
+#: while breaking what `make test` actually runs -- the hole review finding 10
+#: found in this guard. Each is (description, old text, new text), applied to a
+#: COPY of the Makefile; the real one is never written.
+_SLOW_TIER_MUTATIONS = (
+    (
+        "test-package stops filtering, so the corpus runs in both tiers",
+        'uv run pytest -q -n auto -m "not slow";',
+        "uv run pytest -q -n auto;",
+    ),
+    (
+        "test-slow takes `not slow` too, so the corpus runs in neither tier",
+        "test-slow: atlas-v3-fixtures\n\tuv run pytest -q -n auto -m slow",
+        'test-slow: atlas-v3-fixtures\n\tuv run pytest -q -n auto -m "not slow"',
+    ),
+)
+
+
+def _pytest_marker_expressions(recipe: list[str]) -> list[str | None]:
+    """Every ``-m`` selection the recipe's pytest invocations make, in order.
+
+    A pytest command carrying no ``-m`` at all yields ``None`` rather than
+    being skipped: "unfiltered" is one of the two mutations this has to catch,
+    and a parser that only looked at the expressions it found would read an
+    unfiltered command as no command.
+    """
+
+    found: list[str | None] = []
+    for line in recipe:
+        for command in line.split(";"):
+            match = re.search(r"(?:^|\s)pytest(?:\s|$)", command)
+            if match is None:
+                continue
+            selection = re.search(
+                r"""\s-m\s+(?:"([^"]*)"|'([^']*)'|(\S+))""", command[match.end() :]
+            )
+            found.append(
+                None if selection is None else next(g for g in selection.groups() if g is not None)
+            )
+    return found
+
+
+def _slow_tier_partition_violation(makefile: Path) -> str | None:
+    """Why `test-package` and `test-slow` do not partition the suite, or None.
+
+    Evaluated with pytest's own marker-expression evaluator rather than by
+    string match, so the question asked is the one that matters: for a test
+    marked ``slow``, and for one that is not, does EXACTLY ONE of the two
+    tiers select it? Two tiers selecting it is the sealed corpus running
+    twice; none selecting it is the corpus not running at all under
+    `make test`.
+    """
+
+    from _pytest.mark.expression import Expression
+
+    selections = {}
+    for target in ("test-package", "test-slow"):
+        expressions = _pytest_marker_expressions(_makefile_rule(target, makefile)[1])
+        if len(expressions) != 1:
+            return f"{target} runs {len(expressions)} pytest commands, expected exactly 1"
+        selections[target] = expressions[0]
+
+    for marked in (True, False):
+        selecting = [
+            target
+            for target, expression in selections.items()
+            # No `-m` at all selects everything.
+            if expression is None
+            or Expression.compile(expression).evaluate(
+                lambda name, marked=marked: marked and name == "slow"
+            )
+        ]
+        if len(selecting) != 1:
+            state = "slow-marked" if marked else "unmarked"
+            return (
+                f"{state} tests are selected by {len(selecting)} tier(s) "
+                f"({', '.join(selecting) or 'none'}); selections were {selections}"
+            )
+    return None
+
+
+def test_the_slow_tier_guard_rejects_a_makefile_that_breaks_the_partition(tmp_path: Path) -> None:
+    """The guard above must fail under each mutation it exists to catch.
+
+    Review finding 10: the guard asserted only that `test` lists
+    `test-package` and `test-slow` and not `test-atlas-v3`. Both mutations
+    below leave that prerequisite list untouched -- the first runs the sealed
+    corpus twice, the second runs it zero times, and the old guard stayed
+    green through either. Each is applied to a COPY of the Makefile, which is
+    what the ``makefile`` parameter on ``_makefile_rule`` is for; the
+    repository's Makefile is only ever read.
+    """
+
+    original = MAKEFILE.read_text(encoding="utf-8")
+    for description, old, new in _SLOW_TIER_MUTATIONS:
+        assert original.count(old) == 1, f"mutation no longer applies: {description}"
+        mutated = tmp_path / f"Makefile.{abs(hash(description))}"
+        mutated.write_text(original.replace(old, new, 1), encoding="utf-8")
+
+        violation = _slow_tier_partition_violation(mutated)
+        assert violation is not None, f"guard stayed green under: {description}"
+
+    # And the unmutated copy is accepted, so the rejections above are the
+    # mutations talking and not the copy itself.
+    clean = tmp_path / "Makefile.clean"
+    clean.write_text(original, encoding="utf-8")
+    assert _slow_tier_partition_violation(clean) is None
+    assert MAKEFILE.read_text(encoding="utf-8") == original
 
 
 def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None:

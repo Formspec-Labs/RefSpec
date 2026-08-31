@@ -50,22 +50,27 @@ check-generated:
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/build_fixtures.py --check
 
-# `test-atlas-v3` is deliberately absent. `test-package` already runs the
+# `test-atlas-v3` is deliberately absent. `test-slow` already runs the
 # identical command inside
 # tests/test_atlas_v3_binding.py::test_atlas_v3_binding_and_sealed_corpus_pass,
 # which additionally pins the exact case, schema and descriptor counts the
 # bare target only exit-codes. Listing both would run the full corpus
 # twice for ~37s each (36.65s measured 2026-08-23, one subprocess run in
-# isolation) -- proving the same thing twice, not the third of the whole
-# suite it used to be, now that the corpus pass runs in the slow tier rather
-# than in test-package. Keep the standalone target for binding work; do not
-# re-add it here.
+# isolation) -- proving the same thing twice. That test is `@pytest.mark.slow`,
+# so `test-package`'s `-m "not slow"` does NOT run it -- only `test-slow` (`-m
+# slow`, below) does, which is why `test-slow` has to be a prerequisite of
+# `test` too, not just `test-package`. (2026-08-23 through 2026-08-31 `test`
+# listed only `test-package`, which quietly dropped both the corpus and the
+# rest of the slow tier from `make test`; this line and `test-slow` in the
+# prerequisite list are the fix.) Keep the standalone `test-atlas-v3` target
+# for binding work; do not re-add it to `test`.
 # Order matters here beyond taste: `check-generated` materializes the
-# gitignored Atlas 3.0 case tree (see that rule), and `test-package` reads it.
-# Make runs these left to right, so a cold checkout is healed before pytest
-# collects. The targets that can be run on their own take `atlas-v3-fixtures`
-# as a prerequisite so they do not depend on that ordering.
-test: lint lint-rdf-strict check-generated audit-registry-inventory test-json-binding test-package
+# gitignored Atlas 3.0 case tree (see that rule), and `test-package` and
+# `test-slow` both read it. Make runs these left to right, so a cold checkout
+# is healed before pytest collects. The targets that can be run on their own
+# take `atlas-v3-fixtures` as a prerequisite so they do not depend on that
+# ordering.
+test: lint lint-rdf-strict check-generated audit-registry-inventory test-json-binding test-package test-slow
 
 # Build the Atlas 3.0 case tree if, and only if, it is not there. `--check`
 # both builds and proves (against `fixtures-receipt.json`), so the cold path
@@ -159,8 +164,14 @@ test-package: atlas-v3-fixtures
 # so the fast tier still proves the shared artifact matches its receipt.
 # `audit-registry-real-data` already runs the complete, unfiltered suite
 # (tools/verify_registry_audit.py's run_full_test_suite passes pytest no `-m`
-# selection at all), so this tier duplicates no coverage -- it only gives the
-# slow half of the suite a target that can be run and measured on its own.
+# selection at all), so this tier duplicates no coverage against that audit --
+# it gives the slow half of the suite a target that can be run and measured on
+# its own, AND (as a prerequisite of `test`, above) is what makes `make test`
+# complete: it is the only thing that runs the sealed Atlas 3.1 conformance
+# corpus (test_atlas_v3_binding_and_sealed_corpus_pass) and the rest of the
+# slow-marked tests once `test-package` stopped covering them. Without this
+# target wired into `test`, a developer can break the binding validator and
+# still get a green `make test`.
 test-slow: atlas-v3-fixtures
 	uv run pytest -q -n auto -m slow
 
