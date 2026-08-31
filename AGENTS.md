@@ -29,3 +29,20 @@ becoming a diff nobody reads. The pattern to copy is
 [tests/test_atlas_v3_canonical_line_grammar.py](tests/test_atlas_v3_canonical_line_grammar.py),
 where 29,283,283 clean real lines said nothing and the mutation battery found
 a silent escaped-UCHAR divergence.
+
+The raw source is read around the match, or the pattern is not traced. A grep
+locates; it never validates. Before any pattern is admitted to a grammar, any
+extracted value is trusted, or any moved number is re-pinned, open the actual
+source bytes and read the text AROUND the datum — the surrounding fields,
+lines, or page — because the context is where a match turns out to be a Stat.
+page list resuming a U.S.C. list, a docket that is really a report number, or
+a "fused" token that the printed page itself welded. When the source is a
+rendered format (a PDF, a printed page), view it as pixels, not a text layer:
+the E5-2394Filed attestation found the text layer agreeing with the render
+only AFTER the render was read at 600 dpi against a spaced control colophon
+on the same page. This applies to every agent working this repository, and a
+report that traces a pattern shows at least one specimen WITH its
+surrounding raw context and says what the context ruled in or out. The day's
+proof of the rule: one manual raw pass over an already twice-reviewed
+backlog killed one item, re-scoped another 623-fold, and broke a proposed
+fix before anyone built it (research/backlog-validation-2026-08-31.md).

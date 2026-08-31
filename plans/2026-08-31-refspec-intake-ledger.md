@@ -197,6 +197,13 @@ should be read from RefSpec once, not maintained twice. Bundle with port 1.1.
 
 ## 4. Salvage — data that stays in corpora, named as RefSpec's inputs
 
+> **SUPERSEDED 2026-08-31 by REF-055** (`docs/decisions.md`): the owner
+> ruled corpora a temporary staging ground, and the come-home wave moved
+> everything RefSpec-shaped into the repo's own `output/` and
+> `research/evidence/` with the corpora copies retained as second copies.
+> See `docs/regeneration-inputs.md` for the per-path state. Kept below for
+> the record.
+
 Nothing here moves into the repo. `~/Work/corpora/` is the durable home
 precisely because gitignored in-repo output trees were destroyed repeatedly
 (the platform's measured failure mode is loss, never tamper). The action is

@@ -1,13 +1,18 @@
 <!-- markdownlint-disable MD013 -->
 
-# Regeneration inputs that live outside the repository
+# Regeneration inputs, and the staging ground they came home from
 
-This register names the corpora paths RefSpec's builders and pins depend on
-but that deliberately do **not** move into the repository. `~/Work/corpora/`
-is the durable home because gitignored in-repo output trees were destroyed
-repeatedly; the platform's measured failure mode is loss, never tamper. The
-intake ruling behind this page is §4 of
-[`plans/2026-08-31-refspec-intake-ledger.md`](../plans/2026-08-31-refspec-intake-ledger.md).
+**Doctrine reversed 2026-08-31 by REF-055** (`docs/decisions.md`): corpora
+was a temporary staging ground, and everything RefSpec-shaped came home to
+this repo's own gitignored `output/` tree — with every reference re-pointed
+and every byte digest-verified across the move. The win is **anchoring**
+(a checkout plus its `output/` rebuilds with no outside path), not
+durability: the corpora copies stay in place as the second copy until
+`output/` gains a manifest gate of its own. This page's original preamble
+asserted the opposite doctrine and is superseded; the rows below carry the
+per-path state. The intake ledger's §4
+([`plans/2026-08-31-refspec-intake-ledger.md`](../plans/2026-08-31-refspec-intake-ledger.md))
+is likewise superseded by REF-055.
 
 This is not the [research-input register](research-inputs.md), which pins the
 editor's-draft portfolio baseline. This page is operational: what a rebuild
@@ -18,15 +23,15 @@ reads, and what is lost if a path below is moved or deleted.
 | Corpus path (under `~/Work/corpora/`) | Contents | RefSpec relationship |
 | --- | --- | --- |
 | `_salvage-2026-08-28/refspec-output/` | original 302k-row act index, ~120 dated Zyte/Wayback/bulk registry captures, GAO execution receipts, claim releases, view pins, vocabulary portfolio | outputs and pins with no or expensive regeneration |
-| `_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24` | 773M, 52 files, manifest + fetch log | refetchable but **not re-pinnable**: a refetch is a different capture day |
-| `_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24` | 2.1G, 73 files — 32 zips per the fetch log (31 annual XHTML editions 1994–2024, which carry no USLM, plus the one USLM member); the rest are listings, oracle parquets and fetch scripts; all 32 zips re-hashed clean 2026-08-31 | the one USLM member, `xml_uscAll_119-102.zip` (108MB, sha256 `55c8d195…`, the same bytes the frozen artifact's receipt pins), feeds `tools/build_usc_source_credits.py` (intake ledger §1.4; the ledger's "2.1G feeds the parser" claim measured wrong 2026-08-31) |
+| `_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24` | 773M, 52 files, manifest + fetch log | refetchable but **not re-pinnable**: a refetch is a different capture day — **came home to `output/ecfr-title-xml-2026-08-24/` (top-level, the established convention its readers already hardcoded) on 2026-08-31**; corpora copy left in place, byte-verified against `manifest.json` (49 fetched titles, reserved [35], 0 holes, 810,674,584 bytes match exactly) |
+| `_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24` | 2.1G, 73 files — 32 zips per the fetch log (31 annual XHTML editions 1994–2024, which carry no USLM, plus the one USLM member); the rest are listings, oracle parquets and fetch scripts; all 32 zips re-hashed clean 2026-08-31 | the one USLM member, `xml_uscAll_119-102.zip` (108MB, sha256 `55c8d195…`, the same bytes the frozen artifact's receipt pins), feeds `tools/build_usc_source_credits.py` (intake ledger §1.4; the ledger's "2.1G feeds the parser" claim measured wrong 2026-08-31) — **came home to `output/usc-annual-2026-08-24/` (top-level, matching every existing reader in `research/evidence/usc-section-oracle-2026-08-24/` and `usc-regeneration-2026-08-31/`) on 2026-08-31**; corpora copy left in place, byte-verified (32/32 zips, 73/73 files match) |
 | `_salvage-2026-08-28/refspec-output/atlas-3.1-full-2026-08-21d` | 2.0G full atlas build | parent of the newest search view |
 | `atlas-3.1-parquet-search-view-{2026-08-17,-20,-21b,-21c}` | Parquet search views | **pinned by exact path in SpicySearch tests** (`-2026-08-17`, `-20`, `-21b`, `-21c` — verified 2026-08-31; the earlier "`-21b` appears unpinned" was backwards: **`-21d` is the unpinned one**) — do not move or delete without re-pointing them. Sharper hazard, measured: `-21b`, `-21c` and `-21d` carry distinct viewIds over **the same eleven inodes** (hardlinks), so an in-place write through any path mutates all three at once, two of them test-pinned |
 | `_preserved-2026-08-27/vocabulary-atlas` | 8 atlas versions incl. hand-audited v5-audited | lineage evidence |
 | `_preserved-2026-08-27/fused-concept-registry-v1` | 513,236-concept fusion incl. LLM-minted terms | lineage evidence, 15+ downstream citations |
-| `_preserved-2026-08-27/spicy-regs-output-complete/agency-crosswalk-2026-08-02/` | sealed agency-crosswalk artifact + receipt (tier histogram over 715,080 FR-docket-link rows) | reference data behind `registry/agency_crosswalk` (intake ledger §1.5) |
-| `_preserved-2026-08-27/rin-ontology-revision-candidate/` | the sealed crosswalk's four input parquets | **already partially lost, and worse than first recorded** (full sweep 2026-08-31): `fr_docket_links.parquet` was overwritten after the 2026-08-02 build (893,766 rows vs the pinned 715,080), the original bytes were found **nowhere under ~/Work** (all twenty copies hashed across both output trees carry the overwritten digest; 36 manifests pin a digest no file satisfies), the correct pin sat unread the whole time in `ontology-dataset-manifest.json`'s `.inputs.sources` block in the same directory, and the 2026-08-27 tree-wide SHA256SUMS **ratified** the corrupted digest as truth. Recorded in `agency_crosswalk.AGENCY_CROSSWALK_REGENERATION_STATUS` |
-| `_nuggets-2026-08-27/` | archived spicy-regs source + sweep receipts | evidence and reference for every reimplemented port — never a payload |
+| `_preserved-2026-08-27/spicy-regs-output-complete/agency-crosswalk-2026-08-02/` | sealed agency-crosswalk artifact + receipt (tier histogram over 715,080 FR-docket-link rows) | reference data behind `registry/agency_crosswalk`; **the receipt came home 2026-08-31** to `output/registry-real-data-sources/rin-ontology-revision-candidate/receipt.json` beside the three inputs it pins — the sealed artifact tables stay here as the second copy |
+| `_preserved-2026-08-27/rin-ontology-revision-candidate/` | the sealed crosswalk's four input parquets | **already partially lost, and worse than first recorded** (full sweep 2026-08-31): `fr_docket_links.parquet` was overwritten after the 2026-08-02 build (893,766 rows vs the pinned 715,080), the original bytes were found **nowhere under ~/Work** (all twenty copies hashed across both output trees carry the overwritten digest; 36 manifests pin a digest no file satisfies), the correct pin sat unread the whole time in `ontology-dataset-manifest.json`'s `.inputs.sources` block in the same directory, and the 2026-08-27 tree-wide SHA256SUMS **ratified** the corrupted digest as truth. Recorded in `agency_crosswalk.AGENCY_CROSSWALK_REGENERATION_STATUS` — **the three intact inputs (`federal_register.parquet`, `dockets.parquet`, `documents.parquet`) came home to `output/registry-real-data-sources/rin-ontology-revision-candidate/` on 2026-08-31**, byte-verified against `AGENCY_CROSSWALK_INPUT_DIGESTS`; `fr_docket_links.parquet` stayed behind here, its story unchanged |
+| `_nuggets-2026-08-27/` | archived spicy-regs source + sweep receipts | **came home 2026-08-31**: the digest-pinned tarballs, sweep receipts and `invariants.py` are committed at `research/evidence/spicy-regs-nuggets-2026-08-27/`; the corpora copy is now the second copy. Evidence and reference — never a payload |
 | `refspec-registry-unified-agenda-parquet/` | receipted export of `registry/unified_agenda_parquet.py` | durable pin; regenerable; fine where it sits |
 
 ## The in-repo counterpart

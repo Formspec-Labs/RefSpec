@@ -4193,6 +4193,25 @@ submodule URL from the local file path to the GitHub URL (resolvable now
 that this line is pushed), and its full fast tier passed against the new
 pin, 1,319 tests green. The measurement held exactly.
 
+**Erratum (2026-08-31, later the same day — figures re-anchored, disposition
+unchanged).** A six-agent branch-retention audit could not reproduce this
+entry's figures and was right to complain: they were stated without naming
+the commit they were measured at. Both measurements are true at their own
+anchors, verified side by side: at `34ca2b67` (this entry's measurement
+moment) the archive tree has **zero** paths absent from this tree and the
+scoped code-path diff is 63 files / 579 archive-side lines, exactly as
+recorded above; at `64a55685` (the audit's anchor, twenty commits later) one
+archive-only path exists — the rc15 vendored wheel, deleted here by the rc16
+bump, no content loss — and the all-paths diff reads 56 files / 2,869
+archive-side lines (35 / 721 scoped; the reverse direction differs by a few
+lines on three alignment-sensitive files). The rule this buys: **a diff
+figure restated anywhere must name its anchor commit, its direction, and its
+pathspec.** The supersession itself was independently re-confirmed at
+content level by that audit, including the one absent mechanism
+(`cfr_additional_parts`), which the archived branch had itself superseded
+nine and a half minutes after writing it. Audit record:
+`~/Work/corpora/_retained-2026-08-31-refspec-branches/`.
+
 ### REF-052: The column is the license — the Federal Register document-number recall ruling
 
 - **Date:** 2026-08-31
@@ -4354,3 +4373,57 @@ contract-verbatim gates that hold this repository's copies of the spaces true
 against the vendored wheel. The census lost its `modern-short-tail` bucket
 rather than pinning it at zero: a bucket naming an empty population is
 structure that stopped earning its keep.
+
+
+### REF-055: The staging ground empties — corpora was temporary, and the win is anchoring, not durability
+
+- **Date:** 2026-08-31
+- **Status:** Accepted. Supersedes the intake ledger's §4 doctrine and the
+  regeneration register's original preamble, both of which stated that
+  `~/Work/corpora/` is the durable home and that nothing moves into the
+  repository.
+
+The owner's ruling: corpora was only ever a temporary staging ground for the
+2026-08-27/28 salvage waves, and everything RefSpec-shaped comes home. The
+come-home wave of 2026-08-31 moved the million-row Federal Register metadata
+corpus, the crosswalk's three intact inputs and its sealed receipt, the USC
+annual archives and eCFR title XML (already resident at their top-level
+`output/` convention), the FR-thesaurus-2025 managed release (previously
+read out of the sibling spicy-regs checkout), and the nuggets evidence into
+this repository — every byte digest-verified against its manifests before
+and after the move, every code and test reference re-pointed in the same
+change, and the sibling-checkout anchor (`SPICY_REGS_ROOT`) deleted with a
+boundary test suite standing where it fell.
+
+**What this ruling is careful NOT to claim.** `output/` remains gitignored,
+and the destroyed-output-trees history that motivated the old doctrine is
+real. Coming home therefore buys **path anchoring** — a clean checkout plus
+its own `output/` tree rebuilds and re-verifies with no path outside the
+repository — not durability. The durability story is unchanged: the corpora
+copies were left in place as the second copy (dual-homing), and they remain
+so until `output/` gains a distribution or manifest gate of its own. A
+future reader quoting the old register preamble for "corpora is the durable
+home" is quoting a superseded document; a future reader deleting corpora
+because "everything came home" is deleting the current second copy.
+
+**The evidence-home half of the ruling.** Evidence cited by shipped code
+lives in-repo (the doctrine that committed the Wayback EO bytes). The
+nuggets source tarballs, sweep receipts, and `invariants.py` are committed
+at `research/evidence/spicy-regs-nuggets-2026-08-27/` — 23 MB of
+incompressible archives, priced and accepted deliberately, because every
+reimplemented port's docstring cites them by member path and a citation
+that dangles on every other checkout is worse than the megabytes.
+
+**Erratum to REF-052 and REF-054 (same wave, hours later).** REF-052's
+staged move landed: the bare-legacy shape and all four letter-opening
+column families now read natively in `identifier_shapes.py`, delivered
+through exactly the rebuild unit REF-052 promised (producer hash moved,
+all four agenda table digests byte-identical). The figures those entries
+stated are re-anchored per REF-051's own erratum rule — anchored at the
+post-move census over the same 1,004,233-value column: letter-opening
+117,292 → **127,523**; refused 12,247 → **2,016**; identified coverage
+98.8% → **99.8%**. The surviving deferrals, measured by resolving each
+value: 1,370 bare short-tails (the standing floor decision), 286 modern
+short tails below the floor, 228 collision-suffixed, 99 short-tail
+corrections (96 of which point at now-first-class originals), 32
+colophon-fused (9 letter-opening + 23 digit-opening), and `granule293`.
