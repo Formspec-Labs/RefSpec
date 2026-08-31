@@ -1,0 +1,13 @@
+number	raw_file	report_file	scope	session_id	captured_at	bytes	lines	sha256
+1	raw/out1.txt	reports/01-source-catalog.md	landing source_catalog package	01a0446a-f9a3-7660-8127-82e9a8d798d2	2026-08-27T14:16:16-0400	773454	11805	a43a566e906e8c6fc8e83bbb38d3866a81ba2b881787a5c18758621825a39bf7
+2	raw/out2.txt	reports/02-metadata-complete-diff.md	landing metadata-complete diff	01a0446a-f9a3-7351-a498-16f82fb07dc5	2026-08-27T14:15:32-0400	1655375	10741	17d9f809f685e1a2a6d7cbd0f77cb4970d52300b6e1f553943781c8b75a9d769
+3	raw/out3.txt	reports/03-docpipeline-core.md	docpipeline core runtime segments and model handoff	01a0446a-f9a3-7310-be6c-68231cac5fc5	2026-08-27T14:14:29-0400	1935741	29587	e2a129b24ab94b72db42961ba5e81669acc0a2a2d0e62d7d0295b9989274ba25
+4	raw/out4.txt	reports/04-document-release.md	DocumentRelease v1-v3 family	01a0446b-6f66-79d2-bd65-262e12d12ac3	2026-08-27T14:16:01-0400	1194994	13445	a47fb7e352399d55c1d158af486d0800df97833fdf88e212215d3ce94e359fe3
+5	raw/out5.txt	reports/05-acquisition-parsers.md	acquisition parsers and build tools	01a0446b-6f66-7633-96fb-093a0aeec173	2026-08-27T14:15:17-0400	1856187	16131	d5d621c025394f4c987893f23cd929867cbc1e28525043f8cb47282ac916a6ff
+6	raw/out6.txt	reports/06-docs-evidence.md	docs evidence specs and citations	01a0446c-9e46-77b1-b4f6-449cfe96bfd4	2026-08-27T14:22:21-0400	3104712	10245	62179ee87d272a6776ba33e5570bdbc00e0358137b5215961689384274eed409
+7	raw/out7.txt	reports/07-ontology.md	ontology package	01a0446c-9e46-75b0-acae-c6cf43edf4c0	2026-08-27T14:18:18-0400	3304547	22878	3c9384e4f9c64663fdd45f65f88ea0718404c5013e5002bd6345a25d4e94cd35
+8	raw/out8.txt	reports/08-source-native-publication.md	source-native publication and public tables	01a0446c-9e46-7033-9a8b-e6e9b480b45c	2026-08-27T14:18:43-0400	1428461	19697	bb6ac20b9299365586d417d422e37f6763e02fc1f4c72febea55f81bae433efa
+9	raw/out9.txt	reports/09-tests-fixtures.md	tests and irreplaceable fixtures	01a0446d-4b13-7af2-bc57-a192bfaa4a48	2026-08-27T14:22:17-0400	1320266	12300	92f82471f02c43df0d6124c3aade974fa3042c845045fd101416845b91a84773
+10	raw/out10.txt	reports/10-top-level-modules.md	top-level modules pipelines transforms and corpora	01a0446d-4b13-7bc0-a1cb-78a37834df90	2026-08-27T14:21:32-0400	2263695	18721	63b7e91c3041f6fc06ba5fa378e8e1f26d5069a8e0a05d0aefd46ca22faefd33
+11	raw/out11.txt	reports/11-adapters-extraction.md	adapters extraction and source	01a0446d-4b13-78b2-b791-a546400d68fa	2026-08-27T14:17:32-0400	1919878	18561	9c31c9459b0bf02021d5646cc52e7d901fd280211d6566c45f2fecea8b81c2c9
+12	raw/out12.txt	reports/12-assets-workflows.md	non-code assets outputs and workflows	01a0446d-4b13-7a60-ad3d-f92850a2e6e0	2026-08-27T14:21:51-0400	4507382	32655	04acbd432680d039ed60ceed3eba9f49bc35ae0573d1730aa58b7bc4a4be7bd5
