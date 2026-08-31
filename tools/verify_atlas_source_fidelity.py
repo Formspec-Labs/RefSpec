@@ -19662,9 +19662,11 @@ SOURCES: tuple[SourceSpec, ...] = (
         release_keys=("icpsr-subject-thesaurus",),
         inputs=(
             SourcePin(
+                # Came home 2026-08-31: the byte-identical portfolio copy
+                # lives in this repo's own output/ (digest verified before
+                # repointing); construction_path keeps the historical origin.
                 path=(
-                    "/Users/mikewolfd/Work/spicy-regs/output/"
-                    "refspec-vocabulary-portfolio/icpsr/2026-07-30/"
+                    "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/"
                     "managed-release/managed-release.json"
                 ),
                 construction_path=(

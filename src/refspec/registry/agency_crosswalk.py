@@ -24,14 +24,19 @@ the exact path the sealed receipt names as its inputs:
 
 * ``federal_register.parquet``, ``dockets.parquet``, and ``documents.parquet``
   are byte-identical to the receipt's pinned sha256 digests (see
-  ``AGENCY_CROSSWALK_INPUT_DIGESTS``).
-* ``fr_docket_links.parquet`` is **not**. The file at that path has been
-  overwritten since the 2026-08-02 10:52 build: 893,766 rows against the
-  pinned 715,080, a materially different schema (it now carries full
-  document metadata columns alongside ``docket_id``/``document_number``), and
-  a different sha256 (``sha256:e55cc0ab...`` where the receipt pins
-  ``sha256:b3409f0a...``). This matches the codebase's own observed failure
-  mode for gitignored corpora output trees: loss/overwrite, not tamper.
+  ``AGENCY_CROSSWALK_INPUT_DIGESTS``). These three came home to the repo's
+  own ``output/`` on 2026-08-31 (``AGENCY_CROSSWALK_REGENERATION_INPUTS``) --
+  the corpora directory named above no longer holds them.
+* ``fr_docket_links.parquet`` is **not** byte-identical, and did not travel
+  with its three siblings: it stays at
+  ``AGENCY_CROSSWALK_CORRUPTED_INPUT_PATH`` in the staging ground, its story
+  unchanged, because the file there has been overwritten since the
+  2026-08-02 10:52 build: 893,766 rows against the pinned 715,080, a
+  materially different schema (it now carries full document metadata columns
+  alongside ``docket_id``/``document_number``), and a different sha256
+  (``sha256:e55cc0ab...`` where the receipt pins ``sha256:b3409f0a...``).
+  This matches the codebase's own observed failure mode for gitignored
+  corpora output trees: loss/overwrite, not tamper.
 
 A from-scratch rebuild against the three matching inputs plus the *current*
 ``fr_docket_links.parquet`` was attempted as a measurement (not shipped as
@@ -112,15 +117,25 @@ from typing import Literal
 # --------------------------------------------------------------------------
 
 AGENCY_CROSSWALK_REFERENCE_BUILDER = (
-    "~/Work/corpora/_nuggets-2026-08-27/source/tools/build_agency_crosswalk_artifact.py"
+    "research/evidence/spicy-regs-nuggets-2026-08-27/source-snapshots/"
+    "spicy-regs-integrate-payload-prereqs-a6ab98a.tar.gz!tools/build_agency_crosswalk_artifact.py"
 )
+# The digest authority came home 2026-08-31 (byte-identical copy,
+# sha256:5c7510d2...) to sit beside the three inputs it pins; the sealed
+# artifact's tables stay in the staging ground as the second copy.
 AGENCY_CROSSWALK_SEALED_RECEIPT_PATH = (
-    "~/Work/corpora/_preserved-2026-08-27/spicy-regs-output-complete/"
-    "agency-crosswalk-2026-08-02/receipt.json"
+    "output/registry-real-data-sources/rin-ontology-revision-candidate/receipt.json"
 )
 AGENCY_CROSSWALK_SEALED_ARTIFACT_ID = "urn:spicyregs:agency-crosswalk-artifact:80864133d2e5d484fef4afd0"
-AGENCY_CROSSWALK_REGENERATION_INPUTS = (
-    "~/Work/corpora/_preserved-2026-08-27/rin-ontology-revision-candidate/"
+#: The three intact rin-ontology-revision-candidate inputs (federal_register,
+#: dockets, documents), came home from the corpora staging ground to the
+#: repo's own output/ on 2026-08-31.
+AGENCY_CROSSWALK_REGENERATION_INPUTS = "output/registry-real-data-sources/rin-ontology-revision-candidate/"
+#: fr_docket_links.parquet did NOT come home with its three siblings above --
+#: it is the overwritten file described below, and its story is unchanged by
+#: the move: it stays in the corpora staging ground.
+AGENCY_CROSSWALK_CORRUPTED_INPUT_PATH = (
+    "~/Work/corpora/_preserved-2026-08-27/rin-ontology-revision-candidate/fr_docket_links.parquet"
 )
 
 #: The receipt's own pinned sha256 for each of the four raw inputs it joined.
@@ -141,9 +156,11 @@ AGENCY_CROSSWALK_INPUT_ROW_COUNTS: Mapping[str, int] = {
 
 AGENCY_CROSSWALK_REGENERATION_STATUS = (
     "As of 2026-08-31, federal_register.parquet, dockets.parquet, and "
-    "documents.parquet under AGENCY_CROSSWALK_REGENERATION_INPUTS match "
+    "documents.parquet under AGENCY_CROSSWALK_REGENERATION_INPUTS (moved "
+    "home from the corpora staging ground this same day) match "
     "AGENCY_CROSSWALK_INPUT_DIGESTS byte-for-byte. fr_docket_links.parquet "
-    "does not: the file at that path now holds 893,766 rows (pinned: "
+    "does not, and stayed behind at AGENCY_CROSSWALK_CORRUPTED_INPUT_PATH: "
+    "the file there now holds 893,766 rows (pinned: "
     "715,080) with additional document-metadata columns, sha256:e55cc0ab... "
     "(pinned: sha256:b3409f0a...). A rebuild against the current file "
     "reproduces confident:124 / probable:30 / ambiguous:23 / unmapped:139 -- "
@@ -1706,6 +1723,7 @@ __all__ = [
     "AGENCY_CROSSWALK",
     "AGENCY_CROSSWALK_BY_CODE",
     "AGENCY_CROSSWALK_CANDIDATES",
+    "AGENCY_CROSSWALK_CORRUPTED_INPUT_PATH",
     "AGENCY_CROSSWALK_INPUT_DIGESTS",
     "AGENCY_CROSSWALK_INPUT_ROW_COUNTS",
     "AGENCY_CROSSWALK_REFERENCE_BUILDER",

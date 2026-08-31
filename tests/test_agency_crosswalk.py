@@ -20,13 +20,17 @@ from __future__ import annotations
 
 import hashlib
 import re
+import tarfile
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import agency_crosswalk as m
 
-CORPORA_ROOT = Path.home() / "Work/corpora/_preserved-2026-08-27/rin-ontology-revision-candidate"
+#: The three intact rin-ontology-revision-candidate inputs came home to the
+#: repo's own output/ on 2026-08-31. Derived from the module's own constant so
+#: the test cannot drift from where the builder actually reads.
+REGENERATION_INPUTS_ROOT = Path(__file__).resolve().parents[1] / m.AGENCY_CROSSWALK_REGENERATION_INPUTS
 
 
 # ---------------------------------------------------------------------------
@@ -267,9 +271,9 @@ def test_rule2_real_dockets_have_zero_normalization_collisions() -> None:
     claim of zero normalized-key collisions across 276,326 real dockets
     still holds.
     """
-    path = CORPORA_ROOT / "dockets.parquet"
+    path = REGENERATION_INPUTS_ROOT / "dockets.parquet"
     if not path.exists():
-        pytest.skip("~/Work/corpora checkout not present on this machine")
+        pytest.skip("output/registry-real-data-sources/rin-ontology-revision-candidate is not present")
 
     payload = path.read_bytes()
     actual_sha256 = f"sha256:{hashlib.sha256(payload).hexdigest()}"
@@ -364,3 +368,9 @@ def test_all_exports_are_defined_on_the_module() -> None:
 def test_input_digest_and_row_count_provenance_share_the_same_four_files() -> None:
     assert set(m.AGENCY_CROSSWALK_INPUT_DIGESTS) == set(m.AGENCY_CROSSWALK_INPUT_ROW_COUNTS)
     assert all(digest.startswith("sha256:") for digest in m.AGENCY_CROSSWALK_INPUT_DIGESTS.values())
+
+
+def test_the_reference_builder_citation_resolves_to_a_real_tarball_member() -> None:
+    archive, _, member = m.AGENCY_CROSSWALK_REFERENCE_BUILDER.partition("!")
+    with tarfile.open(Path(__file__).resolve().parents[1] / archive) as bundle:
+        assert bundle.getmember(member).isfile()

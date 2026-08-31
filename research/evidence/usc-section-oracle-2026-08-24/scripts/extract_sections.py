@@ -8,7 +8,7 @@ Emits {W}/usc_oracle_exact.parquet   (title, section, status, source_file)
 """
 
 import os
-W = os.environ.get("USC_WORK", "/Users/mikewolfd/Work/RefSpec/output/usc-annual-2026-08-24")
+W = os.environ.get("USC_WORK", str(__import__("pathlib").Path(__file__).resolve().parents[4] / "output/usc-annual-2026-08-24"))
 
 import re
 import zipfile

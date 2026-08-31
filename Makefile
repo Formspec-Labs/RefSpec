@@ -257,8 +257,9 @@ release-atlas-federal-register-thesaurus:
 # or the generation report beside it.
 #
 # Reads the pinned publisher captures ($(ATLAS_FR_RELEASE_SOURCE_ROOT), the
-# 2025-04-01 thesaurus PDF) and the portfolio managed release beside this
-# repository, so it belongs in this release section and NOT in `make test`:
+# 2025-04-01 thesaurus PDF) and the portfolio managed release in this repo's
+# own gitignored output/ (came home 2026-08-31), so it belongs in this
+# release section and NOT in `make test`:
 # hosted CI runners have neither. ci.yml carries the same target behind a
 # presence check that skips with a notice.
 ATLAS_FR_DETERMINISM_ROOT ?= output/atlas-3.1-federal-register-thesaurus-determinism

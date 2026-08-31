@@ -26,9 +26,9 @@ sys.path.insert(0, str(ROOT))
 from tools.build_usc_popular_names import ENTRY as _ENTRY
 from tools.build_usc_source_credits import iter_source_credits
 
-USLM_ARCHIVE = Path(
-    "~/Work/corpora/_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24/xml_uscAll_119-102.zip"
-).expanduser()
+# Came home 2026-08-31: the archive's canonical location is the repo's own
+# top-level output/ (the corpora salvage path was temporary staging).
+USLM_ARCHIVE = Path(__file__).resolve().parents[4] / "output" / "usc-annual-2026-08-24" / "xml_uscAll_119-102.zip"
 
 #: Popular-name entries cut whole, each demonstrating one stated shape. Keyed by
 #: the entry's own ``id`` attribute, which is how OLRC anchors it in the page.

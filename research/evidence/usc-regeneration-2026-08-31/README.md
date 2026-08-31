@@ -118,15 +118,23 @@ the release point is the same one the frozen artifact was sealed from.
 
 ---
 
-## What was *not* copied here
+## Where the archive lives
 
 `xml_uscAll_119-102.zip` (108,610,077 bytes,
-`sha256:55c8d19543c4a972a33e33532b592ac3984c83fdcb04de9f5a64ef1f8483d300`) stays
-in the corpora salvage, per the intake ledger's §4 doctrine:
+`sha256:55c8d19543c4a972a33e33532b592ac3984c83fdcb04de9f5a64ef1f8483d300`) was
+fetched into the corpora salvage and, as of 2026-08-31, has come home to this
+repository's own `output/` tree — the same bytes, not a re-fetch:
 
 ```
-~/Work/corpora/_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24/xml_uscAll_119-102.zip
+output/usc-annual-2026-08-24/xml_uscAll_119-102.zip
 ```
+
+(It also still sits where it was first fetched,
+`~/Work/corpora/_salvage-2026-08-28/refspec-output/usc-annual-2026-08-24/xml_uscAll_119-102.zip`,
+per the intake ledger's §4 doctrine — but `tools/build_usc_source_credits.py`'s
+`DEFAULT_ARCHIVE` now points at the in-repo copy, so a rebuild no longer reaches
+outside the repository.) `output/` is gitignored, so neither copy is
+git-committed; both are local build inputs, verified identical by digest.
 
 Verified two ways before it was trusted: its sha256 was recomputed here and
 matches both the `fetch_log.tsv` beside it (fetched 2026-08-24T16:56:57 local,

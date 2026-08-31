@@ -155,16 +155,11 @@ BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
 if str(BINDING_ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(BINDING_ROOT / "tools"))
 DEFAULT_OUTPUT = ROOT / "output" / "atlas-3.1-full-2026-08-06" / "distribution"
-# RefSpec lived at spicy-regs/RefSpec until 2026-08-21, when the canonical
-# checkout moved to a sibling of spicy-regs. The managed-release inputs this
-# resolves are digest-pinned either way; only the anchor moves with the
-# layout. Their eventual home is RefSpec's own output tree, but that changes
-# published logical paths and verifier expectations, so it is a separate step.
-SPICY_REGS_ROOT = (
-    ROOT.parent
-    if (ROOT.parent / "output" / "refspec-vocabulary-portfolio").is_dir()
-    else ROOT.parent / "spicy-regs"
-)
+# The managed-release inputs came home to this repo's own output tree on
+# 2026-08-31 (bytes verified against the digest pins before repointing).
+# ``logical_path`` deliberately keeps the historical published spelling
+# ("spicy-regs/...") because distributions and the fidelity verifier pin
+# those identities; changing THEM is a separate, artifact-moving step.
 COMPLETE_TOPOLOGY_SCOPE = "completeDeclaredTopology"
 BOUNDED_SELECTION_SCOPE = "boundedReleaseSelection"
 # The scope segment names what the distribution is. It is not decoration: this
@@ -675,7 +670,7 @@ SOURCE_SPECS = (
     SourceSpec(
         key="federal-register-thesaurus-2025",
         kind="managedRelease",
-        path=SPICY_REGS_ROOT / "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/"
+        path=ROOT / "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/"
         "managed-release/managed-release.json",
         logical_path=(
             "spicy-regs/output/refspec-vocabulary-portfolio/"
@@ -690,7 +685,7 @@ SOURCE_SPECS = (
     SourceSpec(
         key="icpsr-subject-thesaurus",
         kind="managedReleaseWithCoverageUnion",
-        path=SPICY_REGS_ROOT / "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/"
+        path=ROOT / "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/"
         "managed-release.json",
         logical_path=(
             "spicy-regs/output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/managed-release.json"

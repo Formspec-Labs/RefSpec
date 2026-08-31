@@ -16,7 +16,7 @@ Emits {W}/usc_oracle_chapter.parquet (title, chapter); 2,905 rows.
 """
 
 import os
-W = os.environ.get("USC_WORK", "/Users/mikewolfd/Work/RefSpec/output/usc-annual-2026-08-24")
+W = os.environ.get("USC_WORK", str(__import__("pathlib").Path(__file__).resolve().parents[4] / "output/usc-annual-2026-08-24"))
 
 import re, zipfile, duckdb
 _D = str.maketrans(dict.fromkeys("‐‑‒–—―−\x96\x97", "-"))

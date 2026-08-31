@@ -4578,3 +4578,25 @@ def test_a_large_mapping_release_buckets_its_pack() -> None:
     assert generator._release_pack_partition(mapping_plan, subject) is not None
     assert generator._release_pack_partition(source_plan, subject) is not None
     assert generator._release_pack_partition(small_plan, subject) is None
+
+
+def test_the_published_logical_path_identities_survive_the_data_homecoming() -> None:
+    """The two managed-release ``logical_path`` values are PUBLISHED
+    identities — distributions and the fidelity verifier's constructionPath
+    pin the historical ``spicy-regs/output/...`` spelling — while the READ
+    paths came home to this repo's output/ on 2026-08-31. This pin keeps a
+    tidy-up pass from silently re-identifying two releases by "fixing" the
+    stale-looking string. RETIREMENT CONDITION: the next full Atlas
+    distribution rebuild, when logical_path and the verifier's
+    construction_path move together as one artifact-changing unit."""
+
+    specs = {spec.key: spec for spec in generator.SOURCE_SPECS if spec.kind.startswith("managedRelease")}
+    assert specs["federal-register-thesaurus-2025"].logical_path == (
+        "spicy-regs/output/refspec-vocabulary-portfolio/"
+        "federal-register-thesaurus-2025/managed-release/managed-release.json"
+    )
+    assert specs["icpsr-subject-thesaurus"].logical_path == (
+        "spicy-regs/output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release/managed-release.json"
+    )
+    for spec in specs.values():
+        assert not Path(str(spec.path)).is_absolute() or str(generator.ROOT) in str(spec.path)

@@ -79,7 +79,8 @@ jobs:
       # name says so rather than reporting a green that proves nothing -- the
       # build reads two gitignored inputs, the pinned 2025-04-01 publisher PDF
       # under output/ (never present here, per the note above) and the portfolio
-      # managed release in the sibling spicy-regs checkout. This is a presence
+      # managed release, which came home to this repo's own output/ on
+      # 2026-08-31 (formerly the sibling spicy-regs checkout). This is a presence
       # check, not a gate, until this job runs somewhere those captures live;
       # arming it is deleting the check. Until then the control runs on a
       # developer machine as `make determinism-atlas-federal-register-thesaurus`,
@@ -88,7 +89,7 @@ jobs:
         run: |
           set -euo pipefail
           pdf="output/registry-real-data-sources/federal-register-thesaurus-2025.pdf"
-          portfolio="../output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025"
+          portfolio="output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025"
           portfolio="$portfolio/managed-release/managed-release.json"
           if [ ! -f "$pdf" ] || [ ! -f "$portfolio" ]; then
             echo "::notice title=FR determinism gate skipped::pinned publisher captures absent on this runner ($pdf, $portfolio); the control runs as 'make determinism-atlas-federal-register-thesaurus' where they live"
