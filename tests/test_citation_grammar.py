@@ -2945,13 +2945,16 @@ def test_every_named_label_repair_reaches_the_corpus() -> None:
 
 
 #: The U.S.C. section-existence oracle, pinned 2026-08-22 from the OLRC's own
-#: current release point and its annual archives 1994-2024. Two files, joined
-#: as a union: 59,364 release-point sections and 1,565,007 annual rows, for
-#: 66,780 distinct non-appendix (title, section) pairs spanning every edition
-#: the Agenda covers. Its provenance, its re-fetch digests and the row-for-row
-#: reproduction check are in that directory's README.
+#: current release point and its annual archives 1994-2024, and re-cut as
+#: generation 2 on 2026-08-31 (twelve uppercase-named volumes the first
+#: extractor never opened). Two files, joined as a union: 59,364 release-point
+#: sections and 1,572,225 annual rows, for 66,780 distinct non-appendix
+#: (title, section) pairs spanning every edition the Agenda covers -- the pair
+#: set is identical across the two generations, which is why this test's
+#: numbers did not move. Its provenance, its re-fetch digests and the
+#: row-for-row reproduction check are in that directory's README.
 USC_SECTION_ORACLE = (
-    Path(__file__).resolve().parents[1] / "research" / "evidence" / "usc-section-oracle-2026-08-22"
+    Path(__file__).resolve().parents[1] / "research" / "evidence" / "usc-section-oracle-2026-08-24"
 )
 
 #: Every (title, padded, unpadded) the pinned Agenda table states, measured
@@ -3152,7 +3155,7 @@ def test_an_abbreviated_span_is_two_sections_not_one_name() -> None:
     **zero of the 68 tokens name a real section as written**, and **62 of them
     expand to a span whose BOTH endpoints are real** (246 of the 264 rows),
     against the pairs pinned in
-    ``research/evidence/usc-section-oracle-2026-08-22``. So the identity
+    ``research/evidence/usc-section-oracle-2026-08-24``. So the identity
     column carries 264 rows of a name that is not law, and the span it becomes
     is law at both ends in 62 of 68.
 

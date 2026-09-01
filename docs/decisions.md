@@ -4427,3 +4427,190 @@ value: 1,370 bare short-tails (the standing floor decision), 286 modern
 short tails below the floor, 228 collision-suffixed, 99 short-tail
 corrections (96 of which point at now-first-class originals), 32
 colophon-fused (9 letter-opening + 23 digit-opening), and `granule293`.
+
+### REF-056: The FR short-tail widening cycle — 1,656 more document numbers read, and the remaining 360 named one by one
+
+- **Date:** 2026-08-31
+- **Status:** Accepted. Makes the floor decision REF-052 deferred for the
+  1,370 bare-legacy and 286 modern short-tail values, by the recipe REF-052
+  established: raw-read a stratified sample, rule, license the column,
+  re-pin the census.
+
+**Decision.** Both populations are column-licensed — two new productions,
+`_FR_BARE_LEGACY_SHORT_TAIL` (`\d{2}-\d{1,2}`) and `_FR_MODERN_SHORT_TAIL`
+(`\d{4}-\d{1,2}`), checked only under `column_licensed=True`, disjoint from
+every existing production by construction (a closure-guarded test now
+proves it over all eleven FR productions and names the two intentional
+pre-existing overlaps the alternation order resolves). rulespec's own
+mintable space (`FEDERAL_REGISTER_DOCUMENT_NUMBER`) is untouched; the
+modern-shaped population mints through `rkaf:partner-defined`, a separate
+unmade ruling with its own budget.
+
+**Evidence.** 24 specimens (14 bare-legacy, 10 modern), stratified by tail
+length and including the year-boundary sub-clusters (`93-54`, `2013-58`),
+each read against the publisher's own PDF or full-text extraction, as pixels
+and as text (`research/evidence/fr-short-tails-2026-08-31/`). All 24 carry
+an ordinary printed colophon; none is damage. `2010-1` beside `2010-117` on
+75 FR 1009 and `07-99` beside `07-100` on 72 FR 1551 are the comparisons
+that show the short tail is the low end of one numbering series, not a
+different kind of string. What the year-boundary specimens do NOT establish
+is what determines the year token — both printed dates are excluded, and no
+retained source records a submission timestamp — and this decision does not
+need it.
+
+**Measured effect.** `refused` falls 2,016 → **360** (0.2% → 0.036% of the
+column); two buckets appear, 1,370 (112 one-digit + 1,258 two-digit tails)
+and 286 (27 + 259); first-class, bare-legacy and letter-opening are unmoved
+by one value; the partner hatch grows 521,651 → **523,307**; all 1,003,873
+admitted values still carry distinct IRIs, now asserted over the whole
+column together with the three real bare-short/padded pairs
+(`96-30`/`96-00030`, `97-29`/`97-00029`, `97-63`/`97-00063`).
+
+**What stays refused, re-measured and asserted exactly.** The 360 partition
+into seven classes: 224 `-2`-suffix collisions, 99 short-tail corrections,
+27 colophon-fused values, 4 extra-hyphen spellings, 4 trailing-letter
+values, `94-S16142` (the API's number for a page that prints
+`94-00000`), and `granule293`. That corrects the summary carried since
+REF-052: only 224 of the "228" carry a `-2`, and the "32 colophon-fused"
+was a catch-all holding 27 fused values plus five that are not fused — the
+publisher prints `C0-6263A` (a correction of correction `00-6263`, 65 FR
+18151), `C9-20022A`, `94-2050F` and `2014-04654s` with a trailing letter,
+and `94-94-30552`, `95-26-82`, `95-95-22339`, `95-95-744` with an extra
+hyphenated segment, each beside a well-formed control colophon on the same
+page. Neither class is ruled on here; both are recorded with a count, the
+posture REF-052 took toward the 1,370 this decision licenses.
+
+### REF-057: An Executive Order existence oracle, window-split by publisher density — and its first published claim was wrong
+
+- **Date:** 2026-08-31
+- **Status:** Accepted for the module; the fence wiring is a named follow-up
+  (`research/evidence/eo-roster-2026-08-31/WIRING-SPEC.md`).
+
+`refspec.registry.eo_roster` fences Executive Order citations the way
+`usc_section_oracle` fences a U.S.C. section: a 6,147-number roster
+re-derived from manifest-verified publisher bytes (the committed
+`inv-eo`/`inv-eo-gap` captures plus NARA's 1939 disposition table, fetched
+and pinned this wave), sha256-pinned, split into three declared windows
+whose densities are measured — `nara_codification` (9–12,667) 34.7%,
+`nara_disposition` (12,668–12,889) 222/222, `fr_api` (12,890–14,420)
+1,531/1,531 — of which exactly one, the dense FR-API window, may ever say
+`absent`; a miss anywhere else is `unknown`, never `absent` (EO 9397 is the
+specimen). It affirms 378 of 391 cited numbers / 18,954 of 19,011 rows,
+leaving 10 honestly unknown.
+
+**The ruling worth recording is what the review caught.** The lane read one
+NARA per-order route returning "Page Not Found" and published "8284 does
+not exist at all" — while this repository's own committed evidence
+(`research/evidence/silent-misreads-2026-08-22.md`;
+`silent-misreads-2026-08-24/adjudication/B_2.tsv`) had recorded the
+order's official title and date all along. EO 8284 is *Prescribing the
+Duties of the Librarian Emeritus of the Library of Congress*, signed
+1939-11-13, published at 4 FR 4603, and NARA's 1939 table lists it between
+8283 and 8285. **A route-level 404 is a fact about a route.** The doctrine
+that caught this is the doctrine the module enforces in the other
+direction: a miss in a sparse window may only ever read `unknown`. The
+oracle was right about EO 9397 for the same reason it was wrong about EO
+8284, and only the committed-evidence habit made the difference visible.
+The mined backlog's rider that the 8284→8248 reading "rests partly on a
+Wikipedia tie-break" was also false — both committed captures are
+no-article stubs — so the hand-validated row for 8284 (REF-058) is a
+relevance flag, not a transposition hypothesis.
+
+**Two structural consequences.** `FR_API_DENSE_MAX` is evidence — the
+largest number the FR-API capture assigns, re-verified at load — not a
+restatement of `citation_grammar.EO_HIGHEST_KNOWN`; the oracle refuses
+`absent` above its own measured bound rather than inheriting authority
+from a constant that moves when a President signs. And removing a
+derived-CSV intersection that made "zero drift" circular immediately
+exposed a parser defect it had been hiding: EO 12826 had been silently
+dropped because EO 12825's Federal Register line is malformed in NARA's own
+HTML, and the resulting gap had been published as a finding about the
+publisher. The gap run is 223 of 223, contiguous.
+
+### REF-058: Hand-validated interpretations — human judgment on the same receipt discipline as everything else
+
+- **Date:** 2026-08-31
+- **Status:** Accepted. Answers the owner's question of 2026-08-31 ("is
+  there a space for hand-validated interpretations?") with a small
+  consulted-never-applied table, founded on the pilot attestation of the
+  same day.
+
+`src/refspec/registry/hand_validated_interpretations.py` holds rows a
+reviewer can *correct*, *flag*, or explicitly *decline to interpret* by
+reading raw bytes — the case REF-052 does not cover. REF-052 licenses a
+reading by which column a value arrived in; this table licenses one by
+which witnesses a reviewer actually opened, typed by disposition: a
+correction needs at least two independent witnesses (distinct resolved
+paths) and an `interpreted_value`; a flag or refusal needs one and may
+never carry a replacement. Witnesses must be committed files — membership
+and byte-exact spelling from `git ls-files`, working bytes matching `HEAD`,
+resolved containment inside the work tree, no symlink escapes — and each
+witness's `shows` text carries a literal anchor asserted present in its own
+bytes. `lookup(value)` returns the frozen `Interpretation` with its full
+provenance or raises `NotReviewed`; no public function returns a bare
+string, and the table refuses to load on a duplicate `source_value`, a
+short-witnessed correction, or any row whose shape is wrong. Its consumers
+consult it: `eo_roster.flag_for()` surfaces the EO 8284 row beside its own
+verdict and refuses to hand back anything but a flag.
+
+**Founding rows.** Row 1 is the pilot attestation's `E5-2394Filed`
+correction — GPO's own granule identifier is the fused token, the printed
+page welded it (600 dpi against a spaced control colophon on the same
+page), seven witnesses, summaries re-derived from their bytes (the PDF's
+en dash is quoted as an en dash). Row 2 is the EO 8284 flag: the order is
+real (REF-057), so what is doubted is the citation's relevance, per the
+committed adjudication, and the row's notes say plainly that its founding
+transposition argument collapsed.
+
+**Deployment scope, adjudicated.** Repo tooling: the root is derived once,
+must carry the evidence home and be a git work-tree top level, and fails
+in one sentence otherwise. The escape hatch for a future wheel is to ship
+the witnessed bytes and pin them by digest the way `eo_roster` pins its
+roster — not to loosen the check. `rkaf:Attestation` alignment was
+considered and deferred: that shape is a RuleSpec-owned governance warrant
+referenced by IRI, and this row's value lives in the parts an IRI reference
+discards; if a release graph ever needs to cite a row, mint an IRI per row
+and let the row be what it dereferences to. Until a consumer needs that,
+it is structure without a running check.
+
+### REF-059: OLRC's bracketed stubs are excluded from attestation on purpose
+
+- **Date:** 2026-08-31
+- **Status:** Accepted, with a named follow-up. Adjudicated during the
+  review of the generation-2 oracle re-cut (the case-insensitive extractor
+  recount, mined backlog silent item 2).
+
+The annual-archive extractor accepts only itempaths beginning `Sec.` /
+`Secs.`; OLRC also prints bracket-prefixed forms — `[§322. Repealed. Pub.
+L. 109–313 …]`, `[§11704. Renumbered §11703]`, `[§§1 to 5. Repealed …]`
+under `TITLE 6-SURETY BONDS [REPEALED]` — and the extractor's own docstring
+claimed those blocks were retained. They are not, in either generation,
+and this ruling keeps it that way deliberately. The discriminator is
+OLRC's, not typographic: across all 31 archives, **35,088 of 35,088
+non-appendix bracketed entries carry a zeroed usckey section field**,
+against 1,585,628 unbracketed entries that carry a real one — zero
+exceptions. A bracketed stub asserts a section that existed and has been
+repealed, omitted or renumbered, printed as a placeholder; it does not
+assert an identity at that edition.
+
+**Why inclusion fails on its own evidence.** Admitting the 33,895
+bracketed rows would move 3,085 attestations and flip 19 verdicts
+`absent → exists` — and all 19 are one pair, 6 U.S.C. 1, whose only
+witness anywhere is the 1972 repeal stub of the abolished Surety Bonds
+title (printed 1994–2001), while the citing rows are 2005–2017 and one
+names its own statute: the Homeland Security Act, classified from 6 U.S.C.
+101. Calling those `exists` manufactures precisely the silent misread the
+module fences, and deletes the correct hedge they carry today (`absent`,
+caveat `repealed_before_1994_not_stubbed`). A bracket means the same thing
+in `[Sec. 322` and `[Secs. 1 to 5`; splitting on which half happens to
+produce a wrong verdict would be choosing on convenience.
+
+**Cost named.** 40 U.S.C. 322 @2012 reads unattested though the volume
+prints a stub (the section itself already reads `exists` from the release
+point and the unbracketed 1994–2005 volumes); 3,085 rows are held at
+`attested_at_edition = false` build-wide. **Follow-up:** a third state for
+"printed as a withdrawn placeholder" — not a widened
+`attested_at_edition`, which is what produces the 19. The exclusion is
+pinned by a test against the raw bytes
+(`test_a_bracketed_stub_is_printed_but_does_not_attest`), and the
+extractor's docstring now says both forms and both consequences.

@@ -6,13 +6,15 @@ arithmetic, recomputed from ``git show HEAD:tools/agenda_value_diff.py``
 against ``LEGAL_AUTHORITIES_SCHEMA``
 (``refspec.registry.unified_agenda_parquet``):
 
-    91 schema columns
+    94 schema columns (91 at the review; +3 on 2026-08-31 -- usc_slot_reading
+       and the two placeholder-candidate columns -- which the schema-derived
+       list picked up without a hand edit, the point of the rework)
      - 4 key columns (rin, publication_id, ordinal, authority_text)
      - 1 deliberate exclusion (citation_ordinal)
     ------------------------------------------------------------------
-    = 86 value columns the diff owes a comparison
+    = 89 value columns the diff owes a comparison (86 at the review)
 
-    the hand list named 41 of those 86 (all 41 real columns, none stale)
+    the hand list named 41 of the 86 (all 41 real columns, none stale)
     ------------------------------------------------------------------
     = 45 value columns the diff was blind to
 
@@ -172,7 +174,9 @@ def test_the_measured_blind_set_is_exactly_45_columns() -> None:
 
 
 def test_the_recorded_arithmetic_is_the_measured_arithmetic() -> None:
-    """91 - 4 key - 1 ignored = 86 owed, 45 blind, therefore 41 covered.
+    """94 - 4 key - 1 ignored = 89 owed, 45 blind, therefore 44 covered
+    (91 / 86 / 41 at the review; the three loud-tier columns of 2026-08-31
+    arrived through the schema, not the hand list).
 
     The docstring at the top of this file used to say the hand list "carried
     only 45 of the 86 non-key ones" while also naming 45 as the blind count --
@@ -183,12 +187,12 @@ def test_the_recorded_arithmetic_is_the_measured_arithmetic() -> None:
 
     owed = len(LEGAL_AUTHORITIES_SCHEMA.names) - len(_KEYS["legal-authorities"]) - len(_IGNORED)
     assert (len(LEGAL_AUTHORITIES_SCHEMA.names), len(_KEYS["legal-authorities"]), len(_IGNORED)) == (
-        91,
+        94,
         4,
         1,
     )
-    assert owed == 86
-    assert owed - len(_PREVIOUSLY_BLIND_LEGAL_AUTHORITIES_COLUMNS) == 41
+    assert owed == 89
+    assert owed - len(_PREVIOUSLY_BLIND_LEGAL_AUTHORITIES_COLUMNS) == 44
 
     # And timetables, where the hand list happened to be complete: 16 - 4 - 1
     # is 11, and none of the 11 were blind.
@@ -247,14 +251,14 @@ def test_previously_blind_columns_are_now_diffed() -> None:
 
 
 def test_legal_authorities_value_column_count() -> None:
-    """91 schema columns, less the 4-column key and the one deliberate
-    exclusion, is 86 -- pinned as a number so a column quietly added to
+    """94 schema columns, less the 4-column key and the one deliberate
+    exclusion, is 89 -- pinned as a number so a column quietly added to
     ``ignore`` (rather than to ``values``, where the schema puts it) changes
     a count here even if it passes the set-membership tripwire above by
     accident of some other column moving the other way."""
 
-    assert len(LEGAL_AUTHORITIES_SCHEMA.names) == 91
-    assert len(TABLES["legal-authorities"]["values"]) == 86
+    assert len(LEGAL_AUTHORITIES_SCHEMA.names) == 94
+    assert len(TABLES["legal-authorities"]["values"]) == 89
 
 
 def test_timetables_value_column_count() -> None:

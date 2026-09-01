@@ -51,8 +51,12 @@ These publish a wrong or misleading value today with no refusal beside it.
    refusal census (survivors are only computed when there are ≥2 candidates);
    and 147 readings have the note naming bare `NNN` — 8 of those would still
    publish via the edition witness and need a deliberate decision.
-2. **The section oracle's annual-archive extractor is case-sensitive**
-   (`inv-2012`). `extract_annual.py` matches `2010usc12.htm` but not
+2. **LANDED 2026-08-31 (wave, Lane A) — the section oracle's annual-archive extractor is case-sensitive**
+   (`inv-2012`). Generation-2 oracle re-pinned: 1,882 usc rows + 16 act-relative rows
+   attested (not 1,912 — the review's figure bundled a 30-row "uncertain" bucket that
+   correctly does not flip), 0 verdict changes. The review of that unit found a second,
+   pre-existing extractor semantic — OLRC's bracket-prefixed repealed/omitted stubs —
+   and it is EXCLUDED ON PURPOSE (REF-059). Original item kept below for the record. `extract_annual.py` matches `2010usc12.htm` but not
    `2010USC12.htm`; twelve publisher volumes were never read (titles
    12/13/14/51 @2010, 33/35–41 @2012). **1,912 of the 8,261**
    `exists`-but-unattested rows (404 pairs, 559 RINs; title 12 @2010 alone is
@@ -79,7 +83,7 @@ These publish a wrong or misleading value today with no refusal beside it.
    the three #46 fences, in a class they never covered; the trap is real
    (`14 CFR 121`'s note genuinely resumes a U.S.C. list after a Stat page),
    so gate on the oracle rather than on "everything after Stat.".
-5. **No Executive Order existence oracle** (`inv-eo`, `inv-eo-gap`). The
+5. **MODULE LANDED 2026-08-31 (wave, Lane D), fence wiring pending — no Executive Order existence oracle** (`inv-eo`, `inv-eo-gap`). `eo_roster.py` ships the window-split oracle (REF-057); the `eo_in_known_series` fence upgrade is a follow-up unit with its spec at `research/evidence/eo-roster-2026-08-31/WIRING-SPEC.md`. The rider below was WRONG: EO 8284 exists (NARA's 1939 table, 4 FR 4603), and the review caught it. Original item kept for the record. The
    only fence is `EO_HIGHEST_KNOWN`; **43 unresolved numbers / 2,876 rows**
    pass it and read as valid citations, and 16,684 EO rows are the
    second-largest unjudged family in the note census. The built roster
@@ -111,15 +115,29 @@ These publish a wrong or misleading value today with no refusal beside it.
    census. The per-volume last-page roster (91 rows, sha256-pinned) sits
    unbound; `TIMETABLES_SCHEMA` has no in-series columns at all.
 9. Small and named: **`BIPA' 00`** publishes `act_section='00'` (the year) —
-   1 row, named a defect in the builder's own comment, ~3-line guard;
+   1 row, named a defect in the builder's own comment, ~3-line guard
+   (**LANDED 2026-08-31**, with the apostrophe-year shape);
    **Title-3 compilation PAGES** still mint 12 CFR "parts" (the #46 fence
    stopped the years, not the pages); **`attested_at_edition` has no reason
    code** — four mechanically distinct facts share one `false`; the **C3
    tail bug** (`c3_proposals` drops a stated hyphen tail exactly as B8's
    1735f-14 lesson warned) is latent — zero production callers — but primed
-   to go silent the day C3 is promoted.
+   to go silent the day C3 is promoted (**LANDED 2026-08-31**: tail retained
+   occurrence-by-occurrence, and C3 now has a production caller — the
+   paren-suffix promotion below).
 
 ## Not landed, loud — additive work, no wrong answer today
+
+> **Wave 2026-08-31 (Lane B) landed the first five of these** — the six retiers
+> (raw-verified quote by quote; MIPPA re-derived at 29 with the tie-break now
+> documented), the apostrophe-year shape, `usc_slot_reading`, the paren-suffix
+> promotion (bound to the row's own citation occurrence: 200 promoted, 21
+> unbound, 17 stated-tail refusals, 1,179 witnessless kept refused), and the
+> placeholder candidates (two-witness intersection, oracle-refuted candidates
+> dropped, dated PL gate). The `none-off-form` severity split (27 / 62 / 41)
+> shipped as a recorded finding, not a column: it needs a RIN-timeline
+> completion classifier that is its own unit. `ABSTRACT` exposure and the
+> descending-span refusal remain open. Original entries kept for the record.
 
 - **Six initialism-roster retiers** (`inv-62` Piece A): MMA@0917,
   NDAA-17@0720, MIPPA@0938, NEPA@0412, ARRA@0412, UMTRCA@2060 each have a
@@ -159,6 +177,15 @@ These publish a wrong or misleading value today with no refusal beside it.
   refusal census (the `LONE:B8` hole above).
 
 ## Falsified prose in digest-pinned modules
+
+> **All five corrected 2026-08-31** with the units that touched their modules:
+> the 2012-gap prose (extractor holes vs genuine title-52/54 gaps), the
+> mojibake claim (re-measured: 1,407 U+0096/97 occurrences across 11 elements
+> INCLUDING `LEGAL_AUTHORITY`; 1,205 across the 10 others), the oracle
+> docstring (generation 2 reads every volume it holds; bracketed stubs
+> excluded on purpose), and MIPPA's `rows_observed` (29 stands — the
+> first-recognized-token tie-break, now documented). `unified_agenda_editions.py`'s
+> mojibake line is still open: no unit touched that module this wave.
 
 Every one of these files is content-hashed into the artifact receipt's
 producer block, so even a comment edit forces a rebuild: fix these WITH the

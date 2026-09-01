@@ -340,7 +340,10 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # exactly 208 rows whose new authority_type is no longer 'other', none
     # of them arriving from anywhere else (zero departures the other
     # direction).
-    assert failed == (2_108 if _act_resolution_landed(con) else 2_960)
+    # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt):
+    # 2,108 -> 1,980, the 95 rows the six roster retiers resolve plus the 33
+    # apostrophe-year rows, all leaving 'failed' for act_relative/corroborated.
+    assert failed == (1_980 if _act_resolution_landed(con) else 2_960)
     ranges = _one(
         con,
         "select count(*) from '{d}/unified_agenda_legal_authorities.parquet' "
@@ -402,7 +405,8 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # agency-gloss-narrowed-initialism -- every one with a roster note or a
     # sibling ordinal, or under a rule this rebuild's own census already
     # ties to #44/45 exclusively). 34 + 171 = 205.
-    assert acts == (11_209 if _act_resolution_landed(con) else 9_065)
+    # Rebuild #14 (2026-08-31 wave): 11,209 -> 11,337, the 128 rows retyped act_relative.
+    assert acts == (11_337 if _act_resolution_landed(con) else 9_065)
     appendix = _one(
         con,
         "select count(*) from '{d}/unified_agenda_legal_authorities.parquet' where usc_appendix",
@@ -672,7 +676,8 @@ def test_the_continuations_families_are_measured_not_asserted(con) -> None:
     # +146 (pinned-roster-initialism:pinned-quote 87, :candidate-index-match
     # 13, :reverse-pl-verified 7, :self-glossing 5, sibling-act-from-an-
     # earlier-box 34). Every other rule's count is unchanged. 15 + 171 = 186.
-    carried = 4_413 if _act_resolution_landed(con) else 2_782
+    # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 4,413 -> 4,541, the same 128 rows.
+    carried = 4_541 if _act_resolution_landed(con) else 2_782
     assert corroborated_acts == (carried, carried), "every corroborated row names its act"
     # The RS namespace never leaks into U.S.C. columns.
     leaked = _one(
@@ -1681,15 +1686,28 @@ def test_the_pinned_roster_does_not_break_a_tie_the_corpus_already_refused() -> 
     ) is None
     assert tally.initialism_roster_refusals["the-corpus-roster-already-speaks"] == 1
     # At IHS (0917-AA07, Spring 2005, box 0: "MMA, sec 506") nothing competes
-    # -- and nothing corroborates either. The only act IHS's own filings
-    # resolve is the Buy Indian Act, so the weakest tier stays unfenced and the
-    # row keeps its "failed" with the candidate written beside it. "No
-    # competing act" is not evidence that the surviving one is right.
+    # -- and until 2026-08-31 nothing corroborated either, so the row kept its
+    # "failed" with a candidate written beside it. inv-62 then raw-verified
+    # IHS's own Federal Register sentence (07-2740: "...Modernization Act of
+    # 2003 (MMA), (Pub. L. 108-173)") and the roster row is pinned-quote: the
+    # FILER said which act it meant, in print, so it resolves without the
+    # agency fence. "No competing act" was never the evidence; the quote is.
     ihs_row = _failed_row("MMA, sec 506", rin="0917-AA07", publication_id="200504")
-    assert _read_pinned_roster_act(ihs_row, _pinned_roster_oracles(ihs), tally) is None
-    assert ihs_row["act_initialism_roster"] == (
-        "MMA@0917 candidate-index-match (candidate: medicare prescription drug, improvement, "
-        "and modernization act of 2003)"
+    rule, emissions = _read_pinned_roster_act(ihs_row, _pinned_roster_oracles(ihs), tally)
+    assert rule == "pinned-roster-initialism:pinned-quote"
+    assert emissions[0]["act_key"] == (
+        "medicare prescription drug, improvement, and modernization act of 2003"
+    )
+    # The weakest tier, where it still stands: ARRA at the Department of
+    # Education (1810) resolves in the index and nothing more, and ED's own
+    # resolved acts never include the Recovery Act, so the candidate is
+    # written beside the failed row and nothing publishes.
+    ed_row = _failed_row("ARRA 2009", rin="1810-AB19", publication_id="200910")
+    assert _read_pinned_roster_act(
+        ed_row, _pinned_roster_oracles({"1810": {"higher education act of 1965"}}), tally
+    ) is None
+    assert ed_row["act_initialism_roster"] == (
+        "ARRA@1810 candidate-index-match (candidate: american recovery and reinvestment act of 2009)"
     )
 
 
@@ -1702,15 +1720,22 @@ def test_the_weakest_roster_tier_publishes_only_behind_the_agency_fence() -> Non
     from refspec.registry.unified_agenda_parquet import _read_pinned_roster_act, _Tally
 
     tally = _Tally()
-    # DOE RIN 0412-AA64, Fall 2009, box 2: "ARRA 2009". 0412's own filings
-    # never resolve the Recovery Act, so nothing is published.
-    unfenced = _failed_row("ARRA 2009", rin="0412-AA64", publication_id="200910")
+    # An ED (1810) row, Fall 2009: "ARRA 2009". 1810's own filings never
+    # resolve the Recovery Act, so nothing is published. (ARRA@0412 sat here
+    # until 2026-08-31, when inv-62 raw-verified 0412's own notice 2026-10817
+    # spelling the act out with "(ARRA)" after it; that row is pinned-quote
+    # now and resolves without the fence -- asserted just below.)
+    unfenced = _failed_row("ARRA 2009", rin="1810-AB19", publication_id="200910")
     assert _read_pinned_roster_act(unfenced, _pinned_roster_oracles(), tally) is None
     assert unfenced["authority_type"] == "other" and unfenced["parse_status"] == "failed"
     assert unfenced["act_initialism_roster"] == (
-        "ARRA@0412 candidate-index-match (candidate: american recovery and reinvestment act of 2009)"
+        "ARRA@1810 candidate-index-match (candidate: american recovery and reinvestment act of 2009)"
     )
     assert tally.initialism_roster_refusals["the-candidate-tier-is-unfenced-here"] == 1
+    quoted = _failed_row("ARRA 2009", rin="0412-AA64", publication_id="200910")
+    rule, emissions = _read_pinned_roster_act(quoted, _pinned_roster_oracles(), tally)
+    assert rule == "pinned-roster-initialism:pinned-quote"
+    assert emissions[0]["act_key"] == "american recovery and reinvestment act of 2009"
 
     # The same tier, fenced: CMS's own filings resolve the Public Health
     # Service Act, and "USPHSA" cannot reach it by initials (PHSA can, USPHSA
@@ -1874,7 +1899,7 @@ def test_every_corroborated_row_names_the_rule_that_produced_it(con) -> None:
         # /CAA-112-&-103 split mints (a row with no prior key at all) --
         # confirmed against the rebuild-10 baseline by a keyed join, with
         # 2,290 rows unmoved under the same rule name.
-        "agency-roster-initialism": 2_314,
+        "agency-roster-initialism": 2_327,
         "index-holds-the-stated-name": 130,
         # The publisher writes one citation across several elements; this is
         # the run of bare sections a single in-series public law bounds.
@@ -1952,8 +1977,8 @@ def test_every_corroborated_row_names_the_rule_that_produced_it(con) -> None:
         expected |= {
             SIBLING_ACT_RULE: 3,
             "index-holds-the-stated-name": 159,
-            "pinned-roster-initialism:pinned-quote": 87,
-            "pinned-roster-initialism:candidate-index-match": 13,
+            "pinned-roster-initialism:pinned-quote": 191,
+            "pinned-roster-initialism:candidate-index-match": 24,
             "pinned-roster-initialism:reverse-pl-verified": 7,
             "pinned-roster-initialism:self-glossing": 5,
             ACT_CARRY_RULE: 34,
@@ -2102,8 +2127,8 @@ def test_the_pinned_initialism_roster_keeps_its_evidence_tiers_apart() -> None:
         f"the pinned initialism roster is not at {_INITIALISM_ROSTER_CSV}"
     )
     roster = _initialism_roster()
-    assert len(roster) == 235, "(token, agency) pairs"
-    assert sum(len(entries) for entries in roster.values()) == 296
+    assert len(roster) == 236, "(token, agency) pairs"
+    assert sum(len(entries) for entries in roster.values()) == 297
 
     # BBRA at CMS: the specimen the whole roster was built for. Pinned by CMS's
     # own notice 00-8708, which spells the act out and puts "(BBRA)" after it.
@@ -2117,9 +2142,14 @@ def test_the_pinned_initialism_roster_keeps_its_evidence_tiers_apart() -> None:
     # every row is keyed to the filer whose evidence was gathered.
     assert ("BBRA", "2060") not in roster
 
-    # Weakest tier, and it says so. "ARRA" is a hypothesis that resolves in the
-    # index and nothing more, which is why the builder fences it.
-    assert roster[("ARRA", "0412")][0].status == INITIALISM_ROSTER_FENCED_TIER
+    # Weakest tier, and it says so. "ARRA" at ED is a hypothesis that resolves
+    # in the index and nothing more, which is why the builder fences it. The
+    # same letters at 0412 left this tier on 2026-08-31, when inv-62
+    # raw-verified the filer's own "(ARRA)" sentence: same token, two tiers,
+    # because the evidence differs per agency.
+    assert roster[("ARRA", "1810")][0].status == INITIALISM_ROSTER_FENCED_TIER
+    assert roster[("ARRA", "0412")][0].status == "pinned-quote"
+    assert "inv-62" in roster[("ARRA", "0412")][0].evidence_path
 
     # Typed, never resolved -- and the type is in the status so a reader cannot
     # take one for an act with a missing name.
@@ -2604,9 +2634,11 @@ def test_an_unresolved_row_still_states_what_it_states(con) -> None:
     # agency-roster-initialism + 1 agency-gloss-narrowed-initialism, every
     # one section-stated). 27 + 104 = 131.
     landed = _act_resolution_landed(con)
-    assert failing("stated_act_name is not null or stated_section is not null") == (520 if landed else 1_162)
+    # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 520 -> 464 (-56), the
+    # rows the apostrophe-year shape and the retiers resolve out of 'other'.
+    assert failing("stated_act_name is not null or stated_section is not null") == (464 if landed else 1_162)
     assert failing("stated_act_name is not null") == (18 if landed else 540)
-    assert failing("stated_section is not null") == (503 if landed else 905)
+    assert failing("stated_section is not null") == (447 if landed else 905)
 
 
 @pytest.mark.slow
@@ -4089,18 +4121,23 @@ def test_the_section_fence_over_the_built_table(con) -> None:
         "where usc_title = 49 and usc_section = '1354' group by 1, 2",
     ) == ("unknown", "title_49_appendix_not_published", 117)
 
-    # The edition year narrows and never accuses: 8,261 rows carry exists with
-    # attested_at_edition = false. CAVEAT (measured 2026-08-31, not yet fixed):
-    # "the citing edition had not printed it" is the RIGHT reading for only
-    # ~6,300 of them. The annual-archive extractor
-    # (research/evidence/usc-section-oracle-2026-08-22/scripts/
-    # extract_annual.py) matches archive member names case-sensitively, so 12
-    # publisher volumes named like 2010USC12.htm were never read: titles
-    # 12/13/14/51 @2010 and 33/35-41 @2012 are extractor holes, not history,
-    # and ~1,912 of these rows (404 pairs, 559 RINs; title 12 @2010 alone is
-    # 1,368) are unattested only because of that. Fixing it means re-extracting
-    # the 31 zips with IGNORECASE, re-pinning the oracle tables, and
-    # re-baselining this number -- its own unit, not a line here.
+    # The edition year narrows and never accuses: 6,379 rows carry exists with
+    # attested_at_edition = false. THE CAVEAT THAT USED TO STAND HERE IS PAID
+    # OFF. It read: "the citing edition had not printed it" is the RIGHT
+    # reading for only ~6,300 of 8,261, because the annual-archive extractor
+    # matched archive member names case-sensitively and twelve publisher
+    # volumes named like 2010USC12.htm were never read. That is fixed --
+    # research/evidence/usc-section-oracle-2026-08-24 is generation 2 of the
+    # oracle, extracted with re.IGNORECASE plus a guard that raises on any
+    # unclassified archive member, and USC_SECTION_ORACLE_ARTIFACT now names
+    # it. Re-measured against this build's own rows rather than the estimate:
+    # 1,882 of the 8,261 (not the ~1,912 the review projected, which was the
+    # hand-bucketed 1-high-confidence PLUS 2-uncertain buckets; the 30
+    # uncertain rows are titles 40/41 at 2012 cited by pre-recodification
+    # numbers the recovered volumes genuinely do not print, and they correctly
+    # do NOT move) over 390 pairs and 538 RINs, title 12 @2010 alone 1,368.
+    # 8,261 - 1,882 = 6,379. No verdict moves anywhere in the table: the
+    # existence union is 66,780 pairs in both generations.
     # 8,229 -> 8,258 at rebuild #9: +29, split by type+status shape delta
     # against the rebuild-8 baseline -- H1 (usc/partial+ok) contributes 28
     # (8,229 -> 8,257 on that shape alone), H4 (corroboration_rule='one-edit-
@@ -4108,11 +4145,15 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     # section H2 carries is gated to one the oracle prints AT the edition's
     # year, so none of its 111 rows can land here by construction.
     # 8,258 -> 8,261 at rebuild #12 (rebuild12-delta.txt).
+    # 8,261 -> 6,379 at the oracle generation-2 switch. EXPECTED RECEIPT
+    # DELTA: this value is only true of a build written by the generation-2
+    # oracle; it fails against the rebuild-#12 artifact on disk until the
+    # receipt is rebuilt.
     assert _one(
         con,
         f"select count(*) from {L} where usc_section_verdict = 'exists' "
         "and usc_section_attested_at_edition = false and authority_type = 'usc'",
-    ) == 8_261
+    ) == 6_379
     assert _row(
         con,
         f"select usc_section_verdict, usc_section_attested_at_edition, count(*) from {L} "
@@ -4151,6 +4192,7 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     ) == [
         ("A4-subsection-rendered-as-a-lettered-section", 3_651),
         ("B1-et-seq-follows-a-section", 159),
+        ("C3-paren-suffix-eaten", 200),
         ("act-section-under-a-usc-label", 8),
         ("space-lost-before-a-lettered-suffix", 4),
     ]
@@ -4166,7 +4208,9 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     # 3,814 -> 3,818 at rebuild #8: the same 4 rows as immediately above.
     # 3,818 -> 3,822 at rebuild #9: the same 4 H2 rows as the B1 move above.
     # 3,822 -> 3,822 at rebuild #10: A4 -8, act-section-under-a-usc-label +8.
-    assert _one(con, f"select count(*) from {L} where usc_section_corrected is not null") == 3_822
+    # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 3,822 -> 4,022, the
+    # 200 C3-paren-suffix-eaten promotions (bound to the row's own citation).
+    assert _one(con, f"select count(*) from {L} where usc_section_corrected is not null") == 4_022
     assert _one(
         con,
         f"select count(*) from {L} where (usc_section_corrected is null) <> "
@@ -4283,6 +4327,7 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
     ) == [
         ("A4-subsection-rendered-as-a-lettered-section", 3_651, 3_651),
         ("B1-et-seq-follows-a-section", 0, 159),
+        ("C3-paren-suffix-eaten", 0, 200),
         ("act-section-under-a-usc-label", 5, 8),
         ("space-lost-before-a-lettered-suffix", 0, 4),
     ]
@@ -4313,13 +4358,15 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
     assert moved == [
         ("A4-subsection-rendered-as-a-lettered-section", 3_651),
         ("B1-et-seq-follows-a-section", 159),
+        ("C3-paren-suffix-eaten", 200),
         ("act-section-under-a-usc-label", 8),
         ("space-lost-before-a-lettered-suffix", 4),
     ]
     # 3,659 -> 3,651 + 8 at rebuild #10 (084edf69): "8a" -> "12a" moves the
     # identity on all eight, so the moved census and the evidence census stay
     # equal and the 3,822 total below is unchanged.
-    assert sum(rows for _, rows in moved) == 3_822
+    # Rebuild #14 (2026-08-31 wave): 4,022, the 200 C3 promotions all move the identity (78 -> 78b).
+    assert sum(rows for _, rows in moved) == 4_022
     assert _one(
         con,
         f"select count(*) from {L} where usc_section_corrected is not null "
@@ -4568,9 +4615,14 @@ def test_an_act_derived_section_is_judged_like_any_other(tmp_path) -> None:
             "Sec 14005 and 14006, Division A, of the American Recovery and Reinvestment Act of 2009",
             "american recovery and reinvestment act of 2009", "14005", status="corroborated",
         ),
-        # EXISTS, NOT ATTESTED -- the other mechanism, the oracle's own hole:
-        # 33 U.S.C. 1311 is printed in all thirty annual editions the archive
-        # carries and 2012 is not one of them, for any section of title 33.
+        # EXISTS, ATTESTED -- and this row used to read NOT attested for the
+        # oracle's own hole rather than for anything about the law. 33 U.S.C.
+        # 1311 is printed in every annual edition INCLUDING 2012; the 2012
+        # volume is named 2012USC33.htm and generation 1's case-sensitive
+        # filename matcher never opened it, so title 33 had no 2012 coverage at
+        # all. Generation 2 (research/evidence/usc-section-oracle-2026-08-24)
+        # reads it, and this is the act-derived path's guard on that: 16 rows
+        # across RINs 2040-AE69 and 2040-AE95 move False -> True with it.
         act_row("2040-AE69", "201210", "CWA 301", "clean water act", "301", status="corroborated"),
         # NOTHING TO JUDGE: the act resolves and the section does not, so no
         # Code address exists to ask about and act_resolution_reason says why.
@@ -4588,7 +4640,7 @@ def test_an_act_derived_section_is_judged_like_any_other(tmp_path) -> None:
     assert judged == [
         (7, "12a", "exists", None, True),
         (20, "10005", "exists", None, False),
-        (33, "1311", "exists", None, False),
+        (33, "1311", "exists", None, True),
         (None, None, None, None, None),
     ]
     assert rows[3]["act_resolution_reason"] == "act_section_not_classified"
@@ -4605,7 +4657,11 @@ def test_an_act_derived_section_is_judged_like_any_other(tmp_path) -> None:
     assert {r["usc_section_corrected"] for r in rows} == {None}
     assert {r["usc_disposition_verdict"] for r in rows} == {None}
     assert census.rows_by_verdict == {"exists": 3, "absent": 0, "unknown": 0}
-    assert census.exists_not_at_edition_rows == 2
+    # One, not two: the CWA row above stopped being an era mismatch when the
+    # oracle's annual extractor was made case-insensitive, leaving only the
+    # genuine one (ARRA 14005 at edition 2013, first printed at 20 U.S.C.
+    # 10005 in the 2014 archive).
+    assert census.exists_not_at_edition_rows == 1
     assert census.rows_by_status_and_verdict == {
         "corroborated": {"exists": 2, "absent": 0, "unknown": 0},
         "resolved": {"exists": 1, "absent": 0, "unknown": 0},
@@ -4620,14 +4676,23 @@ def test_an_act_derived_section_is_judged_like_any_other(tmp_path) -> None:
 
 @pytest.mark.slow
 def test_the_act_derived_sections_are_judged_at_their_edition(con) -> None:
-    """6,768 act-resolved sections, dated at last -- and 19 the edition never printed.
+    """6,768 act-resolved sections, dated at last -- and 3 the edition never printed.
 
     Until 2026-08-24 the fence judged authority_type='usc' rows only, so the
     existence of a section OLRC's Table III filled rested on that
     classification being CURRENT and nothing said whether the edition that
     filed the citation had printed it.
 
-    These counts moved once, on rebuild #12, and in one cell only.
+    19 -> 3 at the oracle generation-2 switch, and the 16 that left were never
+    about an edition: they are the CWA sections of RINs 2040-AE69 and 2040-AE95
+    at edition 201210, unattested only because generation 1's annual extractor
+    never opened 2012USC33.htm. Nothing else here moves -- the verdict split,
+    the 6,768, the evidence/status table and the two other specimens are all
+    unchanged, because recovering those volumes changed no existence union.
+    EXPECTED RECEIPT DELTA: true of a build written by the generation-2 oracle,
+    not of the rebuild-#12 artifact these values were first measured against.
+
+    These counts moved once before, on rebuild #12, and in one cell only.
     `table3-classification`/`corroborated` rose 2,148 -> 3,259 (+1,111) and
     nothing else did: `resolved` is unchanged at 3,496 and 13, no row changed
     verdict, and the three specimens below are identical. More corroboration
@@ -4697,20 +4762,24 @@ def test_the_act_derived_sections_are_judged_at_their_edition(con) -> None:
         "1810-AB17", "201310",
         "Sec 14005 and 14006, Division A, of the American Recovery and Reinvestment Act of 2009",
     ) == ("american recovery and reinvestment act of 2009", "14005", 20, "10005", "exists", None, False)
-    # Exists and NOT attested, the oracle's own hole: the pinned annual archive
-    # carries no 2012 volume for titles 33-41, 52 or 54, so every title-33
-    # section reads unattested at that edition -- 133 U.S.C.-typed rows do too.
+    # Exists and ATTESTED, and it used to be the oracle's own hole: the annual
+    # archive's 2012 title-33 volume is named 2012USC33.htm and generation 1's
+    # case-sensitive matcher never opened it, so every title-33 section read
+    # unattested at that edition -- 133 U.S.C.-typed rows did too. Generation 2
+    # reads it. EXPECTED RECEIPT DELTA (True was False before the switch).
     assert specimen("2040-AE69", "201210", "CWA 301") == (
-        "clean water act", "301", 33, "1311", "exists", None, False
+        "clean water act", "301", 33, "1311", "exists", None, True
     )
 
-    # 19 rows in all, over 14 distinct (act, act section, title, section):
-    # 16 the 2012 hole, 3 the era mismatch proper.
-    assert _one(con, f"select count(*) from {A} and usc_section_attested_at_edition = false") == 19
+    # 3 rows in all, over 3 distinct (act, act section, title, section), every
+    # one the era mismatch proper. It was 19 over 14 while the 2012 volumes of
+    # titles 33 and 35-41 went unread: 16 of those rows were the extractor
+    # hole, and they left with it. EXPECTED RECEIPT DELTA.
+    assert _one(con, f"select count(*) from {A} and usc_section_attested_at_edition = false") == 3
     assert _rows(
         con,
         f"select usc_title, count(*) from {A} and usc_section_attested_at_edition = false group by 1 order by 1",
-    ) == [(20, 1), (33, 16), (42, 2)]
+    ) == [(20, 1), (42, 2)]
     # Social Security Act sections 605 and 606 in one Fall 2003 filing: 42
     # U.S.C. 805 is printed 1994-2002 and again 2021-2024, and 806 only from
     # 2022. Neither is a misread of the citation -- the act section is what the
@@ -5387,7 +5456,8 @@ def test_the_act_relative_rows_carry_the_section_they_name(con) -> None:
     # 9,576 -> 9,781 at rebuild #11: +205, zero departures (see
     # test_the_authority_field_is_no_longer_shipped_as_raw_text's own note on
     # `acts` for the #56/#44-45 split).
-    assert _one(con, f"select count(*) from {A}") == 11_209
+    # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 11,209 -> 11,337 (+128).
+    assert _one(con, f"select count(*) from {A}") == 11_337
     # 5,590 rows / 354 (act, section) pairs, which is exactly what the live
     # resolver answered over this corpus when the bulk Table III index landed
     # (research/evidence/act-index-bulk-table3-2026-08-22.md, section 4). The
@@ -5468,7 +5538,8 @@ def test_the_act_relative_rows_carry_the_section_they_name(con) -> None:
     assert dict(_rows(con, f"select parse_status, count(*) from {A} group by 1")) == {
         "resolved": 3_509,
         "partial": 2_826,
-        "corroborated": 4_413,
+        # Rebuild #14 (2026-08-31 wave): corroborated +128 (95 retiered + 33 apostrophe-year rows).
+        "corroborated": 4_541,
         "failed": 461,
     }
     assert _one(
@@ -5569,11 +5640,11 @@ def test_the_receipt_census_covers_the_act_resolution(con) -> None:
     # 9,576 -> 9,781 at rebuild #11: +205, the same #56/#44-45 movement
     # test_the_act_relative_rows_carry_the_section_they_name's own
     # parse_status dict attributes.
-    assert sum(declared["actRelativeRowsByStatus"].values()) == 11_209
+    assert sum(declared["actRelativeRowsByStatus"].values()) == 11_337
     assert (
         sum(declared["actRelativeRowsByResolutionReason"].values())
         + sum(declared["actRelativeResolvedRowsByEvidence"].values())
-        == 11_209
+        == 11_337
     )
     # Three narrowings of a resolver code, each carrying its measured
     # population: without them 37 rows would say "not classified" where OLRC
@@ -5588,7 +5659,8 @@ def test_the_receipt_census_covers_the_act_resolution(con) -> None:
     assert {
         reason: declared["actRelativeRowsByResolutionReason"][reason]
         for reason in ("act_section_inside_a_range_key", "resolves_to_note", "revised_statutes_only")
-    } == {"act_section_inside_a_range_key": 37, "resolves_to_note": 142, "revised_statutes_only": 4}
+    } == {"act_section_inside_a_range_key": 37, "resolves_to_note": 157, "revised_statutes_only": 4}
+    # resolves_to_note 142 -> 157 at rebuild #14 (2026-08-31 wave): +15 of the 128 retyped rows.
     # corroborated: 2,104 -> 2,148 (+44), the same corroborated-with-evidence
     # movement test_the_act_relative_rows_carry_the_section_they_name
     # attributes (#56 +4, #44/45 +40). failed: 3,503 -> 3,509 (+6): every
@@ -5719,9 +5791,11 @@ def test_the_rules_own_cfr_part_note_judges_what_the_filer_wrote(con) -> None:
     # absent: 123,262 -> 123,432 (+170) = +173 arrivals (#56 33, #44/45 140)
     # - 3 departures to near-miss (#56).
     assert by_verdict == {
-        "present": (489_181, 20_222),
+        # Rebuild #14: present +10 / absent +97 rows, all act_relative -- the
+        # 107 retyped rows the note now judges (unjudged 'other' 1,724 -> 1,617).
+        "present": (489_191, 20_223),
         "near-miss": (56_348, 5_812),
-        "absent": (124_894, 14_108),
+        "absent": (124_991, 14_127),
     }
     # The verdict and the part that gave it are one fact in two columns.
     assert _one(
@@ -5849,7 +5923,7 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
     # public_law and usc are byte-for-byte unchanged (neither #56 nor #44/45
     # touches a cfr/public_law/usc row's CFR-note verdict).
     assert declared["cfrNoteVerdictRowsByAuthorityType"] == {
-        "act_relative": {"present": 873, "near-miss": 9, "absent": 8_120},
+        "act_relative": {"present": 883, "near-miss": 9, "absent": 8_217},
         "cfr": {"present": 4_046, "near-miss": 202, "absent": 1_449},
         "public_law": {"present": 8_241, "near-miss": 238, "absent": 26_394},
         "usc": {"present": 476_021, "near-miss": 55_899, "absent": 88_931},
@@ -7756,7 +7830,9 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # rule TYPES leaves 'other' and nothing after it re-enters. 520 + 451 =
     # 971, matching #56's -34 (from the 138-row #6 delta) and -20 (the #13
     # delta) plus #44/45's -104, for -158 total.
-    assert declared["statedActRowsStatingSomething"] == 971
+    # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 971 -> 915 (-56, the
+    # same rows test_an_unresolved_row_still_states_what_it_states attributes).
+    assert declared["statedActRowsStatingSomething"] == 915
     # 624 -> 502 at rebuild #11: -122. The bare-section-no-name subset of the
     # 'other' pool is NOT immune to the corroboration readers -- the sibling-
     # act carry (#44/45) claims 18 of them outright, plus 104 more rows leave
@@ -7770,7 +7846,8 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # failed with a newly-captured name, 3 resolving to act_relative/partial
     # with no rule marker -- confirmed against the SAME 8 rows this file's
     # `acts`/#6 notes already attribute). 104 + 18 = 122.
-    assert declared["statedActSectionOnlyRows"] == 502
+    # 502 -> 446 at rebuild #14 (2026-08-31 wave): -56, the same rows statedActRowsStatingSomething lost.
+    assert declared["statedActSectionOnlyRows"] == 446
     # 505 -> 469 (-36) = the names_an_act branch this rule's own typed+refused
     # split closes over: 451 typed (test_the_stated_acts_over_the_built_table)
     # + 18 refused (below). 505 - 469 is not one delta on its own; it falls
@@ -7791,11 +7868,12 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     }
     # The section-only rows are NOT untouched this rebuild (see the note
     # above): 624 -> 502.
+    # 502 -> 446 at rebuild #14 (2026-08-31 wave), recomputed from the column.
     assert _one(
         con,
         f"select count(*) from {L} where authority_type = 'other' and parse_status = 'failed' "
         "and stated_section is not null and stated_act_name is null",
-    ) == 502
+    ) == 446
     # The 13 rows the year fence used to refuse are now the name index's, which
     # is where the corroborated total moved.
     #

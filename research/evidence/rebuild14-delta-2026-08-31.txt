@@ -1,0 +1,47 @@
+### RECEIPT DELTA, rebuild #13 (REF-052 cycle) -> rebuild #14 (the 2026-08-31 enhancement wave)
+
+One combined rebuild for seven lanes that shared one working tree; every
+moved key below is attributed to the lane that DECLARED it before the
+rebuild ran. 478 keys before, 489 after, 43 moved; nothing unexplained.
+
+LANE A -- the case-insensitive extractor recount (generation-2 oracle, REF-059):
+  /contract/declaredClassifications/uscSectionExistsNotAtEditionRows      8261  ->  6379   (declared: 8,261 - 1,882)
+  /contract/declaredClassifications/actSectionExistsNotAtEditionRows        19  ->     3   (declared)
+  /producer/modules/usc_section_oracle                                    869ef74f... -> f0f7811a...
+  Zero verdict changes, as declared and as the recount script now proves over all 694,062 addressed rows.
+
+LANE B -- the loud additive tier (five items + two prose riders):
+  NEW /contract/declaredClassifications/uscC3PromotionRows        promoted 200 / ambiguous 0 / witnessless 1179 / unbound 21 / stated_tail_refused 17   (declared exactly)
+  NEW /contract/declaredClassifications/placeholderCandidateRows  published 1279 / rows_withheld 0 / candidates_gated_by_edition 0 / candidates_refuted_by_oracle 23   (declared exactly)
+  NEW /contract/declaredClassifications/uscSlotReadingRows        reg-suffix 190 / chapter-in-slot 1685   (declared exactly)
+  /contract/declaredClassifications/authorityFailedRows                   2108  ->  1980   (-128 = 95 retiered rows + 33 apostrophe-year rows)
+  /contract/declaredClassifications/authorityCorroboratedRows             5419  ->  5547   (+128, the same rows)
+      by rule: pinned-roster-initialism:pinned-quote 87 -> 191 (+104); agency-roster-initialism 2314 -> 2327 (+13);
+               pinned-roster-initialism:candidate-index-match 13 -> 24 (+11)
+  /contract/declaredClassifications/actRelativeRowsByStatus/corroborated   4413  ->  4541   (+128, the rows retyped act_relative)
+  /contract/declaredClassifications/initialismRosterNotedRowsByStatus/candidate-index-match   169 -> 74    (the six retiers: 95 rows leave the fenced tier)
+  /contract/declaredClassifications/initialismRosterRefusalsByReason/the-candidate-tier-is-unfenced-here   185 -> 90  (same 95)
+  /producer/oracles/initialism-roster-2026-08-24/roster.csv               33485dbf... -> ced3bc3d...   (six retiers + OBRA '93 row; byte-exact from build_roster.py)
+  Downstream of the 128 retyped rows, not separately declared:
+    actRelativeRowsByResolutionReason: act_section_not_classified 1629 -> 1670, no_section_stated 2082 -> 2154, resolves_to_note 142 -> 157
+    actRelativeRefusedPairs 254 -> 264; statedActRowsStatingSomething 971 -> 915; statedActSectionOnlyRows 502 -> 446
+    actCarryRefusalsByReason: no-single-act-named-earlier-in-the-record 424 -> 423; the-resolver-does-not-answer-a-section-the-carry-mints 12 -> 13
+    cfrNoteUnjudgedRowsByType/other 1724 -> 1617 (-107) = cfrNoteVerdictRowsByAuthorityType/act_relative absent 8120 -> 8217 (+97) + present 873 -> 883 (+10)
+    cfrNoteVerdictRows absent 124894 -> 124991, present 489181 -> 489191; cfrNoteVerdictTexts absent 14108 -> 14127, present 20222 -> 20223
+  NOT moved, though the lane's first report guessed it would: actRelativeRowsByResolutionReason/act_not_in_index stays 460 (OBRA '93's two rows resolve elsewhere).
+  /producer/modules/unified_agenda_parquet                                6c547c60... -> 570d4382...
+  /producer/modules/citation_grammar                                      b4a37bf0... -> 880155b4...   (mojibake-scope rider + the integrator's oracle-count updates)
+
+LANE C -- the FR short-tail widening (REF-056):
+  /producer/modules/identifier_shapes                                     ea289089... -> 8ded60c5...   (declared: module hash ONLY; column licensing is test-side)
+
+CROSS-CUTTING:
+  /outputs/unified_agenda_legal_authorities   b01ca480... -> 6e2f611e...   (three new columns + the value moves above)
+  /schemaDigests/unified_agenda_legal_authorities   c2895004... -> 871fb4fd...   (91 -> 94 columns)
+  unified_agenda_actions, unified_agenda_cfr_references, unified_agenda_timetables: byte-identical to rebuild #13.
+
+Raw-read before re-pinning (the integrator's own sample, 2026-08-31): 7100-AB50 @199510
+"15 USC 78(b)" -> 78b sits alone at the end of a banking-statute list in
+REGINFO_RIN_DATA_199510.xml (no sibling 78-stem citation -- the binding is
+clean); 3235-AI17 "15 USC 78(s)-37(a)" stays uncorrected; 0938-AK54 "BBA '97"
+reads act_relative/corroborated as the Balanced Budget Act of 1997.

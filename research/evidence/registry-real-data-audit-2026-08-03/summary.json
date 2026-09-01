@@ -1,23 +1,23 @@
 {
   "classifications": {
-    "data-registry": 74,
+    "data-registry": 76,
     "registry-adapter": 5,
-    "registry-infrastructure": 12,
+    "registry-infrastructure": 13,
     "registry-managed-release": 2,
     "registry-source-package": 4
   },
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 2717,
-    "seconds": 1162.246,
+    "passed": 2848,
+    "seconds": 1233.413,
     "skipped": 2,
-    "testFiles": 95,
-    "tests": 2719
+    "testFiles": 98,
+    "tests": 2850
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
-    "moduleCount": 97,
+    "moduleCount": 100,
     "modules": [
       {
         "executions": [
@@ -24846,6 +24846,188 @@
       {
         "executions": [
           {
+            "counts": {
+              "witnesses.items": 5
+            },
+            "function": "EoRosterOracle.flag_for",
+            "sample": {
+              "context": "Executive Order number carried in this repository's NARA disposition-table codification window (pre-FR-API EOs) and cited as a complete, in-series executive_order value by the Unified Agenda corpus.",
+              "disposition": "flag",
+              "interpreted_value": null,
+              "notes": "WHAT THE WITNESSES ESTABLISH, and no more. (1) EO 8284 EXISTS. It is 'Prescribing the Duties of the Librarian Emeritus of the Library of Congress', signed November 13, 1939, published at 4 FR 4603 -- recorded in this repository's own com...",
+              "reviewed_at": "2026-08-31",
+              "reviewer": "Claude (Fable 5), Lane E hand-validated-interpretations wave, rewritten in the Lane D review pass 2026-08-31; operator mikewolfd; session https://claude.ai/code/session_01LQcDmLDtAnpSpMi1ZzUwTx",
+              "source_value": "8284",
+              "witnesses": [
+                {
+                  "path": "research/evidence/silent-misreads-2026-08-24/adjudication/B_2.tsv",
+                  "shows": "The adjudication row for this very citation, from the 2026-08-24 silent-misreads batch: verdict MISREAD_LAUNDERED, loud_or_silent SILENT, and a publisher check against archives.gov/federal-register/executive-orders/1939.html quoting NARA..."
+                },
+                {
+                  "path": "research/evidence/silent-misreads-2026-08-22.md",
+                  "shows": "The earlier survey that first bounded this surface, recording the same reading in prose: EO 8284 is '\"Prescribing the Duties of the Librarian Emeritus\", which confers no fee authority', while OMB Circular A-25's authority is EO 8248 -- a..."
+                }
+              ]
+            },
+            "shape": {
+              "fields": {
+                "context": "str",
+                "disposition": "str",
+                "interpreted_value": "NoneType",
+                "notes": "str",
+                "reviewed_at": "str",
+                "reviewer": "str",
+                "source_value": "str",
+                "witnesses": {
+                  "count": 5,
+                  "itemShape": {
+                    "fields": {
+                      "path": "str",
+                      "shows": "str"
+                    },
+                    "type": "refspec.registry.hand_validated_interpretations.Witness"
+                  },
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.hand_validated_interpretations.Interpretation"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "EoRosterOracle.from_directory",
+            "sample": {
+              "directory": "<pathlib.PosixPath>"
+            },
+            "shape": {
+              "fields": {
+                "directory": "pathlib.PosixPath"
+              },
+              "type": "refspec.registry.eo_roster.EoRosterOracle"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "EoRosterOracle.from_repository",
+            "sample": {
+              "directory": "<pathlib.PosixPath>"
+            },
+            "shape": {
+              "fields": {
+                "directory": "pathlib.PosixPath"
+              },
+              "type": "refspec.registry.eo_roster.EoRosterOracle"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [
+                "/Users/mikewolfd/Work/RefSpec",
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/eo-roster-2026-08-31"
+              ],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "EoRosterOracle.verdict",
+            "sample": {
+              "eo_number": 9989,
+              "reason": null,
+              "source": "nara-codification-index",
+              "verdict": "exists",
+              "window": "nara_codification"
+            },
+            "shape": {
+              "fields": {
+                "eo_number": "int",
+                "reason": "NoneType",
+                "source": "str",
+                "verdict": "str",
+                "window": "str"
+              },
+              "type": "refspec.registry.eo_roster.EoVerdict"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/eo-roster-2026-08-31"
+              ],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "EoRosterOracle.verdict",
+            "sample": {
+              "eo_number": 99999,
+              "reason": "outside_known_windows",
+              "source": null,
+              "verdict": "unknown",
+              "window": null
+            },
+            "shape": {
+              "fields": {
+                "eo_number": "int",
+                "reason": "str",
+                "source": "NoneType",
+                "verdict": "str",
+                "window": "NoneType"
+              },
+              "type": "refspec.registry.eo_roster.EoVerdict"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "EoRosterOracle.verify",
+            "sample": null,
+            "shape": "NoneType",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/eo-roster-2026-08-31"
+              ],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "window_for",
+            "sample": null,
+            "shape": "NoneType",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          }
+        ],
+        "module": "eo_roster.py"
+      },
+      {
+        "executions": [
+          {
             "counts": {},
             "function": "SubstanceIdentifierRecord.native_payload",
             "sample": {
@@ -27421,6 +27603,137 @@
                   "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                 },
                 "experiment-manifest.json": {
+                  "byteLength": 4917,
+                  "sha256": "sha256:4d42fa67d586efbdaf9110931b9f1b98e4c935b9907ecfb3eb02718cc88395e8"
+                },
+                "operator-derived-domain-candidates.jsonl": {
+                  "byteLength": 3064,
+                  "sha256": "sha256:ab615f1facd85131118064e0530cca441c8309352f5430ed7e6d42ef7ca05c66"
+                },
+                "publisher-organization-assertions.jsonl": {
+                  "byteLength": 4524,
+                  "sha256": "sha256:19f2adf91d7f2b6c2aef7144eb0f3bca51dafd28a0cbeca641f42b900e58a834"
+                },
+                "publisher-organization-objects.jsonl": {
+                  "byteLength": 5213,
+                  "sha256": "sha256:3af2f904bef9c3397c9bf60d529c675ca810d1e152ab6691060773126e85d823"
+                }
+              },
+              "manifest": {
+                "construction": {
+                  "parser": "refspec.registry.eurovoc_thesaurus.parse_acquired_eurovoc_release",
+                  "parserCodeDigest": "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                  "recipe": "refspec.registry.eurovoc_organization_experiment",
+                  "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                  "recipeVersion": "1.0"
+                },
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:f46d0b7d33a9e9758f280e7219eb6d42b094ea59c96fdae288ac042a081cbd7c",
+                "recordType": "EuroVocOrganizationExperimentManifest",
+                "schemaVersion": "1.0",
+                "status": {
+                  "atlasSearchView": false,
+                  "candidateUseOnly": true,
+                  "canonicalAtlas": false,
+                  "developmentOnly": true,
+                  "spicySearchUseAuthorized": false
+                }
+              }
+            },
+            "shape": {
+              "fields": {
+                "files": {
+                  "count": 8,
+                  "keys": [
+                    "change-events.jsonl",
+                    "experiment-manifest.json",
+                    "operator-derived-domain-candidates.jsonl",
+                    "publisher-organization-assertions.jsonl",
+                    "publisher-organization-objects.jsonl",
+                    "rights.json",
+                    "source-accounting.json",
+                    "validation-receipt.json"
+                  ],
+                  "type": "mapping",
+                  "valueShape": {
+                    "byteLength": 4917,
+                    "type": "bytes"
+                  }
+                },
+                "manifest": {
+                  "count": 10,
+                  "keys": [
+                    "canonicalPayloadDigest",
+                    "claims",
+                    "construction",
+                    "experimentId",
+                    "identityReconciliation",
+                    "inputs",
+                    "members",
+                    "recordType",
+                    "schemaVersion",
+                    "status"
+                  ],
+                  "type": "mapping",
+                  "valueShape": "str"
+                }
+              },
+              "type": "refspec.registry.eurovoc_organization_experiment.EuroVocOrganizationArtifact"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                0,
+                566,
+                592,
+                1080,
+                1315,
+                1504,
+                3064,
+                3121,
+                4524,
+                4917,
+                5213
+              ],
+              "digests": [
+                "sha256:06bba667f9c4b1c38c12a8df144ac8c47607045ac39f2d13eac24f6d911f1f45",
+                "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:19f2adf91d7f2b6c2aef7144eb0f3bca51dafd28a0cbeca641f42b900e58a834",
+                "sha256:1f9490242722aee78cd1aa2296cd4b2acdca3cec45ccb075079701684c9a7722",
+                "sha256:3af2f904bef9c3397c9bf60d529c675ca810d1e152ab6691060773126e85d823",
+                "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:4c93e845c9dc1aa49a6140fa2a5157acdae773961dcb7b5f19a6d0f013e331c3",
+                "sha256:4d42fa67d586efbdaf9110931b9f1b98e4c935b9907ecfb3eb02718cc88395e8",
+                "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
+                "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:ab615f1facd85131118064e0530cca441c8309352f5430ed7e6d42ef7ca05c66",
+                "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              ],
+              "paths": [],
+              "urls": [
+                "http://example.test/void.ttl",
+                "http://example.test/void.ttl#EuroVoc_9.9",
+                "http://example.test/void.ttl#dataset_eurovoc-20260709",
+                "http://example.test/void.ttl#dataset_eurovoc-abs",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/acquisition/20260708/eurovoc.zip",
+                "https://example.test/acquisition/20260708/metadata.ttl",
+                "https://example.test/eurovoc"
+              ]
+            }
+          },
+          {
+            "counts": {
+              "manifest.members": 7
+            },
+            "function": "build_eurovoc_organization_artifact_from_paths",
+            "sample": {
+              "files": {
+                "change-events.jsonl": {
+                  "byteLength": 0,
+                  "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                },
+                "experiment-manifest.json": {
                   "byteLength": 7818,
                   "sha256": "sha256:b65c9c780195ecb9524d8c4e4df7be347e137d8107b9477041f9b1d5122f5d06"
                 },
@@ -27549,137 +27862,6 @@
             }
           },
           {
-            "counts": {
-              "manifest.members": 7
-            },
-            "function": "build_eurovoc_organization_artifact_from_paths",
-            "sample": {
-              "files": {
-                "change-events.jsonl": {
-                  "byteLength": 0,
-                  "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                },
-                "experiment-manifest.json": {
-                  "byteLength": 4917,
-                  "sha256": "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a"
-                },
-                "operator-derived-domain-candidates.jsonl": {
-                  "byteLength": 3064,
-                  "sha256": "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e"
-                },
-                "publisher-organization-assertions.jsonl": {
-                  "byteLength": 4524,
-                  "sha256": "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68"
-                },
-                "publisher-organization-objects.jsonl": {
-                  "byteLength": 5213,
-                  "sha256": "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
-                }
-              },
-              "manifest": {
-                "construction": {
-                  "parser": "refspec.registry.eurovoc_thesaurus.parse_acquired_eurovoc_release",
-                  "parserCodeDigest": "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                  "recipe": "refspec.registry.eurovoc_organization_experiment",
-                  "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                  "recipeVersion": "1.0"
-                },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:dc137cc953329807e038a246e60f7431285dc3270a5a1ea9082b1f9e558fbec2",
-                "recordType": "EuroVocOrganizationExperimentManifest",
-                "schemaVersion": "1.0",
-                "status": {
-                  "atlasSearchView": false,
-                  "candidateUseOnly": true,
-                  "canonicalAtlas": false,
-                  "developmentOnly": true,
-                  "spicySearchUseAuthorized": false
-                }
-              }
-            },
-            "shape": {
-              "fields": {
-                "files": {
-                  "count": 8,
-                  "keys": [
-                    "change-events.jsonl",
-                    "experiment-manifest.json",
-                    "operator-derived-domain-candidates.jsonl",
-                    "publisher-organization-assertions.jsonl",
-                    "publisher-organization-objects.jsonl",
-                    "rights.json",
-                    "source-accounting.json",
-                    "validation-receipt.json"
-                  ],
-                  "type": "mapping",
-                  "valueShape": {
-                    "byteLength": 4917,
-                    "type": "bytes"
-                  }
-                },
-                "manifest": {
-                  "count": 10,
-                  "keys": [
-                    "canonicalPayloadDigest",
-                    "claims",
-                    "construction",
-                    "experimentId",
-                    "identityReconciliation",
-                    "inputs",
-                    "members",
-                    "recordType",
-                    "schemaVersion",
-                    "status"
-                  ],
-                  "type": "mapping",
-                  "valueShape": "str"
-                }
-              },
-              "type": "refspec.registry.eurovoc_organization_experiment.EuroVocOrganizationArtifact"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                0,
-                566,
-                591,
-                1080,
-                1315,
-                1504,
-                3064,
-                3121,
-                4524,
-                4917,
-                5213
-              ],
-              "digests": [
-                "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68",
-                "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a",
-                "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:c7ce027da37d540c7d3bd720d81308a7e15e8d7aff95c36979b96d2d9f75ca7e",
-                "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e",
-                "sha256:d1136d5b659f0fcf652a7e3e31d1d5e4bcf24ea75c3839e5920c0bfdfe4f3eb9",
-                "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:e9207cf0c03d4bf31ae2386df0bcb5805831e0d59873bd8ed602204c7801e4a4",
-                "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
-              ],
-              "paths": [],
-              "urls": [
-                "http://example.test/void.ttl",
-                "http://example.test/void.ttl#EuroVoc_9.9",
-                "http://example.test/void.ttl#dataset_eurovoc-20260709",
-                "http://example.test/void.ttl#dataset_eurovoc-abs",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/acquisition/20260708/eurovoc.zip",
-                "https://example.test/acquisition/20260708/metadata.ttl",
-                "https://example.test/eurovoc"
-              ]
-            }
-          },
-          {
             "counts": {},
             "function": "materialize_eurovoc_organization_artifact",
             "sample": true,
@@ -27688,7 +27870,7 @@
               "byteLengths": [
                 0,
                 566,
-                591,
+                592,
                 1080,
                 1315,
                 1504,
@@ -27699,20 +27881,20 @@
                 5213
               ],
               "digests": [
+                "sha256:06bba667f9c4b1c38c12a8df144ac8c47607045ac39f2d13eac24f6d911f1f45",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:19f2adf91d7f2b6c2aef7144eb0f3bca51dafd28a0cbeca641f42b900e58a834",
+                "sha256:1f9490242722aee78cd1aa2296cd4b2acdca3cec45ccb075079701684c9a7722",
+                "sha256:3af2f904bef9c3397c9bf60d529c675ca810d1e152ab6691060773126e85d823",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:4c93e845c9dc1aa49a6140fa2a5157acdae773961dcb7b5f19a6d0f013e331c3",
+                "sha256:4d42fa67d586efbdaf9110931b9f1b98e4c935b9907ecfb3eb02718cc88395e8",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68",
-                "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a",
+                "sha256:ab615f1facd85131118064e0530cca441c8309352f5430ed7e6d42ef7ca05c66",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:c7ce027da37d540c7d3bd720d81308a7e15e8d7aff95c36979b96d2d9f75ca7e",
-                "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e",
-                "sha256:d1136d5b659f0fcf652a7e3e31d1d5e4bcf24ea75c3839e5920c0bfdfe4f3eb9",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:e9207cf0c03d4bf31ae2386df0bcb5805831e0d59873bd8ed602204c7801e4a4",
-                "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -27732,7 +27914,7 @@
               "byteLengths": [
                 0,
                 566,
-                591,
+                592,
                 1080,
                 1315,
                 1504,
@@ -27743,20 +27925,20 @@
                 5213
               ],
               "digests": [
+                "sha256:06bba667f9c4b1c38c12a8df144ac8c47607045ac39f2d13eac24f6d911f1f45",
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
+                "sha256:19f2adf91d7f2b6c2aef7144eb0f3bca51dafd28a0cbeca641f42b900e58a834",
+                "sha256:1f9490242722aee78cd1aa2296cd4b2acdca3cec45ccb075079701684c9a7722",
+                "sha256:3af2f904bef9c3397c9bf60d529c675ca810d1e152ab6691060773126e85d823",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
+                "sha256:4c93e845c9dc1aa49a6140fa2a5157acdae773961dcb7b5f19a6d0f013e331c3",
+                "sha256:4d42fa67d586efbdaf9110931b9f1b98e4c935b9907ecfb3eb02718cc88395e8",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
-                "sha256:aa403127a3c8ce6ae1c34f80dd5b8b673518bf99f96d29701777647201190a68",
-                "sha256:b072a396a11c18ba0ab79c1a377d65409d92ff4e8142eb9afe28a5e8506aa26a",
+                "sha256:ab615f1facd85131118064e0530cca441c8309352f5430ed7e6d42ef7ca05c66",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:c7ce027da37d540c7d3bd720d81308a7e15e8d7aff95c36979b96d2d9f75ca7e",
-                "sha256:c87b36449053a8e3970a63861cf847ad8a11c4f3814927b5d360019acd5e6d2e",
-                "sha256:d1136d5b659f0fcf652a7e3e31d1d5e4bcf24ea75c3839e5920c0bfdfe4f3eb9",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:e9207cf0c03d4bf31ae2386df0bcb5805831e0d59873bd8ed602204c7801e4a4",
-                "sha256:fd435010326c37068370ff9ad1e82f643b6eae84bf5e9c053c847c9034e7097e"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -27777,9 +27959,100 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 797,
+              "archive_byte_length": 799,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
+              "archive_sha256": "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167",
+              "byte_length": 2908,
+              "cache_hit": false,
+              "local_source_path": "<pathlib.PosixPath>",
+              "metadata": null,
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "Publications Office of the European Union, EuroVoc",
+                "concept_scheme_iri": "urn:example:thesaurus",
+                "expected_byte_length": 799,
+                "expected_member_byte_length": 2908,
+                "expected_member_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "expected_sha256": "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167",
+                "filename": "eurovoc.zip",
+                "issued": "2026-07-08",
+                "landing_page_url": "https://example.test/eurovoc",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "member_filename": "eurovoc.rdf",
+                "metadata_source": null,
+                "publisher": "Publications Office of the European Union",
+                "release_id": "fixture-9.9",
+                "source_url": "https://example.test/eurovoc.zip",
+                "version": "9.9"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+              "source_url": "https://example.test/eurovoc.zip"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "archive_byte_length": "int",
+                "archive_path": "pathlib.PosixPath",
+                "archive_sha256": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "local_source_path": "pathlib.PosixPath",
+                "metadata": "NoneType",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_member_byte_length": "int",
+                    "expected_member_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "issued": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "member_filename": "str",
+                    "metadata_source": "NoneType",
+                    "publisher": "str",
+                    "release_id": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                2908
+              ],
+              "digests": [
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167"
+              ],
+              "paths": [],
+              "urls": [
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/eurovoc",
+                "https://example.test/eurovoc.zip"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_eurovoc_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "archive_byte_length": 799,
+              "archive_path": "<pathlib.PosixPath>",
+              "archive_sha256": "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -27797,10 +28070,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 797,
+                "expected_byte_length": 799,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
-                "expected_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
+                "expected_member_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "expected_sha256": "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -27819,7 +28092,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
+              "sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -27887,106 +28160,15 @@
                 2908
               ],
               "digests": [
-                "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
-                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
-                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167",
+                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
               ],
               "paths": [],
               "urls": [
                 "https://creativecommons.org/licenses/by/4.0/",
                 "https://example.test/eurovoc",
                 "https://example.test/eurovoc-metadata.ttl",
-                "https://example.test/eurovoc.zip"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_eurovoc_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "archive_byte_length": 797,
-              "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
-              "byte_length": 2908,
-              "cache_hit": false,
-              "local_source_path": "<pathlib.PosixPath>",
-              "metadata": null,
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "Publications Office of the European Union, EuroVoc",
-                "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 797,
-                "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
-                "expected_sha256": "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
-                "filename": "eurovoc.zip",
-                "issued": "2026-07-08",
-                "landing_page_url": "https://example.test/eurovoc",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "member_filename": "eurovoc.rdf",
-                "metadata_source": null,
-                "publisher": "Publications Office of the European Union",
-                "release_id": "fixture-9.9",
-                "source_url": "https://example.test/eurovoc.zip",
-                "version": "9.9"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
-              "source_url": "https://example.test/eurovoc.zip"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "archive_byte_length": "int",
-                "archive_path": "pathlib.PosixPath",
-                "archive_sha256": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "local_source_path": "pathlib.PosixPath",
-                "metadata": "NoneType",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_member_byte_length": "int",
-                    "expected_member_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "issued": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "member_filename": "str",
-                    "metadata_source": "NoneType",
-                    "publisher": "str",
-                    "release_id": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                2908
-              ],
-              "digests": [
-                "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
-                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
-              ],
-              "paths": [],
-              "urls": [
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/eurovoc",
                 "https://example.test/eurovoc.zip"
               ]
             }
@@ -28111,7 +28293,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
+              "source_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -28301,8 +28483,8 @@
                 2908
               ],
               "digests": [
-                "sha256:05a0e32ef8d5d5c89f83f8d590215c62871eae5803d893c9a6bdf1ccc449c97e",
-                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
+                "sha256:b6f61ec086f46f875b04ce6525197075094ca19beafc8d12e0a2b630f5dde167"
               ],
               "paths": [],
               "urls": [
@@ -28852,7 +29034,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7",
+              "source_sha256": "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -29042,7 +29224,7 @@
                 2908
               ],
               "digests": [
-                "sha256:e0ef71549d4b0fa701ad5a27f8787af29afd3ca701b44f83b91871273b152bb7"
+                "sha256:5df094798b18f35d8343925a0c4dda8ca041fc0d19b10f1cd5a5277dd3dbc147"
               ],
               "paths": [],
               "urls": [
@@ -42134,7 +42316,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7c18-88a9-513ab68a0009",
+                "fetch_id": "019fb2e5-4e00-79d2-9c9f-4d375058f686",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -46646,7 +46828,7 @@
               "byte_length": 16000,
               "cache_hit": false,
               "compressed_byte_length": 3627,
-              "compressed_sha256": "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d",
+              "compressed_sha256": "sha256:fe0218bc21b43d48addc9ecc003db7905b55b606bf9763e6e9ce19ce4dd44e79",
               "local_source_path": "<pathlib.PosixPath>",
               "path": "<pathlib.PosixPath>",
               "release": {
@@ -46654,7 +46836,7 @@
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
                 "expected_byte_length": 16000,
                 "expected_compressed_byte_length": 3627,
-                "expected_compressed_sha256": "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d",
+                "expected_compressed_sha256": "sha256:fe0218bc21b43d48addc9ecc003db7905b55b606bf9763e6e9ce19ce4dd44e79",
                 "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
@@ -46707,7 +46889,7 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d"
+                "sha256:fe0218bc21b43d48addc9ecc003db7905b55b606bf9763e6e9ce19ce4dd44e79"
               ],
               "paths": [],
               "urls": [
@@ -47619,7 +47801,7 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:48a3fef0b8a65c95a081c497f6b7344029c4e8916528e8a8f887e98ceb203b2d"
+                "sha256:fe0218bc21b43d48addc9ecc003db7905b55b606bf9763e6e9ce19ce4dd44e79"
               ],
               "paths": [],
               "urls": [
@@ -52528,6 +52710,115 @@
         "executions": [
           {
             "counts": {
+              "witnesses.items": 1
+            },
+            "function": "build_interpretation",
+            "sample": {
+              "context": "a fixture row, not a real interpretation",
+              "disposition": "flag",
+              "interpreted_value": null,
+              "notes": "",
+              "reviewed_at": "2026-08-31",
+              "reviewer": "test-suite",
+              "source_value": "test-value",
+              "witnesses": [
+                {
+                  "path": "evidence/README.md",
+                  "shows": "the bytes at evidence/README.md"
+                }
+              ]
+            },
+            "shape": {
+              "fields": {
+                "context": "str",
+                "disposition": "str",
+                "interpreted_value": "NoneType",
+                "notes": "str",
+                "reviewed_at": "str",
+                "reviewer": "str",
+                "source_value": "str",
+                "witnesses": {
+                  "count": 1,
+                  "itemShape": {
+                    "fields": {
+                      "path": "str",
+                      "shows": "str"
+                    },
+                    "type": "refspec.registry.hand_validated_interpretations.Witness"
+                  },
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.hand_validated_interpretations.Interpretation"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {
+              "witnesses.items": 7
+            },
+            "function": "lookup",
+            "sample": {
+              "context": "federalregister.gov document_number as it would be spelled by inserting the conventional space before a colophon's 'Filed' -- dereferences nowhere at either publisher.",
+              "disposition": "correction",
+              "interpreted_value": "E5-2394Filed",
+              "notes": "Transcribed from the pilot attestation at research/evidence/hand-attestations-2026-08-31/attestations.jsonl (id att-2026-08-31-0001), which remains the fuller record: it also carries a viewing aid (witnesses/colophon-comparison-600dpi.pn...",
+              "reviewed_at": "2026-08-31",
+              "reviewer": "mikewolfd (operator); Claude (Fable 5), session https://claude.ai/code/session_01LQcDmLDtAnpSpMi1ZzUwTx",
+              "source_value": "E5-2394",
+              "witnesses": [
+                {
+                  "path": "research/evidence/hand-attestations-2026-08-31/witnesses/govinfo-print-FR-2005-05-16-E5-2394Filed.pdf",
+                  "shows": "Printed Federal Register page 25814 (Vol. 70, No. 93, Monday, May 16, 2005 -- the citation 70 FR 25814). Its own colophon reads '[FR Doc. E5–2394Filed 5–16–05; 8:45 am]' with no space before 'Filed', the dashes being EN DASH U+2013 as th..."
+                },
+                {
+                  "path": "research/evidence/hand-attestations-2026-08-31/witnesses/fr-api-E5-2394Filed.json",
+                  "shows": "federalregister.gov API record whose document_number field reads 'E5-2394Filed'; its title, agencies, docket I.D. 051005A, publication_date 2005-05-16 and citation 70 FR 25814 all match the print page."
+                }
+              ]
+            },
+            "shape": {
+              "fields": {
+                "context": "str",
+                "disposition": "str",
+                "interpreted_value": "str",
+                "notes": "str",
+                "reviewed_at": "str",
+                "reviewer": "str",
+                "source_value": "str",
+                "witnesses": {
+                  "count": 7,
+                  "itemShape": {
+                    "fields": {
+                      "path": "str",
+                      "shows": "str"
+                    },
+                    "type": "refspec.registry.hand_validated_interpretations.Witness"
+                  },
+                  "type": "tuple"
+                }
+              },
+              "type": "refspec.registry.hand_validated_interpretations.Interpretation"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          }
+        ],
+        "module": "hand_validated_interpretations.py"
+      },
+      {
+        "executions": [
+          {
+            "counts": {
               "pages.items": 27,
               "terms": 26,
               "terms.items": 26
@@ -54828,12 +55119,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:04cc855922a7db50ebbcf1e99f4d820b9cb8530ec548221863683e6e244db0af",
+            "sample": "sha256:08f271887ce94707da822d5263bae19d5519cb3614e0daedc4c7ce5dab7473f1",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:04cc855922a7db50ebbcf1e99f4d820b9cb8530ec548221863683e6e244db0af"
+                "sha256:08f271887ce94707da822d5263bae19d5519cb3614e0daedc4c7ce5dab7473f1"
               ],
               "paths": [],
               "urls": []
@@ -54842,12 +55133,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:125c8ea79b0a288eacc1a29ed6432677278549c8cd9f552f083f59145c14343c",
+            "sample": "sha256:37d76e9165da73ef6d564ee0ef5c6507d6ec07ae7a78f958224b0e26ba541c97",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:125c8ea79b0a288eacc1a29ed6432677278549c8cd9f552f083f59145c14343c"
+                "sha256:37d76e9165da73ef6d564ee0ef5c6507d6ec07ae7a78f958224b0e26ba541c97"
               ],
               "paths": [],
               "urls": []
@@ -54856,12 +55147,40 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:4f9eee5bebedc906bbb8755c5b647e4bf11f140d8ee1ee65b9bbf0d7ffdde09c",
+            "sample": "sha256:381a977c7fc9ce5646f3232f47fe9598282ba67f5a75febe27759ed444ba454e",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:4f9eee5bebedc906bbb8755c5b647e4bf11f140d8ee1ee65b9bbf0d7ffdde09c"
+                "sha256:381a977c7fc9ce5646f3232f47fe9598282ba67f5a75febe27759ed444ba454e"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:7285745b38deb66d7bfae1e7a36021143d6c79b55a91c57d544d51cead6e0ffa",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:7285745b38deb66d7bfae1e7a36021143d6c79b55a91c57d544d51cead6e0ffa"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "file_sha256",
+            "sample": "sha256:863645d0f0b9a3b29d3cc54d88724a692bf40cb73d2cd1745d3afce683eaf594",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:863645d0f0b9a3b29d3cc54d88724a692bf40cb73d2cd1745d3afce683eaf594"
               ],
               "paths": [],
               "urls": []
@@ -54884,12 +55203,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:a83eaea5bc437246fe63e506957b8eb89e8a1e1b3a930cee9f52f6538999790a",
+            "sample": "sha256:cfbfabb933e86cae4f32e3775532884a34a9a39fcbacb594d9992318f4ec2d16",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:a83eaea5bc437246fe63e506957b8eb89e8a1e1b3a930cee9f52f6538999790a"
+                "sha256:cfbfabb933e86cae4f32e3775532884a34a9a39fcbacb594d9992318f4ec2d16"
               ],
               "paths": [],
               "urls": []
@@ -54898,12 +55217,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:ab61ba11a38b007ff98baa3ab20e2a584e15269fd428db3c857e2a2d568b5725",
+            "sample": "sha256:dd7d47ac83ee495388d2c7dc079a28cc21f2b52564af3b642a5914cbe83bef03",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:ab61ba11a38b007ff98baa3ab20e2a584e15269fd428db3c857e2a2d568b5725"
+                "sha256:dd7d47ac83ee495388d2c7dc079a28cc21f2b52564af3b642a5914cbe83bef03"
               ],
               "paths": [],
               "urls": []
@@ -54912,12 +55231,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:bc48887a84a31b6dc8dbb344ceee1d562b8de50911f9541c99ca6238aae19819",
+            "sample": "sha256:df5865c1325bfef3c58f47b07eac52cfa0e9dac46c1ff57c9fef35e7327002e9",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:bc48887a84a31b6dc8dbb344ceee1d562b8de50911f9541c99ca6238aae19819"
+                "sha256:df5865c1325bfef3c58f47b07eac52cfa0e9dac46c1ff57c9fef35e7327002e9"
               ],
               "paths": [],
               "urls": []
@@ -54926,26 +55245,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:cae390fb2f7eb3a27c67f92dbd33389fe29c88e3a9f47fe745a33b26ee9ff20f",
+            "sample": "sha256:e259e0a30a0b89eaa5ff7a867ee72846138699a1d5b07820a947861063635a46",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:cae390fb2f7eb3a27c67f92dbd33389fe29c88e3a9f47fe745a33b26ee9ff20f"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "file_sha256",
-            "sample": "sha256:cfd72e499b2a880ee56c0afab1c73de7bd549ef3f86da88d8702ed3fc18630d9",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [
-                "sha256:cfd72e499b2a880ee56c0afab1c73de7bd549ef3f86da88d8702ed3fc18630d9"
+                "sha256:e259e0a30a0b89eaa5ff7a867ee72846138699a1d5b07820a947861063635a46"
               ],
               "paths": [],
               "urls": []
@@ -54960,20 +55265,6 @@
               "byteLengths": [],
               "digests": [
                 "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "file_sha256",
-            "sample": "sha256:fdd37fe25bdcb16a348aa1ce3abdf1f751b18c1b187969c61ff53763cb6f7f5d",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [
-                "sha256:fdd37fe25bdcb16a348aa1ce3abdf1f751b18c1b187969c61ff53763cb6f7f5d"
               ],
               "paths": [],
               "urls": []
@@ -59851,6 +60142,23 @@
         "executions": [
           {
             "counts": {},
+            "function": "assert_acyclic",
+            "sample": null,
+            "shape": "NoneType",
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": []
+            }
+          }
+        ],
+        "module": "infrastructure/invariants.py"
+      },
+      {
+        "executions": [
+          {
+            "counts": {},
             "function": "ManagedVocabularyBundle.artifact_bytes",
             "sample": {
               "corpus/indexed-expressions.jsonl": {
@@ -60074,6 +60382,62 @@
               "byteLengths": [],
               "digests": [
                 "sha256:a7b75c4bb76663828fb93d27e1629875427d6ae43293124cb6c53b3477d605bf"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {
+              "items": 3
+            },
+            "function": "reseal_linked_ref_records",
+            "sample": [
+              {
+                "canonicalPayloadDigest": "sha256:c6d8e860ea1bb025f69626b4d5ea2cfa7b281e25087943ec762400cf1fe7bdf5",
+                "id": "urn:test:record:branch",
+                "input": [
+                  "<builtins.dict>",
+                  "<builtins.dict>"
+                ],
+                "type": "urn:ref:type:RunReceipt",
+                "version": "1.0"
+              },
+              {
+                "canonicalPayloadDigest": "sha256:b1e82757e859380506f70ac05303f8fea04e4ee21203ead949f79c02cceb2f89",
+                "id": "urn:test:record:trunk",
+                "input": {
+                  "digest": "sha256:13d4f83cb33839c9593a1a1d80c0006fa2ccda36c191e23c8222405062dd440b",
+                  "id": "urn:test:record:leaf"
+                },
+                "type": "urn:ref:type:RunReceipt",
+                "version": "1.0"
+              }
+            ],
+            "shape": {
+              "count": 3,
+              "itemShape": {
+                "count": 5,
+                "keys": [
+                  "canonicalPayloadDigest",
+                  "id",
+                  "input",
+                  "type",
+                  "version"
+                ],
+                "type": "mapping",
+                "valueShape": "str"
+              },
+              "type": "tuple"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:03ef4ae526a9ce89e0e7e2afac0223291765724e91de41169a8301f046021d11",
+                "sha256:13d4f83cb33839c9593a1a1d80c0006fa2ccda36c191e23c8222405062dd440b",
+                "sha256:87a4f70a007633cff190ad969e553aef44d93c49fd414e240267e81ff2aa8025",
+                "sha256:b1e82757e859380506f70ac05303f8fea04e4ee21203ead949f79c02cceb2f89",
+                "sha256:c6d8e860ea1bb025f69626b4d5ea2cfa7b281e25087943ec762400cf1fe7bdf5"
               ],
               "paths": [],
               "urls": []
@@ -81121,7 +81485,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fc4eb-9000-7062-a0a8-fe4262409e63",
+              "fetch_id": "019fc4eb-9000-788b-a6a0-d5bce3dd82eb",
               "fetched_at": "2026-08-03T00:00:00Z"
             },
             "shape": {
@@ -81178,7 +81542,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7723-923e-951bacff3268"
+              "registration_id": "019fb80b-aa00-7e7a-9941-468ecf96c010"
             },
             "shape": {
               "fields": {
@@ -117398,6 +117762,22 @@
           {
             "counts": {},
             "function": "sha256_digest",
+            "sample": "sha256:37363765a7d4946b321ce9dd4e288bfb6c00a3ee391f33eabb9411e1c37dc921",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                364729
+              ],
+              "digests": [
+                "sha256:37363765a7d4946b321ce9dd4e288bfb6c00a3ee391f33eabb9411e1c37dc921"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
             "sample": "sha256:4f70c7a8c9eea68a2224f9a8e481aa86d066b71582006957b8440326c20b55b3",
             "shape": "str",
             "sourceEvidence": {
@@ -117438,22 +117818,6 @@
               ],
               "digests": [
                 "sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
-            "sample": "sha256:a439c5dd05a78ced6648aca944acbc5908f97dc6559bb1001df56d8adfc55f6a",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                364729
-              ],
-              "digests": [
-                "sha256:a439c5dd05a78ced6648aca944acbc5908f97dc6559bb1001df56d8adfc55f6a"
               ],
               "paths": [],
               "urls": []
@@ -126856,7 +127220,7 @@
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip",
                 "/Users/mikewolfd/Work/RefSpec/output/usc-act-index-2026-08-02",
-                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpz17vpu9r/artifact"
+                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmp9y80sqpz/artifact"
               ],
               "urls": [
                 "https://uscode.house.gov/popularnames/popularnames.htm"
@@ -139698,7 +140062,7 @@
               "byteLengths": [],
               "digests": [],
               "paths": [
-                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpqq76qyy6/artifact"
+                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpae7oubq2/artifact"
               ],
               "urls": []
             }
@@ -140054,7 +140418,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140078,7 +140442,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140093,7 +140457,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140108,7 +140472,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140123,7 +140487,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140170,7 +140534,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140185,7 +140549,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140200,7 +140564,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140215,7 +140579,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140230,7 +140594,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140257,7 +140621,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140272,7 +140636,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140287,7 +140651,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140302,7 +140666,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140317,7 +140681,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140415,7 +140779,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140452,7 +140816,7 @@
               "byteLengths": [],
               "digests": [],
               "paths": [
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140484,7 +140848,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140532,7 +140896,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140659,7 +141023,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140682,7 +141046,7 @@
               "byteLengths": [],
               "digests": [],
               "paths": [
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140713,7 +141077,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140745,7 +141109,7 @@
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec",
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140760,7 +141124,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140807,7 +141171,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140847,7 +141211,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140862,7 +141226,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -140877,7 +141241,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -141002,7 +141366,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -141074,7 +141438,7 @@
               "byteLengths": [],
               "digests": [],
               "paths": [
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -141115,7 +141479,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -141139,7 +141503,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -141154,7 +141518,7 @@
               "digests": [],
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-disposition-tables-2026-08-23",
-                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-22"
+                "/Users/mikewolfd/Work/RefSpec/research/evidence/usc-section-oracle-2026-08-24"
               ],
               "urls": []
             }
@@ -141178,7 +141542,7 @@
   },
   "format": "refspec-registry-audit-summary/v1",
   "fullSuiteExecution": null,
-  "moduleCount": 97,
+  "moduleCount": 100,
   "modules": [
     {
       "auditRole": "dataReader",
@@ -142300,6 +142664,18 @@
     },
     {
       "auditRole": "dataReader",
+      "blockers": [
+        "No independently pinned publisher input is configured for this reader."
+      ],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [],
+      "module": "eo_roster.py",
+      "sourceStatus": "blocked",
+      "testInputs": []
+    },
+    {
+      "auditRole": "dataReader",
       "blockers": [],
       "classification": "data-registry",
       "coveredBy": [],
@@ -143318,6 +143694,22 @@
     },
     {
       "auditRole": "dataReader",
+      "blockers": [
+        "No independently pinned publisher input is configured for this reader."
+      ],
+      "classification": "data-registry",
+      "coveredBy": [],
+      "declaredUrls": [
+        "https://claude.ai/code/session_01LQcDmLDtAnpSpMi1ZzUwTx",
+        "https://www.federalregister.gov/api/v1/documents/E5-2394.json",
+        "https://www.govinfo.gov/error"
+      ],
+      "module": "hand_validated_interpretations.py",
+      "sourceStatus": "blocked",
+      "testInputs": []
+    },
+    {
+      "auditRole": "dataReader",
       "blockers": [],
       "classification": "data-registry",
       "coveredBy": [],
@@ -143378,6 +143770,16 @@
       "coveredBy": [],
       "declaredUrls": [],
       "module": "infrastructure/identifier_validation.py",
+      "sourceStatus": "notApplicable",
+      "testInputs": []
+    },
+    {
+      "auditRole": "support",
+      "blockers": [],
+      "classification": "registry-infrastructure",
+      "coveredBy": [],
+      "declaredUrls": [],
+      "module": "infrastructure/invariants.py",
       "sourceStatus": "notApplicable",
       "testInputs": []
     },
@@ -144993,7 +145395,7 @@
     {
       "auditRole": "dataReader",
       "blockers": [
-        "the acquisition IS recorded and re-verified -- https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching byte length and a row-for-row reproduction check in research/evidence/usc-section-oracle-2026-08-22/README.md -- but the ~2.3 GB of publisher zips were deleted after extraction and are not retained here; this reader holds only the six DERIVED oracle tables, digest-pinned in the module and re-checked on every load"
+        "the acquisition IS recorded and re-verified -- https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching byte length and a row-for-row reproduction check in research/evidence/usc-section-oracle-2026-08-24/README.md -- and since 2026-08-31 all 32 publisher zips (~2.3 GB) are retained at output/usc-annual-2026-08-24/; what this manifest still lacks is a per-zip testInput (localPath + digest per archive), so the publisher-byte coverage stays a named gap until that pin lands; the six DERIVED oracle tables are digest-pinned in the module and re-checked on every load"
       ],
       "classification": "data-registry",
       "coveredBy": [],
@@ -145010,17 +145412,19 @@
     "failures": [
       "act_resolution.py: publisher bytes are not retained here: act resolution reads sha256-pinned artifacts (output/usc-act-index-2026-08-02, output/usc-source-credit-index-2026-08-02) whose receipt records https://uscode.house.gov/popularnames/popularnames.htm at sha256:50687ac0116114b1d16ce59460f6092539cb00977c0c428e574a874b81e018b4",
       "agency_crosswalk.py: publisher bytes are not retained here: the module embeds the sealed agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose receipt and three intact input parquets live at output/registry-real-data-sources/rin-ontology-revision-candidate/ (came home 2026-08-31) with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet was overwritten after sealing (893,766 rows vs the pinned 715,080) and the sealed bytes survive nowhere, so the sealed tier histogram can be verified against the embedded rows but no longer exactly re-derived from the inputs",
+      "eo_roster.py: No independently pinned publisher input is configured for this reader.",
+      "hand_validated_interpretations.py: No independently pinned publisher input is configured for this reader.",
       "unified_agenda_parquet.py: tests verify the built Parquet artifact against its receipt, not the publisher editions it was built from; those bytes are covered by unified_agenda_editions.py",
       "usc_act_index.py: the publisher bytes ARE retained and digest-pinned (output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip, 14966992 bytes, sha256:93e1f233e081e47fc3680c4b699151c6d66329988fe21add3b6e9e62746aeea7), but their acquisition URL was never recorded and OLRC no longer serves release point 119-73 at any probed path, so no publisherUrl can be stated without inventing one",
-      "usc_section_oracle.py: the acquisition IS recorded and re-verified -- https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching byte length and a row-for-row reproduction check in research/evidence/usc-section-oracle-2026-08-22/README.md -- but the ~2.3 GB of publisher zips were deleted after extraction and are not retained here; this reader holds only the six DERIVED oracle tables, digest-pinned in the module and re-checked on every load",
+      "usc_section_oracle.py: the acquisition IS recorded and re-verified -- https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching byte length and a row-for-row reproduction check in research/evidence/usc-section-oracle-2026-08-24/README.md -- and since 2026-08-31 all 32 publisher zips (~2.3 GB) are retained at output/usc-annual-2026-08-24/; what this manifest still lacks is a per-zip testInput (localPath + digest per archive), so the publisher-byte coverage stays a named gap until that pin lands; the six DERIVED oracle tables are digest-pinned in the module and re-checked on every load",
       "usc_disposition_tables.py: current execution did not consume pinned real-data inputs ['sha256:66f004679e27e0d16356e14b79cb3b4f7ebf63d91307435fa8f53c95bcc2848d']",
       "usc_disposition_tables.py: current execution is not tied to a source digest and location"
     ],
     "status": "failed"
   },
   "sourceStatuses": {
-    "blocked": 5,
-    "notApplicable": 12,
+    "blocked": 7,
+    "notApplicable": 13,
     "publisherBytes": 80
   }
 }

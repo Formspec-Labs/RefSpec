@@ -1361,11 +1361,13 @@ SOURCE_BLOCKERS: dict[str, list[str]] = {
     # point 119-102 and the 31 annual XHTML archives, both URLs stated in the
     # module docstring and therefore in declaredUrls, with a re-fetch sha256
     # and byte length for all 32 zips in
-    # research/evidence/usc-section-oracle-2026-08-22/README.md, plus a
+    # research/evidence/usc-section-oracle-2026-08-24/README.md, plus a
     # row-for-row reproduction check of all six derived tables from those
-    # bytes. What is missing is the BYTES: ~2.3 GB of publisher zips were
-    # deleted after extraction and are not retained in this repository, so
-    # there is no localPath to pin them at. The six DERIVED tables are pinned
+    # bytes. Since 2026-08-31 the BYTES are back too -- all 32 publisher zips
+    # (~2.3 GB) sit at output/usc-annual-2026-08-24/ (REF-055: the repo's own
+    # gitignored output/ is the anchor) -- but this manifest has no per-zip
+    # testInput pinning them by localPath + digest yet, so the entry stays a
+    # named gap rather than a claimed coverage. The six DERIVED tables are pinned
     # (_ORACLE_PINS, re-checked on every read, and asserted against the
     # README's Files table by test_every_oracle_table_is_the_one_the_artifact_readme_states),
     # but a derived Parquet is not a publisher byte and calling it one would
@@ -1376,10 +1378,11 @@ SOURCE_BLOCKERS: dict[str, list[str]] = {
             "https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip "
             "and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching "
             "byte length and a row-for-row reproduction check in "
-            "research/evidence/usc-section-oracle-2026-08-22/README.md -- but the ~2.3 GB of "
-            "publisher zips were deleted after extraction and are not retained here; this reader "
-            "holds only the six DERIVED oracle tables, digest-pinned in the module and re-checked "
-            "on every load"
+            "research/evidence/usc-section-oracle-2026-08-24/README.md -- and since 2026-08-31 all "
+            "32 publisher zips (~2.3 GB) are retained at output/usc-annual-2026-08-24/; what this "
+            "manifest still lacks is a per-zip testInput (localPath + digest per archive), so the "
+            "publisher-byte coverage stays a named gap until that pin lands; the six DERIVED oracle "
+            "tables are digest-pinned in the module and re-checked on every load"
         )
     ],
 }

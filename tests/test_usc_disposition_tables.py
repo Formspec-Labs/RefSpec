@@ -57,7 +57,6 @@ from refspec.registry.usc_disposition_tables import (
     normalize_subsection,
 )
 from refspec.registry.usc_section_oracle import (
-    USC_SECTION_ORACLE_ARTIFACT,
     UscSectionOracle,
 )
 
@@ -86,7 +85,13 @@ ARTIFACT_PINS = {
 
 #: The build every corpus count below was measured over, read by digest from
 #: the section oracle's artifact, where it already lives.
-SNAPSHOT = ROOT / USC_SECTION_ORACLE_ARTIFACT / "agenda-legal-authorities-as-measured-797170.parquet"
+#: The 797,170-row build snapshot is a 2026-08-22 MEASUREMENT and stays where it
+#: was taken. It used to be addressed through the oracle's artifact directory;
+#: on 2026-08-31 that artifact moved to generation 2
+#: (``usc-section-oracle-2026-08-24``, twelve uppercase volumes recovered) and
+#: the snapshot deliberately did not move with it -- the population this file
+#: pins is the one the review counted against THAT build, digest-checked below.
+SNAPSHOT = ROOT / "research" / "evidence" / "usc-section-oracle-2026-08-22" / "agenda-legal-authorities-as-measured-797170.parquet"
 SNAPSHOT_DIGEST = "sha256:c5c4bd1f8b70fd52491f8b22e7bc72c75287cbbf3638692210fd1691731c7424"
 
 
