@@ -30,6 +30,10 @@ from refspec.registry.infrastructure.artifact_serialization import (
     source_artifact_path,
 )
 from refspec.registry.infrastructure.identifier_validation import SHA256_DIGEST
+from refspec.registry.infrastructure.invariants import (
+    RegistryInvariantError,
+    assert_acyclic,
+)
 from refspec.release_model import (
     CONCEPT_EVENT_PARTICIPANT_COLUMNS,
     CONCEPT_LABEL_COLUMNS,
@@ -135,16 +139,12 @@ def reseal_linked_ref_records(
         identifier: _linked_record_ids(record, known_ids)
         for identifier, record in records_by_id.items()
     }
-    self_references = {
-        identifier
-        for identifier, dependencies in local_references.items()
-        if identifier in dependencies
-    }
-    if self_references:
+    try:
+        assert_acyclic(local_references)
+    except RegistryInvariantError as error:
         raise ManagedVocabularyBundleError(
-            "linked REF records contain a digest cycle: "
-            + ", ".join(sorted(self_references))
-        )
+            f"linked REF records contain a digest cycle: {error}"
+        ) from error
     dependencies = {
         identifier: values - {identifier}
         for identifier, values in local_references.items()
