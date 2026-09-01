@@ -332,6 +332,25 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         #: three different facts and only one of them is a placeholder.
         #: NULL on every row that is not "unstated"; see UNSTATED_KINDS.
         pa.field("unstated_kind", pa.string(), nullable=True),
+        #: Candidate authorities for an "unstated" row's RECORD -- the
+        #: (rin, publication_id) the placeholder belongs to -- from
+        #: ``inv-placeholders``'s two-witness design: the publishable tier is
+        #: the INTERSECTION of the record's own held CFR parts' authority
+        #: notes and a sibling edition of the same rule that states more than
+        #: this one does, "family:identity" joined by "; ", sorted. NULL where
+        #: the intersection is empty (most placeholders) or the row is not
+        #: "unstated". Never a citation this table treats as stated: nothing
+        #: else reads this column, and a consumer that wants to use one of its
+        #: candidates re-derives it through the ordinary reading for that
+        #: family. See :func:`_write_placeholder_candidates`.
+        pa.field("placeholder_candidate_authorities", pa.string(), nullable=True),
+        #: WHY a candidate was withheld though a witness offered it, on the
+        #: rows :func:`_write_placeholder_candidates` looked at and published
+        #: nothing for. NULL beside a non-NULL
+        #: ``placeholder_candidate_authorities`` and on every row neither
+        #: witness reached at all -- "nothing to say" and "said no" are
+        #: different facts.
+        pa.field("placeholder_candidate_refusal", pa.string(), nullable=True),
         pa.field("usc_title", pa.int32(), nullable=True),
         pa.field("usc_section", pa.string(), nullable=True),
         pa.field("usc_section_end", pa.string(), nullable=True),
@@ -533,6 +552,25 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         #: than infer the source from the title. NULL exactly where
         #: usc_disposition_verdict is.
         pa.field("usc_disposition_table", pa.string(), nullable=True),
+        #: WHICH non-U.S.C. numbering universe occupies the U.S.C. slot, on a
+        #: row ``authority_type`` already reads as ``usc``. Additive only and
+        #: never a verdict: this column NAMES a shape, it does not move
+        #: ``usc_section_verdict``, and it says nothing about which verdict a
+        #: named row carries. The two names differ on which verdicts they
+        #: reach, because their evidence differs: "reg-suffix" rests on the
+        #: rule's own CFR_LIST and is written whatever the section fence said,
+        #: while "chapter-in-slot" is FENCED OFF ``exists`` in
+        #: :func:`_write_usc_slot_reading` -- a number that is both a chapter
+        #: and a real section is answering the section question correctly, and
+        #: naming it here would suggest otherwise. NULL on every row neither
+        #: shape reads, which is most
+        #: of them. Placed after the recodification block rather than beside
+        #: ``usc_section_verdict`` so it never breaks the fence's own
+        #: contiguous five, the corrected-key split's two, or the
+        #: recodification's six -- three blocks a reader already relies on
+        #: meeting unbroken, in that order, right after
+        #: ``usc_title_is_possible``. See :func:`_write_usc_slot_reading`.
+        pa.field("usc_slot_reading", pa.string(), nullable=True),
         #: The CHEAP section fence beside the real one: the corpus judging
         #: itself, at the 99th percentile of the section stems a title attests
         #: times ten, computed over this build's own rows. A heuristic and
@@ -1202,7 +1240,7 @@ _USC_SOURCE_CREDIT_DIR = Path(__file__).resolve().parents[3] / USC_SOURCE_CREDIT
 #: edge as the other three: absent, the note verdict is NULL on every row and
 #: nothing says so, which is what ``main``'s refusal is for.
 _CFR_AUTHORITY_NOTES_JSONL = Path(__file__).resolve().parents[3] / CFR_AUTHORITY_NOTES_ARTIFACT
-#: What a filer's shorthand names, and on whose word -- 296 rows over 118
+#: What a filer's shorthand names, and on whose word -- 297 rows over 119
 #: tokens, each keyed to the agency whose filings the evidence came from and
 #: each carrying the TIER of that evidence. The fifth file oracle, with the
 #: same sharp edge as the other four: absent, 610 rows stay unread and nothing
@@ -1211,6 +1249,13 @@ _CFR_AUTHORITY_NOTES_JSONL = Path(__file__).resolve().parents[3] / CFR_AUTHORITY
 _INITIALISM_ROSTER_CSV = (
     Path(__file__).resolve().parents[3]
     / "research/evidence/initialism-roster-2026-08-24/roster.csv"
+)
+#: The roster's columns, in the file's own order. Named here because
+#: :func:`_initialism_roster` checks the width of every row against it rather
+#: than letting ``csv.DictReader`` absorb the difference; see that function.
+_INITIALISM_ROSTER_FIELDS: tuple[str, ...] = (
+    "token", "agency_prefix", "year_key", "status", "act_name", "table3_key",
+    "evidence_path", "evidence_sha256", "evidence_quote", "rows_observed", "notes",
 )
 
 
@@ -1394,6 +1439,12 @@ class _SeriesCalendar:
     volume_by_year: Mapping[int, int]
     #: U.S.C. title -> the first year it existed.
     usc_title_from_year: Mapping[int, int]
+    #: "congress-law" -> the (year, month) the President approved it, off the
+    #: SAME pinned roster the two bounds above are cumulated from. The bounds
+    #: answer at YEAR resolution because that is all a cumulative maximum can
+    #: say; this answers at the resolution the roster actually carries, for
+    #: the one caller that needs it. See :meth:`pl_approved_by_edition`.
+    pl_approved_in: Mapping[str, tuple[int, int]] = field(default_factory=dict)
 
     @classmethod
     def build(cls, roster) -> _SeriesCalendar:
@@ -1402,17 +1453,27 @@ class _SeriesCalendar:
         dates, volumes = roster
         congress_by_year: dict[int, int] = {}
         volume_by_year: dict[int, int] = {}
+        approved: dict[str, tuple[int, int]] = {}
         for (congress, law), date in dates.items():
-            year = int(date.split("/")[-1])
+            parts = date.split("/")
+            year = int(parts[-1])
             congress_by_year[year] = max(congress_by_year.get(year, 0), congress)
             volume = volumes.get((congress, law))
             if volume is not None:
                 volume_by_year[year] = max(volume_by_year.get(year, 0), volume)
+            # MM/DD/YYYY on all 21,039 rows of the pinned roster; a row spelled
+            # any other way keeps its year for the two bounds above and simply
+            # offers no month, which is the fallback pl_approved_by_edition
+            # documents rather than a guess about which part is the month.
+            if len(parts) == 3:
+                approved[f"{congress}-{law}"] = (year, int(parts[0]))
         titles = dict(_USC_TITLE_RECLASSIFIED_IN)
         for title, pair in _USC_TITLE_ENACTED_BY_LAW.items():
             if pair in dates:
                 titles[title] = int(dates[pair].split("/")[-1])
-        return cls(cls._cumulative(congress_by_year), cls._cumulative(volume_by_year), titles)
+        return cls(
+            cls._cumulative(congress_by_year), cls._cumulative(volume_by_year), titles, approved
+        )
 
     @staticmethod
     def _cumulative(by_year: Mapping[int, int]) -> Mapping[int, int]:
@@ -1460,6 +1521,41 @@ class _SeriesCalendar:
             return False
         bound = self._bound(self.congress_by_year, publication_id)
         return bound is None or congress <= bound
+
+    def pl_approved_by_edition(self, public_law: str | None, publication_id: object) -> bool | None:
+        """Had this law been APPROVED by the edition that would cite it?
+
+        The congress bound above is a year-resolution answer, and a year is
+        not fine enough for the question a candidate authority asks. Pub. L.
+        110-20 was approved 05/02/2007; the 110th Congress had enacted laws by
+        the end of 2007, so :meth:`pl_congress_in_series` calls it in series
+        for the SPRING 2007 edition (``200704``) -- an edition published a
+        month before the law existed. The pinned roster carries the approval
+        date itself, so the finer question is answerable without a new oracle:
+        the (year, month) the law was approved against the (year, month) the
+        edition names.
+
+        Falls back to the congress bound, never to silence, wherever the finer
+        question cannot be asked: a law the pinned roster does not carry, and
+        a publication id that states no month (``"2012"``, the one edition
+        whose id breaks the YYYYMM spelling -- see
+        ``unified_agenda_editions``). That residue is the documented cost:
+        such a row is judged exactly as well as it was before this method
+        existed, and no better.
+
+        Deliberately NOT wired into ``pl_congress_in_series``'s published
+        column. That column is a SERIES verdict a consumer already keys on
+        across the whole table, and moving it is a corpus-wide change with its
+        own census; this is one gate for one new column, and it says so.
+        """
+
+        if public_law is None:
+            return None
+        approved = self.pl_approved_in.get(str(public_law).strip().lower())
+        edition = str(publication_id or "")
+        if approved is None or not re.fullmatch(r"\d{6}", edition):
+            return self.pl_congress_in_series(public_law, publication_id)
+        return approved <= (int(edition[:4]), int(edition[4:6]))
 
     def stat_volume_in_series(self, volume: int | None, publication_id: object) -> bool | None:
         if volume is None:
@@ -1919,6 +2015,87 @@ _ABBREV_SECTION_RANGE = re.compile(r"(\d{1,5}[A-Za-z]{0,2})\s+(?:to|through)\s+(
 #: matches; only one of them is labelled.
 _ABBREV_SECTION_MARKER = re.compile(r"(?:[Ss]ec(?:tion)?s?\.?|§{1,2})")
 
+#: A year written with an apostrophe standing in for the century: "BBA '97",
+#: "BBRA'99", "BIPA '00", "BBRA' 99" -- a straight or curly apostrophe, with
+#: or without surrounding whitespace. Measured 2026-08-31 over the pinned
+#: build's own authority values: 40 rows across 13 distinct texts carry the
+#: shape, every one of them a year and not one a section (the 13 are the BBA
+#: / BBRA / BIPA / OBRA family, one "(OBRA '87)" gloss inside a spelled-out
+#: name, and one "Appropriations for FY '97").
+#:
+#: Three spellings are folded and a fourth is deliberately refused:
+#:
+#: * U+0027 and U+2019 are the two the corpus writes (839 and 59 rows carry
+#:   the character at all; the publisher's own mangled U+2019 is repaired to
+#:   U+2019 before this module ever sees it, see
+#:   ``UNIFIED_AGENDA_MANGLED_APOSTROPHE_EDITIONS``).
+#: * U+2018, the LEFT single quote, is folded too and is **unattested** in the
+#:   pinned corpus -- zero rows. A shape that reads one curly quote and not
+#:   its mirror is a defect waiting for the first row that writes it, and
+#:   folding costs one character.
+#: * "sec '97" -- an apostrophe-year immediately behind a SECTION MARKER -- is
+#:   NOT expanded, and that refusal is the point. The marker is the publisher
+#:   declaring the token a section, and ``marked`` deliberately defeats the
+#:   year suppression in :func:`_corroborated_act_sections`, so an expansion
+#:   there would mint ``act_section`` "1997" out of a year -- the exact defect
+#:   this shape exists to prevent, one slot over. Left unexpanded, no shape
+#:   reads it and the row stays loud-failed, which is what it did before this
+#:   wave. Zero rows in the pinned corpus write it; the guard is insurance,
+#:   and :func:`test_a_section_marked_apostrophe_year_is_refused_not_expanded`
+#:   is what breaks if it is ever removed.
+#:
+#: The repair is lexical and runs BEFORE any shape is tried: spell the year
+#: out in full and let the shapes -- and the year checks
+#: :func:`_corroborated_act_sections` already runs for a stated FOUR-digit
+#: year, both in the dedicated ``year`` slot ("BBA of 1997") and for a bare
+#: one landing in the section slot ("NEPA 1969") -- read it exactly as they
+#: read "BBA 1997".
+#:
+#: **An expanded token is a YEAR CLAIM and can never become a section.** With
+#: the marked slot refused above, every expansion lands unmarked, where the
+#: four-digit rule decides it: the year is dropped where the resolved act's
+#: own published name carries it, and the whole reading REFUSES where it does
+#: not. So "FOO '25" against an act of 2025 emits no section, and against an
+#: act of any other year emits nothing at all rather than falling back to a
+#: section 25 -- which is exactly what such a row did before this wave (no
+#: shape read an apostrophe, so ``_abbrev_act_reading`` returned None), so
+#: the refusal regresses nothing and mints nothing.
+#:
+#: The century is the ordinary two-digit pivot (00-68 is 20XX, 69-99 is
+#: 19XX), which is right for every token this wave measured (BBA '97, BBRA
+#: '99, BIPA '00 -> 1997/1999/2000) and costs nothing when it is wrong: the
+#: year check rejects any year that is not a substring of the resolved act's
+#: own published name, so a mis-guessed century refuses instead of
+#: publishing. This is also the guard for the named defect: "BIPA' 00"
+#: (apostrophe, then a space, then the digits) once reached this reader by an
+#: unrelated route with no year check at all and published ``act_section``
+#: "00" -- see the note in :func:`_corroborated_act_sections` below. Expanded
+#: here, "BIPA' 00" reads as the bare year 2000 like every other
+#: apostrophe-year token, and the existing four-digit-year-in-the-section-slot
+#: rule empties its own section rather than minting one.
+_APOSTROPHE_YEAR = re.compile(r"(?<=[A-Za-z])\s*['‘’]\s*(?P<yy>\d{2})(?!\d)")
+#: The section marker as the LAST thing a head says, which is what the
+#: apostrophe-year expansion refuses to follow. Spelled off the same marker
+#: alternation every shape above uses; the "sec." spelling cannot reach here
+#: at all, because :data:`_APOSTROPHE_YEAR` needs a letter immediately in
+#: front of the apostrophe and a period is not one.
+_SECTION_MARKER_BEFORE_A_YEAR = re.compile(r"(?:^|[^A-Za-z])[Ss]ec(?:tion)?s?$")
+
+
+def _expand_apostrophe_years(text: str) -> str:
+    """Spell "'97"/"'99"/"'00" out as "1997"/"1999"/"2000" -- see
+    :data:`_APOSTROPHE_YEAR`, including the section-marked spelling it
+    refuses."""
+
+    def expand(match: re.Match[str]) -> str:
+        if _SECTION_MARKER_BEFORE_A_YEAR.search(text[: match.start()]):
+            return match.group(0)
+        yy = match.group("yy")
+        century = "20" if int(yy) <= 68 else "19"
+        return f" {century}{yy}"
+
+    return _APOSTROPHE_YEAR.sub(expand, text)
+
 
 def _abbrev_act_reading(
     text: str,
@@ -1936,7 +2113,9 @@ def _abbrev_act_reading(
     differently for the same three letters.
     """
 
-    stripped = _SUBSECTION_GAP.sub("", _WRAPPING_QUOTES.sub("", text.strip()))
+    stripped = _expand_apostrophe_years(
+        _SUBSECTION_GAP.sub("", _WRAPPING_QUOTES.sub("", text.strip()))
+    )
     for shape in _ABBREVIATED_ACT_SHAPES:
         match = shape.match(stripped)
         if match is None:
@@ -1983,10 +2162,19 @@ def _corroborated_act_sections(
     it: a two-digit token is suppressed only where the act's own published name
     carries the year it completes, so "Section 3(a)(2)(B) of the USHA of 1937"
     keeps its section 3. And it refuses nothing, because a refusal here would
-    cost every short real section in the corpus to catch one year. Review D
-    found the same damage already published on a row this function never sees
-    ("BIPA' 00" carries act_section "00" under act_key "bipa", which states no
-    year at all); that row is untouched and stays a named defect.
+    cost every short real section in the corpus to catch one year.
+
+    **The apostrophe spelling of a two-digit year** ("BBA '97", "BIPA '00")
+    never reaches this function AS an apostrophe at all:
+    :func:`_expand_apostrophe_years` spells it out to four digits before any
+    shape is tried, so this function sees "BBA 1997" and reads it under the
+    FOUR-digit rule two paragraphs up. That is also the fix for the named
+    defect review D found: "BIPA' 00" (apostrophe, then a space) used to
+    reach an unrelated reading with no year check at all and publish
+    act_section "00" under act_key "bipa" -- a row this function never saw.
+    Expanded first, it is "BIPA 2000" like every sibling token, and the rule
+    above empties its own section instead of minting one; see
+    ``test_the_apostrophe_year_shape_never_publishes_the_named_defect``.
     """
 
     if year is not None and year not in act_key:
@@ -2117,6 +2305,20 @@ def _initialism_roster() -> dict[tuple[str, str], tuple[_InitialismRosterEntry, 
     A token that is keyed by year has several rows at one such pair; which of
     them a citation reaches is the caller's question, because only the caller
     has read the year out of the text.
+
+    **A row of the wrong width is refused, not read.** ``csv.DictReader``
+    parks surplus fields under the ``None`` key and pads short rows with
+    ``None``, so a note whose comma was never quoted loads as a row that reads
+    correctly in every column this function names and is silently a different
+    row from the one the file's author wrote. That is exactly what happened:
+    the file carried a 12-field row against an 11-field header for a day, and
+    nothing said so, because none of the six columns below is the one that
+    moved. The width is checked instead of trusted, and a mismatch raises --
+    the file is a pinned receipt, and half of one is not a smaller receipt.
+    ``rows_observed``, deliberately not read here, is documented in the
+    generator that writes it (``build_roster.py``): it is a census of unread
+    rows taken when the roster was built, first-recognized-token-wins, and it
+    goes DOWN as this roster does its job.
     """
 
     import csv
@@ -2125,7 +2327,17 @@ def _initialism_roster() -> dict[tuple[str, str], tuple[_InitialismRosterEntry, 
         return None
     roster: dict[tuple[str, str], list[_InitialismRosterEntry]] = {}
     with _INITIALISM_ROSTER_CSV.open(encoding="utf-8", newline="") as handle:
-        for row in csv.DictReader(handle):
+        for number, row in enumerate(csv.DictReader(handle), start=2):
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(
+                    f"the initialism roster's row {number} does not have "
+                    f"{len(_INITIALISM_ROSTER_FIELDS)} fields: {row!r}"
+                )
+            if tuple(row) != _INITIALISM_ROSTER_FIELDS:
+                raise ValueError(
+                    f"the initialism roster's columns are {tuple(row)}, "
+                    f"not {_INITIALISM_ROSTER_FIELDS}"
+                )
             entry = _InitialismRosterEntry(
                 token=row["token"].upper(),
                 agency_prefix=row["agency_prefix"],
@@ -3816,23 +4028,44 @@ def _judge_act_derived_sections(
     tables are not asked either -- they answer beside one ``unknown`` reason,
     and no act-derived section reaches it (measured: zero unknowns).
 
-    **What the measurement found**, over the 5,657 rows of rebuild #11:
-    all 5,657 read ``exists`` -- no absent, no unknown, 348 distinct
-    ``(title, section)`` pairs over 360 distinct act sections -- and 19 of them
-    are not attested at their citing edition. Two mechanisms, both already in
-    the vocabulary and neither needing a new word:
+    **What the measurement found.** Re-measured 2026-08-31 against the
+    in-tree oracle of that date, over the 6,768 act-derived rows that reach a
+    verdict: all 6,768 read ``exists`` -- no absent, no unknown, 358 distinct
+    ``(title, section)`` pairs over 372 distinct act sections -- and **3** of
+    them are not attested at their citing edition. **Every number in this
+    paragraph rides the pinned section oracle's artifact**, and the artifact
+    moved under it once already: the 2026-08-24 wave read 5,657 rows, 348
+    pairs, 360 act sections and 19 unattested, and 16 of those 19 stopped
+    being unattested when the annual extractor was fixed. Re-measure here
+    after any rebuild that re-cuts the oracle.
 
-    - 16 rows (RINs 2040-AE69/AE95, "CWA 101" … "CWA 510", edition 201210) name
-      title 33 sections the oracle prints in all 30 annual editions EXCEPT
-      2012, because the pinned annual archive carries no 2012 volume for titles
-      33-41, 52 and 54 at all. That is the oracle's own coverage hole, and the
-      U.S.C. rows beside them carry it identically (133 title-33 rows at the
-      same edition read exists-not-at-edition for the same reason).
-    - 3 rows are the era mismatch proper: 42 U.S.C. 805 and 806 (Social
-      Security Act §§ 605, 606, RIN 0938-AK71, edition 200310) attest
-      1994-2002/2021-2024 and 2022-2024, and 20 U.S.C. 10005 (ARRA 2009 §14005,
-      RIN 1810-AB17, edition 201310) is first printed in 2014 -- the Code home
-      Table III names today post-dates the filing that cited the act section.
+    - The 16 that moved (RINs 2040-AE69/AE95, "CWA 101" … "CWA 510", edition
+      201210) named title 33 sections the oracle printed in all 30 annual
+      editions EXCEPT 2012, and that was never the Code's fact: the publisher
+      names twelve of its own volume files with an UPPERCASE code name --
+      `2010USC12.htm`, `2010USC13.htm`, `2010USC14.htm`, `2010USC51.htm`,
+      and `2012USC33.htm`, `2012USC35.htm` … `2012USC41.htm`, verified in the
+      pinned `output/usc-annual-2026-08-24/{2010,2012}.zip` members -- while
+      every other volume in every other year spells it lowercase, and
+      `extract_annual.py` matched only the lowercase spelling. Twelve
+      already-downloaded volumes were silently never read. Fixed in this same
+      wave (`re.IGNORECASE`, re-extract, re-pin), and the 2012 archive now
+      carries 50 titles, title 33 among them. The 133 title-33 U.S.C. rows
+      beside these 16, at the same edition, carried the identical hole and
+      re-verdict as attested against the same in-tree oracle -- they are still
+      flagged in the artifact on disk, which predates the re-cut, and the
+      integrator's rebuild is what moves them.
+    - Titles 52 and 54 were never that bug and no extractor fix will ever
+      print a 2012 volume for them: both are GENUINE title-creation gaps
+      (Title 52, Voting and Elections, and Title 54, National Park Service and
+      Related Programs, were not enacted as positive-law titles until 2014).
+      2012 has no 52 or 54 today and should not.
+    - The 3 that remain are the era mismatch proper: 42 U.S.C. 805 and 806
+      (Social Security Act §§ 605, 606, RIN 0938-AK71, edition 200310) attest
+      1994-2002/2021-2024 and 2022-2024, and 20 U.S.C. 10005 (ARRA 2009
+      §14005, RIN 1810-AB17, edition 201310) is first printed in 2014 -- the
+      Code home Table III names today post-dates the filing that cited the act
+      section.
 
     No reason code is minted for either. The oracle's own invariant forbids one
     (:class:`~refspec.registry.usc_section_oracle.SectionVerdict` accepts a
@@ -4025,6 +4258,516 @@ def _judge_against_cfr_notes(
         parts_named_by_a_rule=len(named_parts),
         unjudged_rows_by_type=dict(sorted(unjudged.items())),
     )
+
+
+#: A bare digit-hyphen-digit ``usc_section`` ("472-8", "6708-1") -- no letter
+#: anywhere, which is what separates it from a real compound section
+#: ("1715z-2"). ``inv-universe`` shape (b): Treasury writes its own
+#: regulation-numbering suffix under a U.S.C. label, and the grammar reads
+#: "472-8" as if it were section 472 hyphen-compound 8, a shape the real Code
+#: also uses -- so this is lexical only, never a verdict.
+_USC_SLOT_BARE_HYPHEN_SECTION = re.compile(r"\A\d+-\d+\Z")
+#: The two names :func:`_write_usc_slot_reading` writes. A THIRD shape,
+#: ``inv-universe``'s shape (d) (bare OSHA-style citations with no title or
+#: scheme marker nearby), was measured at 0 misreads and gets no name; a
+#: FOURTH, shape (a)'s reg-shaped dot-truncation ("26 USC 1.104-1(c)" read as
+#: title 26 section 1), is a case where naming without also fixing the
+#: verdict would be more confusing than silence, and the fix is explicitly
+#: out of scope this wave (see the investigation's own finding 3) -- so this
+#: column says nothing about it either, rather than half-saying something.
+USC_SLOT_READINGS: tuple[str, ...] = ("reg-suffix", "chapter-in-slot")
+
+
+def _write_usc_slot_reading(
+    authorities: list[dict[str, object]],
+    references: list[dict[str, object]],
+    oracle: UscSectionOracle | None,
+) -> dict[str, int]:
+    """Name the non-U.S.C. numbering universe a U.S.C.-labelled slot holds.
+
+    Two shapes, both measured 2026-08-24 (``inv-universe``), neither ever
+    moving ``usc_section_verdict`` or any other published column --
+    ``usc_slot_reading`` is the only column this function touches, and it is
+    NULL on every row until this function decides otherwise.
+
+    **reg-suffix.** A bare digit-hyphen-digit section is Treasury's own
+    regulation-numbering convention (26 CFR 1.472-8 written as "26 USC
+    472-8"), not a compound U.S.C. section. The witness is structural, and
+    the SAME rule's own words: the rule's ``unified_agenda_cfr_references``
+    rows, across every edition it filed under, already carry an entry whose
+    (cfr_title, cfr_section) is this exact pair -- "witnessed exactly by
+    CFR_LIST" is that join and nothing looser. Measured 190 rows, all title
+    26, all ``usc_section_verdict`` "absent" today, over a candidate pool of
+    820 bare-hyphen U.S.C. sections; unwitnessed candidates get no name,
+    because a compound section a real RIN never confirms is not this
+    function's to call.
+
+    **chapter-in-slot.** The U.S.C. label's own bare integer names a real
+    CHAPTER of that title, not a section --
+    :meth:`UscSectionOracle.c7_chapter_as_section`, the same pinned chapters
+    table the oracle's own C7 miss-class reads. Fenced to rows the oracle
+    does NOT also verdict ``exists``: a number that is both a chapter and a
+    real section is answering the section question correctly, and naming it
+    "chapter-in-slot" here would suggest otherwise. Measured ~1,685 rows
+    (absent + unknown) of the ~15,769 total (title, section) pairs C7
+    recognises, the other ~14,084 being exactly that overlap.
+    """
+
+    cfr_witness: set[tuple[str, int, str]] = set()
+    for reference in references:
+        title, section = reference.get("cfr_title"), reference.get("cfr_section")
+        if title is not None and section is not None:
+            cfr_witness.add((reference["rin"], int(title), section))
+
+    counts: dict[str, int] = dict.fromkeys(USC_SLOT_READINGS, 0)
+    for row in authorities:
+        row["usc_slot_reading"] = None
+        if row["authority_type"] != "usc":
+            continue
+        title, section = row["usc_title"], row["usc_section"]
+        if title is None or section is None:
+            continue
+        if _USC_SLOT_BARE_HYPHEN_SECTION.match(section) and (row["rin"], int(title), section) in cfr_witness:
+            row["usc_slot_reading"] = "reg-suffix"
+            counts["reg-suffix"] += 1
+        elif (
+            oracle is not None
+            and row["usc_section_verdict"] != "exists"
+            and oracle.c7_chapter_as_section(int(title), section)
+        ):
+            row["usc_slot_reading"] = "chapter-in-slot"
+            counts["chapter-in-slot"] += 1
+    return counts
+
+
+#: One occurrence of a bare section token in an authority string, with
+#: whatever the citation writes immediately after it: a first parenthesised
+#: group (the letter a lost suffix would have been), any further groups
+#: ("78(c)(3)"), and a stated tail ("78(s)-37"). The bounds on the left and
+#: right are :func:`usc_section_pinpoint`'s own -- a token inside a
+#: parenthesis is a LABEL and not a section, and a digit or letter either side
+#: means this is a different token -- so the two readers cannot disagree about
+#: what an occurrence IS.
+_USC_OCCURRENCE = (
+    r"(?<![0-9A-Za-z.\-(]){token}(?![0-9A-Za-z\-])"
+    r"(?:\s*\(\s*(?P<letter>[0-9A-Za-z]{{1,4}})\s*\)"
+    r"(?:\s*\(\s*[0-9A-Za-z]{{1,4}}\s*\))*"
+    r"(?:\s*-\s*(?P<tail>[0-9A-Za-z]+))?)?"
+)
+
+
+#: A parenthesised group that could be a LOST LETTER SUFFIX rather than a
+#: subsection number -- the only shape ``c3_proposals`` reads, and so the only
+#: one this fence counts. "(3)" is a subsection and nothing else.
+_A_LETTER_SUFFIX = re.compile(r"[a-z]{1,4}")
+
+
+def _paren_suffix_occurrences(section: str, text: str) -> tuple[tuple[str, str], ...]:
+    """Every occurrence of this stem in ``text``, as (first letter group, tail).
+
+    ``("", "")`` for an occurrence the citation writes bare. One reader for
+    both the binding below and the refusal census beside it, so "what counts
+    as an occurrence of section 183" cannot have two answers -- "42 USC183(e)"
+    (the publisher's lost space) is not one under this pattern's left bound,
+    and a census that used a looser bound would report a refusal on a row this
+    fence never judged.
+    """
+
+    token = str(section or "").strip().lower()
+    if not token:
+        return ()
+    pattern = re.compile(_USC_OCCURRENCE.format(token=re.escape(token)), re.IGNORECASE)
+    return tuple(
+        ((match.group("letter") or "").lower(), (match.group("tail") or "").lower())
+        for match in pattern.finditer(str(text or ""))
+    )
+
+
+def _bound_paren_suffix(section: str, text: str) -> str | None:
+    """The row's OWN "78(b)" occurrence, or None where the text cannot bind one.
+
+    The C3 promotion below rests on the claim "the parenthetical this row's
+    citation wrote was a real letter suffix". A pre-filter that only asked
+    whether the STRING contains "78(b)" somewhere cannot make that claim, and
+    two shapes prove it: ``"15 USC 78; 15 USC 78(b)"`` promotes the row for the
+    FIRST citation on the second one's parenthetical, and ``"15 USC 78;
+    42 USC 78(b)"`` promotes a title-15 row on a title-42 citation's -- the
+    letter is read from another citation entirely and 15 U.S.C. 78b happens to
+    be real, so nothing downstream can tell.
+
+    So the binding is the reading, and it is :func:`usc_section_pinpoint`'s own
+    rule one field wider: **every** occurrence of this stem in the text is
+    collected with its first parenthesised group and its stated tail, and the
+    text binds a suffix only where all of them agree. Two spellings refuse
+    rather than pick, exactly as a pinpoint does -- a bare occurrence beside a
+    parenthesised one, ``"81(a) to 81(u)"``, ``"2000(d) to 2000(d)-7"`` -- and
+    the row keeps the ``absent`` verdict it already had. Occurrences that
+    differ only BELOW the first group ("78(c)(b), 78(c)(3)") agree here,
+    because the first group is the whole of what a fused reading uses.
+
+    The title is not read out of the text at all: the oracle is asked about the
+    ROW's ``usc_title`` and the bound occurrence, so a stem that only appears
+    under some other title's label cannot answer for this row. Returns the
+    occurrence spelled canonically ("78(s)-37"), which is what the oracle
+    reads and all it reads.
+    """
+
+    stated = set(_paren_suffix_occurrences(section, text))
+    if len(stated) != 1:
+        return None
+    letter, tail = stated.pop()
+    if not _A_LETTER_SUFFIX.fullmatch(letter):
+        return None
+    return f"{section.strip().lower()}({letter})" + (f"-{tail}" if tail else "")
+
+
+#: The rule name this promotion writes into
+#: ``usc_section_correction_evidence``, named after the oracle's own C3
+#: miss-class. Deliberately NOT one of ``usc_section_oracle.CORRECTION_RULES``
+#: -- C3 is excluded from that tuple by the oracle's own design (see
+#: ``MISS_CLASSES``), because turning "exactly one candidate survived" into a
+#: publication is a decision about how much a builder trusts a proposal, not
+#: a fact the oracle's other inputs can settle, and every other rule in that
+#: tuple requires the AS-FILED bare section to already be real. C3's bare
+#: section never is, by definition of the class.
+USC_C3_PROMOTION_RULE = "C3-paren-suffix-eaten"
+
+#: Every outcome :func:`_promote_paren_eaten_lettered_suffix` counts, named
+#: once so the receipt's key set and the function's own tally cannot drift.
+#: Three of the five are refusals and each names a DIFFERENT reason to refuse:
+#: the text binds no occurrence to this row (``unbound``), the bound occurrence
+#: names no fused reading at all (``witnessless``), it names two or more
+#: (``ambiguous``), or it states a tail the surviving reading does not honour
+#: (``stated_tail_refused``). A single "refused" total would hide which.
+USC_C3_PROMOTION_OUTCOMES: tuple[str, ...] = (
+    "promoted", "ambiguous", "witnessless", "unbound", "stated_tail_refused",
+)
+
+
+def _promote_paren_eaten_lettered_suffix(
+    authorities: list[dict[str, object]], oracle: UscSectionOracle | None
+) -> dict[str, int]:
+    """"15 USC 78(d)" -> 78d: publish the oracle's own single-candidate answer.
+
+    :meth:`UscSectionOracle.c3_proposals` has read this shape since it
+    existed -- the grammar's own parenthetical strip ate a real letter suffix
+    -- but it is a MISS class, not a correction rule: ``corrected_section``
+    proposes nothing for it, because every rule there requires the as-filed
+    bare section to already be a real one, and C3's never is. This is the
+    builder's own promotion of that proposal, run once
+    ``usc_section_corrected`` has had its ordinary turn from the fence in
+    :func:`_judge_usc_sections`, and it never overwrites a value that pass
+    already wrote (``usc_section_corrected is None`` gates every row here).
+
+    **The parenthetical is bound to the row's own citation, or nothing is
+    published.** The oracle reads a whole authority string, which is right for
+    a classifier counting what a text could mean and wrong for a builder
+    filling one row's column: over ``"15 USC 78; 15 USC 78(b)"`` it answers
+    78b for BOTH rows, and over ``"15 USC 78; 42 USC 78(b)"`` it answers 78b
+    for the title-15 row on a title-42 citation's parenthetical.
+    :func:`_bound_paren_suffix` decides first, on the row's own stem, and hands
+    the oracle THAT occurrence and nothing else; a text that spells the stem
+    two ways binds nothing and is counted ``unbound`` rather than guessed at.
+
+    **A stated tail the surviving reading does not honour refuses.** RIN
+    3235-AI17 files ``"15 USC 78(s)-37(a)"`` in 17 editions (200104-200904);
+    the tail 78s-37 is not a section, the oracle falls back to the bare
+    lettered 78s -- which IS one -- and publishing it would drop characters the
+    filer wrote. The raw record forbids it outright: the SAME rule's later
+    editions (200910, 201004, 201010) spell the box ``"15 USC 78a-37(a)"``,
+    letter "a", not "s", beside four sibling boxes that are the SEC's
+    rulemaking quintet (77s(a), 78(wa), 77sss(a) and this one -- Securities
+    Act 19(a), Exchange Act 23(a), Trust Indenture Act 319(a), and what reads
+    as Investment Company Act 38(a) at 15 U.S.C. 80a-37(a)). Two spellings of
+    one damaged token, neither of them 78s. Refused, counted, and named.
+
+    Measured 2026-08-31 over the 1,417 rows of the then-current build that
+    reach this fence at all (``absent``, uncorrected, a bare digit stem, and a
+    parenthetical on that stem somewhere in the text): **200 promoted, 1,179
+    witnessless, 21 unbound, 17 stated-tail-refused, 0 ambiguous.** The same
+    1,417 rows read 217 / 1,186 / 14 before the binding, and the whole
+    difference is a refusal: the 17 are the 3235-AI17 family, and the 21 are
+    the 14 that were ambiguous plus 7 that were witnessless for a reason that
+    had nothing to do with a lost suffix. Not one row the old pre-filter
+    refused is newly admitted. The witnessless population -- the parenthetical
+    is a genuine subsection, not a lost suffix -- MUST keep refusing, and does.
+    ``ambiguous`` stays reachable and empty on this corpus: it is what a bound
+    occurrence whose lettered reading is itself unenumerated gets, where the
+    oracle offers that section's whole hyphen-child family ("15 USC 80(a)" ->
+    80a-1 … 80a-64) and nothing in the text says which.
+
+    Every count in this paragraph rides the pinned section oracle's artifact
+    and code; re-measure after any rebuild that moves either.
+
+    ``usc_section_end`` -- the far end of a stated range ("49 USC 2157(e) to
+    2157(f)") -- is NOT corrected here even though #47 measured 15 such rows
+    riding the identical rule: the end has no ``_corrected`` sibling column
+    (:func:`_judge_usc_sections`'s own docstring: "only usc_section is
+    judged... no verdict speaks for" the end), and writing one is schema
+    work this wave leaves to whichever unit owns the range-endpoint shape
+    generally (`inv-dropped`'s degenerate-endpoint finding is the sibling
+    case). Left refused rather than mutating ``usc_section_end`` in place,
+    which would be the one thing every other correction here is built never
+    to do to ``usc_section`` itself. Such a row now refuses on the binding
+    instead of on the schema: both endpoints write the same stem with
+    different parentheticals, so nothing is bound.
+    """
+
+    counts = dict.fromkeys(USC_C3_PROMOTION_OUTCOMES, 0)
+    if oracle is None:
+        return counts
+    for row in authorities:
+        if (
+            row["authority_type"] != "usc"
+            or row["usc_title"] is None
+            or row["usc_section"] is None
+            or row["usc_section_verdict"] != "absent"
+            or row["usc_section_corrected"] is not None
+        ):
+            continue
+        section = row["usc_section"]
+        if not re.fullmatch(r"\d+", section):
+            continue
+        bound = _bound_paren_suffix(section, row["authority_text"])
+        if bound is None:
+            # Only rows this fence would otherwise have judged are counted: the
+            # census is of bindings REFUSED, not of every U.S.C. row in the
+            # corpus that states no parenthetical at all. Read through the same
+            # occurrence pattern the binding uses, so the two cannot disagree
+            # about what an occurrence is and count a row neither ever judged.
+            if any(
+                _A_LETTER_SUFFIX.fullmatch(letter)
+                for letter, _ in _paren_suffix_occurrences(section, row["authority_text"])
+            ):
+                counts["unbound"] += 1
+            continue
+        proposals = oracle.c3_proposals(row["usc_title"], section, bound)
+        if not proposals:
+            counts["witnessless"] += 1
+            continue
+        if len(proposals) > 1:
+            counts["ambiguous"] += 1
+            continue
+        only = proposals[0]
+        if "-" in bound.rsplit(")", 1)[-1] and "tail-stated" not in only.kinds:
+            counts["stated_tail_refused"] += 1
+            continue
+        row["usc_section_corrected_section"] = only.section
+        row["usc_section_corrected_pinpoint"] = None
+        row["usc_section_corrected"] = only.section
+        row["usc_section_correction_evidence"] = USC_C3_PROMOTION_RULE
+        counts["promoted"] += 1
+    return counts
+
+
+#: Why one candidate a witness offered was withheld though its record's
+#: two-witness intersection was otherwise non-empty. A row that hits both
+#: carries both, sorted and joined by "; " the way its sibling column joins
+#: candidates -- a refusal census that reported only the first reason would be
+#: the same silence this column exists to end.
+_PLACEHOLDER_CANDIDATE_REFUSALS: tuple[str, ...] = (
+    #: A note read TODAY can name a Public Law enacted after the record's own
+    #: edition -- ``inv-placeholders``'s own trap: a 2007 placeholder offered
+    #: 2020 Public Laws by a 2026-dated note capture. The direction that
+    #: matters is one-way: a note is free to be SILENT about a law the
+    #: edition already knew (the note is a snapshot of what CURRENTLY stands,
+    #: not a history), so only "the candidate's law postdates the edition" is
+    #: refused, never the reverse.
+    "note-names-a-later-public-law-than-the-edition-states",
+    #: A U.S.C. candidate the pinned section oracle REFUTES: it prints no such
+    #: section in any year of its window and no release point carries it.
+    #: Two witnesses agreeing on a number is agreement about a STRING, not
+    #: evidence that the string names law -- a sibling edition can restate a
+    #: filer's own damaged citation verbatim, and the note reader can carry a
+    #: number out of a badly split note. Candidates are not verdicts, which is
+    #: why this fence is one-sided: only ``absent`` refuses, ``unknown``
+    #: (the oracle's own coverage hole) publishes, because a hole is not a
+    #: denial.
+    "the-section-oracle-refutes-this-candidate",
+)
+
+
+def _usc_candidate_is_refuted(identity: str, oracle: UscSectionOracle | None) -> bool:
+    """Whether the pinned oracle denies that "40:550" names a section at all.
+
+    The identity spelling is :func:`cfr_authority_notes.usc_citation`'s own,
+    "title:section", and it is read here rather than re-derived: one spelling
+    of the join key, whichever side of the join is asking. Undated on purpose
+    -- the question is "does this number name law", not "did it at this
+    edition", because a candidate is offered to a RECORD and the edition
+    question is the one ``usc_section_verdict`` answers on rows that state
+    something. False wherever the oracle is absent or cannot parse the
+    identity: a tree without the artifact refuses nothing rather than
+    refusing everything.
+    """
+
+    if oracle is None:
+        return False
+    title, _, section = identity.partition(":")
+    if not title.isdigit() or not section:
+        return False
+    return oracle.section_verdict(int(title), section).verdict == "absent"
+
+
+def _write_placeholder_candidates(
+    authorities: list[dict[str, object]],
+    references: list[dict[str, object]],
+    notes: CfrAuthorityNotes | None,
+    calendar: _SeriesCalendar,
+    oracle: UscSectionOracle | None = None,
+) -> dict[str, int]:
+    """Per-record candidate authorities for an "unstated" placeholder row.
+
+    ``inv-placeholders`` (2026-08-24): 12,467 rows across three kinds
+    (more-citations-follow, not-yet-determined, none-off-form) state nothing
+    at all -- 6,876 + 5,461 + 130 -- and every one of them belongs to a
+    RECORD, ``(rin, publication_id)``, that may say more elsewhere. Two
+    witnesses, independently derived, each offer candidate authorities for
+    the record as a whole, and this function publishes only where BOTH agree:
+
+    **Witness A**, the publisher's own note. The SAME join
+    :func:`_judge_against_cfr_notes` uses -- the record's own
+    ``unified_agenda_cfr_references`` rows, filtered to parts the pinned
+    authority-note cache holds -- names the CFR parts the rule amends; each
+    held part's ``AuthorityNote.citations`` is a candidate, minus whatever
+    the record already states for itself under the ordinary four-family
+    reading (:data:`_CFR_NOTE_CITATION_BY_TYPE`).
+
+    **Witness B**, a sibling edition of the SAME rule. Measured over every
+    OTHER publication of the same RIN that carries no placeholder of its own
+    and states strictly more distinct citations than this record does, the
+    difference between what the donor states and what this record states.
+
+    **The publishable tier is the intersection.** Measured 2026-08-24: where
+    both witnesses answer and agree at all, they intersect far more often
+    than they merely coexist (agreement.both_nonempty_and_intersect over
+    agreement.both_nonempty, all three kinds) -- and where only one speaks,
+    it is spending a single, weaker claim at the two-witness price, which
+    this column does not do. A record most of the time gets nothing: only a
+    small fraction of 12,467 records reach a non-empty intersection at all.
+
+    **Two witnesses are a cardinality check, so each candidate faces the
+    oracle that exists for its own kind.** Agreement between witness A and
+    witness B says two readers produced the same STRING; it does not say the
+    string names law, and both readers can carry the same defect -- a sibling
+    edition restates the filer's own damaged citation verbatim, a badly split
+    note carries a number out of its neighbour. So a U.S.C. candidate is put
+    to the pinned section oracle and dropped where the oracle REFUTES it
+    (``absent``: no year of the window prints it and no release point carries
+    it); ``unknown`` publishes, because the oracle's own coverage hole is not
+    a denial. A Public Law candidate faces the pinned series calendar below.
+    Where no oracle exists for a family -- CFR parts, act names -- the
+    two-witness agreement is all there is and the candidate is published as
+    what it always was: a candidate, never a verdict, which nothing else in
+    this table reads.
+
+    **The note-date-vs-edition gate.** A note is read at BUILD TIME, against
+    the rule's CURRENT CFR text, and can therefore name a Public Law the
+    record's own edition could not possibly have known -- a 2007 placeholder
+    offered 2020 Public Laws by a 2026-dated note capture is exactly the trap
+    `inv-placeholders` names and nothing before this function caveats. Gated
+    on the APPROVAL DATE the pinned roster already carries
+    (:meth:`_SeriesCalendar.pl_approved_by_edition`) rather than on the
+    congress alone, because a congress is a year-resolution answer and a year
+    is too coarse here: Pub. L. 110-20 was approved 05/02/2007 and the
+    congress bound passes it for the Spring 2007 edition, an edition
+    published a month before the law existed. Where the roster carries no
+    date for a law, or the edition states no month, the congress bound still
+    answers and the residue is named in that method's own docstring. A
+    candidate the gate drops is never published, and the row says why in
+    ``placeholder_candidate_refusal`` when dropping it empties the record's
+    whole intersection.
+
+    Additive only: nothing here reads or writes any column but the row's own
+    two, and a record with nothing to say gets NULL on both, exactly as it
+    read before this function existed.
+    """
+
+    for row in authorities:
+        row["placeholder_candidate_authorities"] = None
+        row["placeholder_candidate_refusal"] = None
+
+    counts: dict[str, int] = dict.fromkeys(
+        ("published", "rows_withheld", "candidates_gated_by_edition", "candidates_refuted_by_oracle"), 0
+    )
+    if notes is None:
+        return counts
+
+    stated_by_record: dict[tuple[str, str], set[tuple[str, str]]] = {}
+    unstated_by_record: dict[tuple[str, str], list[dict[str, object]]] = {}
+    for row in authorities:
+        key = (row["rin"], row["publication_id"])
+        if row["authority_type"] == "unstated":
+            unstated_by_record.setdefault(key, []).append(row)
+            continue
+        reader = _CFR_NOTE_CITATION_BY_TYPE.get(row["authority_type"])
+        citation = reader(row) if reader is not None else None
+        if citation is not None:
+            stated_by_record.setdefault(key, set()).add((citation.family, citation.identity))
+
+    if not unstated_by_record:
+        return counts
+
+    held_by_rule: dict[tuple[str, str], set[tuple[int, str]]] = {}
+    for reference in references:
+        title, part = reference["cfr_title"], normalize_part(reference["cfr_part"])
+        if title is None or part is None or not notes.holds(title, part):
+            continue
+        held_by_rule.setdefault((reference["rin"], reference["publication_id"]), set()).add((int(title), part))
+
+    editions_by_rin: dict[str, dict[str, set[tuple[str, str]]]] = {}
+    for key in set(stated_by_record) | set(unstated_by_record):
+        rin, pub = key
+        editions_by_rin.setdefault(rin, {})[pub] = stated_by_record.get(key, set())
+    placeholder_records = set(unstated_by_record)
+
+    for key, rows in unstated_by_record.items():
+        rin, pub = key
+        own_stated = stated_by_record.get(key, set())
+
+        witness_a: set[tuple[str, str]] = set()
+        for title, part in held_by_rule.get(key, ()):
+            note = notes.note(title, part)
+            if note is None:
+                continue
+            witness_a.update((citation.family, citation.identity) for citation in note.citations)
+        witness_a -= own_stated
+
+        witness_b: set[tuple[str, str]] = set()
+        for donor_pub, donor_stated in editions_by_rin.get(rin, {}).items():
+            if donor_pub == pub or (rin, donor_pub) in placeholder_records:
+                continue
+            if len(donor_stated) <= len(own_stated):
+                continue
+            witness_b |= donor_stated - own_stated
+
+        intersection = witness_a & witness_b
+        if not intersection:
+            continue
+
+        published: set[tuple[str, str]] = set()
+        refusals: set[str] = set()
+        for family, identity in intersection:
+            if family == "public_law" and calendar.pl_approved_by_edition(identity, pub) is False:
+                refusals.add("note-names-a-later-public-law-than-the-edition-states")
+                counts["candidates_gated_by_edition"] += 1
+                continue
+            if family == "usc" and _usc_candidate_is_refuted(identity, oracle):
+                refusals.add("the-section-oracle-refutes-this-candidate")
+                counts["candidates_refuted_by_oracle"] += 1
+                continue
+            published.add((family, identity))
+
+        for row in rows:
+            if published:
+                row["placeholder_candidate_authorities"] = "; ".join(
+                    sorted(f"{family}:{identity}" for family, identity in published)
+                )
+                counts["published"] += 1
+            elif refusals:
+                row["placeholder_candidate_refusal"] = "; ".join(sorted(refusals))
+                counts["rows_withheld"] += 1
+    return counts
 
 
 #: A Table III key that is a RANGE of act sections ("2-6", "531-535"), which is
@@ -7768,7 +8511,27 @@ def build_unified_agenda_parquet(
     # SAYS, and corroboration, the sibling carry and the act resolver are all
     # able to change that. Additive -- it writes two columns of its own and
     # touches no other value.
-    cfr_notes = _judge_against_cfr_notes(authorities, references, _cfr_authority_notes())
+    cfr_notes_reader = _cfr_authority_notes()
+    cfr_notes = _judge_against_cfr_notes(authorities, references, cfr_notes_reader)
+    # And the U.S.C.-slot naming, additive and last for the same reason: it
+    # only ever reads usc_title/usc_section/usc_section_verdict, never writes
+    # them, so where it runs relative to every fence above changes nothing it
+    # sees.
+    usc_slot_readings = _write_usc_slot_reading(authorities, references, section_oracle)
+    # And the C3 promotion, additive and last for the same reason: it only
+    # ever reads usc_section_verdict/usc_section_corrected and writes the
+    # correction columns where the fence above left them NULL.
+    paren_eaten_suffixes = _promote_paren_eaten_lettered_suffix(authorities, section_oracle)
+    # And the placeholder-candidate cross-reference, additive and last: it
+    # reads every row's own family reading and every record's CFR_LIST, and
+    # writes only the two columns an "unstated" row carries. The SAME notes
+    # reader the CFR-note join above just loaded, not a second read of the
+    # 8,240-part cache, and the SAME section oracle every fence above asked,
+    # which is what lets a candidate be put to the oracle that exists for its
+    # own family instead of resting on two witnesses counting to two.
+    placeholder_candidates = _write_placeholder_candidates(
+        authorities, references, cfr_notes_reader, calendar, section_oracle
+    )
 
     outputs: dict[str, str] = {}
     schema_digests: dict[str, str] = {}
@@ -8485,6 +9248,23 @@ def build_unified_agenda_parquet(
             #: not judge live here, and so does every "21 U.S.C." with no
             #: section: the census closes against cfrNoteCoverage.rows.
             "cfrNoteUnjudgedRowsByType": cfr_notes.unjudged_rows_by_type,
+            #: Rows a non-U.S.C. numbering universe occupies the U.S.C. slot
+            #: on, by the name :func:`_write_usc_slot_reading` gave it. Never
+            #: a verdict count -- see the column's own schema comment.
+            "uscSlotReadingRows": usc_slot_readings,
+            #: The builder's own C3 promotion, by outcome
+            #: (:data:`USC_C3_PROMOTION_OUTCOMES`): rows published -- exactly
+            #: one fused reading survived, bound to this row's own citation --
+            #: and rows refused for the four different reasons a refusal here
+            #: has. See :func:`_promote_paren_eaten_lettered_suffix`.
+            "uscC3PromotionRows": paren_eaten_suffixes,
+            #: Placeholder ("unstated") rows the two-witness cross-reference
+            #: published a candidate for, rows every candidate was withheld
+            #: from, and the CANDIDATES each of the two gates dropped -- the
+            #: approval-date gate and the section oracle's refutation, counted
+            #: apart because they are different evidence refusing for
+            #: different reasons. See :func:`_write_placeholder_candidates`.
+            "placeholderCandidateRows": placeholder_candidates,
             #: The corpus's own magnitude fence, and the two verdicts the
             #: grammar computed all along while this table dropped them: an
             #: implausible CFR part (the sibling reference table has flagged the

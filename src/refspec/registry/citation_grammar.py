@@ -404,9 +404,30 @@ _COMMAS_THAT_BELONG_TO_A_NAME: tuple[re.Pattern[str], ...] = (_SPELLED_DATE, _AC
 #: dash, horizontal bar, minus sign) collapses to "-" before matching — one
 #: character for one character, so spans still index the original text.
 #: U+0096/U+0097 are the Windows-1252 en/em dash bytes surviving a bad decode
-#: as C1 control characters — "PL 105\x96261" is PL 105-261, and 104 Unified
-#: Agenda authority values carry exactly this damage (measured 2026-08-21;
-#: the bytes appear in no other Agenda field).
+#: as C1 control characters — "PL 105\x96261" is PL 105-261.
+#:
+#: **They are not scoped to the authority field**, which is what an earlier
+#: spelling of this comment claimed, and the correction it was given was
+#: itself wrong. Re-measured 2026-08-31 by scanning the bytes of all 60 pinned
+#: editions and attributing each occurrence to its enclosing element:
+#: **1,407 occurrences TOTAL** (1,090 × U+0096, 317 × U+0097) in 28 of the 60
+#: files, across **11 Agenda elements INCLUDING this one** — ABSTRACT 450
+#: (439 in its own text plus 11 inside the HTML its CDATA carries, e.g.
+#: "NDAA\x9610 (Pub. L. 111\x9684)" inside a `<p>`), ADDITIONAL_INFO 337,
+#: RULE_TITLE 218, **LEGAL_AUTHORITY 202**, LEGAL_DLINE_OVERALL_DESC 61,
+#: STMT_OF_NEED 58, ALTERNATIVES 24, COSTS_AND_BENEFITS 20, LEGAL_BASIS 20,
+#: TTBL_ACTION 15, DLINE_DESC 2. Excluding LEGAL_AUTHORITY leaves **1,205
+#: across the other 10** — so "1,407 across 11 OTHER elements" double-counted
+#: this field into a total it is part of.
+#:
+#: What the authority field itself carries, measured the same day and the same
+#: way: **195 `<LEGAL_AUTHORITY>` elements over 91 distinct values** (202
+#: occurrences, several values carrying two), which the built table expands to
+#: 250 rows over 90 distinct ``authority_text`` values. This is the
+#: corpus-wide mojibake ``unified_agenda_editions`` names, not a defect of
+#: citations. It changes nothing here: no identity this grammar reads is
+#: affected either way, because every dash spelling folds through this SAME
+#: translation table wherever a citation shape consumes it.
 _DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−\x96\x97", "-"))
 
 # --------------------------------------------------------------------------- #
@@ -1861,9 +1882,11 @@ def _normalize_dashes(text: str) -> str:
 #:
 #: **No U.S.C. section is legitimately zero-padded**, and that is measured, not
 #: assumed: zero of the 59,364 sections in the OLRC current release point and
-#: zero of the 1,565,007 annual-edition section rows (67,022 distinct) begin
-#: with a "0", and neither do any of the 1,751 + 49,823 printed range
-#: endpoints (``research/evidence/usc-section-oracle-2026-08-22/``). All 48
+#: zero of the 1,572,225 annual-edition section rows (67,022 distinct) begin
+#: with a "0", and neither do any of the 1,751 + 49,960 printed range
+#: endpoints (``research/evidence/usc-section-oracle-2026-08-24/``, the
+#: generation-2 oracle; re-measured 2026-08-31 after the twelve uppercase
+#: volumes were recovered -- the distinct count did not move). All 48
 #: padded pairs the corpus states resolve to a pair the oracle HAS seen once
 #: the pad is stripped, and none of them is real as written. So this is the
 #: :func:`_canonical_part` rule one column over — the section is a JOIN KEY,
@@ -1948,7 +1971,7 @@ def _abbreviated_span(section: str) -> tuple[str, str] | None:
     What buys the reading is the oracle, not the shape. Of those 68 tokens,
     **zero name a real section as written**, and **62 expand to a span whose
     BOTH endpoints are real** — 246 of the 264 rows — against the pinned OLRC
-    oracle in ``research/evidence/usc-section-oracle-2026-08-22``. So the
+    oracle in ``research/evidence/usc-section-oracle-2026-08-24``. So the
     column carries 264 rows of a name that is not law, and the span it becomes
     is law at both ends in 62 of 68.
 
@@ -2656,7 +2679,7 @@ _WHOLE_VALUE_LABEL_REPAIRS: tuple[tuple[re.Pattern[str], str, str], ...] = (
     #   its highest section is 228 in any edition 1994-2026 — 39 enumerated
     #   sections topping out at 219a plus printed ranges ending "221 to 228" —
     #   so there is no 27 U.S.C. 1087 to mean (the pinned OLRC oracle in
-    #   ``research/evidence/usc-section-oracle-2026-08-22``, 66,780 pairs).
+    #   ``research/evidence/usc-section-oracle-2026-08-24``, 66,780 pairs).
     # * The treaty reading is real AND the corpus states it: 27 U.S.T. 1087 is
     #   CITES, and three further values / 12 rows write that same volume and
     #   page with the T intact ("27 U.S.T. 1087", "27 UST 1087, Convention on
