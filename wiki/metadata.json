@@ -1,0 +1,48 @@
+{
+    "generation_info": {
+        "timestamp": "2026-09-01T21:28:46.700659+00:00",
+        "main_model": "gpt-5.6-sol",
+        "generator_version": "1.0.1",
+        "repo_path": "/Users/mikewolfd/Work/RefSpec",
+        "commit_id": "d62bc1cc5aa16cd0e4645ec3b73e66e42fb69ad1"
+    },
+    "statistics": {
+        "total_components": 5839,
+        "leaf_nodes": 297,
+        "max_depth": 5
+    },
+    "files_generated": [
+        "overview.md",
+        "module_tree.json",
+        "first_module_tree.json",
+        "registry_code_and_classification_sources_legislative_and_regulatory.md",
+        "managed_release_validation_bundle.md",
+        "atlas_distribution_builder.md",
+        "managed_release_validation_source_views.md",
+        "registry_code_and_classification_sources_procurement_assistance_and_workforce.md",
+        "registry_organization_sources.md",
+        "registry_foundation.md",
+        "registry_code_and_classification_sources_fiscal_and_spending.md",
+        "registry_legal_and_identifier_sources_unified_agenda_pipeline.md",
+        "registry_code_and_classification_sources.md",
+        "atlas_record_projection.md",
+        "registry_legal_and_identifier_sources_identifier_authorities.md",
+        "registry_legal_and_identifier_sources.md",
+        "atlas_distribution_projection_and_access.md",
+        "registry_crosswalk_and_package_sources.md",
+        "registry_legal_and_identifier_sources_legal_authority_resolution.md",
+        "managed_vocabulary_source_adapters.md",
+        "source_release_trust_and_fidelity_assurance.md",
+        "atlas_serving_views.md",
+        "registry_vocabulary_sources.md",
+        "atlas_source_fidelity_audit.md",
+        "atlas_registry_loading.md",
+        "atlas_planning_index.md",
+        "managed_release_validation.md",
+        "atlas_release_construction_pipeline.md",
+        "atlas_derived_graph.md",
+        "registry_code_and_classification_sources_institutional_geographic_and_filing.md",
+        "publisher_source_portfolio_and_adapters.md",
+        "managed_release_validation_binding.md"
+    ]
+}
