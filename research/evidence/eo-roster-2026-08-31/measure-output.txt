@@ -1,0 +1,20 @@
+cited numbers (cited-eo-census.csv): 391
+total cited rows: 19011
+roster size (this lane's re-derivation): 6147
+
+COVERED (verdict=exists): 378 numbers / 18954 rows
+UNCOVERED: 13 numbers / 57 rows
+
+Uncovered numbers, by the reason the oracle itself gives:
+  'nara_window_miss': 10 numbers / 50 rows -> [1197, 1205, 1220, 1223, 1293, 1327, 1338, 3019, 3891, 7419]
+  'outside_known_windows': 3 numbers / 7 rows -> [20450, 21600, 23891]
+
+Of the 13 uncovered, 3 exceed the oracle's own measured ceiling (14,420) and are ALREADY flagged False by today's eo_in_known_series fence (eoOutOfSeriesRows) -- not new information: [20450, 21600, 23891]
+The remaining 10 are in-range numbers the roster does not resolve -- the 'honestly unknown' residual: [1197, 1205, 1220, 1223, 1293, 1327, 1338, 3019, 3891, 7419] (50 rows)
+
+NARA codification window [9, 12667]: 4394 of 12659 numbers on the roster = 34.7% dense (affirm-only)
+EO 8284: verdict=exists source=nara-disposition-1939 -- a real order (4 FR 4603) whose per-order NARA route 404s
+
+mined expectation: {'numbers_covered': 377, 'rows_covered': 18951, 'numbers_unknown': 11}
+measured (this script): {'numbers_covered': 378, 'rows_covered': 18954, 'numbers_unknown': 10}
+delta: numbers_covered +1, rows_covered +3, numbers_unknown -1 -- EO 8284 moved from unknown to exists on the pinned NARA 1939 table

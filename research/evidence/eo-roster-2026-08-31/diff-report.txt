@@ -1,0 +1,16 @@
+nara-codification-index: mine=4162 theirs=4162 match=True
+nara-order-probe route verdicts: 109 probed, 0 mismatches: []
+fr-api: mine=1531 theirs=1531 match=True
+gap-closure: mine=223 [12668-12890, contiguous=True] theirs=32 covers-theirs=True
+gap-closure field mismatches: 0 []
+merged roster: mine=6147 theirs(roster|gap)=5725 lost=[] added=422
+  added, explained: 190 from the gap captures' full anchor set, 232 from the pinned NARA 1939 disposition table
+  added, UNEXPLAINED (expect empty): []
+  EO 8284: on the roster=True source=nara-disposition-1939 (its per-order detail route 404s; the 1939 year table publishes it)
+source ranges (restate these in eo_roster.SOURCE_RANGES):
+  nara-codification-index: (9, 12667)
+  nara-order-detail-probe: (9830, 12656)
+  nara-disposition-1939: (8031, 8316)
+  gap-closure-nara-live: (12668, 12827)
+  gap-closure-wayback: (12828, 12889)
+  fr-api: (12890, 14420)
