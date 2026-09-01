@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from refspec.registry import identifier_shapes
 from refspec.registry.identifier_shapes import (
     BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER,
     FEDERAL_REGISTER_DOCUMENT_NUMBER,
@@ -744,15 +745,17 @@ def test_the_bare_legacy_shape_is_licensed_by_the_column() -> None:
     "09-19806" is the Federal Trade Commission's "CSE, Inc., et al." consent
     notice, Federal Register Vol. 74 No. 159 p.41908 (2009-08-19); its own
     printed colophon reads "[FR Doc. 09-19806 Filed 8-18-09; 1:15 pm]"
-    verbatim. "00-10" is a real airworthiness directive of 2000-01-04 that
-    the named refusal at :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`
-    leaves below the floor -- widening a floor is a recall decision with its
-    own budget, not a side effect of the column moving home.
+    verbatim. "00-10" is a real airworthiness directive of 2000-01-04 -- once
+    the named refusal at :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`,
+    now read by REF-056's sibling production
+    :data:`~refspec.registry.identifier_shapes._FR_BARE_LEGACY_SHORT_TAIL`,
+    exercised directly in
+    ``test_the_bare_legacy_short_tail_family_is_column_licensed`` below.
     """
 
     assert re.fullmatch(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER, "09-19806")
     assert is_federal_register_document_number("09-19806", column_licensed=True)
-    assert not is_federal_register_document_number("00-10", column_licensed=True)
+    assert is_federal_register_document_number("00-10", column_licensed=True)
 
 
 def test_the_three_digit_and_shorter_tail_family_is_column_licensed() -> None:
@@ -833,6 +836,206 @@ def test_the_legacy_over_modern_body_hybrid_is_column_licensed() -> None:
 
     assert is_federal_register_document_number("E3-2013-2261", column_licensed=True)
     assert not is_federal_register_document_number("C1-2012-19", column_licensed=True)
+
+
+# --------------------------------------------------------------------------- #
+# The widening cycle: REF-056. Two more column-licensed-only productions,
+# each a new named constant rather than a rewrite of an existing one, so the
+# counts REF-052/REF-054 already published (394,128 bare-legacy; 10,231
+# letter-opening) stay exactly what they were. Every positive specimen below
+# is read against the publisher's own PDF in
+# research/evidence/fr-short-tails-2026-08-31/.
+
+
+def test_the_bare_legacy_short_tail_family_is_column_licensed() -> None:
+    """The bare-legacy shape's own floor, widened to one and two digits.
+
+    "00-1" is EPA's Amino/Phenolic Resins NESHAP (65 FR 3276, 2000-01-20);
+    "00-10" is the FAA airworthiness directive named above. Each carries its
+    own printed colophon in the ordinary place. "93-54" witnesses a
+    sub-cluster worth naming on its own: filed 1994-01-03 for the next day's
+    issue, it still carries the outgoing year's two-digit token, which is why
+    a "93-"-prefixed value exists at all next to an era documented as opening
+    1994-01-03. 1,370 values in the pinned column take this shape: 112 with a
+    one-digit tail, 1,258 with two.
+
+    "94-1234567" -- a seven-digit tail -- is the negative: the ceiling
+    REF-052 measured (six digits) is untouched by this widening, only the
+    floor moved.
+    """
+
+    assert is_federal_register_document_number("00-1", column_licensed=True)
+    assert is_federal_register_document_number("00-10", column_licensed=True)
+    assert is_federal_register_document_number("93-54", column_licensed=True)
+    assert not is_federal_register_document_number("94-1234567", column_licensed=True)
+    # Unlicensed, all three stay exactly as unread as the wider bare-legacy
+    # shape already is -- REF-056 widens the column license, not the prose.
+    for value in ("00-1", "00-10", "93-54"):
+        assert _kinds(value) == [], value
+        assert not is_federal_register_document_number(value), value
+
+
+def test_the_modern_short_tail_family_is_column_licensed() -> None:
+    """The modern shape's own floor, widened to one and two digits --
+    admitted to the partner hatch only. rulespec's own mintable space
+    (``FEDERAL_REGISTER_DOCUMENT_NUMBER``, three to five digits) is untouched
+    by this widening; only what the column licenses moved.
+
+    "2010-1" is an SEC notice of application (75 FR 1007-1009, 2010-01-07),
+    whose colophon on page 1009 sits beside two ORDINARY three-digit-tail
+    numbers, "2010-117" and "2010-113" -- the comparison that shows a short
+    tail is the low end of one numbering series rather than a different kind
+    of string. "2010-10" is a DOE notice (75 FR 983, same issue), sharing its
+    page with "2010-9" and "2010-36". Each carries its own printed colophon
+    in the ordinary place.
+
+    "2013-58" is the sole specimen outside the 2010-2012 cluster: filed
+    2013-01-02 at 4:15 pm, printed on 78 FR 908 one page after a
+    2012-tokened document ("2012-31431", filed 1-4-13) in the same issue.
+    The pair establishes only that the year token follows neither date the
+    page prints; what decides it is not established, and this ruling does not
+    need it -- see the note beside ``_FR_MODERN_SHORT_TAIL``. 286 values in
+    the pinned column take this shape: 27 with a one-digit tail, 259 with
+    two.
+    """
+
+    assert is_federal_register_document_number("2010-1", column_licensed=True)
+    assert is_federal_register_document_number("2010-10", column_licensed=True)
+    assert is_federal_register_document_number("2013-58", column_licensed=True)
+    # Unlicensed, prose detection is unchanged -- this is the same value
+    # ``test_a_two_digit_year_document_number_stays_undetected`` already
+    # reads as prose-undetected.
+    for value in ("2010-1", "2010-10", "2013-58"):
+        assert _kinds(value) == [], value
+        assert not is_federal_register_document_number(value), value
+    # Three digits and up was already rulespec's own space, unmoved by this
+    # ruling.
+    assert is_federal_register_document_number("2010-100")
+
+
+def test_no_federal_register_production_claims_another_ones_specimen() -> None:
+    """Disjointness as a test rather than as a comment.
+
+    ``_FR_COLUMN_LETTER_FORMS`` argues its four members are disjoint "BY
+    CONSTRUCTION, not by census", and REF-056's two new productions repeat
+    the argument for themselves. An argument in a comment is not a check
+    that breaks when it is violated, and this is the check: every Federal
+    Register production the module carries, prose and column alike, offered
+    every other production's own positive specimen.
+
+    Two overlaps are REAL, both pre-existing, both between prose forms and
+    both harmless -- they are asserted here rather than hidden, because a
+    test that expected zero overlaps would have to launder them:
+
+    - "R1-10679" and "R1-1234" satisfy the republication form AND the legacy
+      form;
+    - "R1-123" satisfies the republication form AND the letter-opening short
+      tail.
+
+    Neither is a defect, for the reason ``_FR_DOCUMENT_FORMS``'s own comment
+    gives: the alternation is ordered, republication precedes legacy, and
+    both branches read the identical characters as the identical value, so
+    which one wins cannot change any answer. The corpus witnesses the first
+    overlap 32 times (R0-12376, R1-10679, ...) and the second not at all --
+    it is lexically possible and stays asserted so a future edit that makes
+    it matter is not silent.
+
+    Everything else claims exactly its own specimens, which is what makes
+    the census's buckets a partition instead of a priority list.
+    """
+
+    productions: dict[str, re.Pattern[str]] = {
+        name: re.compile(pattern) for name, pattern in identifier_shapes._FR_DOCUMENT_FORMS
+    }
+    productions.update(
+        {
+            "bare-legacy": identifier_shapes._FR_BARE_LEGACY,
+            "bare-legacy-short-tail": identifier_shapes._FR_BARE_LEGACY_SHORT_TAIL,
+            "modern-short-tail": identifier_shapes._FR_MODERN_SHORT_TAIL,
+            "letter-short-tail": identifier_shapes._FR_LETTER_SHORT_TAIL,
+            "two-digit-prefix": identifier_shapes._FR_TWO_DIGIT_PREFIX,
+            "six-digit-tail": identifier_shapes._FR_SIX_DIGIT_TAIL,
+            "legacy-over-modern-body": identifier_shapes._FR_LEGACY_OVER_MODERN_BODY,
+        }
+    )
+
+    # The table is complete by construction rather than by attention: a
+    # production added to the module without a row here fails immediately.
+    # ``_FR_DOCUMENT`` is the anchored prose reader ASSEMBLED from the four
+    # forms rather than a fifth one, and ``_FR_MODERN`` is the "modern" form
+    # under its private name -- asserted, not assumed, on the next line.
+    compiled = {
+        name
+        for name in dir(identifier_shapes)
+        if name.startswith("_FR_") and isinstance(getattr(identifier_shapes, name), re.Pattern)
+    }
+    assert compiled - {"_FR_DOCUMENT", "_FR_MODERN"} == {
+        "_FR_BARE_LEGACY",
+        "_FR_BARE_LEGACY_SHORT_TAIL",
+        "_FR_LEGACY_OVER_MODERN_BODY",
+        "_FR_LETTER_SHORT_TAIL",
+        "_FR_MODERN_SHORT_TAIL",
+        "_FR_SIX_DIGIT_TAIL",
+        "_FR_TWO_DIGIT_PREFIX",
+    }
+    assert identifier_shapes._FR_MODERN.pattern == productions["modern"].pattern
+
+    #: Specimen -> the productions that may read it, and no others. Every
+    #: value is one the pinned ``document_number`` column really carries,
+    #: except the two marked below.
+    expected: dict[str, set[str]] = {
+        # modern: rulespec's own space, padded and unpadded.
+        "2010-100": {"modern"},
+        "2012-00019": {"modern"},
+        # correction, republication, legacy -- the prose reader's own three.
+        "C1-2009-21472": {"correction"},
+        "R1-2010-13257": {"republication"},
+        "E9-2239": {"legacy"},
+        "C0-10087": {"legacy"},
+        # bare-legacy, floor and six-digit ceiling.
+        "09-19806": {"bare-legacy"},
+        "94-120124": {"bare-legacy"},
+        # REF-052's four letter-opening families.
+        "E9-654": {"letter-short-tail"},
+        "E9-23": {"letter-short-tail"},
+        "Z9-9": {"letter-short-tail"},
+        "X10-11220": {"two-digit-prefix"},
+        "X09-101207": {"six-digit-tail"},
+        "E3-2013-2261": {"legacy-over-modern-body"},
+        # REF-056's two. These are the rows the widening had to earn: a
+        # bare-legacy short tail must not become readable as a modern one,
+        # and neither may reach into the letter-opening families.
+        "00-1": {"bare-legacy-short-tail"},
+        "00-10": {"bare-legacy-short-tail"},
+        "93-54": {"bare-legacy-short-tail"},
+        "2010-1": {"modern-short-tail"},
+        "2010-10": {"modern-short-tail"},
+        "2013-58": {"modern-short-tail"},
+        # The two real overlaps, named. The first is corpus-witnessed 32
+        # times; the second is lexical only.
+        "R1-10679": {"republication", "legacy"},
+        "R1-1234": {"republication", "legacy"},
+        "R1-123": {"republication", "letter-short-tail"},
+        # Refused by every production, and staying that way: REF-054's
+        # short-tail correction, the ceiling above bare-legacy's six digits,
+        # and the census's one non-identifier.
+        "C1-2012-19": set(),
+        "94-1234567": set(),
+        "granule293": set(),
+    }
+    for value, names in expected.items():
+        assert {name for name, p in productions.items() if p.fullmatch(value)} == names, value
+
+    # Why the two overlaps are safe, rather than merely tolerated: the
+    # alternation is ordered and republication comes first, so a first-match
+    # read names it; and both branches return the identical value, so the
+    # order could flip without moving an answer.
+    order = [name for name, _ in identifier_shapes._FR_DOCUMENT_FORMS]
+    assert order.index("republication") < order.index("legacy")
+    for overlapping in ("R1-10679", "R1-1234", "R1-123"):
+        first = next(name for name in order if productions[name].fullmatch(overlapping))
+        assert first == "republication", overlapping
+        assert _kinds(overlapping) == [("federal_register_document", overlapping)], overlapping
 
 
 # --------------------------------------------------------------------------- #

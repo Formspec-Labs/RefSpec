@@ -585,13 +585,16 @@ _FR_COLUMN_LETTER_FORMS: tuple[re.Pattern[str], ...] = (
 #: corpus. A six-digit tail is a form the publisher really issued, which the
 #: letter-opening family already witnesses (X09-101207, above).
 #:
-#: NAMED REFUSAL: 1,370 further values are ``\d{2}-\d{1,2}`` -- "00-10" and
-#: "00-11" are real airworthiness directives of 2000-01-04 -- and stay
-#: unlicensed here, because widening a floor is a recall decision with its
-#: own budget and not a side effect of this one. That is the same posture
-#: this module takes with the 109 letter-opening values above that stay
-#: refused, and the count is written down so the decision can be made with
-#: it.
+#: NOT THIS CONSTANT'S, AND NO LONGER REFUSED: 1,370 further values are
+#: ``\d{2}-\d{1,2}`` -- "00-10" and "00-11" are real airworthiness directives
+#: of 2000-01-04, printed two pages apart in the same issue (65 FR 209 and
+#: 65 FR 207). REF-052 named them a refusal and deferred them; REF-056
+#: licensed them through the SIBLING production
+#: :data:`_FR_BARE_LEGACY_SHORT_TAIL` below rather than by widening this
+#: constant, so this shape's own tail still starts at three digits and its
+#: 394,128 count -- quoted outside this module, in ``iri_minting.py`` -- is
+#: unmoved by that ruling. The 109 letter-opening values above do stay
+#: refused, and that posture is unchanged.
 #:
 #: Moved home 2026-08-31 (REF-052): this constant lived in ``iri_minting.py``
 #: behind a "long-term home" note because this module is content-hashed into
@@ -601,6 +604,63 @@ _FR_COLUMN_LETTER_FORMS: tuple[re.Pattern[str], ...] = (
 #: here.
 BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER = r"\d{2}-\d{3,6}"
 _FR_BARE_LEGACY = re.compile(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER)
+
+# --------------------------------------------------------------------------- #
+# REF-056: the widening cycle after REF-052/REF-054, over the same pinned
+# ``document_number`` column re-measured 2026-08-31. Two more productions,
+# each a NEW named constant rather than a rewrite of one above -- widening
+# :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER` itself would move its
+# own documented count (394,128) and this module is not the only reader of
+# that number. Both stay disjoint from every existing family BY
+# CONSTRUCTION: a fullmatch fixes the digit count on both sides of the dash,
+# so a value with a two-digit year can never also have a four-digit one, and
+# neither shape opens on a letter, so neither can collide with
+# :data:`_FR_COLUMN_LETTER_FORMS`.
+#
+# **Bare-legacy short tails.** The bare-legacy shape's own floor, widened
+# down the identical axis rc16 widened the modern form along and REF-052
+# widened the letter-opening family along: one or two digits rather than
+# three to six. "00-1" (EPA's Amino/Phenolic Resins NESHAP, 65 FR 3276,
+# 2000-01-20) and "00-10" (an FAA airworthiness directive, 65 FR 207,
+# 2000-01-04) are real, each read end to end against the publisher's own PDF
+# with its own printed colophon -- "[FR Doc. 00-1 Filed 1-19-00; 8:45 am]"
+# and "[FR Doc. 00-10 Filed 1-3-00; 8:45 am]" -- in the identical place and
+# style as every ordinary document's. "93-54" witnesses a sub-cluster worth
+# naming: filed 1994-01-03 for the 1994-01-04 issue, it still carries the
+# outgoing year's two-digit token, which is why "93-"-prefixed values exist
+# at all inside a corpus whose bare-legacy era is documented as opening
+# 1994-01-03 -- a document FILED before the era's first PUBLISHED document
+# can still carry the year it was filed under. 1,370 values in the pinned
+# column take this shape: 112 with a one-digit tail, 1,258 with two. Twenty
+# four specimens (this family and the next), stratified by tail length and
+# by year, are read in research/evidence/fr-short-tails-2026-08-31/.
+_FR_BARE_LEGACY_SHORT_TAIL = re.compile(r"\d{2}-\d{1,2}")
+
+#: **Modern short tails.** The modern form's own shape with a one- or
+#: two-digit tail rather than three to five -- admitted to the partner hatch
+#: ONLY, not to rulespec's own mintable space. This is not the same event as
+#: rc16's widening: :data:`FEDERAL_REGISTER_DOCUMENT_NUMBER` and ``_FR_MODERN``
+#: are untouched by this constant, and the prose reader still refuses every
+#: value here exactly as it did before -- REF-056 widens what the COLUMN
+#: licenses, the way REF-052 did for the letter-opening family and bare-legacy
+#: itself, and leaves the mintable lexical space for a separate ruling with
+#: its own budget. "2010-1" (an SEC notice of application, 75 FR 1007,
+#: 2010-01-07) and "2010-10" (a DOE notice, 75 FR 983, 2010-01-07) are real,
+#: each with its own printed colophon in the ordinary place. 286 values in the
+#: pinned column take this shape: 27 with a one-digit tail, 259 with two --
+#: clustered in 2010-2012 with one outlier, "2013-58" -- colophoned "[FR Doc.
+#: 2013-58 Filed 1-2-13; 4:15 pm]" on 78 FR 908, one page after "[FR Doc.
+#: 2012-31431 Filed 1-4-13; 8:45 am]" on 78 FR 907, both in the issue of
+#: 2013-01-07. What those two witnesses establish is narrow, and it is
+#: stated narrowly: the year token is determined by NEITHER date printed on
+#: the page. Not by publication -- one issue carries both tokens. Not by
+#: filing either -- the 2012-token document was filed 1-4-13, two days AFTER
+#: the 2013-token one. "93-54" above is the same fact from the other side of
+#: a year boundary. What DOES decide the token is not established here: no
+#: source this lane retained records a submission timestamp, so reading a
+#: per-submission rollover off these pages would be an inference rather than
+#: a reading, and the column doctrine needs only the shape.
+_FR_MODERN_SHORT_TAIL = re.compile(r"\d{4}-\d{1,2}")
 
 #: The leading token of a docket is an agency code, capped at two to six
 #: letters ("EPA", "FSIS", "USCIS"). Without the cap, "letter then anything"
@@ -790,13 +850,18 @@ def is_federal_register_document_number(value: object, *, column_licensed: bool 
     recognised as the bare-legacy shape
     (:data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`) or one of the four
     letter-opening families named at :data:`_FR_COLUMN_LETTER_FORMS`, each
-    verified against the publisher's own pages. It does NOT additionally
-    admit the correction, republication or legacy forms
-    :data:`_FR_DOCUMENT_FORMS` already carries — those are read by the prose
-    grammar unconditionally, via :func:`detect_identifier_shapes`, so
-    restating them here would be a second, driftable copy of the same rule.
-    Nothing about prose detection changes either way: the flag only ever adds
-    to what THIS function answers.
+    verified against the publisher's own pages. REF-056 widens the same
+    license two further steps: the bare-legacy shape's own one- and
+    two-digit tail (:data:`_FR_BARE_LEGACY_SHORT_TAIL`) and the modern
+    shape's own one- and two-digit tail (:data:`_FR_MODERN_SHORT_TAIL`),
+    admitted to the partner hatch only — the latter does NOT touch rulespec's
+    own mintable space, which stays exactly ``FEDERAL_REGISTER_DOCUMENT_NUMBER``
+    wide. It does NOT additionally admit the correction, republication or
+    legacy forms :data:`_FR_DOCUMENT_FORMS` already carries — those are read
+    by the prose grammar unconditionally, via :func:`detect_identifier_shapes`,
+    so restating them here would be a second, driftable copy of the same
+    rule. Nothing about prose detection changes either way: the flag only
+    ever adds to what THIS function answers.
     """
 
     text = _folded_text(value)
@@ -804,7 +869,9 @@ def is_federal_register_document_number(value: object, *, column_licensed: bool 
         return True
     if not column_licensed:
         return False
-    if _FR_BARE_LEGACY.fullmatch(text):
+    if _FR_BARE_LEGACY.fullmatch(text) or _FR_BARE_LEGACY_SHORT_TAIL.fullmatch(text):
+        return True
+    if _FR_MODERN_SHORT_TAIL.fullmatch(text):
         return True
     return any(pattern.fullmatch(text) for pattern in _FR_COLUMN_LETTER_FORMS)
 

@@ -586,11 +586,15 @@ def test_the_floor_under_the_widened_tail_is_where_the_shape_layer_puts_it() -> 
     ``identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER`` is
     ``\\d{4}-\\d{3,5}``, and rc16 moved the space to meet it rather than to
     overtake it. 286 modern values in the pinned column have a one- or
-    two-digit tail and stay outside -- and they are not a separate form:
-    2010-99 and 2010-100 are consecutive documents of one unpadded series, so
-    the floor cuts a continuous series and is held for consistency with the
-    layer that reads it, not because the evidence puts a boundary there.
-    The count is recorded so a future floor decision has it.
+    two-digit tail and stay outside RULESPEC'S space -- and they are not a
+    separate form: 2010-99 and 2010-100 are consecutive documents of one
+    unpadded series, so the floor cuts a continuous series and is held for
+    consistency with the layer that reads it, not because the evidence puts
+    a boundary there. This test is about that space, which REF-056 leaves
+    exactly as wide as rc16 left it -- the same 286 values are now
+    column-licensed into the partner hatch, tested in
+    ``test_the_modern_short_tail_family_needs_the_column_license_too`` below,
+    which is a different event from widening ``rkaf:us-frdoc`` itself.
 
     The ceiling is measured rather than chosen: zero modern values reach a
     six-digit tail, and the largest sequence ever issued is 33,861 (2011), so
@@ -599,7 +603,9 @@ def test_the_floor_under_the_widened_tail_is_where_the_shape_layer_puts_it() -> 
 
     for below in ("2010-99", "2024-36", "2011-7"):
         assert mint_federal_register_document_iri(below) is None, below
-        assert mint_federal_register_document_iri(below, column_licensed=True) is None, below
+        licensed = mint_federal_register_document_iri(below, column_licensed=True)
+        assert licensed is not None, below
+        assert licensed.scheme == "rkaf:partner-defined", below
     for above in ("2024-003661", "2010-1234567"):
         assert mint_federal_register_document_iri(above) is None, above
 
@@ -671,32 +677,119 @@ def test_the_bare_legacy_form_needs_the_column_license_and_only_that() -> None:
     )
 
     # The whole era, not one witness: the first and last bare-legacy documents
-    # in the pinned column are 1994-01-03 and 2009-08-19.
-    for value in ("94-1", "94-120124", "95-170007", "97-339151", "08-1234"):
+    # in the pinned column are 1994-01-03 and 2009-08-19. (REF-056 widens a
+    # further, disjoint production for the one- and two-digit tail this
+    # constant's own docstring names and defers -- see
+    # test_the_bare_legacy_short_tail_family_needs_the_column_license_too --
+    # so the equivalence below stays exactly this constant's own shape.)
+    for value in ("94-120124", "95-170007", "97-339151", "08-1234"):
         licensed = mint_federal_register_document_iri(value, column_licensed=True)
         assert (licensed is not None) == (re.fullmatch(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER, value) is not None)
         assert mint_federal_register_document_iri(value) is None, value
 
 
 def test_the_bare_legacy_shape_stops_where_the_measurement_stops() -> None:
-    """The tail runs three to six digits, and the floor is a named refusal.
+    """This constant's own tail runs three to six digits; the ceiling is a
+    measurement and stays a measurement.
 
     Three to five is the modern shape's own range and covers 394,121 values;
     the six-digit tail adds exactly 7, every one a real published document
     with its own publisher URL in the pinned corpus. 1,370 further values run
     ``\\d{2}-\\d{1,2}`` -- "00-10" is a real airworthiness directive of
-    2000-01-04 -- and stay unminted, because widening a floor is a recall
-    decision with its own budget rather than a side effect of this one.
+    2000-01-04 -- and REF-056 admits them through a sibling production
+    (:data:`~refspec.registry.identifier_shapes._FR_BARE_LEGACY_SHORT_TAIL`)
+    rather than by widening THIS constant, so its own 394,128-value count
+    stays exactly what REF-052 published it as. Nothing above a six-digit
+    tail is a shape the pinned column carries either way.
     """
 
     shape = re.compile(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER)
     assert shape.fullmatch("09-19806") and shape.fullmatch("94-120124")
     assert not shape.fullmatch("00-10") and not shape.fullmatch("00-1")
     assert not shape.fullmatch("94-1234567")
-    assert mint_federal_register_document_iri("00-10", column_licensed=True) is None
-    # Damage the column really carries, admitted by neither shape.
-    for damaged in ("94-22818Filed", "94-S16142", "00-2999Doc", "95-95-744"):
-        assert mint_federal_register_document_iri(damaged, column_licensed=True) is None, damaged
+    # Refused by THIS shape, but not by the mint layer any more -- REF-056's
+    # sibling production reads it; see
+    # test_the_bare_legacy_short_tail_family_needs_the_column_license_too.
+    assert mint_federal_register_document_iri("00-10", column_licensed=True) is not None
+    assert mint_federal_register_document_iri("94-1234567", column_licensed=True) is None
+    # Four values the column really carries and no production admits. They
+    # are NOT all damage, and the difference is worth stating rather than
+    # flattening: "94-22818Filed" and "00-2999Doc" are the colophon fusion
+    # the module's research notes attest (the printed page welded the next
+    # word on); "95-95-744" is the publisher's own number, printed
+    # "[FR Doc. 95-95-744 Filed 1-11-95; 8:45 am]" on 60 FR 2992, with an
+    # extra hyphenated segment no shape reads; and "94-S16142" is a spelling
+    # whose document the publisher numbers "94-00000" instead. Refusal is
+    # what they share; damage is not. See the partition in
+    # `test_the_document_number_column_is_accounted_for_exactly`.
+    for refused in ("94-22818Filed", "94-S16142", "00-2999Doc", "95-95-744"):
+        assert mint_federal_register_document_iri(refused, column_licensed=True) is None, refused
+
+
+def test_the_bare_legacy_short_tail_family_needs_the_column_license_too() -> None:
+    """REF-056's widening of the bare-legacy floor: one or two digits rather
+    than three to six, at the mint layer rather than the shape layer's own
+    unit tests (``test_identifier_shapes.py`` pins the positive and negative
+    fixtures).
+
+    "00-1" and "00-10" are real -- EPA's Amino/Phenolic Resins NESHAP (65 FR
+    3276, 2000-01-20) and an FAA airworthiness directive (65 FR 207,
+    2000-01-04), each read end to end against the publisher's PDF with its
+    own printed colophon in the ordinary place. "93-54" witnesses the
+    year-boundary sub-cluster: filed 1994-01-03 for the next day's issue, it
+    still carries the outgoing year's two-digit token. 1,370 values in the
+    pinned column take this shape: 112 one-digit tails, 1,258 two-digit.
+    Unlicensed, all three stay exactly as unread as the wider bare-legacy
+    shape already is; licensed, all three mint through the same partner
+    hatch. research/evidence/fr-short-tails-2026-08-31/ carries the full
+    24-specimen sample this ruling and the next test share.
+    """
+
+    for value in ("00-1", "00-10", "93-54"):
+        assert mint_federal_register_document_iri(value) is None, value
+        licensed = mint_federal_register_document_iri(value, column_licensed=True)
+        assert licensed is not None, value
+        assert licensed.scheme == "rkaf:partner-defined", value
+        assert licensed.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:{value}", value
+
+    # The ceiling REF-052 already measured (six digits) is untouched --
+    # only the floor moved.
+    assert mint_federal_register_document_iri("94-1234567", column_licensed=True) is None
+
+
+def test_the_modern_short_tail_family_needs_the_column_license_too() -> None:
+    """REF-056's second widening: the modern form's own shape with a one- or
+    two-digit tail, admitted to the partner hatch only -- rulespec's own
+    mintable space (``FEDERAL_REGISTER_DOCUMENT_NUMBER``, three to five
+    digits) is untouched by this ruling; see
+    ``test_the_floor_under_the_widened_tail_is_where_the_shape_layer_puts_it``
+    above for the space that stays exactly as wide as rc16 left it.
+
+    "2010-1" and "2010-10" are real -- an SEC notice of application (75 FR
+    1007, 2010-01-07) and a DOE notice on the same page (75 FR 983,
+    2010-01-07), each with its own printed colophon in the ordinary place.
+    "2013-58" is the sole specimen outside the 2010-2012 cluster: filed
+    2013-01-02 at 4:15 pm, printed on 78 FR 908, one page after a
+    2012-tokened document ("2012-31431", filed 1-4-13) in the same issue of
+    2013-01-07. That pair shows only that the year token follows neither
+    date the page prints -- not publication, since one issue carries both
+    tokens, and not filing, since the 2012-tokened one was filed two days
+    LATER. What decides the token is not established: no source this lane
+    retained records a submission timestamp, and a "rolls over per
+    submission" reading of these pages would be an inference. The column
+    doctrine needs only the shape. 286 values in the pinned column take this
+    shape: 27 one-digit tails, 259 two-digit.
+    """
+
+    for value in ("2010-1", "2010-10", "2013-58"):
+        assert mint_federal_register_document_iri(value) is None, value
+        licensed = mint_federal_register_document_iri(value, column_licensed=True)
+        assert licensed is not None, value
+        assert licensed.scheme == "rkaf:partner-defined", value
+        assert licensed.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:{value}", value
+
+    # Three digits and up is rulespec's own space, unmoved by this ruling.
+    assert mint_federal_register_document_iri("2010-100").iri == "urn:rkaf:us:frdoc:2010-100"
 
 
 def test_document_number_padding_is_never_normalized_away() -> None:
@@ -721,6 +814,44 @@ def test_document_number_padding_is_never_normalized_away() -> None:
     # these are inside the widened space, and they are not the same identifier.
     assert mint_federal_register_document_iri("2012-019").iri == "urn:rkaf:us:frdoc:2012-019"
     assert mint_federal_register_document_iri("2012-019") != mint_federal_register_document_iri("2012-19")
+
+    # REF-056 is the floor lowering this docstring anticipated -- but only
+    # for the column license, not for rulespec's own space: "2012-19" now
+    # mints under ``column_licensed=True``, through the partner hatch, with
+    # the literal two-digit spelling the value stated. It is still not the
+    # same identifier as "2012-019": different scheme, different URN.
+    licensed_unpadded = mint_federal_register_document_iri("2012-19", column_licensed=True)
+    assert licensed_unpadded is not None
+    assert licensed_unpadded.scheme == "rkaf:partner-defined"
+    assert licensed_unpadded.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:2012-19"
+    assert licensed_unpadded != mint_federal_register_document_iri("2012-019")
+
+    # "2012-19"/"2012-019" is a HYPOTHETICAL pair: the column carries the
+    # padded value and not the unpadded one, so it states the rule without
+    # exercising it. REF-056 admitted 1,656 short-tail values, and three of
+    # them turn the question real -- these are the only bare-short values in
+    # the pinned column whose zero-padded twin is also there, found by
+    # padding all 1,370 of them to every width from two digits to six and
+    # looking each candidate up:
+    for short, padded in (("96-30", "96-00030"), ("97-29", "97-00029"), ("97-63", "97-00063")):
+        minted_short = mint_federal_register_document_iri(short, column_licensed=True)
+        minted_padded = mint_federal_register_document_iri(padded, column_licensed=True)
+        assert minted_short is not None and minted_padded is not None
+        assert minted_short != minted_padded, (short, padded)
+        assert minted_short.iri.endswith(f":frdoc:{short}"), short
+        assert minted_padded.iri.endswith(f":frdoc:{padded}"), padded
+
+    # The larger near-collision the widening opened is not padding at all: a
+    # bare short tail and a letter-opening short tail can share their second
+    # digit and their whole tail. 967 such pairs exist in the pinned column;
+    # "00-1"/"C0-1" is the first alphabetically. The letter is a character
+    # the value states, so the two stay distinct for the same reason the
+    # padding does -- nothing is folded away.
+    bare_short = mint_federal_register_document_iri("00-1", column_licensed=True)
+    letter_short = mint_federal_register_document_iri("C0-1", column_licensed=True)
+    assert bare_short is not None and letter_short is not None
+    assert bare_short != letter_short
+    assert bare_short.iri.endswith(":frdoc:00-1") and letter_short.iri.endswith(":frdoc:C0-1")
 
 
 # --------------------------------------------------------------------------- #
@@ -779,40 +910,74 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
 
     The specimens above state the rules; this states what the rules are worth
     on the population they were written for, so widening or narrowing one has
-    a number to move. Re-measured 2026-08-31 (REF-052) over the same pinned
+    a number to move. Re-measured 2026-08-31 (REF-056) over the same pinned
     file ``test_identifier_shapes`` reads, after ``identifier_shapes`` took
-    the bare-legacy shape and the four letter-opening families home as
-    column-licensed reads.
+    two further column-licensed-only productions home: the bare-legacy
+    shape's own one- and two-digit tail, and the modern shape's own one- and
+    two-digit tail.
 
     The headline is still the 39.2%: without the column license, 394,128
-    real documents have no identity of any kind, and the ingest lane that
-    reads their bodies has nothing to join them on. What moved this cycle is
-    the letter-opening bucket: 10,231 values that used to land in ``refused``
-    now land here, because a shape being column-licensed (this cycle) is not
-    the same event as a lexical space being widened (rc16) -- neither
-    ``first-class`` nor ``bare-legacy`` moved by one value.
+    real documents shaped exactly ``BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER``
+    have no identity of any kind, and the ingest lane that reads their bodies
+    has nothing to join them on. That count is untouched by this cycle,
+    because REF-056 widens through two NEW named productions rather than by
+    rewriting that constant -- the same posture REF-052 took with the four
+    letter-opening families, and for the identical reason: this constant's
+    own count is cited from outside this module (``iri_minting.py``), so
+    widening it in place would move a number this cycle does not touch.
 
-    The bucket a value falls into is now read from its own shape rather than
-    inferred from whether the prose reader agreed: before this cycle
-    "the prose reader refused it" and "it is bare-legacy" were the same fact,
-    because nothing else reached the partner hatch through the column alone.
-    They are not the same fact any more -- the four new families are also
-    prose-refused and also column-only -- so the letter-opening bucket is
-    now everything the bare-legacy shape does not fullmatch, whether the
-    prose reader agrees (117,292 of it, unchanged) or not (10,231 more).
+    What moved this cycle is two new buckets, one per production: 1,656
+    values that used to land in ``refused`` now land in them -- 1,370
+    bare-legacy-shaped (112 one-digit tails, 1,258 two-digit) and 286
+    modern-shaped (27 one-digit, 259 two-digit). They are counted apart
+    rather than added together because those four numbers are what the
+    evidence stratified on, and an aggregate would let one of them move
+    while the total stood still.
+    Neither is the same event as a lexical space being widened (rc16) --
+    ``first-class`` did not move by one value, because the modern-shaped 286
+    mint through the partner hatch, never through ``rkaf:us-frdoc``. Neither
+    is the same event as REF-052's own widening -- ``bare-legacy`` and
+    ``letter-opening`` did not move by one value either, because both new
+    productions are checked (and bucketed) before the ``letter-opening``
+    catch-all, the way ``bare-legacy`` itself already was.
 
-    There used to be a fifth bucket here, ``modern-short-tail``, counting the
+    There used to be a bucket here named ``modern-short-tail``, counting the
     28,862 modern numbers the five-digit-wide ``rkaf:us-frdoc`` space refused.
     rulespec 0.2.0rc16 widened the space to ``[0-9]{4}-[0-9]{3,5}`` and that
-    population is now first-class, so the bucket names nobody and is gone
-    rather than pinned at zero. The loop below still proves it emptied: a
-    partner-hatch value the prose reader reads can no longer be a modern-form
-    document number, and the assertion says so where the branch used to be.
+    population is now first-class, so the bucket named nobody and was retired
+    rather than pinned at zero. The 286 modern-shaped values in ``short-tail``
+    this cycle are NOT that population reappearing: they are the further
+    one- and two-digit tail rc16 stopped short of, admitted to the partner
+    hatch only -- rulespec's own space is exactly as wide as rc16 left it,
+    proven immediately below by ``test_the_floor_under_the_widened_tail_is_where_the_shape_layer_puts_it``.
     """
 
     import pyarrow.parquet as pq
 
     bare_legacy_shape = re.compile(BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER)
+    #: REF-056's two productions, bucketed SEPARATELY rather than as one
+    #: "short-tail" total. They were read together in the first draft of this
+    #: cycle, and the aggregate hid which of the two moved: a mutation that
+    #: took a value from one production to the other left the census
+    #: untouched. Each is now pinned on its own, with its own tail-length
+    #: histogram, because those are the numbers the ruling actually argues.
+    bare_short_shape = identifier_shapes._FR_BARE_LEGACY_SHORT_TAIL
+    modern_short_shape = identifier_shapes._FR_MODERN_SHORT_TAIL
+
+    #: The seven shapes the leftover refusals really take, measured
+    #: 2026-08-31 by ``research/evidence/fr-short-tails-2026-08-31/scratch/
+    #: classify_refused.py``. Every value is classified by exactly one of
+    #: them -- asserted below rather than arranged by ordering, so the list
+    #: is a partition instead of a priority chain.
+    refusal_classes: tuple[tuple[str, re.Pattern[str]], ...] = (
+        ("collision -2 suffix", re.compile(r"\d{2}-\d{3,5}-2")),
+        ("short-tail correction", re.compile(r"[Cc]\d-\d{4}-\d{2,4}")),
+        ("colophon-fused", re.compile(r".*(?:Filed|Doc)")),
+        ("extra-hyphen", re.compile(r"\d{2}-\d{2}-\d{2,5}")),
+        ("trailing letter", re.compile(r"(?:[A-Za-z]\d|\d{2}|\d{4})-\d+[A-Za-z]")),
+        ("not the publisher's number", re.compile(r"\d{2}-S\d+")),
+        ("granule293", re.compile(r"granule293")),
+    )
 
     values: set[str] = set()
     for batch in pq.ParquetFile(FEDERAL_REGISTER_PARQUET).iter_batches(
@@ -821,22 +986,60 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         values.update(value for value in batch.column(0).to_pylist() if value is not None)
     assert len(values) == 1_004_233
 
-    census = dict.fromkeys(("first-class", "bare-legacy", "letter-opening", "refused"), 0)
+    census = dict.fromkeys(
+        (
+            "first-class",
+            "bare-legacy",
+            "letter-opening",
+            "short-tail bare-legacy",
+            "short-tail modern",
+            "refused",
+        ),
+        0,
+    )
+    #: (bucket, tail length) -> count, for the two new buckets only.
+    short_tail_lengths: dict[tuple[str, int], int] = {}
+    refused_values: list[str] = []
+    minted_iris: list[str] = []
     for value in values:
         prose = mint_federal_register_document_iri(value)
         column = mint_federal_register_document_iri(value, column_licensed=True)
         assert prose is None or prose == column, value  # the license only ever adds
+        folded = value.strip().translate(identifier_shapes._DASHES)
         if column is None:
             census["refused"] += 1
-        elif column.scheme == "rkaf:us-frdoc":
+            refused_values.append(value)
+            continue
+        minted_iris.append(column.iri)
+        if column.scheme == "rkaf:us-frdoc":
             census["first-class"] += 1
-        elif bare_legacy_shape.fullmatch(value.strip().translate(identifier_shapes._DASHES)):
+        elif bare_legacy_shape.fullmatch(folded):
             census["bare-legacy"] += 1
+        elif bare_short_shape.fullmatch(folded) or modern_short_shape.fullmatch(folded):
+            # Column-only by construction: neither short-tail production is
+            # read by the prose reader, so a value landing here through the
+            # column license alone is never one the prose reader also reads.
+            assert not identifier_shapes.is_federal_register_document_number(value), value
+            # And disjoint by construction: a two-digit year cannot also be a
+            # four-digit one under ``fullmatch``, which is the whole argument
+            # `identifier_shapes` makes in prose beside both constants.
+            assert not (
+                bare_short_shape.fullmatch(folded) and modern_short_shape.fullmatch(folded)
+            ), value
+            bucket = (
+                "short-tail bare-legacy"
+                if bare_short_shape.fullmatch(folded)
+                else "short-tail modern"
+            )
+            census[bucket] += 1
+            key = (bucket, len(folded.split("-")[-1]))
+            short_tail_lengths[key] = short_tail_lengths.get(key, 0) + 1
         else:
             # The dead bucket, as an assertion. Every modern-form number the
             # shape layer reads is now inside the space, so nothing that
-            # reaches the partner hatch -- through the prose reader or through
-            # the four new column-only families alike -- can be one.
+            # reaches the partner hatch -- through the prose reader, through
+            # the four letter-opening families, or through either short-tail
+            # production -- can be one.
             assert not identifier_shapes.is_federal_register_document_number(value), value
             census["letter-opening"] += 1
 
@@ -847,32 +1050,110 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         # the partner hatch and refused, never into or out of first-class.
         "first-class": 480_566,
         # §1.2: identity-less today, and the whole reason for the column
-        # license. Unchanged: this cycle only moved the shape's HOME, not its
-        # membership.
+        # license. Unchanged since REF-052: this cycle widens through two new
+        # sibling productions, never by rewriting this constant's own shape.
         "bare-legacy": 394_128,
         # Corrections, republications and legacy prefixes the prose reader
         # reads (117,292, unchanged) plus the four families REF-052/REF-054
-        # admit this cycle (10,231 more): 5,829 three-digit-and-shorter
-        # tails, 4,195 two-digit prefixes, 206 six-digit tails, and the
-        # single legacy-prefix-over-modern-body hybrid. See
+        # admit: 5,829 three-digit-and-shorter tails, 4,195 two-digit
+        # prefixes, 206 six-digit tails, and the single
+        # legacy-prefix-over-modern-body hybrid. Unchanged this cycle -- see
         # `identifier_shapes._FR_COLUMN_LETTER_FORMS`.
         "letter-opening": 127_523,
-        # Damage and the shapes nobody has decided about: 0.2% of the column,
-        # down from 1.2% before this cycle moved 10,231 letter-opening values
-        # out. All 2,016 are named: 1,370 bare-legacy values with a one- to
-        # three-digit tail (REF-052 licensed the short-tail widening for the
-        # letter-opening family only; bare-legacy's own tail is a separate,
-        # unmade ruling); 286 modern numbers with a one- or two-digit tail,
-        # deliberately left below the widened floor; 228 `-2`-suffixed
-        # collision values; 99 short-tail corrections REF-054 keeps refused;
-        # 32 colophon-fused values (9 letter-opening + 23 bare-legacy); and
-        # `granule293`, the one non-identifier extraction artifact. None is
-        # an oversight: 1,370 + 286 + 228 + 99 + 32 + 1 = 2,016.
-        "refused": 2_016,
+        # REF-056: the widening cycle after REF-052/REF-054, over the exact
+        # two populations both named as deferred refusals in this module's
+        # own prior comments. Both productions are column-licensed only --
+        # the prose reader and rulespec's own mintable space are untouched,
+        # proven by the assertion inside the loop above and by
+        # `test_the_floor_under_the_widened_tail_is_where_the_shape_layer_puts_it`.
+        # research/evidence/fr-short-tails-2026-08-31/ carries the
+        # 24-specimen sample this ruling rests on.
+        "short-tail bare-legacy": 1_370,
+        "short-tail modern": 286,
+        # Damage, real spellings nobody has ruled on, and one non-identifier:
+        # 0.036% of the column, down from 0.2% before this cycle moved 1,656
+        # short-tail values out. All 360 are partitioned below.
+        "refused": 360,
     }
     assert sum(census.values()) == len(values)
     # The partner hatch, derived rather than pinned separately.
-    assert census["bare-legacy"] + census["letter-opening"] == 521_651
+    assert (
+        census["bare-legacy"]
+        + census["letter-opening"]
+        + census["short-tail bare-legacy"]
+        + census["short-tail modern"]
+    ) == 523_307
+
+    # The tail-length strata the sample was drawn against. The evidence
+    # stratified by tail length, so the census pins tail length: a widening
+    # that admitted, say, only the two-digit tails would leave every total
+    # above intact and fail here.
+    assert short_tail_lengths == {
+        ("short-tail bare-legacy", 1): 112,
+        ("short-tail bare-legacy", 2): 1_258,
+        ("short-tail modern", 1): 27,
+        ("short-tail modern", 2): 259,
+    }
+
+    # GLOBAL MINT SAFETY. Widening a floor is exactly the move that can give
+    # two different documents one identifier, and the padding rule
+    # (`test_document_number_padding_is_never_normalized_away`) is the only
+    # thing preventing it. That test states the rule on four hand-picked
+    # pairs; this states it on the whole column at once. The column already
+    # walked above, so this costs a set() and no second pass.
+    assert len(minted_iris) == 1_003_873
+    assert len(set(minted_iris)) == len(minted_iris)
+
+    # THE REMAINING 360, PARTITIONED EXACTLY -- not summarised. Each class is
+    # a shape, each shape is disjoint from the others over this population,
+    # and every value falls in exactly one. Re-measured 2026-08-31, and the
+    # first three lines correct what REF-052's own comment here said:
+    #
+    # - 224, not 228, carry a literal `-2` collision suffix; every one of the
+    #   224 has its un-suffixed twin present in this same column, which is
+    #   what makes "collision" a reading rather than a guess.
+    # - the four values the old count swept in with them are a different
+    #   shape entirely: an extra hyphenated segment (94-94-30552, 95-26-82,
+    #   95-95-22339, 95-95-744), and they are NOT damage -- 95-95-744's own
+    #   printed colophon reads "[FR Doc. 95-95-744 Filed 1-11-95; 8:45 am]"
+    #   on 60 FR 2992, one page after a properly formed "[FR Doc. 95-745
+    #   Filed 1-11-95; 8:45 am]" on 60 FR 2991 of the same issue.
+    # - the old "32 colophon-fused" was a catch-all holding 27 genuinely
+    #   fused values (a literal "Filed"/"Doc" welded on by the printed page's
+    #   own composition defect) plus 5 that are not fused at all. Four of
+    #   those five are a real micro-family the publisher prints with ONE
+    #   trailing letter -- C0-6263A ("[FR Doc. C0-6263A Filed 4-5-00; 8:45
+    #   am]", 65 FR 18151, beside a properly formed "[FR Doc. C0-6216 ...]"
+    #   on the same page), C9-20022A, 94-2050F and 2014-04654s (79 FR 11733,
+    #   the trailing "s" printed with ordinary spacing before "Filed"). The
+    #   module's own research notes already named C0-6263A "not damage"; it
+    #   is broken out here rather than laundered into "fused".
+    # - the fifth, 94-S16142, is the one value whose document the publisher
+    #   numbers something else: federalregister.gov answers for it but
+    #   returns document_number "94-00000", and the page's own colophon reads
+    #   "[FR Doc. 94-00000 Filed 00-00-94; 8:45 am]". Both spellings are in
+    #   this column; "94-00000" mints, this one does not.
+    #
+    # None of the seven is ruled on here. REF-054 keeps the 99 short-tail
+    # corrections refused by name, and the trailing-letter and extra-hyphen
+    # families are real-but-unread shapes with their own budget, recorded so
+    # the decision can be made with a number.
+    refusal_partition = dict.fromkeys((name for name, _ in refusal_classes), 0)
+    for value in refused_values:
+        text = value.strip()
+        matched = [name for name, pattern in refusal_classes if pattern.fullmatch(text)]
+        assert len(matched) == 1, (value, matched)  # a partition, not a chain
+        refusal_partition[matched[0]] += 1
+    assert refusal_partition == {
+        "collision -2 suffix": 224,
+        "short-tail correction": 99,
+        "colophon-fused": 27,
+        "extra-hyphen": 4,
+        "trailing letter": 4,
+        "not the publisher's number": 1,
+        "granule293": 1,
+    }
+    assert sum(refusal_partition.values()) == census["refused"] == 360
 
 
 @pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
