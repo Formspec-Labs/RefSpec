@@ -1,0 +1,523 @@
+{
+  "input_inventory": {
+    "path": "research/evidence/fr-prose-signals-2026-08-31/filed-date-colophons/input_inventory.json",
+    "sha256": "bb201eb1b51341b3fe1da05f61961994ed02fa4d2dde5b99103a4f218a22c950",
+    "pinned_scan_file_count": 830,
+    "pinned_scan_total_bytes": 2263176186,
+    "pinned_mods_file_count": 61,
+    "boundary_rule": "Other evidence lanes' raw/ directories are INCLUDED. They are holdings of this repository. Their additions surface as 'unpinned' drift on the next run rather than silently changing the census."
+  },
+  "drift": {
+    "missing": [],
+    "digest_drift": [],
+    "unpinned_files_on_disk_not_scanned": [],
+    "unpinned_count": 0,
+    "population_numbers_are_valid": true
+  },
+  "population_total_colophon_specimens": 14,
+  "population_frdoc_tagged_files": 7,
+  "population_raw_prose_files_no_tag": 7,
+  "date_text_census": {
+    "00-00-94": 1,
+    "1-3-94": 2,
+    "1-30-26": 1,
+    "1-6-94": 1,
+    "10-17-14": 1,
+    "12-29-94": 1,
+    "2-14-19": 1,
+    "5-16-05": 1,
+    "5-28-26": 1,
+    "6-1-07": 1,
+    "8-19-94": 1,
+    "8-23-24": 1,
+    "9-8-09": 1
+  },
+  "time_text_census": {
+    "8:45 am": 12,
+    "4:15 pm": 1,
+    "12:00 pm": 1
+  },
+  "document_number_shape_census": {
+    "bare-legacy (YY-NNNNN)": 6,
+    "unclassified": 1,
+    "letter-opening (legacy or modern hybrid)": 2,
+    "modern (YYYY-NNNNN)": 5
+  },
+  "damage_fused_number_filed_count": 1,
+  "damage_trailing_whitespace_in_tag_count": 1,
+  "damage_zero_filled_placeholder_count": 1,
+  "damage_zero_filled_placeholder": [
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/94-S16142.txt",
+      "raw": "[FR Doc. 94-00000 Filed 00-00-94; 8:45 am]",
+      "number_shape": "bare-legacy (YY-NNNNN)"
+    }
+  ],
+  "damage_trailing_letter_number_count": 1,
+  "damage_trailing_letter_number": [
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/94-2050F.txt",
+      "raw": "[FR Doc. 94-2050F Filed 8-19-94; 8:45 am]",
+      "number_shape": "unclassified"
+    }
+  ],
+  "mods_comparison": {
+    "files_inspected": 61,
+    "distinct_element_names": 77,
+    "element_names": [
+      "abstract",
+      "accessCondition",
+      "accessId",
+      "action",
+      "agency",
+      "billingCode",
+      "branch",
+      "category",
+      "cfr",
+      "chapter",
+      "classification",
+      "collectionCode",
+      "commentDate",
+      "contact",
+      "dateIngested",
+      "dateIssued",
+      "dates",
+      "departmentDoc",
+      "description",
+      "digitalOrigin",
+      "docClass",
+      "effectiveDate",
+      "emailRef",
+      "end",
+      "extension",
+      "extent",
+      "frDocNumber",
+      "frequency",
+      "genre",
+      "granuleClass",
+      "identifier",
+      "isDigitizedFR",
+      "issuance",
+      "issue",
+      "language",
+      "languageOfCataloging",
+      "languageTerm",
+      "location",
+      "mods",
+      "name",
+      "namePart",
+      "note",
+      "originInfo",
+      "part",
+      "partName",
+      "partNumber",
+      "physicalDescription",
+      "president",
+      "presidentialDoc",
+      "printPageRange",
+      "publicMeetingDate",
+      "publisher",
+      "recordChangeDate",
+      "recordContentSource",
+      "recordCreationDate",
+      "recordIdentifier",
+      "recordInfo",
+      "recordOrigin",
+      "relatedItem",
+      "rin",
+      "role",
+      "roleTerm",
+      "searchTitle",
+      "start",
+      "subject",
+      "summary",
+      "tableOfContents",
+      "title",
+      "titleInfo",
+      "tocDoc",
+      "tocSubject1",
+      "topic",
+      "typeOfResource",
+      "url",
+      "urlRef",
+      "volume",
+      "waisDatabaseName"
+    ],
+    "distinct_attribute_names": 24,
+    "attribute_names": [
+      "ID",
+      "access",
+      "authority",
+      "date",
+      "displayLabel",
+      "encoding",
+      "first",
+      "id",
+      "last",
+      "number",
+      "offset",
+      "order",
+      "party",
+      "source",
+      "title",
+      "type",
+      "unit",
+      "version",
+      "xlink:href",
+      "xmlns",
+      "xmlns:xlink",
+      "xmlns:xsi",
+      "xsi:schemaLocation",
+      "yearsInOffice"
+    ],
+    "element_or_attribute_names_matching_time_filed_filing_hour_clock": [],
+    "date_bearing_elements": {
+      "commentDate": {
+        "distinct_values": 23,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      },
+      "dateIngested": {
+        "distinct_values": 24,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      },
+      "dateIssued": {
+        "distinct_values": 61,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      },
+      "dates": {
+        "distinct_values": 164,
+        "values_carrying_a_clock_time": 5,
+        "clock_time_values": [
+          "This rule is effective from 11:30 p.m. on December 31, 2017,",
+          "This webinar will be held on Friday, April 11, 2025, at 9:30",
+          "Written comments must be received by 4:00 p.m., E.S.T. Janua",
+          "Written comments must be received by 4:00 p.m., c.s.t. Janua",
+          "Written comments must be received by 4:00 p.m., m.s.t., Janu"
+        ]
+      },
+      "effectiveDate": {
+        "distinct_values": 23,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      },
+      "publicMeetingDate": {
+        "distinct_values": 8,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      },
+      "recordChangeDate": {
+        "distinct_values": 29,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      },
+      "recordCreationDate": {
+        "distinct_values": 24,
+        "values_carrying_a_clock_time": 0,
+        "clock_time_values": []
+      }
+    },
+    "files_carrying_the_colophon_string": [
+      "research/evidence/investigations-2026-08-23/inv-frvol/raw/govinfo_mods/FR-1994-12-30_mods.xml"
+    ],
+    "files_carrying_stray_filed_or_clock_prose": [
+      "FR-1994-12-30_mods.xml",
+      "FR-2017-12-29_mods.xml",
+      "FR-2025-03-21_mods.xml"
+    ],
+    "claim_this_supports": "Across the element and attribute names actually present in this comparison corpus, none names a filing time, and no date-bearing element carries a clock time except one free-text 'dates' value. Bounded to these files and these names -- not a statement about the MODS schema in general."
+  },
+  "external_bulk_corpora_probe": {
+    "body_retrieval_corpus_2026_08_02": {
+      "path": "/Users/mikewolfd/Work/corpora/_preserved-2026-08-10/body-retrieval-corpus-2026-08-02",
+      "present": true,
+      "xml_file_count": 1986,
+      "html_file_count": 1986,
+      "probe": {
+        "method": "first 15 .xml files by sorted path",
+        "files_probed": 15,
+        "files_carrying_a_colophon": 15,
+        "example_matches": [
+          [
+            "04-28286",
+            "12-30-04",
+            "8:45 am"
+          ],
+          [
+            "05-11167",
+            "6-6-05",
+            "8:45 am"
+          ],
+          [
+            "05-11315",
+            "6-8-05",
+            "8:45 am"
+          ],
+          [
+            "05-136",
+            "1-4-05",
+            "8:45 am"
+          ],
+          [
+            "05-14992",
+            "8-1-05",
+            "8:45 am"
+          ]
+        ],
+        "is_a_census": false
+      }
+    },
+    "body_retrieval_corpus_2026_08_02_copy": {
+      "path": "/Users/mikewolfd/Work/spicy-regs/output/body-retrieval-corpus-2026-08-02",
+      "present": true,
+      "xml_file_count": 1986,
+      "html_file_count": 1986,
+      "probe": {
+        "method": "first 15 .xml files by sorted path",
+        "files_probed": 15,
+        "files_carrying_a_colophon": 15,
+        "example_matches": [
+          [
+            "04-28286",
+            "12-30-04",
+            "8:45 am"
+          ],
+          [
+            "05-11167",
+            "6-6-05",
+            "8:45 am"
+          ],
+          [
+            "05-11315",
+            "6-8-05",
+            "8:45 am"
+          ],
+          [
+            "05-136",
+            "1-4-05",
+            "8:45 am"
+          ],
+          [
+            "05-14992",
+            "8-1-05",
+            "8:45 am"
+          ]
+        ],
+        "is_a_census": false
+      }
+    },
+    "salvage_2026_08_28_spicysearch_output": {
+      "path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/spicysearch-output",
+      "present": true,
+      "xml_file_count": 7212,
+      "html_file_count": 41143,
+      "probe": {
+        "method": "first 15 .xml files by sorted path",
+        "files_probed": 15,
+        "files_carrying_a_colophon": 0,
+        "example_matches": [],
+        "is_a_census": false
+      }
+    }
+  },
+  "specimens": [
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/93-54.txt",
+      "file_sha256": "d43cde28ae30761b9fec61b8679da7d8c32fd60d069a06a8c3a3ce3673da3872",
+      "raw": "[FR Doc. 93-54 Filed 1-3-94; 8:45 am]",
+      "number": "93-54",
+      "number_shape": "bare-legacy (YY-NNNNN)",
+      "date_text": "1-3-94",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/94-1.txt",
+      "file_sha256": "9e3f31bc80d3712c8b218353135892f6b8c99bd8c60f12ab757baacc8eadc66e",
+      "raw": "[FR Doc. 94-1 Filed 1-6-94; 8:45 am]",
+      "number": "94-1",
+      "number_shape": "bare-legacy (YY-NNNNN)",
+      "date_text": "1-6-94",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/94-2050F.txt",
+      "file_sha256": "2f4451a22471d221aed67cfe6842804a1b411d846afcb5f2e5e7458d750458c5",
+      "raw": "[FR Doc. 94-2050F Filed 8-19-94; 8:45 am]",
+      "number": "94-2050F",
+      "number_shape": "unclassified",
+      "date_text": "8-19-94",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": true,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/94-9.txt",
+      "file_sha256": "e833ccdfc16668923b53333aec334102aa3d236990ca53fed738060f87253107",
+      "raw": "[FR Doc. 94-9 Filed 1-3-94; 8:45 am]",
+      "number": "94-9",
+      "number_shape": "bare-legacy (YY-NNNNN)",
+      "date_text": "1-3-94",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/fr-short-tails-2026-08-31/raw/94-S16142.txt",
+      "file_sha256": "12d5564a7bf5dcd9c806d3da396cfef736276405255087a4a7d217c8a39054d5",
+      "raw": "[FR Doc. 94-00000 Filed 00-00-94; 8:45 am]",
+      "number": "94-00000",
+      "number_shape": "bare-legacy (YY-NNNNN)",
+      "date_text": "00-00-94",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": true,
+      "trailing_letter_number": false,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/hand-attestations-2026-08-31/witnesses/fr-rawtext-E5-2394Filed.txt",
+      "file_sha256": "cdd08311b6320f02e7e7f8e1f50b31548442c82bcbc8fa4ae4fafd4f29ebe12e",
+      "raw": "[FR Doc. E5-2394Filed 5-16-05; 8:45 am]",
+      "number": "E5-2394",
+      "number_shape": "letter-opening (legacy or modern hybrid)",
+      "date_text": "5-16-05",
+      "time_text": "8:45 am",
+      "fused_number_filed": true,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-23/inv-frvol/raw/govinfo_mods/FR-1994-12-30_mods.xml",
+      "file_sha256": "702db722704c6442c3bde82ad2dd01363377da9124adefb319e61a8d9eefb6d4",
+      "raw": "[FR Doc. 94-32198 Filed 12-29-94; 8:45 am]",
+      "number": "94-32198",
+      "number_shape": "bare-legacy (YY-NNNNN)",
+      "date_text": "12-29-94",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "raw prose (no tag)"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-23/inv-initialisms/raw/fr_HSIA_2024-15790.xml",
+      "file_sha256": "b2cce2bb44de9b04a963a7f5ca2aade8a54e5db12e715783d8dd4b0ba99cd489",
+      "raw": "[FR Doc. 2024-15790 Filed 8-23-24; 8:45 am]",
+      "number": "2024-15790",
+      "number_shape": "modern (YYYY-NNNNN)",
+      "date_text": "8-23-24",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-24/inv-62/raw/fr_INA_1205_2026-02131.xml",
+      "file_sha256": "473c9282117f795330c25a361266977b74cb4454174f929be92765c8f56677ee",
+      "raw": "[FR Doc. 2026-02131 Filed 1-30-26; 4:15 pm]",
+      "number": "2026-02131",
+      "number_shape": "modern (YYYY-NNNNN)",
+      "date_text": "1-30-26",
+      "time_text": "4:15 pm",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-24/inv-62/raw/fr_MMA_0917_07-2740.xml",
+      "file_sha256": "293056eb03cede284c3b35770ab5698e01d19c18182efd2ad8d3008cc119f7af",
+      "raw": "[FR Doc. 07-2740 Filed 6-1-07; 8:45 am]",
+      "number": "07-2740",
+      "number_shape": "bare-legacy (YY-NNNNN)",
+      "date_text": "6-1-07",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": true,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-24/inv-62/raw/fr_NDAA17_0720_2019-02532.xml",
+      "file_sha256": "458606b571d5a82ad161e784f50b969cee4469ff52d121ff29e99290871652c8",
+      "raw": "[FR Doc. 2019-02532 Filed 2-14-19; 8:45 am]",
+      "number": "2019-02532",
+      "number_shape": "modern (YYYY-NNNNN)",
+      "date_text": "2-14-19",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-24/inv-62/raw/fr_NEPA_0412_2014-24828.xml",
+      "file_sha256": "1a9f6c5d574d7bd2282e57aca6d36cabf41d90b709a22853333e1158b74d3630",
+      "raw": "[FR Doc. 2014-24828 Filed 10-17-14; 8:45 am]",
+      "number": "2014-24828",
+      "number_shape": "modern (YYYY-NNNNN)",
+      "date_text": "10-17-14",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-24/inv-62/raw/fr_check_2026-10817.xml",
+      "file_sha256": "b4c8b8396ef4363996edc277076eaf9992d9d993037a0fdf4ebfac4ec5b2781b",
+      "raw": "[FR Doc. 2026-10817 Filed 5-28-26; 12:00 pm]",
+      "number": "2026-10817",
+      "number_shape": "modern (YYYY-NNNNN)",
+      "date_text": "5-28-26",
+      "time_text": "12:00 pm",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    },
+    {
+      "file": "research/evidence/investigations-2026-08-24/inv-62/raw/fr_check_E9-21740.xml",
+      "file_sha256": "3841a45c33ae9635edc4753aac28cc77d9ae55a2991393f77789cc34a6c5a95d",
+      "raw": "[FR Doc. E9-21740 Filed 9-8-09; 8:45 am]",
+      "number": "E9-21740",
+      "number_shape": "letter-opening (legacy or modern hybrid)",
+      "date_text": "9-8-09",
+      "time_text": "8:45 am",
+      "fused_number_filed": false,
+      "trailing_whitespace_in_tag": false,
+      "zero_filled_placeholder": false,
+      "trailing_letter_number": false,
+      "carrier": "<FRDOC> tag"
+    }
+  ]
+}
