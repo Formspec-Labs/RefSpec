@@ -9,12 +9,19 @@ that produced a citation produced the wrong one** (11/150, Wilson CI
 the single dominant mechanism** — a third of every adjudicated misread
 (``research/evidence/silent-misreads-2026-08-22.md``). This module is the
 fence, read from the oracle that leg built and pinned
-(``research/evidence/usc-section-oracle-2026-08-22.md`` and its README).
+(``research/evidence/usc-section-oracle-2026-08-22.md`` and its README) and
+re-cut on 2026-08-24 with the annual extractor's case-sensitivity fixed
+(``research/evidence/usc-section-oracle-2026-08-24/README.md``, the directory
+:data:`USC_SECTION_ORACLE_ARTIFACT` names). Generation 1 read its archive
+members with a case-SENSITIVE matcher and OLRC spells twelve of them
+``2010USC12.htm`` / ``2012USC33.htm``, so twelve title volumes were skipped in
+silence and twelve ``(title, year)`` pairs got no annual coverage at all.
 
 What the oracle is
 ------------------
-Two OLRC sources, downloaded 2026-08-22, digested in the artifact's README and
-reproduced row-for-row from re-fetched sources:
+Two OLRC sources, first downloaded 2026-08-22 and re-fetched byte-identical on
+2026-08-24 (32 of 32 digests match), digested in the artifact's README and
+reproduced row-for-row from those sources:
 
 * **release point 119-102, USLM XML** —
   ``https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip``
@@ -25,20 +32,108 @@ reproduced row-for-row from re-fetched sources:
 * **annual historical archives, XHTML, every year 1994–2024** —
   ``https://uscode.house.gov/download/annualhistoricalarchives/XHTML/2024.zip``
   and its thirty siblings, one per year: 66,007 distinct non-appendix
-  ``(title, section)``, 1,015 appendix ones, 49,823 year-scoped range stubs.
+  ``(title, section)``, 1,015 appendix ones, 49,960 year-scoped range stubs.
+  **Every year and every title volume in it**: 1,835 archive members
+  classified, 1,781 matched as title volumes, and the other 54 named
+  individually (the year index, ``usc.css``, the Popular Names table, Tables
+  1–6, and the 2011 archive's two Congress cross-reference tables) — a member
+  that matches neither list raises rather than being skipped. Generation 1
+  matched 1,769 and skipped twelve without a word; recovering them added
+  7,218 annual section rows and 137 range rows and moved the coverage matrix
+  from 1,642 ``(title, appendix, year)`` pairs to **1,654** — (12, 13, 14, 51)
+  at 2010 and (33, 35–41) at 2012, gained, none lost.
 
-The 32 source zips are **not retained here** — the oracle report's README
-carries a re-fetch digest and byte length for every one, and a row-for-row
-reproduction check of all six derived tables against them. What this module
+The 32 source zips are **not committed** — they are 2.3 GB — but generation 2
+retains them on disk under ``output/usc-annual-2026-08-24/`` rather than
+deleting them the way generation 1 did. The oracle report's README carries a
+re-fetch digest and byte length for every one, and a row-for-row reproduction
+check of all six derived tables against them. What this module
 reads is those derived tables, pinned in :data:`_ORACLE_PINS` and re-checked
 **all six together** by :meth:`UscSectionOracle.verify`, which
 :meth:`UscSectionOracle.from_directory` calls before the first question —
 because the tables load lazily and a caller who asks one of them
 authenticates one of them.
 
+**The annual half attests what OLRC printed as LIVE LAW at that edition, and
+that is a narrower thing than "a heading with this number appears somewhere in
+the volume."** OLRC prints a withdrawn section as a placeholder so a reader
+who looks the number up finds out what happened to it, and it marks those
+placeholders in two different ways that this oracle treats differently:
+
+* an **unbracketed** stub — ``§§3, 4. Omitted``, ``§§41, 42. Repealed. Pub. L.
+  104-186 …`` — is kept, as a section or a range exactly as printed. The 2012
+  volumes alone carry 1,544 unbracketed ``repealedhead`` and 596
+  ``omittedhead`` multi-section blocks, and every one is in the tables;
+* a **bracketed** stub — ``[§322. Repealed. Pub. L. 109-313 …]``,
+  ``[§§1 to 5. Repealed. …]``, ``[§11704. Renumbered §11703]`` — is **not**.
+  33,895 annual rows and 4,450 range rows over 1994–2024 are bracketed, 33,848
+  of the section rows reaching no other year or form.
+
+The bracket is not this module's convention; it is the publisher's own, and
+OLRC states it in metadata rather than typography alone. Every entry carries a
+``usckey`` beside its ``itempath``, and for a bracketed heading the section
+field of that key is **zeroed**: ``40_[322`` gets
+``usckey:400000000000000000000000000000000`` where the live §323 beside it gets
+``usckey:400000000032300000000000000000000``. Measured over all 31 archives,
+that holds without exception — **35,088 of 35,088** non-appendix bracketed
+entries carry a zeroed section field, against 1,585,628 unbracketed entries
+that carry a real one. The publisher declines to mint a Code identity for a
+bracketed heading, and the extractor follows it.
+
+What the exclusion costs, named rather than hidden: **40 U.S.C. 322 at edition
+2012** reads ``attested_at_edition = false`` although the 2012 volume does
+print ``[§322. Repealed …]``. The section still reads ``exists`` — the release
+point carries it with ``status='repealed'`` and the 1994–2005 archives print it
+unbracketed — so only the year-scoped question is affected. Across the whole
+rebuild-#12 build the exclusion holds 3,085 rows at ``false`` that admitting
+brackets would flip to ``true`` (2,280 from the section rows, 805 from the
+ranges).
+
+What the exclusion buys is the reason it stands. Admitting bracketed **ranges**
+moves 19 rows from ``absent`` to ``exists``, and all 19 are one pair: **6 U.S.C.
+1**, whose only witness anywhere is ``[§§1 to 5. Repealed. Pub. L. 92-310 …
+June 6, 1972]`` printed 1994–2001 under ``TITLE 6-SURETY BONDS [REPEALED]``.
+The rows filing it are 2005–2017 and say what they mean —
+``PL 107-296, 116 Stat 2135 (6 USC 1 et seq)`` is the Homeland Security Act,
+classified from **6 U.S.C. 101** in the Title 6 that replaced Surety Bonds
+entirely. Calling those ``exists`` on a 1972 repeal stub from an abolished
+title would manufacture the silent misread this module is the fence against,
+and would delete the honest hedge they carry today
+(:data:`ABSENT_CAVEATS`, ``repealed_before_1994_not_stubbed``, which is exactly
+their situation). :meth:`UscSectionOracle.disposition` does not catch it
+either — title 6 has no recodification table at all
+(``verdict='no-table-for-title'``). See the artifact README's
+"Bracketed stubs" section for the follow-up this defers: a THIRD state for
+"printed as a withdrawn placeholder at this edition", which is the honest fix
+and is a column's worth of schema work in ``unified_agenda_parquet``, not a
+widening of ``attested_at_edition`` — widening it is what produces the 19.
+
 Union used as the existence test: **66,780 distinct non-appendix
 (title, section)**, spanning every agenda edition in the corpus
-(1995-10 … 2025-10).
+(1995-10 … 2025-10). Admitting bracketed stubs would make it 67,105 and the
+annual key count 67,763; both are consequences of the paragraph above, not
+accidents of it.
+
+**The twelve recovered volumes moved that union by nothing, and that is the
+whole blast radius.** 66,780 in both generations, 67,022 distinct annual
+``(title, appendix, section)`` in both, and the annual range table's DISTINCT
+span set identical in both directions (only the year labels on those spans
+multiply, +137) — so ``section_is_enumerated`` and ``section_exists`` cannot
+have moved, and neither can a :attr:`SectionVerdict.verdict`. No section
+appears only in a skipped volume. What moves is
+:attr:`SectionVerdict.attested_at_edition`, the year-scoped question, on rows
+whose citing edition IS one of the twelve: recomputed over all 694,062 rows of
+the rebuild-#12 build that carry a ``(title, section)``, **1,898 rows move
+``False`` → ``True``, none move any other way, and no verdict moves at all**
+(1,882 typed ``usc``, 22.8% of that build's 8,261 ``exists`` /
+``attested_at_edition = false`` rows, over 390 pairs and 538 RINs, title 12 at
+edition 2010 alone 1,368; plus the 16 ``act_relative`` CWA rows of RINs
+2040-AE69 and 2040-AE95 at edition 201210). The 30 rows the investigation's
+hand-bucketing marked ``2-case-bug-uncertain`` do **not** move, and must not:
+they are titles 40 and 41 at 2012 cited by their pre-recodification numbers
+(40 U.S.C. 276c, 322, 333, 484, 486; 41 U.S.C. 46, 253, 414, 418b, 421–423,
+431, 701), and the recovered 2012 volumes print §101 and §3141, not those. The
+volume existing and the section existing are different facts.
 
 The rules, and the measurement that bought each
 -----------------------------------------------
@@ -242,13 +337,16 @@ module reads: :meth:`UscSectionOracle.recovered_lost_hyphen_sections` closes
 **2 of the 14** tokens and reaches no candidate at all for the other 12,
 because a named operator with one surviving target is the whole licence.
 
-**The range tables are sorted, not scanned.** ``annual_ranges`` holds 49,823
-year-scoped stubs, unevenly split across 31 titles -- title 42 alone carries
-7,979 in one bucket -- and :meth:`UscSectionOracle.attested_years` used to
+**The range tables are sorted, not scanned.** ``annual_ranges`` holds 49,960
+year-scoped stubs, unevenly split across 31 ``(title, appendix)`` buckets --
+title 42 alone carries 7,979 in one bucket -- and
+:meth:`UscSectionOracle.attested_years` used to
 walk every span in a title's bucket on every call, whether or not any of
 them mattered: 12.2M span comparisons over 95,492 distinct
 ``(title, section, appendix, year)`` keys the pinned corpus files, 8.8 s of
-it. :class:`_SpanIndex` sorts each bucket once, lazily, and answers "does
+it (measured at generation 1; the twelve recovered volumes add 137 stubs to
+two of the 31 buckets and move that figure by under half a percent).
+:class:`_SpanIndex` sorts each bucket once, lazily, and answers "does
 nothing match" (the common case) in O(log n) without touching a span, via a
 running maximum of each span's high endpoint: 0.26 s over the same keys,
 about 34x, with an identical result on every one
@@ -260,7 +358,11 @@ the identical shape and read the identical index.
 
 Every count in ``tests/test_usc_section_oracle.py`` is measured over
 ``agenda-legal-authorities-as-measured-797170.parquet``, the 797,170-row build
-this oracle was joined to, read by digest.
+this oracle was joined to, read by digest. That snapshot stays in the
+**generation 1** directory when :data:`USC_SECTION_ORACLE_ARTIFACT` moves: it
+is a measurement of the corpus, not a table of the Code, and generation 2 is
+not a re-measurement of the corpus. Copying it would mint a second set of
+identical bytes and invite the two to drift.
 """
 
 from __future__ import annotations
@@ -311,14 +413,14 @@ __all__ = [
 #: be structure with nothing to tell apart. The digests restate the artifact
 #: README's Files table on purpose — reading the pin *from* the README beside
 #: the tables would authenticate a swapped directory against its own paperwork.
-USC_SECTION_ORACLE_ARTIFACT = "research/evidence/usc-section-oracle-2026-08-22"
+USC_SECTION_ORACLE_ARTIFACT = "research/evidence/usc-section-oracle-2026-08-24"
 _ORACLE_PINS: Mapping[str, str] = {
-    "usc-oracle-sections.parquet": "sha256:f4b11c6e4ccbaa6ccf2aa0f4940d514b3a0285c6ec1b8f1352ea25b8a9a1bf1d",
-    "usc-oracle-ranges.parquet": "sha256:0808cbbff5f456d36daa4a45f3996b911bff7a98f36130150ed7600a255883d6",
-    "usc-oracle-annual-sections.parquet": "sha256:9ab9f43c23367910662f7a31ef140f573b138430c51c3c63fe141f6a4b984370",
-    "usc-oracle-annual-ranges.parquet": "sha256:caa9d3819dc6b49fdb68442c0e5be4773e84af99833437eb8f662da9aae2fde9",
-    "usc-oracle-subsections.parquet": "sha256:c412340820bb65f957c34d24a0124f78abfce1dc30b95773767af03472096f22",
-    "usc-oracle-chapters.parquet": "sha256:4fbd6ba386bee9d0a55f68e5072be60e6eaa0222719974eadcb842e345212f95",
+    "usc-oracle-sections.parquet": "sha256:bbb450afb00cc7a28e2fcab7943d47207e8c1899f1e83209bd92d893fe39daac",
+    "usc-oracle-ranges.parquet": "sha256:070226e36d324a15226bd84ce9f5e4a297b43ff83365dba37ed281d3186cd736",
+    "usc-oracle-annual-sections.parquet": "sha256:4757327d2bbcd5258d0fc51f0658df7fc9999c21d5a40dbe0c2d466cf25e7323",
+    "usc-oracle-annual-ranges.parquet": "sha256:c8cd96e1d13e4f429e1024f3a9fe25b8527036eae0adfd9ad29d9656522b43a3",
+    "usc-oracle-subsections.parquet": "sha256:d7502945223eed92bdeb65e6a73cf52240febefe9814180675fc4df512cd08ed",
+    "usc-oracle-chapters.parquet": "sha256:031ae7f3435f7ba2969bdf2c94b699170a63fe3183dd289ca23fa0ce45e90cb3",
 }
 
 #: The OLRC release point the current-code half was cut from, and the years the
@@ -770,7 +872,7 @@ def _read_pinned_parquet(directory: Path, name: str):
 
     Returns the arrow Table rather than
     :func:`refspec.registry.act_resolution._read_pinned_parquet`'s row dicts:
-    the annual set is 1,565,007 rows, and reading it column-wise is what keeps
+    the annual set is 1,572,225 rows, and reading it column-wise is what keeps
     the whole oracle under a second to load.
     """
 
@@ -897,11 +999,11 @@ class UscSectionOracle:
         made "re-checked on every load" a claim about the caller rather than
         about the directory: a consumer that asked only
         :meth:`c7_chapter_as_section` authenticated ``usc-oracle-chapters``
-        (11,713 bytes) and answered from five tables nothing had looked at. A
+        (11,668 bytes) and answered from five tables nothing had looked at. A
         swapped directory could therefore answer differently for as long as
         nobody happened to touch the table that was swapped.
 
-        Verification is not worth deferring: the six are 8,841,601 bytes and
+        Verification is not worth deferring: the six are 9,229,092 bytes and
         hash in about 4 ms, against the second the annual table costs to
         *read*. So :meth:`from_directory` calls this, and the lazy readers keep
         their own check for the caller who constructed the dataclass directly.
@@ -1367,6 +1469,42 @@ class UscSectionOracle:
         :meth:`corrected_section` beside it refuses anything with two
         survivors. The count is the finding; the classifier proposes only where
         exactly one survives.
+
+        **A tail the text states outranks the bare lettered section, and used
+        to be dropped on the floor here.** ``12 USC 1735(f)-14`` is B8's own
+        lesson: 12 U.S.C. 1735f ("Water and sewerage facilities") is a real
+        section, so the enumerated-lettered branch fired, took ``1735f`` and
+        skipped the tail check entirely — manufacturing exactly the single
+        survivor B8 was demoted for. The stated tail is now read FIRST, from
+        the same :meth:`tail_stated_sections` :meth:`correction_candidates`
+        reads, so the two rules cannot drift apart: where the text spells
+        ``NNN(x)-YY`` and the Code enumerates ``NNNx-YY``, that is the reading;
+        the bare ``NNNx`` is the fallback for a text that states no tail, and
+        the compound-name family is the fallback below that.
+
+        **The tail outranks the bare reading per OCCURRENCE, not per text**,
+        and reading it per text was a second truncation hiding inside the
+        first. ``42 U.S.C. 2000(d) to 2000(d)-7`` states TWO readings — the
+        bare 2000d and 2000d-7, both printed sections of the Civil Rights
+        Act's Title VI — and a rule that suppressed the untailed one because
+        *some* occurrence in the string carried a tail dropped a section the
+        text spells out in full. Aggregated over the pair's 14 texts it dropped
+        2000d for all 49 rows, 30 of which state nothing but a bare
+        ``2000(d)``. Each stated occurrence is now judged on its own tail;
+        an occurrence whose tail reaches nothing this oracle enumerates
+        (``1735(f)-99``) falls back exactly as before, which is what keeps the
+        two negative fixtures true.
+
+        Measured over the pinned corpus the change is visible in one pair:
+        42 U.S.C. 2000's count behind its refusal goes from 2 readings to
+        **9** — 2000d, 2000d-1 … 2000d-7, 2000e. **Latent in this module**:
+        :meth:`classify_section_miss` is this method's only caller here. It is
+        NOT latent downstream — ``unified_agenda_parquet``'s C3 promotion reads
+        these proposals per row, and the two rows of RIN 1505-AC45 (editions
+        201610 and 201704) that file that exact span move from *promoted to
+        ``42 USC 2000d-7``* to *refused as ambiguous*, which is the correct
+        answer for a citation naming a span by both endpoints: 217 promoted /
+        14 ambiguous / 1,186 witnessless, from 219 / 12 / 1,186.
         """
 
         section = normalize_section(section)
@@ -1380,26 +1518,34 @@ class UscSectionOracle:
                 found.setdefault(candidate, set()).add(kind)
 
         for suffix in _SUFFIXES:
-            if not re.search(rf"\b{section}\s*\(\s*{suffix}\s*\)", text):
+            # Every occurrence of this pinpoint, each carrying its OWN tail or
+            # none: the unit the precedence below is decided on.
+            occurrences = re.findall(rf"\b{section}\s*\(\s*{suffix}\s*\)(?:\s*-\s*([0-9a-z]+))?", text)
+            if not occurrences:
                 continue
             lettered = section + suffix
+            # 15 U.S.C. 80a is not a section; 80a-1 … 80a-64 are. 12 U.S.C.
+            # 1735f IS a section and 1735f-14 is a different one. Either way,
+            # where the text states the tail itself — "15 U.S.C. 80(a)-23",
+            # "12 USC 1735(f)-14" — that names ONE section and outranks both
+            # the bare lettered reading and the family, which offers 65 and
+            # therefore proposes none.
+            affirmed = self.tail_stated_sections(title, section, authority_text, letter=suffix)
+            for one in affirmed:
+                offer(one, "tail-stated")
+            # **The tail outranks the bare reading per OCCURRENCE, not per
+            # text.** "42 U.S.C. 2000(d) to 2000(d)-7" states both 2000d and
+            # 2000d-7; suppressing the first because some other occurrence
+            # carried a tail dropped a reading the text spells out in full.
+            # An occurrence whose own tail reaches nothing affirmed — none
+            # stated at all, or one the Code does not print ("1735(f)-99") —
+            # falls back exactly the way it always did.
+            served = set(affirmed)
+            if all(stated and f"{lettered}-{stated}" in served for stated in occurrences):
+                continue
             if self.section_is_enumerated(title, lettered):
                 offer(lettered, "suffix-restored")
-                continue
-            # 15 U.S.C. 80a is not a section; 80a-1 … 80a-64 are. Where the
-            # text states the tail itself — "15 U.S.C. 80(a)-23" — that names
-            # ONE of them and outranks the family, which offers 65 and
-            # therefore proposes none. Reading 80a-1 out of "80(a)-23" was the
-            # family fallback answering a question the text had already
-            # answered.
-            stated = {
-                f"{lettered}-{match.group(1)}"
-                for match in re.finditer(rf"\b{section}\s*\(\s*{suffix}\s*\)\s*-\s*([0-9a-z]+)", text)
-            }
-            affirmed = {one for one in stated if self.section_is_enumerated(title, one)}
-            for one in sorted(affirmed):
-                offer(one, "tail-stated")
-            if not affirmed:
+            else:
                 for child in self.hyphen_children.get((title, lettered), ()):
                     offer(child, "compound-name-family")
         return tuple(NearMiss(title=title, section=name, kinds=tuple(sorted(kinds))) for name, kinds in found.items())

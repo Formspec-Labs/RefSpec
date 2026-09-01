@@ -22,9 +22,44 @@ except for two things, both in the filename matcher:
 Source: https://uscode.house.gov/download/annualhistoricalarchives/XHTML/<YEAR>.zip
 
 Section identity comes from the `<!-- itempath:/NNN/.../Sec. X -->` comments the
-OLRC conversion emits.  Repealed/omitted blocks are printed as
-`Secs. 6 to 15a` and `Secs. 3, 4`; those are kept as ranges/lists rather than
-expanded, so the oracle never claims a section number that was never printed.
+OLRC conversion emits.
+
+**UNBRACKETED repealed/omitted blocks are kept**, and where such a block covers
+several sections it is printed `Secs. 6 to 15a` or `Secs. 3, 4` and is kept as a
+range/list rather than expanded, so the oracle never claims a section number
+that was never printed.  The 2012 volumes alone carry 1,544 unbracketed
+`repealedhead` and 596 unbracketed `omittedhead` multi-section blocks, and every
+one is in the output.
+
+**BRACKETED stubs are deliberately EXCLUDED, and that is a semantic, not an
+oversight.**  OLRC also prints withdrawn sections with the heading in square
+brackets -- itempath `/400/SUBTITLE I/CHAPTER 3/SUBCHAPTER III/[Sec. 322`,
+heading `[<sect>322. Repealed. Pub. L. 109-313, ... Oct. 6, 2006 ...]`
+(2012/2012USC40.htm), and likewise `[<sect><sect>1 to 5. Repealed ...]` and
+`[<sect>11704. Renumbered <sect>11703]`.  The `Secs?\\.` matcher below does not
+strip the leading `[`, so these do not reach the tables: **33,895 section rows
+and 4,450 range rows over 1994-2024, 33,848 of the section rows reaching no
+other year or form.**
+
+The line is the publisher's own, stated in its metadata and not merely in its
+typography: every entry carries a `usckey` beside its `itempath`, and for a
+bracketed heading the SECTION FIELD of that key is zeroed.  `40_[322` gets
+`usckey:400000000000000000000000000000000`; the live <sect>323 immediately
+below it gets `usckey:400000000032300000000000000000000`.  Measured over all 31
+archives that holds without exception -- **35,088 of 35,088** non-appendix
+bracketed entries carry a zeroed section field, against 1,585,628 unbracketed
+entries that carry a real one.  OLRC declines to mint a Code identity for a
+bracketed heading, and this extractor follows it: what the annual tables attest
+is what the edition printed as LIVE LAW.
+
+The consequence, named: 40 U.S.C. 322 reads unattested at edition 2012 though
+the 2012 volume prints a bracketed stub for it (it still reads `exists` -- the
+release point carries it repealed and 1994-2005 print it unbracketed).  The
+reason it stands: admitting bracketed ranges would move 6 U.S.C. 1 from
+`absent` to `exists` on the strength of a 1972 repeal stub in the abolished
+"TITLE 6-SURETY BONDS [REPEALED]", for 19 rows filed 2005-2017 that plainly
+mean the Homeland Security Act at 6 U.S.C. 101.  See the artifact README's
+"Bracketed stubs" section for the full measurement and the follow-up.
 
 Emits $W/usc_oracle_annual.parquet        (year, title, appendix, section)
       $W/usc_oracle_annual_rng.parquet    (year, title, appendix, lo, hi)
@@ -82,6 +117,11 @@ for year in YEARS:
         seen, rng = set(), set()
         for m in ITEMPATH.finditer(data):
             tail = m.group(1).decode("utf-8", "replace").rsplit("/", 1)[-1]
+            # Anchored at the start ON PURPOSE, which is what excludes the
+            # bracketed stubs ("[Sec. 322", "[Secs. 1 to 5"): a bracketed
+            # heading is one OLRC itself refuses a usckey section field for,
+            # and attestation here means printed as live law. See the module
+            # docstring for the measurement and the two named consequences.
             mm = re.match(r"Secs?\.\s+(.*)$", tail)
             if mm is None:
                 continue

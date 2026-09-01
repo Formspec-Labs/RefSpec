@@ -41,10 +41,12 @@ cp $W/usc_oracle_chapter.parquet    $G2/usc-oracle-chapters.parquet
 python3 $S/compare_generations.py $G1 $G2 | tee $G2/evidence/compare_generations.txt
 python3 $S/seeded_headings.py $G2 $W 20   | tee $G2/evidence/seeded_headings.tsv
 
-# 5. the consumer side, read-only against the pinned build
+# 5. the consumer side against the pinned build.  --write is what lets it put
+# the flip list in evidence/would_flip_rows.tsv; without it the script writes
+# nothing at all and the list goes to stdout with the rest of the report.
 python3 $S/would_flip.py $G1 $G2 \
   $R/output/registry-real-data-sources/unified-agenda-parquet/unified_agenda_legal_authorities.parquet \
-  | tee $G2/evidence/would_flip.txt
+  --write | tee $G2/evidence/would_flip.txt
 
 # 5b. the flip list against the investigation's hand-bucketed answer key
 python3 $S/check_against_answer_key.py $G2/evidence/would_flip.txt \

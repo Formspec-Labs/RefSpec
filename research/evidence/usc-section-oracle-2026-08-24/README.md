@@ -6,10 +6,15 @@ else is changed: the annual-archive extractor's filename matcher was
 case-sensitive, and OLRC named twelve annual title volumes with an uppercase
 `USC`, so those twelve volumes were silently skipped.
 
-Generation 1's directory is untouched and still the one `src/` reads; nothing
-here is wired to the module, and re-pinning it is a later unit's work. The
-raw source zips live under `output/usc-annual-2026-08-24/` (untracked, 2.3 GB)
-and are **retained** this time — generation 1 deleted its own.
+**These six tables are the ones `src/` reads.** `USC_SECTION_ORACLE_ARTIFACT`
+and all six `_ORACLE_PINS` digests in
+`src/refspec/registry/usc_section_oracle.py` name this directory as of
+2026-08-31 — see "The module switch" at the foot of this file. Generation 1's
+directory is untouched and still holds the corpus snapshot the tests measure
+over (`agenda-legal-authorities-as-measured-797170.parquet`), which stays there
+deliberately. The raw source zips live under `output/usc-annual-2026-08-24/`
+(untracked, 2.1 GB on disk) and are **retained** this time — generation 1
+deleted its own.
 
 ## The bug
 
@@ -66,6 +71,39 @@ title volumes silently skipped.** The other 54 unmatched members are not
 title volumes in either generation — the year `index.html`, `usc.css`,
 `uscPopularNames.htm`, `uscTable1`–`uscTable6`, and the 2011 archive's
 `tbl112cd_2nd.htm` / `tbl112pl_2nd.htm`.
+
+Re-verified independently of this table on 2026-08-31, straight out of the 31
+zips with `zipfile` and the two patterns: **1,835 members, 1,769 matched
+case-sensitively, 1,781 case-insensitively, exactly the twelve above in the
+difference**, and no other member of any year carries an uppercase `USC`
+anywhere in its name.
+
+### The sibling extractors: audited, defect absent, deliberately unchanged
+
+The same case-sensitive `usc` literal is in the three release-point
+extractors — `extract_sections.py` (`re.fullmatch(r"usc\d+[A-Za-z]?\.xml", n)`)
+and `extract_chapters.py` / `extract_subsections.py`
+(`re.fullmatch(r"usc\d+\.xml", n)`). Measured against the actual input, the
+defect has **zero members**: `xml_uscAll_119-102.zip` holds 58 files,
+`usc01.xml` … `usc54.xml` plus `usc05A.xml` and `usc50A.xml`, and every one
+spells `usc` in lower case. Both patterns match the same files with and
+without `re.IGNORECASE` — **58 and 58** for the sections extractor, **53 and
+53** for the two that deliberately skip the appendix titles.
+
+So the matcher is left alone in all three. Breaking a true, checkable statement
+to fix a defect with no members is a bad trade. What would change the answer
+is a re-cut from a **different** release point, and that is a new generation
+with its own reproduction check, not a patch to this one.
+
+They are **not** byte-identical to generation 1's copies, and an earlier
+revision of this file said they were. They differ in one respect and only one,
+introduced at `797401ec`: generation 1 hard-coded `/tmp/silent` as its working
+directory and these take it from `$USC_WORK` (defaulting to
+`output/usc-annual-2026-08-24`), which is three added lines plus the paths in
+the `zipfile.ZipFile(...)` and `COPY ... TO ...` calls and their docstrings.
+`diff` them against generation 1's copies and that is the whole delta — no
+change to any pattern, any parse, or any emitted column. The Derivation section
+below states the claim in that form.
 
 ## Sources
 
@@ -139,11 +177,12 @@ existence test — release point ∪ non-appendix annual — is **66,780** pairs
 ## Derivation
 
 `scripts/reproduce.sh` is the order. The six tables come from the same four
-extractors generation 1 used. `extract_annual.py` differs by the matcher fix
-and the guard; `extract_sections.py`, `extract_subsections.py` and
+extractors generation 1 used. `extract_annual.py` differs by the matcher fix,
+the guard, and (2026-08-31) a docstring that states the bracketed-stub
+exclusion below; `extract_sections.py`, `extract_subsections.py` and
 `extract_chapters.py` differ **only** in taking their working directory from
-`$USC_WORK` instead of the hard-coded `/tmp/silent` (diff them against
-generation 1's copies — every other line is identical).
+`$USC_WORK` instead of the hard-coded `/tmp/silent` — diff them against
+generation 1's copies and every line outside that substitution is identical.
 
 Python 3.12.9, duckdb 1.4.4, pyarrow 21.0.0, macOS 26.6. The annual pass over
 all 31 zips takes 100 s.
@@ -228,29 +267,196 @@ section)` is likewise 67,022 in both. **So the fix cannot change a single
 That is the sharpest statement of the blast radius, and it is measured, not
 assumed.
 
+## Bracketed stubs: excluded on purpose, adjudicated 2026-08-31
+
+`scripts/extract_annual.py` used to claim, without qualification, that
+"repealed/omitted blocks are retained". That was true of one form and false of
+another, and the review that caught it was right to call the sentence a defect.
+This section is the adjudication, and the decision is **exclude, deliberately,
+and say so.**
+
+### What OLRC actually prints
+
+Two forms, and the archives distinguish them everywhere:
+
+| | unbracketed | bracketed |
+|---|---|---|
+| itempath | `/020/CHAPTER 1/Secs. 3, 4` | `/400/…/SUBCHAPTER III/[Sec. 322` |
+| heading | `§§3, 4. Omitted` | `[§322. Repealed. Pub. L. 109–313, §3(h)(1), Oct. 6, 2006, 120 Stat. 1736]` |
+| documentid | `2_3,_4` | `40_[322` |
+| usckey | `020000000000300000000000000000000` | `400000000000000000000000000000000` |
+| in these tables | **yes** | **no** |
+
+The unbracketed form is kept and always was: the 2012 volumes alone carry
+**1,544 unbracketed `repealedhead` and 596 unbracketed `omittedhead`**
+multi-section blocks, all of them in the output as ranges or lists. What the
+old sentence omitted is the bracketed form, which the `Secs?\.` matcher's
+start-anchor drops: **33,895 section rows and 4,450 range rows across
+1994–2024, 33,848 of the section rows reaching no other year or form.** Their
+kinds, counted over all 31 archives: 30,167 repealed, 4,939 renumbered, 569
+vacant, 464 omitted, 62 reserved, 60 transferred, and ~2,000 abrogated Rules
+and Forms in the appendix titles.
+
+### The line is the publisher's, not ours
+
+Every entry carries a `usckey` beside its `itempath`, and **for a bracketed
+heading the section field of that key is zeroed.** Read straight out of
+`2012/2012USC40.htm`, four lines apart:
+
+```
+<!-- documentid:40_[322  usckey:400000000000000000000000000000000 currentthrough:20130115 -->
+<!-- itempath:/400/SUBTITLE I/CHAPTER 3/SUBCHAPTER III/[Sec. 322 -->
+<h3 class="section-head">[&sect;322. Repealed. Pub. L. 109&ndash;313, &sect;3(h)(1), Oct. 6, 2006, 120 Stat. 1736]</h3>
+...
+<!-- documentid:40_323  usckey:400000000032300000000000000000000 currentthrough:20130115 -->
+<!-- itempath:/400/SUBTITLE I/CHAPTER 3/SUBCHAPTER III/Sec. 323 -->
+<h3 class="section-head">&sect;323. Consumer Information Center Fund</h3>
+```
+
+Cross-tabulated over all 31 archives, every non-appendix entry whose itempath
+parses as a section:
+
+| bracketed | usckey section field | entries |
+|---|---|---:|
+| no | set | 1,585,628 |
+| no | zeroed | 1,853 |
+| no | absent | 202 |
+| **yes** | **zeroed** | **35,088** |
+| yes | set | 0 |
+
+**35,088 of 35,088, no exception.** (The 1,853 unbracketed-and-zeroed are one
+corrupt file, `1994usc20.htm`, whose bytes carry a stray `\x1a` where `§`
+belongs; the `TOKEN` pattern rejects them anyway and none reaches the tables.)
+So OLRC itself declines to mint a Code identity for a bracketed heading, and
+this extractor follows it: **what the annual tables attest is what the edition
+printed as live law.**
+
+### What including them would do, measured
+
+Rebuilt with brackets admitted and re-asked of the module's own
+`section_verdict` over rebuild #12:
+
+| quantity | as shipped | with brackets |
+|---|---:|---:|
+| annual section rows | 1,572,225 | 1,606,073 |
+| distinct annual `(title, appendix, section)` | 67,022 | 67,763 |
+| distinct annual spans | 1,885 | 2,115 |
+| `enumerated` (the existence union) | 66,780 | 67,105 |
+| attestation movements over the 694,062 addressed rows | — | 3,085, all `false` → `true` |
+| **verdict** movements | — | **19, all `absent` → `exists`** |
+| `usc` rows reading exists / unattested | 6,379 | 3,313 |
+
+Splitting the two halves is what decides it. Admitting the bracketed **section**
+rows alone moves 2,280 attestations and **no** verdict. Admitting the bracketed
+**ranges** moves 805 attestations and **all 19** verdicts — and all 19 are one
+pair:
+
+```
+1651-AA65  200510…200810   6 USC 1                                     (7 rows)
+1615-AB99  201210, 201304  PL 107-296, 116 Stat 2135 (6 USC 1 et seq)  (2 rows)
+1651-AA96  201210…201704   6 USC 1 et seq / 6 U.S.C. 1 et seq.        (10 rows)
+```
+
+6 U.S.C. 1's only witness anywhere in the Code is, in `1994/1994usc06.htm`:
+
+```
+<!-- expcite:TITLE 6-SURETY BONDS [REPEALED]!@![Secs. 1 to 5 -->
+<h3 class="section-head">[&sect;&sect;1 to 5. Repealed. Pub. L. 92&ndash;310, title II, &sect;203(1), June 6, 1972, 86 Stat. 202]</h3>
+```
+
+— a 1972 repeal stub, printed 1994–2001 only, in a title Congress abolished and
+then reused. The rows citing it are 2005–2017 and one of them names its own
+statute: **Pub. L. 107-296 is the Homeland Security Act of 2002**, classified
+beginning at **6 U.S.C. 101**, which the release point prints as `current` and
+the archives attest from 2002. Calling those rows `exists` would be the oracle
+affirming a citation on the strength of an abolished title's repeal stub — the
+silent misread this whole module is the fence against — and it would delete the
+honest hedge they carry today: `absent` with `ABSENT_CAVEATS =
+("repealed_before_1994_not_stubbed",)`, which is precisely their situation.
+Nothing downstream would catch it either: `UscDispositionTables` has no table
+for title 6 at all (`verdict='no-table-for-title'`).
+
+So the bracket means the same thing in `[Sec. 322` and `[Secs. 1 to 5`, and
+splitting on which half happens to produce a wrong verdict would be choosing on
+convenience. Both are excluded, on the same ground.
+
+### What it costs, named
+
+**40 U.S.C. 322 reads `attested_at_edition = false` at edition 2012 although
+the 2012 volume prints a stub for it.** The section still reads `exists` — the
+release point carries it `repealed` and 1994–2005 print it unbracketed — so the
+exclusion costs a year, not a section. Across rebuild #12 the exclusion holds
+3,085 rows at `false` whose number does appear in the citing edition as a
+withdrawn placeholder. `tests/test_usc_section_oracle.py::
+test_a_bracketed_stub_is_printed_but_does_not_attest` pins exactly this,
+raw bytes and all, so the exclusion cannot quietly become an accident again.
+
+### The follow-up this defers
+
+**REF-follow-up (unassigned): a third state for "printed as a withdrawn
+placeholder at this edition."** `attested_at_edition` is a two-valued answer to
+a three-valued question — printed live, printed withdrawn, not printed — and
+the 3,085 rows above are the middle case reported as the last. The honest fix
+is a distinct field or caveat, not a widened `attested_at_edition`, because
+widening it is what produces the 19 wrong verdicts. That is schema work in
+`unified_agenda_parquet`'s legal-authorities table and a new column's worth of
+census, which is a unit of its own and not a line in this one.
+
 ## What it is worth to the consumer
 
-Read-only against the pinned build
-`output/registry-real-data-sources/unified-agenda-parquet/unified_agenda_legal_authorities.parquet`
-(rebuild #11, 799,127 rows), `scripts/would_flip.py` asks the module's own
-`section_verdict` twice — once against generation 1 as pinned, once against an
-oracle whose two annual tables are generation 2's — and compares.
+Re-measured 2026-08-31 against **rebuild #12**
+(`output/registry-real-data-sources/unified-agenda-parquet/unified_agenda_legal_authorities.parquet`,
+`sha256:b01ca4805a8b05fa388a317409f6e72eb887ea5995d75f5822951f15fd49374f`,
+`receipt.json` `uscSectionExistsNotAtEditionRows = 8261`). The numbers below
+replace the rebuild-#11 measurement this directory shipped with; the
+per-(title, edition) shape is the same and two cells move, both for reasons
+outside this oracle. `scripts/would_flip.py` asks the module's own
+`section_verdict` twice — once against the pinned generation, once against an
+oracle whose two annual tables are the other generation's — and compares.
+
+The script reports **three** populations, and the third is new on 2026-08-31.
+Until then its first query was untyped and returned 8,280 rows under the label
+"usc rows", 19 of which were `act_relative` — so the same 16 CWA rows were
+counted twice, once in the usc table and once in the act table. It is now
+`authority_type = 'usc'`, matching the receipt's own
+`uscSectionExistsNotAtEditionRows` census exactly.
 
 Harness check first: recomputing under generation 1 returns the column the
-build already wrote on **8,258 of 8,258** rows, so the question being asked is
-the build's own.
+build already wrote on **8,261 of 8,261** `usc`-typed rows, so the question
+being asked is the build's own.
 
-* **1,881 of the 8,258** `usc` rows reading `exists` /
-  `attested_at_edition = false` would read `true`. 6,377 stay. **Zero rows
-  change in any other way.**
+* **1,882 of the 8,261** `usc`-typed rows reading `exists` /
+  `attested_at_edition = false` read `true` under generation 2. 6,379 stay.
+  Zero rows change in any other way.
 * **16 act-derived rows** (`authority_type = 'act_relative'`, RINs 2040-AE69
   and 2040-AE95, all CWA at edition `201210`) name title 33 sections the 2012
-  volume prints; they carry no verdict in this build, and the oracle's answer
-  for them moves from `false` to `true`.
+  volume prints; rebuild #12 judges them, and their answer moves from `false`
+  to `true`, leaving 3 of the 19 — the genuine era mismatches.
+* 390 distinct `(title, section)` pairs, 538 distinct RINs.
+* **No `verdict` moves anywhere in the table, and that is now checked rather
+  than argued.** Neither query above could establish it: both are restricted to
+  rows already reading `exists`, and a verdict moving means an `absent`
+  becoming an `exists`. So `would_flip.py` recomputes BOTH halves of the answer
+  over every row of the build carrying a `(usc_title, usc_section)` —
+  **694,062 rows, of any authority type and any verdict** — and prints the
+  movements. Measured: **0 verdict movements, 1,898 attestation movements**
+  (the 1,882 + 16 above), and generation 1's recomputation returns the build's
+  own verdict on **693,928 of 693,928** rows it judged. The other 134 the build
+  writes no verdict for at all — 129 name a title that cannot be the Code's
+  (59, 61, 80, 94 … 41349) and 5 name titles 52 and 54 in editions before those
+  titles existed — and calling `section_verdict` directly answers `absent` for
+  them because it is asked. That is a difference in what gets asked, not in
+  what the oracle answers, so the reconciliation excludes them by name rather
+  than absorbing them into a total.
+
+`would_flip.py` is **read-only unless `--write` is passed**; without it the
+flip list goes to stdout with the rest of the report instead of overwriting
+`evidence/would_flip_rows.tsv`. It used to rewrite that tracked file
+unconditionally while its own docstring said it wrote nothing.
 
 | title | edition | rows | RINs | texts |
 |---:|---:|---:|---:|---:|
-| 12 | 2010 | 1,367 | 216 | 338 |
+| 12 | 2010 | 1,368 | 216 | 338 |
 | 38 | 2012 | 140 | 82 | 77 |
 | 33 | 2012 | 133 | 66 | 63 |
 | 35 | 2012 | 86 | 40 | 27 |
@@ -260,50 +466,115 @@ the build's own.
 | 14 | 2010 | 5 | 2 | 3 |
 | 39 | 2012 | 2 | 2 | 2 |
 
-The full list is `evidence/would_flip_rows.tsv`; twenty seeded rows with
-their RIN, edition and citation text are in `evidence/would_flip.txt`.
+One cell moved from the rebuild-#11 table, and it is not about this oracle:
+**12 @2010 1,367 → 1,368**, the endpoint row the in-list range-tail unit added
+to `12 USC 2018 to 12 USC 2020` (RIN 3052-AC55, edition 201004). The table is
+`usc`-typed, so 33 @2012 is the 133 `usc` rows it always was; the 16
+`act_relative` CWA rows are counted once, in their own section above, and are
+listed row by row in `evidence/would_flip.txt`.
+
+The full `usc` flip list — **1,882 rows** — is
+`evidence/would_flip_rows.tsv`; twenty seeded rows with their RIN, edition and
+citation text, the 16 act-derived rows, and the whole-table recomputation are
+all in `evidence/would_flip.txt`.
 
 **Against the investigation's hand-bucketed answer key**
 (`../investigations-2026-08-24/inv-2012/exists_not_attested_8258_bucketed.csv`,
-which classified all 8,258 rows by eye): generation 2 flips every
-`1-case-bug-high-confidence` key (1,355 distinct keys) and **not one** key
-from `2-case-bug-uncertain` (28), `3-future-edition-beyond-2024` (23) or
-`4-genuine-era-mismatch` (3,869); no flip falls outside the key. The 30 rows
-the investigation marked uncertain are titles 40 and 41 at 2012 cited by
+which classified all 8,258 rows of rebuild #11 by eye): generation 2 flips
+every `1-case-bug-high-confidence` key (1,355 distinct keys) and **not one**
+key from `2-case-bug-uncertain` (28), `3-future-edition-beyond-2024` (23) or
+`4-genuine-era-mismatch` (3,869). Against rebuild #12 there is **exactly one
+flip the key does not carry at all** (`evidence/answer_key_confusion.tsv` names
+it): `12 USC 2020` for RIN 3052-AC55, the range endpoint the in-list
+range-tail unit added after the key was hand-bucketed. It was 17 while the
+script's first query was untyped and swept the 16 CWA `act_relative` rows into
+the `usc` flip list — those rows are real and unchanged, they simply are not
+`usc`-typed and the key never covered them. Not one is a `usc`-typed row the
+key bucketed and generation 2 disagreed with.
+
+**The projection the 2026-08-31 review carried was buckets 1+2.** It expected
+"~1,912 rows / 404 pairs / 559 RINs" — that is `1-case-bug-high-confidence`
+PLUS `2-case-bug-uncertain` (1,911 / 404 / 559 exactly). The measurement is
+bucket 1 alone plus the one new range-endpoint row: **1,882 / 390 / 538**. The
+30 rows the investigation marked uncertain are titles 40 and 41 at 2012 cited by
 their **pre-recodification** numbers — 40 U.S.C. 276c, 322, 333, 484, 486 and
 41 U.S.C. 46, 253, 414, 418b, 421–423, 431, 701 — and the recovered 2012
 volumes do not print them (checked by eye in the raw `.htm`: title 40's 2012
 volume prints §101 and §3141, not §276c). The volume existing and the section
 existing are different facts, and generation 2 keeps them apart.
 
-## What the module switch must change (not done here)
+## The module switch — done 2026-08-31
 
-The switch is the next unit's. What it must move:
+The six tables here are what `refspec.registry.usc_section_oracle` reads.
+Before re-pinning, all six were re-extracted from the retained zips in a
+scratch working directory and compared to the committed copies: **`EXCEPT` in
+both directions returns 0 rows on all six**, columns identical, 1,572,225 /
+49,960 / 59,364 / 1,751 / 160,209 / 2,905 rows respectively. The parquet BYTES
+differ between runs — DuckDB writes rows in Python set-iteration order, which
+is not stable across processes — so the pins below are the digests of the
+committed files, verified to be a row-for-row reproduction rather than assumed
+to be one.
 
 * `src/refspec/registry/usc_section_oracle.py`
   * `USC_SECTION_ORACLE_ARTIFACT` → `"research/evidence/usc-section-oracle-2026-08-24"`
   * all six digests in `_ORACLE_PINS` → the Files table above
-  * docstring counts that move: annual rows 1,565,007 → **1,572,225**,
-    annual range rows 49,823 → **49,960**. The counts that do **not** move:
-    66,780, 67,022, 66,007, 1,015, 59,362, 59,364, 1,751, 160,209, 2,905,
-    1,885.
+  * docstring counts moved: annual rows 1,565,007 → **1,572,225**, annual
+    range rows 49,823 → **49,960**. The counts that did **not** move: 66,780,
+    67,022, 66,007, 1,015, 59,362, 59,364, 1,751, 160,209, 2,905, 1,885.
+  * the falsified prose is corrected: "every year 1994–2024" now states what
+    it is true of (every year AND every title volume in it, 1,781 of 1,835
+    members matched and the other 54 named), the "32 source zips are not
+    retained here" line says *not committed but retained under
+    `output/usc-annual-2026-08-24/`*, and the blast radius is stated with its
+    measurement.
+  * two byte counts in `verify`'s docstring were still generation 1's and are
+    re-derived from the files on disk: `usc-oracle-chapters` 11,713 →
+    **11,668**, and the six together 8,841,601 → **9,229,092**.
+  * the bracketed-stub exclusion above is stated in the module docstring, in
+    `scripts/extract_annual.py`'s docstring, and at the matcher itself.
+  * **`c3_proposals` reads a stated tail per OCCURRENCE, not per text**, which
+    is a fix landing in the same wave and is *not* about the oracle tables. A
+    tail anywhere in the string used to suppress the bare lettered reading
+    everywhere in it, so `42 U.S.C. 2000(d) to 2000(d)-7` — a span named by
+    both endpoints, both printed sections — came back as the single reading
+    `2000d-7`. The pair's candidate count goes 8 → **9** (2000d, 2000d-1 …
+    2000d-7, 2000e). Downstream, `unified_agenda_parquet`'s C3 promotion
+    refuses those two rows as ambiguous instead of publishing an endpoint:
+    **217 promoted / 14 ambiguous / 1,186 witnessless**, from 219 / 12 / 1,186.
+    The two rows are RIN 1505-AC45 at editions 201610 and 201704.
+* `tests/test_usc_section_oracle.py` — `SNAPSHOT` is now anchored on its own
+  `SNAPSHOT_DIR` constant pointing at **generation 1**, deliberately: the
+  snapshot is a measurement of the CORPUS, this directory is a re-cut of the
+  Code's tables and not a re-measurement of the corpus, and copying it would
+  mint a second set of identical bytes with two digests to keep in step. Three
+  counts moved with the switch — annual range stubs 49,823 → 49,960, the
+  corpus's exists-not-attested rows 8,227 → 6,375 over 706 → 325 pairs, and
+  12 U.S.C. 1831o-1's first attested year 2011 → **2010** (Dodd-Frank § 616(d),
+  printed in the recovered 2010 volume). Three tests were added on 2026-08-31:
+  `test_the_extractors_own_matcher_classifies_every_archive_member` runs
+  `extract_annual.py`'s OWN `FNAME` and `NON_TITLE` (lifted from its source by
+  AST, not restated) over all 1,835 members of all 31 zips, so reverting
+  `re.IGNORECASE` fails a test rather than only changing an artifact nothing
+  re-derives; `test_a_bracketed_stub_is_printed_but_does_not_attest` pins the
+  exclusion above against the raw bytes; and the C3 test gained a mixed
+  tailed/untailed fixture.
+
+Still outstanding, in files this unit did not own:
+
 * `src/refspec/registry/citation_grammar.py` — the artifact path in three
-  comments (≈ lines 1782–1784, 1854, 2554) and the same two row counts.
-* `src/refspec/registry/unified_agenda_parquet.py` ≈ line 7487 — cites 66,780,
-  which does not move.
-* `tools/build_registry_source_manifest.py` ≈ lines 1343, 1358 — the README
+  comments (≈ lines 1866, 1951, 2659) and the two row counts. Its own
+  `USC_SECTION_ORACLE` constant in `tests/test_citation_grammar.py` is
+  hard-coded to generation 1 and therefore still passes.
+* `src/refspec/registry/unified_agenda_parquet.py` ≈ line 3824 — calls the 2012
+  gap "the oracle's own coverage hole" over "titles 33-41, 52 and 54", merging
+  this fixed extractor bug (33, 35–41) with genuine title-creation gaps (52,
+  54). Now false for the first half.
+* `tools/build_registry_source_manifest.py` ≈ lines 1364, 1379 — the README
   path, and the "zips were deleted" wording, which is no longer true of
   generation 2: `output/usc-annual-2026-08-24/` retains all 32.
 * `tests/test_citation_grammar.py` — the artifact path at lines 53 and 2954
   and the counts at 2949–2950.
-* `tests/test_usc_section_oracle.py` — `ORACLE_DIR` follows
-  `USC_SECTION_ORACLE_ARTIFACT`, so `SNAPSHOT`
-  (`agenda-legal-authorities-as-measured-797170.parquet`) and
-  `SNAPSHOT_DIGEST` will point into a directory that does not carry it.
-  **Decide deliberately**: either keep the snapshot lookup anchored on
-  generation 1 (it is generation 1's measurement, and this directory is not a
-  re-measurement of the corpus), or copy the snapshot here. This unit did
-  neither.
 
-Any corpus-count test that asserts `attested_at_edition` totals will move by
-the 1,881 rows above; nothing that asserts a `verdict` should move at all.
+Corpus-count tests that assert `attested_at_edition` totals moved by the 1,882
+rows above; nothing that asserts a `verdict` moved at all, and that was checked
+over the whole 694,062-row population rather than inferred.

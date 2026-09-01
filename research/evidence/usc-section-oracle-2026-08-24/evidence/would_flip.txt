@@ -1,13 +1,13 @@
-usc rows reading exists / attested_at_edition = false in the pinned build: 8258
-would flip to attested_at_edition = true under generation 2: 1881
-unchanged: 6377
+usc-typed rows reading exists / attested_at_edition = false in the pinned build: 8261
+would flip to attested_at_edition = true under generation 2: 1882
+unchanged: 6379
 changed some other way (should be 0): 0
-rows whose generation-1 recomputation returns the pinned column (false): 8258 of 8258
+rows whose generation-1 recomputation returns the pinned column (false): 8261 of 8261
 full flip list written to research/evidence/usc-section-oracle-2026-08-24/evidence/would_flip_rows.tsv
 
 -- flips per (title, edition year) --
 usc_title	edition_year	rows	rins	texts
-12	2010	1367	216	338
+12	2010	1368	216	338
 38	2012	140	82	77
 33	2012	133	66	63
 35	2012	86	40	27
@@ -19,47 +19,55 @@ usc_title	edition_year	rows	rins	texts
 
 -- twenty seeded flips, verbatim --
 rin	publication_id	usc_title	usc_section	authority_text	whole_citation
-0651-AC47	201210	35	2	35 USC 2(b)(2)	35 USC 2(b)(2)
-0750-AH68	201210	41	1303	41 USC 1303	41 USC 1303
+0651-AC44	201210	35	132	35 USC 132(b)	35 USC 132(b)
+0750-AH67	201210	41	1303	41 USC 1303	41 USC 1303
 1506-AB05	201004	12	1829	12 USC 1829	12 USC 1829
 1550-AC02	201004	12	1467a	12 USC 1467a	12 USC 1467a
-1550-AC24	201010	12	1467a	12 USC 1467a	12 USC 1467a
-1557-AD16	201010	12	161	12 USC 161	12 USC 161
+1550-AC24	201010	12	1464	12 USC 1464	12 USC 1464
+1557-AD16	201010	12	93a	12 USC 93a	12 USC 93a
 1557-AD17	201004	12	93a	12 USC 93a	12 USC 93a
-1557-AD22	201010	12	2901	12 USC 2901 et seq	12 USC 2901 et seq
-1557-AD34	201010	12	215	12 USC 215 and 215a	12 USC 215 and 215a
-1557-AD34	201010	12	26	12 USC 26 and 27	12 USC 26 and 27
-1557-AD34	201010	12	481	12 USC 481	12 USC 481
+1557-AD22	201010	12	2801	12 USC 2801 et seq	12 USC 2801 et seq
+1557-AD34	201010	12	161	12 USC 161	12 USC 161
+1557-AD34	201010	12	22	12 USC 21 and 22	12 USC 21 and 22
+1557-AD34	201010	12	215a	12 USC 215 and 215a	12 USC 215 and 215a
 2506-AC23	201004	12	4568	12 USC 4568	12 USC 4568
-2590-AA12	201010	12	4526	12 USC 1427	12 USC 1427, 1431(l)(5), 1452(h), 1455(l)(5), 4502(6) and (12), 4513, 4514, 4517, 4518, 4526, 4631, 4632, 4636, 1719(g)(5), 1723a(d)
-2590-AA35	201010	12	4511	12 USC 1440, 1440a, 4511, 4514, and 4517	12 USC 1440, 1440a, 4511, 4514, and 4517
-2900-AO10	201210	38	3680	38 USC 3680	38 USC 3680
+2590-AA12	201010	12	4518	12 USC 1427	12 USC 1427, 1431(l)(5), 1452(h), 1455(l)(5), 4502(6) and (12), 4513, 4514, 4517, 4518, 4526, 4631, 4632, 4636, 1719(g)(5), 1723a(d)
+2590-AA35	201010	12	1440a	12 USC 1440, 1440a, 4511, 4514, and 4517	12 USC 1440, 1440a, 4511, 4514, and 4517
+2900-AO10	201210	38	3022	38 USC 3022	38 USC 3022
 3052-AC50	201004	12	2013	12 USC 2013	12 USC 2013
-3064-AD45	201004	12	1828	12 USC 1828 to 1831u	12 USC 1828 to 1831u
-3133-AD22	201004	12	1759	12 USC 1759	12 USC 1759
-3133-AD63	201004	12	1781	12 USC 1781 to 1790	12 USC 1781 to 1790
-3133-AD67	201010	12	1752	12 USC 1752(s)	12 USC 1752(s)
+3064-AD45	201004	12	1819	12 USC 1819 to 1820	12 USC 1819 to 1820
+3133-AD22	201004	12	1755	12 USC 1755 to 1757	12 USC 1755 to 1757
+3133-AD63	201004	12	1766	12 USC 1766(a)	12 USC 1766(a)
+3133-AD65	201010	12	1789	12 USC 1789	12 USC 1789
 
 -- act-derived rows (authority_type = 'act_relative') carrying a usc section --
-act_relative rows with a resolved (title, section): 5657
+act_relative rows with a resolved (title, section): 6768
 act_relative rows the oracle would newly attest at their edition: 16
 usc_title	edition_year	rows
 33	2012	16
 
 rin	publication_id	usc_title	usc_section	authority_text	verdict_now	attested_now	attested_gen1	attested_gen2
-2040-AE69	201210	33	1311	CWA 301	None	None	False	True
-2040-AE69	201210	33	1314	CWA 304	None	None	False	True
-2040-AE69	201210	33	1316	CWA 306	None	None	False	True
-2040-AE69	201210	33	1317	CWA 307	None	None	False	True
-2040-AE69	201210	33	1318	CWA 308	None	None	False	True
-2040-AE69	201210	33	1342	CWA 402	None	None	False	True
-2040-AE69	201210	33	1361	CWA 501	None	None	False	True
-2040-AE95	201210	33	1251	CWA 101	None	None	False	True
-2040-AE95	201210	33	1311	CWA 301	None	None	False	True
-2040-AE95	201210	33	1314	CWA 304	None	None	False	True
-2040-AE95	201210	33	1318	CWA 308	None	None	False	True
-2040-AE95	201210	33	1326	CWA 316	None	None	False	True
-2040-AE95	201210	33	1341	CWA 401	None	None	False	True
-2040-AE95	201210	33	1342	CWA 402	None	None	False	True
-2040-AE95	201210	33	1361	CWA 501	None	None	False	True
-2040-AE95	201210	33	1370	CWA 510	None	None	False	True
+2040-AE69	201210	33	1311	CWA 301	exists	False	False	True
+2040-AE69	201210	33	1314	CWA 304	exists	False	False	True
+2040-AE69	201210	33	1316	CWA 306	exists	False	False	True
+2040-AE69	201210	33	1317	CWA 307	exists	False	False	True
+2040-AE69	201210	33	1318	CWA 308	exists	False	False	True
+2040-AE69	201210	33	1342	CWA 402	exists	False	False	True
+2040-AE69	201210	33	1361	CWA 501	exists	False	False	True
+2040-AE95	201210	33	1251	CWA 101	exists	False	False	True
+2040-AE95	201210	33	1311	CWA 301	exists	False	False	True
+2040-AE95	201210	33	1314	CWA 304	exists	False	False	True
+2040-AE95	201210	33	1318	CWA 308	exists	False	False	True
+2040-AE95	201210	33	1326	CWA 316	exists	False	False	True
+2040-AE95	201210	33	1341	CWA 401	exists	False	False	True
+2040-AE95	201210	33	1342	CWA 402	exists	False	False	True
+2040-AE95	201210	33	1361	CWA 501	exists	False	False	True
+2040-AE95	201210	33	1370	CWA 510	exists	False	False	True
+
+-- whole-table recomputation: every row carrying a (usc_title, usc_section) --
+rows addressed: 694062
+rows the build declined to judge (title-impossible; not reconciled here): 134
+rows whose generation-1 recomputation returns the build's own verdict: 693928 of 693928
+rows whose VERDICT differs between the generations: 0
+rows whose ATTESTATION differs between the generations: 1898
+rin	publication_id	authority_type	usc_title	usc_section	verdict_gen1	verdict_gen2	authority_text
