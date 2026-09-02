@@ -4660,3 +4660,82 @@ topic order. No product corpus is loaded. GAO **product-page** acquisition
 belongs in SpicyDocs; this publisher topic page is RefSpec-owned vocabulary
 evidence. The committed capture does not license SpicySearch to own a live GAO
 crawler or either product to infer vocabulary membership from report rows.
+### REF-061: B8 publishes only as a two-witness rule, in the builder
+
+- **Date:** 2026-09-01
+- **Status:** Accepted. Enlarges the 2026-08-23 B8 demotion (see the oracle
+  module docstring) without reversing it.
+
+The oracle's B8 reading ("NNN(x)" as lettered section NNNx) stays
+candidate-only where it lives: one structural witness cannot tell the FTC
+case apart from a filer citing a subsection the bare section never printed.
+The builder now publishes the reading where THREE things align: the oracle
+names B8 as the SOLE surviving candidate, no live counter-evidence exists
+(the rule's own held CFR authority note naming the bare section present
+refuses, always), and a second witness outside the oracle's inputs
+corroborates — the same note naming the lettered identity present, or the
+same RIN's own citation history carrying it as a parsed section. Measured at
+rebuild #15: promoted 666 rows / refused 319 (note names bare) + 454
+(witnessless), closing the LONE:B8 census hole (1,439 rows that previously
+appeared in no census) with the dedicated `uscB8PromotionRows` key.
+
+Two deliberate narrowings against the mined spec's 1,171, both recorded in
+the evidence home (research/evidence/b8-enlargement-2026-09-01/): the
+sole-survivor gate excludes 1,902 witness-corroborated multi-candidate rows
+(917 note / 533 history / 452 both) — a candidate follow-up unit needing its
+own review, since the one known-bad specimen lives there — and witness
+corroboration is structural only, never a raw-text scan: the bounded scan
+finds 0 recoverable rows among the 454 witnessless, and the mined survey's
+2,061 "text-only" hits were its regex's missing hyphen boundary (both
+conflict specimens: a range residue and a 615a-1 neighbour).
+
+### REF-062: dotted numbers refuse everywhere, and Stat. pages are marked, then judged
+
+- **Date:** 2026-09-01
+- **Status:** Accepted. Extends the 2026-08-24 list-tail fence (#46 family).
+
+Two grammar fences, one doctrine: a lexical fact is recorded where it is
+seen, and existence is judged only where an oracle can be reached.
+
+Reg-dot: the dotted-number refusal now guards every position that reads a
+single section token as a complete citation (anchor, appendix, transposed
+label, IRC self-name, title-form lists), not just the list tail — the
+"anchored stays visibly partial" assumption was measured false (consumers
+key on title/section without parse_status). 41 authority values / 175 rows
+stop publishing truncated sections, 89 of them a false affirmative exists;
+zero citations added anywhere (full 42,677-value replay). One measured
+exception: 5 USC 552a directly abutting a CFR citation keeps the real
+Privacy Act section (the only dot-into-CFR value in the corpus). Known
+residual, named: wrong-title damage survives the fence by design (40 USC
+"322" from a 49 U.S.C. list — a title-repair unit, not a dot fence).
+
+Stat-page: a U.S.C. list member reached by scanning past a Statutes-at-Large
+citation is a Bluebook pinpoint page as often as a genuine resumed list
+(14 CFR 121 resumes a real 49 U.S.C. list the identical way), so the grammar
+MARKS (`usc_section_after_statute`) and never decides — it is deliberately
+oracle-free. The note reader gates marked citations on
+`section_is_enumerated` (exact lists; `section_exists` admitted 7 of 9
+fabricated pages on range-stub evidence): 266 fabricated citations refused
+across 107 notes, ~111 genuine resumed citations kept, 0 added. A missing
+oracle degrades fail-closed (withhold every marked citation) and LOUDLY on
+drift; the builder passes its own oracle explicitly. The filer-box path
+carries the same gate (4 marked citations / 40 rows, all fabricated pages).
+
+### REF-063: the EO fence consults the roster, and a build cannot skip it
+
+- **Date:** 2026-09-01
+- **Status:** Accepted. Completes REF-057's second half (WIRING-SPEC.md).
+
+`eo_in_known_series` keeps the cheap range check first — a five/six-digit
+typo reads False whatever the oracle would say — and hands only in-range
+numbers to the REF-057 window-split oracle: exists → True, absent → False,
+unknown → an honest None that was silently True before. Measured at
+rebuild #15: 378 numbers / 18,954 rows keep True, 10 numbers / 50 rows move
+to the new `eoUnknownRows` receipt key, `eoOutOfSeriesRows` stays 7, zero
+True→False flips. The roster directory joins the build refusal list and the
+producer block (module hash + roster digest): a tree without it refuses to
+build rather than writing a receipt whose `eoUnknownRows: 0` means "never
+asked". The roster's two raw publisher captures became pinned manifest
+inputs (`eo_roster.py` reads publisherBytes at the audit gate); the
+hand-validated layer's gap is named as by-design (REF-058) rather than
+dressed up.

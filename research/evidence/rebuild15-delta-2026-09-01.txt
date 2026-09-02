@@ -1,0 +1,103 @@
+Rebuild #15 — 2026-09-01 correctness wave (B8 two-witness, grammar fences,
+EO wiring, filer Stat-gate). Integrator: refb. Every moved receipt/census
+key below is attributed to a lane's declared delta or to a named integrator
+edit; an unexplained move would have stopped the wave.
+
+BASELINE. The pre-wave artifact is rebuild #14 (commit d62bc1cc's pins).
+A codex-agent audit rebuilt output/ mid-wave at 21:18 with half-integrated
+WIP in the tree; that intermediate build is superseded by this one and was
+never used as a pin baseline. This build includes all three lanes plus the
+integrator's builder edits (the filer Stat-gate, explicit oracle DI into
+the notes reader, two new receipt keys).
+
+ROW COUNT. 800,573 -> 800,558 (-15) = 6 reg-dot anchor rows whose box
+yields nothing (REF-062) + 9 stat-page filer members refused at
+materialization (REF-062). The reg-dot lane's 175 affected rows partition
+exactly: 168 retyped other/failed (failed census 1,980 -> 2,148), 1 kept
+usc-typed with its section withheld (2133-AB26@199610's "46 app USC
+1241.1" -- the appendix position's optional section group degrades to a
+title-only appendix citation; usc null-section bucket 886 -> 887),
+6 removed.
+
+USC VERDICT CENSUS (rows/texts/rins/pairs). exists 670,441 -> 670,352
+(-89, reg-dot's declared false affirmatives); absent 14,173 -> 14,131
+(-42 = reg-dot 34 + stat-filer 8); unknown 2,546 -> 2,493 (-53 = reg-dot
+52 + stat-filer 1). usc-typed total 688,180 -> 687,997 (-183 = -184
+verdicts + the 1 null-section keep).
+
+CORRECTIONS (REF-061). New rule B8-two-witness-lettered-section: 666
+promoted / 319 refused (note names bare) / 454 witnessless — receipt key
+uscB8PromotionRows, closing the LONE:B8 census hole (1,439 rows). Total
+corrected 4,022 -> 4,688 (+666); identity-moved census gains the same row
+(every B8 correction moves the identity). The 82 "1395(hh)" rows split
+10 unwitnessed / 72 corrected to 1715hh->1395hh; the four measured
+consumer keys now read: 15:18 all 19 corrected to 18a (the FTC specimen
+that demoted one-witness B8, now corroborated by 16 CFR 801's own note);
+12:1715 28 of 39 (25 -> 1715b, 3 -> 1715y); 25:161 and 47:399 zero.
+Evidence-home note: replaying the promotion on the built artifact reads
+promoted 0/319/454 by IDEMPOTENCE (the NULL-gate skips already-corrected
+rows); summary.json records both readings and promoted_rows.jsonl is
+regenerated from the artifact's own rule-named rows (666).
+
+NOTE-SIDE STAT GATE (REF-062). The pinned note cache reads 34,777
+citations (-266 across 107 notes, the fabricated Stat.-page resumptions;
+~111 genuine resumes kept via the oracle's exact lists). Filer-row
+judgments move: by_verdict present (489,191/20,223) -> (489,168/20,216),
+near-miss (56,348/5,812) -> (56,283/5,795), absent (124,991/14,127) ->
+(124,906/14,115); receipt cfrNoteVerdictRowsByAuthorityType usc
+present/near-miss/absent 476,021/55,899/88,931 -> 475,998/55,834/88,846
+(cfr, public_law, act_relative unchanged); cfrNoteCoverage rows
+714,909 -> 714,894 (the 15 removed rows; rins/rules/parts still).
+
+FILER STAT GATE (integrator edit, REF-062). New receipt key
+statPageFilerRefusalRows = 9. Reconciliation with the lane's declared
+"40 rows": the 40 counted every row of the 3 marked texts; 9 is the
+marked members alone — verified 31 surviving sibling rows + 9 refused
+= 40, and zero fabricated (title, section) pairs survive anywhere.
+New receipt key cfrNotesStatGateOracleBound = true (the declared R2
+item). New tally field stat_page_filer_refusals.
+
+DISPOSITION LAYER. The reg-dot fence removes 53 title-49-appendix rows
+(dotted regulation numbers): population 2,543 -> 2,490, verdict census
+exists-as-recodified (2,233,219,306,116) -> (2,181,213,301,116),
+not-in-table (176,33,30,27) -> (175,32,29,26), successor sums
+2,526 -> 2,473, multi-successor 1,692 -> 1,640 (single 541 holds), and
+the seeded by-eye sample re-drawn (9000-AJ79's 121(c) out, 2120-AE42's
+"1421 to 1431" in).
+
+STATED-ACT FAMILY (+7 everywhere, one family): failing-pool 464 -> 471,
+statedActRowsStatingSomething 915 -> 922, statedActSectionOnlyRows
+446 -> 453 (declared and recomputed), usc+stated_section overlap
+7,376 -> 7,360 (-16, the anchors' usc_section is no longer minted).
+
+EO FENCE (REF-063). eoUnknownRows = 50 (10 numbers, honest None, was
+silently True); eoOutOfSeriesRows stays 7 (3 numbers); zero True->False
+flips; 378 numbers / 18,954 rows keep True. Producer block gains the
+eo_roster module hash + roster CSV digest; the roster directory is
+build-mandatory. test_the_receipt_names_the_code_that_wrote_it is green
+again (the wave-long producer drift closed by this rebuild).
+
+TESTS. tests/test_unified_agenda_parquet.py 142/142 green after honest
+re-pins (every changed literal carries a "Rebuild #15" comment).
+Sibling files green before re-pins: test_agenda_value_diff 32,
+test_citation_grammar 164, test_cfr_authority_notes 23, test_eo_roster 38,
+test_usc_disposition_tables 45, test_usc_section_oracle 79.
+
+RAW-READ SAMPLE (the rule: a grep locates, never validates).
+1. 2133-AB26@199610, REGINFO_RIN_DATA_199610.xml:225359 — the LEGAL_AUTHORITY
+   box holds exactly "46 app USC 1241.1", alone: a MARAD regulation number
+   under a U.S.C.-appendix label. Context rules in the refusal — there is no
+   surrounding list this citation anchors, so degrading to a title-only
+   appendix citation (usc-typed, section NULL) loses nothing real. This is
+   the one 886 -> 887 row.
+2. 2126-AA22@200610, REGINFO_RIN_DATA_200610.xml:180460 — "49 USC 13908, as
+   amended by sec 4304 of PL 109-159, 119 Stat 1144, 1763" beside CFR_LIST
+   "49 CFR 360, 365, 366, 368, 387, and 390". 119 Stat. 1144 is SAFETEA-LU's
+   opening page and 1763 its pinpoint — a page, not 49 U.S.C. 1763. The gate
+   leaves 13908 (usc), the PL row and the Stat row standing; only the
+   fabricated member is withheld.
+3. 2502-AG20@199510 (24 CFR 203, "12 USC 1715(b)") — the pinned note for the
+   RIN's own held part reads verbatim: "Authority: 12 U.S.C. 1707, 1709,
+   1710, 1715b, 1715z-16, 1715u, and 1715z-21; 15 U.S.C. 1639c; 42 U.S.C.
+   3535(d)." — 1715b named present, bare 1715 never named. Witness 2a's
+   B8 promotion (1715 -> 1715b) is the publisher's own list agreeing.

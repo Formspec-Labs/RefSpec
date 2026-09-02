@@ -38,7 +38,17 @@ their producing scripts are committed beside where they stood.
 
 These publish a wrong or misleading value today with no refusal beside it.
 
-1. **The B8 two-witness rule** (`inv-b8`). `NNN(x)` read as section `NNN`
+1. **LANDED 2026-09-01 (wave, REF-061) — the B8 two-witness rule** (`inv-b8`).
+   Shipped as a builder rule, narrower than this item asked on purpose: 666
+   promoted / 319 refused on the note's own bare-section counter-evidence /
+   454 witnessless, over the 1,439 rows where the oracle names B8 as the SOLE
+   surviving candidate (the census hole, closed by `uscB8PromotionRows`). The
+   mined 1,171 included 1,902 witness-corroborated multi-candidate rows the
+   sole-survivor gate excludes — named as a follow-up unit in
+   research/evidence/b8-enlargement-2026-09-01/DELTAS.md, where both raw-read
+   conflict specimens (a range residue, a 615a-1 boundary artifact) are shown
+   to be the exploratory regex's own false positives. Original item kept for
+   the record: `NNN(x)` read as section `NNN`
    where `NNNx` is also real: 14,740 readings / 2,641 RINs, the largest
    silent class both surveys found. PUBLISH = subsection-oracle witness AND
    (the part's authority note names `NNNx` OR a sibling edition spells it):
@@ -65,7 +75,14 @@ These publish a wrong or misleading value today with no refusal beside it.
    re-baseline. The caveat is recorded at the pin in
    `tests/test_unified_agenda_parquet.py` (search "CAVEAT (measured
    2026-08-31") until the unit lands.
-3. **Reg-shaped citations in the U.S.C. slot truncate at the dot**
+3. **LANDED 2026-09-01 (wave, REF-062) — reg-shaped citations in the U.S.C. slot truncate at the dot.**
+   The dotted refusal now guards the anchor, appendix, transposed-label,
+   IRC and title-form positions, not just the list tail: 41 authority values
+   / 175 rows / 89 false `exists` stop publishing (replay basis — the 155/77
+   below was the narrower regex basis), zero citations added, one measured
+   exception (5 USC 552a abutting a CFR citation). Known residual, named in
+   research/evidence/reg-dot-fence-2026-09-01/DELTAS.md: wrong-TITLE damage
+   survives by design (a title-repair unit, not a dot fence). Original item:**
    (`inv-universe` shape a). `26 USC 1.104-1(c)` is an income-tax
    *regulation*; the grammar publishes 26 U.S.C. §1 and the oracle confirms
    it exists. 155 rows / 31 RINs, **77 with an affirmative `exists` on the
@@ -74,7 +91,14 @@ These publish a wrong or misleading value today with no refusal beside it.
    against all 66,780 enumerated pairs). The shipped dotted fence is scoped
    to the list tail only, on the stated assumption that an anchored dotted
    number stays visibly `partial` — measured false.
-4. **Statutes-at-Large page lists read as U.S.C. sections in the note
+4. **LANDED 2026-09-01 (wave, REF-062) — Statutes-at-Large page lists read as
+   U.S.C. sections.** Gated on the oracle exactly as this item asked, never on
+   "everything after Stat.": the grammar MARKS (`usc_section_after_statute`),
+   the note reader admits a marked member only where `section_is_enumerated`
+   (266 refused / 107 notes, ~111 genuine resumes kept, 14 CFR 121's intact),
+   and the filer-box path is gated at row materialization
+   (`statPageFilerRefusalRows`, declared 40 rows). Evidence:
+   research/evidence/stat-page-gate-2026-09-01/. Original item, in the note
    reader** — a new find of this review, in no README. `"101 Stat. 1568,
    1608"` emits `usc 12:1608`: **148 fabricated citations across 80 of the
    8,240 notes**, 100 nonexistent identities. Nine corpus rows flip verdict
@@ -83,7 +107,7 @@ These publish a wrong or misleading value today with no refusal beside it.
    the three #46 fences, in a class they never covered; the trap is real
    (`14 CFR 121`'s note genuinely resumes a U.S.C. list after a Stat page),
    so gate on the oracle rather than on "everything after Stat.".
-5. **MODULE LANDED 2026-08-31 (wave, Lane D), fence wiring pending — no Executive Order existence oracle** (`inv-eo`, `inv-eo-gap`). `eo_roster.py` ships the window-split oracle (REF-057); the `eo_in_known_series` fence upgrade is a follow-up unit with its spec at `research/evidence/eo-roster-2026-08-31/WIRING-SPEC.md`. The rider below was WRONG: EO 8284 exists (NARA's 1939 table, 4 FR 4603), and the review caught it. Original item kept for the record. The
+5. **MODULE LANDED 2026-08-31, WIRING LANDED 2026-09-01 (REF-063) — no Executive Order existence oracle** (`inv-eo`, `inv-eo-gap`). `eo_roster.py` ships the window-split oracle (REF-057); the `eo_in_known_series` fence upgrade landed 2026-09-01 per that spec (`research/evidence/eo-roster-2026-08-31/WIRING-SPEC.md`, deltas in `DELTAS-wiring.md`): range check first, then oracle refinement, 50 rows / 10 numbers honestly `None` via the new `eoUnknownRows` receipt key, and the roster directory is build-mandatory (REF-063). The rider below was WRONG: EO 8284 exists (NARA's 1939 table, 4 FR 4603), and the review caught it. Original item kept for the record. The
    only fence is `EO_HIGHEST_KNOWN`; **43 unresolved numbers / 2,876 rows**
    pass it and read as valid citations, and 16,684 EO rows are the
    second-largest unjudged family in the note census. The built roster
