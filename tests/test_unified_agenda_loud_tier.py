@@ -892,7 +892,13 @@ def test_the_usc_slot_reading_receipt_is_the_measured_census() -> None:
     and 1,685 chapter-in-slot rows -- the ones the oracle does NOT also
     verdict ``exists``, which is the whole fence."""
 
-    assert _declared("uscSlotReadingRows") == {"reg-suffix": 190, "chapter-in-slot": 1_685}
+    # Rebuild #15 (2026-09-01 wave, REF-062): chapter-in-slot 1,685 -> 1,625
+    # (-60), exactly the rows whose authority_text carried a dotted number
+    # and were reading a truncated section -- zero dotted-text rows remain
+    # in this reading now, which is the reg-dot fence's whole effect here.
+    # reg-suffix is untouched: its own witness is the CFR_LIST join, not
+    # the dot.
+    assert _declared("uscSlotReadingRows") == {"reg-suffix": 190, "chapter-in-slot": 1_625}
 
 
 def test_the_act_derived_unattested_rider_matches_the_current_oracle() -> None:

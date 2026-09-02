@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sys
 from collections import Counter
@@ -99,16 +100,25 @@ MODS_DIR = (
 
 # Local bulk corpora, outside this repository. Named because the previous
 # README asserted no bulk FR full-text corpus was available to measure.
+#
+# The LOCATIONS are the operator's to state, not this file's to assume. They
+# were hard-coded to one machine's home directory until 2026-09-02, which
+# `tests/test_import_boundaries.py` rightly reads as a runtime path escape:
+# a script that only runs on the machine that wrote it is not a reproduction.
+# Each is read from the environment and simply absent when unset, which is
+# also what happens on any machine that does not carry these corpora -- the
+# probe skips them and says so, exactly as it already did for a missing path.
 EXTERNAL_CORPORA = {
-    "body_retrieval_corpus_2026_08_02": Path(
-        "~/Work/corpora/_preserved-2026-08-10/body-retrieval-corpus-2026-08-02"
-    ).expanduser(),
-    "body_retrieval_corpus_2026_08_02_copy": Path(
-        "~/Work/spicy-regs/output/body-retrieval-corpus-2026-08-02"
-    ).expanduser(),
-    "salvage_2026_08_28_spicysearch_output": Path(
-        "~/Work/corpora/_salvage-2026-08-28/spicysearch-output"
-    ).expanduser(),
+    name: Path(location)
+    for name, location in (
+        (key, os.environ.get(variable))
+        for key, variable in (
+            ("body_retrieval_corpus_2026_08_02", "FR_BODY_RETRIEVAL_CORPUS"),
+            ("body_retrieval_corpus_2026_08_02_copy", "FR_BODY_RETRIEVAL_CORPUS_COPY"),
+            ("salvage_2026_08_28_spicysearch_output", "FR_SALVAGE_SPICYSEARCH_OUTPUT"),
+        )
+    )
+    if location
 }
 EXTERNAL_PROBE_FILE_CAP = 15
 
