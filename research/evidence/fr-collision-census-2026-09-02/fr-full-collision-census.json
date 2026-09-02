@@ -1,0 +1,5408 @@
+{
+  "collisionCountingBasis": "numberAndDate*, modernFormCollisions, and legacyFormAlsoParsesAsModern are all counted over unnormalized document numbers, no prefix or case folding applied",
+  "coverage": {
+    "caveat": "this census describes the crawled Federal Register (1994 onward, the API's own coverage) and is not evidence about the printed Register before that",
+    "distinctNumberCount": 1007156,
+    "eFamilySpilloverNote": "a year-coded family can legitimately spill into the following January (E8-30793 was published 2009-01-02, 74 FR 130) -- do not mint an off-by-one-year identity from the code alone",
+    "queryScope": {
+      "publishedFrom": "1994-01-01",
+      "publishedThrough": "2026-09-02"
+    }
+  },
+  "legacyFormAlsoParsesAsModern": true,
+  "legacyFormAlsoParsesAsModernCount": 29148,
+  "legacyFormAlsoParsesAsModernExamples": [
+    "2010-1",
+    "2010-10",
+    "2010-100",
+    "2010-1000",
+    "2010-1001",
+    "2010-1002",
+    "2010-1003",
+    "2010-1004",
+    "2010-1005",
+    "2010-1006",
+    "2010-1007",
+    "2010-1008",
+    "2010-1009",
+    "2010-101",
+    "2010-1010",
+    "2010-1011",
+    "2010-1012",
+    "2010-1013",
+    "2010-1014",
+    "2010-1015"
+  ],
+  "legacyPattern": "^\\d{2,4}-[0-9A-Za-z]{1,4}$",
+  "letterPrefixStripCollisions": {
+    "basis": "computed here, over this release's own numbers, by stripping each letter-prefixed legacy-shaped number's leading letter and checking whether the stripped form is a distinct number in this release; a shared date means no date qualifier can disambiguate the pair. A pinned reference corpus measured this same artifact elsewhere as 2,382 total (2,372 differing-date, 10 same-date) -- these three counts are computed here, over this release, not copied from that corpus. Raw values are cleanly disjoint, so the artifact only appears if someone normalizes",
+    "differingDateCount": 2372,
+    "sameDateCount": 10,
+    "sameDateExamples": [
+      {
+        "dates": [
+          "1994-05-03"
+        ],
+        "letterForm": "X94-10503",
+        "strippedForm": "94-10503"
+      },
+      {
+        "dates": [
+          "1994-08-24"
+        ],
+        "letterForm": "X94-20824",
+        "strippedForm": "94-20824"
+      },
+      {
+        "dates": [
+          "1994-12-20"
+        ],
+        "letterForm": "X94-31220",
+        "strippedForm": "94-31220"
+      },
+      {
+        "dates": [
+          "1995-04-28"
+        ],
+        "letterForm": "X95-10428",
+        "strippedForm": "95-10428"
+      },
+      {
+        "dates": [
+          "1995-05-01"
+        ],
+        "letterForm": "X95-10501",
+        "strippedForm": "95-10501"
+      },
+      {
+        "dates": [
+          "1995-08-23"
+        ],
+        "letterForm": "X95-20823",
+        "strippedForm": "95-20823"
+      },
+      {
+        "dates": [
+          "1996-04-26"
+        ],
+        "letterForm": "X96-10426",
+        "strippedForm": "96-10426"
+      },
+      {
+        "dates": [
+          "1996-08-15"
+        ],
+        "letterForm": "X96-20815",
+        "strippedForm": "96-20815"
+      },
+      {
+        "dates": [
+          "1996-12-09"
+        ],
+        "letterForm": "X96-31209",
+        "strippedForm": "96-31209"
+      },
+      {
+        "dates": [
+          "1997-04-23"
+        ],
+        "letterForm": "X97-10423",
+        "strippedForm": "97-10423"
+      }
+    ],
+    "totalCount": 2382
+  },
+  "modernFormCollisionCount": 7,
+  "modernFormCollisions": [
+    {
+      "dates": [
+        "2010-01-06",
+        "2010-12-10"
+      ],
+      "recordId": "2010-31094"
+    },
+    {
+      "dates": [
+        "2010-01-06",
+        "2010-12-16"
+      ],
+      "recordId": "2010-31384"
+    },
+    {
+      "dates": [
+        "2010-01-06",
+        "2010-12-15"
+      ],
+      "recordId": "2010-31396"
+    },
+    {
+      "dates": [
+        "2010-01-06",
+        "2010-12-15"
+      ],
+      "recordId": "2010-31415"
+    },
+    {
+      "dates": [
+        "2010-01-14",
+        "2010-01-28"
+      ],
+      "recordId": "2010-517"
+    },
+    {
+      "dates": [
+        "2015-07-21",
+        "2015-08-05"
+      ],
+      "recordId": "2015-17759"
+    },
+    {
+      "dates": [
+        "2015-10-06",
+        "2015-10-13"
+      ],
+      "recordId": "2015-25354"
+    }
+  ],
+  "modernFormCollisionsBasis": "membership is the number's form (fullmatches the modern YYYY-NNNNN pattern), not the year of its dates: legacy NN- runs 1994 through 2009-08-19 and modern YYYY- starts 2010-01-06, so a year-named field would read as covering 2000-2009, which are legacy-form",
+  "modernPattern": "^\\d{4}-\\d+$",
+  "multiObservationRecords": [
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "00-111",
+      "versions": [
+        "2000-01-18",
+        "2000-01-14"
+      ],
+      "winner": "2000-01-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "00-12867",
+      "versions": [
+        "2000-05-23",
+        "2000-05-30"
+      ],
+      "winner": "2000-05-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "00-8737",
+      "versions": [
+        "2000-04-10",
+        "2000-04-21"
+      ],
+      "winner": "2000-04-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "00-888",
+      "versions": [
+        "2000-01-24",
+        "2000-01-14"
+      ],
+      "winner": "2000-01-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "01-1",
+      "versions": [
+        "2001-01-12",
+        "2001-08-08"
+      ],
+      "winner": "2001-08-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "01-14601",
+      "versions": [
+        "2001-06-11",
+        "2001-06-05"
+      ],
+      "winner": "2001-06-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "01-15632",
+      "versions": [
+        "2002-06-20",
+        "2001-06-21"
+      ],
+      "winner": "2002-06-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "02-19569",
+      "versions": [
+        "2002-08-05",
+        "2002-08-02"
+      ],
+      "winner": "2002-08-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "02-19743",
+      "versions": [
+        "2002-07-23",
+        "2002-08-06"
+      ],
+      "winner": "2002-08-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "02-19783",
+      "versions": [
+        "2002-07-23",
+        "2002-08-06"
+      ],
+      "winner": "2002-08-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "02-8060",
+      "versions": [
+        "2002-04-05",
+        "2002-04-03"
+      ],
+      "winner": "2002-04-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "03-5521",
+      "versions": [
+        "2003-05-27",
+        "2003-08-28"
+      ],
+      "winner": "2003-08-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "04-18020",
+      "versions": [
+        "2004-08-09",
+        "2004-08-06"
+      ],
+      "winner": "2004-08-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "04-18299",
+      "versions": [
+        "2004-08-11",
+        "2004-08-10"
+      ],
+      "winner": "2004-08-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "04-23777",
+      "versions": [
+        "2004-10-21",
+        "2004-10-19"
+      ],
+      "winner": "2004-10-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "04-8170",
+      "versions": [
+        "2004-04-14",
+        "2004-04-12"
+      ],
+      "winner": "2004-04-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "04-9453",
+      "versions": [
+        "2004-04-27",
+        "2004-04-26"
+      ],
+      "winner": "2004-04-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "05-10",
+      "versions": [
+        "2005-05-27",
+        "2005-01-04"
+      ],
+      "winner": "2005-05-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "05-15917",
+      "versions": [
+        "2005-08-12",
+        "2005-08-10"
+      ],
+      "winner": "2005-08-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "05-2413",
+      "versions": [
+        "2005-05-16",
+        "2005-02-08"
+      ],
+      "winner": "2005-05-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "05-6733",
+      "versions": [
+        "2005-04-12",
+        "2005-04-04"
+      ],
+      "winner": "2005-04-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "07-92",
+      "versions": [
+        "2007-01-12",
+        "2007-01-09"
+      ],
+      "winner": "2007-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "07-93",
+      "versions": [
+        "2007-01-12",
+        "2007-01-09"
+      ],
+      "winner": "2007-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2010-31094",
+      "versions": [
+        "2010-01-06",
+        "2010-12-10"
+      ],
+      "winner": "2010-12-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2010-31384",
+      "versions": [
+        "2010-01-06",
+        "2010-12-16"
+      ],
+      "winner": "2010-12-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2010-31396",
+      "versions": [
+        "2010-01-06",
+        "2010-12-15"
+      ],
+      "winner": "2010-12-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2010-31415",
+      "versions": [
+        "2010-01-06",
+        "2010-12-15"
+      ],
+      "winner": "2010-12-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2010-517",
+      "versions": [
+        "2010-01-28",
+        "2010-01-14"
+      ],
+      "winner": "2010-01-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2015-17759",
+      "versions": [
+        "2015-08-05",
+        "2015-07-21"
+      ],
+      "winner": "2015-08-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "2015-25354",
+      "versions": [
+        "2015-10-13",
+        "2015-10-06"
+      ],
+      "winner": "2015-10-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1005",
+      "versions": [
+        "1994-04-26",
+        "1994-01-19"
+      ],
+      "winner": "1994-04-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1021",
+      "versions": [
+        "1994-01-14",
+        "1994-01-04"
+      ],
+      "winner": "1994-01-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-10710",
+      "versions": [
+        "1994-05-04",
+        "1994-08-12"
+      ],
+      "winner": "1994-08-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1081",
+      "versions": [
+        "1994-05-05",
+        "1994-01-14"
+      ],
+      "winner": "1994-05-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1099",
+      "versions": [
+        "1994-05-05",
+        "1994-01-18"
+      ],
+      "winner": "1994-05-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1102",
+      "versions": [
+        "1994-05-09",
+        "1994-01-18"
+      ],
+      "winner": "1994-05-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11320",
+      "versions": [
+        "1994-05-11",
+        "1994-08-09"
+      ],
+      "winner": "1994-08-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11455",
+      "versions": [
+        "1994-05-11",
+        "1994-08-10"
+      ],
+      "winner": "1994-08-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11458",
+      "versions": [
+        "1994-05-17",
+        "1994-05-11"
+      ],
+      "winner": "1994-05-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11497",
+      "versions": [
+        "1994-05-13",
+        "1994-05-18"
+      ],
+      "winner": "1994-05-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1153",
+      "versions": [
+        "1994-05-12",
+        "1994-01-19"
+      ],
+      "winner": "1994-05-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11593",
+      "versions": [
+        "1994-05-12",
+        "1995-05-11"
+      ],
+      "winner": "1995-05-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1163",
+      "versions": [
+        "1995-01-20",
+        "1994-01-19"
+      ],
+      "winner": "1995-01-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1169",
+      "versions": [
+        "1995-01-18",
+        "1994-01-19"
+      ],
+      "winner": "1995-01-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1173",
+      "versions": [
+        "1994-05-13",
+        "1994-01-19"
+      ],
+      "winner": "1994-05-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11784",
+      "versions": [
+        "1995-05-12",
+        "1994-05-16"
+      ],
+      "winner": "1995-05-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11851",
+      "versions": [
+        "1995-05-15",
+        "1994-05-16"
+      ],
+      "winner": "1995-05-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11856",
+      "versions": [
+        "1995-05-15",
+        "1994-05-17"
+      ],
+      "winner": "1995-05-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11877",
+      "versions": [
+        "1995-05-15",
+        "1994-05-17"
+      ],
+      "winner": "1995-05-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-11993",
+      "versions": [
+        "1994-05-11",
+        "1994-05-18"
+      ],
+      "winner": "1994-05-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12021",
+      "versions": [
+        "1995-05-16",
+        "1994-05-18"
+      ],
+      "winner": "1995-05-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12051",
+      "versions": [
+        "1995-05-17",
+        "1994-05-20"
+      ],
+      "winner": "1995-05-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12052",
+      "versions": [
+        "1995-05-17",
+        "1994-05-20"
+      ],
+      "winner": "1995-05-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12168",
+      "versions": [
+        "1995-05-17",
+        "1994-05-19"
+      ],
+      "winner": "1995-05-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12181",
+      "versions": [
+        "1994-05-20",
+        "1994-05-19"
+      ],
+      "winner": "1994-05-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12326",
+      "versions": [
+        "1995-05-19",
+        "1994-05-20"
+      ],
+      "winner": "1995-05-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12327",
+      "versions": [
+        "1995-05-19",
+        "1994-05-20"
+      ],
+      "winner": "1995-05-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12358",
+      "versions": [
+        "1995-05-19",
+        "1994-05-20"
+      ],
+      "winner": "1995-05-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12364",
+      "versions": [
+        "1995-05-19",
+        "1994-05-23"
+      ],
+      "winner": "1995-05-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12629",
+      "versions": [
+        "1995-05-24",
+        "1994-05-24"
+      ],
+      "winner": "1995-05-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12657",
+      "versions": [
+        "1995-05-24",
+        "1994-05-25"
+      ],
+      "winner": "1995-05-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-12873",
+      "versions": [
+        "1994-05-26",
+        "1994-05-25"
+      ],
+      "winner": "1994-05-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-13042",
+      "versions": [
+        "1995-05-30",
+        "1994-05-27"
+      ],
+      "winner": "1995-05-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-13090",
+      "versions": [
+        "1994-04-28",
+        "1994-05-27"
+      ],
+      "winner": "1994-05-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-13327",
+      "versions": [
+        "1994-06-02",
+        "1994-06-01"
+      ],
+      "winner": "1994-06-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-14023",
+      "versions": [
+        "1994-06-09",
+        "1995-06-08"
+      ],
+      "winner": "1995-06-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1443",
+      "versions": [
+        "1994-06-13",
+        "1994-01-21"
+      ],
+      "winner": "1994-06-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-14720",
+      "versions": [
+        "1994-06-15",
+        "1994-06-10"
+      ],
+      "winner": "1994-06-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-15313",
+      "versions": [
+        "1994-06-23",
+        "1994-06-22"
+      ],
+      "winner": "1994-06-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-15630",
+      "versions": [
+        "1994-06-28",
+        "1994-08-01"
+      ],
+      "winner": "1994-08-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-16674",
+      "versions": [
+        "1994-07-08",
+        "1994-08-15"
+      ],
+      "winner": "1994-08-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1708",
+      "versions": [
+        "1994-01-28",
+        "1994-01-27"
+      ],
+      "winner": "1994-01-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-17287",
+      "versions": [
+        "1994-07-22",
+        "1994-07-18"
+      ],
+      "winner": "1994-07-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-17436",
+      "versions": [
+        "1994-05-11",
+        "1994-07-18"
+      ],
+      "winner": "1994-07-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-17594",
+      "versions": [
+        "1994-07-25",
+        "1994-07-20"
+      ],
+      "winner": "1994-07-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-18231",
+      "versions": [
+        "1995-07-25",
+        "1994-07-27"
+      ],
+      "winner": "1995-07-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-18272",
+      "versions": [
+        "1994-07-27",
+        "1994-07-26"
+      ],
+      "winner": "1994-07-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-18388",
+      "versions": [
+        "1994-08-01",
+        "1994-07-28"
+      ],
+      "winner": "1994-08-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1843",
+      "versions": [
+        "1995-01-25",
+        "1994-01-28"
+      ],
+      "winner": "1995-01-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-18679",
+      "versions": [
+        "1994-08-03",
+        "1994-07-29"
+      ],
+      "winner": "1994-08-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-192",
+      "versions": [
+        "1994-01-06",
+        "1995-01-05"
+      ],
+      "winner": "1995-01-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-1936",
+      "versions": [
+        "1995-01-25",
+        "1994-01-28"
+      ],
+      "winner": "1995-01-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-19932",
+      "versions": [
+        "1994-08-15",
+        "1994-08-09"
+      ],
+      "winner": "1994-08-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2050",
+      "versions": [
+        "1994-02-01",
+        "1994-08-22"
+      ],
+      "winner": "1994-08-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2056",
+      "versions": [
+        "1994-01-31",
+        "1994-08-22"
+      ],
+      "winner": "1994-08-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-20867",
+      "versions": [
+        "1994-08-25",
+        "1994-08-26"
+      ],
+      "winner": "1994-08-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-20948",
+      "versions": [
+        "1994-08-25",
+        "1994-08-26"
+      ],
+      "winner": "1994-08-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-21447",
+      "versions": [
+        "1994-08-31",
+        "1994-08-30"
+      ],
+      "winner": "1994-08-31"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-21549",
+      "versions": [
+        "1994-11-07",
+        "1994-09-01"
+      ],
+      "winner": "1994-11-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-22130",
+      "versions": [
+        "1994-02-01",
+        "1994-09-07"
+      ],
+      "winner": "1994-09-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-22294",
+      "versions": [
+        "1994-09-09",
+        "1994-11-28"
+      ],
+      "winner": "1994-11-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2242",
+      "versions": [
+        "1994-02-04",
+        "1994-09-09"
+      ],
+      "winner": "1994-09-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-22914",
+      "versions": [
+        "1994-09-16",
+        "1994-09-15"
+      ],
+      "winner": "1994-09-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-231",
+      "versions": [
+        "1994-09-20",
+        "1994-01-06"
+      ],
+      "winner": "1994-09-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-23279",
+      "versions": [
+        "1994-09-26",
+        "1994-09-23"
+      ],
+      "winner": "1994-09-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2346",
+      "versions": [
+        "1994-09-22",
+        "1994-02-02"
+      ],
+      "winner": "1994-09-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2348",
+      "versions": [
+        "1994-09-22",
+        "1994-02-02"
+      ],
+      "winner": "1994-09-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-23501",
+      "versions": [
+        "1994-09-23",
+        "1994-09-21"
+      ],
+      "winner": "1994-09-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-23597",
+      "versions": [
+        "1994-09-22",
+        "1995-09-25"
+      ],
+      "winner": "1995-09-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-23636",
+      "versions": [
+        "1994-09-26",
+        "1994-09-23"
+      ],
+      "winner": "1994-09-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2381",
+      "versions": [
+        "1994-09-20",
+        "1994-02-01"
+      ],
+      "winner": "1994-09-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2447",
+      "versions": [
+        "1994-10-04",
+        "1994-02-03"
+      ],
+      "winner": "1994-10-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2487",
+      "versions": [
+        "1994-02-08",
+        "1994-02-03"
+      ],
+      "winner": "1994-02-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-25297",
+      "versions": [
+        "1994-10-19",
+        "1994-10-13"
+      ],
+      "winner": "1994-10-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-25611",
+      "versions": [
+        "1994-10-18",
+        "1994-10-17"
+      ],
+      "winner": "1994-10-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-25635",
+      "versions": [
+        "1994-10-17",
+        "1994-10-11"
+      ],
+      "winner": "1994-10-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2569",
+      "versions": [
+        "1994-02-04",
+        "1994-10-18"
+      ],
+      "winner": "1994-10-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2572",
+      "versions": [
+        "1994-02-07",
+        "1994-02-04"
+      ],
+      "winner": "1994-02-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-25884",
+      "versions": [
+        "1994-10-18",
+        "1994-10-19"
+      ],
+      "winner": "1994-10-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-25912",
+      "versions": [
+        "1994-10-19",
+        "1994-11-30"
+      ],
+      "winner": "1994-11-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-26217",
+      "versions": [
+        "1994-10-24",
+        "1995-05-01"
+      ],
+      "winner": "1995-05-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-26994",
+      "versions": [
+        "1994-11-01",
+        "1994-10-31"
+      ],
+      "winner": "1994-11-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2709",
+      "versions": [
+        "1994-02-07",
+        "1994-05-25"
+      ],
+      "winner": "1994-05-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-27182",
+      "versions": [
+        "1994-11-02",
+        "1994-11-01"
+      ],
+      "winner": "1994-11-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-27222",
+      "versions": [
+        "1994-11-09",
+        "1994-11-03"
+      ],
+      "winner": "1994-11-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-27530",
+      "versions": [
+        "1994-11-07",
+        "1994-10-18"
+      ],
+      "winner": "1994-11-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-27587",
+      "versions": [
+        "1994-11-08",
+        "1994-11-07"
+      ],
+      "winner": "1994-11-08"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": false,
+      "recordId": "94-276",
+      "versions": [
+        "1994-10-28",
+        "1994-01-07",
+        "1995-01-06"
+      ],
+      "winner": "1995-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-277",
+      "versions": [
+        "1994-01-07",
+        "1995-01-06"
+      ],
+      "winner": "1995-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2797",
+      "versions": [
+        "1995-02-06",
+        "1994-02-08"
+      ],
+      "winner": "1995-02-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2800",
+      "versions": [
+        "1995-02-06",
+        "1994-02-08"
+      ],
+      "winner": "1995-02-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-29500",
+      "versions": [
+        "1994-11-30",
+        "1994-12-05"
+      ],
+      "winner": "1994-12-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-29505",
+      "versions": [
+        "1995-12-05",
+        "1994-11-30"
+      ],
+      "winner": "1995-12-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-2967",
+      "versions": [
+        "1995-02-07",
+        "1994-02-09"
+      ],
+      "winner": "1995-02-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3021",
+      "versions": [
+        "1995-02-07",
+        "1994-02-10"
+      ],
+      "winner": "1995-02-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3048",
+      "versions": [
+        "1995-02-08",
+        "1994-02-10"
+      ],
+      "winner": "1995-02-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-30492",
+      "versions": [
+        "1994-12-27",
+        "1994-12-12"
+      ],
+      "winner": "1994-12-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3092",
+      "versions": [
+        "1994-12-08",
+        "1994-02-10"
+      ],
+      "winner": "1994-12-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3163",
+      "versions": [
+        "1995-02-08",
+        "1994-02-10"
+      ],
+      "winner": "1995-02-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-31804",
+      "versions": [
+        "1995-01-11",
+        "1994-12-28"
+      ],
+      "winner": "1995-01-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-319",
+      "versions": [
+        "1994-01-07",
+        "1995-01-06"
+      ],
+      "winner": "1995-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-32005",
+      "versions": [
+        "1994-12-16",
+        "1994-12-29"
+      ],
+      "winner": "1994-12-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3201",
+      "versions": [
+        "1995-02-09",
+        "1994-02-11"
+      ],
+      "winner": "1995-02-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-32334",
+      "versions": [
+        "1995-01-04",
+        "1995-01-03"
+      ],
+      "winner": "1995-01-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3234",
+      "versions": [
+        "1995-02-09",
+        "1994-02-11"
+      ],
+      "winner": "1995-02-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3335",
+      "versions": [
+        "1995-02-10",
+        "1994-02-14"
+      ],
+      "winner": "1995-02-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3434",
+      "versions": [
+        "1995-02-10",
+        "1994-02-15"
+      ],
+      "winner": "1995-02-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3528",
+      "versions": [
+        "1995-02-13",
+        "1994-02-15"
+      ],
+      "winner": "1995-02-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3599",
+      "versions": [
+        "1995-02-14",
+        "1994-02-17"
+      ],
+      "winner": "1995-02-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3602",
+      "versions": [
+        "1994-06-06",
+        "1994-02-17"
+      ],
+      "winner": "1994-06-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3736",
+      "versions": [
+        "1995-02-15",
+        "1994-02-18"
+      ],
+      "winner": "1995-02-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-375",
+      "versions": [
+        "1994-01-07",
+        "1995-01-09"
+      ],
+      "winner": "1995-01-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-380",
+      "versions": [
+        "1994-01-10",
+        "1995-01-09"
+      ],
+      "winner": "1995-01-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3848",
+      "versions": [
+        "1994-02-22",
+        "1995-02-16"
+      ],
+      "winner": "1995-02-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3851",
+      "versions": [
+        "1994-02-22",
+        "1995-02-16"
+      ],
+      "winner": "1995-02-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3895",
+      "versions": [
+        "1994-02-22",
+        "1995-02-16"
+      ],
+      "winner": "1995-02-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-392",
+      "versions": [
+        "1994-01-11",
+        "1995-01-09"
+      ],
+      "winner": "1995-01-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-3966",
+      "versions": [
+        "1994-02-23",
+        "1995-02-17"
+      ],
+      "winner": "1995-02-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-4020",
+      "versions": [
+        "1994-02-23",
+        "1995-02-17"
+      ],
+      "winner": "1995-02-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-4131",
+      "versions": [
+        "1994-02-24",
+        "1995-02-21"
+      ],
+      "winner": "1995-02-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-434",
+      "versions": [
+        "1994-01-10",
+        "1995-01-09"
+      ],
+      "winner": "1995-01-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-442",
+      "versions": [
+        "1994-01-10",
+        "1995-01-06"
+      ],
+      "winner": "1995-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-4443",
+      "versions": [
+        "1994-03-01",
+        "1995-02-23"
+      ],
+      "winner": "1995-02-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-4682",
+      "versions": [
+        "1994-03-02",
+        "1994-03-07"
+      ],
+      "winner": "1994-03-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-4825",
+      "versions": [
+        "1994-03-03",
+        "1995-02-28"
+      ],
+      "winner": "1995-02-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-5435",
+      "versions": [
+        "1994-03-28",
+        "1994-03-09"
+      ],
+      "winner": "1994-03-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-5986",
+      "versions": [
+        "1994-03-15",
+        "1994-03-14"
+      ],
+      "winner": "1994-03-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-6658",
+      "versions": [
+        "1994-03-28",
+        "1994-03-22"
+      ],
+      "winner": "1994-03-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-7006",
+      "versions": [
+        "1994-04-14",
+        "1994-03-24"
+      ],
+      "winner": "1994-04-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-796",
+      "versions": [
+        "1995-01-12",
+        "1994-01-12"
+      ],
+      "winner": "1995-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-800",
+      "versions": [
+        "1995-01-12",
+        "1994-01-12"
+      ],
+      "winner": "1995-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-81",
+      "versions": [
+        "1994-01-04",
+        "1995-01-04"
+      ],
+      "winner": "1995-01-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-925",
+      "versions": [
+        "1995-01-12",
+        "1994-01-14"
+      ],
+      "winner": "1995-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-94",
+      "versions": [
+        "1994-01-04",
+        "1994-12-13"
+      ],
+      "winner": "1994-12-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-9421",
+      "versions": [
+        "1994-04-25",
+        "1994-04-21"
+      ],
+      "winner": "1994-04-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-9484",
+      "versions": [
+        "1994-01-04",
+        "1994-04-20"
+      ],
+      "winner": "1994-04-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-9886",
+      "versions": [
+        "1994-04-26",
+        "1994-05-17"
+      ],
+      "winner": "1994-05-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "94-99999",
+      "versions": [
+        "1994-06-14",
+        "1994-09-23"
+      ],
+      "winner": "1994-09-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-1032",
+      "versions": [
+        "1995-01-12",
+        "1996-01-24"
+      ],
+      "winner": "1996-01-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-10563",
+      "versions": [
+        "1995-05-01",
+        "1995-05-04"
+      ],
+      "winner": "1995-05-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-10901",
+      "versions": [
+        "1996-05-02",
+        "1995-05-03"
+      ],
+      "winner": "1996-05-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-11485",
+      "versions": [
+        "1995-05-10",
+        "1995-06-14"
+      ],
+      "winner": "1995-06-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-11575",
+      "versions": [
+        "1995-05-11",
+        "1996-05-09"
+      ],
+      "winner": "1996-05-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-11754",
+      "versions": [
+        "1995-05-26",
+        "1995-05-12"
+      ],
+      "winner": "1995-05-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-1235",
+      "versions": [
+        "1995-05-19",
+        "1995-01-19"
+      ],
+      "winner": "1995-05-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-1250",
+      "versions": [
+        "1995-05-22",
+        "1995-01-19"
+      ],
+      "winner": "1995-05-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-12849",
+      "versions": [
+        "1995-05-25",
+        "1995-05-22"
+      ],
+      "winner": "1995-05-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-14008",
+      "versions": [
+        "1995-06-16",
+        "1995-06-08"
+      ],
+      "winner": "1995-06-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-14756",
+      "versions": [
+        "1995-07-19",
+        "1995-06-16"
+      ],
+      "winner": "1995-07-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-14935",
+      "versions": [
+        "1995-06-23",
+        "1995-06-19"
+      ],
+      "winner": "1995-06-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-15222",
+      "versions": [
+        "1995-01-20",
+        "1995-06-21"
+      ],
+      "winner": "1995-06-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-1655",
+      "versions": [
+        "1995-01-23",
+        "1995-06-30"
+      ],
+      "winner": "1995-06-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-16812",
+      "versions": [
+        "1995-06-30",
+        "1995-07-07"
+      ],
+      "winner": "1995-07-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-1754",
+      "versions": [
+        "1995-01-24",
+        "1995-05-24"
+      ],
+      "winner": "1995-05-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-18127",
+      "versions": [
+        "1995-07-24",
+        "1995-08-03"
+      ],
+      "winner": "1995-08-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-19421",
+      "versions": [
+        "1995-08-07",
+        "1995-06-19"
+      ],
+      "winner": "1995-08-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-20407",
+      "versions": [
+        "1995-12-04",
+        "1995-08-18"
+      ],
+      "winner": "1995-12-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-20551",
+      "versions": [
+        "1995-12-15",
+        "1995-08-21"
+      ],
+      "winner": "1995-12-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-20557",
+      "versions": [
+        "1995-08-21",
+        "1995-08-18"
+      ],
+      "winner": "1995-08-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-20646",
+      "versions": [
+        "1995-08-11",
+        "1995-08-21"
+      ],
+      "winner": "1995-08-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2128",
+      "versions": [
+        "1995-01-30",
+        "1995-08-28"
+      ],
+      "winner": "1995-08-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2145",
+      "versions": [
+        "1995-01-30",
+        "1995-08-30"
+      ],
+      "winner": "1995-08-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2147",
+      "versions": [
+        "1995-01-30",
+        "1995-02-15"
+      ],
+      "winner": "1995-02-15"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": false,
+      "recordId": "95-2159",
+      "versions": [
+        "1996-02-02",
+        "1995-01-27",
+        "1995-08-30"
+      ],
+      "winner": "1996-02-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-21593",
+      "versions": [
+        "1995-09-28",
+        "1995-08-31"
+      ],
+      "winner": "1995-09-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2225",
+      "versions": [
+        "1995-01-30",
+        "1995-09-06"
+      ],
+      "winner": "1995-09-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-22356",
+      "versions": [
+        "1995-09-21",
+        "1995-09-08"
+      ],
+      "winner": "1995-09-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-23023",
+      "versions": [
+        "1995-10-10",
+        "1995-09-18"
+      ],
+      "winner": "1995-10-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-23076",
+      "versions": [
+        "1995-09-25",
+        "1995-09-18"
+      ],
+      "winner": "1995-09-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2350",
+      "versions": [
+        "1995-02-01",
+        "1995-02-03"
+      ],
+      "winner": "1995-02-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-23906",
+      "versions": [
+        "1995-09-27",
+        "1995-09-18"
+      ],
+      "winner": "1995-09-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-24211",
+      "versions": [
+        "1995-09-29",
+        "1995-11-13"
+      ],
+      "winner": "1995-11-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-24793",
+      "versions": [
+        "1995-10-05",
+        "1997-09-24"
+      ],
+      "winner": "1997-09-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-25468",
+      "versions": [
+        "1995-10-17",
+        "1995-10-16"
+      ],
+      "winner": "1995-10-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-26",
+      "versions": [
+        "1995-10-23",
+        "1995-01-04"
+      ],
+      "winner": "1995-10-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-26824",
+      "versions": [
+        "1995-10-30",
+        "1995-10-27"
+      ],
+      "winner": "1995-10-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-26850",
+      "versions": [
+        "1995-10-30",
+        "1995-10-26"
+      ],
+      "winner": "1995-10-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2715",
+      "versions": [
+        "1995-02-03",
+        "1995-11-02"
+      ],
+      "winner": "1995-11-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2828",
+      "versions": [
+        "1995-02-06",
+        "1995-11-17"
+      ],
+      "winner": "1995-11-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-28462",
+      "versions": [
+        "1995-11-24",
+        "1995-11-22"
+      ],
+      "winner": "1995-11-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-29337",
+      "versions": [
+        "1995-12-01",
+        "1995-11-30"
+      ],
+      "winner": "1995-12-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-2935",
+      "versions": [
+        "1995-02-09",
+        "1995-02-06"
+      ],
+      "winner": "1995-02-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3000",
+      "versions": [
+        "1995-02-07",
+        "1995-12-08"
+      ],
+      "winner": "1995-12-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3064",
+      "versions": [
+        "1995-05-30",
+        "1995-02-08"
+      ],
+      "winner": "1995-05-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3070",
+      "versions": [
+        "1995-02-08",
+        "1995-12-19"
+      ],
+      "winner": "1995-12-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3102",
+      "versions": [
+        "1995-02-08",
+        "1996-02-13"
+      ],
+      "winner": "1996-02-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3460",
+      "versions": [
+        "1995-02-13",
+        "1995-06-02"
+      ],
+      "winner": "1995-06-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-364",
+      "versions": [
+        "1996-01-10",
+        "1995-01-06"
+      ],
+      "winner": "1996-01-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-379",
+      "versions": [
+        "1995-01-12",
+        "1995-01-09"
+      ],
+      "winner": "1995-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3856",
+      "versions": [
+        "1995-02-03",
+        "1995-02-16"
+      ],
+      "winner": "1995-02-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-3864",
+      "versions": [
+        "1995-02-16",
+        "1996-02-21"
+      ],
+      "winner": "1996-02-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-506",
+      "versions": [
+        "1995-01-10",
+        "1995-05-01"
+      ],
+      "winner": "1995-05-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-5584",
+      "versions": [
+        "1995-03-10",
+        "1995-03-08"
+      ],
+      "winner": "1995-03-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-562",
+      "versions": [
+        "1995-01-10",
+        "1996-01-19"
+      ],
+      "winner": "1996-01-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-5917",
+      "versions": [
+        "1995-02-16",
+        "1995-03-10"
+      ],
+      "winner": "1995-03-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-592",
+      "versions": [
+        "1995-01-10",
+        "1996-01-19"
+      ],
+      "winner": "1996-01-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-595",
+      "versions": [
+        "1995-01-11",
+        "1996-01-18"
+      ],
+      "winner": "1996-01-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-6029",
+      "versions": [
+        "1995-03-13",
+        "1995-03-10"
+      ],
+      "winner": "1995-03-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-609",
+      "versions": [
+        "1995-01-11",
+        "1996-01-19"
+      ],
+      "winner": "1996-01-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-6120",
+      "versions": [
+        "1996-03-14",
+        "1995-03-13"
+      ],
+      "winner": "1996-03-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-6264",
+      "versions": [
+        "1995-04-04",
+        "1995-03-14"
+      ],
+      "winner": "1995-04-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-6412",
+      "versions": [
+        "1995-03-15",
+        "1995-03-13"
+      ],
+      "winner": "1995-03-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-6788",
+      "versions": [
+        "1995-03-20",
+        "1995-04-24"
+      ],
+      "winner": "1995-04-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-7340",
+      "versions": [
+        "1995-03-24",
+        "1995-03-27"
+      ],
+      "winner": "1995-03-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-7385",
+      "versions": [
+        "1995-03-24",
+        "1995-03-27"
+      ],
+      "winner": "1995-03-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-7437",
+      "versions": [
+        "1995-03-24",
+        "1995-03-27"
+      ],
+      "winner": "1995-03-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-7513",
+      "versions": [
+        "1995-03-24",
+        "1995-03-28"
+      ],
+      "winner": "1995-03-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-8274",
+      "versions": [
+        "1995-04-05",
+        "1995-04-10"
+      ],
+      "winner": "1995-04-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-95",
+      "versions": [
+        "1995-09-08",
+        "1995-01-04"
+      ],
+      "winner": "1995-09-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "95-9883",
+      "versions": [
+        "1995-04-21",
+        "1995-04-12"
+      ],
+      "winner": "1995-04-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-10333",
+      "versions": [
+        "1996-04-26",
+        "1996-01-24"
+      ],
+      "winner": "1996-04-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-1041",
+      "versions": [
+        "1996-04-25",
+        "1996-01-24"
+      ],
+      "winner": "1996-04-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-1074",
+      "versions": [
+        "1997-01-17",
+        "1996-01-23"
+      ],
+      "winner": "1997-01-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-10744",
+      "versions": [
+        "1996-05-07",
+        "1996-05-01"
+      ],
+      "winner": "1996-05-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-1077",
+      "versions": [
+        "1997-01-17",
+        "1996-01-23"
+      ],
+      "winner": "1997-01-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-1176",
+      "versions": [
+        "1997-01-17",
+        "1996-01-25"
+      ],
+      "winner": "1997-01-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-12158",
+      "versions": [
+        "1998-05-07",
+        "1996-05-15"
+      ],
+      "winner": "1998-05-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-12619",
+      "versions": [
+        "1996-05-20",
+        "1996-06-18"
+      ],
+      "winner": "1996-06-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-12991",
+      "versions": [
+        "1996-05-23",
+        "1996-06-27"
+      ],
+      "winner": "1996-06-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-13014",
+      "versions": [
+        "1996-05-23",
+        "1996-08-19"
+      ],
+      "winner": "1996-08-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-13144",
+      "versions": [
+        "1996-05-24",
+        "1996-05-23"
+      ],
+      "winner": "1996-05-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-13177",
+      "versions": [
+        "1996-05-24",
+        "1995-05-31"
+      ],
+      "winner": "1996-05-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-13195",
+      "versions": [
+        "1996-05-28",
+        "1995-05-31"
+      ],
+      "winner": "1996-05-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-13251",
+      "versions": [
+        "1997-05-21",
+        "1996-05-28"
+      ],
+      "winner": "1997-05-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-13880",
+      "versions": [
+        "1996-06-04",
+        "1996-06-03"
+      ],
+      "winner": "1996-06-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-14888",
+      "versions": [
+        "1996-06-12",
+        "1996-06-10"
+      ],
+      "winner": "1996-06-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-15793",
+      "versions": [
+        "1996-06-24",
+        "1996-06-20"
+      ],
+      "winner": "1996-06-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-1809",
+      "versions": [
+        "1996-01-31",
+        "1996-02-09"
+      ],
+      "winner": "1996-02-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-19446",
+      "versions": [
+        "1996-08-06",
+        "1996-07-31"
+      ],
+      "winner": "1996-08-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-19616",
+      "versions": [
+        "1996-07-03",
+        "1996-08-02"
+      ],
+      "winner": "1996-08-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-20306",
+      "versions": [
+        "1996-08-14",
+        "1996-08-09"
+      ],
+      "winner": "1996-08-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-2086",
+      "versions": [
+        "1996-02-01",
+        "1996-05-14"
+      ],
+      "winner": "1996-05-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-21479",
+      "versions": [
+        "1996-08-27",
+        "1996-08-22"
+      ],
+      "winner": "1996-08-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-21676",
+      "versions": [
+        "1996-08-27",
+        "1996-08-26"
+      ],
+      "winner": "1996-08-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-21871",
+      "versions": [
+        "1996-08-28",
+        "1996-08-19"
+      ],
+      "winner": "1996-08-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-2200",
+      "versions": [
+        "1996-02-02",
+        "1996-08-29"
+      ],
+      "winner": "1996-08-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-22515",
+      "versions": [
+        "1996-09-12",
+        "1996-09-04"
+      ],
+      "winner": "1996-09-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-23",
+      "versions": [
+        "1996-01-03",
+        "1997-01-03"
+      ],
+      "winner": "1997-01-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-23252",
+      "versions": [
+        "1996-09-16",
+        "1996-09-12"
+      ],
+      "winner": "1996-09-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-23279",
+      "versions": [
+        "1996-09-12",
+        "1996-09-17"
+      ],
+      "winner": "1996-09-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-23595",
+      "versions": [
+        "1996-09-16",
+        "1996-09-13"
+      ],
+      "winner": "1996-09-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-24377",
+      "versions": [
+        "1996-09-24",
+        "1997-09-15"
+      ],
+      "winner": "1997-09-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-2502",
+      "versions": [
+        "1996-02-15",
+        "1996-10-04"
+      ],
+      "winner": "1996-10-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-25366",
+      "versions": [
+        "1996-10-08",
+        "1996-10-03"
+      ],
+      "winner": "1996-10-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-25556",
+      "versions": [
+        "1996-10-10",
+        "1996-10-07"
+      ],
+      "winner": "1996-10-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-25666",
+      "versions": [
+        "1996-10-04",
+        "1998-09-25"
+      ],
+      "winner": "1998-09-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-25871",
+      "versions": [
+        "1996-10-09",
+        "1997-09-30"
+      ],
+      "winner": "1997-09-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-25917",
+      "versions": [
+        "1996-10-09",
+        "1996-10-07"
+      ],
+      "winner": "1996-10-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-26265",
+      "versions": [
+        "1996-10-11",
+        "1996-10-03"
+      ],
+      "winner": "1996-10-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-2755",
+      "versions": [
+        "1996-02-07",
+        "1996-02-09"
+      ],
+      "winner": "1996-02-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-28444",
+      "versions": [
+        "1996-11-07",
+        "1996-11-12"
+      ],
+      "winner": "1996-11-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-28505",
+      "versions": [
+        "1996-11-06",
+        "1996-11-04"
+      ],
+      "winner": "1996-11-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-32332",
+      "versions": [
+        "1996-12-23",
+        "1996-12-20"
+      ],
+      "winner": "1996-12-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-325",
+      "versions": [
+        "1996-01-11",
+        "1998-01-07"
+      ],
+      "winner": "1998-01-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-32586",
+      "versions": [
+        "1996-12-24",
+        "1996-12-20"
+      ],
+      "winner": "1996-12-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-3260",
+      "versions": [
+        "1996-02-14",
+        "1996-12-24"
+      ],
+      "winner": "1996-12-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-333",
+      "versions": [
+        "1996-01-10",
+        "1996-01-09"
+      ],
+      "winner": "1996-01-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-35",
+      "versions": [
+        "1996-01-03",
+        "1997-01-03"
+      ],
+      "winner": "1997-01-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-3614",
+      "versions": [
+        "1997-02-13",
+        "1996-02-23"
+      ],
+      "winner": "1997-02-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-4634",
+      "versions": [
+        "1996-03-11",
+        "1996-02-29"
+      ],
+      "winner": "1996-03-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-5261",
+      "versions": [
+        "1996-03-08",
+        "1997-03-07"
+      ],
+      "winner": "1997-03-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-542",
+      "versions": [
+        "1997-01-10",
+        "1996-01-19"
+      ],
+      "winner": "1997-01-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-5721",
+      "versions": [
+        "1996-03-11",
+        "1997-03-07"
+      ],
+      "winner": "1997-03-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-5895",
+      "versions": [
+        "1996-03-13",
+        "1996-03-12"
+      ],
+      "winner": "1996-03-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-6542",
+      "versions": [
+        "1996-03-20",
+        "1996-03-21"
+      ],
+      "winner": "1996-03-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-6714",
+      "versions": [
+        "1996-03-20",
+        "1997-03-18"
+      ],
+      "winner": "1997-03-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-7223",
+      "versions": [
+        "1996-03-29",
+        "1996-03-26"
+      ],
+      "winner": "1996-03-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-8310",
+      "versions": [
+        "1996-04-04",
+        "1996-07-19"
+      ],
+      "winner": "1996-07-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "96-9583",
+      "versions": [
+        "1996-03-01",
+        "1996-04-18"
+      ],
+      "winner": "1996-04-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-10384",
+      "versions": [
+        "1997-05-19",
+        "1997-04-22"
+      ],
+      "winner": "1997-05-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-11910",
+      "versions": [
+        "1997-07-30",
+        "1997-05-07"
+      ],
+      "winner": "1997-07-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-13088",
+      "versions": [
+        "1997-05-20",
+        "1997-05-19"
+      ],
+      "winner": "1997-05-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-15088",
+      "versions": [
+        "1997-06-13",
+        "1997-06-10"
+      ],
+      "winner": "1997-06-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-15226",
+      "versions": [
+        "1997-06-13",
+        "1997-06-11"
+      ],
+      "winner": "1997-06-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-15938",
+      "versions": [
+        "1997-07-24",
+        "1997-06-18"
+      ],
+      "winner": "1997-07-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-16279",
+      "versions": [
+        "1997-04-22",
+        "1997-06-23"
+      ],
+      "winner": "1997-06-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-17034",
+      "versions": [
+        "1997-05-19",
+        "1997-06-30"
+      ],
+      "winner": "1997-06-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-17082",
+      "versions": [
+        "1997-07-02",
+        "1997-07-01"
+      ],
+      "winner": "1997-07-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-181",
+      "versions": [
+        "1997-01-06",
+        "1998-01-06"
+      ],
+      "winner": "1998-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-185",
+      "versions": [
+        "1997-01-06",
+        "1998-01-06"
+      ],
+      "winner": "1998-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-19206",
+      "versions": [
+        "1997-07-31",
+        "1997-07-22"
+      ],
+      "winner": "1997-07-31"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-19753",
+      "versions": [
+        "1997-04-25",
+        "1997-07-28"
+      ],
+      "winner": "1997-07-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-20323",
+      "versions": [
+        "1997-08-01",
+        "1997-08-13"
+      ],
+      "winner": "1997-08-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-21384",
+      "versions": [
+        "1997-08-13",
+        "1997-09-02"
+      ],
+      "winner": "1997-09-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-21473",
+      "versions": [
+        "1997-08-18",
+        "1997-08-14"
+      ],
+      "winner": "1997-08-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-24212",
+      "versions": [
+        "1997-09-15",
+        "1997-09-12"
+      ],
+      "winner": "1997-09-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-25878",
+      "versions": [
+        "1997-10-02",
+        "1997-09-30"
+      ],
+      "winner": "1997-10-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-28687",
+      "versions": [
+        "1997-11-13",
+        "1997-10-30"
+      ],
+      "winner": "1997-11-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-28688",
+      "versions": [
+        "1997-11-13",
+        "1997-10-30"
+      ],
+      "winner": "1997-11-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-28689",
+      "versions": [
+        "1997-11-13",
+        "1997-10-30"
+      ],
+      "winner": "1997-11-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-30592",
+      "versions": [
+        "1997-11-21",
+        "1997-11-20"
+      ],
+      "winner": "1997-11-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-30959",
+      "versions": [
+        "1997-11-26",
+        "1997-11-25"
+      ],
+      "winner": "1997-11-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-32378",
+      "versions": [
+        "1997-01-02",
+        "1997-12-11"
+      ],
+      "winner": "1997-12-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-33934",
+      "versions": [
+        "1998-02-03",
+        "1997-12-31"
+      ],
+      "winner": "1998-02-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-33937",
+      "versions": [
+        "1998-02-03",
+        "1997-12-31"
+      ],
+      "winner": "1998-02-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-34062",
+      "versions": [
+        "1997-12-31",
+        "1997-12-30"
+      ],
+      "winner": "1997-12-31"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-342",
+      "versions": [
+        "1997-01-08",
+        "1998-01-07"
+      ],
+      "winner": "1998-01-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-55501",
+      "versions": [
+        "1997-06-19",
+        "1997-02-14"
+      ],
+      "winner": "1997-06-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-5555",
+      "versions": [
+        "1997-03-06",
+        "1997-06-09"
+      ],
+      "winner": "1997-06-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-6904",
+      "versions": [
+        "1997-03-19",
+        "1997-02-27"
+      ],
+      "winner": "1997-03-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-7008",
+      "versions": [
+        "1997-03-20",
+        "1997-06-04"
+      ],
+      "winner": "1997-06-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-7510",
+      "versions": [
+        "1997-03-26",
+        "1997-03-25"
+      ],
+      "winner": "1997-03-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "97-8858",
+      "versions": [
+        "1997-04-21",
+        "1997-04-08"
+      ],
+      "winner": "1997-04-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-10185",
+      "versions": [
+        "1996-04-24",
+        "1998-04-16"
+      ],
+      "winner": "1998-04-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-11654",
+      "versions": [
+        "1998-05-15",
+        "1998-05-04"
+      ],
+      "winner": "1998-05-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-14311",
+      "versions": [
+        "1998-05-20",
+        "1998-06-01"
+      ],
+      "winner": "1998-06-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-16722",
+      "versions": [
+        "1998-06-24",
+        "1998-06-23"
+      ],
+      "winner": "1998-06-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-23498",
+      "versions": [
+        "1998-09-01",
+        "1998-08-31"
+      ],
+      "winner": "1998-09-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-24770",
+      "versions": [
+        "1998-09-15",
+        "1998-09-11"
+      ],
+      "winner": "1998-09-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-24775",
+      "versions": [
+        "1998-09-15",
+        "1998-09-11"
+      ],
+      "winner": "1998-09-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-2567",
+      "versions": [
+        "1998-02-03",
+        "1998-09-28"
+      ],
+      "winner": "1998-09-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-27707",
+      "versions": [
+        "1998-10-09",
+        "1998-10-16"
+      ],
+      "winner": "1998-10-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-2887",
+      "versions": [
+        "1998-02-05",
+        "1998-05-14"
+      ],
+      "winner": "1998-05-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-30272",
+      "versions": [
+        "1998-12-10",
+        "1998-12-07"
+      ],
+      "winner": "1998-12-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-30358",
+      "versions": [
+        "1998-07-30",
+        "1998-11-13"
+      ],
+      "winner": "1998-11-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-32079",
+      "versions": [
+        "1999-01-06",
+        "1998-12-02"
+      ],
+      "winner": "1999-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-32415",
+      "versions": [
+        "1999-01-06",
+        "1998-12-08"
+      ],
+      "winner": "1999-01-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-32625",
+      "versions": [
+        "1998-12-11",
+        "1998-12-09"
+      ],
+      "winner": "1998-12-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-33377",
+      "versions": [
+        "1999-01-05",
+        "1998-12-17"
+      ],
+      "winner": "1999-01-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-33568",
+      "versions": [
+        "1998-12-22",
+        "1998-12-18"
+      ],
+      "winner": "1998-12-22"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-34111",
+      "versions": [
+        "1998-12-29",
+        "1998-12-24"
+      ],
+      "winner": "1998-12-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-4184",
+      "versions": [
+        "1998-02-20",
+        "1998-02-19"
+      ],
+      "winner": "1998-02-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-5073",
+      "versions": [
+        "1998-02-27",
+        "1998-03-06"
+      ],
+      "winner": "1998-03-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-5330",
+      "versions": [
+        "1998-03-04",
+        "1998-03-03"
+      ],
+      "winner": "1998-03-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-5425",
+      "versions": [
+        "1998-03-03",
+        "1998-03-25"
+      ],
+      "winner": "1998-03-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-5980",
+      "versions": [
+        "1998-03-09",
+        "1998-03-04"
+      ],
+      "winner": "1998-03-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-5983",
+      "versions": [
+        "1998-03-09",
+        "1998-03-04"
+      ],
+      "winner": "1998-03-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-6402",
+      "versions": [
+        "1996-03-18",
+        "1998-03-12"
+      ],
+      "winner": "1998-03-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-8350",
+      "versions": [
+        "1998-04-02",
+        "1998-04-01"
+      ],
+      "winner": "1998-04-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-8456",
+      "versions": [
+        "1998-04-01",
+        "1998-03-30"
+      ],
+      "winner": "1998-04-01"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-8628",
+      "versions": [
+        "1996-04-08",
+        "1998-04-02"
+      ],
+      "winner": "1998-04-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "98-880",
+      "versions": [
+        "1999-01-14",
+        "1998-01-14"
+      ],
+      "winner": "1999-01-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-16429",
+      "versions": [
+        "1999-10-12",
+        "1999-06-29"
+      ],
+      "winner": "1999-10-12"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": false,
+      "recordId": "99-21478",
+      "versions": [
+        "1999-08-31",
+        "1999-08-30",
+        "1999-08-19"
+      ],
+      "winner": "1999-08-31"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-25828",
+      "versions": [
+        "1999-10-05",
+        "1999-09-30"
+      ],
+      "winner": "1999-10-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-25832",
+      "versions": [
+        "1999-11-02",
+        "1999-10-08"
+      ],
+      "winner": "1999-11-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-28930",
+      "versions": [
+        "1999-11-08",
+        "1999-11-04"
+      ],
+      "winner": "1999-11-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-29624",
+      "versions": [
+        "1999-11-02",
+        "1999-11-12"
+      ],
+      "winner": "1999-11-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-29978",
+      "versions": [
+        "1999-11-19",
+        "1999-11-16"
+      ],
+      "winner": "1999-11-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-30400",
+      "versions": [
+        "1999-11-23",
+        "1999-11-19"
+      ],
+      "winner": "1999-11-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-30405",
+      "versions": [
+        "1999-11-30",
+        "1999-11-22"
+      ],
+      "winner": "1999-11-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-32324",
+      "versions": [
+        "1999-12-17",
+        "1999-12-23"
+      ],
+      "winner": "1999-12-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-344",
+      "versions": [
+        "1999-01-08",
+        "1999-01-15"
+      ],
+      "winner": "1999-01-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-3630",
+      "versions": [
+        "1999-02-19",
+        "1999-02-18"
+      ],
+      "winner": "1999-02-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-6175",
+      "versions": [
+        "1999-03-30",
+        "1999-04-05"
+      ],
+      "winner": "1999-04-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "99-948",
+      "versions": [
+        "1999-01-20",
+        "1999-01-15"
+      ],
+      "winner": "1999-01-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-10220",
+      "versions": [
+        "2000-06-05",
+        "2000-08-21"
+      ],
+      "winner": "2000-08-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-12821",
+      "versions": [
+        "2000-06-16",
+        "2000-07-13"
+      ],
+      "winner": "2000-07-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-12879",
+      "versions": [
+        "2000-06-19",
+        "2000-09-12"
+      ],
+      "winner": "2000-09-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-12986",
+      "versions": [
+        "2000-08-28",
+        "2000-06-26"
+      ],
+      "winner": "2000-08-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-14015",
+      "versions": [
+        "2000-07-20",
+        "2000-07-18"
+      ],
+      "winner": "2000-07-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-18602",
+      "versions": [
+        "2000-10-23",
+        "2000-08-31"
+      ],
+      "winner": "2000-10-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-19872",
+      "versions": [
+        "2000-09-19",
+        "2001-01-29"
+      ],
+      "winner": "2001-01-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-2262",
+      "versions": [
+        "2000-02-25",
+        "2000-02-24"
+      ],
+      "winner": "2000-02-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-22832",
+      "versions": [
+        "2000-10-20",
+        "2000-09-26"
+      ],
+      "winner": "2000-10-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-2368",
+      "versions": [
+        "2000-02-25",
+        "2000-02-24"
+      ],
+      "winner": "2000-02-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-25929",
+      "versions": [
+        "2000-11-28",
+        "2000-11-13"
+      ],
+      "winner": "2000-11-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-29469",
+      "versions": [
+        "2000-11-30",
+        "2000-11-27"
+      ],
+      "winner": "2000-11-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-29765",
+      "versions": [
+        "2001-07-11",
+        "2001-07-02"
+      ],
+      "winner": "2001-07-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-3983",
+      "versions": [
+        "2000-03-08",
+        "2000-03-07"
+      ],
+      "winner": "2000-03-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-4009",
+      "versions": [
+        "2000-03-08",
+        "2000-03-07"
+      ],
+      "winner": "2000-03-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-4455",
+      "versions": [
+        "2000-03-08",
+        "2000-03-07"
+      ],
+      "winner": "2000-03-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-4931",
+      "versions": [
+        "2000-03-08",
+        "2000-03-07"
+      ],
+      "winner": "2000-03-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-5348",
+      "versions": [
+        "2000-03-08",
+        "2000-03-07"
+      ],
+      "winner": "2000-03-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-8969",
+      "versions": [
+        "2000-05-12",
+        "2000-06-26"
+      ],
+      "winner": "2000-06-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C0-9535",
+      "versions": [
+        "2000-07-14",
+        "2000-07-05"
+      ],
+      "winner": "2000-07-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-10398",
+      "versions": [
+        "2002-02-13",
+        "2001-05-11"
+      ],
+      "winner": "2002-02-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-10838",
+      "versions": [
+        "2001-05-24",
+        "2001-05-16"
+      ],
+      "winner": "2001-05-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-11237",
+      "versions": [
+        "2001-05-25",
+        "2001-05-21"
+      ],
+      "winner": "2001-05-25"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-12840",
+      "versions": [
+        "2001-06-20",
+        "2001-06-18"
+      ],
+      "winner": "2001-06-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-1816",
+      "versions": [
+        "2001-02-14",
+        "2001-02-12"
+      ],
+      "winner": "2001-02-14"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": true,
+      "recordId": "C1-18869",
+      "versions": [
+        "2001-09-17",
+        "2001-11-23",
+        "2002-03-14"
+      ],
+      "winner": "2002-03-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-18948",
+      "versions": [
+        "2001-08-06",
+        "2001-08-02"
+      ],
+      "winner": "2001-08-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-19779",
+      "versions": [
+        "2002-01-08",
+        "2001-08-31"
+      ],
+      "winner": "2002-01-08"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-2010-24721",
+      "versions": [
+        "2010-11-19",
+        "2010-10-29"
+      ],
+      "winner": "2010-11-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-2014-16556",
+      "versions": [
+        "2014-07-29",
+        "2014-07-28"
+      ],
+      "winner": "2014-07-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-20693",
+      "versions": [
+        "2001-09-06",
+        "2001-08-31"
+      ],
+      "winner": "2001-09-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-22420",
+      "versions": [
+        "2001-10-03",
+        "2001-10-09"
+      ],
+      "winner": "2001-10-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-23820",
+      "versions": [
+        "2001-10-12",
+        "2001-10-05"
+      ],
+      "winner": "2001-10-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-24399",
+      "versions": [
+        "2001-10-25",
+        "2001-11-07"
+      ],
+      "winner": "2001-11-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-24574",
+      "versions": [
+        "2001-11-19",
+        "2001-11-13"
+      ],
+      "winner": "2001-11-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-27764",
+      "versions": [
+        "2002-02-15",
+        "2002-02-27"
+      ],
+      "winner": "2002-02-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-28438",
+      "versions": [
+        "2001-12-10",
+        "2001-11-26"
+      ],
+      "winner": "2001-12-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-30417",
+      "versions": [
+        "2002-01-14",
+        "2002-01-08"
+      ],
+      "winner": "2002-01-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C1-31656",
+      "versions": [
+        "2002-01-18",
+        "2002-01-08"
+      ],
+      "winner": "2002-01-18"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-13704",
+      "versions": [
+        "2002-06-20",
+        "2002-06-27"
+      ],
+      "winner": "2002-06-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-14747",
+      "versions": [
+        "2002-08-22",
+        "2002-06-24"
+      ],
+      "winner": "2002-08-22"
+    },
+    {
+      "distinctDigests": 4,
+      "observationCount": 4,
+      "post2000": true,
+      "recordId": "C2-15835",
+      "versions": [
+        "2003-01-16",
+        "2003-01-10",
+        "2002-10-10",
+        "2002-09-10"
+      ],
+      "winner": "2003-01-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-16885",
+      "versions": [
+        "2002-07-15",
+        "2002-07-19"
+      ],
+      "winner": "2002-07-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-18610",
+      "versions": [
+        "2002-09-17",
+        "2002-07-30"
+      ],
+      "winner": "2002-09-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-1875",
+      "versions": [
+        "2002-02-04",
+        "2002-07-11"
+      ],
+      "winner": "2002-07-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-19055",
+      "versions": [
+        "2002-08-09",
+        "2002-08-20"
+      ],
+      "winner": "2002-08-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-20210",
+      "versions": [
+        "2002-08-15",
+        "2002-08-19"
+      ],
+      "winner": "2002-08-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-22200",
+      "versions": [
+        "2002-11-04",
+        "2002-10-04"
+      ],
+      "winner": "2002-11-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-440",
+      "versions": [
+        "2002-11-26",
+        "2002-11-12"
+      ],
+      "winner": "2002-11-26"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C2-5462",
+      "versions": [
+        "2002-06-10",
+        "2002-03-28"
+      ],
+      "winner": "2002-06-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-11966",
+      "versions": [
+        "2003-06-04",
+        "2003-06-09"
+      ],
+      "winner": "2003-06-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-16229",
+      "versions": [
+        "2003-09-09",
+        "2003-07-11"
+      ],
+      "winner": "2003-09-09"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-17766",
+      "versions": [
+        "2003-08-11",
+        "2003-08-15"
+      ],
+      "winner": "2003-08-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-1946",
+      "versions": [
+        "2003-02-13",
+        "2003-02-20"
+      ],
+      "winner": "2003-02-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-21140",
+      "versions": [
+        "2003-10-06",
+        "2003-09-16"
+      ],
+      "winner": "2003-10-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-21354",
+      "versions": [
+        "2004-02-20",
+        "2003-09-03"
+      ],
+      "winner": "2004-02-20"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-27137",
+      "versions": [
+        "2003-10-28",
+        "2003-10-31"
+      ],
+      "winner": "2003-10-31"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-6662",
+      "versions": [
+        "2003-04-10",
+        "2003-04-03"
+      ],
+      "winner": "2003-04-10"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-6759",
+      "versions": [
+        "2003-03-25",
+        "2003-05-06"
+      ],
+      "winner": "2003-05-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-7858",
+      "versions": [
+        "2003-04-14",
+        "2003-04-08"
+      ],
+      "winner": "2003-04-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C3-856",
+      "versions": [
+        "2003-02-12",
+        "2003-02-19"
+      ],
+      "winner": "2003-02-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C4-12187",
+      "versions": [
+        "2004-07-21",
+        "2004-06-18"
+      ],
+      "winner": "2004-07-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C4-16548",
+      "versions": [
+        "2004-08-12",
+        "2004-08-16"
+      ],
+      "winner": "2004-08-16"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C4-23771",
+      "versions": [
+        "2005-01-04",
+        "2004-11-15"
+      ],
+      "winner": "2005-01-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C4-27678",
+      "versions": [
+        "2005-04-21",
+        "2005-04-13"
+      ],
+      "winner": "2005-04-21"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C4-9916",
+      "versions": [
+        "2004-06-07",
+        "2004-05-06"
+      ],
+      "winner": "2004-06-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C5-14038",
+      "versions": [
+        "2006-05-15",
+        "2006-04-04"
+      ],
+      "winner": "2006-05-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C5-23642",
+      "versions": [
+        "2005-12-20",
+        "2005-12-28"
+      ],
+      "winner": "2005-12-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C5-716",
+      "versions": [
+        "2005-02-02",
+        "2005-01-28"
+      ],
+      "winner": "2005-02-02"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C6-3",
+      "versions": [
+        "2006-01-27",
+        "2006-06-29"
+      ],
+      "winner": "2006-06-29"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C6-4",
+      "versions": [
+        "2006-02-06",
+        "2006-01-30"
+      ],
+      "winner": "2006-02-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C6-9342",
+      "versions": [
+        "2007-01-11",
+        "2006-12-28"
+      ],
+      "winner": "2007-01-11"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": true,
+      "recordId": "C6-9749",
+      "versions": [
+        "2007-02-08",
+        "2007-02-21",
+        "2007-04-24"
+      ],
+      "winner": "2007-04-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C8-1105",
+      "versions": [
+        "2008-06-09",
+        "2008-06-27"
+      ],
+      "winner": "2008-06-27"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C8-34851",
+      "versions": [
+        "1999-02-02",
+        "1999-02-11"
+      ],
+      "winner": "1999-02-11"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": false,
+      "recordId": "C9-11796",
+      "versions": [
+        "1999-07-09",
+        "1999-05-20",
+        "1999-07-15"
+      ],
+      "winner": "1999-07-15"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-12281",
+      "versions": [
+        "1999-06-04",
+        "1999-05-21"
+      ],
+      "winner": "1999-06-04"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-15032",
+      "versions": [
+        "1999-07-06",
+        "1999-06-22"
+      ],
+      "winner": "1999-07-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-20022",
+      "versions": [
+        "1999-08-24",
+        "1999-08-16"
+      ],
+      "winner": "1999-08-24"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-20283",
+      "versions": [
+        "1999-09-23",
+        "1999-08-25"
+      ],
+      "winner": "1999-09-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C9-23075",
+      "versions": [
+        "1999-09-20",
+        "2000-02-17"
+      ],
+      "winner": "2000-02-17"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-23460",
+      "versions": [
+        "1999-09-14",
+        "1999-09-10"
+      ],
+      "winner": "1999-09-14"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-27278",
+      "versions": [
+        "1999-11-01",
+        "1999-11-19"
+      ],
+      "winner": "1999-11-19"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "C9-31048",
+      "versions": [
+        "1999-12-16",
+        "2000-02-02"
+      ],
+      "winner": "2000-02-02"
+    },
+    {
+      "distinctDigests": 3,
+      "observationCount": 3,
+      "post2000": false,
+      "recordId": "C9-6175",
+      "versions": [
+        "1999-07-06",
+        "1999-06-30",
+        "1999-06-25"
+      ],
+      "winner": "1999-07-06"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-6609",
+      "versions": [
+        "1999-05-11",
+        "1999-04-19"
+      ],
+      "winner": "1999-05-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": false,
+      "recordId": "C9-9556",
+      "versions": [
+        "1999-06-11",
+        "1999-05-07"
+      ],
+      "winner": "1999-06-11"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E4-359",
+      "versions": [
+        "2004-02-24",
+        "2004-03-03"
+      ],
+      "winner": "2004-03-03"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E4-536",
+      "versions": [
+        "2004-03-23",
+        "2004-03-11"
+      ],
+      "winner": "2004-03-23"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E8-17144",
+      "versions": [
+        "2008-07-28",
+        "2008-07-25"
+      ],
+      "winner": "2008-07-28"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E8-26814",
+      "versions": [
+        "2008-11-12",
+        "2008-12-05"
+      ],
+      "winner": "2008-12-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E8-27724",
+      "versions": [
+        "2008-12-05",
+        "2008-11-21"
+      ],
+      "winner": "2008-12-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E8-28015",
+      "versions": [
+        "2008-12-05",
+        "2008-11-25"
+      ],
+      "winner": "2008-12-05"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E8-71",
+      "versions": [
+        "2008-01-08",
+        "2009-01-07"
+      ],
+      "winner": "2009-01-07"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "E9-31336",
+      "versions": [
+        "2009-01-07",
+        "2010-01-12"
+      ],
+      "winner": "2010-01-12"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "Z6-22123",
+      "versions": [
+        "2007-01-30",
+        "2007-01-26"
+      ],
+      "winner": "2007-01-30"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "Z7-20797",
+      "versions": [
+        "2007-11-13",
+        "2007-10-25"
+      ],
+      "winner": "2007-11-13"
+    },
+    {
+      "distinctDigests": 2,
+      "observationCount": 2,
+      "post2000": true,
+      "recordId": "Z7-9803",
+      "versions": [
+        "2007-06-12",
+        "2007-06-01"
+      ],
+      "winner": "2007-06-12"
+    }
+  ],
+  "numberAndDateUniquelyIdentify": true,
+  "numberAndDateUniquelyIdentifyBasis": "the collapse groups observations by (document_number, publication_date) and refuses to publish a pair whose canonical record digests differ, so a release that published is itself the proof the pair uniquely identifies one record for every pair it covers",
+  "profile": "federal-register",
+  "sameNumberDifferentDateCount": 474,
+  "sameNumberSameDateDifferingDigestCount": 0,
+  "sameNumberSameDateIdenticalDigestCount": 0,
+  "totals": {
+    "discardedObservations": 483,
+    "multiObservationIds": 474,
+    "records": 1007156
+  },
+  "xFormDateEncodingMismatchCount": 0,
+  "xFormDateEncodingMismatches": [],
+  "xFormPattern": "^X(\\d{2})-(\\d{5})$"
+}
