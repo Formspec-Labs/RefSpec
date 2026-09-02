@@ -89,6 +89,7 @@ from refspec.registry.citation_grammar import (
     usc_title_is_possible,
     usc_token_is_chapter_qualified,
 )
+from refspec.registry.eo_roster import EO_ROSTER_ARTIFACT, EoRosterOracle
 from refspec.registry.unified_agenda_editions import (
     CONTINUATION_LABEL_FAMILIES,
     UNIFIED_AGENDA_EDITION_PINS,
@@ -107,11 +108,13 @@ from refspec.registry.usc_disposition_tables import (
 # no-table-for-title, which is neither of the other two.
 from refspec.registry.usc_disposition_tables import VERDICTS as DISPOSITION_VERDICTS
 from refspec.registry.usc_section_oracle import (
+    CANDIDATE_ONLY_RULES,
     CORRECTION_RULES,
     UNKNOWN_REASONS,
     USC_SECTION_ORACLE_ARTIFACT,
     VERDICTS,
     ActSectionClaim,
+    Candidate,
     SectionVerdict,
     UscSectionOracle,
     normalize_section,
@@ -1257,6 +1260,12 @@ _INITIALISM_ROSTER_FIELDS: tuple[str, ...] = (
     "token", "agency_prefix", "year_key", "status", "act_name", "table3_key",
     "evidence_path", "evidence_sha256", "evidence_quote", "rows_observed", "notes",
 )
+#: The sixth oracle found relative to this file, with the same sharp edge as
+#: the other five: absent, `eo_in_known_series` silently falls back to the
+#: bare range check and `eoUnknownRows` reads 0 on an artifact that never
+#: consulted a roster. ``main``'s missing-oracle refusal lists this directory
+#: for that reason.
+_EO_ROSTER_DIR = Path(__file__).resolve().parents[3] / EO_ROSTER_ARTIFACT
 
 
 def _usc_disposition_tables() -> UscDispositionTables | None:
@@ -1281,10 +1290,33 @@ def _usc_section_oracle() -> UscSectionOracle | None:
     return UscSectionOracle.from_directory(_USC_SECTION_ORACLE_DIR, dispositions=_usc_disposition_tables())
 
 
-def _cfr_authority_notes() -> CfrAuthorityNotes | None:
-    """The pinned CFR authority notes, or None where this tree does not carry them."""
+def _eo_roster_oracle() -> EoRosterOracle | None:
+    """The pinned EO existence roster, or None where this tree lacks it.
 
-    return CfrAuthorityNotes.from_file(_CFR_AUTHORITY_NOTES_JSONL) if _CFR_AUTHORITY_NOTES_JSONL.is_file() else None
+    Optional by the same convention as every other oracle in this module --
+    and, like them, not optional for a BUILD: `main` refuses to build without
+    the directory, because a build that silently answers with the bare range
+    check writes an artifact whose `eo_in_known_series` column means something
+    different from the one beside it.
+    """
+
+    if not _EO_ROSTER_DIR.is_dir():
+        return None
+    return EoRosterOracle.from_directory(_EO_ROSTER_DIR)
+
+
+def _cfr_authority_notes(oracle: UscSectionOracle | None = None) -> CfrAuthorityNotes | None:
+    """The pinned CFR authority notes, or None where this tree does not carry them.
+
+    ``oracle`` reaches :func:`~refspec.registry.cfr_authority_notes.read_note_citations`'s
+    Statutes-at-Large gate. The build passes its own section oracle so the six
+    pinned tables load once; a bare reader may omit it and the notes module's
+    memoized auto-detect answers instead (same instance either way).
+    """
+
+    if not _CFR_AUTHORITY_NOTES_JSONL.is_file():
+        return None
+    return CfrAuthorityNotes.from_file(_CFR_AUTHORITY_NOTES_JSONL, oracle=oracle)
 
 
 def _usc_source_credits() -> SourceCreditIndex | None:
@@ -1339,6 +1371,12 @@ _PRODUCER_MODULES: tuple[str, ...] = (
     #: refuses on drift, so hashing the module pins the table and the page it
     #: was cut from.
     "usc_disposition_tables",
+    #: The EO existence oracle's own module. Its roster's sha256 is a literal
+    #: string in it and its loader refuses on drift, so hashing the module
+    #: pins the roster's identity too -- and the file is listed under
+    #: "oracles" below as well, because that one IS the publisher-derived
+    #: bytes, the same argument as cfr_authority_notes.
+    "eo_roster",
 )
 
 
@@ -1360,6 +1398,7 @@ def _producer_block() -> dict[str, object]:
             "ecfr-authority-notes-2026-08-24/notes.jsonl": digest(_CFR_AUTHORITY_NOTES_JSONL),
             "unified-agenda-fr-document-roster/documents.csv": digest(_FR_DOCUMENT_ROSTER_CSV),
             "initialism-roster-2026-08-24/roster.csv": digest(_INITIALISM_ROSTER_CSV),
+            "eo-roster-2026-08-31/derived/roster.csv": digest(_EO_ROSTER_DIR / "derived/roster.csv"),
         },
     }
 
@@ -1445,11 +1484,18 @@ class _SeriesCalendar:
     #: say; this answers at the resolution the roster actually carries, for
     #: the one caller that needs it. See :meth:`pl_approved_by_edition`.
     pl_approved_in: Mapping[str, tuple[int, int]] = field(default_factory=dict)
+    #: The EO existence oracle, where this tree carries it. Optional and
+    #: undated, like the rest of this field's undated-on-purpose EO story
+    #: (see the class docstring) -- it refines `eo_in_known_series` beyond
+    #: the bare range check without adding a dependency this calendar's
+    #: OTHER methods need. Defaulted so every existing construction of this
+    #: dataclass keeps working unchanged.
+    eo_oracle: EoRosterOracle | None = None
 
     @classmethod
-    def build(cls, roster) -> _SeriesCalendar:
+    def build(cls, roster, *, eo_oracle: EoRosterOracle | None = None) -> _SeriesCalendar:
         if roster is None:
-            return cls({}, {}, {})
+            return cls({}, {}, {}, eo_oracle=eo_oracle)
         dates, volumes = roster
         congress_by_year: dict[int, int] = {}
         volume_by_year: dict[int, int] = {}
@@ -1472,7 +1518,11 @@ class _SeriesCalendar:
             if pair in dates:
                 titles[title] = int(dates[pair].split("/")[-1])
         return cls(
-            cls._cumulative(congress_by_year), cls._cumulative(volume_by_year), titles, approved
+            cls._cumulative(congress_by_year),
+            cls._cumulative(volume_by_year),
+            titles,
+            approved,
+            eo_oracle=eo_oracle,
         )
 
     @staticmethod
@@ -1587,13 +1637,30 @@ class _SeriesCalendar:
             return None
         return 1 <= page <= FR_PAGE_HIGHEST_KNOWN
 
-    @staticmethod
-    def eo_in_known_series(executive_order: str | None) -> bool | None:
-        """Undated on purpose — see the class docstring's measured zero."""
+    def eo_in_known_series(self, executive_order: str | None) -> bool | None:
+        """Undated on purpose — see the class docstring's measured zero.
+
+        The range check runs FIRST and alone decides every number outside
+        [1, EO_HIGHEST_KNOWN]: a five/six-digit typo must read False exactly
+        as it does today, whatever the oracle would say (it says `unknown`
+        for anything outside its own windows, which must never soften a typo
+        into `None`). Only a number that passes the range check is handed to
+        the oracle, where one is bound, for a finer answer than "in range":
+        `exists` -> True, `absent` -> False, `unknown` -> None (honest, not a
+        guessed True). Absent an oracle, behavior is unchanged.
+        """
 
         if executive_order is None:
             return None
-        return 1 <= int(executive_order) <= EO_HIGHEST_KNOWN
+        number = int(executive_order)
+        if not 1 <= number <= EO_HIGHEST_KNOWN:
+            return False
+        if self.eo_oracle is None:
+            return True
+        verdict = self.eo_oracle.verdict(number)
+        if verdict.verdict == "unknown":
+            return None
+        return verdict.verdict == "exists"
 
 
 _TRAILING_YEAR_STYLE = re.compile(r"(,| of)? ((?:18|19|20)\d{2})")
@@ -3160,6 +3227,12 @@ class _Tally:
     fuzzy_act_rows: int = 0
     prefix_act_rows: int = 0
     corroborated_rows: int = 0
+    #: The filer-box half of the Statutes-at-Large gate (REF-062): U.S.C.
+    #: list members a filer's own box reaches only by scanning past a Stat.
+    #: citation, withheld where the section oracle's exact lists do not
+    #: enumerate them. Declared 2026-09-01: 3 texts / 4 citations / 40 rows /
+    #: 3 RINs (research/evidence/stat-page-gate-2026-09-01/marked_filer_texts.json).
+    stat_page_filer_refusals: int = 0
     #: Resolutions the calendar refused: an act named with a year later than
     #: the edition citing it.
     anachronisms: int = 0
@@ -4175,6 +4248,32 @@ class _CfrAuthorityNoteCensus:
     unjudged_rows_by_type: Mapping[str, int]
 
 
+def _held_parts_by_rule(
+    references: list[dict[str, object]], notes: CfrAuthorityNotes | None
+) -> dict[tuple[str, str], set[tuple[int, str]]]:
+    """One rule's held CFR parts, keyed by ``(rin, publication_id)``.
+
+    The join every reader of the publisher's own notes needs is the same one:
+    a rule's ``unified_agenda_cfr_references`` rows, restricted to parts the
+    pinned authority-note cache HOLDS -- "49 CFR 1.53" in the LEGAL AUTHORITY
+    column is a delegation the rule cites, not a part it amends, so only the
+    reference table's own part list is read here. Three readers want it now
+    (:func:`_judge_against_cfr_notes`, :func:`_write_placeholder_candidates`,
+    :func:`_promote_two_witness_b8`), which is what makes it a shared helper
+    rather than a third copy of the same nine lines.
+    """
+
+    held: dict[tuple[str, str], set[tuple[int, str]]] = {}
+    if notes is None:
+        return held
+    for reference in references:
+        title, part = reference["cfr_title"], normalize_part(reference["cfr_part"])
+        if title is None or part is None or not notes.holds(title, part):
+            continue
+        held.setdefault((reference["rin"], reference["publication_id"]), set()).add((int(title), part))
+    return held
+
+
 def _judge_against_cfr_notes(
     authorities: list[dict[str, object]],
     references: list[dict[str, object]],
@@ -4215,15 +4314,8 @@ def _judge_against_cfr_notes(
             unjudged_rows_by_type={},
         )
 
-    held_by_rule: dict[tuple[str, str], set[tuple[int, str]]] = {}
-    named_parts: set[tuple[int, str]] = set()
-    for reference in references:
-        title, part = reference["cfr_title"], normalize_part(reference["cfr_part"])
-        if title is None or part is None or not notes.holds(title, part):
-            continue
-        key = (int(title), part)
-        named_parts.add(key)
-        held_by_rule.setdefault((reference["rin"], reference["publication_id"]), set()).add(key)
+    held_by_rule = _held_parts_by_rule(references, notes)
+    named_parts: set[tuple[int, str]] = set().union(*held_by_rule.values()) if held_by_rule else set()
 
     covered_rows = 0
     covered_rins: set[str] = set()
@@ -4271,10 +4363,11 @@ _USC_SLOT_BARE_HYPHEN_SECTION = re.compile(r"\A\d+-\d+\Z")
 #: ``inv-universe``'s shape (d) (bare OSHA-style citations with no title or
 #: scheme marker nearby), was measured at 0 misreads and gets no name; a
 #: FOURTH, shape (a)'s reg-shaped dot-truncation ("26 USC 1.104-1(c)" read as
-#: title 26 section 1), is a case where naming without also fixing the
-#: verdict would be more confusing than silence, and the fix is explicitly
-#: out of scope this wave (see the investigation's own finding 3) -- so this
-#: column says nothing about it either, rather than half-saying something.
+#: title 26 section 1), was refused at parse on 2026-09-01 (REF-062: the
+#: dotted refusal now guards the anchor and every single-token position --
+#: see citation_grammar._A_DOTTED_NUMBER_IS_A_CFR_SECTION) -- so this column
+#: still says nothing about it, now because the fabricated reading no longer
+#: exists to name.
 USC_SLOT_READINGS: tuple[str, ...] = ("reg-suffix", "chapter-in-slot")
 
 
@@ -4560,6 +4653,305 @@ def _promote_paren_eaten_lettered_suffix(
     return counts
 
 
+#: The builder's own two-witness enlargement of the oracle's B8 reading,
+#: named apart from :data:`~refspec.registry.usc_section_oracle.CORRECTION_RULES`
+#: for the identical reason :data:`USC_C3_PROMOTION_RULE` is: turning "the
+#: oracle's own named candidate, corroborated by two witnesses the oracle
+#: cannot see" into a publication is a decision this builder makes past what
+#: the oracle's own inputs can prove alone. See
+#: :data:`~refspec.registry.usc_section_oracle.CANDIDATE_ONLY_RULES` and the
+#: oracle module's own demotion doctrine, both restated in full in
+#: :func:`_promote_two_witness_b8`.
+USC_B8_PROMOTION_RULE = "B8-two-witness-lettered-section"
+
+#: The oracle's own candidate-only B8 rule name, read out of
+#: :data:`~refspec.registry.usc_section_oracle.CANDIDATE_ONLY_RULES` rather
+#: than retyped, so the gate below cannot drift from the string the oracle
+#: itself emits. ``"parse-as-filed"`` is the tuple's other member and never
+#: the one this gate asks about.
+_USC_B8_ORACLE_RULE = next(rule for rule in CANDIDATE_ONLY_RULES if rule != "parse-as-filed")
+
+#: Every outcome :func:`_promote_two_witness_b8` counts, named once so the
+#: receipt's key set and the function's own tally cannot drift. Every row
+#: where the oracle names B8 as the SOLE surviving reading lands in exactly
+#: one of these three buckets -- the fix for ``inv-b8``'s "LONE:B8" census
+#: hole (``research/investigations-mined-2026-08-31.md``): a one-candidate B8
+#: reading is neither a correction (B8 never corrects on its own,
+#: :data:`~refspec.registry.usc_section_oracle.CANDIDATE_ONLY_RULES`) nor a
+#: refusal-by-survivors (:attr:`_UscSectionCensus.refusal_rows_by_survivors`
+#: only fires past one candidate), so before this census existed such a row
+#: appeared in neither table at all.
+USC_B8_PROMOTION_OUTCOMES: tuple[str, ...] = ("promoted", "note_names_bare_section", "witnessless")
+
+
+def _promote_two_witness_b8(
+    authorities: list[dict[str, object]],
+    references: list[dict[str, object]],
+    oracle: UscSectionOracle | None,
+    notes: CfrAuthorityNotes | None,
+) -> dict[str, int]:
+    """"15 USC 18(a)" -> 18a, but only where TWO witnesses outside the oracle agree.
+
+    ``inv-b8`` (``research/investigations-mined-2026-08-31.md``, lines
+    ~41-51): ``NNN(x)`` read as section ``NNN`` where ``NNNx`` is also real
+    is the largest silent class either 2026-08-2[34] survey found -- 14,740
+    readings over 2,641 RINs. The oracle's own B8 rule names this reading
+    everywhere it can (:meth:`UscSectionOracle.correction_candidates`) and
+    never publishes it
+    (:data:`~refspec.registry.usc_section_oracle.CANDIDATE_ONLY_RULES`,
+    demoted 2026-08-23): B8's ONE input is that the bare section prints no
+    such lettered subsection, and ``15 U.S.C. 18(a)`` -- the FTC premerger
+    rule that demoted it -- has that exact shape while genuinely meaning
+    18a, so nothing B8 alone can ask tells that case apart from a filer who
+    really meant a subsection the bare section just never printed. See the
+    oracle module's own docstring, "B8 is a candidate, A4 and B1 are
+    corrections", for the full review that demoted it.
+
+    **This is a different, stronger rule, not a re-promotion of B8.** It
+    requires B8's structural witness AND a second one the oracle's own inputs
+    cannot see: the filing rule's OWN CFR authority note, or the filing
+    RIN's OWN other editions, naming the lettered section directly. Both are
+    corpus facts, read the same way the demotion doctrine says they must be
+    -- "which of two real sections a filer meant is settled outside this
+    rule's inputs" -- and both are exactly what would have closed the FTC
+    case the demotion turned on: 16 CFR Part 801's authority note reads
+    verbatim ``"Authority: 15 U.S.C. 18a(d); 15 U.S.C. 18b."`` (RIN
+    3084-AB46, ``authority_text`` "15 U.S.C. 18(a), Clayton Act" over 17
+    editions, 201704-202504) -- 18a stated with its own pinpoint, bare 18
+    never named at all (``notes.judge`` on bare 18 there returns
+    ``near-miss``, not ``present``, so it carries no counter-evidence
+    either). A single witness proved wrong once here; two independent ones
+    agreeing is a different claim, which is the whole reason this is an
+    enlargement and not a re-promotion.
+
+    **The two witnesses, and where each already lives.**
+
+    * **Witness 1**, the oracle's own B8 candidate. :meth:`correction_candidates`
+      is asked with no ``act_sections`` -- B8's branch never reads them, only
+      A4's compound-stem branch does, and this population's ``usc_section``
+      is always bare digits by construction. This function proceeds only
+      where EXACTLY ONE candidate survives (``fenced_by is None``) and its
+      rule is B8's own. A second surviving candidate -- most often
+      ``parse-as-filed`` competing where the bare section prints SOME OTHER
+      lettered subsection even though not this one -- means the oracle's own
+      structural witness did not clear the bare reading, and this rule asks
+      nothing further of that row.
+    * **Witness 2a**, the filing rule's held CFR authority note
+      (:func:`_held_parts_by_rule`, the same join
+      :func:`_judge_against_cfr_notes` and :func:`_write_placeholder_candidates`
+      already run): the note names the lettered identity ``present``.
+    * **Witness 2b**, the filing RIN's own citation history
+      (:class:`_CitationHistory`, built fresh over the corpus as it stands
+      after corroboration -- the class already excludes corroborated rows
+      itself, "never a corroborated row -- so corroboration never bootstraps
+      on corroboration"): some OTHER row for the SAME rin, at any edition,
+      PARSED the lettered identity as its own ``usc_section``. Structural,
+      not textual -- see "why not a raw-text scan" below for why this
+      function does not also re-scan raw ``authority_text``. "Any edition"
+      includes the row's OWN: a rule filing two citations in one edition
+      files two parsed rows, and a sibling row stating ``NNNx`` outright is
+      testimony this row's own text does not carry, whichever edition it
+      sits in. The row can never witness for itself -- its own
+      ``usc_section`` is the bare ``NNN`` this rule is asking about, never
+      ``NNNx`` -- so accepting a same-edition sibling admits a second
+      statement, never the same one twice. Measured 2026-09-01: of the 71
+      rows witness 2b alone promotes, 70 are corroborated from another
+      edition and 1 from a sibling row of its own.
+
+    Either witness alone is enough; both together is not required.
+
+    **The counter-evidence rider.** Where the SAME held note names the BARE
+    section ``present``, this function REFUSES regardless of what either
+    witness says -- ``inv-b8``'s own flagged decision, taken conservatively
+    on purpose. The refusal covers TWO different note shapes, and they are
+    worth naming apart because only one of them is the note choosing a side
+    (measured 2026-09-01 over the 319 rows it refuses,
+    ``research/evidence/b8-enlargement-2026-09-01/measure_b8_excluded.py``):
+
+    * **65 bare-only** -- the note names ``NNN`` and never ``NNNx``. Here the
+      note really is choosing the bare reading over the lettered one, and
+      refusing is simply reading it.
+    * **254 both-named** -- the SAME note names ``NNN`` AND ``NNNx``, each
+      ``present``. A note naming both chooses nothing: witness 2a and the
+      counter-evidence fire from one document, and neither outranks the
+      other. Refusing here is the conservative default, not a reading of the
+      note -- and arguably over-conservative, since a LONE row's bare section
+      prints no lettered subsection at all, so a note that names both is
+      naming the lettered one for a reason. It stays refused until a unit
+      reads a sample of the 254 against their raw notes and says which way
+      they run; ``DELTAS.md`` carries that as an open follow-up rather than
+      a settled reading.
+
+    Measured over the 8 readings the mined survey's exploratory script found
+    would "still publish via the sibling-edition witness" despite this exact
+    conflict (RINs 1904-AC49 x5, 3060-AK40 x3), raw inspection through THIS
+    function's own inputs shows both refuse anyway, for reasons independent
+    of the rider itself -- and only 3060-AK40 is even in this rider's
+    population, as a bare-only refusal (its note names 615, 615a-1 and 615b;
+    ``judge`` on 615a returns ``near-miss``):
+
+    * RIN 1904-AC49's authority_text is "42 U.S.C. 8287 to 8287(d)" -- a
+      RANGE ("8287 to 8287d", confirmed by the SAME rin's own 201110-201410
+      editions of the identical citation, which parse
+      ``usc_section_end='8287d'`` before a later re-typesetting added the
+      parenthesis that broke the range reader) and never a pinpoint on bare
+      8287 at all. 8287 prints THREE real lettered subsections ((a), (b),
+      (c)) beside the missing (d), so :meth:`correction_candidates` offers
+      ``parse-as-filed`` alongside B8 -- two candidates, not one -- and
+      witness 1's own gate excludes it before the note or history is ever
+      asked. The exploratory script's raw ``re.finditer`` over the whole
+      text, with no positional tie to the row's own parsed section, is what
+      manufactured this population member in the first place; asking the
+      oracle's own single-search candidate method is what excludes it here.
+    * RIN 3060-AK40's authority_text is "47 U.S.C. 615(a) and 615(b)" and
+      47 CFR Part 4's authority note reads in part "...301, 303, 307, 309,
+      316, 332, 403, 615, 615a-1, 615b, ..." -- naming bare 615 AND 615b AND
+      615a-1, but never 615a. The exploratory script's "sibling edition
+      spells it" witness for this row rested on matching bare "615a" inside
+      a SIBLING EDITION's text "...615a-1, and 615c..."; its own boundary
+      check excluded ``[0-9a-z]`` after the match but not a following
+      hyphen, so "615a" inside "615a-1" -- a different, real section the
+      SAME note independently names -- passed as if it were a bare,
+      standalone "615a" citation. Witness 2b here reads
+      :class:`_CitationHistory`'s STRUCTURAL join instead of raw text, and no
+      row in this RIN's history ever parses ``usc_section == "615a"`` (the
+      "615a-1" citation lives under a different authority_type entirely,
+      never as a bare usc_section) -- so witness 2b never fires for it in
+      the first place, independent of the rider.
+
+    Both specimens are read in full, with their raw surrounding context, in
+    ``research/evidence/b8-enlargement-2026-09-01/DELTAS.md``.
+
+    **Why not a raw-text scan for witness 2b.** The exploratory measurement's
+    own "text-spells-NNNx" signal covered more readings than its structural
+    one (2,061 against 22) but is exactly where BOTH conflict specimens
+    above got their false corroboration -- a range's far end and a
+    hyphenated neighbour, both caught by a boundary a hand-rolled regex did
+    not draw where the parser already draws it correctly.
+    :class:`_CitationHistory` is the SAME feed this module's own
+    corroboration readers already trust for "what has this RIN's history
+    stated" (``_history_read_titleless_usc`` and its siblings), built once,
+    reused, and never re-derives a pinpoint match this module's other fences
+    have not already vetted. A future unit MAY widen witness 2b to a
+    properly-bounded text scan, but it would find NOTHING here today:
+    measured 2026-09-01 over the 454 rows this rule refuses as witnessless,
+    a bounded same-RIN scan -- the mined survey's own pattern plus the
+    boundary it lacked, a following HYPHEN excluded alongside a following
+    digit or letter -- matches 0 of 454
+    (``research/evidence/b8-enlargement-2026-09-01/measure_b8_excluded.py``).
+    The mined survey's 2,061 "text-only" hits ARE that missing boundary, not
+    signal this narrower version leaves on the table, so nobody should spin
+    up a unit to recover them.
+
+    **Consumer safety is the existing identity/pinpoint split, unchanged.**
+    ``research/evidence/ledger-2026-08-22/verification-notes.md``, "Exposure
+    figures decide the corrected-key shape", measured that a NAIVE B8
+    promotion would have moved 19 rows' ``usc_section_corrected_section``
+    off bare "15 U.S.C. 18" -- a real citation 27 court opinions and one
+    presidential body cite by that identity -- onto 18a. Those 19 rows are
+    the whole corpus's bare "15 U.S.C. 18" population and both FTC premerger
+    RINs filing the identical ``authority_text``: 17 of RIN 3084-AB46's and 2
+    of predecessor RIN 3084-AB32's (measured 2026-09-01,
+    ``measure_b8_excluded.py``; this rule promotes all 19). Moving them off
+    18 is not a defect this rule
+    introduces: the rule genuinely amends the Hart-Scott-Rodino Act (18a),
+    not the Clayton Act (18), which is the entire reason the schema keeps
+    ``usc_section`` untouched and lets a consumer choose whether to key on
+    ``usc_section_corrected_section`` at all (see that column's own schema
+    comment). This function does not change that split; it only lets a
+    corroborated B8 reading use the column the split already built for
+    exactly this purpose.
+
+    Additive only, and never first: run after :func:`_judge_usc_sections` and
+    :func:`_promote_paren_eaten_lettered_suffix`, gated on
+    ``usc_section_corrected is None`` exactly as C3's promotion is, so this
+    rule only ever fills a cell three earlier passes left NULL and never
+    overwrites one they wrote.
+
+    Measured 2026-09-01 over the artifact this wave's evidence directory
+    reproduces against
+    (``research/evidence/b8-enlargement-2026-09-01/measure_b8_two_witness.py``);
+    re-measure after any rebuild that moves the oracle, the note cache, or
+    the corpus itself.
+    """
+
+    counts = dict.fromkeys(USC_B8_PROMOTION_OUTCOMES, 0)
+    if oracle is None or notes is None:
+        return counts
+    held_by_rule = _held_parts_by_rule(references, notes)
+    # A SECOND :meth:`_CitationHistory.build` over the corpus, deliberately:
+    # the pipeline's own is built inside :func:`_corroboration_readers`,
+    # BEFORE corroboration writes, and this one after, so the rows
+    # corroboration has since filled are excluded here exactly as that
+    # class's own doctrine ("never a corroborated row") wants. One O(N) pass
+    # over the corpus, once, inside an already-linear build.
+    history = _CitationHistory.build(authorities)
+    memo: dict[tuple[int, str, str], Candidate | None] = {}
+    for row in authorities:
+        if (
+            row["authority_type"] != "usc"
+            or row["usc_title"] is None
+            or row["usc_section"] is None
+            # An appendix section is its own numbering: "5 U.S.C. App. 3" is
+            # not 5 U.S.C. 3, so a lettered identity read off the MAIN corpus
+            # must never be written onto one. Measured 2026-09-01: 0 of the
+            # 13,896 rows the oracle names any surviving B8 candidate for
+            # carry `usc_appendix`, so this is a fence against a future parse
+            # rather than a live filter -- and the same line
+            # :meth:`_CitationHistory.build` already draws for witness 2b.
+            or row["usc_appendix"]
+            or row["usc_section_corrected"] is not None
+        ):
+            continue
+        title, section, text = row["usc_title"], row["usc_section"], row["authority_text"]
+        if not re.fullmatch(r"\d+", section):
+            continue
+        key = (title, section, text)
+        if key not in memo:
+            survivors = tuple(
+                candidate
+                for candidate in oracle.correction_candidates(title, section, text)
+                if candidate.fenced_by is None
+            )
+            # SURVIVORS, not candidates, and the two censuses differ on that
+            # word: :func:`_judge_usc_sections` counts a refusal at
+            # ``len(candidates) > 1`` with fences ignored, while this gate
+            # asks what survives them -- the same question
+            # :meth:`corrected_section` itself asks. The two agree over this
+            # whole population today, because no fence in the oracle can
+            # strike a candidate on a bare-digit section, which is all this
+            # loop ever sees. Add one that can, and a row struck down to a
+            # lone survivor would be counted BOTH in
+            # ``uscSectionCorrectionRefusalRowsBySurvivors`` and here; that
+            # census, not this gate, is what would then need to move.
+            memo[key] = (
+                survivors[0] if len(survivors) == 1 and survivors[0].rule == _USC_B8_ORACLE_RULE else None
+            )
+        lone_b8 = memo[key]
+        if lone_b8 is None:
+            continue
+        nnnx = lone_b8.section
+        parts = held_by_rule.get((row["rin"], row["publication_id"]))
+        note_bare = notes.judge(usc_citation(title, section), parts) if parts else None
+        if note_bare is not None and note_bare.verdict == "present":
+            # The rider: live counter-evidence in the SAME rule's own note
+            # defeats publication even where witness 2b would otherwise fire.
+            counts["note_names_bare_section"] += 1
+            continue
+        note_lettered = notes.judge(usc_citation(title, nnnx), parts) if parts else None
+        witness_2a = note_lettered is not None and note_lettered.verdict == "present"
+        witness_2b = (title, nnnx) in history.usc.get(row["rin"], ())
+        if not (witness_2a or witness_2b):
+            counts["witnessless"] += 1
+            continue
+        row["usc_section_corrected_section"] = nnnx
+        row["usc_section_corrected_pinpoint"] = None
+        row["usc_section_corrected"] = nnnx
+        row["usc_section_correction_evidence"] = USC_B8_PROMOTION_RULE
+        counts["promoted"] += 1
+    return counts
+
+
 #: Why one candidate a witness offered was withheld though its record's
 #: two-witness intersection was otherwise non-empty. A row that hits both
 #: carries both, sorted and joined by "; " the way its sibling column joins
@@ -4708,12 +5100,7 @@ def _write_placeholder_candidates(
     if not unstated_by_record:
         return counts
 
-    held_by_rule: dict[tuple[str, str], set[tuple[int, str]]] = {}
-    for reference in references:
-        title, part = reference["cfr_title"], normalize_part(reference["cfr_part"])
-        if title is None or part is None or not notes.holds(title, part):
-            continue
-        held_by_rule.setdefault((reference["rin"], reference["publication_id"]), set()).add((int(title), part))
+    held_by_rule = _held_parts_by_rule(references, notes)
 
     editions_by_rin: dict[str, dict[str, set[tuple[str, str]]]] = {}
     for key in set(stated_by_record) | set(unstated_by_record):
@@ -5242,6 +5629,35 @@ def _join_arrivals(joined: str, donor_rows, present, all_fragments_are_bare: boo
             continue
         arrivals.append(row)
     return arrivals, welded
+
+
+def _stat_page_member_is_enumerated(citation, oracle: UscSectionOracle | None) -> bool:
+    """Whether a Stat.-shadowed U.S.C. list member is a real section.
+
+    The filer-box half of mined item 4 (REF-062). The grammar MARKS a U.S.C.
+    list member it reaches only by scanning past a Statutes-at-Large citation
+    (:attr:`AuthorityCitation.usc_section_after_statute`) -- "119 Stat 1144,
+    1763" is the Act's own pinpoint page as often as a genuine resumed list,
+    and the grammar cannot tell which (14 CFR 121's note resumes a real
+    49 U.S.C. list the identical way). The DECISION belongs to whoever can
+    reach the oracle: this is the same gate, condition for condition, that
+    :func:`refspec.registry.cfr_authority_notes.read_note_citations` applies
+    to the publisher's notes -- ``section_is_enumerated`` (exact lists), not
+    ``section_exists`` (which also affirms a printed RANGE stub), and
+    FAIL-CLOSED: no oracle admits nothing marked. An unmarked citation is not
+    this gate's business and always passes.
+    """
+
+    if not citation.usc_section_after_statute:
+        return True
+    return (
+        oracle is not None
+        and citation.usc_title is not None
+        and citation.usc_section is not None
+        and oracle.section_is_enumerated(
+            citation.usc_title, citation.usc_section, appendix=citation.usc_appendix
+        )
+    )
 
 
 def _boxes_by_record(authorities: list[dict[str, object]]):
@@ -7838,7 +8254,7 @@ def build_unified_agenda_parquet(
     fr_roster = _fr_document_roster()
     #: The same roster, read as a calendar, so a series verdict is judged
     #: against what existed when the citation was made.
-    calendar = _SeriesCalendar.build(pl_roster)
+    calendar = _SeriesCalendar.build(pl_roster, eo_oracle=_eo_roster_oracle())
     #: The section oracle, read once. Two passes ask it questions -- the
     #: scheme-label corroboration before the fence, the fence after it -- and
     #: loading the pinned tables twice for one immutable answer set was a cost
@@ -8237,6 +8653,15 @@ def build_unified_agenda_parquet(
                             }
                         )
                         continue
+                    if authority.authority_type == "usc" and not _stat_page_member_is_enumerated(
+                        authority, section_oracle
+                    ):
+                        # A Bluebook pinpoint page read as a resumed section
+                        # (mined item 4's filer-box half, REF-062): withheld
+                        # exactly as read_note_citations withholds it from a
+                        # note. Declared 3 texts / 4 citations / 40 rows.
+                        tally.stat_page_filer_refusals += 1
+                        continue
                     if authority.act_key is not None:
                         act_keys_by_rin.setdefault(record.rin, set()).add(authority.act_key)
                         act_keys_by_agency.setdefault(record.rin[:4], set()).add(authority.act_key)
@@ -8511,7 +8936,7 @@ def build_unified_agenda_parquet(
     # SAYS, and corroboration, the sibling carry and the act resolver are all
     # able to change that. Additive -- it writes two columns of its own and
     # touches no other value.
-    cfr_notes_reader = _cfr_authority_notes()
+    cfr_notes_reader = _cfr_authority_notes(section_oracle)
     cfr_notes = _judge_against_cfr_notes(authorities, references, cfr_notes_reader)
     # And the U.S.C.-slot naming, additive and last for the same reason: it
     # only ever reads usc_title/usc_section/usc_section_verdict, never writes
@@ -8522,6 +8947,14 @@ def build_unified_agenda_parquet(
     # ever reads usc_section_verdict/usc_section_corrected and writes the
     # correction columns where the fence above left them NULL.
     paren_eaten_suffixes = _promote_paren_eaten_lettered_suffix(authorities, section_oracle)
+    # And the B8 two-witness promotion, additive and last for the same
+    # reason, and after C3's for the same NULL-gate reason: it only ever
+    # fills the correction columns C3's own pass left NULL, never overwrites
+    # one it wrote. The SAME notes reader the CFR-note join above just
+    # loaded, not a second read of the 8,240-part cache. See
+    # :func:`_promote_two_witness_b8` for `inv-b8` and the demotion doctrine
+    # it enlarges rather than repeats.
+    two_witness_b8 = _promote_two_witness_b8(authorities, references, section_oracle, cfr_notes_reader)
     # And the placeholder-candidate cross-reference, additive and last: it
     # reads every row's own family reading and every record's CFR_LIST, and
     # writes only the two columns an "unstated" row carries. The SAME notes
@@ -9118,6 +9551,17 @@ def build_unified_agenda_parquet(
             #: oracle's coverage begins after, and they are repealed law the
             #: filer cited on purpose.
             "spanEndpointRefusalsByReason": dict(sorted(tally.span_endpoint_refusals.items())),
+            #: The filer-box half of mined item 4 (REF-062): Stat.-shadowed
+            #: list members withheld at materialization. A build tally -- the
+            #: rows never exist to recount -- same census class as
+            #: corroboratedRows, unlike eoUnknownRows which IS recomputed.
+            "statPageFilerRefusalRows": tally.stat_page_filer_refusals,
+            #: Whether the CFR-note reader's Statutes-at-Large gate had the
+            #: section oracle bound when THIS artifact was built. Always True
+            #: for a build (the oracle directory is build-mandatory); the key
+            #: exists so gatedness is stated, never inferred from silence
+            #: (REF-062, the declared R2 integrator item).
+            "cfrNotesStatGateOracleBound": section_oracle is not None,
             #: The pinned initialism roster's refusals, by the fence that
             #: spoke, and what it wrote on the rows it did not resolve. The
             #: typed and candidate rows are counted here rather than under
@@ -9258,6 +9702,18 @@ def build_unified_agenda_parquet(
             #: and rows refused for the four different reasons a refusal here
             #: has. See :func:`_promote_paren_eaten_lettered_suffix`.
             "uscC3PromotionRows": paren_eaten_suffixes,
+            #: The builder's own two-witness B8 enlargement, by outcome
+            #: (:data:`USC_B8_PROMOTION_OUTCOMES`): rows published -- the
+            #: oracle's own B8 candidate stood alone AND a corroborating
+            #: witness outside the oracle's inputs named it -- and rows
+            #: refused for the two different reasons a refusal here has. Every
+            #: row counted is one where the oracle names B8 as the sole
+            #: surviving reading, which is `inv-b8`'s "LONE:B8" census hole
+            #: closed: before this key existed such a row appeared in neither
+            #: `uscSectionCorrectedRowsByRule` nor
+            #: `uscSectionCorrectionRefusalRowsBySurvivors`. See
+            #: :func:`_promote_two_witness_b8`.
+            "uscB8PromotionRows": two_witness_b8,
             #: Placeholder ("unstated") rows the two-witness cross-reference
             #: published a candidate for, rows every candidate was withheld
             #: from, and the CANDIDATES each of the two gates dropped -- the
@@ -9281,6 +9737,17 @@ def build_unified_agenda_parquet(
                 1 for r in authorities if r["statute_volume_matches_public_law"] is False
             ),
             "eoOutOfSeriesRows": sum(1 for r in authorities if r["eo_in_known_series"] is False),
+            #: New with the eo_roster oracle wiring: rows that cite an
+            #: in-range EO number (passes EO_HIGHEST_KNOWN) the oracle can
+            #: neither affirm nor deny -- previously silently True. See
+            #: eo_roster.UNKNOWN_REASONS; predicted 50 rows / 10 numbers on
+            #: the pinned build (research/evidence/eo-roster-2026-08-31/measure.py).
+            #: A build with no roster directory would report 0 here while
+            #: meaning "never asked" -- which is why ``main``'s missing-oracle
+            #: refusal lists ``_EO_ROSTER_DIR``.
+            "eoUnknownRows": sum(
+                1 for r in authorities if r["eo_in_known_series"] is None and r["executive_order"] is not None
+            ),
             "plCongressOutOfSeriesRows": sum(1 for r in authorities if r["pl_congress_in_series"] is False),
             "statVolumeOutOfSeriesRows": sum(1 for r in authorities if r["stat_volume_in_series"] is False),
             "frVolumeOutOfSeriesRows": sum(1 for r in authorities if r["fr_volume_in_series"] is False),
@@ -9472,6 +9939,7 @@ def main(argv: list[str] | None = None) -> int:
             _USC_SECTION_ORACLE_DIR,
             _USC_DISPOSITION_TABLES_DIR,
             _USC_SOURCE_CREDIT_DIR,
+            _EO_ROSTER_DIR,
             args.act_index,
         )
         if not path.is_dir()

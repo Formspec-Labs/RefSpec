@@ -274,7 +274,10 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # read as one unparsed "other" row -- verified: the row exists at
     # citation_ordinal 0 in both builds and ONLY at citation_ordinal 1 in
     # this one.
-    assert total == 800_573
+    # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 800,573 -> 800,558
+    # (-15) = 6 reg-dot anchor rows withheld + 9 stat-page filer members
+    # refused at materialization (both REF-062).
+    assert total == 800_558
     # 12,244 -> 9,280 -> 6,997 -> 4,239 across three censuses. The third
     # wave's share: the agency-level abbreviation oracle (the RIN's leading
     # four digits are the OMB agency code), five whole-value abbreviation
@@ -343,7 +346,11 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt):
     # 2,108 -> 1,980, the 95 rows the six roster retiers resolve plus the 33
     # apostrophe-year rows, all leaving 'failed' for act_relative/corroborated.
-    assert failed == (1_980 if _act_resolution_landed(con) else 2_960)
+    # Rebuild #15 (2026-09-01 wave): 1,980 -> 2,148 (+168), the reg-dot anchor
+    # boxes whose only citation is now withheld and which fall back to
+    # other/failed (REF-062) -- 168 retyped + 1 kept usc-with-null-section
+    # + 6 removed = the 175 rows the fence's own DELTAS declared.
+    assert failed == (2_148 if _act_resolution_landed(con) else 2_960)
     ranges = _one(
         con,
         "select count(*) from '{d}/unified_agenda_legal_authorities.parquet' "
@@ -1134,6 +1141,9 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
         # length, so hashing this module pins the table and the page it was
         # cut from.
         "usc_disposition_tables",
+        # The EO roster module pins its derived roster and refuses on drift;
+        # hashing it makes that new build input visible in the receipt.
+        "eo_roster",
     }
     package = Path(module.__file__).resolve().parent
     for name, digest in block["modules"].items():
@@ -1157,6 +1167,10 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
         # tiers and the sibling-act carry read, no network at build time, so
         # it is an oracle like the three above.
         "initialism-roster-2026-08-24/roster.csv",
+        # The EO existence roster now refines the cheap range gate. Naming its
+        # exact derived bytes distinguishes a range-only artifact from one
+        # that can report honest unknowns.
+        "eo-roster-2026-08-31/derived/roster.csv",
     }
     assert all(block["oracles"].values()), "every oracle is present in this checkout"
     # And the built artifact carries the block for the code that wrote it,
@@ -2023,6 +2037,14 @@ def test_the_receipt_census_agrees_with_the_table_it_describes(con) -> None:
         "publicLawCorrectedRows": f"select count(*) from {L} where public_law_corrected is not null",
         "uscTitleOutOfSeriesRows": f"select count(*) from {L} where usc_title_is_possible = false",
         "eoOutOfSeriesRows": f"select count(*) from {L} where eo_in_known_series = false",
+        # The `executive_order is not null` half is load-bearing, not decoration:
+        # `eo_in_known_series` is null on every row that cites no EO at all, so the
+        # unguarded count reads 781,606 where the declared one reads 50. Without
+        # this recomputation, dropping the guard from the receipt expression moved
+        # the declared number by four orders of magnitude and failed nothing.
+        "eoUnknownRows": (
+            f"select count(*) from {L} where eo_in_known_series is null and executive_order is not null"
+        ),
         "plCongressOutOfSeriesRows": f"select count(*) from {L} where pl_congress_in_series = false",
         "statVolumeOutOfSeriesRows": f"select count(*) from {L} where stat_volume_in_series = false",
         "impossibleTitleRows": f"select count(*) from {R} where cfr_title_is_possible = false",
@@ -2636,9 +2658,12 @@ def test_an_unresolved_row_still_states_what_it_states(con) -> None:
     landed = _act_resolution_landed(con)
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 520 -> 464 (-56), the
     # rows the apostrophe-year shape and the retiers resolve out of 'other'.
-    assert failing("stated_act_name is not null or stated_section is not null") == (464 if landed else 1_162)
+    # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 464 -> 471 (+7),
+    # reg-dot anchors retyped with their dotted stated_section kept (REF-062).
+    assert failing("stated_act_name is not null or stated_section is not null") == (471 if landed else 1_162)
     assert failing("stated_act_name is not null") == (18 if landed else 540)
-    assert failing("stated_section is not null") == (447 if landed else 905)
+    # Rebuild #15 (2026-09-01 wave): 447 -> 454, the same +7 as the line above.
+    assert failing("stated_section is not null") == (454 if landed else 905)
 
 
 @pytest.mark.slow
@@ -2687,7 +2712,9 @@ def test_a_resolution_supersedes_a_statement(con) -> None:
             "select count(*) from '{d}/unified_agenda_legal_authorities.parquet' "
             "where usc_section is not null and stated_section is not null",
         )
-        == 7_376
+        # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 7,376 -> 7,360,
+        # the reg-dot anchors' usc_section is no longer minted (REF-062).
+        == 7_360
     ), "a value states both when it carries both"
 
 
@@ -3103,6 +3130,134 @@ def test_a_series_verdict_is_dated_to_the_edition_that_made_it() -> None:
     blind = _SeriesCalendar.build(None)
     assert blind.usc_title_is_possible(54, "200404") is True
     assert blind.pl_congress_in_series("105-58", "199610") is True
+
+
+def test_eo_in_known_series_consults_the_roster_oracle_after_the_range_check() -> None:
+    """The wiring spec's own shape: the range check runs FIRST and alone, and
+
+    only a number that survives it is handed to the oracle for a finer
+    answer. Three properties, each one this test breaks if it regresses:
+
+    * a number outside [1, EO_HIGHEST_KNOWN] reads False even with a bound
+      oracle -- the oracle is never even asked, so its own "unknown" verdict
+      for a number outside every window can never soften a typo into None;
+    * a number the oracle affirms (``exists``) still reads True, unchanged;
+    * a number the oracle can neither affirm nor deny (``unknown``, EO 9397 --
+      real, famous, and outside the sparse NARA codification window's
+      coverage, per ``tests/test_eo_roster.py``) reads None, not the silently
+      wrong True the bare range check gave before this wiring.
+    """
+
+    from refspec.registry.eo_roster import EoRosterOracle
+    from refspec.registry.unified_agenda_parquet import _EO_ROSTER_DIR, _SeriesCalendar
+
+    if not _EO_ROSTER_DIR.is_dir():
+        pytest.skip("this tree does not carry the pinned EO roster")
+
+    oracle = EoRosterOracle.from_directory(_EO_ROSTER_DIR)
+    calendar = _SeriesCalendar.build(None, eo_oracle=oracle)
+
+    # Out of range: the range check alone decides, whatever the oracle says.
+    assert oracle.verdict(999_999).verdict == "unknown"
+    assert calendar.eo_in_known_series("999999") is False
+
+    # In range and the oracle affirms it: unchanged from the bare range check.
+    assert oracle.verdict(12_866).verdict == "exists"
+    assert calendar.eo_in_known_series("12866") is True
+
+    # In range, real, famous -- and the sparse NARA window does not enumerate
+    # it. Was silently True before this wiring; now honestly None.
+    assert oracle.verdict(9397).verdict == "unknown"
+    assert calendar.eo_in_known_series("9397") is None
+
+
+def test_the_eo_oracle_is_asked_only_about_numbers_the_range_check_admitted() -> None:
+    """A recording stub, because the real roster cannot witness two of the three
+
+    things the wiring claims. It publishes no ``absent`` verdict anywhere --
+    its one absent-capable window is measured fully dense -- so the test above
+    never exercises ``absent -> False``; and no oracle can report *when* it was
+    asked, so "the range check runs FIRST and alone" was inferred from the
+    answers rather than observed. Both gaps hid a live mutation: making
+    ``absent`` read True, and moving the lookup ahead of the range check while
+    still returning the range check's answer, each survived the whole suite.
+
+    This stub answers from a script and remembers every number handed to it:
+
+    * a number outside [1, :data:`EO_HIGHEST_KNOWN`] reads False AND never
+      reaches the oracle. A lookup whose result is discarded is still a
+      lookup, and it is exactly the reordering that would let an oracle's
+      ``unknown`` soften a five-digit typo into None;
+    * inside the range every verdict maps once and distinctly: ``exists`` ->
+      True, ``absent`` -> False, ``unknown`` -> None;
+    * ``None`` in is ``None`` out, with no lookup at all.
+    """
+
+    from refspec.registry.citation_grammar import EO_HIGHEST_KNOWN
+    from refspec.registry.eo_roster import EoVerdict
+    from refspec.registry.unified_agenda_parquet import _SeriesCalendar
+
+    # One number per verdict, each shaped the way EoVerdict's own invariants
+    # demand: `absent` is only ever authorized by the dense fr_api window, and
+    # `unknown` inside a window names that window's coverage story.
+    scripted = {
+        13_000: EoVerdict(13_000, "exists", "fr_api", source="fr-api"),
+        14_000: EoVerdict(14_000, "absent", "fr_api"),
+        9_397: EoVerdict(9_397, "unknown", "nara_codification", reason="nara_window_miss"),
+    }
+
+    class _SpyOracle:
+        """Answers from the script, and records what it was asked, in order."""
+
+        def __init__(self) -> None:
+            self.asked: list[int] = []
+
+        def verdict(self, eo_number: int) -> EoVerdict:
+            self.asked.append(eo_number)
+            if eo_number in scripted:
+                return scripted[eo_number]
+            # Every unscripted number here is out of range, so it falls outside
+            # every declared window -- answered rather than raised, so a lookup
+            # that should not have happened is reported by the assertion on
+            # `asked` instead of arriving as a KeyError from somewhere else.
+            return EoVerdict(eo_number, "unknown", None, reason="outside_known_windows")
+
+    spy = _SpyOracle()
+    calendar = _SeriesCalendar.build(None, eo_oracle=spy)
+
+    # The three five-digit numbers this corpus actually cites (20450, 21600,
+    # 23891 -- measure-output.txt's `outside_known_windows` trio), a six-digit
+    # one, and both edges of the range.
+    for typo in ("20450", "21600", "23891", "999999", "0", str(EO_HIGHEST_KNOWN + 1)):
+        assert calendar.eo_in_known_series(typo) is False, f"EO {typo} passed the range check"
+    assert calendar.eo_in_known_series(None) is None
+    assert spy.asked == [], f"the oracle was consulted before the range check decided: {spy.asked}"
+
+    # In range: one lookup apiece, and three verdicts that do not collapse.
+    assert calendar.eo_in_known_series("13000") is True
+    assert calendar.eo_in_known_series("14000") is False, "an oracle `absent` is a denial, not a doubt"
+    assert calendar.eo_in_known_series("9397") is None
+    assert spy.asked == [13_000, 14_000, 9_397]
+
+
+def test_a_build_refuses_without_the_eo_roster_directory(tmp_path, monkeypatch, capsys) -> None:
+    """The EO roster is the sixth directory oracle, with the same sharp edge
+
+    as the others found relative to this file: absent, ``eo_in_known_series``
+    silently falls back to the bare range check and ``eoUnknownRows`` reads 0
+    on a build that never asked -- indistinguishable from "the oracle doubted
+    nothing". The CLI refuses instead of writing that.
+    """
+
+    from refspec.registry import unified_agenda_parquet as module
+
+    no_roster = tmp_path / "nowhere" / "eo-roster-2026-08-31"
+    monkeypatch.setattr(module, "_EO_ROSTER_DIR", no_roster)
+    with pytest.raises(SystemExit) as refusal:
+        module.main(["--output-root", str(tmp_path / "out")])
+    assert refusal.value.code == 2
+    assert str(no_roster) in capsys.readouterr().err
+    assert not (tmp_path / "out").exists(), "a refused build writes nothing"
 
 
 @pytest.mark.slow
@@ -4051,10 +4206,13 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     # rebuild-8 baseline; the two corroboration-rule markers add 111 (H2)
     # and 45 (H4); 578+111+45=734, matching exists' own row delta exactly
     # (669,673 -> 670,407).
+    # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): -89 exists /
+    # -42 absent / -53 unknown = reg-dot's 175 verdict losses (89/34/52,
+    # REF-062) + the stat-page filer gate's 9 removed rows (0/8/1, REF-062).
     assert by_verdict == {
-        "exists": (670_441, 28_917, 9_418, 41_799),
-        "absent": (14_173, 1_871, 1_417, 2_120),
-        "unknown": (2_546, 288, 164, 349),
+        "exists": (670_352, 28_891, 9_416, 41_795),
+        "absent": (14_131, 1_861, 1_410, 2_113),
+        "unknown": (2_493, 281, 163, 343),
     }
     # The census closes: every U.S.C. row is judged, or has no section to judge
     # (886), or names a title the edition could not have cited (134, which is
@@ -4068,9 +4226,15 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     # 688,169 -> 688,180 at rebuild #12: +11, exactly the by_verdict move
     # above again (+34 exists, -18 absent, -5 unknown; rebuild12-delta.txt);
     # the unstated (886) and title-impossible (134) buckets hold still.
-    assert _one(con, f"select count(*) from {L} where authority_type = 'usc'") == 688_180
-    assert 670_441 + 14_173 + 2_546 + 886 + 134 == 688_180
-    assert _one(con, f"select count(*) from {L} where authority_type = 'usc' and usc_section is null") == 886
+    # Rebuild #15 (2026-09-01 wave): 688,180 -> 687,997 (-183) = the 184 verdict
+    # losses above MINUS one row that stayed usc-typed with its section
+    # withheld -- the reg-dot APPENDIX refusal (REF-062): 2133-AB26@199610's
+    # "46 app USC 1241.1", where the optional appendix-section group degrades
+    # to a title-only appendix citation, so the row moves to the null-section
+    # bucket (886 -> 887) instead of leaving the type.
+    assert _one(con, f"select count(*) from {L} where authority_type = 'usc'") == 687_997
+    assert 670_352 + 14_131 + 2_493 + 887 + 134 == 687_997
+    assert _one(con, f"select count(*) from {L} where authority_type = 'usc' and usc_section is null") == 887
     assert (
         _one(
             con,
@@ -4110,7 +4274,7 @@ def test_the_section_fence_over_the_built_table(con) -> None:
         con,
         f"select usc_section_verdict_reason, count(*) from {L} where usc_section_verdict_reason is not null "
         "and authority_type = 'usc' group by 1 order by 2 desc",
-    ) == [("title_49_appendix_not_published", 2_543), ("appendix_title_not_published", 3)]
+    ) == [("title_49_appendix_not_published", 2_490), ("appendix_title_not_published", 3)]
     assert _one(
         con,
         f"select count(*) from {L} where (usc_section_verdict = 'unknown') <> (usc_section_verdict_reason is not null)",
@@ -4192,6 +4356,8 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     ) == [
         ("A4-subsection-rendered-as-a-lettered-section", 3_651),
         ("B1-et-seq-follows-a-section", 159),
+        # Rebuild #15 (2026-09-01 wave), REF-061.
+        ("B8-two-witness-lettered-section", 666),
         ("C3-paren-suffix-eaten", 200),
         ("act-section-under-a-usc-label", 8),
         ("space-lost-before-a-lettered-suffix", 4),
@@ -4210,7 +4376,7 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     # 3,822 -> 3,822 at rebuild #10: A4 -8, act-section-under-a-usc-label +8.
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 3,822 -> 4,022, the
     # 200 C3-paren-suffix-eaten promotions (bound to the row's own citation).
-    assert _one(con, f"select count(*) from {L} where usc_section_corrected is not null") == 4_022
+    assert _one(con, f"select count(*) from {L} where usc_section_corrected is not null") == 4_688  # Rebuild #15 (2026-09-01): +666, the B8 two-witness promotions (REF-061).
     assert _one(
         con,
         f"select count(*) from {L} where (usc_section_corrected is null) <> "
@@ -4275,13 +4441,16 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
         con, f"select {split} from {L} where usc_title = 21 and usc_section = '371a' group by 1, 2, 3"
     ) == ("371", "(a)", "371(a)", 1_551)
     # B1 names a lettered SECTION, so there is no pinpoint to carry and the
-    # split's second column is NULL rather than empty. B8 would have, but it
-    # is a candidate since 53294b04: the 82 "1395(hh)" rows carry no split.
-    assert _row(
+    # split's second column is NULL rather than empty. B8 was candidate-only
+    # since 53294b04 and the 82 "1395(hh)" rows carried no split -- until
+    # rebuild #15 (2026-09-01, REF-061): the two-witness builder rule corrects
+    # 72 of them to 1395hh, and the 10 left splitless are the rows whose own
+    # held notes and edition history witness nothing.
+    assert _rows(
         con,
         f"select {split} from {L} where usc_title = 42 and usc_section = '1395' "
-        "and authority_text ilike '%1395(hh)%' group by 1, 2, 3",
-    ) == (None, None, None, 82)
+        "and authority_text ilike '%1395(hh)%' group by 1, 2, 3 order by 1 nulls first",
+    ) == [(None, None, None, 10), ("1395hh", None, "1395hh", 72)]
     assert _row(
         con,
         f"select {split} from {L} where usc_title = 42 and usc_section = '300' "
@@ -4327,6 +4496,9 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
     ) == [
         ("A4-subsection-rendered-as-a-lettered-section", 3_651, 3_651),
         ("B1-et-seq-follows-a-section", 0, 159),
+        # Rebuild #15 (2026-09-01 wave), REF-061: the two-witness builder rule.
+        # A lettered-SECTION reading like B1's, so its pinpoint count is 0.
+        ("B8-two-witness-lettered-section", 0, 666),
         ("C3-paren-suffix-eaten", 0, 200),
         ("act-section-under-a-usc-label", 5, 8),
         ("space-lost-before-a-lettered-suffix", 0, 4),
@@ -4358,6 +4530,9 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
     assert moved == [
         ("A4-subsection-rendered-as-a-lettered-section", 3_651),
         ("B1-et-seq-follows-a-section", 159),
+        # Rebuild #15 (2026-09-01 wave), REF-061: every B8 correction moves the
+        # identity (bare NNN -> NNNx), so the two censuses still coincide.
+        ("B8-two-witness-lettered-section", 666),
         ("C3-paren-suffix-eaten", 200),
         ("act-section-under-a-usc-label", 8),
         ("space-lost-before-a-lettered-suffix", 4),
@@ -4366,7 +4541,7 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
     # identity on all eight, so the moved census and the evidence census stay
     # equal and the 3,822 total below is unchanged.
     # Rebuild #14 (2026-08-31 wave): 4,022, the 200 C3 promotions all move the identity (78 -> 78b).
-    assert sum(rows for _, rows in moved) == 4_022
+    assert sum(rows for _, rows in moved) == 4_688  # Rebuild #15 (2026-09-01): +666, the B8 two-witness promotions (REF-061).
     assert _one(
         con,
         f"select count(*) from {L} where usc_section_corrected is not null "
@@ -4393,20 +4568,28 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
 
     # The four keys the consumer measured, from this end. Every row that parses
     # to one of them once carried a B8 proposal moving it one letter along --
-    # there was no row of "15 U.S.C. 18" that keying on the corrected identity
-    # would keep, and the departing keys are CORRECT citations (27 court
-    # opinions print "15 U.S.C. § 18"). Since 53294b04 B8 is a candidate, so
-    # the identity a consumer joins on is the parsed one by construction: no
-    # corrected identity on any of the 94 rows, the neighbours (18a, 1715b/g/y,
-    # 399b, 161a) named in the receipt's candidate census instead.
+    # and the departing keys are CORRECT citations (27 court opinions print
+    # "15 U.S.C. § 18"). Since 53294b04 B8 alone is a candidate, so the
+    # identity a consumer joins on stays the parsed one by construction. At
+    # rebuild #15 (2026-09-01, REF-061) the TWO-WITNESS builder rule corrects
+    # the subset a second witness corroborates: all 19 rows of 15:18 -> 18a
+    # (the FTC specimen whose held note reads "15 U.S.C. 18a(d); 15 U.S.C.
+    # 18b." and never bare 18 -- the exact case that demoted one-witness B8),
+    # and 28 of 39 rows of 12:1715 (25 -> 1715b, 3 -> 1715y); 25:161 and
+    # 47:399 stay uncorrected (witnessless or counter-evidenced), their
+    # neighbours still named only in the receipt's candidate census. The
+    # consumer's choice is unchanged: usc_section keeps the filed identity,
+    # and keying on usc_section_corrected_section is opt-in per the schema.
     cited = "(usc_title, usc_section) in ((15, '18'), (12, '1715'), (47, '399'), (25, '161'))"
     assert _rows(
         con,
         f"select usc_title, usc_section, usc_section_corrected_section, usc_section_corrected_pinpoint, "
         f"usc_section_correction_evidence, count(*) from {L} where {cited} group by 1, 2, 3, 4, 5 order by 1, 2, 3",
     ) == [
-        (12, "1715", None, None, None, 39),
-        (15, "18", None, None, None, 19),
+        (12, "1715", "1715b", None, "B8-two-witness-lettered-section", 25),
+        (12, "1715", "1715y", None, "B8-two-witness-lettered-section", 3),
+        (12, "1715", None, None, None, 11),
+        (15, "18", "18a", None, "B8-two-witness-lettered-section", 19),
         (25, "161", None, None, None, 12),
         (47, "399", None, None, None, 24),
     ]
@@ -4414,7 +4597,7 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
         con,
         f"select usc_title, usc_section, count(*), count(usc_section_corrected_section) from {L} "
         f"where {cited} group by 1, 2 order by 1, 2",
-    ) == [(12, "1715", 39, 0), (15, "18", 19, 0), (25, "161", 12, 0), (47, "399", 24, 0)]
+    ) == [(12, "1715", 39, 28), (15, "18", 19, 19), (25, "161", 12, 0), (47, "399", 24, 0)]
     # Every one of them is a real section the oracle prints: the candidate sits
     # beside an "exists" verdict, which is exactly why a move would be expensive
     # and why none is made.
@@ -5793,9 +5976,12 @@ def test_the_rules_own_cfr_part_note_judges_what_the_filer_wrote(con) -> None:
     assert by_verdict == {
         # Rebuild #14: present +10 / absent +97 rows, all act_relative -- the
         # 107 retyped rows the note now judges (unjudged 'other' 1,724 -> 1,617).
-        "present": (489_191, 20_223),
-        "near-miss": (56_348, 5_812),
-        "absent": (124_991, 14_127),
+        # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt) (REF-062): the
+        # Stat-page note gate refuses 266 fabricated note citations across 107
+        # notes, moving judgments; the 15 removed filer rows leave the census.
+        "present": (489_168, 20_216),
+        "near-miss": (56_283, 5_795),
+        "absent": (124_906, 14_115),
     }
     # The verdict and the part that gave it are one fact in two columns.
     assert _one(
@@ -5926,7 +6112,10 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
         "act_relative": {"present": 883, "near-miss": 9, "absent": 8_217},
         "cfr": {"present": 4_046, "near-miss": 202, "absent": 1_449},
         "public_law": {"present": 8_241, "near-miss": 238, "absent": 26_394},
-        "usc": {"present": 476_021, "near-miss": 55_899, "absent": 88_931},
+        # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): the Stat-page
+        # note gate (REF-062) -- only usc moves; the other three types are
+        # byte-for-byte unchanged.
+        "usc": {"present": 475_998, "near-miss": 55_834, "absent": 88_846},
     }
     # THE FOUR COVERAGE COUNTS ARE WHERE THE ORACLE SWITCH IS VISIBLE, and they
     # are printed beside the verdicts precisely so a coverage move and a
@@ -5938,7 +6127,9 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
     # held parts no rule in this corpus names are counted rather than
     # explained here.
     assert declared["cfrNoteCoverage"] == {
-        "rows": 714_909,
+        # Rebuild #15 (2026-09-01 wave): 714,909 -> 714,894, the 15 removed rows
+        # (REF-062); rins, rules and both part counts hold still.
+        "rows": 714_894,
         "rins": 40_613,
         "rules": 207_463,
         "partsHeld": 8_240,
@@ -6015,9 +6206,12 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
             "where usc_disposition_verdict is not null group by 1",
         )
     } == {
-        "exists-as-recodified": (2_233, 219, 306, 116),
+        # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): -53 rows,
+        # the title-49-appendix dotted regulation numbers the reg-dot fence
+        # now refuses at parse (REF-062).
+        "exists-as-recodified": (2_181, 213, 301, 116),
         "repealed-no-successor": (117, 32, 27, 20),
-        "not-in-table": (176, 33, 30, 27),
+        "not-in-table": (175, 32, 29, 26),
     }
     # THE GATE IS THE FENCE'S OWN REASON, and nothing else. A disposition is
     # written on exactly the rows the oracle refuses for that one hole -- never
@@ -6074,6 +6268,10 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
 #: 2026-08-23 called a wrong published value: its verdict is now None
 #: because no table was read for it at all.
 _DISPOSITION_BY_EYE = (
+    # Re-drawn at rebuild #15 (2026-09-01): the population moved 2,543 ->
+    # 2,490 (the reg-dot fence, REF-062), so the seeded sample moved with it
+    # -- 9000-AJ79's 121(c) left the draw and 2120-AE42's "1421 to 1431"
+    # range entered.
     ("2120-AF67", "199510", "49 USC 1472", "1472", "exists-as-recodified",
      ("49:46316", "49:46306", "49:46308", "49:46309", "49:46310", "49:46311", "49:46313", "49:40113", "49:46312",
       "49:46502", "49:46504", "49:46506", "49:46505", "49:46507", "49:46501", "28:538", "49:1155", "49:46315",
@@ -6089,12 +6287,14 @@ _DISPOSITION_BY_EYE = (
       "49:11907", "49:10901", "49:10902", "49:10907", "49:11703", "49:11702", "49:11505", "49:10711", "49:353")),
     ("2120-AA83", "199510", "49 USC 1401", "1401", "exists-as-recodified",
      ("49:44101", "49:44102", "49:44103", "49:44105", "49:44106", "49:44111", "49:44703", "49:44713")),
-    ("9000-AJ79", "200510", "49 USC 121(c)", "121", "exists-as-recodified", ("49:80116",)),
     ("2120-AF84", "199510", "49 USC 1421", "1421", "exists-as-recodified",
      ("49:44701", "49:44702", "49:44712", "49:44714", "49:44716", "49:44717", "49:44722")),
     ("2105-AD66", "201010", "49 USC 106(g), ch 447 and 451", "451", None, None),
     ("2120-AA83", "199510", "49 USC 1355", "1355", "exists-as-recodified", ("49:44702", "49:45303")),
     ("2105-AA88", "199810", "49 USC 1481", "1481", "exists-as-recodified", ("49:46102",)),
+    ("2120-AE42", "199510", "49 USC 1421 to 1431", "1421", "exists-as-recodified",
+     ("49:44701", "49:44702", "49:44712", "49:44714", "49:44716", "49:44717", "49:44722", "49:44703", "49:44710",
+      "49:44704", "49:44705", "49:44713", "49:44708", "49:44707", "49:44709", "49:1153", "49:44711", "49:44715")),
 )
 
 
@@ -6102,12 +6302,12 @@ _DISPOSITION_BY_EYE = (
 def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
     """The ten drawn rows, and the four widest lists, for a by-eye check.
 
-    Read the pinned repealed specimen and row 8 hardest. ``49 USC 486(c),
+    Read the pinned repealed specimen and row 7 hardest. ``49 USC 486(c),
     sec 205(c), 63 Stat 390`` filed in **1998** cites a numbering Pub. L.
     103-272 took away in 1994, and the table repeals it with no successor at
     all: there is nothing for a consumer to follow, and "repealed, no
     successor" is the finding -- rebuild #12's re-draw dropped it from the
-    seeded sample, so it is asserted by key below rather than lost. Row 8,
+    seeded sample, so it is asserted by key below rather than lost. Row 7,
     ``49 USC 106(g), ch 447 and 451`` filed in **2010**, published the same
     finding until 2026-08-24 and no longer publishes anything: the filer's own
     "ch" governs 451, 451 IS a current chapter, and the record cites current
@@ -6144,7 +6344,7 @@ def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
             "order by rin, publication_id, ordinal, citation_ordinal",
         )
     ]
-    assert len(population) == 2_543
+    assert len(population) == 2_490
     assert tuple(random.Random(20260823).sample(population, 10)) == _DISPOSITION_BY_EYE
     # The repealed-no-successor specimen, by key -- sampling no longer guards it.
     assert (
@@ -6173,12 +6373,15 @@ def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
         ("1655", 101, 0, "49 USC 1655", "1625-AA30"),
         ("1358", 97, 35, "49 USC 1358 to 1421", "2120-AE14"),
     ]
-    # 1,692 of the 2,526 answered rows carry more than one successor -- still
+    # Rebuild #15 (2026-09-01 wave): 1,692 -> 1,640, the multi-successor share of
+    # the 53 title-49-appendix rows the reg-dot fence removed (REF-062);
+    # the single-successor 541 holds still.
+    # 1,640 of the 2,473 answered rows carry more than one successor -- still
     # the majority -- which is the number that decides what a consumer may key
     # on. It FELL from 1,779 while the spans grew, because 189 pinpointed rows
     # narrowed at the same time; the two rules pull in opposite directions and
     # both directions are the citation's own words.
-    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) > 1") == 1_692
+    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) > 1") == 1_640
     assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) = 1") == 541
 
     # NOTHING is corrected from any of this. Nine rows carry both a correction
@@ -6288,10 +6491,10 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
     # The census closes, twice over: against its own row total, and against the
     # section fence's reason code. The 17 refusals are the ONLY gap between
     # the two, and they are counted rather than dropped.
-    assert sum(declared["uscDispositionRowsBySuccessorCount"].values()) == 2_526
-    assert sum(declared["uscDispositionVerdictRows"].values()) == 2_526
+    assert sum(declared["uscDispositionRowsBySuccessorCount"].values()) == 2_473
+    assert sum(declared["uscDispositionVerdictRows"].values()) == 2_473
     assert sum(declared["uscDispositionRefusalRows"].values()) == 17
-    assert declared["uscSectionUnknownRowsByReason"]["title_49_appendix_not_published"] == 2_543
+    assert declared["uscSectionUnknownRowsByReason"]["title_49_appendix_not_published"] == 2_490
 
 
 @pytest.mark.slow
@@ -7832,7 +8035,9 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # delta) plus #44/45's -104, for -158 total.
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 971 -> 915 (-56, the
     # same rows test_an_unresolved_row_still_states_what_it_states attributes).
-    assert declared["statedActRowsStatingSomething"] == 915
+    # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 915 -> 922 (+7),
+    # the same rows the 464 -> 471 above attributes (REF-062).
+    assert declared["statedActRowsStatingSomething"] == 922
     # 624 -> 502 at rebuild #11: -122. The bare-section-no-name subset of the
     # 'other' pool is NOT immune to the corroboration readers -- the sibling-
     # act carry (#44/45) claims 18 of them outright, plus 104 more rows leave
@@ -7847,7 +8052,9 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # with no rule marker -- confirmed against the SAME 8 rows this file's
     # `acts`/#6 notes already attribute). 104 + 18 = 122.
     # 502 -> 446 at rebuild #14 (2026-08-31 wave): -56, the same rows statedActRowsStatingSomething lost.
-    assert declared["statedActSectionOnlyRows"] == 446
+    # Rebuild #15 (2026-09-01 wave): 446 -> 453 (+7), the same family as
+    # statedActRowsStatingSomething above (REF-062).
+    assert declared["statedActSectionOnlyRows"] == 453
     # 505 -> 469 (-36) = the names_an_act branch this rule's own typed+refused
     # split closes over: 451 typed (test_the_stated_acts_over_the_built_table)
     # + 18 refused (below). 505 - 469 is not one delta on its own; it falls
@@ -7873,7 +8080,8 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
         con,
         f"select count(*) from {L} where authority_type = 'other' and parse_status = 'failed' "
         "and stated_section is not null and stated_act_name is null",
-    ) == 446
+        # Rebuild #15 (2026-09-01 wave): 446 -> 453 (+7), recomputed from the column.
+    ) == 453
     # The 13 rows the year fence used to refuse are now the name index's, which
     # is where the corroborated total moved.
     #
@@ -8150,3 +8358,724 @@ def test_a_spans_far_end_is_refused_where_the_code_prints_no_such_section() -> N
     # consumer filtering on status would have walked straight past.
     assert refused_compound["parse_status"] == "partial"
     assert kept_compound["parse_status"] == "ok", "a kept end keeps its status"
+
+
+# --------------------------------------------------------------------------- #
+# The B8 two-witness enlargement (`inv-b8`,
+# research/investigations-mined-2026-08-31.md lines ~41-51 and ~50-51's
+# "LONE:B8" rider). B8 stays candidate-only in the oracle
+# (usc_section_oracle.CANDIDATE_ONLY_RULES) -- these tests are all against
+# `_promote_two_witness_b8`, the builder-side enlargement that publishes a
+# subset of B8's own named-but-unpublished readings once a SECOND witness
+# outside the oracle's own inputs corroborates one.
+
+
+def _b8_notes(*specs):
+    """A synthetic, in-memory :class:`CfrAuthorityNotes` over several parts.
+
+    Built the same way :meth:`CfrAuthorityNotes.from_file` builds a record --
+    :func:`read_note_citations` reads the real citations out of the note text
+    -- so a test's note behaves exactly as the pinned cache's would, without
+    depending on the pinned cache's own bytes staying exactly as they are
+    today. Digest fields are dummy: `_held_parts_by_rule` and `.judge` never
+    read them.
+
+    Several parts, because a cache holding ONE part cannot show that a
+    witness is bound to the row's OWN part rather than to any part the cache
+    happens to hold -- see
+    `test_b8_two_witness_binds_the_note_witness_to_the_rows_own_held_parts`.
+    """
+
+    from refspec.registry.cfr_authority_notes import AuthorityNote, CfrAuthorityNotes, read_note_citations
+
+    records = tuple(
+        AuthorityNote(
+            cfr_title=cfr_title,
+            cfr_part=cfr_part,
+            authority_note=authority_note_text,
+            source_note=None,
+            api_url="test",
+            fetched="2026-09-01",
+            raw_sha256="0" * 64,
+            raw_bytes=0,
+            raw_truncated_at_128k=False,
+            citations=read_note_citations(authority_note_text),
+        )
+        for cfr_title, cfr_part, authority_note_text in specs
+    )
+    return CfrAuthorityNotes(path=Path("test"), sha256="test", byte_length=0, records=records)
+
+
+def _b8_note(cfr_title, cfr_part, authority_note_text):
+    """The one-part case of :func:`_b8_notes`, which most fixtures want."""
+
+    return _b8_notes((cfr_title, cfr_part, authority_note_text))
+
+
+def _b8_reference(rin, publication_id, cfr_title, cfr_part):
+    """One ``unified_agenda_cfr_references`` row -- the four fields the join reads."""
+
+    return {"rin": rin, "publication_id": publication_id, "cfr_title": cfr_title, "cfr_part": cfr_part}
+
+
+def test_b8_two_witness_publishes_the_ftc_specimen_that_demoted_plain_b8() -> None:
+    """"15 U.S.C. 18(a)" -> 18a, corroborated by 16 CFR Part 801's own note.
+
+    This is the EXACT specimen the oracle module's docstring names as B8's
+    demotion ("B8 is a candidate, A4 and B1 are corrections"): §18 and §18a
+    are both real, so B8's own single witness cannot tell a filer who meant
+    18a from one who meant subsection (a) of a section that never printed
+    one. What tells them apart is outside the oracle -- RIN 3084-AB46's own
+    rule, 16 CFR Part 801, states its authority as "15 U.S.C. 18a(d); 15
+    U.S.C. 18b." verbatim (bare 18 never named), which is witness 2a. Proves
+    the two-witness enlargement fixes the exact case that sank the
+    one-witness rule, rather than repeating it.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        USC_B8_PROMOTION_RULE,
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "15 U.S.C. 18(a), Clayton Act",
+        rin="TEST-B8-0001",
+        publication_id="202501",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=15,
+        usc_section="18",
+    )
+    notes = _b8_note(16, "801", "Authority: 15 U.S.C. 18a(d); 15 U.S.C. 18b.")
+    references = [_b8_reference("TEST-B8-0001", "202501", 16, "801")]
+
+    counts = _promote_two_witness_b8([row], references, oracle, notes)
+
+    assert row["usc_section_corrected_section"] == "18a"
+    assert row["usc_section_corrected_pinpoint"] is None, "B8 names a SECTION, never a pinpoint into one"
+    assert row["usc_section_corrected"] == "18a"
+    assert row["usc_section_correction_evidence"] == USC_B8_PROMOTION_RULE
+    assert counts == {"promoted": 1, "note_names_bare_section": 0, "witnessless": 0}
+
+
+def test_b8_two_witness_publishes_on_a_sibling_edition_alone() -> None:
+    """Witness 2b alone is enough: no CFR note held, a sibling edition parsed
+    the lettered identity structurally.
+
+    "16 USC 715(i)" is a real, LONE B8 candidate (715 prints no lettered
+    subsections at all, and 715i is a real, separate section -- the Migratory
+    Bird Conservation Act's advisory board). The corroboration here is a
+    DIFFERENT row of the SAME RIN, a DIFFERENT edition, whose own citation
+    parsed cleanly to usc_section "715i" -- exactly
+    :class:`_CitationHistory`'s structural feed, never a raw-text scan.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        USC_B8_PROMOTION_RULE,
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "16 USC 715(i)",
+        rin="TEST-B8-0002",
+        publication_id="200710",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=16,
+        usc_section="715",
+        usc_appendix=False,
+        usc_title_is_possible=True,
+    )
+    sibling = _authority_slot(
+        0,
+        "16 USC 715i",
+        rin="TEST-B8-0002",
+        publication_id="200704",
+        authority_type="usc",
+        parse_status="ok",
+        usc_title=16,
+        usc_section="715i",
+        usc_appendix=False,
+        usc_title_is_possible=True,
+    )
+
+    counts = _promote_two_witness_b8([row, sibling], [], oracle, notes=_b8_note(1, "1", "Authority: 1 U.S.C. 1."))
+
+    assert row["usc_section_corrected_section"] == "715i"
+    assert row["usc_section_correction_evidence"] == USC_B8_PROMOTION_RULE
+    assert counts["promoted"] == 1
+
+
+def test_b8_two_witness_refuses_a_lone_candidate_with_no_second_witness() -> None:
+    """NEGATIVE FIXTURE: the subsection-oracle witness fires alone -- no held
+    CFR note, no sibling edition -- and the row must NOT publish.
+
+    This is the shape ``inv-b8``'s own doctrine names as the reason B8 stays
+    demoted in the oracle: a real lettered section existing beside a bare
+    section with no such lettered subsection is not, by itself, evidence of
+    which one a filer meant. Reusing the SAME "15 U.S.C. 18(a)" fact as the
+    positive specimen above, with everything that made it publish removed.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "15 U.S.C. 18(a), Clayton Act",
+        rin="TEST-B8-0003",
+        publication_id="202501",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=15,
+        usc_section="18",
+    )
+
+    counts = _promote_two_witness_b8([row], [], oracle, notes=_b8_note(1, "1", "Authority: 1 U.S.C. 1."))
+
+    assert row["usc_section_corrected_section"] is None
+    assert row["usc_section_corrected"] is None
+    assert row["usc_section_correction_evidence"] is None
+    assert counts == {"promoted": 0, "note_names_bare_section": 0, "witnessless": 1}
+
+
+def test_b8_two_witness_refuses_where_the_notes_own_part_names_the_bare_section() -> None:
+    """NEGATIVE FIXTURE, the counter-evidence rider, BOTH-NAMED shape: the
+    SAME held note names the bare section AND the lettered one ``present``,
+    and this refuses regardless of a firing witness 2b.
+
+    This is the LARGER of the rider's two sub-populations -- 254 of the 319
+    rows it refuses on the 2026-09-01 artifact, against 65 where the note
+    names the bare section only (the sibling fixture below). A note naming
+    both chooses nothing: witness 2a fires from the same document as the
+    counter-evidence, and this function refuses anyway, conservatively and on
+    purpose. The sibling edition here ALSO structurally spells the lettered
+    identity, so a build that checked the counter-evidence anywhere but
+    FIRST would publish this row on either witness.
+    """
+
+    from refspec.registry.cfr_authority_notes import usc_citation
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "16 USC 715(i)",
+        rin="TEST-B8-0004",
+        publication_id="200710",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=16,
+        usc_section="715",
+    )
+    sibling = _authority_slot(
+        0,
+        "16 USC 715i",
+        rin="TEST-B8-0004",
+        publication_id="200704",
+        authority_type="usc",
+        parse_status="ok",
+        usc_title=16,
+        usc_section="715i",
+        usc_title_is_possible=True,
+    )
+    notes = _b8_note(50, "9", "Authority: 16 U.S.C. 715, 715i.")
+    references = [_b8_reference("TEST-B8-0004", "200710", 50, "9")]
+    # The shape this fixture pins, asserted rather than assumed: a list
+    # continuation "715, 715i" is read as TWO citations, so witness 2a and
+    # the counter-evidence both fire from this one note.
+    assert notes.judge(usc_citation(16, "715"), {(50, "9")}).verdict == "present"
+    assert notes.judge(usc_citation(16, "715i"), {(50, "9")}).verdict == "present"
+
+    counts = _promote_two_witness_b8([row, sibling], references, oracle, notes)
+
+    assert row["usc_section_corrected_section"] is None, "the note's own bare-715 naming refuses this"
+    assert row["usc_section_correction_evidence"] is None
+    assert counts["note_names_bare_section"] == 1
+    assert counts["promoted"] == 0
+
+
+def test_b8_two_witness_refuses_where_the_note_names_only_the_bare_section() -> None:
+    """NEGATIVE FIXTURE, the counter-evidence rider, BARE-ONLY shape: the
+    held note names ``NNN`` and never ``NNNx``, and this refuses even though
+    a sibling edition structurally spells the lettered identity.
+
+    The rider's OTHER sub-population, and the one where the note genuinely
+    is choosing a side: 65 of the 319 rows refused on the 2026-09-01
+    artifact (the both-named fixture above carries the other 254). The two
+    shapes reach the same refusal through the same branch, so pinning only
+    one of them would leave the smaller population's behavior unproven --
+    and this is the shape where the refusal is a READING of the note rather
+    than a conservative default, so it is the one that must never loosen.
+    """
+
+    from refspec.registry.cfr_authority_notes import usc_citation
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "16 USC 715(i)",
+        rin="TEST-B8-0008",
+        publication_id="200710",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=16,
+        usc_section="715",
+    )
+    sibling = _authority_slot(
+        0,
+        "16 USC 715i",
+        rin="TEST-B8-0008",
+        publication_id="200704",
+        authority_type="usc",
+        parse_status="ok",
+        usc_title=16,
+        usc_section="715i",
+        usc_title_is_possible=True,
+    )
+    notes = _b8_note(50, "9", "Authority: 16 U.S.C. 715; 5 U.S.C. 301.")
+    references = [_b8_reference("TEST-B8-0008", "200710", 50, "9")]
+    # Bare-only, asserted: 715 present, 715i merely a near-miss -- so witness
+    # 2a does NOT fire here, and only witness 2b would have published it.
+    assert notes.judge(usc_citation(16, "715"), {(50, "9")}).verdict == "present"
+    assert notes.judge(usc_citation(16, "715i"), {(50, "9")}).verdict != "present"
+
+    counts = _promote_two_witness_b8([row, sibling], references, oracle, notes)
+
+    assert row["usc_section_corrected_section"] is None, "a note naming bare 715 only still refuses"
+    assert row["usc_section_correction_evidence"] is None
+    assert counts == {"promoted": 0, "note_names_bare_section": 1, "witnessless": 0}
+
+
+def test_b8_two_witness_binds_the_note_witness_to_the_rows_own_held_parts() -> None:
+    """NEGATIVE FIXTURE: another rule's authority note is NOT this rule's
+    witness, even when it names the lettered identity outright.
+
+    The unbound-witness bug class this repository already fixed once, in the
+    C3 placeholder promotion: a note read from ANY held part in the cache,
+    rather than from the parts THIS rin+edition holds, turns one agency's
+    say-so into corroboration for a filing that never cited it.
+    ``FTC-HOLDER`` here holds 16 CFR Part 801, whose note names 18a; the
+    filing rows hold either a different part (whose note names nothing
+    relevant) or no part at all, and both must land ``witnessless``.
+
+    Mutation-checked 2026-09-01: replacing the row-bound
+    ``held_by_rule.get((row["rin"], row["publication_id"]))`` with the union
+    of every held part promotes both rows here and fails this test, while
+    every other B8 fixture stays green -- which is why this one exists.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    def _filing(rin):
+        return _authority_slot(
+            0,
+            "15 U.S.C. 18(a), Clayton Act",
+            rin=rin,
+            publication_id="202501",
+            authority_type="usc",
+            parse_status="partial",
+            usc_title=15,
+            usc_section="18",
+        )
+
+    holds_an_irrelevant_part = _filing("TEST-B8-0009")
+    holds_no_part_at_all = _filing("TEST-B8-0010")
+    notes = _b8_notes(
+        (16, "801", "Authority: 15 U.S.C. 18a(d); 15 U.S.C. 18b."),
+        (49, "1", "Authority: 49 U.S.C. 106."),
+    )
+    references = [
+        # The rule whose note WOULD corroborate -- a different rin entirely,
+        # with no authority row of its own in this fixture.
+        _b8_reference("FTC-HOLDER", "202501", 16, "801"),
+        _b8_reference("TEST-B8-0009", "202501", 49, "1"),
+    ]
+
+    counts = _promote_two_witness_b8([holds_an_irrelevant_part, holds_no_part_at_all], references, oracle, notes)
+
+    assert holds_an_irrelevant_part["usc_section_corrected_section"] is None, (
+        "49 CFR Part 1's note names nothing about 15 U.S.C. 18a -- and 16 CFR Part 801's, "
+        "which does, belongs to a rule this row is not"
+    )
+    assert holds_no_part_at_all["usc_section_corrected_section"] is None
+    assert counts == {"promoted": 0, "note_names_bare_section": 0, "witnessless": 2}
+
+
+def test_b8_two_witness_excludes_a_range_residue_with_a_competing_candidate() -> None:
+    """REGRESSION, raw-source finding (RIN 1904-AC49): "NNN to NNN(x)" is a
+    RANGE whose far end a later re-typesetting parenthesised, never a bare
+    NNN pinpoint -- and the oracle's own candidate list proves it without a
+    dedicated range guard.
+
+    "42 U.S.C. 8287 to 8287(d)" produces TWO candidates (``parse-as-filed``
+    competes because 8287 prints THREE other real lettered subsections, (a),
+    (b), (c)), so this function's own "exactly one candidate" gate excludes
+    it before the note or history is ever asked -- even where a note WOULD
+    otherwise corroborate the range's far end as if it were a lettered
+    section.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "42 U.S.C. 8287 to 8287(d)",
+        rin="TEST-B8-0005",
+        publication_id="201610",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=42,
+        usc_section="8287",
+    )
+    # A note that WOULD corroborate 8287d if this row ever reached the
+    # witness gate -- proving the exclusion happens upstream of it.
+    notes = _b8_note(10, "436", "Authority: 42 U.S.C. 8287d.")
+    references = [_b8_reference("TEST-B8-0005", "201610", 10, "436")]
+
+    counts = _promote_two_witness_b8([row], references, oracle, notes)
+
+    assert row["usc_section_corrected_section"] is None
+    assert counts == {"promoted": 0, "note_names_bare_section": 0, "witnessless": 0}, (
+        "a row with a competing candidate is not a LONE B8 row at all -- it is not counted here, "
+        "exactly as an ordinary multi-candidate row is counted in refusal_rows_by_survivors instead"
+    )
+
+
+def test_b8_two_witness_history_requires_an_exact_identity_not_a_hyphenated_neighbour() -> None:
+    """REGRESSION, raw-source finding (RIN 3060-AK40): a sibling row parsing
+    "615a-1" is NOT structural corroboration for "615a" -- a different, real,
+    separate section, which the exploratory survey's own boundary-less regex
+    conflated.
+
+    :class:`_CitationHistory` keys ``usc`` by the EXACT parsed
+    ``(title, section)`` pair, so a sibling edition's "615a-1" reading lives
+    under the key ``(47, "615a-1")`` and never satisfies a lookup for
+    ``(47, "615a")``.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "47 U.S.C. 615(a)",
+        rin="TEST-B8-0006",
+        publication_id="202410",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=47,
+        usc_section="615",
+    )
+    neighbour = _authority_slot(
+        0,
+        "47 U.S.C. 615a-1",
+        rin="TEST-B8-0006",
+        publication_id="202004",
+        authority_type="usc",
+        parse_status="ok",
+        usc_title=47,
+        usc_section="615a-1",
+        usc_title_is_possible=True,
+    )
+
+    counts = _promote_two_witness_b8(
+        [row, neighbour], [], oracle, notes=_b8_note(1, "1", "Authority: 1 U.S.C. 1.")
+    )
+
+    assert row["usc_section_corrected_section"] is None
+    assert counts == {"promoted": 0, "note_names_bare_section": 0, "witnessless": 1}
+
+
+def test_b8_two_witness_never_overwrites_an_existing_correction() -> None:
+    """A row a NAME earlier pass already corrected keeps its value; this
+    function only ever fills a cell three earlier passes left NULL, exactly
+    like :data:`USC_C3_PROMOTION_RULE`'s own NULL-gate."""
+
+    from refspec.registry.unified_agenda_parquet import (
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    row = _authority_slot(
+        0,
+        "15 U.S.C. 18(a), Clayton Act",
+        rin="TEST-B8-0007",
+        publication_id="202501",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=15,
+        usc_section="18",
+        usc_section_corrected="18",
+        usc_section_corrected_section="18",
+        usc_section_correction_evidence="some-earlier-rule",
+    )
+    notes = _b8_note(16, "801", "Authority: 15 U.S.C. 18a(d); 15 U.S.C. 18b.")
+    references = [_b8_reference("TEST-B8-0007", "202501", 16, "801")]
+
+    counts = _promote_two_witness_b8([row], references, oracle, notes)
+
+    assert row["usc_section_corrected_section"] == "18", "untouched -- an earlier pass already wrote here"
+    assert row["usc_section_correction_evidence"] == "some-earlier-rule"
+    assert counts == {"promoted": 0, "note_names_bare_section": 0, "witnessless": 0}
+
+
+def test_b8_two_witness_census_accounts_for_every_lone_b8_row() -> None:
+    """The fix for `inv-b8`'s "LONE:B8" census hole: every row where the
+    oracle names B8 as the SOLE surviving reading lands in exactly one of
+    :data:`USC_B8_PROMOTION_OUTCOMES` -- before this function existed such a
+    row appeared in neither ``corrected_rows_by_rule`` nor
+    ``refusal_rows_by_survivors`` (both require the oracle's OWN
+    :meth:`corrected_section`/:meth:`correction_candidates`, and a lone
+    candidate-only reading satisfies neither's population).
+
+    Four LONE:B8 rows here, one per outcome plus one promoted twice over
+    (both witnesses) collapsed to one outcome bucket, and the sum must equal
+    the count of rows the oracle names B8-alone for.
+    """
+
+    from refspec.registry.unified_agenda_parquet import (
+        USC_B8_PROMOTION_OUTCOMES,
+        _promote_two_witness_b8,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    promoted_row = _authority_slot(
+        0,
+        "15 U.S.C. 18(a), Clayton Act",
+        rin="TEST-B8-CENSUS-1",
+        publication_id="202501",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=15,
+        usc_section="18",
+    )
+    conflicted_row = _authority_slot(
+        0,
+        "16 USC 715(i)",
+        rin="TEST-B8-CENSUS-2",
+        publication_id="200710",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=16,
+        usc_section="715",
+    )
+    witnessless_row = _authority_slot(
+        0,
+        "16 USC 715(i)",
+        rin="TEST-B8-CENSUS-3",
+        publication_id="200710",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=16,
+        usc_section="715",
+    )
+    not_lone_row = _authority_slot(
+        0,
+        "42 U.S.C. 8287 to 8287(d)",
+        rin="TEST-B8-CENSUS-4",
+        publication_id="201610",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=42,
+        usc_section="8287",
+    )
+    # An APPENDIX row otherwise identical to the promoted one. "15 U.S.C.
+    # App. 18" is not 15 U.S.C. 18, so a lettered identity read off the main
+    # corpus must never be written onto it -- and it must not be counted as a
+    # refusal either, since it was never in this rule's population. Measured
+    # 0 such rows in the whole B8-survivor population today
+    # (`measure_b8_excluded.py`); this fixture is what keeps the guard.
+    appendix_row = _authority_slot(
+        0,
+        "15 U.S.C. App. 18(a)",
+        rin="TEST-B8-CENSUS-5",
+        publication_id="202501",
+        authority_type="usc",
+        parse_status="partial",
+        usc_title=15,
+        usc_section="18",
+        usc_appendix=True,
+    )
+    notes = _b8_note(16, "801", "Authority: 15 U.S.C. 18a(d); 15 U.S.C. 18b.; 16 U.S.C. 715, 715i.")
+    references = [
+        _b8_reference("TEST-B8-CENSUS-1", "202501", 16, "801"),
+        _b8_reference("TEST-B8-CENSUS-2", "200710", 16, "801"),
+        _b8_reference("TEST-B8-CENSUS-5", "202501", 16, "801"),
+    ]
+
+    rows = [promoted_row, conflicted_row, witnessless_row, not_lone_row, appendix_row]
+    counts = _promote_two_witness_b8(rows, references, oracle, notes)
+
+    # Three of the five rows are LONE B8: `not_lone_row` carries a competing
+    # `parse-as-filed` candidate (see the range-residue regression above) and
+    # is not counted here at all -- the same way an ordinary multi-candidate
+    # row is counted in `refusal_rows_by_survivors` instead -- and
+    # `appendix_row` is skipped before the oracle is ever asked.
+    assert sum(counts.values()) == 3
+    assert counts["promoted"] == 1
+    assert counts["note_names_bare_section"] == 1
+    assert counts["witnessless"] == 1
+    assert set(counts) == set(USC_B8_PROMOTION_OUTCOMES)
+    assert appendix_row["usc_section_corrected_section"] is None, (
+        "an appendix section must never take a main-corpus lettered identity"
+    )
+    assert appendix_row["usc_section_correction_evidence"] is None
+
+
+def test_b8_promotion_rule_names_stay_out_of_the_oracles_own_vocabulary() -> None:
+    """The builder's rule name is namespaced apart from
+    :data:`~refspec.registry.usc_section_oracle.CORRECTION_RULES` -- the same
+    separation :data:`USC_C3_PROMOTION_RULE` keeps -- so a future rename on
+    either side cannot silently collide the two.
+    """
+
+    from refspec.registry.unified_agenda_parquet import _USC_B8_ORACLE_RULE, USC_B8_PROMOTION_RULE
+    from refspec.registry.usc_section_oracle import CANDIDATE_ONLY_RULES, CORRECTION_RULES
+
+    assert USC_B8_PROMOTION_RULE not in CORRECTION_RULES
+    assert _USC_B8_ORACLE_RULE in CANDIDATE_ONLY_RULES
+    assert _USC_B8_ORACLE_RULE in CORRECTION_RULES
+    assert _USC_B8_ORACLE_RULE == "B8-lettered-section-rather-than-a-pinpoint"
+
+
+def test_held_parts_by_rule_matches_the_join_every_reader_shares() -> None:
+    """The shared join :func:`_held_parts_by_rule` now backs three readers
+    (`_judge_against_cfr_notes`, `_write_placeholder_candidates`,
+    `_promote_two_witness_b8`) -- a basic behavior pin so the extraction
+    cannot silently drop a part or leak an unheld one.
+    """
+
+    from refspec.registry.unified_agenda_parquet import _held_parts_by_rule
+
+    notes = _b8_note(16, "801", "Authority: 15 U.S.C. 18a(d).")
+    references = [
+        _b8_reference("RIN-A", "202501", 16, "801"),  # held
+        _b8_reference("RIN-A", "202501", 99, "999"),  # not held: no such note
+        _b8_reference("RIN-B", "202501", 16, "801"),  # a second rule, same held part
+    ]
+
+    held = _held_parts_by_rule(references, notes)
+
+    assert held == {
+        ("RIN-A", "202501"): {(16, "801")},
+        ("RIN-B", "202501"): {(16, "801")},
+    }
+
+
+def test_a_filers_stat_page_member_is_gated_like_the_notes() -> None:
+    """The filer-box half of mined item 4 (REF-062), gated at materialization.
+
+    The gate is condition-for-condition the one
+    :func:`refspec.registry.cfr_authority_notes.read_note_citations` applies
+    to the publisher's notes: a U.S.C. list member the grammar reached only by
+    scanning past a Statutes-at-Large citation is admitted only where the
+    oracle's EXACT lists enumerate it, and no oracle admits nothing marked
+    (fail-closed). The declared population is 3 texts / 4 citations / 40 rows
+    (research/evidence/stat-page-gate-2026-09-01/marked_filer_texts.json);
+    the specimens below are one fabricated member from that file and the
+    14 CFR 121-shaped genuine resume that must survive.
+    """
+
+    from refspec.registry.citation_grammar import parse_authority_citation
+    from refspec.registry.unified_agenda_parquet import (
+        _stat_page_member_is_enumerated,
+        _usc_section_oracle,
+    )
+
+    oracle = _usc_section_oracle()
+    if oracle is None:
+        pytest.skip("the pinned U.S.C. section oracle is not present")
+
+    fabricated = [
+        c
+        for c in parse_authority_citation(
+            "49 USC 13908, as amended by sec 4304 of PL 109-159, 119 Stat 1144, 1763"
+        )
+        if c.authority_type == "usc" and c.usc_section == "1763"
+    ]
+    assert fabricated, "the declared specimen must still parse to a marked member"
+    assert all(c.usc_section_after_statute for c in fabricated)
+    assert not any(_stat_page_member_is_enumerated(c, oracle) for c in fabricated), (
+        "119 Stat 1144, 1763 is the Act's own pinpoint page, not 49 U.S.C. 1763"
+    )
+
+    genuine = [
+        c
+        for c in parse_authority_citation(
+            "49 U.S.C. 42301 preceding note added by Pub. L. 112-95, sec. 412, "
+            "126 Stat. 89, 44101, 44701"
+        )
+        if c.authority_type == "usc" and c.usc_section in ("44101", "44701")
+    ]
+    assert genuine, "the genuine resume must parse to marked members"
+    assert all(c.usc_section_after_statute for c in genuine)
+    assert all(_stat_page_member_is_enumerated(c, oracle) for c in genuine), (
+        "a genuinely resumed, enumerated section survives the gate"
+    )
+    # Fail-closed, like the note-side twin: no oracle admits nothing marked.
+    assert not any(_stat_page_member_is_enumerated(c, None) for c in genuine)
+    # An unmarked citation is not this gate's business, oracle or no oracle.
+    unmarked = [
+        c for c in parse_authority_citation("49 USC 13908") if c.authority_type == "usc"
+    ]
+    assert unmarked and all(_stat_page_member_is_enumerated(c, None) for c in unmarked)

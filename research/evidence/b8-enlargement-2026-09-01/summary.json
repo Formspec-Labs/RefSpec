@@ -1,0 +1,29 @@
+{
+  "la_rows_scanned": 800558,
+  "lone_b8_rins_baseline": 177,
+  "lone_b8_rows_baseline": 773,
+  "lone_b8_texts_baseline": 121,
+  "measured_against": "rebuild-15 artifact (2026-09-01): promoted from the build's own receipt + artifact rule-name query (666 rows); refusal buckets from the idempotent replay",
+  "promoted_both_witnesses": 119,
+  "promoted_distinct_base_pairs": 37,
+  "promoted_distinct_rins": 134,
+  "promoted_distinct_target_pairs": 59,
+  "promoted_distinct_texts": 103,
+  "promoted_rows": 666,
+  "promoted_verdicts_on_bare_section": {
+    "exists": 666
+  },
+  "promoted_witness_2a_only": 476,
+  "promoted_witness_2b_only": 71,
+  "promotion_outcome_counts": {
+    "note_names_bare_section": 319,
+    "promoted": 666,
+    "witnessless": 454
+  },
+  "replay_on_built_artifact": {
+    "note_names_bare_section": 319,
+    "promoted": 0,
+    "why": "the promotion is NULL-gated and idempotent: the 666 promoted rows now carry usc_section_corrected, so a replay on the built table skips them; sum 773 = 1,439 - 666",
+    "witnessless": 454
+  }
+}

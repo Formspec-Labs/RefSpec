@@ -1,0 +1,31 @@
+{
+  "b8_survivor_appendix_rows": 0,
+  "b8_survivor_rows": 13896,
+  "ftc_specimen_edition_range": [
+    "201704",
+    "202504"
+  ],
+  "ftc_specimen_editions": 17,
+  "ftc_specimen_rows": 17,
+  "lone_b8_rows": 1439,
+  "lone_outcomes": {
+    "note_names_bare_section": 319,
+    "promoted": 666,
+    "witnessless": 454
+  },
+  "multi_b8_by_would_be_outcome": {
+    "note_names_bare_section": 6469,
+    "witnessless": 4086,
+    "would_publish_on_2a": 917,
+    "would_publish_on_2b": 533,
+    "would_publish_on_both": 452
+  },
+  "multi_b8_corroborated_and_conflict_free": 1902,
+  "multi_b8_rows": 12457,
+  "rider_note_names_bare_only": 65,
+  "rider_note_names_both": 254,
+  "witness_2b_only_cross_edition": 70,
+  "witness_2b_only_same_edition": 1,
+  "witnessless_rescued_by_bounded_text_scan": 0,
+  "witnessless_rows": 454
+}

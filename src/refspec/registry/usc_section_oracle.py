@@ -555,7 +555,25 @@ CORRECTION_RULES = (
 #:
 #: :meth:`UscSectionOracle.corrected_section` publishes nothing named here, and
 #: :class:`Correction` cannot be constructed with one of these rules at all, so
-#: a future caller cannot re-promote B8 by accident.
+#: a future caller cannot re-promote B8 by accident WITHIN this module.
+#:
+#: **2026-09-01: a DIFFERENT module publishes a NARROWER subset, on evidence
+#: this one has never seen.** ``inv-b8``
+#: (``research/investigations-mined-2026-08-31.md``) measured B8's silent
+#: cost -- 14,740 readings, the largest class either 2026-08-2[34] survey
+#: found -- and asked for a two-witness enlargement rather than a
+#: re-promotion: :func:`refspec.registry.unified_agenda_parquet._promote_two_witness_b8`
+#: reads the SAME :class:`Candidate` this module names for B8 and never
+#: constructs a :class:`Correction` from it -- this module's own refusal is
+#: unchanged, and the guarantee above still holds inside it -- but publishes
+#: ``usc_section_corrected_section`` directly where a SECOND, corpus-level
+#: witness this oracle cannot ask for corroborates it: the filing rule's own
+#: held CFR authority note, or the filing RIN's own other editions. Both are
+#: exactly the kind of fact the FTC review above named as missing --
+#: "nothing this module can put to the oracle separates them" -- read from
+#: OUTSIDE it instead. See that function's docstring for the full doctrine,
+#: the measured population, and the two raw-source specimens that prove its
+#: witnesses do not repeat B8's own failure.
 CANDIDATE_ONLY_RULES = (
     "parse-as-filed",
     "B8-lettered-section-rather-than-a-pinpoint",
