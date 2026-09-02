@@ -9,11 +9,11 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 2872,
-    "seconds": 1097.792,
+    "passed": 2883,
+    "seconds": 1193.747,
     "skipped": 3,
     "testFiles": 98,
-    "tests": 2875
+    "tests": 2886
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
@@ -27445,19 +27445,19 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:6613ffda4f9df952b867bad3c5e977187352cca72e44ddd7994e48fbbc5e8556"
+                  "sha256": "sha256:55e135a2b1c321a235a2819b015ee44da811429aa3ecfdb074fcf54efd116bd2"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:eb3a9d7e04fa2ed3484c3e79f15ead95b9e1fab4254bd8fcea4ec1e25099d197"
+                  "sha256": "sha256:ad24dee89cf8c9f578d653c3653a850d271a693a2bd3277988a8a70686963f16"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:742d523d20f1400f3d27a11e2ce6ab8a8725fc4450eec026a567428add3ab011"
+                  "sha256": "sha256:8971956fc7f42e11d78811a20703e5dfd2affb6cb2b3df09aa3661636690725a"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:1c63838c12a580787951fb5cffa32ec88f5670d44dde0fa1ec4e4196c5b7ac78"
+                  "sha256": "sha256:cfb6009eeadec441799edbc222543f444dbb7a7a8b1605e9277bcc61a207f2f1"
                 }
               },
               "manifest": {
@@ -27468,7 +27468,7 @@
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:bbeadb95512c01d1663b1742870f8467b05845266ef42c0b6c98876b6dfcf04a",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:1316ee33323dd4bf7ccc3890a56e8b3ebc188170b1834e60041599a0c5a92b29",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -27524,7 +27524,7 @@
               "byteLengths": [
                 0,
                 566,
-                595,
+                581,
                 1080,
                 1315,
                 1504,
@@ -27536,19 +27536,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:1c63838c12a580787951fb5cffa32ec88f5670d44dde0fa1ec4e4196c5b7ac78",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:6613ffda4f9df952b867bad3c5e977187352cca72e44ddd7994e48fbbc5e8556",
-                "sha256:742d523d20f1400f3d27a11e2ce6ab8a8725fc4450eec026a567428add3ab011",
+                "sha256:55e135a2b1c321a235a2819b015ee44da811429aa3ecfdb074fcf54efd116bd2",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:7d6a066b15dcfec2bab8e10fe4af8b88295b813e30fac8ef4b6358bc17a96897",
-                "sha256:86aed3d94c672b2d065f04732230405e85da1d025a8ea746608d1e8075e84c2d",
-                "sha256:87bb3b96326a4366e3cf3d968e6f6a5b5312471b069867804d2dc7051d72208e",
+                "sha256:8971956fc7f42e11d78811a20703e5dfd2affb6cb2b3df09aa3661636690725a",
+                "sha256:9aed98a9560294b13d587b5eda852b4a5bfbcb5efbeb332f5f45e61fac27182a",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:acefc1170a3e22ec495ebe9f29d8518a2547414909f97aaa0134a0efea5c249a",
+                "sha256:ad24dee89cf8c9f578d653c3653a850d271a693a2bd3277988a8a70686963f16",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:cfb6009eeadec441799edbc222543f444dbb7a7a8b1605e9277bcc61a207f2f1",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:eb3a9d7e04fa2ed3484c3e79f15ead95b9e1fab4254bd8fcea4ec1e25099d197"
+                "sha256:de6c49c31cc17c6c8b403816218be0a4cc56b6c84bfdcb1c7fcbd23ba384f930",
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -27572,7 +27572,7 @@
               "byteLengths": [
                 0,
                 566,
-                595,
+                581,
                 1080,
                 1315,
                 1504,
@@ -27584,19 +27584,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:1c63838c12a580787951fb5cffa32ec88f5670d44dde0fa1ec4e4196c5b7ac78",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:6613ffda4f9df952b867bad3c5e977187352cca72e44ddd7994e48fbbc5e8556",
-                "sha256:742d523d20f1400f3d27a11e2ce6ab8a8725fc4450eec026a567428add3ab011",
+                "sha256:55e135a2b1c321a235a2819b015ee44da811429aa3ecfdb074fcf54efd116bd2",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:7d6a066b15dcfec2bab8e10fe4af8b88295b813e30fac8ef4b6358bc17a96897",
-                "sha256:86aed3d94c672b2d065f04732230405e85da1d025a8ea746608d1e8075e84c2d",
-                "sha256:87bb3b96326a4366e3cf3d968e6f6a5b5312471b069867804d2dc7051d72208e",
+                "sha256:8971956fc7f42e11d78811a20703e5dfd2affb6cb2b3df09aa3661636690725a",
+                "sha256:9aed98a9560294b13d587b5eda852b4a5bfbcb5efbeb332f5f45e61fac27182a",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:acefc1170a3e22ec495ebe9f29d8518a2547414909f97aaa0134a0efea5c249a",
+                "sha256:ad24dee89cf8c9f578d653c3653a850d271a693a2bd3277988a8a70686963f16",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:cfb6009eeadec441799edbc222543f444dbb7a7a8b1605e9277bcc61a207f2f1",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:eb3a9d7e04fa2ed3484c3e79f15ead95b9e1fab4254bd8fcea4ec1e25099d197"
+                "sha256:de6c49c31cc17c6c8b403816218be0a4cc56b6c84bfdcb1c7fcbd23ba384f930",
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -27616,7 +27616,7 @@
               "byteLengths": [
                 0,
                 566,
-                595,
+                581,
                 1080,
                 1315,
                 1504,
@@ -27628,19 +27628,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:1c63838c12a580787951fb5cffa32ec88f5670d44dde0fa1ec4e4196c5b7ac78",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:6613ffda4f9df952b867bad3c5e977187352cca72e44ddd7994e48fbbc5e8556",
-                "sha256:742d523d20f1400f3d27a11e2ce6ab8a8725fc4450eec026a567428add3ab011",
+                "sha256:55e135a2b1c321a235a2819b015ee44da811429aa3ecfdb074fcf54efd116bd2",
                 "sha256:79bcc0c3074635e0bf51593a6a9a6d223f29cdb5a1e149c4d882d39b1cf499a3",
-                "sha256:7d6a066b15dcfec2bab8e10fe4af8b88295b813e30fac8ef4b6358bc17a96897",
-                "sha256:86aed3d94c672b2d065f04732230405e85da1d025a8ea746608d1e8075e84c2d",
-                "sha256:87bb3b96326a4366e3cf3d968e6f6a5b5312471b069867804d2dc7051d72208e",
+                "sha256:8971956fc7f42e11d78811a20703e5dfd2affb6cb2b3df09aa3661636690725a",
+                "sha256:9aed98a9560294b13d587b5eda852b4a5bfbcb5efbeb332f5f45e61fac27182a",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:acefc1170a3e22ec495ebe9f29d8518a2547414909f97aaa0134a0efea5c249a",
+                "sha256:ad24dee89cf8c9f578d653c3653a850d271a693a2bd3277988a8a70686963f16",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
+                "sha256:cfb6009eeadec441799edbc222543f444dbb7a7a8b1605e9277bcc61a207f2f1",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:eb3a9d7e04fa2ed3484c3e79f15ead95b9e1fab4254bd8fcea4ec1e25099d197"
+                "sha256:de6c49c31cc17c6c8b403816218be0a4cc56b6c84bfdcb1c7fcbd23ba384f930",
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -27661,100 +27661,9 @@
             "function": "acquire_eurovoc_release",
             "sample": {
               "acquisition_mode": "local",
-              "archive_byte_length": 802,
+              "archive_byte_length": 797,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
-              "byte_length": 2908,
-              "cache_hit": false,
-              "local_source_path": "<pathlib.PosixPath>",
-              "metadata": null,
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "Publications Office of the European Union, EuroVoc",
-                "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 802,
-                "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
-                "expected_sha256": "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
-                "filename": "eurovoc.zip",
-                "issued": "2026-07-08",
-                "landing_page_url": "https://example.test/eurovoc",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "member_filename": "eurovoc.rdf",
-                "metadata_source": null,
-                "publisher": "Publications Office of the European Union",
-                "release_id": "fixture-9.9",
-                "source_url": "https://example.test/eurovoc.zip",
-                "version": "9.9"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
-              "source_url": "https://example.test/eurovoc.zip"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "archive_byte_length": "int",
-                "archive_path": "pathlib.PosixPath",
-                "archive_sha256": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "local_source_path": "pathlib.PosixPath",
-                "metadata": "NoneType",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_member_byte_length": "int",
-                    "expected_member_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "issued": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "member_filename": "str",
-                    "metadata_source": "NoneType",
-                    "publisher": "str",
-                    "release_id": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                2908
-              ],
-              "digests": [
-                "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
-                "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552"
-              ],
-              "paths": [],
-              "urls": [
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/eurovoc",
-                "https://example.test/eurovoc.zip"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_eurovoc_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "archive_byte_length": 802,
-              "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
+              "archive_sha256": "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f",
               "byte_length": 2908,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -27772,10 +27681,10 @@
               "release": {
                 "attribution": "Publications Office of the European Union, EuroVoc",
                 "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 802,
+                "expected_byte_length": 797,
                 "expected_member_byte_length": 2908,
-                "expected_member_sha256": "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
-                "expected_sha256": "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
+                "expected_member_sha256": "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
+                "expected_sha256": "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -27794,7 +27703,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
+              "sha256": "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -27862,15 +27771,106 @@
                 2908
               ],
               "digests": [
-                "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
-                "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
-                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
+                "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
+                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
+                "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f"
               ],
               "paths": [],
               "urls": [
                 "https://creativecommons.org/licenses/by/4.0/",
                 "https://example.test/eurovoc",
                 "https://example.test/eurovoc-metadata.ttl",
+                "https://example.test/eurovoc.zip"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_eurovoc_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "archive_byte_length": 797,
+              "archive_path": "<pathlib.PosixPath>",
+              "archive_sha256": "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f",
+              "byte_length": 2908,
+              "cache_hit": false,
+              "local_source_path": "<pathlib.PosixPath>",
+              "metadata": null,
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "Publications Office of the European Union, EuroVoc",
+                "concept_scheme_iri": "urn:example:thesaurus",
+                "expected_byte_length": 797,
+                "expected_member_byte_length": 2908,
+                "expected_member_sha256": "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
+                "expected_sha256": "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f",
+                "filename": "eurovoc.zip",
+                "issued": "2026-07-08",
+                "landing_page_url": "https://example.test/eurovoc",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "member_filename": "eurovoc.rdf",
+                "metadata_source": null,
+                "publisher": "Publications Office of the European Union",
+                "release_id": "fixture-9.9",
+                "source_url": "https://example.test/eurovoc.zip",
+                "version": "9.9"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
+              "source_url": "https://example.test/eurovoc.zip"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "archive_byte_length": "int",
+                "archive_path": "pathlib.PosixPath",
+                "archive_sha256": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "local_source_path": "pathlib.PosixPath",
+                "metadata": "NoneType",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_member_byte_length": "int",
+                    "expected_member_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "issued": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "member_filename": "str",
+                    "metadata_source": "NoneType",
+                    "publisher": "str",
+                    "release_id": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                2908
+              ],
+              "digests": [
+                "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
+                "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f"
+              ],
+              "paths": [],
+              "urls": [
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/eurovoc",
                 "https://example.test/eurovoc.zip"
               ]
             }
@@ -27995,7 +27995,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
+              "source_sha256": "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -28185,8 +28185,8 @@
                 2908
               ],
               "digests": [
-                "sha256:3bbe56d848a9403cc4f943f7bd5a17a123035d4573e2253ad5dd5165b4065a44",
-                "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552"
+                "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
+                "sha256:f7b480d805d31c4d4450723489e8ccc22d9830b139c943b16cd38c4a97545b5f"
               ],
               "paths": [],
               "urls": [
@@ -28736,7 +28736,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552",
+              "source_sha256": "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -28926,7 +28926,7 @@
                 2908
               ],
               "digests": [
-                "sha256:9c109d1b7a48c865b70a80e72f5ccef61e86adcf60eb252c86a9e71f49dbc552"
+                "sha256:2c8c18f72ec0df997ad917591e266c580d48e9dab324106d0023a2de3a60c565"
               ],
               "paths": [],
               "urls": [
@@ -42018,7 +42018,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7ab7-9248-f1c6179c0b4f",
+                "fetch_id": "019fb2e5-4e00-7e6b-87aa-2612114e1c03",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -46519,6 +46519,86 @@
               "acquisition_mode": "local",
               "byte_length": 16000,
               "cache_hit": false,
+              "compressed_byte_length": 3627,
+              "compressed_sha256": "sha256:335033c9fc935e2ac186ffc3703294576f8214351a9aa623369f709759c90504",
+              "local_source_path": "<pathlib.PosixPath>",
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
+                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "expected_byte_length": 16000,
+                "expected_compressed_byte_length": 3627,
+                "expected_compressed_sha256": "sha256:335033c9fc935e2ac186ffc3703294576f8214351a9aa623369f709759c90504",
+                "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
+                "filename": "gemet-mini.rdf",
+                "landing_page_url": "https://example.test/gemet-landing-page",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "publisher": "European Environment Agency / Eionet",
+                "source_url": "https://example.test/gemet-mini.rdf",
+                "version": "fixture"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
+              "source_url": "https://example.test/gemet-mini.rdf"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "compressed_byte_length": "int",
+                "compressed_sha256": "str",
+                "local_source_path": "pathlib.PosixPath",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_compressed_byte_length": "int",
+                    "expected_compressed_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "publisher": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                16000
+              ],
+              "digests": [
+                "sha256:335033c9fc935e2ac186ffc3703294576f8214351a9aa623369f709759c90504",
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
+              ],
+              "paths": [],
+              "urls": [
+                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/gemet-landing-page",
+                "https://example.test/gemet-mini.rdf"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_gemet_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "byte_length": 16000,
+              "cache_hit": false,
               "compressed_byte_length": null,
               "compressed_sha256": null,
               "local_source_path": "<pathlib.PosixPath>",
@@ -46581,86 +46661,6 @@
               ],
               "digests": [
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
-              ],
-              "paths": [],
-              "urls": [
-                "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/gemet-landing-page",
-                "https://example.test/gemet-mini.rdf"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_gemet_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "byte_length": 16000,
-              "cache_hit": false,
-              "compressed_byte_length": 3627,
-              "compressed_sha256": "sha256:bd2e1372e2d0103c3049c46aee7e03fe39cdb4547ec7d4cee07d268e8498b61b",
-              "local_source_path": "<pathlib.PosixPath>",
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "European Environment Agency (EEA) and the European Environment Information and Observation Network (Eionet) -- GEMET, the General Multilingual Environmental Thesaurus",
-                "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
-                "expected_byte_length": 16000,
-                "expected_compressed_byte_length": 3627,
-                "expected_compressed_sha256": "sha256:bd2e1372e2d0103c3049c46aee7e03fe39cdb4547ec7d4cee07d268e8498b61b",
-                "expected_sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "filename": "gemet-mini.rdf",
-                "landing_page_url": "https://example.test/gemet-landing-page",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "publisher": "European Environment Agency / Eionet",
-                "source_url": "https://example.test/gemet-mini.rdf",
-                "version": "fixture"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-              "source_url": "https://example.test/gemet-mini.rdf"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "compressed_byte_length": "int",
-                "compressed_sha256": "str",
-                "local_source_path": "pathlib.PosixPath",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_compressed_byte_length": "int",
-                    "expected_compressed_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "publisher": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.gemet_thesaurus.GemetReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.gemet_thesaurus.AcquiredGemetSource"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                16000
-              ],
-              "digests": [
-                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:bd2e1372e2d0103c3049c46aee7e03fe39cdb4547ec7d4cee07d268e8498b61b"
               ],
               "paths": [],
               "urls": [
@@ -47066,6 +47066,7 @@
                 16000
               ],
               "digests": [
+                "sha256:335033c9fc935e2ac186ffc3703294576f8214351a9aa623369f709759c90504",
                 "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
               ],
               "paths": [],
@@ -47571,8 +47572,7 @@
                 16000
               ],
               "digests": [
-                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2",
-                "sha256:bd2e1372e2d0103c3049c46aee7e03fe39cdb4547ec7d4cee07d268e8498b61b"
+                "sha256:390281092b043fe7c1ce151cd25a16af1f30d9bc7a20b5b84a18e35fbc4841a2"
               ],
               "paths": [],
               "urls": [
@@ -54890,12 +54890,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:2305fc8251cd79b5eac632ee3e77a85a05362a44bb548fabf50f84e799aebbc2",
+            "sample": "sha256:0a2c6ea0370d1d49c411a6e2396695fcd4eab03d96e9e7a8a3ec1ec312d9ab38",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:2305fc8251cd79b5eac632ee3e77a85a05362a44bb548fabf50f84e799aebbc2"
+                "sha256:0a2c6ea0370d1d49c411a6e2396695fcd4eab03d96e9e7a8a3ec1ec312d9ab38"
               ],
               "paths": [],
               "urls": []
@@ -54904,12 +54904,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:3d0a75a81047d6c31056a0d44009b187fee904af5274e7dc52c2ed0ce2b1aacb",
+            "sample": "sha256:0d2ff784c1126023b35d3ce44ca22b672d51b6d63b388c41367399d99dca4f01",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:3d0a75a81047d6c31056a0d44009b187fee904af5274e7dc52c2ed0ce2b1aacb"
+                "sha256:0d2ff784c1126023b35d3ce44ca22b672d51b6d63b388c41367399d99dca4f01"
               ],
               "paths": [],
               "urls": []
@@ -54918,12 +54918,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:4697c151dc2624a890b0a6b7d69c975245cb68bad422dde1f8ac73677a1e8c81",
+            "sample": "sha256:330a09283c63c04203f030b90a943f0485b4962546bc4c753c96863b5f6e24f5",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:4697c151dc2624a890b0a6b7d69c975245cb68bad422dde1f8ac73677a1e8c81"
+                "sha256:330a09283c63c04203f030b90a943f0485b4962546bc4c753c96863b5f6e24f5"
               ],
               "paths": [],
               "urls": []
@@ -54932,12 +54932,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:75431581874dd711ab9628ca102a121f0dcd3faca18331b8a2f41aa6b73102e0",
+            "sample": "sha256:3bd879dcecf5cf5ca9739197abcf536d495bf8d003f594c5f2c9d0f516b9bdcb",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:75431581874dd711ab9628ca102a121f0dcd3faca18331b8a2f41aa6b73102e0"
+                "sha256:3bd879dcecf5cf5ca9739197abcf536d495bf8d003f594c5f2c9d0f516b9bdcb"
               ],
               "paths": [],
               "urls": []
@@ -54946,12 +54946,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:881b1fac38f2eab65886b06aa327cf81cdbf04687b23dd09ed866b8356c885d9",
+            "sample": "sha256:66647cf7443d90b722a301c59972be09df8a557ced1d735ebd414a3079719cf9",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:881b1fac38f2eab65886b06aa327cf81cdbf04687b23dd09ed866b8356c885d9"
+                "sha256:66647cf7443d90b722a301c59972be09df8a557ced1d735ebd414a3079719cf9"
               ],
               "paths": [],
               "urls": []
@@ -54974,12 +54974,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:a311ff2e95a324959047b3b7d68457e3effacf68791a04b1fa46c2944606b888",
+            "sample": "sha256:98616feb032fe87651760d5f30f39fe85e8c416837ad37bfe44e6c206d2087a0",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:a311ff2e95a324959047b3b7d68457e3effacf68791a04b1fa46c2944606b888"
+                "sha256:98616feb032fe87651760d5f30f39fe85e8c416837ad37bfe44e6c206d2087a0"
               ],
               "paths": [],
               "urls": []
@@ -54988,12 +54988,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:aaa8e61e7faf37dd77cc5f907b38146741994b27d5b1978679af68b43f55e7c5",
+            "sample": "sha256:acfa95b130afa2748d2a7cea77ecbadced7750f16b4f4e4a2273f3d2d710c8fe",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:aaa8e61e7faf37dd77cc5f907b38146741994b27d5b1978679af68b43f55e7c5"
+                "sha256:acfa95b130afa2748d2a7cea77ecbadced7750f16b4f4e4a2273f3d2d710c8fe"
               ],
               "paths": [],
               "urls": []
@@ -55002,12 +55002,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:b37342f6c5cef6742890480199974c7d7c77d77696628495bb7a074583112744",
+            "sample": "sha256:d0319caeeda465ade6d56e11c62ce718f85c11bbdc385008dda183487887e508",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:b37342f6c5cef6742890480199974c7d7c77d77696628495bb7a074583112744"
+                "sha256:d0319caeeda465ade6d56e11c62ce718f85c11bbdc385008dda183487887e508"
               ],
               "paths": [],
               "urls": []
@@ -55030,12 +55030,12 @@
           {
             "counts": {},
             "function": "file_sha256",
-            "sample": "sha256:ea9688828dcd69832aaff0683c9146bdf60f53bffbf1d1a6c3de3309bfee41ed",
+            "sample": "sha256:ef48bbee8a7c9dfd525f7f482a59138f4c93149ffc53f442a45ea45ebe960929",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [],
               "digests": [
-                "sha256:ea9688828dcd69832aaff0683c9146bdf60f53bffbf1d1a6c3de3309bfee41ed"
+                "sha256:ef48bbee8a7c9dfd525f7f482a59138f4c93149ffc53f442a45ea45ebe960929"
               ],
               "paths": [],
               "urls": []
@@ -80401,7 +80401,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fc4eb-9000-7918-8d2d-330f0e3350ba",
+              "fetch_id": "019fc4eb-9000-7365-a190-11413e491c60",
               "fetched_at": "2026-08-03T00:00:00Z"
             },
             "shape": {
@@ -80458,7 +80458,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7909-9219-f49893cabd9a"
+              "registration_id": "019fb80b-aa00-7948-804c-9ce008580d2c"
             },
             "shape": {
               "fields": {
@@ -116726,14 +116726,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:bdf83f9d984c3b319b91528b016e29faad691220cb756dfdd4059e53f8e508ec",
+            "sample": "sha256:94aed1116f81978aea85518056cfd290583183e8ffed2d9cc19838d554ddff1d",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                364727
+                364728
               ],
               "digests": [
-                "sha256:bdf83f9d984c3b319b91528b016e29faad691220cb756dfdd4059e53f8e508ec"
+                "sha256:94aed1116f81978aea85518056cfd290583183e8ffed2d9cc19838d554ddff1d"
               ],
               "paths": [],
               "urls": []
@@ -126136,7 +126136,7 @@
               "paths": [
                 "/Users/mikewolfd/Work/RefSpec/output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip",
                 "/Users/mikewolfd/Work/RefSpec/output/usc-act-index-2026-08-02",
-                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpup7kca4x/artifact"
+                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpq2a7yhxl/artifact"
               ],
               "urls": [
                 "https://uscode.house.gov/popularnames/popularnames.htm"
@@ -138978,7 +138978,7 @@
               "byteLengths": [],
               "digests": [],
               "paths": [
-                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpw1qnscyz/artifact"
+                "/var/folders/g8/10vdwk2n07z85vqn_vlv2lfc0000gn/T/tmpe89j5dip/artifact"
               ],
               "urls": []
             }
@@ -141580,7 +141580,9 @@
     },
     {
       "auditRole": "dataReader",
-      "blockers": [],
+      "blockers": [
+        "publisher bytes are retained and pinned in research/evidence/eo-roster-2026-08-31/ (NARA's 1939 disposition table and the 1939-11-17 Federal Register issue, both digest-pinned in MANIFEST-sha256.csv and read for content by the module's own tests), but the reader consumes the DERIVED roster.csv -- pinned in-module and re-verified on load -- so no execution is tied to the publisher digests themselves"
+      ],
       "classification": "data-registry",
       "coveredBy": [],
       "declaredUrls": [
@@ -141588,27 +141590,8 @@
         "https://www.govinfo.gov/content/pkg/FR-1939-11-17/pdf/FR-1939-11-17.pdf"
       ],
       "module": "eo_roster.py",
-      "sourceStatus": "publisherBytes",
-      "testInputs": [
-        {
-          "byteLength": 144520,
-          "localPath": "research/evidence/eo-roster-2026-08-31/raw/nara-eo-1939.html",
-          "name": "naraEoDisposition1939",
-          "pinConstant": "NARA_EO_1939_CAPTURE",
-          "provenance": "pinnedPublisherCapture",
-          "publisherUrl": "https://www.archives.gov/federal-register/executive-orders/1939.html",
-          "sha256": "sha256:6575dcd808f06c39def77e7411d50813bdb32edb7c9359bbdda9f309a037711a"
-        },
-        {
-          "byteLength": 2400332,
-          "localPath": "research/evidence/eo-roster-2026-08-31/raw/govinfo-FR-1939-11-17.pdf",
-          "name": "govinfoFrIssue19391117",
-          "pinConstant": "GOVINFO_FR_1939_11_17_CAPTURE",
-          "provenance": "pinnedPublisherCapture",
-          "publisherUrl": "https://www.govinfo.gov/content/pkg/FR-1939-11-17/pdf/FR-1939-11-17.pdf",
-          "sha256": "sha256:9a6a961b3e327c92b85a9afeaff4dafbfacf3178007467e3f83c3f1313b25987"
-        }
-      ]
+      "sourceStatus": "blocked",
+      "testInputs": []
     },
     {
       "auditRole": "dataReader",
@@ -144355,12 +144338,24 @@
     }
   ],
   "realDataGate": {
-    "failures": [],
-    "status": "notEvaluated"
+    "failures": [
+      "act_resolution.py: publisher bytes are not retained here: act resolution reads sha256-pinned artifacts (output/usc-act-index-2026-08-02, output/usc-source-credit-index-2026-08-02) whose receipt records https://uscode.house.gov/popularnames/popularnames.htm at sha256:50687ac0116114b1d16ce59460f6092539cb00977c0c428e574a874b81e018b4",
+      "agency_crosswalk.py: publisher bytes are not retained here: the module embeds the sealed agency-crosswalk-2026-08-02 mapping (316 codes, 914 ranked candidates) whose receipt and three intact input parquets live at output/registry-real-data-sources/rin-ontology-revision-candidate/ (came home 2026-08-31) with sha256 pins restated in AGENCY_CROSSWALK_INPUT_DIGESTS; fr_docket_links.parquet was overwritten after sealing (893,766 rows vs the pinned 715,080) and the sealed bytes survive nowhere, so the sealed tier histogram can be verified against the embedded rows but no longer exactly re-derived from the inputs",
+      "eo_roster.py: publisher bytes are retained and pinned in research/evidence/eo-roster-2026-08-31/ (NARA's 1939 disposition table and the 1939-11-17 Federal Register issue, both digest-pinned in MANIFEST-sha256.csv and read for content by the module's own tests), but the reader consumes the DERIVED roster.csv -- pinned in-module and re-verified on load -- so no execution is tied to the publisher digests themselves",
+      "hand_validated_interpretations.py: curated human adjudications: inputs are git-committed witness files verified byte-exact against HEAD by the module itself at load; no publisher input exists by design (REF-058), so there is nothing independent left to pin here",
+      "unified_agenda_parquet.py: tests verify the built Parquet artifact against its receipt, not the publisher editions it was built from; those bytes are covered by unified_agenda_editions.py",
+      "usc_act_index.py: the publisher bytes ARE retained and digest-pinned (output/registry-real-data-sources/olrc-table3-xml-bulk-119-73.zip, 14966992 bytes, sha256:93e1f233e081e47fc3680c4b699151c6d66329988fe21add3b6e9e62746aeea7), but their acquisition URL was never recorded and OLRC no longer serves release point 119-73 at any probed path, so no publisherUrl can be stated without inventing one",
+      "usc_section_oracle.py: the acquisition IS recorded and re-verified -- https://uscode.house.gov/download/releasepoints/us/pl/119/102/xml_uscAll@119-102.zip and the 31 annual XHTML archives, every zip carrying a re-fetch sha256, a matching byte length and a row-for-row reproduction check in research/evidence/usc-section-oracle-2026-08-24/README.md -- and since 2026-08-31 all 32 publisher zips (~2.3 GB) are retained at output/usc-annual-2026-08-24/; what this manifest still lacks is a per-zip testInput (localPath + digest per archive), so the publisher-byte coverage stays a named gap until that pin lands; the six DERIVED oracle tables are digest-pinned in the module and re-checked on every load",
+      "claim_release_exports.py: current test process captured no successful production call",
+      "gao_published_topics.py: pinned real-data input sha256:98391cad16eba43e48017782765088d8720116ba988e1591d85215804906d0cd did not produce substantive parsed counts, output structure, and sample in the same execution",
+      "usc_disposition_tables.py: current execution did not consume pinned real-data inputs ['sha256:66f004679e27e0d16356e14b79cb3b4f7ebf63d91307435fa8f53c95bcc2848d']",
+      "usc_disposition_tables.py: current execution is not tied to a source digest and location"
+    ],
+    "status": "failed"
   },
   "sourceStatuses": {
-    "blocked": 6,
+    "blocked": 7,
     "notApplicable": 13,
-    "publisherBytes": 81
+    "publisherBytes": 80
   }
 }

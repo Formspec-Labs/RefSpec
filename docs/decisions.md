@@ -4756,3 +4756,142 @@ asked". The roster's two raw publisher captures became pinned manifest
 inputs (`eo_roster.py` reads publisherBytes at the audit gate); the
 hand-validated layer's gap is named as by-design (REF-058) rather than
 dressed up.
+
+**Corrected 2026-09-02.** The publisherBytes claim above was wrong and is
+withdrawn. `eo_roster.py` is `blocked` with a named blocker again, because the
+declaration claimed a runtime provenance this reader does not have: the two
+raw captures are retained and digest-pinned in the evidence home, and the
+module's own tests read them for content, but `EoRosterOracle.from_directory`
+consumes the DERIVED roster, so no execution is ever tied to the publisher
+digests. The real-data gate said so as soon as it was asked
+(`current execution did not consume pinned real-data inputs`), which is the
+same lesson twice in one day: the first regeneration of that gate was run
+without `--require-real-data` and recorded `notEvaluated` with an empty failure
+list over a summary that had honestly said `failed` with nine gaps. A gate
+never asked is not a gate passed. What the capture constants do earn is the
+manifest's `declaredUrls` — the acquisition URLs are stated in the module, so
+they are recorded where a reader finds them — and a test now holds their
+digests to the evidence manifest's own so the two copies cannot drift.
+
+### REF-064: a legacy Federal Register identity carries its publication date
+
+- **Date:** 2026-09-02
+- **Status:** Accepted. Adds `rkaf:us-frdoc-legacy` (rulespec 0.2.0rc17) to
+  the minting layer. Supersedes nothing: `rkaf:us-frdoc` is untouched and no
+  previously minted identity changes.
+
+394,128 of the 1,004,233 distinct Federal Register document numbers (39.2%)
+take the pre-2010 bare-legacy form and had no space rulespec could spell, so
+they took the partner hatch. rulespec's new space is DATE-QUALIFIED —
+`urn:rkaf:us:frdoc-legacy:{NN-N..N}:{YYYY-MM-DD}` — and that is the whole
+design rather than a convenience: `00-111` names two different documents, and
+the corpus reported zero within-parquet collisions only because it had already
+dropped one of them. A count taken inside a source that already de-duplicated
+measures its own filter, not the world. So the publication date is part of the
+identity, and this minter cannot reach the space without one: an undated
+legacy number keeps the partner hatch rather than minting a half-qualified
+identity.
+
+Three deliberate refusals, each measured rather than assumed.
+
+**The year prefix is never checked against the date.** A legacy number's
+leading two digits usually restate its publication year, and fencing on the
+disagreement is the obvious next thought — but 1,661 of the 395,498 values
+(0.42%) genuinely disagree, systematic year-boundary spillover where a
+December number is printed in January (`07-6308` on 2008-01-15). The sibling
+letter families spill at larger scale (E8 puts 318 documents into 2009). The
+prefix is a spelling; the date is the caller's fact; adjudicating between them
+would silently refuse 1,661 real documents.
+
+**A malformed date raises rather than downgrading.** Data gets a refusal
+(`None`) throughout this module, but a caller that passes a non-date has
+asserted a fact that is not one — falling back to the hatch would publish an
+identity missing exactly the qualifier the caller believed it supplied, which
+is the failure a date-qualified space exists to prevent. A `datetime` is
+refused too rather than truncated. ISO's compact spelling (`20090819`) is
+accepted and normalized, because a spelling variant of one fact must not
+become a second identifier — the same doctrine as the padding rule.
+
+**The column license still governs.** A date is not a license: a bare legacy
+number arriving from prose is still refused, because unlabeled `94-12345` is
+indistinguishable from a docket or a release number. Nothing about prose
+detection changes.
+
+Cost and scope. `mint_federal_register_document_iri` had zero production
+callers in this repository, so this change makes legacy identity EXPRESSIBLE
+and closes no gap in RefSpec's own outputs; the gap closes at the consumer
+boundary, where a catalog row carries `document_number` and `publication_date`
+together. That step is SpicySearch's and is not taken here. The minting path
+is `O(1)` per value.
+
+rc17 is a PROVISIONAL PIN: it is built from an unmerged local branch
+(`feat/us-frdoc-legacy-space` at `850c204`), its digest is the pin, and a moved
+branch silently invalidates it — see `vendor/README.md`. The letter-opening
+families (10,231 values, including the 4,400 self-dating X numbers) still have
+no space and still take the hatch; that is a separate request.
+
+### REF-065: the X family mints without a date, because it states its own
+
+- **Date:** 2026-09-02
+- **Status:** Accepted. Adds `rkaf:us-frdoc-x` (rulespec 0.2.0rc18) beside
+  REF-064's legacy space. Nothing previously minted changes; the X family
+  leaves `rkaf:partner-defined`.
+
+4,400 Federal Register document numbers open with `X`. They are not a document
+class — the prefix spans genres, carrying a 700-page FDA jurisdictional
+determination (`X96-20828`, 61 FR 44619-45318), 637 and 638 pages of *United
+States v. Microsoft* public comments, NAFTA proclamations, Semiannual
+Regulatory Agenda parts, and 1,122-byte issue CONTENTS stubs alike. It reads as
+an overflow/typographic prefix. So this space asserts that each was published,
+not that any matters: **genre stays in `document_type`, where the corpus already
+carries it**, and a scheme keyed on the prefix does not try to encode tier.
+
+**The form is self-dating, read right-anchored.** `X{YY}-{seq}{MMDD}`: the last
+four digits are the month and day and everything before them is the sequence.
+Parsed that way it agrees with `publication_date` on 4,400 of 4,400 rows. That
+is a stronger property than the legacy form has, and this minter makes it
+load-bearing — a date is optional, and a date that CONTRADICTS the number
+raises, because the number carries the answer and a disagreement is a
+detectable defect rather than a spelling to choose between.
+
+**The census that nearly shipped was filtered, and this is why the space is
+`{5,7}`.** The family was first counted as 4,194 under a fixed-width
+`X##-#####` shape. The live Federal Register shows 2009-12-07 carrying thirty X
+documents — `X09-11207` through `X09-91207` AND `X09-101207` … `X09-301207` —
+so the sequence is variable-width and the corpus holds **4,400**, not 4,194. A
+five-digit tail can hold only a one-digit sequence, so the shape had been
+capping its own count at nine per day across 110 dates and calling the result a
+distribution. The 206 six-digit numbers it hid are real documents:
+`X09-101207` is 74 FR 64213, the DHS Statement of Regulatory Priorities, on the
+same day as `X09-11207` at 74 FR 64129. A space written `[0-9]{5}` would have
+stranded all 206 on its first day.
+
+**The prefix is part of the identity.** 2,382 of the 4,400 (54.1%) have a bare
+twin in the corpus, and the pairs are different publications:
+`X94-10503` is a 44,932-byte Semiannual Regulatory Agenda correction while
+`94-10503` is the 14,678-byte GE CF6 airworthiness NPRM of the same day, read
+from their own bodies. Stripping the prefix to normalize would merge two
+documents into one identity.
+
+**One boundary is deliberate, and closing it either way would be wrong.**
+rulespec's space admits a seven-digit tail as capacity; this repository's
+shape layer stops at six. Ruled 2026-09-02, with rulespec: the two layers have
+OPPOSITE FAILURE COSTS, so they are bounded by different things on purpose. A
+lexical space fails by refusing a real identifier a publisher issued — silent,
+unrecoverable data loss — so it is bounded by capacity and never fitted to
+observed data. A shape layer fails by FALSE POSITIVE — a wrong identity, worse
+than a refusal because it propagates silently into joins — so it is bounded by
+measurement, and `_FR_TWO_DIGIT_PREFIX` and `_FR_SIX_DIGIT_TAIL` serve every
+letter family, so widening them on speculation would admit unseen shapes for
+E, C, R and Z to buy a shape none has.
+
+The consequence lands in the safe direction, which is what settles it: a
+seven-digit X, if ever published, is spellable but not auto-detected — a
+caller that knows what it holds mints it under the column license, and a
+detector that does not know refuses and counts the refusal. A refusal that
+appears in a census beats a wrong mint that does not. It is REF-052's
+prose-reader/column-reader split, "the column is the license", applied one
+layer up, and
+`test_the_x_shape_layer_stops_where_the_corpus_does_and_the_space_does_not`
+carries the reasoning so the next reader does not close the gap in whichever
+direction they happen to be standing in.
