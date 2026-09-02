@@ -4600,3 +4600,46 @@ def test_the_published_logical_path_identities_survive_the_data_homecoming() -> 
     )
     for spec in specs.values():
         assert not Path(str(spec.path)).is_absolute() or str(generator.ROOT) in str(spec.path)
+
+
+def test_the_source_pinned_atlas_input_digests_are_current() -> None:
+    """The ninth link in the generator chain, and the only one no ``--check``
+    can see.
+
+    ``make generate`` runs eight steps, and the last of them regenerates the
+    registry descriptors. This module then pins those descriptors by literal
+    sha256, so moving the atlas index moves the descriptors proof and this pin
+    must move with it. But the pin lives in SOURCE rather than in a generated
+    file, so ``make check-generated`` cannot reach it: on 2026-09-02 all three
+    generators reported "current" while 33 tests failed, and the failures named
+    validators, prebuild validators and producers -- everything except the
+    index that had actually moved.
+
+    That is a check reporting clean because nothing asked it the right
+    question, which is the failure shape this repository spent 2026-09-02
+    cataloguing. So the pin gets a cheap check of its own, in the fast tier
+    rather than behind the twelve-minute full-atlas build that used to be the
+    only thing that noticed.
+
+    The pins stay LITERAL on purpose -- deriving them from the files they pin
+    would make them agree with whatever shipped, which is the whole thing a
+    pin exists to refuse. This asserts they are current; it does not compute
+    them.
+    """
+
+    for pin_name, path_name in (
+        ("REGISTRY_DESCRIPTORS_EXPECTED_DIGEST", "REGISTRY_DESCRIPTORS_LOGICAL_PATH"),
+        ("REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST", "REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH"),
+    ):
+        pinned = getattr(generator, pin_name)
+        logical = getattr(generator, path_name)
+        # The logical path is repository-relative with this repository's own
+        # name in front of it, the way the Atlas distribution addresses it.
+        path = ROOT / logical.removeprefix("refspec/")
+        assert path.is_file(), f"{path_name} names no file: {path}"
+        observed = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        assert pinned == observed, (
+            f"{pin_name} is stale: pinned {pinned}, file {observed}. "
+            f"Run the whole `make generate` chain, then move this pin -- it is "
+            f"the ninth link and no --check target reaches it."
+        )

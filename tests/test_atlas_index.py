@@ -111,7 +111,14 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # in-house reference data, not an external catalog resource, which is
         # why it classifies here beside claim_release_exports rather than as
         # an index row.
-        "implementationModuleCount": 37,
+        # 37 -> 40: the 2026-08-31/09-01 correctness waves' three modules,
+        # which landed unclassified and were masked because neither wave's
+        # audit set included this file. eo_roster is the EO existence oracle
+        # (REF-057), hand_validated_interpretations the curated-assertion layer
+        # (REF-058), infrastructure.invariants holds assert_acyclic. All three
+        # are implementation beside usc_section_oracle and cfr_authority_notes:
+        # they answer questions about a corpus rather than contributing a row.
+        "implementationModuleCount": 40,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
         # REF-035 through REF-037 add the mapping and acquisition bridges.

@@ -715,6 +715,16 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:170afb958d999b157527c92b664dae137c8cae408cbf71aad6ab6d735ee867f0"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-02: the same operation again -- eo_roster,
+# hand_validated_interpretations and infrastructure.invariants join as
+# implementation modules, having landed unclassified in the 2026-08-31/09-01
+# waves. The .nq graph is byte-identical once more; only the proof's
+# inputs.atlasIndexDigest moved. NOTE FOR THE NEXT READER: this pin is the
+# ninth link in the chain `make generate` runs, and the only one no `--check`
+# target can see, because it lives in source rather than in a generated file.
+# All three generators report "current" while 33 tests fail, and the failures
+# name validators and producers rather than the index that moved. If you are
+# here because of that, you are in the right place.
 # 2026-08-31: the intake-ledger identity wave adds iri_minting and
 # agency_crosswalk as implementation modules, and the same-day operational
 # wave's GEMET Theme label fix edits the two files the index pins as that
@@ -723,7 +733,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:2c59d192ae53a69e4003097dd6fa9b72cc3e11d4f58d8013da504325d9cf06a1"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:c46ada6254a7fd914c3d406ce64caacb95b3cdf29359308ebbb14e433f236e72"
 
 
 def _load_validator() -> Any:

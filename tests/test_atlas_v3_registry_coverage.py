@@ -73,10 +73,18 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # FR/regulations.gov crosswalk as derived in-house reference data).
         # Same shape a fourth time: no registry RESOURCE, so the indexed
         # counts hold still while both module counts move by two.
-        "implementationModuleCount": 37,
+        # 37 -> 40: the 2026-08-31/09-01 correctness waves' three modules,
+        # which landed unclassified and were masked because neither wave's
+        # audit set included this file. eo_roster is the EO existence oracle
+        # (REF-057), hand_validated_interpretations the curated-assertion layer
+        # (REF-058), infrastructure.invariants holds assert_acyclic. All three
+        # are implementation beside usc_section_oracle and cfr_authority_notes:
+        # they answer questions about a corpus rather than contributing a row.
+        "implementationModuleCount": 40,
         "indexedResourceCount": 98,
         "indexedWithoutExactReleaseCount": 93,
-        "registryModuleCount": 97,
+        # 97 -> 100 with the same three modules as the count above.
+        "registryModuleCount": 100,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the
