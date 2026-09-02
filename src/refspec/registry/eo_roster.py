@@ -138,12 +138,15 @@ __all__ = [
     "EO_ROSTER_ARTIFACT",
     "FR_API_DENSE_MAX",
     "FR_API_WINDOW",
+    "GOVINFO_FR_1939_11_17_CAPTURE",
     "NARA_CODIFICATION_WINDOW",
     "NARA_DISPOSITION_WINDOW",
+    "NARA_EO_1939_CAPTURE",
     "SOURCE_RANGES",
     "UNKNOWN_REASONS",
     "VERDICTS",
     "WINDOWS",
+    "EoCapturePin",
     "EoRosterOracle",
     "EoVerdict",
     "window_for",
@@ -155,6 +158,50 @@ __all__ = [
 EO_ROSTER_ARTIFACT = "research/evidence/eo-roster-2026-08-31"
 _ROSTER_FILE = "derived/roster.csv"
 _ROSTER_PIN = "sha256:967ad595326ea37bb368357f7da6253fe292123e305c95c346bf152254e20c9d"
+
+
+@dataclass(frozen=True)
+class EoCapturePin:
+    """One raw publisher capture in the sealed evidence home, pinned immutably.
+
+    The audit manifest (``tools/build_registry_source_manifest.py``,
+    ``PINNED_FIXTURE_INPUTS``) resolves these attributes by name: the capture
+    is the publisher's own bytes, retained in the evidence home beside the
+    roster derived from them, and
+    ``tests/test_eo_roster.py::test_the_pinned_raw_captures_back_the_8284_claim``
+    reads both captures for content, not just digest.
+    """
+
+    source_url: str
+    retrieved_at: str
+    expected_sha256: str
+    expected_byte_length: int
+
+
+#: NARA's own 1939 Executive Order disposition table -- the publisher page
+#: whose contiguous 8,031-8,316 run (and the EO 8284 row the review turned
+#: on) seeds the roster's 1939 window. Retrieved-at is the capture's own
+#: response `date` header, kept beside it in raw/nara-eo-1939.headers.txt.
+NARA_EO_1939_CAPTURE = EoCapturePin(
+    source_url="https://www.archives.gov/federal-register/executive-orders/1939.html",
+    retrieved_at="2026-08-31T23:05:56Z",
+    expected_sha256="sha256:6575dcd808f06c39def77e7411d50813bdb32edb7c9359bbdda9f309a037711a",
+    expected_byte_length=144_520,
+)
+
+#: The Federal Register issue of 1939-11-17 (Volume 4), whose front page
+#: prints EO 8284 at 4 FR 4603 -- the primary source that settled the 8284
+#: reversal (REF-057). The URL is GovInfo's canonical package path for the
+#: issue; its response today still reports the pinned content-length
+#: (2,400,332) and the capture's own last-modified (2025-09-22T19:57:34Z),
+#: verified 2026-09-01. Retrieved-at is the capture's response `date` header
+#: (raw/govinfo-FR-1939-11-17.headers.txt).
+GOVINFO_FR_1939_11_17_CAPTURE = EoCapturePin(
+    source_url="https://www.govinfo.gov/content/pkg/FR-1939-11-17/pdf/FR-1939-11-17.pdf",
+    retrieved_at="2026-08-31T23:09:32Z",
+    expected_sha256="sha256:9a6a961b3e327c92b85a9afeaff4dafbfacf3178007467e3f83c3f1313b25987",
+    expected_byte_length=2_400_332,
+)
 
 VERDICTS = ("exists", "absent", "unknown")
 

@@ -1077,6 +1077,25 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "localPath": "tests/fixtures/census_gov_finance_codes/census-aspep-data-flag-codes-2026-08-03.html",
         },
     ),
+    "eo_roster.py": (
+        # Both captures are read for CONTENT (not just digest) by
+        # tests/test_eo_roster.py::test_the_pinned_raw_captures_back_the_8284_claim,
+        # and the evidence home's own MANIFEST-sha256.csv re-pins the same
+        # bytes. The FR-API and Wayback window numbers behind derived/*.csv
+        # were captured as derived CSVs only; these two files are the raw
+        # publisher bytes this repository retains, and they are the two the
+        # EO 8284 adjudication (REF-057) actually turned on.
+        {
+            "name": "naraEoDisposition1939",
+            "constant": "NARA_EO_1939_CAPTURE",
+            "localPath": "research/evidence/eo-roster-2026-08-31/raw/nara-eo-1939.html",
+        },
+        {
+            "name": "govinfoFrIssue19391117",
+            "constant": "GOVINFO_FR_1939_11_17_CAPTURE",
+            "localPath": "research/evidence/eo-roster-2026-08-31/raw/govinfo-FR-1939-11-17.pdf",
+        },
+    ),
     "fac_dictionary.py": (
         {
             "name": "facDictionaryDocs",
@@ -1390,6 +1409,18 @@ SOURCE_BLOCKERS: dict[str, list[str]] = {
             "tables are digest-pinned in the module and re-checked on every load"
         )
     ],
+    # The hand-validated layer has no publisher input BY DESIGN: its rows are
+    # human adjudications whose evidence is git-committed witness bytes the
+    # module itself verifies against HEAD (membership, byte-exact spelling,
+    # resolved containment) at load. There are no publisher bytes to pin that
+    # are not already someone else's -- each witness file is pinned where it
+    # lives. Named rather than dressed up as a capture it does not hold
+    # (REF-058).
+    "hand_validated_interpretations.py": [(
+        "curated human adjudications: inputs are git-committed witness files verified "
+        "byte-exact against HEAD by the module itself at load; no publisher input exists "
+        "by design (REF-058), so there is nothing independent left to pin here"
+    )],
 }
 
 NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
