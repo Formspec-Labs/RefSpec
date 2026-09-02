@@ -15,8 +15,8 @@ dependencies = [
     "referencing>=0.37,<1",
     "typing-extensions>=4.12,<5",
     "pymarc>=5.1,<6",
-    "rulespec-conformance==0.2.0rc16",
-    # Not imported anywhere in RefSpec. rulespec-conformance rc16 requires it,
+    "rulespec-conformance==0.2.0rc18",
+    # Not imported anywhere in RefSpec. rulespec-conformance rc16/rc17 require it,
     # and a [tool.uv.sources] entry only binds a DIRECT dependency, so the
     # vendored wheel is unreachable unless it is named here. See vendor/README.md.
     "rulespec-artifacts==1.0.9",
@@ -35,8 +35,8 @@ refspec-release-graph-gate = "refspec.release_graph:main"
 # vendor/README.md for why, and for the bump procedure. The path is
 # relative so `uv lock`/`uv sync --frozen` are hermetic on CI runners,
 # which have no ~/Work/rulespec checkout.
-rulespec-conformance = { path = "vendor/rulespec_conformance-0.2.0rc16-py3-none-any.whl" }
-# rc16 declares a hard `rulespec-artifacts==1.0.9` dependency that rc15 did not
+rulespec-conformance = { path = "vendor/rulespec_conformance-0.2.0rc18-py3-none-any.whl" }
+# rc16 declared a hard `rulespec-artifacts==1.0.9` dependency that rc15 did not
 # (it arrived with the shared platform-artifact protocol, not with this
 # contract change). Nothing in RefSpec imports it — rulespec_conformance only
 # reaches for it lazily, inside three platform-artifact helpers we never call —
